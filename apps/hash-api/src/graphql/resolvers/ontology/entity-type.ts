@@ -12,8 +12,8 @@ import {
 import {
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
-  QueryGetAllLatestEntityTypesArgs,
   QueryGetEntityTypeArgs,
+  QueryQueryEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -38,11 +38,11 @@ export const createEntityTypeResolver: ResolverFn<
   return createdEntityType;
 };
 
-export const getAllLatestEntityTypesResolver: ResolverFn<
+export const queryEntityTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntityTypesArgs
+  QueryQueryEntityTypesArgs
 > = async (
   _,
   {

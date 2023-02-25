@@ -3,19 +3,19 @@ import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetAllLatestEntityTypesQuery,
-  GetAllLatestEntityTypesQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getAllLatestEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { QueryEntityTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryEntityTypes = (): {
   queryEntityTypes: QueryEntityTypesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    GetAllLatestEntityTypesQuery,
-    GetAllLatestEntityTypesQueryVariables
-  >(getAllLatestEntityTypesQuery, {
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
@@ -64,8 +64,7 @@ export const useBlockProtocolQueryEntityTypes = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.data
-          .getAllLatestEntityTypes as Subgraph<EntityTypeRootType>,
+        data: response.data.queryEntityTypes as Subgraph<EntityTypeRootType>,
       };
     },
     [queryFn],

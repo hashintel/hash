@@ -3,19 +3,19 @@ import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetAllLatestDataTypesQuery,
-  GetAllLatestDataTypesQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getAllLatestDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { QueryDataTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryDataTypes = (): {
   queryDataTypes: QueryDataTypesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    GetAllLatestDataTypesQuery,
-    GetAllLatestDataTypesQueryVariables
-  >(getAllLatestDataTypesQuery, {
+    QueryDataTypesQuery,
+    QueryDataTypesQueryVariables
+  >(queryDataTypesQuery, {
     fetchPolicy: "no-cache",
   });
 
@@ -57,7 +57,7 @@ export const useBlockProtocolQueryDataTypes = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.data.getAllLatestDataTypes as Subgraph<DataTypeRootType>,
+        data: response.data.queryDataTypes as Subgraph<DataTypeRootType>,
       };
     },
     [queryFn],

@@ -43,7 +43,7 @@ export const entityTypedef = gql`
     """
     Get a subgraph rooted at all entities at their latest version.
     """
-    getAllLatestEntities(
+    queryEntities(
       """
       Filter root entities by their entity type ID (optional)
       """

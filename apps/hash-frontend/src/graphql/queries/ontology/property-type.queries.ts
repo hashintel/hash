@@ -19,12 +19,12 @@ export const getPropertyTypeQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestPropertyTypesQuery = gql`
-  query getAllLatestPropertyTypes(
+export const queryPropertyTypesQuery = gql`
+  query queryPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
   ) {
-    getAllLatestPropertyTypes(
+    queryPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
     ) {

@@ -8,7 +8,7 @@ export const entityTypeTypedef = gql`
     """
     Get a subgraph rooted at all entity types at their latest version.
     """
-    getAllLatestEntityTypes(
+    queryEntityTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!

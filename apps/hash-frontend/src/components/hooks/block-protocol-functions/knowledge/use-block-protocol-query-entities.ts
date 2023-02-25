@@ -3,19 +3,19 @@ import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetAllLatestEntitiesQuery,
-  GetAllLatestEntitiesQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { QueryEntitiesMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolQueryEntities = (): {
   queryEntities: QueryEntitiesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    GetAllLatestEntitiesQuery,
-    GetAllLatestEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
@@ -68,7 +68,7 @@ export const useBlockProtocolQueryEntities = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.getAllLatestEntities as Subgraph<EntityRootType>,
+        data: response.queryEntities as Subgraph<EntityRootType>,
       };
     },
     [queryFn],
