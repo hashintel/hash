@@ -3158,6 +3158,14 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
+"@blockprotocol/core@0.1.0-canary-20230223145025":
+  version "0.1.0-canary-20230223145025"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230223145025.tgz#5161d55723b87dbee4c6f22bb277a56f77a13127"
+  integrity sha512-r9yiwJ8PxWBdDtt/mjZEjjkizGHF+Qh1FLIDZuGby0zumz/TTvtG9QEHu1pMn6WYDKdIvj/TvYixGJpXnZFoFA==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
 "@blockprotocol/core@0.1.0-canary-20230225164454":
   version "0.1.0-canary-20230225164454"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230225164454.tgz#aef2db746c8070dc168087828e2d794529be442a"
@@ -3202,6 +3210,19 @@
   dependencies:
     "@blockprotocol/core" "0.1.0-canary-20230220234726"
     "@blockprotocol/type-system" "0.1.0-canary-20230220234726"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    node-fetch "^3.3.0"
+
+"@blockprotocol/graph@0.1.0-canary-20230223145025":
+  version "0.1.0-canary-20230223145025"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230223145025.tgz#01e93ac87887ed1fd259cfe9bf43021c4ba585bb"
+  integrity sha512-SVcUMf8SUlNyqCBII/YSp+gyMhqHz+WjpCbhTvR5AqEEIStW9qU48N0h8cLdjKZRKRCkiBWSeQVeKt4CDF6W2A==
+  dependencies:
+    "@blockprotocol/core" "0.1.0-canary-20230223145025"
+    "@blockprotocol/type-system" "0.1.0-canary-20230223145025"
     ajv "^8.11.2"
     ajv-formats "^2.1.1"
     json-schema-to-typescript "^11.0.2"
@@ -3261,6 +3282,11 @@
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230220234726.tgz#58d88863e266592380d38fcb84acccc56b723b03"
   integrity sha512-ONTfaq4nd7AR6403pJ22VktOxodW35nJkoXd0GuP7KjrWb/YtCnxmHwNxkJRGWMi0iIo7IRiQfJkt4hYmFB4Bg==
+
+"@blockprotocol/type-system@0.1.0-canary-20230223145025":
+  version "0.1.0-canary-20230223145025"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230223145025.tgz#bd9d6a5bf0ef9cb72ff38d61fac7fa40f8c3ae88"
+  integrity sha512-/hpHxuY08kH1q7nMCUYX3Sc7Wu2yoGC7FpGst/wGnbgDJhmX0/W8UiQD/VHov2LOR21U9EtOZMCW+N6EOVIlMg==
 
 "@blockprotocol/type-system@0.1.0-canary-20230225164454":
   version "0.1.0-canary-20230225164454"
@@ -4462,6 +4488,22 @@
   integrity "sha1-3ESOMyxsbjek3AL9hLqNRLmvsBI= sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg=="
   dependencies:
     "@hapi/hoek" "^9.0.0"
+
+"@hashintel/type-editor@0.0.15":
+  version "0.0.15"
+  resolved "https://registry.yarnpkg.com/@hashintel/type-editor/-/type-editor-0.0.15.tgz#cf6ca8b54889eec6a9dcf529461bbfb9a41af384"
+  integrity sha512-kH7ndQRSujBQuPWTANjj5Z4PmPiDT/+Ri8XlK56nrVl5UJPcxpWmTeSaGDIacEMMMGXQoiUHdM9CTS9n+TUB6A==
+  dependencies:
+    "@blockprotocol/graph" "0.1.0-canary-20230223145025"
+    "@blockprotocol/type-system" "0.1.0-canary-20230223145025"
+    "@fortawesome/free-regular-svg-icons" "6.0.0"
+    "@fortawesome/free-solid-svg-icons" "6.0.0"
+    "@hashintel/design-system" "0.0.4"
+    lodash.memoize "4.1.2"
+    lodash.uniqueid "4.0.1"
+    material-ui-popup-state "4.0.2"
+    rooks "7.4.3"
+    setimmediate "1.0.5"
 
 "@headlessui/react@1.4.1":
   version "1.4.1"
