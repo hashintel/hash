@@ -3,42 +3,42 @@ import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetAllLatestDataTypesQuery,
-  GetAllLatestDataTypesQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getAllLatestDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
-import { AggregateDataTypesMessageCallback } from "./ontology-types-shim";
+import { queryDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+import { QueryDataTypesMessageCallback } from "./ontology-types-shim";
 
-export const useBlockProtocolAggregateDataTypes = (): {
-  aggregateDataTypes: AggregateDataTypesMessageCallback;
+export const useBlockProtocolQueryDataTypes = (): {
+  queryDataTypes: QueryDataTypesMessageCallback;
 } => {
-  const [aggregateFn] = useLazyQuery<
-    GetAllLatestDataTypesQuery,
-    GetAllLatestDataTypesQueryVariables
-  >(getAllLatestDataTypesQuery, {
+  const [queryFn] = useLazyQuery<
+    QueryDataTypesQuery,
+    QueryDataTypesQueryVariables
+  >(queryDataTypesQuery, {
     fetchPolicy: "no-cache",
   });
 
-  const aggregateDataTypes = useCallback<AggregateDataTypesMessageCallback>(
+  const queryDataTypes = useCallback<QueryDataTypesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateDataTypes",
+              message: "'data' must be provided for queryDataTypes",
             },
           ],
         };
       }
 
       /**
-       * @todo Add filtering to this aggregate query using structural querying.
+       * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
-      const response = await aggregateFn({
+      const response = await queryFn({
         variables: {
           constrainsValuesOn: { outgoing: 255 },
         },
@@ -49,7 +49,7 @@ export const useBlockProtocolAggregateDataTypes = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateDataTypes",
+              message: "Error calling queryDataTypes",
             },
           ],
         };
@@ -57,11 +57,11 @@ export const useBlockProtocolAggregateDataTypes = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.data.getAllLatestDataTypes as Subgraph<DataTypeRootType>,
+        data: response.data.queryDataTypes as Subgraph<DataTypeRootType>,
       };
     },
-    [aggregateFn],
+    [queryFn],
   );
 
-  return { aggregateDataTypes };
+  return { queryDataTypes };
 };

@@ -18,6 +18,5 @@
     "https://blockprotocol.org/@alice/types/property-type/address-line-1/",
     "https://blockprotocol.org/@alice/types/property-type/postcode/",
     "https://blockprotocol.org/@alice/types/property-type/city/"
-  ],
-  "additionalProperties": false
+  ]
 }

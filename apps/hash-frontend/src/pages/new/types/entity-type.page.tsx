@@ -100,7 +100,6 @@ const Page: NextPageWithLayout = () => {
       kind: "entityType",
       type: "object",
       properties: {},
-      additionalProperties: false,
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(

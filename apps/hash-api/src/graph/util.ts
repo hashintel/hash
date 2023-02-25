@@ -118,7 +118,6 @@ export const generateSystemPropertyTypeSchema = (
           {
             type: "object" as const,
             properties: propertyTypeObjectProperties,
-            additionalProperties: false,
           };
         inner = propertyTypeObject;
       } else {
@@ -296,7 +295,6 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
-    additionalProperties: false,
   };
 };
 

@@ -8,17 +8,17 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useState } from "react";
 
-import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
+import { useBlockProtocolQueryEntities } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { EntityTypeEntitiesContextValue } from "./shared/entity-type-entities-context";
 
 export const useEntityTypeEntitiesContextValue = (
   typeBaseUrl: BaseUrl | null,
 ): EntityTypeEntitiesContextValue => {
   const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { queryEntities } = useBlockProtocolQueryEntities();
 
   useEffect(() => {
-    void aggregateEntities({
+    void queryEntities({
       data: {
         graphResolveDepths: {
           constrainsValuesOn: { outgoing: 0 },
@@ -34,7 +34,7 @@ export const useEntityTypeEntitiesContextValue = (
         setSubgraph(res.data);
       }
     });
-  }, [aggregateEntities]);
+  }, [queryEntities]);
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {

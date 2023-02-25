@@ -17,11 +17,9 @@ export const getDataTypeQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestDataTypesQuery = gql`
-  query getAllLatestDataTypes(
-    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-  ) {
-    getAllLatestDataTypes(constrainsValuesOn: $constrainsValuesOn) {
+export const queryDataTypesQuery = gql`
+  query queryDataTypes($constrainsValuesOn: OutgoingEdgeResolveDepthInput!) {
+    queryDataTypes(constrainsValuesOn: $constrainsValuesOn) {
       ...SubgraphFields
     }
   }

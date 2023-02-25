@@ -55,7 +55,6 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
     },
   ],
   properties: {},
-  additionalProperties: false,
 });
 
 export const LinkTypeForm = (props: TypeFormProps) => {

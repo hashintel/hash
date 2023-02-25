@@ -5,10 +5,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
-  GetAllLatestEntitiesQuery,
-  GetAllLatestEntitiesQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructOrg, Org } from "../../lib/user-and-org";
 
 /**
@@ -23,9 +23,9 @@ export const useOrgs = (
   orgs?: Org[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestEntitiesQuery,
-    GetAllLatestEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       rootEntityTypeIds: [types.entityType.org.entityTypeId],
       constrainsValuesOn: { outgoing: 0 },
@@ -40,7 +40,7 @@ export const useOrgs = (
     fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
-  const { getAllLatestEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
     if (!subgraph) {

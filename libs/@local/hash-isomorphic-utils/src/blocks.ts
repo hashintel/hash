@@ -1,4 +1,5 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import { VersionedUrl } from "@blockprotocol/type-system";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
@@ -122,9 +123,12 @@ const transformBlockConfig = ({
     ...metadata,
     componentId,
     variants,
-    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
-    image: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
-    schema: deriveAbsoluteUrl({ baseUrl, path: metadata.schema }),
+    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
+    image: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
+    schema: deriveAbsoluteUrl({
+      baseUrl,
+      path: metadata.schema,
+    }) as VersionedUrl,
     source: deriveAbsoluteUrl({ baseUrl, path: metadata.source }),
   };
 };

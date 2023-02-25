@@ -1,52 +1,49 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
+import { PropertyTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetAllLatestEntityTypesQuery,
-  GetAllLatestEntityTypesQueryVariables,
+  QueryPropertyTypesQuery,
+  QueryPropertyTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getAllLatestEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
-import { AggregateEntityTypesMessageCallback } from "./ontology-types-shim";
+import { queryPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+import { QueryPropertyTypesMessageCallback } from "./ontology-types-shim";
 
-export const useBlockProtocolAggregateEntityTypes = (): {
-  aggregateEntityTypes: AggregateEntityTypesMessageCallback;
+export const useBlockProtocolQueryPropertyTypes = (): {
+  queryPropertyTypes: QueryPropertyTypesMessageCallback;
 } => {
-  const [aggregateFn] = useLazyQuery<
-    GetAllLatestEntityTypesQuery,
-    GetAllLatestEntityTypesQueryVariables
-  >(getAllLatestEntityTypesQuery, {
+  const [queryFn] = useLazyQuery<
+    QueryPropertyTypesQuery,
+    QueryPropertyTypesQueryVariables
+  >(queryPropertyTypesQuery, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
-  const aggregateEntityTypes = useCallback<AggregateEntityTypesMessageCallback>(
+  const queryPropertyTypes = useCallback<QueryPropertyTypesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateEntityTypes",
+              message: "'data' must be provided for queryPropertyTypes",
             },
           ],
         };
       }
 
       const { graphResolveDepths } = data;
-
       /**
-       * @todo Add filtering to this aggregate query using structural querying.
+       * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
-      const response = await aggregateFn({
+      const response = await queryFn({
         variables: {
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
           ...graphResolveDepths,
         },
       });
@@ -56,7 +53,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateEntityTypes",
+              message: "Error calling queryPropertyTypes",
             },
           ],
         };
@@ -65,11 +62,11 @@ export const useBlockProtocolAggregateEntityTypes = (): {
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
         data: response.data
-          .getAllLatestEntityTypes as Subgraph<EntityTypeRootType>,
+          .queryPropertyTypes as Subgraph<PropertyTypeRootType>,
       };
     },
-    [aggregateFn],
+    [queryFn],
   );
 
-  return { aggregateEntityTypes };
+  return { queryPropertyTypes };
 };

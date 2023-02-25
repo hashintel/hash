@@ -2,17 +2,17 @@ import { Subgraph } from "@local/hash-subgraph";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
-  QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
+  QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 
-export const getAllLatestDataTypes: ResolverFn<
+export const queryDataTypes: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestDataTypesArgs
+  QueryQueryDataTypesArgs
 > = async (_, { constrainsValuesOn }, { dataSources }) => {
   const { graphApi } = dataSources;
 

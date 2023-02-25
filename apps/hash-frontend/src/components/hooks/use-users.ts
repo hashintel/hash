@@ -5,10 +5,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
-  GetAllLatestEntitiesQuery,
-  GetAllLatestEntitiesQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructUser, User } from "../../lib/user-and-org";
 
 export const useUsers = (
@@ -18,9 +18,9 @@ export const useUsers = (
   users?: User[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestEntitiesQuery,
-    GetAllLatestEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       rootEntityTypeIds: [types.entityType.user.entityTypeId],
       constrainsValuesOn: { outgoing: 0 },
@@ -35,7 +35,7 @@ export const useUsers = (
     fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
-  const { getAllLatestEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraph } = data ?? {};
 
   const users = useMemo(() => {
     if (!subgraph) {
