@@ -164,8 +164,6 @@ services:
         condition: service_completed_successfully
       telemetry-collector:
         condition: service_healthy
-      type-fetcher:
-        condition: service_healthy
     build: *graph-build
     image: hash-graph
     read_only: true
