@@ -3160,8 +3160,8 @@
 
 "@blockprotocol/core@0.1.0-canary-20230225164454":
   version "0.1.0-canary-20230225164454"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230225164454.tgz#5161d55723b87dbee4c6f22bb277a56f77a13127"
-  integrity "sha1-rvLbdGyAcNwWgIeCji15RSm+RCo= sha512-OxL9yMwt1mA79bZ2Z3zgnixAT8eORCKB1/f2cktf5zsjJujfUlA4RcEfq5kNUIYgSL0tv/jeK1YefB/vI/IdHg=="
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230225164454.tgz#aef2db746c8070dc168087828e2d794529be442a"
+  integrity sha512-OxL9yMwt1mA79bZ2Z3zgnixAT8eORCKB1/f2cktf5zsjJujfUlA4RcEfq5kNUIYgSL0tv/jeK1YefB/vI/IdHg==
   dependencies:
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
