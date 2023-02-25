@@ -20,8 +20,8 @@ import {
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useBlockContext } from "../../blocks/page/block-context";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
-import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
@@ -53,7 +53,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   wrappingEntityId,
   readonly,
 }) => {
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { queryEntities } = useBlockProtocolQueryEntities();
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const { uploadFile } = useBlockProtocolFileUpload(readonly);
 
@@ -71,7 +71,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const functions = useMemo(
     () => ({
-      aggregateEntities,
+      queryEntities,
       /**
        * @todo remove this when embed block no longer relies on server-side oEmbed calls
        * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
@@ -105,7 +105,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       },
     }),
     [
-      aggregateEntities,
+      queryEntities,
       setBlockSubgraph,
       fetchBlockSubgraph,
       updateEntity,

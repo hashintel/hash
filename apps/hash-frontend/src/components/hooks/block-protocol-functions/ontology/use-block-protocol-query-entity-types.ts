@@ -7,12 +7,12 @@ import {
   GetAllLatestEntityTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getAllLatestEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
-import { AggregateEntityTypesMessageCallback } from "./ontology-types-shim";
+import { QueryEntityTypesMessageCallback } from "./ontology-types-shim";
 
-export const useBlockProtocolAggregateEntityTypes = (): {
-  aggregateEntityTypes: AggregateEntityTypesMessageCallback;
+export const useBlockProtocolQueryEntityTypes = (): {
+  queryEntityTypes: QueryEntityTypesMessageCallback;
 } => {
-  const [aggregateFn] = useLazyQuery<
+  const [queryFn] = useLazyQuery<
     GetAllLatestEntityTypesQuery,
     GetAllLatestEntityTypesQueryVariables
   >(getAllLatestEntityTypesQuery, {
@@ -20,14 +20,14 @@ export const useBlockProtocolAggregateEntityTypes = (): {
     fetchPolicy: "no-cache",
   });
 
-  const aggregateEntityTypes = useCallback<AggregateEntityTypesMessageCallback>(
+  const queryEntityTypes = useCallback<QueryEntityTypesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateEntityTypes",
+              message: "'data' must be provided for queryEntityTypes",
             },
           ],
         };
@@ -36,12 +36,12 @@ export const useBlockProtocolAggregateEntityTypes = (): {
       const { graphResolveDepths } = data;
 
       /**
-       * @todo Add filtering to this aggregate query using structural querying.
+       * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
-      const response = await aggregateFn({
+      const response = await queryFn({
         variables: {
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
@@ -56,7 +56,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateEntityTypes",
+              message: "Error calling queryEntityTypes",
             },
           ],
         };
@@ -68,8 +68,8 @@ export const useBlockProtocolAggregateEntityTypes = (): {
           .getAllLatestEntityTypes as Subgraph<EntityTypeRootType>,
       };
     },
-    [aggregateFn],
+    [queryFn],
   );
 
-  return { aggregateEntityTypes };
+  return { queryEntityTypes };
 };

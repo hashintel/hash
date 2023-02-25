@@ -1,7 +1,7 @@
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntityTypesFunction,
   BlockProtocolCreateEntitiesFunction,
+  BlockProtocolQueryEntitiesFunction,
+  BlockProtocolQueryEntityTypesFunction,
   BlockProtocolUpdateEntitiesFunction,
   JSONObject,
 } from "blockprotocol";
@@ -28,12 +28,12 @@ export type MessageFromFramedBlock = {
       payload: Parameters<BlockProtocolCreateEntitiesFunction>;
     }
   | {
-      type: "aggregateEntities";
-      payload: Parameters<BlockProtocolAggregateEntitiesFunction>;
+      type: "queryEntities";
+      payload: Parameters<BlockProtocolQueryEntitiesFunction>;
     }
   | {
-      type: "aggregateEntityTypes";
-      payload: Parameters<BlockProtocolAggregateEntityTypesFunction>;
+      type: "queryEntityTypes";
+      payload: Parameters<BlockProtocolQueryEntityTypesFunction>;
     }
 );
 

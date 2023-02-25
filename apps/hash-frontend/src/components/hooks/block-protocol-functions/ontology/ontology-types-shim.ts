@@ -29,20 +29,20 @@ import {
 type SystemDefinedPropertyTypeProperties = "$id" | "kind";
 
 export type OntologyCallbacks = {
-  aggregateDataTypes: AggregateDataTypesMessageCallback;
+  queryDataTypes: QueryDataTypesMessageCallback;
   getDataType: GetDataTypeMessageCallback;
   createPropertyType: CreatePropertyTypeMessageCallback;
-  aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
+  queryPropertyTypes: QueryPropertyTypesMessageCallback;
   getPropertyType: GetPropertyTypeMessageCallback;
   updatePropertyType: UpdatePropertyTypeMessageCallback;
   createEntityType: CreateEntityTypeMessageCallback;
-  aggregateEntityTypes: AggregateEntityTypesMessageCallback;
+  queryEntityTypes: QueryEntityTypesMessageCallback;
   getEntityType: GetEntityTypeMessageCallback;
   updateEntityType: UpdateEntityTypeMessageCallback;
 };
 
 /* Data type CRU */
-export type AggregateDataTypesMessageCallback = MessageCallback<
+export type QueryDataTypesMessageCallback = MessageCallback<
   EmptyObject,
   null,
   MessageReturn<Subgraph<DataTypeRootType>>,
@@ -68,14 +68,14 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type AggregatePropertyTypesRequest = {
+export type QueryPropertyTypesRequest = {
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
 };
 
-export type AggregatePropertyTypesMessageCallback = MessageCallback<
-  AggregatePropertyTypesRequest,
+export type QueryPropertyTypesMessageCallback = MessageCallback<
+  QueryPropertyTypesRequest,
   null,
   MessageReturn<Subgraph<PropertyTypeRootType>>,
   ReadOrModifyResourceError
@@ -118,7 +118,7 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type AggregateEntityTypesRequest = {
+export type QueryEntityTypesRequest = {
   graphResolveDepths?: Partial<
     Pick<
       Subgraph["depths"],
@@ -130,8 +130,8 @@ export type AggregateEntityTypesRequest = {
   >;
 };
 
-export type AggregateEntityTypesMessageCallback = MessageCallback<
-  AggregateEntityTypesRequest,
+export type QueryEntityTypesMessageCallback = MessageCallback<
+  QueryEntityTypesRequest,
   null,
   MessageReturn<Subgraph<EntityTypeRootType>>,
   ReadOrModifyResourceError

@@ -6,7 +6,7 @@ import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
+import { useBlockProtocolQueryEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
@@ -24,7 +24,7 @@ export const EntitySelector = ({
   entityIdsToFilterOut,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { queryEntities } = useBlockProtocolQueryEntities();
   const [search, setSearch] = useState("");
 
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -35,7 +35,7 @@ export const EntitySelector = ({
     const init = async () => {
       try {
         setLoading(true);
-        const { data } = await aggregateEntities({
+        const { data } = await queryEntities({
           data: {
             rootEntityTypeIds: expectedEntityTypes.map(
               ({ schema }) => schema.$id,
@@ -52,7 +52,7 @@ export const EntitySelector = ({
     };
 
     void init();
-  }, [aggregateEntities, expectedEntityTypes]);
+  }, [queryEntities, expectedEntityTypes]);
 
   const sortedAndFilteredEntities = useMemo(() => {
     return [...entities]

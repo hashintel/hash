@@ -30,8 +30,8 @@ const fetchSource = memoizeFetchFunction((url) =>
 
 export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
-  aggregateEntities,
-  aggregateEntityTypes,
+  queryEntities,
+  queryEntityTypes,
   createEntities,
   getEmbedBlock,
   updateEntities,
@@ -139,15 +139,11 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
        *    this naive passing through of requests provides no security at present.
        */
       switch (data.type) {
-        case "aggregateEntities":
-          asyncCallAndResponse(aggregateEntities, data.payload, data.requestId);
+        case "queryEntities":
+          asyncCallAndResponse(queryEntities, data.payload, data.requestId);
           break;
-        case "aggregateEntityTypes":
-          asyncCallAndResponse(
-            aggregateEntityTypes,
-            data.payload,
-            data.requestId,
-          );
+        case "queryEntityTypes":
+          asyncCallAndResponse(queryEntityTypes, data.payload, data.requestId);
           break;
         case "createEntities":
           asyncCallAndResponse(createEntities, data.payload, data.requestId);
@@ -168,12 +164,12 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
 
     return () => window.removeEventListener("message", msgHandler);
   }, [
-    aggregateEntities,
+    queryEntities,
     getEmbedBlock,
     asyncCallAndResponse,
     createEntities,
     updateEntities,
-    aggregateEntityTypes,
+    queryEntityTypes,
   ]);
 
   const onLoad = useCallback(() => {
