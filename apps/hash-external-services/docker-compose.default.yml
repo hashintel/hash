@@ -1,7 +1,0 @@
-version: "3.9"
-
-services:
-  graph:
-    depends_on:
-      type-fetcher:
-        condition: service_healthy
