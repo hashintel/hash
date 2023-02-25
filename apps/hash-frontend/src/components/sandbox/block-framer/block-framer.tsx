@@ -1,3 +1,4 @@
+/* @todo - stop using this deprecated package and migrate away from outdated types such as "aggregate* */
 import {
   BlockProtocolFunction,
   BlockProtocolFunctions,
@@ -30,8 +31,8 @@ const fetchSource = memoizeFetchFunction((url) =>
 
 export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
-  queryEntities,
-  queryEntityTypes,
+  aggregateEntities,
+  aggregateEntityTypes,
   createEntities,
   getEmbedBlock,
   updateEntities,
@@ -140,10 +141,14 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
        */
       switch (data.type) {
         case "queryEntities":
-          asyncCallAndResponse(queryEntities, data.payload, data.requestId);
+          asyncCallAndResponse(aggregateEntities, data.payload, data.requestId);
           break;
         case "queryEntityTypes":
-          asyncCallAndResponse(queryEntityTypes, data.payload, data.requestId);
+          asyncCallAndResponse(
+            aggregateEntityTypes,
+            data.payload,
+            data.requestId,
+          );
           break;
         case "createEntities":
           asyncCallAndResponse(createEntities, data.payload, data.requestId);
@@ -164,12 +169,12 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
 
     return () => window.removeEventListener("message", msgHandler);
   }, [
-    queryEntities,
+    aggregateEntities,
     getEmbedBlock,
     asyncCallAndResponse,
     createEntities,
     updateEntities,
-    queryEntityTypes,
+    aggregateEntityTypes,
   ]);
 
   const onLoad = useCallback(() => {
