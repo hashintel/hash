@@ -143,20 +143,24 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
-  const graphProperties = useMemo<BlockGraphProperties["graph"]>(
-    () => ({
-      readonly,
-      blockEntitySubgraph: blockSubgraph,
-    }),
+  const graphProperties = useMemo<BlockGraphProperties["graph"] | null>(
+    () =>
+      blockSubgraph
+        ? {
+            readonly,
+            blockEntitySubgraph: blockSubgraph,
+          }
+        : null,
     [blockSubgraph, readonly],
   );
 
   // The paragraph block needs updating to 0.3 and publishing – this ensures it doesn't crash
   // @todo-0.3 remove this when the paragraph block is updated to 0.3
   const temporaryBackwardsCompatibleProperties = useMemo(() => {
-    if (!graphProperties.blockEntitySubgraph) {
+    if (!graphProperties) {
       return null;
     }
+
     const rootEntity = getRoots(graphProperties.blockEntitySubgraph)[0] as
       | Entity
       | undefined;

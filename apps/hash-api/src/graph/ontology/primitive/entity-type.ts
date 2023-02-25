@@ -57,9 +57,7 @@ export const createEntityType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createEntityType({
     actorId,
     ownedById,
-    schema: {
-      ...schema,
-    },
+    schema,
   });
 
   return { schema, metadata: metadata as OntologyElementMetadata };
