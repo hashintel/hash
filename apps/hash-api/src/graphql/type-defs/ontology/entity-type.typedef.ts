@@ -6,7 +6,7 @@ export const entityTypeTypedef = gql`
 
   extend type Query {
     """
-    Get a subgraph rooted at all entity types at their latest version.
+    Get a subgraph rooted at all entity types that match a given filter.
     """
     queryEntityTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
