@@ -32,7 +32,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const { entities } = useEntityTypeEntities();
 
   const baseUrl = getEntityTypeBaseUrl(
-    router.query["entity-type-id"] as string,
+    router.query["slug-maybe-version"]![0] as string,
     router.query.shortname as string,
   );
 

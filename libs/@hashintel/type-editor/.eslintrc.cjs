@@ -19,6 +19,11 @@ module.exports = {
             group: ["@mui/material/*"],
             message: "Please import from @mui/material instead",
           },
+          {
+            group: ["@local/*"],
+            message:
+              "You cannot use unpublished local packages in a published package.",
+          },
         ],
       },
     ],

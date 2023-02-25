@@ -1,6 +1,5 @@
 import {
   extractBaseUrl,
-  extractVersion,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
@@ -10,19 +9,14 @@ import {
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import {
-  Box,
   Checkbox,
-  checkboxClasses,
   Collapse,
-  svgIconClasses,
   Table,
   TableBody,
   TableCell,
-  TableCellProps,
   TableFooter,
   TableHead,
   TableRow,
-  Tooltip,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
@@ -44,11 +38,9 @@ import {
 
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
-import {
-  PropertyTypesByVersionedUrl,
-  usePropertyTypesOptions,
-} from "../shared/property-types-options-context";
+import { usePropertyTypesOptions } from "../shared/property-types-options-context";
 import { useIsReadonly } from "../shared/read-only-context";
+import { DisabledCheckboxCell } from "./property-list-card/disabled-checkbox-cell";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTitleCell } from "./property-list-card/property-title-cell";
@@ -74,7 +66,9 @@ import {
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
+import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
+import { useTypeVersions } from "./shared/use-type-versions";
 
 const CollapsibleTableRow = ({
   expanded,
@@ -119,75 +113,7 @@ const CollapsibleTableRow = ({
   );
 };
 
-const DisabledCheckboxCell = ({
-  title,
-  checked,
-  width,
-  sx,
-}: TableCellProps & {
-  title?: string;
-  checked?: boolean;
-  width: number;
-}) => {
-  return (
-    <EntityTypeTableCenteredCell width={width}>
-      <Tooltip title={title} placement="top" disableInteractive>
-        <Box
-          sx={[
-            {
-              boxSizing: "content-box",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
-        >
-          <Checkbox
-            disabled
-            checked={checked}
-            sx={[
-              {
-                color: ({ palette }) => `${palette.gray[40]} !important`,
-                [`.${svgIconClasses.root}`]: {
-                  color: "inherit",
-                },
-                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
-                  color: ({ palette }) => `${palette.blue[30]} !important`,
-                },
-              },
-            ]}
-          />
-        </Box>
-      </Tooltip>
-    </EntityTypeTableCenteredCell>
-  );
-};
-
-const usePropertyTypeVersions = (
-  propertyTypeId: VersionedUrl,
-  propertyTypeOptions?: PropertyTypesByVersionedUrl,
-) => {
-  return useMemo(() => {
-    const baseUrl = extractBaseUrl(propertyTypeId);
-
-    const versions = Object.values(propertyTypeOptions ?? {}).filter(
-      (propertyType) => baseUrl === extractBaseUrl(propertyType.$id),
-    );
-
-    const latestVersion = Math.max(
-      ...versions.map((version) => extractVersion(version.$id)),
-    );
-
-    return [
-      extractVersion(propertyTypeId),
-      latestVersion,
-      baseUrl.slice(0, -1),
-    ] as const;
-  }, [propertyTypeId, propertyTypeOptions]);
-};
-
-const REQUIRED_CELL_WIDTH = 100;
+export const REQUIRED_CELL_WIDTH = 100;
 
 const PropertyRow = ({
   property,
@@ -218,7 +144,7 @@ const PropertyRow = ({
 
   const isReadonly = useIsReadonly();
 
-  const [currentVersion, latestVersion, baseUrl] = usePropertyTypeVersions(
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
     property.$id,
     propertyTypesOptions,
   );
@@ -306,9 +232,9 @@ const PropertyRow = ({
           setExpanded={setExpanded}
           currentVersion={currentVersion}
           latestVersion={latestVersion}
-          onVersionUpdate={() => {
+          onUpdateVersion={() => {
             if (latestVersion) {
-              onUpdateVersion?.(`${baseUrl}/v/${latestVersion}`);
+              onUpdateVersion?.(`${baseUrl}v/${latestVersion}`);
             }
           }}
         />
@@ -392,26 +318,23 @@ const PropertyRow = ({
 
 export const PropertyTypeRow = ({
   propertyIndex,
-  property,
-  propertyId,
   onRemove,
   onUpdateVersion,
   flash,
 }: {
   propertyIndex: number;
-  property: PropertyType | undefined;
-  propertyId: VersionedUrl;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUrl) => void;
   flash: boolean;
 }) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
-  const [isRequired, isArray] = useWatch({
+  const [isRequired, isArray, propertyId] = useWatch({
     control,
     name: [
       `properties.${propertyIndex}.required`,
       `properties.${propertyIndex}.array`,
+      `properties.${propertyIndex}.$id`,
     ],
   });
 
@@ -427,10 +350,11 @@ export const PropertyTypeRow = ({
   });
 
   const propertyTypesOptions = usePropertyTypesOptions();
+  const property = propertyTypesOptions[propertyId];
 
   const { updatePropertyType } = useOntologyFunctions();
 
-  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+  const [currentVersion, latestVersion] = useTypeVersions(
     propertyId,
     propertyTypesOptions,
   );
@@ -533,15 +457,10 @@ const InsertPropertyRow = (
   const propertyTypeOptions = usePropertyTypesOptions();
   const propertyTypes = Object.values(propertyTypeOptions);
 
-  const filteredPropertyTypes = useMemo(() => {
-    const propertyBaseUrls = properties.map((includedProperty) =>
-      extractBaseUrl(includedProperty.$id),
-    );
-
-    return propertyTypes.filter(
-      (type) => !propertyBaseUrls.includes(extractBaseUrl(type.$id)),
-    );
-  }, [properties, propertyTypes]);
+  const filteredPropertyTypes = useFilterTypeOptions({
+    typesToExclude: properties,
+    typeOptions: propertyTypes,
+  });
 
   return (
     <InsertTypeRow
@@ -682,7 +601,7 @@ export const PropertyListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map(({ row, field, index }) => (
+        {fields.map(({ field, index }) => (
           <PropertyTypeRow
             key={field.id}
             propertyIndex={index}
@@ -694,8 +613,6 @@ export const PropertyListCard = () => {
                 shouldDirty: true,
               });
             }}
-            property={row}
-            propertyId={field.$id}
             flash={flashingRows.includes(field.$id)}
           />
         ))}

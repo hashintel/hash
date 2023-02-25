@@ -1,6 +1,12 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
-import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
+import {
+  Box,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+} from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
@@ -33,7 +39,10 @@ import {
   TypeFormProps,
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
+import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
+import { useTypeVersions } from "./shared/use-type-versions";
+import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
 
 const formDataToEntityType = (data: TypeFormDefaults) => ({
   type: "object" as const,
@@ -63,21 +72,15 @@ export const LinkTypeForm = (props: TypeFormProps) => {
 
 const LinkTypeRow = ({
   linkIndex,
-  link,
   onRemove,
   onUpdateVersion,
   flash,
 }: {
   linkIndex: number;
-  link: EntityType | undefined;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUrl) => void;
   flash: boolean;
 }) => {
-  if (!link) {
-    throw new Error("Missing link");
-  }
-
   const isReadonly = useIsReadonly();
 
   const { updateEntityType } = useOntologyFunctions();
@@ -87,6 +90,25 @@ const LinkTypeRow = ({
     variant: "popover",
     popupId: `editLink-${editModalPopupId}`,
   });
+
+  const { control } = useFormContext<EntityTypeEditorFormData>();
+
+  const { linkTypes } = useEntityTypesOptions();
+  const linkId = useWatch({
+    control,
+    name: `links.${linkIndex}.$id`,
+  });
+
+  const link = linkTypes[linkId];
+
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
+    linkId,
+    linkTypes,
+  );
+
+  if (!link) {
+    throw new Error(`Link entity type with ${linkId} not found in options`);
+  }
 
   const onUpdateVersionRef = useRef(onUpdateVersion);
   useLayoutEffect(() => {
@@ -122,6 +144,19 @@ const LinkTypeRow = ({
             <Link href={link.$id} style={{ color: "inherit", fontWeight: 600 }}>
               {link.title}
             </Link>
+            {currentVersion !== latestVersion && !isReadonly ? (
+              <Box ml={1}>
+                <VersionUpgradeIndicator
+                  currentVersion={currentVersion}
+                  latestVersion={latestVersion}
+                  onUpdateVersion={() => {
+                    if (latestVersion) {
+                      onUpdateVersion(`${baseUrl}v/${latestVersion}`);
+                    }
+                  }}
+                />
+              </Box>
+            ) : null}
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell sx={{ py: "0 !important" }}>
@@ -131,6 +166,12 @@ const LinkTypeRow = ({
         <TypeMenuCell
           typeId={link.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
+          {...(currentVersion !== latestVersion
+            ? {
+                editButtonDisabled:
+                  "Update the link type to the latest version to edit",
+              }
+            : {})}
           variant="link"
           onRemove={onRemove}
         />
@@ -161,13 +202,12 @@ const InsertLinkRow = (
   const links = useWatch({ control, name: "links" });
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
-
   const linkTypes = Object.values(linkTypeOptions);
 
-  // @todo make more efficient
-  const filteredLinkTypes = linkTypes.filter(
-    (type) => !links.some((includedLink) => includedLink.$id === type.$id),
-  );
+  const filteredLinkTypes = useFilterTypeOptions({
+    typesToExclude: links,
+    typeOptions: linkTypes,
+  });
 
   return (
     <InsertTypeRow {...props} options={filteredLinkTypes} variant="link" />
@@ -288,7 +328,7 @@ export const LinkListCard = () => {
             Expected entity types{" "}
             <QuestionIcon tooltip="When specified, only entities whose types are listed in this column will be able to be associated with a link" />
           </TableCell>
-          <EntityTypeTableCenteredCell width={200}>
+          <EntityTypeTableCenteredCell width={210}>
             Allowed number of links{" "}
             <QuestionIcon tooltip="Require entities to specify a minimum or maximum number of links. A minimum value of 1 or more means that a link is required." />
           </EntityTypeTableCenteredCell>
@@ -308,7 +348,6 @@ export const LinkListCard = () => {
                 shouldDirty: true,
               });
             }}
-            link={row}
             flash={row ? flashingRows.includes(row.$id) : false}
           />
         ))}
