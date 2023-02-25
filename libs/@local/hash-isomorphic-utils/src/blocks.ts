@@ -123,8 +123,8 @@ const transformBlockConfig = ({
     ...metadata,
     componentId,
     variants,
-    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
-    image: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
+    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
+    image: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
     schema: deriveAbsoluteUrl({
       baseUrl,
       path: metadata.schema,
