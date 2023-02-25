@@ -2,10 +2,10 @@ import "iframe-resizer/js/iframeResizer.contentWindow";
 
 import * as Sentry from "@sentry/react";
 import {
+  BlockProtocolAggregateEntitiesFunction,
+  BlockProtocolAggregateEntityTypesFunction,
   BlockProtocolCreateEntitiesFunction,
   BlockProtocolEntity,
-  BlockProtocolQueryEntitiesFunction,
-  BlockProtocolQueryEntityTypesFunction,
   BlockProtocolUpdateEntitiesFunction,
 } from "blockprotocol";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
@@ -70,13 +70,13 @@ export const FramedBlock: FunctionComponent = () => {
    * @todo set loading / error states based on promise status and pass into block.
    *    in order to provide aggregateLoading, aggregateError, etc
    */
-  const queryEntities: BlockProtocolQueryEntitiesFunction = (...payload) =>
+  const queryEntities: BlockProtocolAggregateEntitiesFunction = (...payload) =>
     sendMessage({
       payload,
       type: "queryEntities",
     });
 
-  const queryEntityTypes: BlockProtocolQueryEntityTypesFunction = (
+  const queryEntityTypes: BlockProtocolAggregateEntityTypesFunction = (
     ...payload
   ) =>
     sendMessage({
