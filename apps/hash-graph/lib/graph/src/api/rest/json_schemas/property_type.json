@@ -43,13 +43,9 @@
             },
             "properties": {
               "$ref": "propertyTypeObject"
-            },
-            "additionalProperties": {
-              "type": "boolean",
-              "enum": [false]
             }
           },
-          "required": ["type", "properties", "additionalProperties"],
+          "required": ["type", "properties"],
           "additionalProperties": false
         },
         {

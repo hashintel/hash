@@ -3,6 +3,5 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "type": "object",
   "title": "Link",
-  "properties": {},
-  "additionalProperties": false
+  "properties": {}
 }

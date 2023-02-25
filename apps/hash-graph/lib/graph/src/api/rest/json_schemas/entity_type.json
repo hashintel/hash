@@ -35,21 +35,10 @@
         "format": "uri"
       }
     },
-    "links": { "$ref": "#/$defs/linkTypeObject" },
-    "additionalProperties": {
-      "type": "boolean",
-      "enum": [false]
-    }
+    "links": { "$ref": "#/$defs/linkTypeObject" }
   },
   "additionalProperties": false,
-  "required": [
-    "kind",
-    "$id",
-    "type",
-    "title",
-    "properties",
-    "additionalProperties"
-  ],
+  "required": ["kind", "$id", "type", "title", "properties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",
