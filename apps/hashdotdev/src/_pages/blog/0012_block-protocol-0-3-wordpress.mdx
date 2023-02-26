@@ -19,7 +19,11 @@ date: "2023-02-28"
 
 The Block Protocol 0.3 release represents the specification’s biggest evolution yet, building on a wealth of developer feedback and our own experiences integrating the protocol into a wide array of apps and frameworks.
 
-This release primarily focuses on the way data is structured, resulting in major updates to the Core and Graph modules [introduced in v0.2](https://hash.dev/blog/block-protocol-v02), making them significantly more robust, and expanding the modelling capabilities of links between entities. Read on to learn more or [jump over to the docs](https://blockprotocol.org/docs) to get into the technical details.
+This release primarily focuses on the way data is structured, resulting in major updates to the Core and Graph modules [introduced in version 0.2](https://hash.dev/blog/block-protocol-v02), making them significantly more robust, and expanding the modelling capabilities of links between entities.
+
+It also introduces a new **Service module**, which defines an interface for accessing external services (aka. APIs) consistently and reliably from within blocks, irrespective of the integrations that an embedding application natively supports. This allows embedders to implement their own integrations as they already might, while allowing the [Þ Hub](https://blockprotocol.org/hub) to act as a fallback for any integrations they don't (yet!) themselves support.
+
+Read on to learn more or [jump over to the docs](https://blockprotocol.org/docs) to get into the technical details.
 
 ## The Block Protocol expands to WordPress
 
