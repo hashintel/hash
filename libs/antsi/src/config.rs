@@ -10,6 +10,7 @@
 //!
 //! For more information please look at the respective documentation. `antsi` uses
 //! [`Delimiter::Colon`] and [`Compliance::Iso`] as default in all documentation.
+// TODO: recommendations for most used terminal emulators
 use core::sync::atomic::{AtomicU8, Ordering};
 
 use crate::Style;
