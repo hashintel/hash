@@ -1,5 +1,5 @@
 import { BlockComponent } from "@blockprotocol/graph/react";
-import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
+import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef, useState } from "react";
 import { setup, tw } from "twind";
 
@@ -14,10 +14,10 @@ export const Image: BlockComponent<BlockEntityProperties> = (props) => {
 
   const blockRef = useRef<HTMLDivElement>(null);
 
-  const { hookService } = useHookBlockService(blockRef);
+  const { hookModule } = useHookBlockModule(blockRef);
 
   useHook(
-    hookService,
+    hookModule,
     blockRef,
     "image",
     // eslint-disable-next-line react/destructuring-assignment -- need to pass props through to Media

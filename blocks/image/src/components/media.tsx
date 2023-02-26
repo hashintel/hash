@@ -13,7 +13,7 @@ import {
   LinkGroup,
   UpdateEntityData,
 } from "@blockprotocol/graph";
-import { useGraphBlockService } from "@blockprotocol/graph/react";
+import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import {
   Dispatch,
   FunctionComponent,
@@ -146,7 +146,7 @@ export const Media: FunctionComponent<
     mediaType,
   } = props;
 
-  const { graphService } = useGraphBlockService(blockRef);
+  const { graphModule } = useGraphBlockModule(blockRef);
 
   const matchingLinkedEntities = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
@@ -193,7 +193,7 @@ export const Media: FunctionComponent<
   const updateData = useCallback(
     ({ width, src }: { src: string | undefined; width?: number }) => {
       if (src?.trim()) {
-        if (graphService?.updateEntity && entityId) {
+        if (graphModule?.updateEntity && entityId) {
           const updateEntityData: UpdateEntityData = {
             properties: {
               initialCaption: draftCaption,
@@ -205,7 +205,7 @@ export const Media: FunctionComponent<
             updateEntityData.properties.initialWidth = width;
           }
 
-          void graphService.updateEntity({ data: updateEntityData });
+          void graphModule.updateEntity({ data: updateEntityData });
         }
 
         unstable_batchedUpdates(() => {
@@ -220,7 +220,7 @@ export const Media: FunctionComponent<
     [
       draftCaption,
       entityId,
-      graphService,
+      graphModule,
       mediaType,
       setDraftSrc,
       setDraftWidth,
@@ -242,18 +242,18 @@ export const Media: FunctionComponent<
       if (
         !loading &&
         entityId &&
-        graphService?.createLink &&
+        graphModule?.createLink &&
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        graphService.deleteLink &&
+        graphModule.deleteLink &&
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        graphService.uploadFile
+        graphModule.uploadFile
       ) {
         unstable_batchedUpdates(() => {
           setErrorString(null);
           setLoading(true);
         });
 
-        graphService
+        graphModule
           .uploadFile({
             data: { ...imageProp, mediaType },
           })
@@ -272,12 +272,12 @@ export const Media: FunctionComponent<
               existingLinkGroup?.links.filter(isSingleTargetLink)?.[0]?.linkId;
 
             if (linkId) {
-              await graphService.deleteLink({
+              await graphModule.deleteLink({
                 data: { linkId },
               });
             }
 
-            await graphService.createLink({
+            await graphModule.createLink({
               data: {
                 sourceEntityId: entityId,
                 destinationEntityId: file.entityId,
@@ -303,7 +303,7 @@ export const Media: FunctionComponent<
     [
       blockGraph?.linkGroups,
       entityId,
-      graphService,
+      graphModule,
       loading,
       mediaType,
       readonly,
