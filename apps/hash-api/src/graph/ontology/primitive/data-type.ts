@@ -1,4 +1,7 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  DATA_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -52,8 +55,7 @@ export const createDataType: ImpureGraphFunction<
     title: params.schema.title,
   });
   const schema = {
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type" as const,
+    $schema: DATA_TYPE_META_SCHEMA,
     kind: "dataType" as const,
     $id: dataTypeUrl,
     ...params.schema,
@@ -139,8 +141,7 @@ export const updateDataType: ImpureGraphFunction<
     actorId,
     typeToUpdate: dataTypeId,
     schema: {
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      $schema: DATA_TYPE_META_SCHEMA,
       kind: "dataType",
       ...schema,
     },
@@ -150,8 +151,7 @@ export const updateDataType: ImpureGraphFunction<
 
   return {
     schema: {
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      $schema: DATA_TYPE_META_SCHEMA,
       kind: "dataType",
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),

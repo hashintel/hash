@@ -1,4 +1,7 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -51,8 +54,7 @@ export const createEntityType: ImpureGraphFunction<
   });
 
   const schema = {
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type" as const,
+    $schema: ENTITY_TYPE_META_SCHEMA,
     kind: "entityType" as const,
     $id: entityTypeId,
     ...params.schema,
@@ -136,8 +138,7 @@ export const updateEntityType: ImpureGraphFunction<
     typeToUpdate: entityTypeId,
     schema: {
       kind: "entityType",
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
     },
   };
@@ -149,8 +150,7 @@ export const updateEntityType: ImpureGraphFunction<
   return {
     schema: {
       kind: "entityType",
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },

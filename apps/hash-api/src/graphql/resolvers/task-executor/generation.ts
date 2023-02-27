@@ -1,9 +1,11 @@
 import {
   Array as TypeSystemArray,
   BaseUrl,
+  ENTITY_TYPE_META_SCHEMA,
   EntityType,
   extractVersion,
   OneOf,
+  PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
@@ -484,8 +486,7 @@ const traverseJsonValue = ({
 
     if (!propertyType) {
       propertyType = {
-        $schema:
-          "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        $schema: PROPERTY_TYPE_META_SCHEMA,
         kind: "propertyType",
         $id: generateTypeId({
           namespace,
@@ -529,8 +530,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
   const title = streamNameToEntityTypeName(integration, streamName);
 
   const entityType: EntityType = existingEntityType ?? {
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    $schema: ENTITY_TYPE_META_SCHEMA,
     kind: "entityType",
     $id: generateTypeId({
       namespace,

@@ -1,9 +1,11 @@
 import {
   Array,
   DataTypeReference,
+  ENTITY_TYPE_META_SCHEMA,
   EntityType,
   Object,
   OneOf,
+  PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
@@ -142,8 +144,7 @@ export const generateSystemPropertyTypeSchema = (
   );
 
   return {
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    $schema: PROPERTY_TYPE_META_SCHEMA,
     kind: "propertyType",
     $id: params.propertyTypeId,
     title: params.title,
@@ -289,8 +290,7 @@ export const generateSystemEntityTypeSchema = (
     ) ?? undefined;
 
   return {
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    $schema: ENTITY_TYPE_META_SCHEMA,
     kind: "entityType",
     $id: params.entityTypeId,
     title: params.title,

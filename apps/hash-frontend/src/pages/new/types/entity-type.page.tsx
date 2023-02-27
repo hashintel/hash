@@ -1,4 +1,7 @@
-import { EntityType } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  EntityType,
+} from "@blockprotocol/type-system";
 import {
   Button,
   OntologyChip,
@@ -94,8 +97,7 @@ const Page: NextPageWithLayout = () => {
       version: 1,
     });
     const entityType: EntityType = {
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      $schema: ENTITY_TYPE_META_SCHEMA,
       kind: "entityType",
       $id: versionedUrl,
       title: name,

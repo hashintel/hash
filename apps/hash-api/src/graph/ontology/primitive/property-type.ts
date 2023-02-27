@@ -1,4 +1,7 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  PROPERTY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -47,8 +50,7 @@ export const createPropertyType: ImpureGraphFunction<
   });
 
   const schema = {
-    $schema:
-      "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type" as const,
+    $schema: PROPERTY_TYPE_META_SCHEMA,
     kind: "propertyType" as const,
     $id: propertyTypeId,
     ...params.schema,
@@ -129,8 +131,7 @@ export const updatePropertyType: ImpureGraphFunction<
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,
     schema: {
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type" as const,
+      $schema: PROPERTY_TYPE_META_SCHEMA,
       kind: "propertyType" as const,
       ...schema,
     },
@@ -143,8 +144,7 @@ export const updatePropertyType: ImpureGraphFunction<
 
   return {
     schema: {
-      $schema:
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type" as const,
+      $schema: PROPERTY_TYPE_META_SCHEMA,
       kind: "propertyType" as const,
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
