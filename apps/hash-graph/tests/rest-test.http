@@ -79,6 +79,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
     "title": "Text",
@@ -171,6 +172,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "title": "Text",
     "description": "An ordered sequence of characters",
@@ -193,6 +195,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
     "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
     "title": "Name",
@@ -283,6 +286,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
     "title": "Name",
     "oneOf": [
@@ -377,6 +381,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
     "type": "object",
@@ -475,6 +480,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
     "type": "object",
@@ -566,6 +572,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "type": "object",
     "title": "Person",
