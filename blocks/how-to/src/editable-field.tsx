@@ -32,6 +32,7 @@ export const EditableField = ({
   const { palette } = useTheme();
 
   const [hovered, setHovered] = useState(false);
+  const [buttonFocused, setButtonFocused] = useState(false);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLDivElement | null>(null);
 
@@ -122,9 +123,10 @@ export const EditableField = ({
       )}
 
       {!readonly ? (
-        <Fade in={hovered && !editing}>
-          <Box sx={{ position: "relative" }}>
+        <Fade in={(hovered || buttonFocused) && !editing}>
+          <Box sx={{ position: "relative", visibility: "visible !important" }}>
             <IconButton
+              tabIndex={0}
               onClick={() => {
                 setEditing(true);
                 inputRef.current?.focus();
@@ -135,6 +137,8 @@ export const EditableField = ({
                 left: 12,
                 padding: 0.5,
               }}
+              onFocus={() => setButtonFocused(true)}
+              onBlur={() => setButtonFocused(false)}
             >
               <FontAwesomeIcon
                 icon={{ icon: !value ? faPen : faPenToSquare.icon }}
