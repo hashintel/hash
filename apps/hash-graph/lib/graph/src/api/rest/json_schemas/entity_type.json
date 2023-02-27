@@ -3,6 +3,12 @@
   "description": "Specifies the structure of an Entity Type",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+      ]
+    },
     "kind": {
       "enum": ["entityType"]
     },
@@ -38,7 +44,7 @@
     "links": { "$ref": "#/$defs/linkTypeObject" }
   },
   "additionalProperties": false,
-  "required": ["kind", "$id", "type", "title", "properties"],
+  "required": ["$schema", "kind", "$id", "type", "title", "properties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",

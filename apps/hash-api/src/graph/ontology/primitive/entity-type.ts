@@ -1,6 +1,9 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
-import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
+import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -34,7 +37,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    schema: EntityTypeWithoutId;
+    schema: ConstructEntityTypeParams;
     actorId: AccountId;
   },
   Promise<EntityTypeWithMetadata>
@@ -50,7 +53,12 @@ export const createEntityType: ImpureGraphFunction<
     title: params.schema.title,
   });
 
-  const schema = { $id: entityTypeId, ...params.schema };
+  const schema = {
+    $schema: ENTITY_TYPE_META_SCHEMA,
+    kind: "entityType" as const,
+    $id: entityTypeId,
+    ...params.schema,
+  };
 
   const { graphApi } = ctx;
 
@@ -119,7 +127,7 @@ export const getEntityTypeById: ImpureGraphFunction<
 export const updateEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
-    schema: Omit<EntityType, "$id">;
+    schema: ConstructEntityTypeParams;
     actorId: AccountId;
   },
   Promise<EntityTypeWithMetadata>
@@ -128,7 +136,11 @@ export const updateEntityType: ImpureGraphFunction<
   const updateArguments: UpdateEntityTypeRequest = {
     actorId,
     typeToUpdate: entityTypeId,
-    schema,
+    schema: {
+      kind: "entityType",
+      $schema: ENTITY_TYPE_META_SCHEMA,
+      ...schema,
+    },
   };
 
   const { data: metadata } = await graphApi.updateEntityType(updateArguments);
@@ -137,6 +149,8 @@ export const updateEntityType: ImpureGraphFunction<
 
   return {
     schema: {
+      kind: "entityType",
+      $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
