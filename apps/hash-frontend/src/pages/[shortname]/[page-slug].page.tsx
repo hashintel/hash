@@ -57,11 +57,11 @@ import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
-  GetAllLatestEntitiesQuery,
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
+  QueryEntitiesQuery,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import {
@@ -131,8 +131,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const { cookie } = req.headers ?? {};
 
   const workspacesSubgraph = (await apolloClient
-    .query<GetAllLatestEntitiesQuery>({
-      query: getAllLatestEntitiesQuery,
+    .query<QueryEntitiesQuery>({
+      query: queryEntitiesQuery,
       variables: {
         rootEntityTypeIds: [
           types.entityType.user.entityTypeId,
@@ -148,7 +148,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
       },
       context: { headers: { cookie } },
     })
-    .then(({ data }) => data.getAllLatestEntities)) as Subgraph<EntityRootType>;
+    .then(({ data }) => data.queryEntities)) as Subgraph<EntityRootType>;
 
   const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId

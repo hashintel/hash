@@ -69,7 +69,6 @@ beforeAll(async () => {
         title: "Worker",
         type: "object",
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -82,7 +81,6 @@ beforeAll(async () => {
         title: "Address",
         type: "object",
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -119,7 +117,6 @@ beforeAll(async () => {
         type: "object",
         allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -134,7 +131,6 @@ beforeAll(async () => {
         type: "object",
         allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -170,7 +166,6 @@ beforeAll(async () => {
         ordered: true,
       },
     },
-    additionalProperties: false,
   };
 });
 

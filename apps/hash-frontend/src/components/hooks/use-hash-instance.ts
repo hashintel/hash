@@ -23,8 +23,8 @@ export const useHashInstance = (): {
   hashInstance?: HashInstance;
 } => {
   /**
-   * @todo: use aggregate entity query instead so that all entities don't have to
-   * be fetched to get the HASH instance entity.
+   * @todo: use queryEntities instead so that all entities don't have to
+   *   be fetched to get the HASH instance entity.
    */
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,

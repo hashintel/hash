@@ -653,12 +653,6 @@ export interface EntityType {
    * @memberof EntityType
    */
   links?: object;
-  /**
-   *
-   * @type {boolean}
-   * @memberof EntityType
-   */
-  additionalProperties: EntityTypeAdditionalPropertiesEnum;
 }
 
 export const EntityTypeKindEnum = {
@@ -673,12 +667,6 @@ export const EntityTypeTypeEnum = {
 
 export type EntityTypeTypeEnum =
   (typeof EntityTypeTypeEnum)[keyof typeof EntityTypeTypeEnum];
-export const EntityTypeAdditionalPropertiesEnum = {
-  False: false,
-} as const;
-
-export type EntityTypeAdditionalPropertiesEnum =
-  (typeof EntityTypeAdditionalPropertiesEnum)[keyof typeof EntityTypeAdditionalPropertiesEnum];
 
 /**
  * A single token in a [`EntityTypeQueryPath`].
@@ -1531,12 +1519,6 @@ export interface PropertyObjectValue {
    * @memberof PropertyObjectValue
    */
   properties: object;
-  /**
-   *
-   * @type {boolean}
-   * @memberof PropertyObjectValue
-   */
-  additionalProperties: PropertyObjectValueAdditionalPropertiesEnum;
 }
 
 export const PropertyObjectValueTypeEnum = {
@@ -1545,12 +1527,6 @@ export const PropertyObjectValueTypeEnum = {
 
 export type PropertyObjectValueTypeEnum =
   (typeof PropertyObjectValueTypeEnum)[keyof typeof PropertyObjectValueTypeEnum];
-export const PropertyObjectValueAdditionalPropertiesEnum = {
-  False: false,
-} as const;
-
-export type PropertyObjectValueAdditionalPropertiesEnum =
-  (typeof PropertyObjectValueAdditionalPropertiesEnum)[keyof typeof PropertyObjectValueAdditionalPropertiesEnum];
 
 /**
  *
@@ -1564,12 +1540,6 @@ export interface PropertyObjectValue1 {
    * @memberof PropertyObjectValue1
    */
   type: PropertyObjectValue1TypeEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof PropertyObjectValue1
-   */
-  additionalProperties: PropertyObjectValue1AdditionalPropertiesEnum;
 }
 
 export const PropertyObjectValue1TypeEnum = {
@@ -1578,12 +1548,6 @@ export const PropertyObjectValue1TypeEnum = {
 
 export type PropertyObjectValue1TypeEnum =
   (typeof PropertyObjectValue1TypeEnum)[keyof typeof PropertyObjectValue1TypeEnum];
-export const PropertyObjectValue1AdditionalPropertiesEnum = {
-  False: false,
-} as const;
-
-export type PropertyObjectValue1AdditionalPropertiesEnum =
-  (typeof PropertyObjectValue1AdditionalPropertiesEnum)[keyof typeof PropertyObjectValue1AdditionalPropertiesEnum];
 
 /**
  * Specifies the structure of a Property Type
@@ -2376,12 +2340,6 @@ export interface UpdateEntityType {
    * @memberof UpdateEntityType
    */
   links?: object;
-  /**
-   *
-   * @type {boolean}
-   * @memberof UpdateEntityType
-   */
-  additionalProperties: UpdateEntityTypeAdditionalPropertiesEnum;
 }
 
 export const UpdateEntityTypeKindEnum = {
@@ -2396,12 +2354,6 @@ export const UpdateEntityTypeTypeEnum = {
 
 export type UpdateEntityTypeTypeEnum =
   (typeof UpdateEntityTypeTypeEnum)[keyof typeof UpdateEntityTypeTypeEnum];
-export const UpdateEntityTypeAdditionalPropertiesEnum = {
-  False: false,
-} as const;
-
-export type UpdateEntityTypeAdditionalPropertiesEnum =
-  (typeof UpdateEntityTypeAdditionalPropertiesEnum)[keyof typeof UpdateEntityTypeAdditionalPropertiesEnum];
 
 /**
  *

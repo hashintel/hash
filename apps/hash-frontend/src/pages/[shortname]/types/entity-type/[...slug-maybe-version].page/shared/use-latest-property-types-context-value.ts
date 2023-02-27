@@ -2,17 +2,17 @@ import { PropertyTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useBlockProtocolAggregatePropertyTypes } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";
+import { useBlockProtocolQueryPropertyTypes } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { LatestPropertyTypesContextValues } from "./latest-property-types-context";
 
 export const useLatestPropertyTypesContextValue = () => {
   const [propertyTypes, setPropertyTypes] = useState<
     LatestPropertyTypesContextValues["propertyTypes"] | null
   >(null);
-  const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
+  const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
 
   const fetch = useCallback(async () => {
-    await aggregatePropertyTypes({ data: {} }).then(
+    await queryPropertyTypes({ data: {} }).then(
       ({ data: propertyTypesSubgraph }) => {
         if (propertyTypesSubgraph) {
           setPropertyTypes((existingPropertyTypes) => ({
@@ -28,7 +28,7 @@ export const useLatestPropertyTypesContextValue = () => {
         }
       },
     );
-  }, [aggregatePropertyTypes]);
+  }, [queryPropertyTypes]);
 
   useEffect(() => {
     void fetch();

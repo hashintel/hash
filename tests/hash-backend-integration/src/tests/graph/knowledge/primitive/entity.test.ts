@@ -85,7 +85,6 @@ describe("Entity CRU", () => {
           type: "object",
           properties: {},
           allOf: [{ $ref: linkEntityTypeUrl }],
-          additionalProperties: false,
         },
         actorId: testUser.accountId,
       })
@@ -202,7 +201,7 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest entities", async () => {
-    const allEntitys = await graphApi
+    const allEntities = await graphApi
       .getEntitiesByQuery({
         filter: {
           all: [],
@@ -230,7 +229,7 @@ describe("Entity CRU", () => {
         ),
       );
 
-    const newlyUpdated = allEntitys.find(
+    const newlyUpdated = allEntities.find(
       (ent) =>
         ent.metadata.recordId.entityId ===
         updatedEntity.metadata.recordId.entityId,
@@ -240,7 +239,7 @@ describe("Entity CRU", () => {
     // of the same entity. This should only retrieve a single entity.
     // Other tests pollute the database, though, so we can't rely on this test's
     // results in isolation.
-    expect(allEntitys.length).toBeGreaterThanOrEqual(1);
+    expect(allEntities.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(

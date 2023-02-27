@@ -41,9 +41,9 @@ export const entityTypedef = gql`
   # TODO: rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f
   extend type Query {
     """
-    Get a subgraph rooted at all entities at their latest version.
+    Get a subgraph rooted at all entities that match a given filter.
     """
-    getAllLatestEntities(
+    queryEntities(
       """
       Filter root entities by their entity type ID (optional)
       """

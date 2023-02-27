@@ -18,6 +18,7 @@ import { useResizeObserverRef } from "rooks";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
+import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 
 const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
@@ -71,6 +72,11 @@ export const LinkEntityTypeSelector = ({
   const chosenEntityTypes = entityTypesArray.filter((type) =>
     chosenEntityTypeIds.includes(type.$id),
   );
+
+  const entityTypeOptions = useFilterTypeOptions({
+    typeOptions: entityTypesArray,
+    typesToExclude: chosenEntityTypes,
+  });
 
   /**
    * We change the position of the input which the entity type list popup
@@ -263,7 +269,7 @@ export const LinkEntityTypeSelector = ({
 
               return false;
             }}
-            options={entityTypesArray}
+            options={entityTypeOptions}
             optionToRenderData={({ $id, title, description }) => ({
               $id,
               title,

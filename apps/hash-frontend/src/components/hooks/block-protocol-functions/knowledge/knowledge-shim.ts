@@ -79,13 +79,13 @@ export type UploadFileRequestCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type AggregateEntitiesRequest = {
+export type QueryEntitiesRequest = {
   rootEntityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
-export type AggregateEntitiesMessageCallback = MessageCallback<
-  AggregateEntitiesRequest,
+export type QueryEntitiesMessageCallback = MessageCallback<
+  QueryEntitiesRequest,
   null,
   MessageReturn<Subgraph<EntityRootType>>,
   ReadOrModifyResourceError
@@ -119,6 +119,6 @@ export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
   createEntity: CreateEntityMessageCallback;
-  aggregateEntities: AggregateEntitiesMessageCallback;
+  queryEntities: QueryEntitiesMessageCallback;
   archiveEntity: ArchiveEntityMessageCallback;
 };
