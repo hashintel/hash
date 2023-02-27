@@ -8,20 +8,15 @@ import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
-const properties = {
-  url: "https://blockprotocol.org/@nate/types/property-type/url/",
-  caption: "https://blockprotocol.org/@nate/types/property-type/caption/",
-  width: "https://blockprotocol.org/@nate/types/property-type/width/",
-};
-
 const initialData: RootEntity = {
   properties: {
-    [properties.url]: "https://placedog.net/450/300",
-    [properties.caption]: "Image of a Dog",
+    [propertyIds.url]: "https://placedog.net/450/300",
+    [propertyIds.caption]: "Image of a Dog",
   },
   metadata: {
     recordId: {

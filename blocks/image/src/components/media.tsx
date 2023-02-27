@@ -26,6 +26,7 @@ import {
   useState,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+import { RootEntity } from "../types";
 
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
@@ -128,21 +129,14 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
 export const Media: FunctionComponent<
-  BlockGraphProperties<MediaEntityProperties> & {
+  BlockGraphProperties<RootEntity> & {
     blockRef: RefObject<HTMLDivElement>;
     mediaType: "image" | "video";
   }
 > = (props) => {
   const {
     blockRef,
-    graph: {
-      blockEntity: {
-        entityId,
-        properties: { url, initialCaption, initialWidth },
-      },
-      blockGraph,
-      readonly,
-    },
+    graph: { blockEntitySubgraph, readonly },
     mediaType,
   } = props;
 
