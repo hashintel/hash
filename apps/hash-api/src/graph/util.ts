@@ -142,8 +142,10 @@ export const generateSystemPropertyTypeSchema = (
   );
 
   return {
-    $id: params.propertyTypeId,
+    $schema:
+      "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     kind: "propertyType",
+    $id: params.propertyTypeId,
     title: params.title,
     description: params.description,
     oneOf: possibleValues as [PropertyValues, ...PropertyValues[]],
@@ -287,11 +289,13 @@ export const generateSystemEntityTypeSchema = (
     ) ?? undefined;
 
   return {
+    $schema:
+      "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    kind: "entityType",
     $id: params.entityTypeId,
     title: params.title,
     description: params.description,
     type: "object",
-    kind: "entityType",
     properties,
     required: requiredProperties,
     links,

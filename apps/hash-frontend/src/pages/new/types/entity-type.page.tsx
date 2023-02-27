@@ -94,10 +94,12 @@ const Page: NextPageWithLayout = () => {
       version: 1,
     });
     const entityType: EntityType = {
+      $schema:
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      kind: "entityType",
       $id: versionedUrl,
       title: name,
       description,
-      kind: "entityType",
       type: "object",
       properties: {},
     };

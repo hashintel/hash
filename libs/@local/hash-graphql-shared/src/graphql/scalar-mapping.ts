@@ -8,16 +8,16 @@ export const scalars = {
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
-  DataTypeWithoutId:
-    "@local/hash-graphql-shared/graphql/types#DataTypeWithoutId",
+  ConstructDataTypeParams:
+    "@local/hash-graphql-shared/graphql/types#ConstructDataTypeParams",
 
   EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
-  EntityTypeWithoutId:
-    "@local/hash-graphql-shared/graphql/types#EntityTypeWithoutId",
+  ConstructEntityTypeParams:
+    "@local/hash-graphql-shared/graphql/types#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
-  PropertyTypeWithoutId:
-    "@local/hash-graphql-shared/graphql/types#PropertyTypeWithoutId",
+  ConstructPropertyTypeParams:
+    "@local/hash-graphql-shared/graphql/types#ConstructPropertyTypeParams",
 
   Entity: "@local/hash-subgraph#Entity",
   EntityRecordId: "@local/hash-subgraph#EntityRecordId",
