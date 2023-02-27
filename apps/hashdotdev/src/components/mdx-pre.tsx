@@ -27,6 +27,7 @@ export const MdxPre = ({ children: codeEl }: { children: ReactElement }) => {
       })}
     >
       <Snippet
+        sx={{ padding: 0, margin: 0 }}
         source={`${children}`}
         language={
           typeof className === "string"

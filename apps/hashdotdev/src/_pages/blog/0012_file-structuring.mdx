@@ -1,0 +1,367 @@
+---
+authors:
+  - name: Alexander Kachkaev
+    # jobTitle: ""
+    # photo: ""
+postPhoto: blog/0012_file-structuring/tree-evolution-3.png
+title: "File structuring using fractal trees"
+# subtitle: ""
+date: "2023-02-28"
+---
+
+## Scope
+
+This document describes an approach to structuring JavaScript source files using the concept of fractal trees.
+The solution can apply to parts of code repositories as well as cover projects as a whole.
+In the context of a monorepo, the scope of this document is the internals of yarn workspaces, while the locations of the workspaces are out of scope.
+
+## Motivation
+
+Managing source code gets harder as the project grows.
+When there are hundreds or thousands of files, it becomes difficult to decide where to write new code because things start to look messy.
+Commonly emerging folders like `components`, `models` or `utils` occasionally end up collecting large quantities of unrelated code, some of which becomes obsolete.
+It is not always easy to evaluate possible side effects of each change because files found next to each other can have very different impact on the rest of the codebase.
+
+JavaScript is used in a broad range of software products.
+Structuring backend, frontend or library code is often approached on the case-by-case basis, thus turning new projects (including new monorepo workspaces) into bespoke craftwork.
+For the codebase to grow, collaborators need learn different folder layouts and agree on more or less unique rules in each case.
+
+When some file structure is established in the early days of a project, it may erode over time and become obsolete.
+However, fixing this structure may be costly because refactoring needs a round of debates, planning, execution, testing, etc.
+
+The solution to these problems is a universal approach to source file structuring, which is based on the idea of fractal trees.
+A new project is initiated with just one root source file and is then grown organically by following a small set of basic rules.
+Project complexity is distributed across the whole tree, which makes the resulting structure robust, flexible, self-explanatory and highly scaleable.
+
+<img
+  src="blog/0012_file-structuring/tree-evolution-1.png"
+  width={1176 / 6}
+  height={884 / 6}
+  alt="tree evolution (1)"
+/>
+<img
+  src="blog/0012_file-structuring/tree-evolution-2.png"
+  width={1194 / 6}
+  height={886 / 6}
+  alt="tree evolution (2)"
+/>
+<img
+  src="blog/0012_file-structuring/tree-evolution-3.png"
+  width={1198 / 6}
+  height={886 / 6}
+  alt="tree evolution (3)"
+/>
+
+<center>[source: Wikimedia](<https://commons.wikimedia.org/w/index.php?title=File%3AAnimated_self-resembling_Pythagoras_tree_(fractal).webm>)</center>
+
+## Background
+
+[https://www.npmjs.com/package/destiny](https://www.npmjs.com/package/destiny)
+
+<video
+  src="https://www.youtube.com/embed/rGYbrIf-y58"
+  title="‘Prettier for File Structures’ by Ben Awad"
+/>
+
+## Principles
+
+### The structure of the whole project is the same as of any of its parts
+
+Fractal trees are incredibly scaleable.
+No matter what part of the project we open, we want to find familiar patterns and thus confidently make changes to what we see.
+A developer should not need to learn the entire project structure in order to be able to contribute to its part.
+Broadly speaking, the codebase can successfully evolve even if there is no single developer who has painted a detailed picture of all source files and folders.
+
+### Circular dependencies between files are not allowed
+
+Creating circular import chains would turn the fractal tree into a more generic graph structure.
+This would increase the complexity of the rules to follow and could also introduce runtime bugs.
+
+### File tree grows organically, from one file to infinity
+
+🌱 → 🌳
+
+There is no bolierplate file structure.
+A single-file project is still a fractal tree, just as a project consisting of tens of thousands of files.
+In theory, a tree of any size can be packed into one file, although doing so in practice would make this file very difficult to maintain.
+
+Resources are grouped into files by their functional purpose rather than ‘shape’.
+This means that we don’t have project-wide folders like `components`, `hooks`, `services` or `types` as this would be similar to putting all CSS or HTML files next to each other.
+Instead, we name and distribute the files based on their added value.
+The resources that comprise a ‘feature’ (components, hooks, services, types, etc.) may remain an implementation detail of a sub-tree and do not need to be exposed outside this sub-tree.
+
+### Resources of a sub-sub-tree are inaccessible
+
+Each sub-tree exports resources which can be imported on the next level of the tree.
+Direct imports from a sub-sub-tree is not allowed because these resources are considered ‘private’, unless re-exported.
+As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
+
+<img
+  src="blog/0012_file-structuring/resources-of-subtrees.png"
+  width={1198 / 2}
+  height={886 / 2}
+  alt="Resources of subtrees are inaccessible"
+/>
+
+### Shared resources may be introduced in any part in the tree
+
+If branches of a fractal tree need to share logic (such as helper functions, constants, etc.), a shared resource is placed at the closest available ‘fork’ in the tree.
+If the scope of the shared resource has changed over time, a file is moved accordingly.
+Each ‘fork’ in the tree can accommodate multiple shared resources.
+Each of the shared resources is a root of a fractal sub-tree by itself.
+
+<img
+  src="blog/0012_file-structuring/shared-resources-1.png"
+  width={1198 / 3}
+  height={886 / 3}
+  alt="Shared resources (1)"
+/>
+<img
+  src="blog/0012_file-structuring/shared-resources-2.png"
+  width={1198 / 3}
+  height={886 / 3}
+  alt="Shared resources (2)"
+/>
+
+<center>✅ – shared resource location 🟢 – shared resource usage</center>
+
+### File structure matches the _current_ state of the project
+
+We do not need to think about file future-proofing.
+It is enough to ensure that the current state of the _file_ tree represents the current state of the _logic_ tree.
+Moving files is cheap and we should not worry about occasional tree reshuffling.
+The structure is designed for change.
+
+By excluding future-proofing from the process, we save time on costly debates and also avoid over-engineering.
+We also allow ourselves to add formal linting checks to continuously verify file structure integrity.
+
+## Rules
+
+The rules are informed by the above principles, which establish the general thinking framework.
+The rules, in turn, provide practical guidance to developers to ensure coherent and smooth DX.
+
+> ℹ️ Examples below mention `.js` extension for simplicity, but they apply to TypeScript and JSX files too.
+
+### All file and folder names are in kebab-case
+
+Avoiding capital letters saves us from crashes on case-sensitive file systems.
+For example, `import "./Foo.js"` may not work on Linux if a file is named `foo.js`.
+Unlike `camelCase` and `PascalCase`, `kebab-case` also maps well into URLs and npm package names.
+We use [unicorn/filename-case](https://github.com/sindresorhus/eslint-plugin-unicorn/blob/main/docs/rules/filename-case.md) to maintain consistency in file names.
+
+### No index.js files
+
+These ‘special’ files enable imports from folders in Node.js.
+For example, `require("./foo")` resolves `./foo` to `./foo/index.js` if the index file is present.
+However, this resolution mechanism does not work in ESM imports, i.e. native web and platforms like Deno (see [their docs](https://deno.land/manual@v1.0.0/contributing/style_guide#do-not-use-the-filename-indextsindexjs)).
+The author of Node.js admits he finds `index.js` files needlessly complicated (watch ‘[10 Things I Regret About Node.js](https://www.youtube.com/watch?v=M3BM9TB-8yA&t=876s)‘).
+
+By refraining from `index.js` and implicit folder imports, we improve codebase compatibility with different runtimes.
+We also protect ourselves from confusing path synonyms like `"./foo"` mapping to both `"./foo.js"` or `"./foo/index.js"`.
+
+The entry point to an npm package can be named `main.js` instead of `index.js` which is not uncommon.
+
+### Each file is a ‘mini-library’
+
+A file in a fractal tree can expose one or more named exports, all of which should serve a common semantic purpose.
+The name of the file summarises its contents, e.g. `maths.ts` presumably contains various maths functions and symbols.
+If a file contains only one export, it is recommended to name it after that export, e.g. `import { doSomethingCool } from "./do-something-cool.js"`.
+Doing so simplifies search.
+
+When reasoning about the boundaries of a file, it is helpful to imagine this ‘mini-library’ published on npm.
+If it is hard to come up with a good description for a new hypothetical package, the boundaries of the file are probably ill-defined.
+It may be the case of unrelated resources being unreasonably mixed up (e.g. `utils.js` with some filesystem helpers and React hooks).
+
+We [avoid default exports](https://basarat.gitbook.io/typescript/main-1/defaultisbad) unless it is an external requirement.
+
+### Outgrown files are converted into sub-trees of files
+
+Because each file is a ‘mini-library’ on the conceptual level, all its logic except external imports can be defined in one place.
+Of course, this would make some files too crowded, so distributing a ‘mini-library’ on the disk often makes sense.
+When parts of a ‘mini-library’ are extracted, the new files should be placed into a folder named after the original file name.
+
+For example, if we extract helpers named `bar` and `baz` from `path/to/foo.js`, new files are created at `path/to/foo/bar.js` and `path/to/foo/baz.js`.
+New file locations communicate their relationship with `path/to/foo.js` which becomes the root of a newly created sub-tree.
+Only `path/to/foo.js` is allowed to import from `path/to/foo/*.js` because this folder is considered ‘private’ from elsewhere.
+If `path/to/foo.js` is no longer used, it can be safely deleted together with its ‘private’ `path/to/foo/` folder.
+
+If any of the ‘mini-libraries’ in a sub-tree needs further splitting, the process of new file extraction repeats.
+Essentially, `path/to/foo.js` can only import files from `path/to/foo/*.js` and not from `path/to/foo/bar/*.js`.
+This is because `path/to/foo/bar/` is a ‘private’ folder which is only accessible from `path/to/foo/bar.js`.
+
+There is no hard recommendation on when to split a file because situations are different.
+For example, a file with a complex React component can benefit from extracting a few helper components and placing them in a subfolder (i.e. sub-tree).
+However, there is no need to do this from the start if the original file in its current form has no maintenance issues.
+Splitting makes sense only _when_ issues become _real_, not hypothetical.
+Premature file splitting makes the folder tree larger than it could be, which is a sign of over-engineering.
+
+For a consumer of a ‘mini-library’, the is no difference between it being a single library or a large sub-tree with thousands of files.
+Internal sub-tree restructuring does not affect the exposed resources.
+
+### All imports within a workspace use relative paths
+
+Importing something from another workspace is straightforward: we just go for `package-name/optional/path/to/something`.
+When we need to import from the same workspace, there are two options:
+
+1.  use relative paths, e.g. `../../../foo/bar`
+2.  create top-level aliases for some folders, e.g. `@/foo` for `my-workspace/src/foo`.
+    [Next.js supports this style](https://nextjs.org/docs/advanced-features/module-path-aliases); other types of workspaces can be configured to support it too.
+
+The problem with the second approach is that it creates two correct ways of doing the same thing.
+If we are in `my-workspace/x/y.ts` and we want to import from `my-workspace/a/b.ts`, we can either write `../a/b` or `@/a/b`.
+Using `@/a/b` needs more setup, which is a source of tooling incompatibility, team debates and so on.
+It is easier to always use relative paths.
+
+### Shared resources are put into `shared` folders
+
+It is not allowed to import any resource from anywhere as this can break the integrity of the fractal tree.
+The location of any file unambiguously communicates the limits of its use.
+
+If the logic of any file (i.e. ‘mini-library’) is shared between multiple sub-trees, this ‘mini-library’ is moved from its original location to `path/to/common-parent/shared/`.
+The new location can be a few folders up from where resources are used, as long as `shared/` is located as deep in the tree as possible.
+
+We can think of each `shared/` folder as of a lightweight `node_modules/` folder where each ‘package’ is a single file instead of a folder with `package.json`.
+‘Mini-libraries’ like `path/to/shared/a.js` and `path/to/shared/b.js` can independently moved between `shared/` folders of the fractal tree based on their current usage.
+Moving a ‘mini-library’ requires updates to import paths but this is done automatically in most modern code editors.
+Linting makes sure that the result of this operation is valid.
+Changing the physical location of a sub-tree does not discard its `git blame`.
+
+Just like in the rest of the tree, files like `path/to/shared/a/x.js` are considered ‘private’ and cannot be imported from anywhere except `path/to/shared/a.js`.
+To expose symbols from `path/to/shared/a/x.js`, they should be re-exported from `path/to/shared/a.js`
+
+A shared ‘mini-library’ can import from sibling files, e.g. `path/to/shared/a.js` can contain an import from `path/to/shared/b.js` using relevant import path (`"./b.js"`).
+This would be an equivalent of importing one npm package from another.
+
+The contents of the `shared` folders closer to the tree root are also accessible, but not the other way around.
+`import { a } from "../../../shared/a.js"` is allowed just as `import { a } from "./shared/a.js"`, but `import { a } from "./some/sub/tree/shared/a.js"` or `import { a } from "../../some/sub/tree/shared/a.js"` are not.
+
+### Multiple entry points are allowed
+
+A simple project like an npm package or an SPA starts with a single file, e.g. `main.js`.
+This file works as the only entry point into the whole fractal tree, which can be of any size.
+If necessary, it is possible to have multiple entry points, such as Next.js pages, executable CLI scripts, tests files and so on.
+The locations of these entry points are justified by their usage, but the rules of the fractal tree still apply.
+
+<img
+  src="blog/0012_file-structuring/multiple-entry-points.jpg"
+  width={800}
+  height={600}
+  alt="Multiple ‘tree entry points’ in a botanic garden"
+/>
+
+[flickr.com/photos/karlgercens/3318622907/in/album-72157614612233494/](https://www.flickr.com/photos/karlgercens/3318622907/in/album-72157614612233494/)
+
+Just like the ‘mini-libraries’, tree entry points can share resources between each other by importing them from `**/shared/*.js`.
+
+When there are multiple entry points, it is a good practice to keep their naming distinct from the ‘mini-libraries’ of the fractal tree.
+This can be done with a file name suffix: `dashboard.page.jsx`, `login.handler.js`, `do-something.script.js`, `foo.test.js`.
+
+### Unit tests are placed next to files they cover
+
+If we want to cover `path/to/foo.js` with unit tests, we create `path/to/foo.test.js`.
+Putting unit tests into a subfolder (e.g. `path/to/__test__/foo.test.js`) would make it harder to sync tests or to see what files have test files.
+If `foo.test.js` becomes too big, we can see if we can write more tests for individual ‘mini-libraries’ in `path/to/foo/` instead.
+This may simplify the logic in the original `foo.test.js` file.
+
+Integration (system) tests or end-to-end tests cover the project (i.e. a library or an app) as a whole.
+These high-level tests form their independent ‘fractal forest’, which is placed outside of the root of the source tree.
+
+### Exceptions are undesired but are not prohibited
+
+The above rules are there to organise complex projects, but they don’t require an exhaustive opt-in.
+It is possible to migrate to a fractal tree structure only in selected parts of a codebase and then grow or reduce the scope of the rules over time.
+The easiest way to organise existing files is to start from the ‘leafs’ and then gradually move towards the ‘root’ of a repo or a yarn workspace.
+
+Even if the wiring between some key imports and exports is not perfect, partial adoption of fractal trees is believed to be beneficial.
+It becomes easier to reason about dependencies within the parts of the codebase and this knowledge is unambiguously communicated within the team without README files or inline comments.
+
+## Walk-through
+
+To understand how the rules work, let’s create a new project that consists of a single file 🌱
+
+```txt
+hello.js
+```
+
+Imagine this file exports a variable named `hello` and also contains a private `calculateX` helper function that is used inside `hello`.
+
+If the file becomes too big or if `calculateX` needs unit testing, we can extract this helper function into its own file:
+
+```txt
+hello.js
+hello/
+  calculate-x.js
+  calculate-x.test.js (optional)
+```
+
+Putting `calculate-x` in `hello` subfolder signals that the new file can only be used inside `hello.js`.
+If we add another ’private’ piece of logic for `hello.js`, (e.g. `calculate-y`), it also goes into the same folder:
+
+```txt
+hello.js
+hello/
+  calculate-x.js
+  calculate-y.js
+```
+
+By convention, only `hello.js` is allowed to import from `calculate-x` and `calculate-y`.
+
+Now imagine that we want to introduce a new function called `doCommonThing()` and also a concept named `bar` that would be used inside both `calculateX()` and `calculateY()` .
+Based on where these new resources are used, they belong to `hello/shared/`:
+
+```txt
+hello.js
+hello/
+  shared/
+    bar.js
+    do-common-thing.js
+  calculate-x.js
+  calculate-y.js
+```
+
+Let’s assume that `doCommonThing` has an internal function `a` that would benefit from its own unit tests for confidence.
+We get:
+
+```txt
+hello.js
+hello/
+  shared/
+    bar.js
+    do-common-thing.js
+    do-common-thing/
+      a.js
+      a.test.js
+  calculate-x.js
+  calculate-y.js
+```
+
+Finally, let’s imagine that we’ve introduced another entry point called `hi.js` which depends on the concept of `bar`, but does not use `calculate-x`, `calculate-y` or `do-common-thing`.
+In this case, `hello/shared/bar.js` is moved closer to the root of the tree into to a new `shared` folder.
+Import paths are updated accordingly.
+
+```txt
+shared/
+  bar.js
+hello.js
+hello/
+  shared/
+    do-common-thing.js
+    do-common-thing/
+      a.js
+      a.test.js
+  calculate-x.js
+  calculate-y.js
+hi.js
+```
+
+At each moment in time, files and folders communicate the ‘current truth’ on the relationship between various parts of the codebase.
+This ability is preserved with scale.
+🌳
+
+## Examples
+
+- [Þ → libs/blockprotocol](https://github.com/blockprotocol/blockprotocol/tree/main/libs/blockprotocol)
+- [# → @hashintel/design-system](https://github.com/hashintel/hash/tree/main/libs/@hashintel/design-system)
+- [Alex → njt](https://github.com/kachkaev/njt)
+- [Alex → tooling-for-how-old-is-this-house](https://github.com/kachkaev/tooling-for-how-old-is-this-house)
+- [Alex → special-internet-archive](https://github.com/kachkaev/special-internet-archive)
