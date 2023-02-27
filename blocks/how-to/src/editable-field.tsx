@@ -35,7 +35,7 @@ export const EditableField = ({
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLDivElement | null>(null);
 
-  return (
+  return readonly && !value ? null : (
     <Box
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -46,7 +46,7 @@ export const EditableField = ({
       {!editing ? (
         <Typography
           onClick={() => {
-            if (!editing && !value) {
+            if (!editing && !value && !readonly) {
               setEditing(true);
             }
           }}
