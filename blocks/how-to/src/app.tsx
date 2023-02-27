@@ -98,8 +98,23 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
-  const [steps, setSteps] = useState<Step[]>([]);
-  const [introduction, setIntroduction] = useState<Step | null>(null);
+  const [introduction, setIntroduction] = useState<Step | null>(
+    introEntity
+      ? {
+          title: introEntity.properties[titleKey] ?? "",
+          description: introEntity.properties[descriptionKey] ?? "",
+        }
+      : null,
+  );
+  const [steps, setSteps] = useState<Step[]>(
+    stepEntities.length
+      ? stepEntities.map((stepEntity) => ({
+          id: stepEntity.metadata.recordId.entityId,
+          title: stepEntity.properties[titleKey] ?? "",
+          description: stepEntity.properties[descriptionKey] ?? "",
+        }))
+      : [],
+  );
 
   const updateField = async (value: string, field: TitleOrDescription) => {
     await graphModule?.updateEntity({
@@ -269,23 +284,8 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   useEffect(() => {
-    if (introEntity) {
-      setIntroduction({
-        title: introEntity.properties[titleKey] ?? "",
-        description: introEntity.properties[descriptionKey] ?? "",
-      });
-    }
-
     if (!stepEntities.length) {
       addStep();
-    } else {
-      setSteps(
-        stepEntities.map((stepEntity) => ({
-          id: stepEntity.metadata.recordId.entityId,
-          title: stepEntity.properties[titleKey] ?? "",
-          description: stepEntity.properties[descriptionKey] ?? "",
-        })),
-      );
     }
   }, []);
 
