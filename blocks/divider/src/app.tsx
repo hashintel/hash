@@ -1,17 +1,22 @@
-import { BlockComponent } from "blockprotocol/react";
+import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
-type BlockEntityProperties = { color?: string; height?: string | number };
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph },
+}) => {
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
+  const { [propertyIds.color]: color, [propertyIds.height]: height } =
+    rootEntity.properties;
 
-export const App: BlockComponent<BlockEntityProperties> = ({
-  color,
-  height,
-}) => (
-  <hr
-    style={{
-      width: "100%",
-      border: "none",
-      backgroundColor: color ?? "black",
-      height: height ?? "1px",
-    }}
-  />
-);
+  return (
+    <hr
+      style={{
+        width: "100%",
+        border: "none",
+        backgroundColor: color ?? "black",
+        height: height ?? "1px",
+      }}
+    />
+  );
+};
