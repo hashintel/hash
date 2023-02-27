@@ -321,8 +321,7 @@ export const App: BlockComponent<RootEntity> = ({
             <Fade in={hovered}>
               <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
                 <Link
-                  //  @todo: link this to the block's hub page
-                  href=""
+                  href="https://blockprotocol.org/@hash/how-to"
                   target="_blank"
                   variant="regularTextLabels"
                   sx={({ palette }) => ({
