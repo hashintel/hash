@@ -12,42 +12,6 @@ import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
-const intervalForAllTime =
-  (): EntityTemporalVersioningMetadata[keyof EntityTemporalVersioningMetadata] => {
-    return {
-      start: {
-        kind: "inclusive",
-        limit: new Date(0).toISOString(),
-      },
-      end: {
-        kind: "unbounded",
-      },
-    } as const;
-  };
-
-const entityTemporalMetadata = (): EntityTemporalVersioningMetadata => {
-  return {
-    transactionTime: intervalForAllTime(),
-    decisionTime: intervalForAllTime(),
-  };
-};
-
-const currentTime = new Date().toISOString();
-
-const temporalAxes: QueryTemporalAxes = {
-  pinned: {
-    axis: "transactionTime",
-    timestamp: currentTime,
-  },
-  variable: {
-    axis: "decisionTime",
-    interval: {
-      start: { kind: "unbounded" },
-      end: { kind: "inclusive", limit: currentTime },
-    },
-  },
-};
-
 const testEntity: RootEntity = {
   metadata: {
     recordId: {
@@ -55,9 +19,106 @@ const testEntity: RootEntity = {
       editionId: new Date().toISOString(),
     },
     entityTypeId: packageJson.blockprotocol.schema as VersionedUri,
-    temporalVersioning: entityTemporalMetadata(),
+  },
+  properties: {
+    // "http://localhost:3000/@lbett/types/property-type/title/": "test title",
+    // "http://localhost:3000/@lbett/types/property-type/description/":
+    //   "test description",
+  },
+} as const;
+
+const intro: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "intro",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@lbett/types/entity-type/howto-step/v/3",
+  },
+  properties: {
+    "http://localhost:3000/@lbett/types/property-type/title/": "intro",
+    "http://localhost:3000/@lbett/types/property-type/description/":
+      "intro description",
+  },
+} as const;
+
+const introLink: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "intro-link",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@lbett/types/entity-type/introduction-link/v/1",
   },
   properties: {},
+  linkData: {
+    leftEntityId: testEntity.metadata.recordId.entityId,
+    rightEntityId: intro.metadata.recordId.entityId,
+  },
+} as const;
+
+const step1: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "step-1",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@lbett/types/entity-type/howto-step/v/3",
+  },
+  properties: {
+    "http://localhost:3000/@lbett/types/property-type/title/": "1",
+    "http://localhost:3000/@lbett/types/property-type/description/": "2",
+  },
+} as const;
+
+const step1Link: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "step-1-link",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@lbett/types/entity-type/step-link/v/1",
+  },
+  properties: {},
+  linkData: {
+    leftEntityId: testEntity.metadata.recordId.entityId,
+    rightEntityId: step1.metadata.recordId.entityId,
+  },
+} as const;
+
+const step2: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "step-2",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@lbett/types/entity-type/howto-step/v/3",
+  },
+  properties: {
+    "http://localhost:3000/@lbett/types/property-type/title/": "2",
+    "http://localhost:3000/@lbett/types/property-type/description/": "3",
+  },
+} as const;
+
+const step2Link: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "step-2-link",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@lbett/types/entity-type/step-link/v/1",
+  },
+  properties: {},
+  linkData: {
+    leftEntityId: testEntity.metadata.recordId.entityId,
+    rightEntityId: step2.metadata.recordId.entityId,
+  },
 } as const;
 
 const DevApp = () => {
@@ -67,8 +128,15 @@ const DevApp = () => {
       blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJson.blockprotocol}
       initialData={{
-        initialEntities: [testEntity],
-        initialTemporalAxes: temporalAxes,
+        initialEntities: [
+          testEntity,
+          intro,
+          introLink,
+          step1,
+          step1Link,
+          step2,
+          step2Link,
+        ],
       }}
       debug
     />

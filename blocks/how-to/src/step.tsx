@@ -9,6 +9,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { FunctionComponent, useState } from "react";
+import { descriptionKey, titleKey, titleOrDescription } from "./app";
 import { EditableField } from "./editable-field";
 
 interface StepProps {
@@ -17,8 +18,9 @@ interface StepProps {
   description?: string;
   deletable?: boolean;
   readonly?: boolean;
-  updateTitle: (title: string) => void;
+  setField: (title: string, field: titleOrDescription) => void;
   updateDescription: (description: string) => void;
+  updateField: (value: string, field: titleOrDescription) => void;
   onRemove: () => void;
   deleteButtonText: string;
 }
@@ -29,14 +31,12 @@ export const Step: FunctionComponent<StepProps> = ({
   description,
   deletable = true,
   readonly,
-  updateTitle,
-  updateDescription,
+  setField,
+  updateField,
   onRemove,
   deleteButtonText,
 }) => {
   const { palette } = useTheme();
-  const [titleValue, setTitleValue] = useState(title);
-  const [descriptionValue, setDescriptionValue] = useState(description);
 
   return (
     <Box>
@@ -100,8 +100,8 @@ export const Step: FunctionComponent<StepProps> = ({
       >
         <EditableField
           value={title}
-          onChange={(event) => updateTitle(event.target.value)}
-          // onBlur={(event) => updateTitle(event.target.value)}
+          onChange={(event) => setField(event.target.value, titleKey)}
+          onBlur={(event) => updateField(event.target.value, titleKey)}
           height="15px"
           sx={{
             fontWeight: 700,
@@ -131,8 +131,8 @@ export const Step: FunctionComponent<StepProps> = ({
       >
         <EditableField
           value={description}
-          onChange={(event) => updateDescription(event.target.value)}
-          // onBlur={(event) => updateTitle(event.target.value)}
+          onChange={(event) => setField(event.target.value, descriptionKey)}
+          onBlur={(event) => updateField(event.target.value, descriptionKey)}
           height="18px"
           sx={{
             fontWeight: 400,
