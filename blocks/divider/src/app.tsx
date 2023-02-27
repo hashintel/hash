@@ -1,4 +1,5 @@
 import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+
 import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 
