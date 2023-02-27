@@ -3,7 +3,7 @@ import { gql } from "apollo-server-express";
 export const dataTypeTypedef = gql`
   scalar VersionedUrl
   # scalar DataType
-  # scalar DataTypeWithoutId
+  # scalar ConstructDataTypeParams
   # scalar DataTypeWithMetadata
 
   extend type Query {
@@ -26,7 +26,7 @@ export const dataTypeTypedef = gql`
   # The following mutations should not be exposed until user defined data types
   # have been described and specified as an RFC.
   # extend type Mutation {
-  #   createDataType(accountId: AccountId!, dataType: DataTypeWithoutId!): Subgraph!
-  #   updateDataType(accountId: AccountId!, dataType: DataTypeWithoutId!): Subgraph!
+  #   createDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
+  #   updateDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
   # }
 `;
