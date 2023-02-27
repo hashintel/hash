@@ -2701,7 +2701,7 @@ dependencies = [
 [[package]]
 name = "type-system"
 version = "0.0.0"
-source = "git+https://github.com/blockprotocol/blockprotocol?rev=3206ccb#3206ccbbf139c0c8bbe893300d2a639f239b28ad"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=b8351b3#b8351b38f12c301bc881f8f6ddaa366770a9809e"
 dependencies = [
  "console_error_panic_hook",
  "regex",
