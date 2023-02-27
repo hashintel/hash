@@ -9,13 +9,21 @@ import {
   FontAwesomeIcon,
   theme,
 } from "@hashintel/design-system";
-import { Card, Collapse, Stack, ThemeProvider } from "@mui/material";
+import {
+  Card,
+  Collapse,
+  Fade,
+  Link,
+  Stack,
+  ThemeProvider,
+} from "@mui/material";
 import Box from "@mui/material/Box";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditableField } from "./editable-field";
 import { Step } from "./step";
 import { HowToStep, IntroductionLink, RootEntity } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
+import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 
 export const titleKey =
   "http://localhost:3000/@lbett/types/property-type/title/";
@@ -87,6 +95,7 @@ export const App: BlockComponent<RootEntity> = ({
     (linkEntity) => linkEntity.rightEntity,
   );
 
+  const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -302,7 +311,47 @@ export const App: BlockComponent<RootEntity> = ({
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <ThemeProvider theme={theme}>
-        <Box ref={blockRootRef} sx={{ display: "inline-block", width: 1 }}>
+        <Box
+          ref={blockRootRef}
+          sx={{ display: "inline-block", width: 1 }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          {!readonly ? (
+            <Fade in={hovered}>
+              <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
+                <Link
+                  //  @todo: link this to the block's hub page
+                  href=""
+                  target="_blank"
+                  variant="regularTextLabels"
+                  sx={({ palette }) => ({
+                    display: "inline-flex",
+                    alignItems: "center",
+                    textDecoration: "none",
+                    fontSize: 15,
+                    lineHeight: 1,
+                    letterSpacing: -0.02,
+                    marginBottom: 1.5,
+                    whiteSpace: "nowrap",
+                    color: palette.gray[50],
+                    fill: palette.gray[40],
+                    ":hover": {
+                      color: palette.gray[60],
+                      fill: palette.gray[50],
+                    },
+                  })}
+                >
+                  Get help{" "}
+                  <FontAwesomeIcon
+                    icon={faQuestionCircle}
+                    sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
+                  />
+                </Link>
+              </Box>
+            </Fade>
+          ) : null}
+
           <Card
             sx={{
               display: "flex",
