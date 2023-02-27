@@ -18,12 +18,13 @@ import {
   ThemeProvider,
 } from "@mui/material";
 import Box from "@mui/material/Box";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditableField } from "./editable-field";
 import { Step } from "./step";
 import { HowToStep, IntroductionLink, RootEntity } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
+import { RichTextEditableField } from "./rich-text-editable-field";
 
 export const titleKey =
   "http://localhost:3000/@lbett/types/property-type/title/";
@@ -39,15 +40,6 @@ const stepLinkType =
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
 export type Link = typeof introductionLinkType | typeof stepLinkType;
-
-export interface Step {
-  id?: string;
-  title: string;
-  description: string;
-  animatingOut?: boolean;
-}
-
-const EMPTY_STEP: Step = { title: "", description: "" };
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -97,24 +89,8 @@ export const App: BlockComponent<RootEntity> = ({
 
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
-  const [descriptionValue, setDescriptionValue] = useState(description);
-  const [introduction, setIntroduction] = useState<Step | null>(
-    introEntity
-      ? {
-          title: introEntity.properties[titleKey] ?? "",
-          description: introEntity.properties[descriptionKey] ?? "",
-        }
-      : null,
-  );
-  const [steps, setSteps] = useState<Step[]>(
-    stepEntities.length
-      ? stepEntities.map((stepEntity) => ({
-          id: stepEntity.metadata.recordId.entityId,
-          title: stepEntity.properties[titleKey] ?? "",
-          description: stepEntity.properties[descriptionKey] ?? "",
-        }))
-      : [],
-  );
+  const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
+  const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
   const updateField = async (value: string, field: TitleOrDescription) => {
     await graphModule?.updateEntity({
@@ -129,59 +105,45 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const createStepEntity = async (
-    linkType: Link,
-    cb: (createdEntityId: string) => void,
-  ) => {
-    if (readonly) {
-      return;
-    }
+  const createStepEntity = useCallback(
+    async (linkType: Link) => {
+      if (readonly) {
+        return;
+      }
 
-    const createEntityResponse = await graphModule?.createEntity({
-      data: {
-        entityTypeId: howToStepType,
-        properties: {},
-      },
-    });
-
-    const createdEntityId =
-      createEntityResponse?.data?.metadata.recordId.entityId;
-
-    if (createdEntityId) {
-      await graphModule?.createEntity({
+      const createEntityResponse = await graphModule?.createEntity({
         data: {
-          entityTypeId: linkType,
+          entityTypeId: howToStepType,
           properties: {},
-          linkData: {
-            leftEntityId: entityId,
-            rightEntityId: createdEntityId,
-          },
         },
       });
 
-      cb(createdEntityId);
-    }
-  };
+      const createdEntityId =
+        createEntityResponse?.data?.metadata.recordId.entityId;
 
-  const createIntroduction = () =>
-    createStepEntity(introductionLinkType, (introductionEntityId) => {
-      setIntroduction({ id: introductionEntityId, ...EMPTY_STEP });
-    });
+      if (createdEntityId) {
+        await graphModule?.createEntity({
+          data: {
+            entityTypeId: linkType,
+            properties: {},
+            linkData: {
+              leftEntityId: entityId,
+              rightEntityId: createdEntityId,
+            },
+          },
+        });
+      }
+    },
+    [graphModule],
+  );
 
-  const setIntroductionField = (value: string | boolean, field: keyof Step) => {
-    if (introduction) {
-      setIntroduction({ ...introduction, [field]: value });
-    }
-  };
+  const createIntroduction = async () =>
+    await createStepEntity(introductionLinkType);
 
   const updateIntroductionField = async (
     value: string | boolean,
     field: TitleOrDescription,
   ) => {
-    if (introduction) {
-      setIntroductionField(value, field === titleKey ? "title" : "description");
-    }
-
     await graphModule?.updateEntity({
       data: {
         entityId: introEntity.metadata.recordId.entityId,
@@ -195,62 +157,42 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeIntroduction = () => {
-    setIntroductionField(true, "animatingOut");
+    setIntroAnimatingOut(true);
 
     setTimeout(async () => {
-      setIntroduction(null);
+      setIntroAnimatingOut(false);
 
-      await graphModule?.deleteEntity({
-        data: {
-          entityId: introLinkEntity.metadata.recordId.entityId,
-        },
-      });
+      await graphModule
+        ?.deleteEntity({
+          data: {
+            entityId: introLinkEntity.metadata.recordId.entityId,
+          },
+        })
+        .then((res) => {
+          console.log(res);
+        });
     }, 300);
   };
 
-  const addStep = () =>
-    createStepEntity(stepLinkType, (stepEntityId) => {
-      setSteps([...steps, { id: stepEntityId, ...EMPTY_STEP }]);
-    });
-
-  const setStepField = (
-    index: number,
-    value: string | boolean,
-    field: keyof Step,
-  ) => {
-    const newSteps = steps.map((step, stepIndex) => {
-      if (stepIndex === index) {
-        return { ...step, [field]: value };
-      }
-
-      return step;
-    });
-
-    setSteps(newSteps);
-  };
+  const addStep = () => createStepEntity(stepLinkType);
 
   const updateStepField = async (
     index: number,
     value: string,
     field: TitleOrDescription,
   ) => {
-    const linkedStep = stepEntities.find(
-      (stepEntity) =>
-        stepEntity.metadata.recordId.entityId === steps[index]?.id,
-    );
+    const stepEntity = stepEntities[index];
 
-    if (!linkedStep) {
+    if (!stepEntity) {
       return;
     }
 
-    setStepField(index, value, field === titleKey ? "title" : "description");
-
     await graphModule?.updateEntity({
       data: {
-        entityId: linkedStep.metadata.recordId.entityId,
+        entityId: stepEntity.metadata.recordId.entityId,
         entityTypeId: howToStepType,
         properties: {
-          ...linkedStep.properties,
+          ...stepEntity.properties,
           [field]: value,
         },
       },
@@ -258,22 +200,16 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeStep = (index: number) => {
-    const stepLink = stepLinkedEntities.find(
-      (linkedEntity) =>
-        linkedEntity.rightEntity.metadata.recordId.entityId ===
-        steps[index]?.id,
-    )?.linkEntity;
+    const stepLink = stepLinkedEntities[index]?.linkEntity;
 
     if (!stepLink) {
       return;
     }
 
-    const newSteps = [...steps];
-    setStepField(index, true, "animatingOut");
+    setStepAnimatingOut(index);
 
     setTimeout(async () => {
-      newSteps.splice(index, 1);
-      setSteps(newSteps);
+      setStepAnimatingOut(-1);
 
       await graphModule?.deleteEntity({
         data: {
@@ -290,34 +226,37 @@ export const App: BlockComponent<RootEntity> = ({
   }, []);
 
   const schema = useMemo(() => {
-    const stepsWithTitle = steps.filter(({ title }) => !!title);
+    // const stepsWithTitle = steps.filter(({ title }) => !!title);
 
     return JSON.stringify({
       "@context": "http://schema.org",
       "@type": "HowTo",
       name: title,
       // Must have at least 2 steps for it to be valid
-      ...(stepsWithTitle.length > 1
-        ? {
-            step: stepsWithTitle.map(({ title, description }) => ({
-              "@type": "HowToStep",
-              name: title,
-              text: description ? description : title,
-            })),
-          }
-        : {}),
+      //   ...(stepsWithTitle.length > 1
+      //     ? {
+      //         step: stepsWithTitle.map(({ title, description }) => ({
+      //           "@type": "HowToStep",
+      //           name: title,
+      //           text: description ? description : title,
+      //         })),
+      //       }
+      //     : {}),
     });
-  }, [title, steps]);
+  }, [
+    title,
+    //  steps
+  ]);
 
   return (
-    <>
+    <Box ref={blockRootRef}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <ThemeProvider theme={theme}>
         <Box
-          ref={blockRootRef}
+          // ref={blockRootRef}
           sx={{ display: "inline-block", width: 1 }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -393,15 +332,12 @@ export const App: BlockComponent<RootEntity> = ({
                   placeholder="Enter a how-to guide name"
                   readonly={readonly}
                 />
-                <EditableField
-                  value={descriptionValue}
-                  onChange={(event) => setDescriptionValue(event.target.value)}
-                  onBlur={(event) =>
-                    updateField(event.target.value, descriptionKey)
-                  }
-                  height="18px"
+
+                <RichTextEditableField
+                  fieldKey={descriptionKey}
+                  entityId={entityId}
+                  value={description}
                   sx={{
-                    fontWeight: 500,
                     fontSize: 14,
                     lineHeight: 1.3,
                     letterSpacing: "-0.02em",
@@ -416,9 +352,9 @@ export const App: BlockComponent<RootEntity> = ({
               </Stack>
             ) : null}
 
-            {introduction || !readonly ? (
+            {introEntity || !readonly ? (
               <Box>
-                <Collapse in={!readonly && !introduction}>
+                <Collapse in={!readonly && !introEntity}>
                   <Button
                     variant="tertiary"
                     size="small"
@@ -434,26 +370,32 @@ export const App: BlockComponent<RootEntity> = ({
                 </Collapse>
 
                 <Collapse
-                  in={introduction !== null && !introduction?.animatingOut}
+                  in={introEntity !== null && !introAnimatingOut}
                   appear
                 >
-                  <Step
-                    header="Introduction"
-                    title={introduction?.title}
-                    description={introduction?.description}
-                    setField={setIntroductionField}
-                    updateField={updateIntroductionField}
-                    onRemove={() => removeIntroduction()}
-                    readonly={readonly}
-                    deleteButtonText="Remove intro"
-                  />
+                  {introEntity ? (
+                    <Step
+                      entityId={introEntity.metadata.recordId.entityId}
+                      header="Introduction"
+                      title={introEntity.properties[titleKey]}
+                      description={introEntity.properties[descriptionKey]}
+                      updateField={updateIntroductionField}
+                      onRemove={() => removeIntroduction()}
+                      readonly={readonly}
+                      deleteButtonText="Remove intro"
+                    />
+                  ) : null}
                 </Collapse>
               </Box>
             ) : null}
 
             <Box>
-              {steps.map((step, index) => (
-                <Collapse key={step.id} in={!step.animatingOut} appear>
+              {stepEntities.map((stepEntity, index) => (
+                <Collapse
+                  key={stepEntity.metadata.recordId.entityId}
+                  in={stepAnimatingOut !== index}
+                  appear
+                >
                   <Box
                     sx={{
                       mt: index === 0 ? 0 : 3,
@@ -462,18 +404,16 @@ export const App: BlockComponent<RootEntity> = ({
                     }}
                   >
                     <Step
+                      entityId={stepEntity.metadata.recordId.entityId}
                       header={`Step ${index + 1}`}
-                      title={step.title}
-                      description={step.description}
-                      setField={(value, field) =>
-                        setStepField(index, value, field)
-                      }
+                      title={stepEntity.properties[titleKey]}
+                      description={stepEntity.properties[descriptionKey]}
                       updateField={(value, field) =>
                         updateStepField(index, value, field)
                       }
                       onRemove={() => removeStep(index)}
                       readonly={readonly}
-                      deletable={steps.length > 1}
+                      deletable={stepEntities.length > 1}
                       deleteButtonText="Remove step"
                     />
                   </Box>
@@ -500,6 +440,6 @@ export const App: BlockComponent<RootEntity> = ({
           </Card>
         </Box>
       </ThemeProvider>
-    </>
+    </Box>
   );
 };
