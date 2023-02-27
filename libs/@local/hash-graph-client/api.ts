@@ -2349,7 +2349,7 @@ export interface UpdateEntityType {
    * @type {string}
    * @memberof UpdateEntityType
    */
-  $schema: string;
+  $schema: UpdateEntityTypeSchemaEnum;
   /**
    *
    * @type {object}
@@ -2400,6 +2400,13 @@ export interface UpdateEntityType {
   links?: object;
 }
 
+export const UpdateEntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type UpdateEntityTypeSchemaEnum =
+  (typeof UpdateEntityTypeSchemaEnum)[keyof typeof UpdateEntityTypeSchemaEnum];
 export const UpdateEntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
