@@ -25,17 +25,17 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230227111813",
-    "@blockprotocol/hook": "0.1.0-canary-20230227111813",
-    "@blockprotocol/service": "0.1.0-canary-20230227111813"
+    "@blockprotocol/graph": "0.1.0-canary-20230227152050",
+    "@blockprotocol/hook": "0.1.0-canary-20230227152050",
+    "@blockprotocol/service": "0.1.0-canary-20230227152050"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.1.0-canary-20230227111813",
+    "block-scripts": "0.1.0-canary-20230227152050",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0-canary-20230227111813",
+    "mock-block-dock": "0.1.0-canary-20230227152050",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
