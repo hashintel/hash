@@ -152,26 +152,26 @@ export const App: BlockComponent<true, RootEntity> = ({
             />
           </Stack>
 
-          <Box mt={3}>
-            <Collapse in={!readonly && !introduction}>
-              <Button
-                variant="tertiary"
-                size="small"
-                sx={{ fontSize: 14 }}
-                onClick={() => setIntroduction(EMPTY_STEP)}
-              >
-                <FontAwesomeIcon
-                  icon={{ icon: faPlus }}
-                  sx={{ mr: 1, fontSize: 13 }}
-                />
-                Add Introduction
-              </Button>
-            </Collapse>
-
-            <Collapse
-              in={introduction !== null && !introduction?.animatingOut}
-              appear
+          <Collapse in={!readonly && !introduction}>
+            <Button
+              variant="tertiary"
+              size="small"
+              sx={{ fontSize: 14, mt: 3 }}
+              onClick={() => setIntroduction(EMPTY_STEP)}
             >
+              <FontAwesomeIcon
+                icon={{ icon: faPlus }}
+                sx={{ mr: 1, fontSize: 13 }}
+              />
+              Add Introduction
+            </Button>
+          </Collapse>
+
+          <Collapse
+            in={introduction !== null && !introduction?.animatingOut}
+            appear
+          >
+            <Box mt={3}>
               <Step
                 header="Introduction"
                 title={introduction?.title}
@@ -186,8 +186,8 @@ export const App: BlockComponent<true, RootEntity> = ({
                 readonly={readonly}
                 deleteButtonText="Remove intro"
               />
-            </Collapse>
-          </Box>
+            </Box>
+          </Collapse>
 
           <Box>
             {steps.map(({ id, title, description, animatingOut }, index) => (
