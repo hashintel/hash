@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
-  scalar EntityTypeWithoutId
+  scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
 
   extend type Query {
@@ -36,7 +36,7 @@ export const entityTypeTypedef = gql`
       The id of the account who owns the entity type. Defaults to the user calling the mutation.
       """
       ownedById: OwnedById
-      entityType: EntityTypeWithoutId!
+      entityType: ConstructEntityTypeParams!
     ): EntityTypeWithMetadata!
 
     """
@@ -50,7 +50,7 @@ export const entityTypeTypedef = gql`
       """
       New entity type schema contents to be used.
       """
-      updatedEntityType: EntityTypeWithoutId!
+      updatedEntityType: ConstructEntityTypeParams!
     ): EntityTypeWithMetadata!
   }
 `;

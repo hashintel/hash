@@ -2,6 +2,12 @@
   "description": "The contents of an Entity Type update request",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+      ]
+    },
     "kind": {
       "enum": ["entityType"]
     },
@@ -33,7 +39,7 @@
     "links": { "$ref": "#/$defs/linkTypeObject" }
   },
   "additionalProperties": false,
-  "required": ["kind", "type", "title", "properties"],
+  "required": ["$schema", "kind", "type", "title", "properties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",

@@ -65,7 +65,6 @@ describe("Entity CRU", () => {
     textDataType = await createDataType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "dataType",
         title: "Text",
         type: "string",
       },
@@ -79,7 +78,6 @@ describe("Entity CRU", () => {
       createEntityType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "entityType",
           title: "Friends",
           description: "Friend of",
           type: "object",
@@ -98,7 +96,6 @@ describe("Entity CRU", () => {
       createPropertyType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "propertyType",
           title: "Favorite Book",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
@@ -114,7 +111,6 @@ describe("Entity CRU", () => {
       createPropertyType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "propertyType",
           title: "Name",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
