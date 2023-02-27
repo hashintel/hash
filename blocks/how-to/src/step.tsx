@@ -50,32 +50,34 @@ export const Step: FunctionComponent<StepProps> = ({
           {header}
         </Typography>
 
-        <Fade in={!readonly && deletable}>
-          <Button
-            variant="tertiary"
-            size="xs"
-            sx={{
-              paddingX: 1.25,
-              paddingY: 0.75,
-              fontSize: 13,
-              height: 30,
-              minHeight: "unset",
-              minWidth: "unset",
-              background: palette.gray[10],
-              borderWidth: 0,
-              borderRadius: 1.25,
-              color: palette.gray[70],
-              fontWeight: 500,
-            }}
-            onClick={onRemove}
-          >
-            <FontAwesomeIcon
-              icon={{ icon: faTrash }}
-              sx={{ fontSize: 12, mr: 1 }}
-            />
-            {deleteButtonText}
-          </Button>
-        </Fade>
+        {!readonly ? (
+          <Fade in={deletable}>
+            <Button
+              variant="tertiary"
+              size="xs"
+              sx={{
+                paddingX: 1.25,
+                paddingY: 0.75,
+                fontSize: 13,
+                height: 30,
+                minHeight: "unset",
+                minWidth: "unset",
+                background: palette.gray[10],
+                borderWidth: 0,
+                borderRadius: 1.25,
+                color: palette.gray[70],
+                fontWeight: 500,
+              }}
+              onClick={onRemove}
+            >
+              <FontAwesomeIcon
+                icon={{ icon: faTrash }}
+                sx={{ fontSize: 12, mr: 1 }}
+              />
+              {deleteButtonText}
+            </Button>
+          </Fade>
+        ) : null}
       </Box>
 
       <Box
@@ -91,7 +93,7 @@ export const Step: FunctionComponent<StepProps> = ({
                 borderTopLeftRadius: 10,
                 borderTopRightRadius: 10,
               }
-            : { paddingY: 0.5 }),
+            : {}),
         }}
       >
         <EditableField
@@ -104,6 +106,7 @@ export const Step: FunctionComponent<StepProps> = ({
             fontSize: 15,
             lineHeight: 1,
             color: palette.gray[90],
+            ...(readonly ? { paddingY: 0.5 } : {}),
           }}
           placeholder="Step name goes here"
           readonly={readonly}
@@ -122,7 +125,7 @@ export const Step: FunctionComponent<StepProps> = ({
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
               }
-            : { paddingY: 0.5 }),
+            : {}),
         }}
       >
         <EditableField
@@ -135,6 +138,7 @@ export const Step: FunctionComponent<StepProps> = ({
             fontSize: 14,
             lineHeight: 1.3,
             color: palette.gray[90],
+            ...(readonly ? { paddingY: 0.5 } : {}),
           }}
           placeholder="Detailed instructions associated with the step can be added here. Click to start typing."
           readonly={readonly}
