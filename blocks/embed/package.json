@@ -43,6 +43,9 @@
     "servePort": 62680
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "name": "@hash/embed",
     "displayName": "Embed",
     "icon": "public/embed.svg",
