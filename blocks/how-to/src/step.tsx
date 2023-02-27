@@ -102,14 +102,12 @@ export const Step: FunctionComponent<StepProps> = ({
           value={title}
           onChange={(event) => updateTitle(event.target.value)}
           // onBlur={(event) => updateTitle(event.target.value)}
-          iconSize="21px"
-          inputProps={{
-            sx: {
-              fontWeight: 700,
-              fontSize: 15,
-              lineHeight: 1,
-              color: palette.gray[90],
-            },
+          height="15px"
+          sx={{
+            fontWeight: 700,
+            fontSize: 15,
+            lineHeight: 1,
+            color: palette.gray[90],
           }}
           placeholder="Step name goes here"
           readonly={readonly}
@@ -135,14 +133,12 @@ export const Step: FunctionComponent<StepProps> = ({
           value={description}
           onChange={(event) => updateDescription(event.target.value)}
           // onBlur={(event) => updateTitle(event.target.value)}
-          iconSize="21px"
-          inputProps={{
-            sx: {
-              fontWeight: 400,
-              fontSize: 14,
-              lineHeight: 1,
-              color: palette.gray[90],
-            },
+          height="18px"
+          sx={{
+            fontWeight: 400,
+            fontSize: 14,
+            lineHeight: 1.3,
+            color: palette.gray[90],
           }}
           placeholder="Detailed instructions associated with the step can be added here. Click to start typing."
           readonly={readonly}

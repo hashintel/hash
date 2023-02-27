@@ -1,27 +1,35 @@
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { faPen, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   Fade,
   IconButton,
+  InputAdornment,
   inputBaseClasses,
+  SxProps,
   TextField,
   TextFieldProps,
+  Theme,
+  Typography,
   useTheme,
 } from "@mui/material";
 import { useRef, useState } from "react";
 
 export const EditableField = ({
-  iconSize,
+  height,
   readonly,
+  placeholderSx = {},
   value,
   placeholder,
   sx,
   onBlur,
-  inputProps,
   ...props
-}: { iconSize: string; readonly?: boolean } & TextFieldProps) => {
-  const { transitions, palette } = useTheme();
+}: {
+  height: string;
+  readonly?: boolean;
+  placeholderSx?: SxProps<Theme>;
+} & TextFieldProps) => {
+  const { palette } = useTheme();
 
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -35,60 +43,83 @@ export const EditableField = ({
         display: "flex",
       }}
     >
-      <TextField
-        {...props}
-        value={value}
-        autoFocus
-        onBlur={(event) => {
-          setEditing(false);
-          onBlur?.(event);
-        }}
-        onKeyDown={({ code }) => {
-          if (code === "Enter") {
-            setEditing(false);
-          }
-        }}
-        multiline
-        inputRef={inputRef}
-        inputProps={{
-          readOnly: !editing,
-          ...inputProps,
-          sx: [
+      {!editing ? (
+        <Typography
+          onClick={() => {
+            if (!editing && !value) {
+              setEditing(true);
+            }
+          }}
+          sx={[
+            ...(Array.isArray(sx) ? sx : [sx]),
             {
-              "&::placeholder": {
-                color: palette.gray[50],
-                opacity: 1,
-              },
+              ...(!value
+                ? {
+                    color: palette.gray[50],
+                    opacity: 1,
+                    ...placeholderSx,
+                  }
+                : {}),
+              ...(!editing && !value
+                ? {
+                    cursor: "pointer",
+                  }
+                : null),
             },
-            ...(inputProps
-              ? Array.isArray(inputProps.sx)
-                ? inputProps.sx
-                : [inputProps.sx]
-              : []),
-          ],
-        }}
-        variant="standard"
-        placeholder={!readonly ? placeholder : undefined}
-        sx={{
-          width: "100%",
-          [`.${inputBaseClasses.root}`]: {
-            paddingTop: 0,
-            transition: transitions.create("padding"),
-            ...(!editing ? { p: 0 } : {}),
-          },
-          ...(!editing
-            ? {
-                "& ::before": {
-                  borderWidth: "0 !important",
+          ]}
+        >
+          {value && typeof value === "string" ? value : placeholder}
+        </Typography>
+      ) : (
+        <TextField
+          {...props}
+          value={value}
+          autoFocus
+          onBlur={(event) => {
+            setEditing(false);
+            onBlur?.(event);
+          }}
+          onKeyDown={({ code }) => {
+            if (code === "Enter") {
+              setEditing(false);
+            }
+          }}
+          onClick={() => {
+            if (!editing && !value) {
+              setEditing(true);
+            }
+          }}
+          inputRef={inputRef}
+          inputProps={{
+            sx: [
+              {
+                height: "auto",
+                p: 0,
+                "&::placeholder": {
+                  color: palette.gray[50],
+                  opacity: 1,
+                  ...placeholderSx,
                 },
-                "& ::after": {
-                  borderWidth: "0 !important",
-                },
-              }
-            : {}),
-          ...(Array.isArray(sx) ? sx : [sx]),
-        }}
-      />
+              },
+              ...(Array.isArray(sx) ? sx : [sx]),
+            ],
+          }}
+          variant="standard"
+          placeholder={!readonly ? placeholder : undefined}
+          sx={{
+            width: "100%",
+            [`.${inputBaseClasses.root}`]: {
+              paddingTop: 0,
+              height,
+              p: 0,
+            },
+            "& ::before, & ::after": {
+              display: "none",
+              borderWidth: "0 !important",
+            },
+          }}
+        />
+      )}
 
       {!readonly ? (
         <Fade in={hovered && !editing}>
@@ -101,12 +132,15 @@ export const EditableField = ({
               sx={{
                 position: "absolute",
                 top: -4,
+                left: 12,
                 padding: 0.5,
               }}
             >
               <FontAwesomeIcon
-                icon={faPenToSquare}
-                sx={{ fontSize: `${iconSize} !important` }}
+                icon={{ icon: !value ? faPen : faPenToSquare.icon }}
+                sx={{
+                  fontSize: `${height} !important`,
+                }}
               />
             </IconButton>
           </Box>

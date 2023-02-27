@@ -6,17 +6,10 @@ import {
 import {
   Button,
   faPlus,
-  faTrash,
   FontAwesomeIcon,
   theme,
 } from "@hashintel/design-system";
-import {
-  Card,
-  Collapse,
-  Stack,
-  textFieldClasses,
-  ThemeProvider,
-} from "@mui/material";
+import { Card, Collapse, Stack, ThemeProvider } from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useRef, useState } from "react";
 import { EditableField } from "./editable-field";
@@ -128,15 +121,13 @@ export const App: BlockComponent<true, RootEntity> = ({
               value={titleValue}
               onChange={(event) => setTitleValue(event.target.value)}
               // onBlur={(event) => updateTitle(event.target.value)}
-              iconSize="21px"
-              inputProps={{
-                sx: {
-                  fontWeight: 700,
-                  fontSize: 21,
-                  lineHeight: 1,
-                  letterSpacing: "-0.02em",
-                  color: theme.palette.common.black,
-                },
+              height="21px"
+              sx={{
+                fontWeight: 700,
+                fontSize: 21,
+                lineHeight: 1,
+                letterSpacing: "-0.02em",
+                color: theme.palette.common.black,
               }}
               placeholder="Enter a how-to guide name"
               readonly={readonly}
@@ -145,27 +136,23 @@ export const App: BlockComponent<true, RootEntity> = ({
               value={descriptionValue}
               onChange={(event) => setDescriptionValue(event.target.value)}
               // onBlur={(event) => updateTitle(event.target.value)}
-              iconSize="21px"
-              inputProps={{
-                sx: {
-                  fontWeight: 500,
-                  fontSize: 14,
-                  lineHeight: 1.3,
-                  letterSpacing: "-0.02em",
-                  color: theme.palette.gray[90],
-                  "&::placeholder": {
-                    fontStyle: "italic",
-                  },
-                },
+              height="18px"
+              sx={{
+                fontWeight: 500,
+                fontSize: 14,
+                lineHeight: 1.3,
+                letterSpacing: "-0.02em",
+                color: theme.palette.gray[90],
               }}
               placeholder="Click here to add a description of the how-to process"
+              placeholderSx={{
+                fontStyle: "italic",
+              }}
               readonly={readonly}
             />
           </Stack>
 
           <Box mt={3}>
-            {/* {!readonly && !introduction ? ( */}
-
             <Collapse in={!readonly && !introduction}>
               <Button
                 variant="tertiary"
