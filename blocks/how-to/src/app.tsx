@@ -11,10 +11,10 @@ import {
 } from "@hashintel/design-system";
 import { Card, Collapse, Stack, ThemeProvider } from "@mui/material";
 import Box from "@mui/material/Box";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditableField } from "./editable-field";
 import { Step } from "./step";
-import { HowToStep, IntroductionLink, RootEntity, StepLink } from "./types";
+import { HowToStep, IntroductionLink, RootEntity } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 
 export const titleKey =
@@ -29,17 +29,17 @@ const introductionLinkType =
 const stepLinkType =
   "http://localhost:3000/@lbett/types/entity-type/step-link/v/1";
 
-export type titleOrDescription = typeof titleKey | typeof descriptionKey;
+export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
 export type Link = typeof introductionLinkType | typeof stepLinkType;
 
-interface Step {
+export interface Step {
   id?: string;
   title: string;
   description: string;
   animatingOut?: boolean;
 }
 
-const EMPTY_STEP: Step = { [titleKey]: "", [descriptionKey]: "" };
+const EMPTY_STEP: Step = { title: "", description: "" };
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -86,14 +86,24 @@ export const App: BlockComponent<RootEntity> = ({
   const stepEntities: HowToStep[] | undefined = stepLinkedEntities?.map(
     (linkEntity) => linkEntity.rightEntity,
   );
-  const stepLinkEntities: StepLink[] | undefined = stepLinkedEntities?.map(
-    (linkEntity) => linkEntity.linkEntity,
-  );
 
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
   const [steps, setSteps] = useState<Step[]>([]);
   const [introduction, setIntroduction] = useState<Step | null>(null);
+
+  const updateField = async (value: string, field: TitleOrDescription) => {
+    await graphModule?.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          ...properties,
+          [field]: value,
+        },
+      },
+    });
+  };
 
   const createStepEntity = async (
     linkType: Link,
@@ -129,71 +139,23 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
-  const addStep = () => {
-    createStepEntity(stepLinkType, (stepEntityId) => {
-      setSteps([...steps, { id: stepEntityId, ...EMPTY_STEP }]);
+  const createIntroduction = () =>
+    createStepEntity(introductionLinkType, (introductionEntityId) => {
+      setIntroduction({ id: introductionEntityId, ...EMPTY_STEP });
     });
-  };
 
-  useEffect(() => {
-    if (introEntity) {
-      setIntroduction({ ...introEntity.properties });
+  const setIntroductionField = (value: string | boolean, field: keyof Step) => {
+    if (introduction) {
+      setIntroduction({ ...introduction, [field]: value });
     }
-
-    if (!stepEntities.length) {
-      addStep();
-    } else {
-      setSteps(
-        stepEntities.map((stepEntity) => ({
-          id: stepEntity.metadata.recordId.entityId,
-          ...stepEntity.properties,
-        })),
-      );
-    }
-  });
-
-  const removeIntroduction = () => {
-    updateIntroductionField(true, "animatingOut");
-
-    setTimeout(async () => {
-      setIntroduction(null);
-
-      await graphModule?.deleteEntity({
-        data: {
-          entityId: introLinkEntity.metadata.recordId.entityId,
-        },
-      });
-    }, 300);
   };
-
-  const updateField = async (value: string, field: titleOrDescription) => {
-    await graphModule?.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {
-          ...properties,
-          [field]: value,
-        },
-      },
-    });
-  };
-
-  const setIntroductionField = useCallback(
-    (value: any, field: "title" | "description" | "animatingOut") => {
-      if (introduction) {
-        setIntroduction({ ...introduction, [field]: value });
-      }
-    },
-    [introduction],
-  );
 
   const updateIntroductionField = async (
-    value: string,
-    field: titleOrDescription,
+    value: string | boolean,
+    field: TitleOrDescription,
   ) => {
     if (introduction) {
-      setIntroductionField(value, field);
+      setIntroductionField(value, field === titleKey ? "title" : "description");
     }
 
     await graphModule?.updateEntity({
@@ -208,43 +170,60 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const setStepField = useCallback(
-    (
-      index: number,
-      value: any,
-      field: "title" | "description" | "animatingOut",
-    ) => {
-      const newSteps = steps.map((step, stepIndex) => {
-        if (stepIndex === index) {
-          return { ...step, [field]: value };
-        }
+  const removeIntroduction = () => {
+    setIntroductionField(true, "animatingOut");
 
-        return step;
+    setTimeout(async () => {
+      setIntroduction(null);
+
+      await graphModule?.deleteEntity({
+        data: {
+          entityId: introLinkEntity.metadata.recordId.entityId,
+        },
       });
+    }, 300);
+  };
 
-      setSteps(newSteps);
-    },
-    [steps],
-  );
+  const addStep = () =>
+    createStepEntity(stepLinkType, (stepEntityId) => {
+      setSteps([...steps, { id: stepEntityId, ...EMPTY_STEP }]);
+    });
+
+  const setStepField = (
+    index: number,
+    value: string | boolean,
+    field: keyof Step,
+  ) => {
+    const newSteps = steps.map((step, stepIndex) => {
+      if (stepIndex === index) {
+        return { ...step, [field]: value };
+      }
+
+      return step;
+    });
+
+    setSteps(newSteps);
+  };
 
   const updateStepField = async (
     index: number,
     value: string,
-    field: titleOrDescription,
+    field: TitleOrDescription,
   ) => {
-    const step = steps[index];
     const linkedStep = stepEntities.find(
-      (stepEntity) => stepEntity.metadata.recordId.entityId === step?.id,
+      (stepEntity) =>
+        stepEntity.metadata.recordId.entityId === steps[index]?.id,
     );
-    if (!step || !linkedStep) {
+
+    if (!linkedStep) {
       return;
     }
 
-    setStepField(index, value, field);
+    setStepField(index, value, field === titleKey ? "title" : "description");
 
     await graphModule?.updateEntity({
       data: {
-        entityId: step.id,
+        entityId: linkedStep.metadata.recordId.entityId,
         entityTypeId: howToStepType,
         properties: {
           ...linkedStep.properties,
@@ -255,17 +234,18 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeStep = (index: number) => {
-    const step = steps[index];
     const stepLink = stepLinkedEntities.find(
       (linkedEntity) =>
-        linkedEntity.rightEntity.metadata.recordId.entityId === step.id,
+        linkedEntity.rightEntity.metadata.recordId.entityId ===
+        steps[index]?.id,
     )?.linkEntity;
-    if (!step || !stepLink) {
+
+    if (!stepLink) {
       return;
     }
 
     const newSteps = [...steps];
-    updateStepField(index, true, "animatingOut");
+    setStepField(index, true, "animatingOut");
 
     setTimeout(async () => {
       newSteps.splice(index, 1);
@@ -279,11 +259,26 @@ export const App: BlockComponent<RootEntity> = ({
     }, 300);
   };
 
-  const createIntroduction = () => {
-    createStepEntity(introductionLinkType, (introductionEntityId) => {
-      setIntroduction({ id: introductionEntityId, ...EMPTY_STEP });
-    });
-  };
+  useEffect(() => {
+    if (introEntity) {
+      setIntroduction({
+        title: introEntity.properties[titleKey] ?? "",
+        description: introEntity.properties[descriptionKey] ?? "",
+      });
+    }
+
+    if (!stepEntities.length) {
+      addStep();
+    } else {
+      setSteps(
+        stepEntities.map((stepEntity) => ({
+          id: stepEntity.metadata.recordId.entityId,
+          title: stepEntity.properties[titleKey] ?? "",
+          description: stepEntity.properties[descriptionKey] ?? "",
+        })),
+      );
+    }
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -363,8 +358,8 @@ export const App: BlockComponent<RootEntity> = ({
             <Box mt={3}>
               <Step
                 header="Introduction"
-                title={introduction?.[titleKey]}
-                description={introduction?.[descriptionKey]}
+                title={introduction?.title}
+                description={introduction?.description}
                 setField={setIntroductionField}
                 updateField={updateIntroductionField}
                 onRemove={() => removeIntroduction()}
@@ -386,8 +381,8 @@ export const App: BlockComponent<RootEntity> = ({
                 >
                   <Step
                     header={`Step ${index + 1}`}
-                    title={step[titleKey]}
-                    description={step[descriptionKey]}
+                    title={step.title}
+                    description={step.description}
                     setField={(value, field) =>
                       setStepField(index, value, field)
                     }

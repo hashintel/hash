@@ -1,15 +1,12 @@
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
+import { Box, Fade, Typography, useTheme } from "@mui/material";
+import { FunctionComponent } from "react";
 import {
-  Box,
-  Fade,
-  inputBaseClasses,
-  TextField,
-  TextFieldProps,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import { FunctionComponent, useState } from "react";
-import { descriptionKey, titleKey, titleOrDescription } from "./app";
+  descriptionKey,
+  titleKey,
+  TitleOrDescription,
+  Step as IStep,
+} from "./app";
 import { EditableField } from "./editable-field";
 
 interface StepProps {
@@ -18,9 +15,8 @@ interface StepProps {
   description?: string;
   deletable?: boolean;
   readonly?: boolean;
-  setField: (title: string, field: titleOrDescription) => void;
-  updateDescription: (description: string) => void;
-  updateField: (value: string, field: titleOrDescription) => void;
+  setField: (title: string, field: keyof IStep) => void;
+  updateField: (value: string, field: TitleOrDescription) => void;
   onRemove: () => void;
   deleteButtonText: string;
 }
@@ -100,7 +96,7 @@ export const Step: FunctionComponent<StepProps> = ({
       >
         <EditableField
           value={title}
-          onChange={(event) => setField(event.target.value, titleKey)}
+          onChange={(event) => setField(event.target.value, "title")}
           onBlur={(event) => updateField(event.target.value, titleKey)}
           height="15px"
           sx={{
@@ -131,7 +127,7 @@ export const Step: FunctionComponent<StepProps> = ({
       >
         <EditableField
           value={description}
-          onChange={(event) => setField(event.target.value, descriptionKey)}
+          onChange={(event) => setField(event.target.value, "description")}
           onBlur={(event) => updateField(event.target.value, descriptionKey)}
           height="18px"
           sx={{
