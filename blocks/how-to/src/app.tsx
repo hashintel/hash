@@ -354,95 +354,104 @@ export const App: BlockComponent<RootEntity> = ({
           <Card
             sx={{
               display: "flex",
-              border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              borderRadius: 2.5,
-              boxShadow: "none",
-              paddingY: 3,
-              paddingX: 3.75,
               flexDirection: "column",
+              gap: 3,
+              ...(!readonly
+                ? {
+                    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                    borderRadius: 2.5,
+                    boxShadow: "none",
+                    paddingY: 3,
+                    paddingX: 3.75,
+                  }
+                : {}),
             }}
           >
-            <Stack
-              sx={{
-                gap: 1.5,
-              }}
-            >
-              <EditableField
-                value={titleValue}
-                onChange={(event) => setTitleValue(event.target.value)}
-                onBlur={(event) => updateField(event.target.value, titleKey)}
-                height="21px"
+            {title || description || !readonly ? (
+              <Stack
                 sx={{
-                  fontWeight: 700,
-                  fontSize: 21,
-                  lineHeight: 1,
-                  letterSpacing: "-0.02em",
-                  color: theme.palette.common.black,
+                  gap: 1.5,
                 }}
-                placeholder="Enter a how-to guide name"
-                readonly={readonly}
-              />
-              <EditableField
-                value={descriptionValue}
-                onChange={(event) => setDescriptionValue(event.target.value)}
-                onBlur={(event) =>
-                  updateField(event.target.value, descriptionKey)
-                }
-                height="18px"
-                sx={{
-                  fontWeight: 500,
-                  fontSize: 14,
-                  lineHeight: 1.3,
-                  letterSpacing: "-0.02em",
-                  color: theme.palette.gray[90],
-                }}
-                placeholder="Click here to add a description of the how-to process"
-                placeholderSx={{
-                  fontStyle: "italic",
-                }}
-                readonly={readonly}
-              />
-            </Stack>
-
-            <Collapse in={!readonly && !introduction}>
-              <Button
-                variant="tertiary"
-                size="small"
-                sx={{ fontSize: 14, mt: 3 }}
-                onClick={() => createIntroduction()}
               >
-                <FontAwesomeIcon
-                  icon={{ icon: faPlus }}
-                  sx={{ mr: 1, fontSize: 13 }}
-                />
-                Add Introduction
-              </Button>
-            </Collapse>
-
-            <Collapse
-              in={introduction !== null && !introduction?.animatingOut}
-              appear
-            >
-              <Box mt={3}>
-                <Step
-                  header="Introduction"
-                  title={introduction?.title}
-                  description={introduction?.description}
-                  setField={setIntroductionField}
-                  updateField={updateIntroductionField}
-                  onRemove={() => removeIntroduction()}
+                <EditableField
+                  value={titleValue}
+                  onChange={(event) => setTitleValue(event.target.value)}
+                  onBlur={(event) => updateField(event.target.value, titleKey)}
+                  height="21px"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: 21,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
+                    color: theme.palette.common.black,
+                  }}
+                  placeholder="Enter a how-to guide name"
                   readonly={readonly}
-                  deleteButtonText="Remove intro"
                 />
+                <EditableField
+                  value={descriptionValue}
+                  onChange={(event) => setDescriptionValue(event.target.value)}
+                  onBlur={(event) =>
+                    updateField(event.target.value, descriptionKey)
+                  }
+                  height="18px"
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: 14,
+                    lineHeight: 1.3,
+                    letterSpacing: "-0.02em",
+                    color: theme.palette.gray[90],
+                  }}
+                  placeholder="Click here to add a description of the how-to process"
+                  placeholderSx={{
+                    fontStyle: "italic",
+                  }}
+                  readonly={readonly}
+                />
+              </Stack>
+            ) : null}
+
+            {introduction || !readonly ? (
+              <Box>
+                <Collapse in={!readonly && !introduction}>
+                  <Button
+                    variant="tertiary"
+                    size="small"
+                    sx={{ fontSize: 14 }}
+                    onClick={() => createIntroduction()}
+                  >
+                    <FontAwesomeIcon
+                      icon={{ icon: faPlus }}
+                      sx={{ mr: 1, fontSize: 13 }}
+                    />
+                    Add Introduction
+                  </Button>
+                </Collapse>
+
+                <Collapse
+                  in={introduction !== null && !introduction?.animatingOut}
+                  appear
+                >
+                  <Step
+                    header="Introduction"
+                    title={introduction?.title}
+                    description={introduction?.description}
+                    setField={setIntroductionField}
+                    updateField={updateIntroductionField}
+                    onRemove={() => removeIntroduction()}
+                    readonly={readonly}
+                    deleteButtonText="Remove intro"
+                  />
+                </Collapse>
               </Box>
-            </Collapse>
+            ) : null}
 
             <Box>
               {steps.map((step, index) => (
                 <Collapse key={step.id} in={!step.animatingOut} appear>
                   <Box
                     sx={{
-                      mt: 3,
+                      mt: index === 0 ? 0 : 3,
                       transition: ({ transitions }) =>
                         transitions.create("margin-top"),
                     }}
