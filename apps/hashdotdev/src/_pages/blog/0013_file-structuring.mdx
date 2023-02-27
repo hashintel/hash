@@ -1,9 +1,9 @@
 ---
 authors:
   - name: Alexander Kachkaev
-    # jobTitle: ""
+    jobTitle: Contributor, Block Protocol
     # photo: ""
-postPhoto: blog/0012_file-structuring/tree-evolution-3.png
+postPhoto: blog/0013_file-structuring/tree-evolution-3.png
 title: "File structuring using fractal trees"
 # subtitle: ""
 date: "2023-02-28"
@@ -34,19 +34,19 @@ A new project is initiated with just one root source file and is then grown orga
 Project complexity is distributed across the whole tree, which makes the resulting structure robust, flexible, self-explanatory and highly scaleable.
 
 <img
-  src="blog/0012_file-structuring/tree-evolution-1.png"
+  src="blog/0013_file-structuring/tree-evolution-1.png"
   width={1176 / 6}
   height={884 / 6}
   alt="tree evolution (1)"
 />
 <img
-  src="blog/0012_file-structuring/tree-evolution-2.png"
+  src="blog/0013_file-structuring/tree-evolution-2.png"
   width={1194 / 6}
   height={886 / 6}
   alt="tree evolution (2)"
 />
 <img
-  src="blog/0012_file-structuring/tree-evolution-3.png"
+  src="blog/0013_file-structuring/tree-evolution-3.png"
   width={1198 / 6}
   height={886 / 6}
   alt="tree evolution (3)"
@@ -97,7 +97,7 @@ Direct imports from a sub-sub-tree is not allowed because these resources are co
 As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
 
 <img
-  src="blog/0012_file-structuring/resources-of-subtrees.png"
+  src="blog/0013_file-structuring/resources-of-subtrees.png"
   width={1198 / 2}
   height={886 / 2}
   alt="Resources of subtrees are inaccessible"
@@ -111,13 +111,13 @@ Each ‘fork’ in the tree can accommodate multiple shared resources.
 Each of the shared resources is a root of a fractal sub-tree by itself.
 
 <img
-  src="blog/0012_file-structuring/shared-resources-1.png"
+  src="blog/0013_file-structuring/shared-resources-1.png"
   width={1198 / 3}
   height={886 / 3}
   alt="Shared resources (1)"
 />
 <img
-  src="blog/0012_file-structuring/shared-resources-2.png"
+  src="blog/0013_file-structuring/shared-resources-2.png"
   width={1198 / 3}
   height={886 / 3}
   alt="Shared resources (2)"
@@ -243,7 +243,7 @@ If necessary, it is possible to have multiple entry points, such as Next.js page
 The locations of these entry points are justified by their usage, but the rules of the fractal tree still apply.
 
 <img
-  src="blog/0012_file-structuring/multiple-entry-points.jpg"
+  src="blog/0013_file-structuring/multiple-entry-points.jpg"
   width={800}
   height={600}
   alt="Multiple ‘tree entry points’ in a botanic garden"
