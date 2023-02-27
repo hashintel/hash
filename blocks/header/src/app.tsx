@@ -1,34 +1,40 @@
-import { BlockComponent } from "@blockprotocol/graph/react";
-import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
+import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef } from "react";
 
-type BlockEntityProperties = {
-  color?: string;
-  level?: number;
-  text?: string;
-};
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: {
-    blockEntity: {
-      entityId,
-      properties: { color, level = 1, text },
-    },
-  },
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph },
 }) => {
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLHeadingElement>(null);
-  const { hookService } = useHookBlockService(containerRef);
+  const { hookModule } = useHookBlockModule(containerRef);
 
-  useHook(hookService, headerRef, "text", entityId, "$.text", (node) => {
-    // eslint-disable-next-line no-param-reassign
-    node.innerText = text ?? "";
+  const {
+    [propertyIds.color]: color,
+    [propertyIds.level]: level = 1,
+    [propertyIds.text]: text,
+  } = rootEntity.properties;
 
-    return () => {
+  useHook(
+    hookModule,
+    headerRef,
+    "text",
+    rootEntity.metadata.recordId.entityId,
+    [propertyIds.text],
+    (node) => {
       // eslint-disable-next-line no-param-reassign
-      node.innerText = "";
-    };
-  });
+      node.innerText = text ?? "";
+
+      return () => {
+        // eslint-disable-next-line no-param-reassign
+        node.innerText = "";
+      };
+    },
+  );
 
   if (![1, 2, 3, 4, 5, 6].includes(level)) {
     throw new Error(`Unexpected level ${level} (expected 1 - 6)`);

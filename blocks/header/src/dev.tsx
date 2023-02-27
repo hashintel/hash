@@ -1,27 +1,39 @@
 /**
- * webpack-dev-server entry point for debugging.
- * This file is not bundled with the library during the build process.
+ * This is the entry point for developing and debugging.
+ * This file is not bundled with the block during the build process.
  */
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
+import packageJSON from "../package.json";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
-const headerProperties = {
-  level: 2,
-  color: "red",
-  text: "Hello, World",
+const initialData: RootEntity = {
+  metadata: {
+    entityTypeId:
+      "https://blockprotocol.org/@nate/types/entity-type/heading/v/2",
+    recordId: {
+      entityId: "entity-heading",
+      editionId: "1",
+    },
+  },
+  properties: {
+    [propertyIds.text]: "Hello, World",
+    [propertyIds.level]: 2,
+    [propertyIds.color]: "red",
+  },
 };
 
 const App = () => (
   <MockBlockDock
     blockDefinition={{ ReactComponent: Component }}
-    blockEntity={{
-      entityId: "test-header-1",
-      properties: headerProperties,
-    }}
+    blockEntityRecordId={initialData.metadata.recordId}
+    initialData={{ initialEntities: [initialData] }}
+    blockInfo={packageJSON.blockprotocol}
     debug
   />
 );
