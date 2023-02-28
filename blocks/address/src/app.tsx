@@ -174,7 +174,7 @@ export const App: BlockComponent<RootEntity> = ({
   );
 
   const updateBlockAddress = async (address: Address) => {
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -189,7 +189,7 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const updateTitle = async (title: string) => {
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -202,7 +202,7 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const updateDescription = async (description: string) => {
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -215,7 +215,7 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const updateZoomLevel = async (zoomLevel: number) => {
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -259,7 +259,7 @@ export const App: BlockComponent<RootEntity> = ({
             [fileUrlKey]: imageUrl,
           };
 
-          const createImageEntityResponse = await graphModule?.createEntity({
+          const createImageEntityResponse = await graphModule.createEntity({
             data: {
               entityTypeId: imageTypeId,
               properties: imageProperties,
@@ -270,7 +270,7 @@ export const App: BlockComponent<RootEntity> = ({
             createImageEntityResponse?.data?.metadata.recordId.entityId;
 
           if (!imageLinkEntity && imageEntityId && addressId) {
-            await graphModule?.createEntity({
+            await graphModule.createEntity({
               data: {
                 entityTypeId: hasAddressMapLink,
                 properties: {
@@ -312,13 +312,13 @@ export const App: BlockComponent<RootEntity> = ({
     };
 
     const createAddressEntityResponse = await (!addressEntity
-      ? graphModule?.createEntity({
+      ? graphModule.createEntity({
           data: {
             entityTypeId: addressTypeId,
             properties: addressProperties,
           },
         })
-      : graphModule?.updateEntity({
+      : graphModule.updateEntity({
           data: {
             entityId: addressEntity.metadata.recordId.entityId,
             entityTypeId: addressEntity.metadata.entityTypeId,
@@ -331,7 +331,7 @@ export const App: BlockComponent<RootEntity> = ({
 
     if (addressEntityId) {
       if (!addressLinkEntity) {
-        await graphModule?.createEntity({
+        await graphModule.createEntity({
           data: {
             entityTypeId: hasAddressLink,
             properties: {},
@@ -347,7 +347,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const resetBlock = async () => {
     selectAddress();
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -358,7 +358,7 @@ export const App: BlockComponent<RootEntity> = ({
     // Remove the address link and all image links
     for (const { linkEntity } of linkedEntities) {
       if (linkEntity) {
-        await graphModule?.deleteEntity({
+        await graphModule.deleteEntity({
           data: {
             entityId: linkEntity.metadata.recordId.entityId,
           },
