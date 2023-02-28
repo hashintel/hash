@@ -92,7 +92,7 @@ export const App: BlockComponent<RootEntity> = ({
           linkEntity?.metadata.entityTypeId === hasHowToBlockStep,
       ),
     [linkedEntities],
-  )!;
+  );
 
   const stepEntities: HowToStep[] | undefined = stepLinkedEntities?.map(
     (linkEntity) => linkEntity.rightEntity,
