@@ -1,4 +1,4 @@
-import { BaseUri } from "@blockprotocol/type-system/slim";
+import { BaseUrl } from "@blockprotocol/type-system/slim";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -187,7 +187,7 @@ type TypeFormModalProps<T extends ElementType = "div"> =
     as?: T;
     popupState: PopupState;
     ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
-    baseUri?: BaseUri;
+    baseUrl?: BaseUrl;
   };
 
 type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;

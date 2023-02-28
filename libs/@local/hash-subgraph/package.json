@@ -32,8 +32,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230214141700",
-    "@blockprotocol/type-system": "0.0.4-canary-20230214141700",
+    "@blockprotocol/graph": "0.1.0-canary-20230227152050",
+    "@blockprotocol/type-system": "0.1.0-canary-20230227152050",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "uuid": "8.3.2"

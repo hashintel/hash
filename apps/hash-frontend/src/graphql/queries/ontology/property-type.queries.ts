@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getPropertyTypeQuery = gql`
   query getPropertyType(
-    $propertyTypeId: VersionedUri!
+    $propertyTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
   ) {
@@ -19,12 +19,12 @@ export const getPropertyTypeQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestPropertyTypesQuery = gql`
-  query getAllLatestPropertyTypes(
+export const queryPropertyTypesQuery = gql`
+  query queryPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
   ) {
-    getAllLatestPropertyTypes(
+    queryPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
     ) {
@@ -37,7 +37,7 @@ export const getAllLatestPropertyTypesQuery = gql`
 export const createPropertyTypeMutation = gql`
   mutation createPropertyType(
     $ownedById: OwnedById!
-    $propertyType: PropertyTypeWithoutId!
+    $propertyType: ConstructPropertyTypeParams!
   ) {
     # This is a scalar, which has no selection.
     createPropertyType(ownedById: $ownedById, propertyType: $propertyType)
@@ -46,8 +46,8 @@ export const createPropertyTypeMutation = gql`
 
 export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
-    $propertyTypeId: VersionedUri!
-    $updatedPropertyType: PropertyTypeWithoutId!
+    $propertyTypeId: VersionedUrl!
+    $updatedPropertyType: ConstructPropertyTypeParams!
   ) {
     # This is a scalar, which has no selection.
     updatePropertyType(

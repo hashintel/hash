@@ -25,7 +25,7 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OwnedById,
 } from "@local/hash-subgraph";
 
@@ -84,11 +84,9 @@ describe("Link entity", () => {
         schema: {
           title: "Friends",
           description: "Friend of",
-          kind: "entityType",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
-          additionalProperties: false,
         },
         actorId: testUser.accountId,
       }).then((linkEntityType) => {
@@ -99,11 +97,9 @@ describe("Link entity", () => {
         schema: {
           title: "Acquaintance",
           description: "Acquainted with",
-          kind: "entityType",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
-          additionalProperties: false,
         },
         actorId: testUser.accountId,
       }).then((linkEntityType) => {

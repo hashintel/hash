@@ -58,16 +58,16 @@ export const deprecatedTypedef = gql`
     sourceAccountId: ID!
     sourceEntityId: ID!
     path: String!
-    operation: AggregateOperation!
+    operation: QueryOperation!
     results: [UnknownEntity!]!
   }
 
   type AggregationResponse {
-    operation: AggregateOperation!
+    operation: QueryOperation!
     results: [UnknownEntity!]!
   }
 
-  type AggregateOperation {
+  type QueryOperation {
     entityTypeId: ID
     entityTypeVersionId: ID
     multiFilter: MultiFilterOperation
@@ -93,7 +93,7 @@ export const deprecatedTypedef = gql`
     operator: String!
   }
 
-  input AggregateOperationInput {
+  input QueryOperationInput {
     entityTypeId: ID
     entityTypeVersionId: ID
     multiFilter: MultiFilterOperationInput
@@ -124,7 +124,7 @@ export const deprecatedTypedef = gql`
     """
     aggregateEntity(
       accountId: ID!
-      operation: AggregateOperationInput!
+      operation: QueryOperationInput!
     ): AggregationResponse!
 
     """
@@ -144,7 +144,7 @@ export const deprecatedTypedef = gql`
       sourceAccountId: ID!
       sourceEntityId: ID!
       path: String!
-      operation: AggregateOperationInput!
+      operation: QueryOperationInput!
     ): LinkedAggregation!
     """
     Update the operation of an entity's linked aggregation
@@ -152,7 +152,7 @@ export const deprecatedTypedef = gql`
     updateLinkedAggregationOperation(
       sourceAccountId: ID!
       aggregationId: ID!
-      updatedOperation: AggregateOperationInput!
+      updatedOperation: QueryOperationInput!
     ): LinkedAggregation!
     """
     Delete an entity's linked aggregation
@@ -225,16 +225,16 @@ export const _aggregationTypedef = gql`
     sourceAccountId: ID!
     sourceEntityId: ID!
     path: String!
-    operation: AggregateOperation!
+    operation: QueryOperation!
     results: [UnknownEntity!]!
   }
 
   type AggregationResponse {
-    operation: AggregateOperation!
+    operation: QueryOperation!
     results: [UnknownEntity!]!
   }
 
-  type AggregateOperation {
+  type QueryOperation {
     entityTypeId: ID
     entityTypeVersionId: ID
     multiFilter: MultiFilterOperation
@@ -260,7 +260,7 @@ export const _aggregationTypedef = gql`
     operator: String!
   }
 
-  input AggregateOperationInput {
+  input QueryOperationInput {
     entityTypeId: ID
     entityTypeVersionId: ID
     multiFilter: MultiFilterOperationInput
@@ -291,7 +291,7 @@ export const _aggregationTypedef = gql`
     """
     aggregateEntity(
       accountId: ID!
-      operation: AggregateOperationInput!
+      operation: QueryOperationInput!
     ): AggregationResponse!
 
     """
@@ -311,7 +311,7 @@ export const _aggregationTypedef = gql`
       sourceAccountId: ID!
       sourceEntityId: ID!
       path: String!
-      operation: AggregateOperationInput!
+      operation: QueryOperationInput!
     ): LinkedAggregation!
     """
     Update the operation of an entity's linked aggregation
@@ -319,7 +319,7 @@ export const _aggregationTypedef = gql`
     updateLinkedAggregationOperation(
       sourceAccountId: ID!
       aggregationId: ID!
-      updatedOperation: AggregateOperationInput!
+      updatedOperation: QueryOperationInput!
     ): LinkedAggregation!
     """
     Delete an entity's linked aggregation

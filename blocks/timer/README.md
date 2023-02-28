@@ -1,6 +1,6 @@
 The Timer block provides a countdown timer with a novel UI. The remaining time is communicated with numbers and with a circular gradient, which shrinks in size counterclockwise towards 00:00. The number of minutes can be set by typing or by clicking plus and minus buttons, which add or subtract time in five minute chunks, while a reset button stops the countdown and restores the time remaining.
 
-The block uses the Graph Service to persist its countdown through sessions and reloads. When the _play_ button is clicked, the block calls the `updateEntities` method and sets `targetDateTime` to _current time_ + `initialDuration`. When the timer reaches 00:00, `targetDateTime` is not unset to avoid duplicate entity updates if the timer is rendered in multiple places. If the value of `targetDateTime` points to the past, it is interpreted as undefined.
+The block uses the Graph Module to persist its countdown through sessions and reloads. When the _play_ button is clicked, the block calls the `updateEntities` method and sets `targetDateTime` to _current time_ + `initialDuration`. When the timer reaches 00:00, `targetDateTime` is not unset to avoid duplicate entity updates if the timer is rendered in multiple places. If the value of `targetDateTime` points to the past, it is interpreted as undefined.
 
 The Timer block accepts:
 

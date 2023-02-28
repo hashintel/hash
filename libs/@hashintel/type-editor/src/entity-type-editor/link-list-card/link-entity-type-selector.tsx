@@ -17,6 +17,8 @@ import { useResizeObserverRef } from "rooks";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
+import { useIsReadonly } from "../../shared/read-only-context";
+import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 
 const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
@@ -40,6 +42,8 @@ export const LinkEntityTypeSelector = ({
   linkIndex: number;
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
+
+  const isReadonly = useIsReadonly();
 
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
     useState(false);
@@ -69,6 +73,11 @@ export const LinkEntityTypeSelector = ({
     chosenEntityTypeIds.includes(type.$id),
   );
 
+  const entityTypeOptions = useFilterTypeOptions({
+    typeOptions: entityTypesArray,
+    typesToExclude: chosenEntityTypes,
+  });
+
   /**
    * We change the position of the input which the entity type list popup
    * appears to be attached to based on whether the popup appears above or below
@@ -88,13 +97,15 @@ export const LinkEntityTypeSelector = ({
         position: "relative",
         ...(entityTypeSelectorPopupOpen
           ? { zIndex: theme.zIndex.modal + 1 }
-          : { "&, *": { cursor: "pointer" } }),
+          : { "&, *": { cursor: isReadonly ? "default" : "pointer" } }),
 
-        [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: {
-          boxShadow: theme.boxShadows.xs,
-          borderColor: `${theme.palette.gray[30]} !important`,
-          backgroundColor: "white",
-        },
+        [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: isReadonly
+          ? {}
+          : {
+              boxShadow: theme.boxShadows.xs,
+              borderColor: `${theme.palette.gray[30]} !important`,
+              backgroundColor: "white",
+            },
       })}
       ref={entityTypeSelectorRef}
     >
@@ -119,6 +130,9 @@ export const LinkEntityTypeSelector = ({
         ]}
         onClick={(evt) => {
           evt.preventDefault();
+          if (isReadonly) {
+            return;
+          }
           setEntityTypeSelectorPopupOpen(true);
         }}
         {...(entityTypeSelectorPopupOpen
@@ -255,7 +269,7 @@ export const LinkEntityTypeSelector = ({
 
               return false;
             }}
-            options={entityTypesArray}
+            options={entityTypeOptions}
             optionToRenderData={({ $id, title, description }) => ({
               $id,
               title,

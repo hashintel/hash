@@ -13,8 +13,8 @@ import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-
 import { TabLink } from "./entity-type-tabs/tab-link";
 import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
-import { getEntityTypeBaseUri } from "./shared/get-entity-type-base-uri";
-import { getTabUri, getTabValue, useCurrentTab } from "./shared/tabs";
+import { getEntityTypeBaseUrl } from "./shared/get-entity-type-base-url";
+import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 
 export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
@@ -31,8 +31,8 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
 
   const { entities } = useEntityTypeEntities();
 
-  const baseUri = getEntityTypeBaseUri(
-    router.query["entity-type-id"] as string,
+  const baseUrl = getEntityTypeBaseUrl(
+    router.query["slug-maybe-version"]![0] as string,
     router.query.shortname as string,
   );
 
@@ -73,7 +73,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
       >
         <TabLink
           value={getTabValue("definition")}
-          href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
+          href={isDraft ? router.asPath : getTabUrl(baseUrl, "definition")}
           label="Definition"
           count={propertiesCount}
           active={currentTab === "definition"}
@@ -90,7 +90,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
               <TabLink
                 key="entities"
                 value={getTabValue("entities")}
-                href={getTabUri(baseUri, "entities")}
+                href={getTabUrl(baseUrl, "entities")}
                 label="Entities"
                 count={entities?.length ?? 0}
                 active={currentTab === "entities"}

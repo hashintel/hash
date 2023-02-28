@@ -1,14 +1,15 @@
 import {
   EntityType,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
-import { AccountId, BaseUri, OwnedById, Subgraph } from "@local/hash-subgraph";
+import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { AccountId, BaseUrl, OwnedById, Subgraph } from "@local/hash-subgraph";
 import {
-  getEntityTypesByBaseUri,
+  getEntityTypesByBaseUrl,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -34,9 +35,9 @@ const getPropertyTypes = (
 ) => {
   let propertyTypesMap = propertyTypes ?? new Map<string, PropertyType>();
   for (const prop of properties) {
-    const propertyUri = "items" in prop ? prop.items.$ref : prop.$ref;
-    if (!propertyTypesMap.has(propertyUri)) {
-      const propertyType = getPropertyTypeById(subgraph, propertyUri)?.schema;
+    const propertyUrl = "items" in prop ? prop.items.$ref : prop.$ref;
+    if (!propertyTypesMap.has(propertyUrl)) {
+      const propertyType = getPropertyTypeById(subgraph, propertyUrl)?.schema;
 
       if (propertyType) {
         for (const childProp of propertyType.oneOf) {
@@ -51,7 +52,7 @@ const getPropertyTypes = (
       }
 
       if (propertyType) {
-        propertyTypesMap.set(propertyUri, propertyType);
+        propertyTypesMap.set(propertyUrl, propertyType);
       }
     }
   }
@@ -60,7 +61,7 @@ const getPropertyTypes = (
 };
 
 export const useEntityTypeValue = (
-  entityTypeBaseUri: BaseUri | null,
+  entityTypeBaseUrl: BaseUrl | null,
   accountId: AccountId | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
@@ -71,7 +72,7 @@ export const useEntityTypeValue = (
   );
 
   const entityTypesSubgraph = useEntityTypesSubgraphOptional();
-  const entityTypesLoading = useEntityTypesLoading() || !entityTypeBaseUri;
+  const entityTypesLoading = useEntityTypesLoading() || !entityTypeBaseUrl;
   const refetch = useFetchEntityTypes();
 
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
@@ -81,9 +82,9 @@ export const useEntityTypeValue = (
       return null;
     }
 
-    const relevantEntityTypes = getEntityTypesByBaseUri(
+    const relevantEntityTypes = getEntityTypesByBaseUrl(
       entityTypesSubgraph,
-      entityTypeBaseUri,
+      entityTypeBaseUrl,
     );
 
     if (relevantEntityTypes.length > 0) {
@@ -94,15 +95,15 @@ export const useEntityTypeValue = (
           },
         }) => version,
       );
-      const relevantVersionindex = relevantVersions.indexOf(
+      const relevantVersionIndex = relevantVersions.indexOf(
         Math.max(...relevantVersions),
       );
 
-      return relevantEntityTypes[relevantVersionindex]!.schema;
+      return relevantEntityTypes[relevantVersionIndex]!.schema;
     }
 
     return null;
-  }, [entityTypeBaseUri, entityTypesLoading, entityTypesSubgraph]);
+  }, [entityTypeBaseUrl, entityTypesLoading, entityTypesSubgraph]);
 
   const [stateEntityType, setStateEntityType] = useState(contextEntityType);
 
@@ -110,7 +111,7 @@ export const useEntityTypeValue = (
     stateEntityType !== contextEntityType &&
     (contextEntityType ||
       (stateEntityType &&
-        extractBaseUri(stateEntityType.$id) !== entityTypeBaseUri))
+        extractBaseUrl(stateEntityType.$id) !== entityTypeBaseUrl))
   ) {
     setStateEntityType(contextEntityType);
   }
@@ -133,7 +134,7 @@ export const useEntityTypeValue = (
     stateEntityTypeRef.current = stateEntityType;
   });
 
-  const completedRef = useRef<VersionedUri | null>(null);
+  const completedRef = useRef<VersionedUrl | null>(null);
 
   useLayoutEffect(() => {
     if (stateEntityType && completedRef.current !== stateEntityType.$id) {
@@ -144,17 +145,17 @@ export const useEntityTypeValue = (
 
   const entityTypeUnavailable = entityTypesLoading && !stateEntityType;
 
-  const lastFetchedBaseUri = useRef(entityTypeBaseUri);
+  const lastFetchedBaseUrl = useRef(entityTypeBaseUrl);
 
   useEffect(() => {
-    if (lastFetchedBaseUri.current !== entityTypeBaseUri) {
-      lastFetchedBaseUri.current = entityTypeBaseUri;
+    if (lastFetchedBaseUrl.current !== entityTypeBaseUrl) {
+      lastFetchedBaseUrl.current = entityTypeBaseUrl;
       void refetch();
     }
-  }, [entityTypeBaseUri, refetch]);
+  }, [entityTypeBaseUrl, refetch]);
 
   const updateCallback = useCallback(
-    async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
+    async (partialEntityType: Partial<ConstructEntityTypeParams>) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
@@ -192,7 +193,7 @@ export const useEntityTypeValue = (
 
       await refetch();
 
-      const newUrl = extractBaseUri(res.data.schema.$id);
+      const newUrl = extractBaseUrl(res.data.schema.$id);
 
       await router.replace(newUrl, newUrl, { shallow: true });
     },

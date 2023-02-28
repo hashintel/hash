@@ -19,7 +19,7 @@ import {
   isEntityVertexId as isEntityVertexIdBp,
   isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
   isPropertyTypeVertex as isPropertyTypeVertexBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
@@ -32,7 +32,7 @@ import {
   OntologyTypeRevisionId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { BaseUri, EntityId } from "../shared";
+import { BaseUrl, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
@@ -60,11 +60,11 @@ export type EntityTypeVertex = Subtype<
 
 export type EntityVertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
 > = Subtype<
-  EntityVertexBp<true, Properties>,
+  EntityVertexBp<Properties>,
   { kind: "entity"; inner: Entity<Properties> }
 >;
 
@@ -75,18 +75,18 @@ export type OntologyVertex = Subtype<
 
 export type KnowledgeGraphVertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
-> = Subtype<KnowledgeGraphVertexBp<true, Properties>, EntityVertex<Properties>>;
+> = Subtype<KnowledgeGraphVertexBp<Properties>, EntityVertex<Properties>>;
 
 export type Vertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
 > = Subtype<
-  VertexBp<true, Properties>,
+  VertexBp<Properties>,
   OntologyVertex | KnowledgeGraphVertex<Properties>
 >;
 
@@ -111,7 +111,7 @@ export type EntityVertexId = Subtype<
 >;
 export type OntologyTypeVertexId = Subtype<
   OntologyTypeVertexIdBp,
-  VertexId<BaseUri, OntologyTypeRevisionId>
+  VertexId<BaseUrl, OntologyTypeRevisionId>
 >;
 export type GraphElementVertexId = Subtype<
   GraphElementVertexIdBp,
@@ -129,14 +129,14 @@ export const isEntityVertexId = (
 export type OntologyVertices = Subtype<
   OntologyVerticesBp,
   {
-    [baseUri: BaseUri]: {
+    [baseUrl: BaseUrl]: {
       [revisionId: OntologyTypeRevisionId]: OntologyVertex;
     };
   }
 >;
 
 export type KnowledgeGraphVertices = Subtype<
-  KnowledgeGraphVerticesBp<true>,
+  KnowledgeGraphVerticesBp,
   {
     [entityId: EntityId]: {
       [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
@@ -155,6 +155,6 @@ export type Vertices = OntologyVertices & KnowledgeGraphVertices;
  * TypeScript and it thinks they are incompatible. Thus, the strange check type.
  */
 export type _CheckVertices = Subtype<
-  VerticesBp<true>,
+  VerticesBp,
   OntologyVertices | KnowledgeGraphVertices
 >;

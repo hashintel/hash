@@ -64,7 +64,7 @@ pub enum JsonField<'p> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OntologyIds<'p> {
     OntologyId,
-    BaseUri,
+    BaseUrl,
     Version,
     UpdatedById,
     LatestVersion,
@@ -106,7 +106,7 @@ impl OntologyIds<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
-            Self::BaseUri => "base_uri",
+            Self::BaseUrl => "base_url",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
             Self::UpdatedById => "record_created_by_id",

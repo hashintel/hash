@@ -86,7 +86,7 @@ mod test_helper {
                     },
                 )),
             )))),
-            WindowStatement::partition_by(DataTypeQueryPath::BaseUri.terminating_column().aliased(
+            WindowStatement::partition_by(DataTypeQueryPath::BaseUrl.terminating_column().aliased(
                 Alias {
                     condition_index: 0,
                     chain_depth: 0,

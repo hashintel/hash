@@ -1,8 +1,7 @@
 import {
-  extractBaseUri,
-  extractVersion,
+  extractBaseUrl,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -10,19 +9,14 @@ import {
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import {
-  Box,
   Checkbox,
-  checkboxClasses,
   Collapse,
-  svgIconClasses,
   Table,
   TableBody,
   TableCell,
-  TableCellProps,
   TableFooter,
   TableHead,
   TableRow,
-  Tooltip,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
@@ -44,10 +38,9 @@ import {
 
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
-import {
-  PropertyTypesByVersionedUri,
-  usePropertyTypesOptions,
-} from "../shared/property-types-options-context";
+import { usePropertyTypesOptions } from "../shared/property-types-options-context";
+import { useIsReadonly } from "../shared/read-only-context";
+import { DisabledCheckboxCell } from "./property-list-card/disabled-checkbox-cell";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTitleCell } from "./property-list-card/property-title-cell";
@@ -73,7 +66,9 @@ import {
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
+import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
+import { useTypeVersions } from "./shared/use-type-versions";
 
 const CollapsibleTableRow = ({
   expanded,
@@ -118,75 +113,7 @@ const CollapsibleTableRow = ({
   );
 };
 
-const DisabledCheckboxCell = ({
-  title,
-  checked,
-  width,
-  sx,
-}: {
-  title: string;
-  checked?: boolean;
-  width: number;
-} & TableCellProps) => {
-  return (
-    <EntityTypeTableCenteredCell width={width}>
-      <Tooltip title={title} placement="top" disableInteractive>
-        <Box
-          sx={[
-            {
-              boxSizing: "content-box",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
-        >
-          <Checkbox
-            disabled
-            checked={checked}
-            sx={[
-              {
-                color: ({ palette }) => `${palette.gray[40]} !important`,
-                [`.${svgIconClasses.root}`]: {
-                  color: "inherit",
-                },
-                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
-                  color: ({ palette }) => `${palette.blue[30]} !important`,
-                },
-              },
-            ]}
-          />
-        </Box>
-      </Tooltip>
-    </EntityTypeTableCenteredCell>
-  );
-};
-
-const usePropertyTypeVersions = (
-  propertyTypeId: VersionedUri,
-  propertyTypeOptions?: PropertyTypesByVersionedUri,
-) => {
-  return useMemo(() => {
-    const baseUri = extractBaseUri(propertyTypeId);
-
-    const versions = Object.values(propertyTypeOptions ?? {}).filter(
-      (propertyType) => extractBaseUri(propertyType.$id),
-    );
-
-    const latestVersion = Math.max(
-      ...versions.map((version) => extractVersion(version.$id)),
-    );
-
-    return [
-      extractVersion(propertyTypeId),
-      latestVersion,
-      baseUri.slice(0, -1),
-    ] as const;
-  }, [propertyTypeId, propertyTypeOptions]);
-};
-
-const REQUIRED_CELL_WIDTH = 100;
+export const REQUIRED_CELL_WIDTH = 100;
 
 const PropertyRow = ({
   property,
@@ -203,19 +130,21 @@ const PropertyRow = ({
 }: {
   property: PropertyType;
   isArray: boolean;
-  isRequired?: boolean;
+  isRequired: boolean;
   depth?: number;
   lines?: boolean[];
   parentPropertyName?: string;
   allowArraysTableCell?: ReactNode;
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
-  onUpdateVersion?: (nextId: VersionedUri) => void;
+  onUpdateVersion?: (nextId: VersionedUrl) => void;
   flash?: boolean;
 }) => {
   const propertyTypesOptions = usePropertyTypesOptions();
 
-  const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
+  const isReadonly = useIsReadonly();
+
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
     property.$id,
     propertyTypesOptions,
   );
@@ -303,9 +232,9 @@ const PropertyRow = ({
           setExpanded={setExpanded}
           currentVersion={currentVersion}
           latestVersion={latestVersion}
-          onVersionUpdate={() => {
+          onUpdateVersion={() => {
             if (latestVersion) {
-              onUpdateVersion?.(`${baseUri}/v/${latestVersion}`);
+              onUpdateVersion?.(`${baseUrl}v/${latestVersion}`);
             }
           }}
         />
@@ -322,22 +251,34 @@ const PropertyRow = ({
           />
         </TableCell>
 
-        {allowArraysTableCell ?? (
+        {allowArraysTableCell && !isReadonly && !parentPropertyName ? (
+          allowArraysTableCell
+        ) : (
           <DisabledCheckboxCell
-            title={`Edit the '${
-              parentPropertyName ?? "parent"
-            }' property to change this`}
+            title={
+              isReadonly
+                ? undefined
+                : `Edit the '${
+                    parentPropertyName ?? "parent"
+                  }' property to change this`
+            }
             checked={isArray}
             width={MULTIPLE_VALUES_CELL_WIDTH}
             sx={{ pr: 1 }}
           />
         )}
 
-        {requiredTableCell ?? (
+        {requiredTableCell && !isReadonly && !parentPropertyName ? (
+          requiredTableCell
+        ) : (
           <DisabledCheckboxCell
-            title={`Edit the '${
-              parentPropertyName ?? "parent"
-            }' property to change this`}
+            title={
+              isReadonly
+                ? undefined
+                : `Edit the '${
+                    parentPropertyName ?? "parent"
+                  }' property to change this`
+            }
             checked={isRequired}
             width={REQUIRED_CELL_WIDTH}
           />
@@ -347,8 +288,7 @@ const PropertyRow = ({
           <TypeMenuCell
             typeId={property.$id}
             variant="property"
-            canEdit={false}
-            canRemove={false}
+            editable={false}
           />
         )}
       </EntityTypeTableRow>
@@ -378,24 +318,24 @@ const PropertyRow = ({
 
 export const PropertyTypeRow = ({
   propertyIndex,
-  property,
-  propertyId,
   onRemove,
   onUpdateVersion,
   flash,
 }: {
   propertyIndex: number;
-  property: PropertyType | undefined;
-  propertyId: VersionedUri;
   onRemove: () => void;
-  onUpdateVersion: (nextId: VersionedUri) => void;
+  onUpdateVersion: (nextId: VersionedUrl) => void;
   flash: boolean;
 }) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
-  const array = useWatch({
+  const [isRequired, isArray, propertyId] = useWatch({
     control,
-    name: `properties.${propertyIndex}.array`,
+    name: [
+      `properties.${propertyIndex}.required`,
+      `properties.${propertyIndex}.array`,
+      `properties.${propertyIndex}.$id`,
+    ],
   });
 
   const editModalId = useId();
@@ -410,10 +350,11 @@ export const PropertyTypeRow = ({
   });
 
   const propertyTypesOptions = usePropertyTypesOptions();
+  const property = propertyTypesOptions[propertyId];
 
   const { updatePropertyType } = useOntologyFunctions();
 
-  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+  const [currentVersion, latestVersion] = useTypeVersions(
     propertyId,
     propertyTypesOptions,
   );
@@ -444,7 +385,8 @@ export const PropertyTypeRow = ({
     <>
       <PropertyRow
         property={property}
-        isArray={array}
+        isArray={isArray}
+        isRequired={isRequired}
         allowArraysTableCell={
           <MultipleValuesCell index={propertyIndex} variant="property" />
         }
@@ -479,7 +421,7 @@ export const PropertyTypeRow = ({
 
       <TypeFormModal
         as={PropertyTypeForm}
-        baseUri={extractBaseUri($id)}
+        baseUrl={extractBaseUrl($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data: PropertyTypeFormValues) => {
@@ -515,15 +457,10 @@ const InsertPropertyRow = (
   const propertyTypeOptions = usePropertyTypesOptions();
   const propertyTypes = Object.values(propertyTypeOptions);
 
-  const filteredPropertyTypes = useMemo(() => {
-    const propertyBaseUris = properties.map((includedProperty) =>
-      extractBaseUri(includedProperty.$id),
-    );
-
-    return propertyTypes.filter(
-      (type) => !propertyBaseUris.includes(extractBaseUri(type.$id)),
-    );
-  }, [properties, propertyTypes]);
+  const filteredPropertyTypes = useFilterTypeOptions({
+    typesToExclude: properties,
+    typeOptions: propertyTypes,
+  });
 
   return (
     <InsertTypeRow
@@ -548,6 +485,8 @@ export const PropertyListCard = () => {
   const propertyTypeOptions = usePropertyTypesOptions();
 
   const { createPropertyType } = useOntologyFunctions();
+
+  const isReadonly = useIsReadonly();
 
   const fields = useMemo(
     () =>
@@ -591,6 +530,10 @@ export const PropertyListCard = () => {
   };
 
   const handleSubmit = async (data: PropertyTypeFormValues) => {
+    if (isReadonly) {
+      return;
+    }
+
     const res = await createPropertyType({
       data: {
         propertyType: getPropertyTypeSchema(data),
@@ -608,13 +551,17 @@ export const PropertyListCard = () => {
   if (!addingNewProperty && fields.length === 0) {
     return (
       <EmptyListCard
-        onClick={() => {
-          setAddingNewProperty(true, () => {
-            addingNewPropertyRef.current?.focus();
-          });
-        }}
+        onClick={
+          isReadonly
+            ? undefined
+            : () => {
+                setAddingNewProperty(true, () => {
+                  addingNewPropertyRef.current?.focus();
+                });
+              }
+        }
         icon={<FontAwesomeIcon icon={faList} />}
-        headline={<>Add a property</>}
+        headline={isReadonly ? <>No properties defined</> : <>Add a property</>}
         description={
           <>
             Properties store individual pieces of information about some aspect
@@ -639,12 +586,12 @@ export const PropertyListCard = () => {
           <TableCell>Property name</TableCell>
           <TableCell>Expected values</TableCell>
           <EntityTypeTableCenteredCell>
-            Allow arrays{" "}
+            Allow multiple{" "}
             <QuestionIcon
               tooltip={
                 <>
-                  Allowing arrays permits the entry of more than one value for a
-                  given property
+                  Allowing multiple permits the entry of more than one value for
+                  a given property
                 </>
               }
             />
@@ -654,7 +601,7 @@ export const PropertyListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map(({ row, field, index }) => (
+        {fields.map(({ field, index }) => (
           <PropertyTypeRow
             key={field.id}
             propertyIndex={index}
@@ -666,8 +613,6 @@ export const PropertyListCard = () => {
                 shouldDirty: true,
               });
             }}
-            property={row}
-            propertyId={field.$id}
             flash={flashingRows.includes(field.$id)}
           />
         ))}
@@ -713,16 +658,18 @@ export const PropertyListCard = () => {
             />
           </>
         ) : (
-          <EntityTypeTableButtonRow
-            icon={<StyledPlusCircleIcon />}
-            onClick={() => {
-              setAddingNewProperty(true, () => {
-                addingNewPropertyRef.current?.focus();
-              });
-            }}
-          >
-            Add a property
-          </EntityTypeTableButtonRow>
+          !isReadonly && (
+            <EntityTypeTableButtonRow
+              icon={<StyledPlusCircleIcon />}
+              onClick={() => {
+                setAddingNewProperty(true, () => {
+                  addingNewPropertyRef.current?.focus();
+                });
+              }}
+            >
+              Add a property
+            </EntityTypeTableButtonRow>
+          )
         )}
       </TableFooter>
     </EntityTypeTable>

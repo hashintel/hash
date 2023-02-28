@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -75,7 +75,7 @@ impl LinkOrder {
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
-pub struct EntityProperties(HashMap<BaseUri, serde_json::Value>);
+pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
 
 impl EntityProperties {
     #[must_use]
@@ -86,7 +86,7 @@ impl EntityProperties {
 
 impl EntityProperties {
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
+    pub const fn properties(&self) -> &HashMap<BaseUrl, serde_json::Value> {
         &self.0
     }
 }
@@ -129,7 +129,7 @@ pub struct EntityMetadata {
     record_id: EntityRecordId,
     temporal_versioning: EntityTemporalMetadata,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
+    entity_type_id: VersionedUrl,
     provenance: ProvenanceMetadata,
     archived: bool,
 }
@@ -139,7 +139,7 @@ impl EntityMetadata {
     pub const fn new(
         record_id: EntityRecordId,
         temporal_versioning: EntityTemporalMetadata,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         provenance: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
@@ -163,7 +163,7 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn entity_type_id(&self) -> &VersionedUri {
+    pub const fn entity_type_id(&self) -> &VersionedUrl {
         &self.entity_type_id
     }
 

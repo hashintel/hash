@@ -9,13 +9,13 @@ import {
   type LinkData as LinkDataBp,
   type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
   isEntityRecordId as isEntityRecordIdBp,
-} from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/graph/temporal";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
-  BaseUri,
+  BaseUrl,
   EntityId,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
@@ -70,7 +70,7 @@ export type EntityPropertyValue = EntityPropertyValueBp;
 export type EntityPropertiesObject = Subtype<
   EntityPropertiesObjectBp,
   {
-    [_: BaseUri]: EntityPropertyValue;
+    [_: BaseUrl]: EntityPropertyValue;
   }
 >;
 
@@ -85,10 +85,10 @@ export type EntityTemporalVersioningMetadata = Subtype<
 >;
 
 export type EntityMetadata = Subtype<
-  EntityMetadataBp<true>,
+  EntityMetadataBp,
   {
     recordId: EntityRecordId;
-    entityTypeId: VersionedUri;
+    entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
     provenance: ProvenanceMetadata;
@@ -107,11 +107,11 @@ export type LinkData = Subtype<
 
 export type Entity<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
 > = Subtype<
-  EntityBp<true, Properties>,
+  EntityBp<Properties>,
   {
     metadata: EntityMetadata;
     linkData?: LinkData;
@@ -119,7 +119,7 @@ export type Entity<
 >;
 
 export type LinkEntityAndRightEntity = Subtype<
-  LinkEntityAndRightEntityBp<true>,
+  LinkEntityAndRightEntityBp,
   {
     linkEntity: Entity[];
     rightEntity: Entity[];

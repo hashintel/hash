@@ -4,7 +4,7 @@ import {
   type EntityTypeRootType as EntityTypeRootTypeBp,
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
   type SubgraphRootType as SubgraphRootTypeBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
@@ -52,7 +52,7 @@ export type EntityTypeRootType = Subtype<
 >;
 
 export type EntityRootType = Subtype<
-  EntityRootTypeBp<true>,
+  EntityRootTypeBp,
   {
     vertexId: EntityVertexId;
     element: Entity;
@@ -60,7 +60,7 @@ export type EntityRootType = Subtype<
 >;
 
 export type SubgraphRootType = Subtype<
-  SubgraphRootTypeBp<true>,
+  SubgraphRootTypeBp,
   DataTypeRootType | PropertyTypeRootType | EntityTypeRootType | EntityRootType
 >;
 
@@ -73,7 +73,7 @@ export type SubgraphRootType = Subtype<
 //   edges: Edges;
 //   depths: GraphResolveDepths;
 //   temporalAxes: SubgraphTemporalAxes
-// }, SubgraphBp<true, RootType>;
+// }, SubgraphBp< RootType>;
 
 export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   roots: RootType["vertexId"][];

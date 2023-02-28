@@ -5,7 +5,7 @@ use graph::{
     ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
     },
 };
@@ -210,7 +210,7 @@ pub async fn seed<D, P, E, C>(
         {
             Ok(_) => {}
             Err(report) => {
-                if report.contains::<BaseUriAlreadyExists>() {
+                if report.contains::<BaseUrlAlreadyExists>() {
                     store
                         .update_data_type(data_type, UpdatedById::new(account_id))
                         .await
@@ -241,7 +241,7 @@ pub async fn seed<D, P, E, C>(
         {
             Ok(_) => {}
             Err(report) => {
-                if report.contains::<BaseUriAlreadyExists>() {
+                if report.contains::<BaseUrlAlreadyExists>() {
                     store
                         .update_property_type(property_type, UpdatedById::new(account_id))
                         .await
@@ -272,7 +272,7 @@ pub async fn seed<D, P, E, C>(
         {
             Ok(_) => {}
             Err(report) => {
-                if report.contains::<BaseUriAlreadyExists>() {
+                if report.contains::<BaseUrlAlreadyExists>() {
                     store
                         .update_entity_type(entity_type, UpdatedById::new(account_id))
                         .await

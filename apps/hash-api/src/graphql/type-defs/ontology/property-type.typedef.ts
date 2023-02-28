@@ -1,23 +1,23 @@
 import { gql } from "apollo-server-express";
 
 export const propertyTypeTypedef = gql`
-  scalar PropertyTypeWithoutId
+  scalar ConstructPropertyTypeParams
   scalar PropertyTypeWithMetadata
 
   extend type Query {
     """
-    Get a subgraph rooted at all property types at their latest version.
+    Get a subgraph rooted at all property types that match a given filter.
     """
-    getAllLatestPropertyTypes(
+    queryPropertyTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 
     """
-    Get a subgraph rooted at an property type resolved by its versioned URI.
+    Get a subgraph rooted at an property type resolved by its versioned URL.
     """
     getPropertyType(
-      propertyTypeId: VersionedUri!
+      propertyTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
@@ -32,7 +32,7 @@ export const propertyTypeTypedef = gql`
       The id of the account who owns the property type. Defaults to the user calling the mutation.
       """
       ownedById: OwnedById
-      propertyType: PropertyTypeWithoutId!
+      propertyType: ConstructPropertyTypeParams!
     ): PropertyTypeWithMetadata!
 
     """
@@ -42,11 +42,11 @@ export const propertyTypeTypedef = gql`
       """
       The property type versioned $id to update.
       """
-      propertyTypeId: VersionedUri!
+      propertyTypeId: VersionedUrl!
       """
       New property type schema contents to be used.
       """
-      updatedPropertyType: PropertyTypeWithoutId!
+      updatedPropertyType: ConstructPropertyTypeParams!
     ): PropertyTypeWithMetadata!
   }
 `;

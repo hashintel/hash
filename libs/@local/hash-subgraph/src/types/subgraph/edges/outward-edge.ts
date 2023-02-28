@@ -4,7 +4,7 @@ import {
   type OutwardEdge as OutwardEdgeBp,
   isKnowledgeGraphOutwardEdge as isKnowledgeGraphOutwardEdgeBp,
   isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {

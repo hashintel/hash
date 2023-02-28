@@ -2,17 +2,17 @@ import { Subgraph } from "@local/hash-subgraph";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
-  QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
+  QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 
-export const getAllLatestDataTypes: ResolverFn<
+export const queryDataTypes: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestDataTypesArgs
+  QueryQueryDataTypesArgs
 > = async (_, { constrainsValuesOn }, { dataSources }) => {
   const { graphApi } = dataSources;
 
@@ -58,7 +58,7 @@ export const getDataType: ResolverFn<
 
   const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery({
     filter: {
-      equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
+      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
     /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
     graphResolveDepths: {

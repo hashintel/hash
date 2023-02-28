@@ -9,11 +9,9 @@ import {
   getPropertyTypeById,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import {
-  PropertyType,
-  TypeSystemInitializer,
-} from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
@@ -36,7 +34,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 let testUser: User;
 let testUser2: User;
 let textDataType: DataTypeWithMetadata;
-let propertyTypeSchema: Omit<PropertyType, "$id">;
+let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
@@ -56,7 +54,6 @@ beforeAll(async () => {
   });
 
   propertyTypeSchema = {
-    kind: "propertyType",
     title: "A property type",
     oneOf: [
       {

@@ -1,4 +1,4 @@
-import { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { EntityRootType, Subgraph } from "@blockprotocol/graph/temporal";
 import { Fragment, ReactNode, useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
@@ -19,7 +19,7 @@ export interface PortalProps {
 export const BlockPortals = ({ draftId, portals }: PortalProps) => {
   const [error, setError] = useState(false);
   const [blockSubgraph, setBlockSubgraph] = useState<
-    Subgraph<true, EntityRootType<true>> | undefined
+    Subgraph<EntityRootType> | undefined
   >();
 
   const context = useMemo<BlockContextType>(

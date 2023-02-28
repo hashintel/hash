@@ -6,7 +6,7 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";
@@ -57,7 +57,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
 
         const shortname =
           entity.properties[
-            extractBaseUri(types.propertyType.shortName.propertyTypeId)
+            extractBaseUrl(types.propertyType.shortName.propertyTypeId)
           ];
 
         if (!shortname) {

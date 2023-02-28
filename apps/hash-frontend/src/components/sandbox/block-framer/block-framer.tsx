@@ -1,3 +1,4 @@
+/* @todo - stop using this deprecated package and migrate away from outdated types such as "aggregate* */
 import {
   BlockProtocolFunction,
   BlockProtocolFunctions,
@@ -139,10 +140,10 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
        *    this naive passing through of requests provides no security at present.
        */
       switch (data.type) {
-        case "aggregateEntities":
+        case "queryEntities":
           asyncCallAndResponse(aggregateEntities, data.payload, data.requestId);
           break;
-        case "aggregateEntityTypes":
+        case "queryEntityTypes":
           asyncCallAndResponse(
             aggregateEntityTypes,
             data.payload,

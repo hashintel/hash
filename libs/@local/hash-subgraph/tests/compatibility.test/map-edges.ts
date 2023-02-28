@@ -1,11 +1,11 @@
-import { validateBaseUri } from "@blockprotocol/type-system";
+import { validateBaseUrl } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
   KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeGraphApi,
   OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
 } from "@local/hash-graph-client";
 import {
-  BaseUri,
+  BaseUrl,
   Edges,
   EntityId,
   isEntityId,
@@ -29,7 +29,7 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
+          baseId: outwardEdge.rightEndpoint.baseId as BaseUrl,
           revisionId:
             `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
         },
@@ -79,7 +79,7 @@ export const mapOutwardEdge = (
             ...outwardEdge,
             reversed: outwardEdge.reversed,
             rightEndpoint: {
-              baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
+              baseId: outwardEdge.rightEndpoint.baseId as BaseUrl,
               revisionId:
                 `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
             },
@@ -93,12 +93,12 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
 
   // Trying to build this with `Object.fromEntries` breaks tsc and leads to `any` typed values
   for (const [baseId, inner] of Object.entries(edges)) {
-    const result = validateBaseUri(baseId);
+    const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner as BaseUri;
+      const baseUrl = result.inner as BaseUrl;
 
-      mappedEdges[baseUri] = Object.fromEntries(
+      mappedEdges[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, outwardEdges]) => {
           const versionNumber = Number(version);
 

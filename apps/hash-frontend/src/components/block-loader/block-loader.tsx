@@ -1,11 +1,11 @@
 import {
   BlockGraphProperties,
-  EmbedderGraphMessageCallbacks,
   EntityRootType,
+  GraphEmbedderMessageCallbacks,
   Subgraph,
-} from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+} from "@blockprotocol/graph/temporal";
+import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Entity, EntityId } from "@local/hash-subgraph";
 import {
@@ -20,15 +20,15 @@ import {
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useBlockContext } from "../../blocks/page/block-context";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
-import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 type BlockLoaderProps = {
   blockEntityId?: EntityId; // @todo make this always defined
-  blockEntityTypeId: VersionedUri;
+  blockEntityTypeId: VersionedUrl;
   blockMetadata: HashBlockMeta;
   editableRef: (node: HTMLElement | null) => void;
   onBlockLoaded: () => void;
@@ -53,7 +53,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   wrappingEntityId,
   readonly,
 }) => {
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { queryEntities } = useBlockProtocolQueryEntities();
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const { uploadFile } = useBlockProtocolFileUpload(readonly);
 
@@ -64,14 +64,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
       (newBlockSubgraph) =>
         setBlockSubgraph(
-          newBlockSubgraph as unknown as Subgraph<true, EntityRootType<true>>,
+          newBlockSubgraph as unknown as Subgraph<EntityRootType>,
         ),
     );
   }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
 
   const functions = useMemo(
     () => ({
-      aggregateEntities,
+      queryEntities,
       /**
        * @todo remove this when embed block no longer relies on server-side oEmbed calls
        * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
@@ -79,7 +79,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       getEmbedBlock: fetchEmbedCode,
       uploadFile,
       updateEntity: async (
-        ...args: Parameters<EmbedderGraphMessageCallbacks<true>["updateEntity"]>
+        ...args: Parameters<GraphEmbedderMessageCallbacks["updateEntity"]>
       ) => {
         const [messageData] = args;
         const res = await updateEntity(
@@ -98,14 +98,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           blockEntityId,
         );
         setBlockSubgraph(
-          newBlockSubgraph as unknown as Subgraph<true, EntityRootType<true>>,
+          newBlockSubgraph as unknown as Subgraph<EntityRootType>,
         );
 
         return res;
       },
     }),
     [
-      aggregateEntities,
+      queryEntities,
       setBlockSubgraph,
       fetchBlockSubgraph,
       updateEntity,
@@ -143,20 +143,24 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
-  const graphProperties = useMemo<BlockGraphProperties<true>["graph"]>(
-    () => ({
-      readonly,
-      blockEntitySubgraph: blockSubgraph,
-    }),
+  const graphProperties = useMemo<BlockGraphProperties["graph"] | null>(
+    () =>
+      blockSubgraph
+        ? {
+            readonly,
+            blockEntitySubgraph: blockSubgraph,
+          }
+        : null,
     [blockSubgraph, readonly],
   );
 
   // The paragraph block needs updating to 0.3 and publishing – this ensures it doesn't crash
   // @todo-0.3 remove this when the paragraph block is updated to 0.3
   const temporaryBackwardsCompatibleProperties = useMemo(() => {
-    if (!graphProperties.blockEntitySubgraph) {
+    if (!graphProperties) {
       return null;
     }
+
     const rootEntity = getRoots(graphProperties.blockEntitySubgraph)[0] as
       | Entity
       | undefined;
@@ -166,11 +170,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...(graphProperties as Required<BlockGraphProperties<true>["graph"]>),
+      ...graphProperties,
       blockEntity: {
         entityId: rootEntity.metadata.recordId.entityId,
         properties: rootEntity.properties,
       },
+      blockEntitySubgraph: graphProperties.blockEntitySubgraph,
+      readonly: !!graphProperties.readonly,
     };
   }, [graphProperties]);
 

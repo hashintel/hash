@@ -15,7 +15,7 @@ impl PostgresRecord for DataTypeWithMetadata {
 impl PostgresQueryPath for DataTypeQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri
+            Self::BaseUrl
             | Self::Version
             | Self::UpdatedById
             | Self::OwnedById
@@ -28,7 +28,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
@@ -40,7 +40,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 .map_or(Column::DataTypes(DataTypes::Schema(None)), |path| {
                     Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(path))))
                 }),
-            Self::VersionedUri => {
+            Self::VersionedUrl => {
                 Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText("$id"))))
             }
             Self::Title => {

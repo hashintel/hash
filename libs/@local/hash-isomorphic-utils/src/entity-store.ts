@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityId,
   EntityMetadata,
@@ -16,8 +16,8 @@ import { types } from "./ontology-types";
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
 export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
-// `extractBaseUri` does not work within this context, so this is a hacky way to get the base URI.
-export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URI =
+// `extractBaseUrl` does not work within this context, so this is a hacky way to get the base URL.
+export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URL =
   types.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
@@ -26,7 +26,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
       entityId: EntityId | null;
       revisionId?: EntityRevisionId;
     };
-    entityTypeId?: VersionedUri | null;
+    entityTypeId?: VersionedUrl | null;
     provenance?: EntityMetadata["provenance"];
     temporalVersioning?: EntityTemporalVersioningMetadata;
   };
@@ -224,7 +224,7 @@ export const createEntityStore = (
 
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
     // BaseId is readonly, so we have to do this instead of assigning
-    // updated.metadata.recordId.baseUri
+    // updated.metadata.recordId.baseUrl
     const updated = {
       ...draftEntity,
       metadata: {

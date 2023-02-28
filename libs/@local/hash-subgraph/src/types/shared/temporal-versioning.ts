@@ -11,13 +11,12 @@ import {
   type PinnedTemporalAxisUnresolved as PinnedTemporalAxisUnresolvedBp,
   type TemporalAxis as TemporalAxisBp,
   type TemporalBound as TemporalBoundBp,
-  type TimeInterval as TimeIntervalBp,
   type TimeIntervalUnresolved as TimeIntervalUnresolvedBp,
   type Timestamp as TimestampBp,
   type Unbounded as UnboundedBp,
   type VariableTemporalAxis as VariableTemporalAxisBp,
   type VariableTemporalAxisUnresolved as VariableTemporalAxisUnresolvedBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 
@@ -84,7 +83,16 @@ export type TimeIntervalUnresolved<
 export type TimeInterval<
   StartBound extends TemporalBound = TemporalBound,
   EndBound extends TemporalBound = TemporalBound,
-> = TimeIntervalBp<StartBound, EndBound>;
+> = {
+  start: StartBound;
+  end: EndBound;
+};
+/* @todo - replace the above with this when https://github.com/blockprotocol/blockprotocol/pull/1013 is published
+ * export type TimeInterval<
+ *   StartBound extends TemporalBound = TemporalBound,
+ *   EndBound extends TemporalBound = TemporalBound,
+ * > = TimeIntervalBp<StartBound, EndBound>;
+ */
 
 /**
  * A range of time from a given `start` to a given `end` where both bounds are {@link Timestamp}s, and where `start` is

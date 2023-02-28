@@ -6,7 +6,7 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri, EntityType};
+use type_system::{repr, url::VersionedUrl, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{BaseUriAlreadyExists, OntologyVersionDoesNotExist},
+        error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist},
         EntityTypeStore, StorePool,
     },
     subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
@@ -130,7 +130,7 @@ async fn create_entity_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
 
-            if report.contains::<BaseUriAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -189,7 +189,7 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = String)]
-    type_to_update: VersionedUri,
+    type_to_update: VersionedUrl,
     actor_id: UpdatedById,
 }
 

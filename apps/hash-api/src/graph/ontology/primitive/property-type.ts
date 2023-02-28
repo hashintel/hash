@@ -1,12 +1,15 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
+import {
+  PROPERTY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
-import { PropertyTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
+import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   OntologyElementMetadata,
   OntologyTypeRecordId,
-  ontologyTypeRecordIdToVersionedUri,
+  ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
@@ -29,7 +32,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createPropertyType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    schema: PropertyTypeWithoutId;
+    schema: ConstructPropertyTypeParams;
     actorId: AccountId;
   },
   Promise<PropertyTypeWithMetadata>
@@ -46,7 +49,12 @@ export const createPropertyType: ImpureGraphFunction<
     title: params.schema.title,
   });
 
-  const schema = { $id: propertyTypeId, ...params.schema };
+  const schema = {
+    $schema: PROPERTY_TYPE_META_SCHEMA,
+    kind: "propertyType" as const,
+    $id: propertyTypeId,
+    ...params.schema,
+  };
 
   const { graphApi } = ctx;
 
@@ -60,13 +68,13 @@ export const createPropertyType: ImpureGraphFunction<
 };
 
 /**
- * Get a property type by its versioned URI.
+ * Get a property type by its versioned URL.
  *
- * @param params.propertyTypeId the unique versioned URI for a property type.
+ * @param params.propertyTypeId the unique versioned URL for a property type.
  */
 export const getPropertyTypeById: ImpureGraphFunction<
   {
-    propertyTypeId: VersionedUri;
+    propertyTypeId: VersionedUrl;
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, params) => {
@@ -74,7 +82,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
   const propertyTypeSubgraph = await graphApi
     .getPropertyTypesByQuery({
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: {
@@ -113,8 +121,8 @@ export const getPropertyTypeById: ImpureGraphFunction<
  */
 export const updatePropertyType: ImpureGraphFunction<
   {
-    propertyTypeId: VersionedUri;
-    schema: Omit<PropertyType, "$id">;
+    propertyTypeId: VersionedUrl;
+    schema: ConstructPropertyTypeParams;
     actorId: AccountId;
   },
   Promise<PropertyTypeWithMetadata>
@@ -122,7 +130,11 @@ export const updatePropertyType: ImpureGraphFunction<
   const { schema, actorId, propertyTypeId } = params;
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,
-    schema,
+    schema: {
+      $schema: PROPERTY_TYPE_META_SCHEMA,
+      kind: "propertyType" as const,
+      ...schema,
+    },
     actorId,
   };
 
@@ -132,8 +144,10 @@ export const updatePropertyType: ImpureGraphFunction<
 
   return {
     schema: {
+      $schema: PROPERTY_TYPE_META_SCHEMA,
+      kind: "propertyType" as const,
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
     metadata: metadata as OntologyElementMetadata,
   };
