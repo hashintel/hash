@@ -248,6 +248,7 @@ export const LinkListCard = () => {
   });
 
   const cancelAddingNewLink = () => {
+    createModalPopupState.close();
     setAddingNewLink(false);
     setSearchText("");
   };
