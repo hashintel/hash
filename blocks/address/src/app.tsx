@@ -3,10 +3,10 @@ import {
   useGraphBlockModule,
   type BlockComponent,
 } from "@blockprotocol/graph/react";
+import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, theme } from "@hashintel/design-system";
-import { AutofillSuggestion } from "@mapbox/search-js-core";
 import {
   CircularProgress,
   Collapse,

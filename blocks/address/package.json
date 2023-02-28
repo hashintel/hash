@@ -28,10 +28,9 @@
     "@hashintel/design-system": "0.0.4",
     "@mapbox/search-js-react": "1.0.0-beta.14",
     "@mui/material": "5.11.8",
-    "axios": "0.27.2",
     "lodash.debounce": "4.0.8",
-    "lodash.isequal": "4.5.0",
-    "rooks": "7.4.3"
+    "rooks": "7.4.3",
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@types/react-dom": "18.0.8",

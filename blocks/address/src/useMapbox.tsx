@@ -1,12 +1,12 @@
-import {
-  AutofillFeatureSuggestion,
-  AutofillSuggestion,
-  SessionToken,
-} from "@mapbox/search-js-core";
 import debounce from "lodash.debounce";
 import { RefObject, useEffect, useMemo, useState } from "react";
 import { useSessionstorageState } from "rooks";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
+import {
+  AutofillFeatureSuggestion,
+  AutofillSuggestion,
+} from "@blockprotocol/service/dist/mapbox-types";
+import { v4 as uuid } from "uuid";
 
 const toArrayBuffer = (buffer: Buffer) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
@@ -37,8 +37,10 @@ export const useMapbox = (
   shouldFetchImage: boolean,
 ) => {
   const { serviceModule } = useServiceBlockModule(blockRootRef);
-  const [sessionToken, setSessionToken] =
-    useSessionstorageState<SessionToken | null>("mapboxSessionToken", null);
+  const [sessionToken, setSessionToken] = useSessionstorageState<string | null>(
+    "mapboxSessionToken",
+    null,
+  );
   const [suggestions, setSuggestions] = useState<AutofillSuggestion[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
@@ -53,7 +55,7 @@ export const useMapbox = (
 
   useEffect(() => {
     if (!sessionToken) {
-      const token = new SessionToken();
+      const token = uuid();
       setSessionToken(token);
     }
   }, []);
@@ -66,7 +68,7 @@ export const useMapbox = (
         data: {
           searchText: query,
           optionsArg: {
-            sessionToken: sessionToken!.id,
+            sessionToken: sessionToken ?? uuid(),
           },
         },
       })
@@ -92,7 +94,7 @@ export const useMapbox = (
           data: {
             suggestion,
             optionsArg: {
-              sessionToken: sessionToken!.id,
+              sessionToken: sessionToken ?? uuid(),
             },
           },
         })
