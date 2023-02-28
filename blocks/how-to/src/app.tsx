@@ -156,10 +156,6 @@ export const App: BlockComponent<RootEntity> = ({
       howToBlockIntroductionType,
       hasHowToBlockIntroduction,
     );
-
-    setTimeout(() => {
-      setIntroAnimatingIn(false);
-    }, 300);
   };
 
   const updateIntroductionField = async (
@@ -186,10 +182,6 @@ export const App: BlockComponent<RootEntity> = ({
         entityId: introLinkEntity.metadata.recordId.entityId,
       },
     });
-
-    setTimeout(async () => {
-      setIntroAnimatingOut(false);
-    }, 300);
   };
 
   const addStep = () =>
@@ -219,23 +211,7 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeStep = (index: number) => {
-    const stepLink = stepLinkedEntities[index]?.linkEntity;
-
-    if (!stepLink) {
-      return;
-    }
-
     setStepAnimatingOut(index);
-
-    setTimeout(async () => {
-      setStepAnimatingOut(-1);
-
-      await graphModule.deleteEntity({
-        data: {
-          entityId: stepLink.metadata.recordId.entityId,
-        },
-      });
-    }, 300);
   };
 
   useEffect(() => {
@@ -381,7 +357,10 @@ export const App: BlockComponent<RootEntity> = ({
 
             {introEntity || !readonly ? (
               <Box>
-                <Collapse in={!readonly && !introEntity && !introAnimatingOut}>
+                <Collapse
+                  in={!readonly && !introEntity && !introAnimatingOut}
+                  onExited={() => setIntroAnimatingIn(false)}
+                >
                   <Button
                     variant="tertiary"
                     size="small"
@@ -397,7 +376,11 @@ export const App: BlockComponent<RootEntity> = ({
                   </Button>
                 </Collapse>
 
-                <Collapse in={!!introEntity && !introAnimatingIn} appear>
+                <Collapse
+                  in={!!introEntity && !introAnimatingIn}
+                  onExited={() => setIntroAnimatingOut(false)}
+                  appear
+                >
                   <Step
                     header="Introduction"
                     title={introEntity?.properties[titleKey] ?? ""}
@@ -416,6 +399,21 @@ export const App: BlockComponent<RootEntity> = ({
                 <Collapse
                   key={stepEntity.metadata.recordId.entityId}
                   in={stepAnimatingOut !== index}
+                  onExited={async () => {
+                    setStepAnimatingOut(-1);
+
+                    const stepLink = stepLinkedEntities[index]?.linkEntity;
+
+                    if (!stepLink) {
+                      return;
+                    }
+
+                    await graphModule.deleteEntity({
+                      data: {
+                        entityId: stepLink.metadata.recordId.entityId,
+                      },
+                    });
+                  }}
                   appear
                 >
                   <Box
