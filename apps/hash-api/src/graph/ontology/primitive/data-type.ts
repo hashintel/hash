@@ -1,4 +1,8 @@
-import { DataType, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  DATA_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -33,11 +37,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createDataType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-    //  https://github.com/microsoft/TypeScript/issues/50638
-    //  this is needed for as long as DataType extends Record
-    schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
-      Record<string, any>;
+    schema: ConstructDataTypeParams;
     actorId: AccountId;
   },
   Promise<DataTypeWithMetadata>
@@ -54,7 +54,12 @@ export const createDataType: ImpureGraphFunction<
     kind: "data-type",
     title: params.schema.title,
   });
-  const schema = { $id: dataTypeUrl, ...params.schema };
+  const schema = {
+    $schema: DATA_TYPE_META_SCHEMA,
+    kind: "dataType" as const,
+    $id: dataTypeUrl,
+    ...params.schema,
+  };
 
   const { data: metadata } = await graphApi.createDataType({
     schema,
@@ -125,11 +130,7 @@ export const getDataTypeById: ImpureGraphFunction<
 export const updateDataType: ImpureGraphFunction<
   {
     dataTypeId: VersionedUrl;
-    // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-    //  https://github.com/microsoft/TypeScript/issues/50638
-    //  this is needed for as long as DataType extends Record
-    schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
-      Record<string, any>;
+    schema: ConstructDataTypeParams;
     actorId: AccountId;
   },
   Promise<DataTypeWithMetadata>
@@ -139,13 +140,19 @@ export const updateDataType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.updateDataType({
     actorId,
     typeToUpdate: dataTypeId,
-    schema,
+    schema: {
+      $schema: DATA_TYPE_META_SCHEMA,
+      kind: "dataType",
+      ...schema,
+    },
   });
 
   const { recordId } = metadata;
 
   return {
     schema: {
+      $schema: DATA_TYPE_META_SCHEMA,
+      kind: "dataType",
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },

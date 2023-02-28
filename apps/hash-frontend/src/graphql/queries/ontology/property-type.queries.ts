@@ -37,7 +37,7 @@ export const queryPropertyTypesQuery = gql`
 export const createPropertyTypeMutation = gql`
   mutation createPropertyType(
     $ownedById: OwnedById!
-    $propertyType: PropertyTypeWithoutId!
+    $propertyType: ConstructPropertyTypeParams!
   ) {
     # This is a scalar, which has no selection.
     createPropertyType(ownedById: $ownedById, propertyType: $propertyType)
@@ -47,7 +47,7 @@ export const createPropertyTypeMutation = gql`
 export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
     $propertyTypeId: VersionedUrl!
-    $updatedPropertyType: PropertyTypeWithoutId!
+    $updatedPropertyType: ConstructPropertyTypeParams!
   ) {
     # This is a scalar, which has no selection.
     updatePropertyType(

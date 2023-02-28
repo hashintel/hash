@@ -2,6 +2,12 @@
   "description": "The contents of a Property Type update request",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+      ]
+    },
     "kind": {
       "enum": ["propertyType"]
     },
@@ -18,7 +24,7 @@
       }
     }
   },
-  "required": ["kind", "title", "oneOf"],
+  "required": ["$schema", "kind", "title", "oneOf"],
   "additionalProperties": false,
   "$defs": {
     "propertyValuesUpdate": {

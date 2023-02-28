@@ -204,6 +204,12 @@ export interface DataType {
 
   /**
    *
+   * @type {string}
+   * @memberof DataType
+   */
+  $schema: DataTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof DataType
    */
@@ -234,6 +240,13 @@ export interface DataType {
   type: string;
 }
 
+export const DataTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaDataType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+} as const;
+
+export type DataTypeSchemaEnum =
+  (typeof DataTypeSchemaEnum)[keyof typeof DataTypeSchemaEnum];
 export const DataTypeKindEnum = {
   DataType: "dataType",
 } as const;
@@ -601,6 +614,12 @@ export interface EntityTemporalMetadata {
 export interface EntityType {
   /**
    *
+   * @type {string}
+   * @memberof EntityType
+   */
+  $schema: EntityTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof EntityType
    */
@@ -655,6 +674,13 @@ export interface EntityType {
   links?: object;
 }
 
+export const EntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type EntityTypeSchemaEnum =
+  (typeof EntityTypeSchemaEnum)[keyof typeof EntityTypeSchemaEnum];
 export const EntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
@@ -1557,6 +1583,12 @@ export type PropertyObjectValue1TypeEnum =
 export interface PropertyType {
   /**
    *
+   * @type {string}
+   * @memberof PropertyType
+   */
+  $schema: PropertyTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof PropertyType
    */
@@ -1587,6 +1619,13 @@ export interface PropertyType {
   oneOf: Array<PropertyValues>;
 }
 
+export const PropertyTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaPropertyType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+} as const;
+
+export type PropertyTypeSchemaEnum =
+  (typeof PropertyTypeSchemaEnum)[keyof typeof PropertyTypeSchemaEnum];
 export const PropertyTypeKindEnum = {
   PropertyType: "propertyType",
 } as const;
@@ -2144,6 +2183,12 @@ export interface UpdateDataType {
 
   /**
    *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  $schema: UpdateDataTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdateDataType
    */
@@ -2168,6 +2213,13 @@ export interface UpdateDataType {
   type: string;
 }
 
+export const UpdateDataTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaDataType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+} as const;
+
+export type UpdateDataTypeSchemaEnum =
+  (typeof UpdateDataTypeSchemaEnum)[keyof typeof UpdateDataTypeSchemaEnum];
 export const UpdateDataTypeKindEnum = {
   DataType: "dataType",
 } as const;
@@ -2294,6 +2346,12 @@ export interface UpdateEntityRequestAllOf {
 export interface UpdateEntityType {
   /**
    *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  $schema: UpdateEntityTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdateEntityType
    */
@@ -2342,6 +2400,13 @@ export interface UpdateEntityType {
   links?: object;
 }
 
+export const UpdateEntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type UpdateEntityTypeSchemaEnum =
+  (typeof UpdateEntityTypeSchemaEnum)[keyof typeof UpdateEntityTypeSchemaEnum];
 export const UpdateEntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
@@ -2388,6 +2453,12 @@ export interface UpdateEntityTypeRequest {
 export interface UpdatePropertyType {
   /**
    *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  $schema: UpdatePropertyTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdatePropertyType
    */
@@ -2412,6 +2483,13 @@ export interface UpdatePropertyType {
   oneOf: Array<PropertyValuesUpdate>;
 }
 
+export const UpdatePropertyTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaPropertyType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+} as const;
+
+export type UpdatePropertyTypeSchemaEnum =
+  (typeof UpdatePropertyTypeSchemaEnum)[keyof typeof UpdatePropertyTypeSchemaEnum];
 export const UpdatePropertyTypeKindEnum = {
   PropertyType: "propertyType",
 } as const;

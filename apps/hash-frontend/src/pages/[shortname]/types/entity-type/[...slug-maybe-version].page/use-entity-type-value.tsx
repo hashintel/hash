@@ -3,6 +3,7 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { AccountId, BaseUrl, OwnedById, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypesByBaseUrl,
@@ -154,7 +155,7 @@ export const useEntityTypeValue = (
   }, [entityTypeBaseUrl, refetch]);
 
   const updateCallback = useCallback(
-    async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
+    async (partialEntityType: Partial<ConstructEntityTypeParams>) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
