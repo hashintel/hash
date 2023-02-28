@@ -101,7 +101,7 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
-  const [introAnimatingIn, setIntroAnimatingIn] = useState(false);
+  const [introButtonAnimatingOut, setIntroButtonAnimatingOut] = useState(false);
   const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
   const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
@@ -151,7 +151,7 @@ export const App: BlockComponent<RootEntity> = ({
   );
 
   const createIntroduction = async () => {
-    setIntroAnimatingIn(true);
+    setIntroButtonAnimatingOut(true);
     await createHowToEntity(
       howToBlockIntroductionType,
       hasHowToBlockIntroduction,
@@ -359,14 +359,14 @@ export const App: BlockComponent<RootEntity> = ({
               <Box>
                 <Collapse
                   in={!readonly && !introEntity && !introAnimatingOut}
-                  onExited={() => setIntroAnimatingIn(false)}
+                  onExited={() => setIntroButtonAnimatingOut(false)}
                 >
                   <Button
                     variant="tertiary"
                     size="small"
                     sx={{ fontSize: 14 }}
                     onClick={() => createIntroduction()}
-                    disabled={introAnimatingIn}
+                    disabled={introButtonAnimatingOut}
                   >
                     <FontAwesomeIcon
                       icon={{ icon: faPlus }}
@@ -377,7 +377,7 @@ export const App: BlockComponent<RootEntity> = ({
                 </Collapse>
 
                 <Collapse
-                  in={!!introEntity && !introAnimatingIn}
+                  in={!!introEntity && !introButtonAnimatingOut}
                   onExited={() => setIntroAnimatingOut(false)}
                   appear
                 >
