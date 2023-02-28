@@ -229,27 +229,31 @@ export const App: BlockComponent<RootEntity> = ({
   }, []);
 
   const schema = useMemo(() => {
-    // const stepsWithTitle = steps.filter(({ title }) => !!title);
+    const stepsWithTitle = stepEntities.filter(
+      ({ properties }) => !!properties[titleKey],
+    );
 
     return JSON.stringify({
       "@context": "http://schema.org",
       "@type": "HowTo",
       name: title,
       // Must have at least 2 steps for it to be valid
-      //   ...(stepsWithTitle.length > 1
-      //     ? {
-      //         step: stepsWithTitle.map(({ title, description }) => ({
-      //           "@type": "HowToStep",
-      //           name: title,
-      //           text: description ? description : title,
-      //         })),
-      //       }
-      //     : {}),
+      ...(stepsWithTitle.length > 1
+        ? {
+            step: stepsWithTitle.map(({ properties }) => {
+              const title = properties[titleKey];
+              const description = properties[descriptionKey];
+
+              return {
+                "@type": "HowToStep",
+                name: title,
+                text: description ? description : title,
+              };
+            }),
+          }
+        : {}),
     });
-  }, [
-    title,
-    //  steps
-  ]);
+  }, [title, stepEntities]);
 
   return (
     <>
