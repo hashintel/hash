@@ -388,259 +388,262 @@ export const App: BlockComponent<true, RootEntity> = ({
         onMouseLeave={() => setHovered(false)}
       >
         {!readonly ? (
-          <Fade
-            in={hovered || autocompleteFocused || animatingIn || animatingOut}
-          >
-            <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
-              <Link
-                //  @todo: link this to the block's hub page
-                href=""
-                target="_blank"
-                variant="regularTextLabels"
-                sx={({ palette }) => ({
-                  display: "inline-flex",
-                  alignItems: "center",
-                  textDecoration: "none",
-                  fontSize: 15,
-                  lineHeight: 1,
-                  letterSpacing: -0.02,
-                  marginBottom: 1.5,
-                  whiteSpace: "nowrap",
-                  color: palette.gray[50],
-                  fill: palette.gray[40],
-                  ":hover": {
-                    color: palette.gray[60],
-                    fill: palette.gray[50],
-                  },
-                })}
-              >
-                Get help{" "}
-                <FontAwesomeIcon
-                  icon={faQuestionCircle}
-                  sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-                />
-              </Link>
+          <>
+            <Fade
+              in={hovered || autocompleteFocused || animatingIn || animatingOut}
+            >
+              <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
+                <Link
+                  //  @todo: link this to the block's hub page
+                  href=""
+                  target="_blank"
+                  variant="regularTextLabels"
+                  sx={({ palette }) => ({
+                    display: "inline-flex",
+                    alignItems: "center",
+                    textDecoration: "none",
+                    fontSize: 15,
+                    lineHeight: 1,
+                    letterSpacing: -0.02,
+                    marginBottom: 1.5,
+                    whiteSpace: "nowrap",
+                    color: palette.gray[50],
+                    fill: palette.gray[40],
+                    ":hover": {
+                      color: palette.gray[60],
+                      fill: palette.gray[50],
+                    },
+                  })}
+                >
+                  Get help{" "}
+                  <FontAwesomeIcon
+                    icon={faQuestionCircle}
+                    sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
+                  />
+                </Link>
 
-              <Typography
-                variant="regularTextLabels"
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  textDecoration: "none",
-                  fontSize: 15,
-                  lineHeight: 1,
-                  letterSpacing: -0.02,
-                  marginBottom: 1.5,
-                  flexWrap: "wrap",
-                  color: ({ palette }) => palette.gray[50],
-                }}
-              >
-                <Box component="span" sx={{ mr: 1 }}>
-                  Using
-                </Box>
-                {!selectedAddress ? (
-                  <>
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        color: ({ palette }) => palette.gray[60],
-                        mr: 1,
-                      }}
-                    >
-                      <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                      Mapbox Address Autofill
-                    </Box>
-                    <Box component="span" sx={{ mr: 1 }}>
-                      and
-                    </Box>
-                  </>
-                ) : null}
-                <Box
-                  component="span"
+                <Typography
+                  variant="regularTextLabels"
                   sx={{
                     display: "inline-flex",
                     alignItems: "center",
-                    color: ({ palette }) => palette.gray[60],
-                    mr: 1,
-                  }}
-                >
-                  <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                  Mapbox Static Images
-                </Box>
-                to render a fixed map
-              </Typography>
-            </Box>
-          </Fade>
-        ) : null}
-
-        <Collapse
-          in={!selectedAddress && !animatingIn}
-          onEntered={() => setAnimatingOut(false)}
-        >
-          <Box sx={{ display: "flex", gap: 1.5 }}>
-            <Autocomplete
-              onFocus={() => setAutocompleteFocused(true)}
-              onBlur={() => setAutocompleteFocused(false)}
-              getOptionLabel={getOptionLabel}
-              options={suggestions}
-              popupIcon={null}
-              freeSolo
-              onInputChange={(_event, newInputValue) => {
-                fetchSuggestions(newInputValue);
-              }}
-              onChange={(_event, option) => {
-                if (option && typeof option === "object") {
-                  setAnimatingIn(true);
-
-                  setTimeout(() => {
-                    selectAddress(option);
-                  }, 300);
-                }
-              }}
-              filterOptions={(options) => options}
-              renderInput={({ InputProps, ...params }) => {
-                return (
-                  <TextField
-                    {...params}
-                    placeholder={
-                      isMobile
-                        ? "Enter an address"
-                        : "Start typing to enter an address or location"
-                    }
-                    InputProps={{
-                      ...InputProps,
-                      endAdornment: suggestionsError ? (
-                        <TriangleExclamationIcon
-                          sx={{
-                            fontSize: 14,
-                            fill: ({ palette }) => palette.red[70],
-                          }}
-                        />
-                      ) : suggestionsLoading ? (
-                        <CircularProgress />
-                      ) : (
-                        <FontAwesomeIcon
-                          icon={faSearch}
-                          sx={{
-                            fontSize: 14,
-                            color: ({ palette }) => palette.gray[40],
-                          }}
-                        />
-                      ),
-                    }}
-                    sx={{
-                      display: "inline-flex",
-                      maxWidth: 420,
-                    }}
-                  />
-                );
-              }}
-              renderOption={(props, option) => {
-                const label = getOptionLabel(option);
-                return (
-                  <Stack component="li" {...props}>
-                    <Typography
-                      variant="microText"
-                      sx={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        lineHeight: "18px",
-                        color: ({ palette }) => palette.common.black,
-                        marginBottom: 0.5,
-                      }}
-                    >
-                      {label}
-                    </Typography>
-
-                    <Typography
-                      variant="microText"
-                      sx={{
-                        fontSize: 13,
-                        lineHeight: "18px",
-                        color: ({ palette }) => palette.gray[50],
-                      }}
-                    >
-                      {option.country}
-                    </Typography>
-                  </Stack>
-                );
-              }}
-              PaperComponent={({ children, ...props }) => (
-                <Paper
-                  {...props}
-                  sx={{
-                    filter:
-                      "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
-                    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                    boxShadow: "none",
-                    [`.${autocompleteClasses.listbox}`]: {
-                      padding: "0px",
-                      maxHeight: "unset",
-                      [`.${autocompleteClasses.option}`]: {
-                        alignItems: "flex-start",
-                        paddingX: ({ spacing }) => `${spacing(2.5)} !important`,
-                        paddingY: 1.25,
-                      },
-                    },
-                  }}
-                >
-                  {children}
-                </Paper>
-              )}
-              sx={{
-                width: 1,
-                [`.${autocompleteClasses.input}`]: {
-                  paddingLeft: "0 !important",
-                },
-                [`.${autocompleteClasses.inputRoot}`]: {
-                  paddingX: ({ spacing }) => `${spacing(2.75)} !important`,
-                },
-              }}
-            />
-
-            {suggestionsError ? (
-              <Box
-                display="flex"
-                flexDirection="column"
-                justifyContent="center"
-                gap={1}
-              >
-                <Typography
-                  variant="smallTextLabels"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: 13,
-                    lineHeight: 1,
-                    letterSpacing: "-0.02em",
-                    color: ({ palette }) => palette.black,
-                  }}
-                >
-                  <Box
-                    component="span"
-                    sx={{ color: ({ palette }) => palette.red[60] }}
-                  >
-                    Error connecting
-                  </Box>{" "}
-                  to the Mapbox API
-                </Typography>
-                <Typography
-                  sx={{
-                    fontWeight: 500,
+                    textDecoration: "none",
                     fontSize: 15,
                     lineHeight: 1,
-                    letterSpacing: "-0.02em",
+                    letterSpacing: -0.02,
+                    marginBottom: 1.5,
+                    flexWrap: "wrap",
                     color: ({ palette }) => palette.gray[50],
                   }}
                 >
-                  Check your network connection or contact support if this issue
-                  persists.
+                  <Box component="span" sx={{ mr: 1 }}>
+                    Using
+                  </Box>
+                  {!selectedAddress ? (
+                    <>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          color: ({ palette }) => palette.gray[60],
+                          mr: 1,
+                        }}
+                      >
+                        <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                        Mapbox Address Autofill
+                      </Box>
+                      <Box component="span" sx={{ mr: 1 }}>
+                        and
+                      </Box>
+                    </>
+                  ) : null}
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      color: ({ palette }) => palette.gray[60],
+                      mr: 1,
+                    }}
+                  >
+                    <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                    Mapbox Static Images
+                  </Box>
+                  to render a fixed map
                 </Typography>
               </Box>
-            ) : null}
-          </Box>
-        </Collapse>
+            </Fade>
+
+            <Collapse
+              in={!selectedAddress && !animatingIn}
+              onEntered={() => setAnimatingOut(false)}
+            >
+              <Box sx={{ display: "flex", gap: 1.5 }}>
+                <Autocomplete
+                  onFocus={() => setAutocompleteFocused(true)}
+                  onBlur={() => setAutocompleteFocused(false)}
+                  getOptionLabel={getOptionLabel}
+                  options={suggestions}
+                  popupIcon={null}
+                  freeSolo
+                  onInputChange={(_event, newInputValue) => {
+                    fetchSuggestions(newInputValue);
+                  }}
+                  onChange={(_event, option) => {
+                    if (option && typeof option === "object") {
+                      setAnimatingIn(true);
+
+                      setTimeout(() => {
+                        selectAddress(option);
+                      }, 300);
+                    }
+                  }}
+                  filterOptions={(options) => options}
+                  renderInput={({ InputProps, ...params }) => {
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder={
+                          isMobile
+                            ? "Enter an address"
+                            : "Start typing to enter an address or location"
+                        }
+                        InputProps={{
+                          ...InputProps,
+                          endAdornment: suggestionsError ? (
+                            <TriangleExclamationIcon
+                              sx={{
+                                fontSize: 14,
+                                fill: ({ palette }) => palette.red[70],
+                              }}
+                            />
+                          ) : suggestionsLoading ? (
+                            <CircularProgress />
+                          ) : (
+                            <FontAwesomeIcon
+                              icon={faSearch}
+                              sx={{
+                                fontSize: 14,
+                                color: ({ palette }) => palette.gray[40],
+                              }}
+                            />
+                          ),
+                        }}
+                        sx={{
+                          display: "inline-flex",
+                          maxWidth: 420,
+                        }}
+                      />
+                    );
+                  }}
+                  renderOption={(props, option) => {
+                    const label = getOptionLabel(option);
+                    return (
+                      <Stack component="li" {...props}>
+                        <Typography
+                          variant="microText"
+                          sx={{
+                            fontSize: 14,
+                            fontWeight: 500,
+                            lineHeight: "18px",
+                            color: ({ palette }) => palette.common.black,
+                            marginBottom: 0.5,
+                          }}
+                        >
+                          {label}
+                        </Typography>
+
+                        <Typography
+                          variant="microText"
+                          sx={{
+                            fontSize: 13,
+                            lineHeight: "18px",
+                            color: ({ palette }) => palette.gray[50],
+                          }}
+                        >
+                          {option.country}
+                        </Typography>
+                      </Stack>
+                    );
+                  }}
+                  PaperComponent={({ children, ...props }) => (
+                    <Paper
+                      {...props}
+                      sx={{
+                        filter:
+                          "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
+                        border: ({ palette }) =>
+                          `1px solid ${palette.gray[20]}`,
+                        boxShadow: "none",
+                        [`.${autocompleteClasses.listbox}`]: {
+                          padding: "0px",
+                          maxHeight: "unset",
+                          [`.${autocompleteClasses.option}`]: {
+                            alignItems: "flex-start",
+                            paddingX: ({ spacing }) =>
+                              `${spacing(2.5)} !important`,
+                            paddingY: 1.25,
+                          },
+                        },
+                      }}
+                    >
+                      {children}
+                    </Paper>
+                  )}
+                  sx={{
+                    width: 1,
+                    [`.${autocompleteClasses.input}`]: {
+                      paddingLeft: "0 !important",
+                    },
+                    [`.${autocompleteClasses.inputRoot}`]: {
+                      paddingX: ({ spacing }) => `${spacing(2.75)} !important`,
+                    },
+                  }}
+                />
+                {suggestionsError ? (
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center"
+                    gap={1}
+                  >
+                    <Typography
+                      variant="smallTextLabels"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: 13,
+                        lineHeight: 1,
+                        letterSpacing: "-0.02em",
+                        color: ({ palette }) => palette.black,
+                      }}
+                    >
+                      <Box
+                        component="span"
+                        sx={{ color: ({ palette }) => palette.red[60] }}
+                      >
+                        Error connecting
+                      </Box>{" "}
+                      to the Mapbox API
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: 15,
+                        lineHeight: 1,
+                        letterSpacing: "-0.02em",
+                        color: ({ palette }) => palette.gray[50],
+                      }}
+                    >
+                      Check your network connection or contact support if this
+                      issue persists.
+                    </Typography>
+                  </Box>
+                ) : null}
+              </Box>
+            </Collapse>
+          </>
+        ) : null}
 
         <Collapse
           in={!!selectedAddress && !animatingOut}
