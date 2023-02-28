@@ -387,6 +387,7 @@ export const App: BlockComponent<RootEntity> = ({
                     size="small"
                     sx={{ fontSize: 14 }}
                     onClick={() => createIntroduction()}
+                    disabled={introAnimatingIn}
                   >
                     <FontAwesomeIcon
                       icon={{ icon: faPlus }}
