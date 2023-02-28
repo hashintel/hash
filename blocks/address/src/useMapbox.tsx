@@ -117,7 +117,6 @@ export const useMapbox = (
     if (shouldFetchImage) {
       const coords = selectedAddress?.geometry.coordinates;
       if (coords?.[0] && coords?.[1]) {
-        console.log(zoomLevel);
         serviceModule
           .mapboxRetrieveStaticMap({
             data: {
