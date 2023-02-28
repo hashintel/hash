@@ -2,12 +2,24 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol.org/@nate/types/entity-type/media/v/2 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/media/v/4 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * The width of something
+ * Whether the entity is an image or video
+ */
+export type MediaType = Text;
+/**
+ * An ordered sequence of characters
+ */
+export type Text = string;
+/**
+ * A textual description of something
+ */
+export type Caption = Text;
+/**
+ * Width (in pixels)
  */
 export type Width = Number;
 /**
@@ -15,30 +27,49 @@ export type Width = Number;
  */
 export type Number = number;
 /**
- * A string describing something
- */
-export type Caption = Text;
-/**
- * An ordered sequence of characters
- */
-export type Text = string;
-/**
- * The location of something
+ * The location where an entity can be found online
  */
 export type URL = Text;
 
 /**
- * An entity which describes media
+ * Image or video
  */
 export type MediaProperties = {
-  "https://blockprotocol.org/@nate/types/property-type/width/"?: Width;
-  "https://blockprotocol.org/@nate/types/property-type/caption/"?: Caption;
-  "https://blockprotocol.org/@nate/types/property-type/url/"?: URL;
-}
+  "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/property-type/media-type/": MediaType;
+  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/"?: Caption;
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/width/"?: Width;
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/url/"?: URL;
+};
 
 export type Media = Entity<MediaProperties>;
-export type MediaLinksByLinkTypeId = {
 
+/**
+ * The file an entity describes
+ */
+export type FileProperties = FileProperties1 & FileProperties2;
+export type FileProperties1 = Link;
+
+export type Link = {
+  leftEntityId?: string;
+  rightEntityId?: string;
+};
+export type FileProperties2 = {};
+
+export type File = Entity<FileProperties>;
+export type FileLinksByLinkTypeId = {};
+
+export type FileLinkAndRightEntities = NonNullable<
+  FileLinksByLinkTypeId[keyof FileLinksByLinkTypeId]
+>;
+export type MediaFileLinks =
+  | []
+  | {
+      linkEntity: File;
+      rightEntity: Entity;
+    }[];
+
+export type MediaLinksByLinkTypeId = {
+  "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/file/v/1": MediaFileLinks;
 };
 
 export type MediaLinkAndRightEntities = NonNullable<

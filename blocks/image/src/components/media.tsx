@@ -6,14 +6,11 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
+import { BlockGraphProperties, UpdateEntityData } from "@blockprotocol/graph";
 import {
-  BlockGraphProperties,
-  Entity,
-  Link,
-  LinkGroup,
-  UpdateEntityData,
-} from "@blockprotocol/graph";
-import { useGraphBlockModule } from "@blockprotocol/graph/react";
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
 import {
   Dispatch,
   FunctionComponent,
@@ -21,22 +18,18 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { RootEntity } from "../types";
 
+import { propertyIds } from "../property-ids";
+import { RootEntity } from "../types";
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
-
-export type MediaEntityProperties = {
-  initialCaption?: string;
-  initialWidth?: number;
-  url?: string;
-};
 
 const useDefaultState = <
   T extends number | string | boolean | null | undefined,
@@ -68,62 +61,62 @@ const useDefaultState = <
 
   return [currentValue, setState];
 };
+//
+// function getLinkGroup(params: {
+//   linkGroups: LinkGroup[];
+//   path: string;
+//   sourceEntityId: string;
+// }): LinkGroup | undefined {
+//   const { linkGroups, path, sourceEntityId } = params;
+//
+//   const matchingLinkGroup = linkGroups.find(
+//     (linkGroup) =>
+//       linkGroup.path === path && linkGroup.sourceEntityId === sourceEntityId,
+//   );
+//
+//   return matchingLinkGroup;
+// }
+//
+// function getLinkedEntities(params: {
+//   sourceEntityId: string;
+//   path: string;
+//   linkGroups: LinkGroup[];
+//   linkedEntities: Entity[];
+// }): (Entity & { url: string })[] | null {
+//   const { sourceEntityId, path, linkGroups, linkedEntities } = params;
+//
+//   const matchingLinkGroup = getLinkGroup({
+//     linkGroups,
+//     path,
+//     sourceEntityId,
+//   });
+//
+//   if (!matchingLinkGroup?.links[0]) {
+//     return null;
+//   }
+//
+//   if (!("destinationEntityId" in matchingLinkGroup.links[0])) {
+//     throw new Error(
+//       "No destinationEntityId present in matched link - cannot find linked file entity.",
+//     );
+//   }
+//
+//   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
+//
+//   const matchingLinkedEntities = linkedEntities.filter(
+//     (linkedEntity): linkedEntity is Entity & { url: string } =>
+//       linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
+//   );
+//
+//   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+//   if (!matchingLinkedEntities) {
+//     return null;
+//   }
+//
+//   return matchingLinkedEntities;
+// }
 
-function getLinkGroup(params: {
-  linkGroups: LinkGroup[];
-  path: string;
-  sourceEntityId: string;
-}): LinkGroup | undefined {
-  const { linkGroups, path, sourceEntityId } = params;
-
-  const matchingLinkGroup = linkGroups.find(
-    (linkGroup) =>
-      linkGroup.path === path && linkGroup.sourceEntityId === sourceEntityId,
-  );
-
-  return matchingLinkGroup;
-}
-
-function getLinkedEntities(params: {
-  sourceEntityId: string;
-  path: string;
-  linkGroups: LinkGroup[];
-  linkedEntities: Entity[];
-}): (Entity & { url: string })[] | null {
-  const { sourceEntityId, path, linkGroups, linkedEntities } = params;
-
-  const matchingLinkGroup = getLinkGroup({
-    linkGroups,
-    path,
-    sourceEntityId,
-  });
-
-  if (!matchingLinkGroup?.links[0]) {
-    return null;
-  }
-
-  if (!("destinationEntityId" in matchingLinkGroup.links[0])) {
-    throw new Error(
-      "No destinationEntityId present in matched link - cannot find linked file entity.",
-    );
-  }
-
-  const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
-
-  const matchingLinkedEntities = linkedEntities.filter(
-    (linkedEntity): linkedEntity is Entity & { url: string } =>
-      linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  if (!matchingLinkedEntities) {
-    return null;
-  }
-
-  return matchingLinkedEntities;
-}
-
-const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
+// const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
@@ -131,33 +124,40 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 export const Media: FunctionComponent<
   BlockGraphProperties<RootEntity> & {
     blockRef: RefObject<HTMLDivElement>;
-    mediaType: "image" | "video";
   }
 > = (props) => {
   const {
     blockRef,
     graph: { blockEntitySubgraph, readonly },
-    mediaType,
   } = props;
+
+  const { rootEntity, linkedEntities } = useEntitySubgraph(blockEntitySubgraph);
+  const { metadata, properties } = rootEntity;
+  const {
+    [propertyIds.mediaType]: mediaType,
+    [propertyIds.url]: url,
+    [propertyIds.caption]: initialCaption,
+    [propertyIds.width]: initialWidth,
+  } = properties;
 
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const matchingLinkedEntities = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    if (blockGraph?.linkGroups && blockGraph.linkedEntities && entityId) {
-      return getLinkedEntities({
-        sourceEntityId: entityId,
-        path: "$.file",
-        linkGroups: blockGraph.linkGroups,
-        linkedEntities: blockGraph.linkedEntities,
-      });
-    }
+    return [] as { url: string }[];
 
-    return null;
-  }, [blockGraph?.linkGroups, blockGraph?.linkedEntities, entityId]);
+    // // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    // if (blockGraph?.linkGroups && blockGraph.linkedEntities && entityId) {
+    //   return getLinkedEntities({
+    //     sourceEntityId: entityId,
+    //     path: "$.file",
+    //     linkGroups: blockGraph.linkGroups,
+    //     linkedEntities: blockGraph.linkedEntities,
+    //   });
+    // }
+  }, []);
 
   const [draftSrc, setDraftSrc] = useDefaultState(
-    url ?? matchingLinkedEntities?.[0]?.url ?? "",
+    url ?? matchingLinkedEntities[0]?.url ?? "",
   );
 
   const [loading, setLoading] = useState(false);
@@ -166,7 +166,7 @@ export const Media: FunctionComponent<
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
   const [draftWidth, setDraftWidth] = useDefaultState(
     // eslint-disable-next-line react/destructuring-assignment
-    props.mediaType === "image" ? initialWidth : 0,
+    mediaType === "image" ? initialWidth : 0,
   );
 
   /**
@@ -184,19 +184,28 @@ export const Media: FunctionComponent<
     };
   }, []);
 
+  const propertiesRef = useRef(properties);
+
+  useLayoutEffect(() => {
+    propertiesRef.current = propertiesRef;
+  });
+
   const updateData = useCallback(
     ({ width, src }: { src: string | undefined; width?: number }) => {
       if (src?.trim()) {
-        if (graphModule?.updateEntity && entityId) {
+        // @todo how to handle this not being defined now
+        if (metadata.recordId.entityId) {
           const updateEntityData: UpdateEntityData = {
             properties: {
-              initialCaption: draftCaption,
+              ...propertiesRef.current,
+              [propertyIds.caption]: draftCaption,
             },
-            entityId,
+            entityId: metadata.recordId.entityId,
+            entityTypeId: metadata.entityTypeId,
           };
 
           if (width && mediaType === "image") {
-            updateEntityData.properties.initialWidth = width;
+            updateEntityData.properties[propertyIds.width] = width;
           }
 
           void graphModule.updateEntity({ data: updateEntityData });
@@ -213,9 +222,10 @@ export const Media: FunctionComponent<
     },
     [
       draftCaption,
-      entityId,
       graphModule,
       mediaType,
+      metadata.entityTypeId,
+      metadata.recordId.entityId,
       setDraftSrc,
       setDraftWidth,
     ],
@@ -233,15 +243,7 @@ export const Media: FunctionComponent<
       if (readonly) {
         return;
       }
-      if (
-        !loading &&
-        entityId &&
-        graphModule?.createLink &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        graphModule.deleteLink &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        graphModule.uploadFile
-      ) {
+      if (!loading) {
         unstable_batchedUpdates(() => {
           setErrorString(null);
           setLoading(true);
@@ -249,39 +251,40 @@ export const Media: FunctionComponent<
 
         graphModule
           .uploadFile({
-            data: { ...imageProp, mediaType },
+            data: imageProp,
           })
           .then(async ({ data: file }) => {
             if (!file) {
               return;
             }
 
-            const existingLinkGroup = getLinkGroup({
-              sourceEntityId: entityId,
-              linkGroups: blockGraph?.linkGroups ?? [],
-              path: "$.file",
-            });
-
-            const linkId =
-              existingLinkGroup?.links.filter(isSingleTargetLink)?.[0]?.linkId;
-
-            if (linkId) {
-              await graphModule.deleteLink({
-                data: { linkId },
-              });
-            }
-
-            await graphModule.createLink({
-              data: {
-                sourceEntityId: entityId,
-                destinationEntityId: file.entityId,
-                path: "$.file",
-              },
-            });
+            //
+            // const existingLinkGroup = getLinkGroup({
+            //   sourceEntityId: entityId,
+            //   linkGroups: blockGraph?.linkGroups ?? [],
+            //   path: "$.file",
+            // });
+            //
+            // const linkId =
+            //   existingLinkGroup?.links.filter(isSingleTargetLink)?.[0]?.linkId;
+            //
+            // if (linkId) {
+            //   await graphModule.deleteLink({
+            //     data: { linkId },
+            //   });
+            // }
+            //
+            // await graphModule.createLink({
+            //   data: {
+            //     sourceEntityId: entityId,
+            //     destinationEntityId: file.entityId,
+            //     path: "$.file",
+            //   },
+            // });
 
             if (isMounted.current) {
               unstable_batchedUpdates(() => {
-                updateData({ src: file.url });
+                updateData({ src: file.properties[propertyIds.bpUrl] });
                 setLoading(false);
               });
             }
@@ -294,15 +297,7 @@ export const Media: FunctionComponent<
           );
       }
     },
-    [
-      blockGraph?.linkGroups,
-      entityId,
-      graphModule,
-      loading,
-      mediaType,
-      readonly,
-      updateData,
-    ],
+    [graphModule, loading, readonly, updateData],
   );
 
   const onUrlConfirm = () => {
@@ -330,6 +325,10 @@ export const Media: FunctionComponent<
       setDraftSrc("");
     });
   };
+
+  if (mediaType !== "image" && mediaType !== "video") {
+    throw new Error("Improper mediaType");
+  }
 
   return (
     <div ref={blockRef}>
