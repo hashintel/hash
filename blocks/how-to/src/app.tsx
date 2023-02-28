@@ -26,16 +26,16 @@ import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 
 export const titleKey =
-  "http://localhost:3000/@lbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 export const descriptionKey =
-  "http://localhost:3000/@lbett/types/property-type/description/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 
 const howToStepType =
-  "http://localhost:3000/@lbett/types/entity-type/howto-step/v/3";
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/howtostep/v/2";
 const introductionLinkType =
-  "http://localhost:3000/@lbett/types/entity-type/introduction-link/v/1";
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/introduction-link/v/1";
 const stepLinkType =
-  "http://localhost:3000/@lbett/types/entity-type/step-link/v/1";
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/step-link/v/1";
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
 export type Link = typeof introductionLinkType | typeof stepLinkType;
