@@ -519,7 +519,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                               }}
                             />
                           ) : suggestionsLoading ? (
-                            <CircularProgress />
+                            <CircularProgress size={14} />
                           ) : (
                             <FontAwesomeIcon
                               icon={faSearch}
