@@ -3,8 +3,7 @@
  * This file is not bundled with the library during the build process.
  */
 
-import { Entity } from "@blockprotocol/graph";
-import { FileEntityProperties } from "@blockprotocol/graph/dist/cjs/shared/types/file";
+import { Entity, FileEntityProperties } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 

@@ -16,18 +16,19 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "serve": "block-scripts serve"
+    "serve": "block-scripts serve",
+    "schema": "block-scripts codegen"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
+    "@blockprotocol/graph": "0.1.0-canary-20230228103144",
     "twind": "0.16.17"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.0-canary-20230228103144",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.0-canary-20230228103144",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -54,6 +55,7 @@
         "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
       }
     ],
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "schema": "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/media/v/4"
   }
 }
