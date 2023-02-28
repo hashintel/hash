@@ -28,8 +28,8 @@ const DevApp = () => {
       initialData={{
         initialEntities: [testEntity],
       }}
-      blockProtocolApiKey="b10ck5.0f301b4ca291f59bc829570dd2e210b9.a90d38b5-d44f-4959-a1c6-9be3119b50b3"
-      blockProtocolSiteHost="http://localhost:3000"
+      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY}
+      blockProtocolSiteHost={process.env.BLOCK_PROTOCOL_HUB_ORIGIN}
       debug
     />
   );
