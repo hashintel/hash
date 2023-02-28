@@ -218,7 +218,7 @@ export const App: BlockComponent<RootEntity> = ({
     if (!stepEntities.length) {
       addStep();
     }
-  }, []);
+  }, [stepEntities]);
 
   const schema = useMemo(() => {
     const stepsWithTitle = stepEntities.filter(
