@@ -20,15 +20,15 @@
     "schema": "block-scripts codegen"
   },
   "dependencies": {
-    "@blockprotocol/core": "0.1.0-canary-20230225164454",
-    "@blockprotocol/graph": "0.1.0-canary-20230225164454"
+    "@blockprotocol/core": "0.1.0-canary-20230228103144",
+    "@blockprotocol/graph": "0.1.0-canary-20230228103144"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.1.0-canary-20230225164454",
+    "block-scripts": "0.1.0-canary-20230228103144",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0-canary-20230225164454",
+    "mock-block-dock": "0.1.0-canary-20230228103144",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
