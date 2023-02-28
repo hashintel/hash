@@ -122,7 +122,7 @@ export const App: BlockComponent<RootEntity> = ({
           linkEntity.metadata.entityTypeId === hasAddressMapLink,
       ),
     [linkedEntities],
-  )!;
+  );
 
   const addressEntity: AddressEntity | undefined =
     addressLinkedEntity?.rightEntity;
@@ -143,12 +143,11 @@ export const App: BlockComponent<RootEntity> = ({
     [linkedEntities, zoomLevel, addressId],
   );
 
-  const fileEntity: ImageEntity | undefined = imageLinkedEntity?.rightEntity;
-  const imageLinkEntity = imageLinkedEntity?.linkEntity as
-    | HasAddressMap
-    | undefined;
+  const imageEntity: ImageEntity | undefined = imageLinkedEntity?.rightEntity;
+  const imageLinkEntity: HasAddressMap | undefined =
+    imageLinkedEntity?.linkEntity;
 
-  const mapUrl = fileEntity?.properties[fileUrlKey];
+  const mapUrl = imageEntity?.properties[fileUrlKey];
 
   const availableZoomLevels = useMemo(() => {
     return linkedEntities
@@ -257,21 +256,21 @@ export const App: BlockComponent<RootEntity> = ({
           ];
 
         if (imageUrl) {
-          const fileProperties = {
+          const imageProperties = {
             [fileUrlKey]: imageUrl,
           };
 
-          const createFileEntityResponse = await graphModule?.createEntity({
+          const createImageEntityResponse = await graphModule?.createEntity({
             data: {
               entityTypeId: imageTypeId,
-              properties: fileProperties,
+              properties: imageProperties,
             },
           });
 
-          const fileEntityId =
-            createFileEntityResponse?.data?.metadata.recordId.entityId;
+          const imageEntityId =
+            createImageEntityResponse?.data?.metadata.recordId.entityId;
 
-          if (!imageLinkEntity && fileEntityId && addressId) {
+          if (!imageLinkEntity && imageEntityId && addressId) {
             await graphModule?.createEntity({
               data: {
                 entityTypeId: hasAddressMapLink,
@@ -281,7 +280,7 @@ export const App: BlockComponent<RootEntity> = ({
                 },
                 linkData: {
                   leftEntityId: entityId,
-                  rightEntityId: fileEntityId,
+                  rightEntityId: imageEntityId,
                 },
               },
             });
