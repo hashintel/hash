@@ -419,7 +419,10 @@ export const App: BlockComponent<RootEntity> = ({
             <>
               <Fade
                 in={
-                  hovered || autocompleteFocused || animatingIn || animatingOut
+                  hovered ||
+                  autocompleteFocused ||
+                  !!animatingIn ||
+                  animatingOut
                 }
               >
                 <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
