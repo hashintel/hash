@@ -1,52 +1,12 @@
-import {
-  EntityTemporalVersioningMetadata,
-  QueryTemporalAxes,
-} from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { default as packageJson } from "../package.json";
 import Component from "./index";
 import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
-
-const intervalForAllTime =
-  (): EntityTemporalVersioningMetadata[keyof EntityTemporalVersioningMetadata] => {
-    return {
-      start: {
-        kind: "inclusive",
-        limit: new Date(0).toISOString(),
-      },
-      end: {
-        kind: "unbounded",
-      },
-    } as const;
-  };
-
-const entityTemporalMetadata = (): EntityTemporalVersioningMetadata => {
-  return {
-    transactionTime: intervalForAllTime(),
-    decisionTime: intervalForAllTime(),
-  };
-};
-
-const currentTime = new Date().toISOString();
-
-const temporalAxes: QueryTemporalAxes = {
-  pinned: {
-    axis: "transactionTime",
-    timestamp: currentTime,
-  },
-  variable: {
-    axis: "decisionTime",
-    interval: {
-      start: { kind: "unbounded" },
-      end: { kind: "inclusive", limit: currentTime },
-    },
-  },
-};
 
 const testEntity: RootEntity = {
   metadata: {
@@ -54,8 +14,7 @@ const testEntity: RootEntity = {
       entityId: "test-entity",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: packageJson.blockprotocol.schema as VersionedUri,
-    temporalVersioning: entityTemporalMetadata(),
+    entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
   },
   properties: {},
 } as const;
@@ -68,8 +27,9 @@ const DevApp = () => {
       blockInfo={packageJson.blockprotocol}
       initialData={{
         initialEntities: [testEntity],
-        initialTemporalAxes: temporalAxes,
       }}
+      blockProtocolApiKey="b10ck5.0ffce85f8aa69ae4171bb7cf31e21ffa.f05b31ae-2340-4dd6-8d49-aae04a45f6f7"
+      blockProtocolSiteHost="http://localhost:3000"
       debug
     />
   );

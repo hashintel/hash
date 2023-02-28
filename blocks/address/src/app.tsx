@@ -1,7 +1,7 @@
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   useEntitySubgraph,
-  useGraphBlockService,
+  useGraphBlockModule,
   type BlockComponent,
 } from "@blockprotocol/graph/react";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
@@ -22,7 +22,14 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
@@ -34,6 +41,8 @@ import {
   RootEntity,
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
+import { useServiceBlockModule } from "@blockprotocol/service/react";
+import { MapboxSuggestAddressResponseData } from "@blockprotocol/service";
 
 const DEFAULT_ZOOM_LEVEL = 16;
 const ZOOM_LEVEL_STEP_SIZE = 2;
@@ -83,7 +92,8 @@ export const App: BlockComponent<true, RootEntity> = ({
   }
 
   const blockRootRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRootRef);
+  const { serviceModule } = useServiceBlockModule(blockRootRef);
+  const { graphModule } = useGraphBlockModule(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } =
     useEntitySubgraph(blockEntitySubgraph);
 
@@ -99,6 +109,30 @@ export const App: BlockComponent<true, RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [animatingIn, setAnimatingIn] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
+
+  const [mapboxSuggestSearchText, setMapboxSuggestSearchText] =
+    useState<string>("");
+  const [mapboxSuggestResponse, setMapboxSuggestResponse] = useState<
+    MapboxSuggestAddressResponseData | undefined | null
+  >(null);
+
+  const handleMapboxSuggestSubmit = useCallback(
+    async (event: FormEvent) => {
+      event.preventDefault();
+
+      const response = await serviceModule.mapboxSuggestAddress({
+        data: {
+          searchText: mapboxSuggestSearchText,
+          optionsArg: { sessionToken: "block" },
+        },
+      });
+
+      if (response.data) {
+        setMapboxSuggestResponse(response.data);
+      }
+    },
+    [mapboxSuggestSearchText, serviceModule],
+  );
 
   const {
     [titleKey]: title,
@@ -169,7 +203,7 @@ export const App: BlockComponent<true, RootEntity> = ({
   );
 
   const updateBlockAddress = async (address: Address) => {
-    await graphService?.updateEntity({
+    await graphModule?.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -184,7 +218,7 @@ export const App: BlockComponent<true, RootEntity> = ({
   };
 
   const updateTitle = async (title: string) => {
-    await graphService?.updateEntity({
+    await graphModule?.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -197,7 +231,7 @@ export const App: BlockComponent<true, RootEntity> = ({
   };
 
   const updateDescription = async (description: string) => {
-    await graphService?.updateEntity({
+    await graphModule?.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -210,7 +244,7 @@ export const App: BlockComponent<true, RootEntity> = ({
   };
 
   const updateZoomLevel = async (zoomLevel: number) => {
-    await graphService?.updateEntity({
+    await graphModule?.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -239,7 +273,7 @@ export const App: BlockComponent<true, RootEntity> = ({
       return;
     }
 
-    graphService
+    graphModule
       ?.uploadFile({
         data: { file: mapFile },
       })
@@ -254,7 +288,7 @@ export const App: BlockComponent<true, RootEntity> = ({
             [imageUrlKey]: imageUrl,
           };
 
-          const createFileEntityResponse = await graphService?.createEntity({
+          const createFileEntityResponse = await graphModule?.createEntity({
             data: {
               entityTypeId: fileTypeId,
               properties: fileProperties,
@@ -265,7 +299,7 @@ export const App: BlockComponent<true, RootEntity> = ({
             createFileEntityResponse?.data?.metadata.recordId.entityId;
 
           if (!imageLinkEntity && fileEntityId && addressId) {
-            await graphService?.createEntity({
+            await graphModule?.createEntity({
               data: {
                 entityTypeId: imageLinkTypeId,
                 properties: {
@@ -307,13 +341,13 @@ export const App: BlockComponent<true, RootEntity> = ({
     };
 
     const createAddressEntityResponse = await (!addressEntity
-      ? graphService?.createEntity({
+      ? graphModule?.createEntity({
           data: {
             entityTypeId: addressTypeId,
             properties: addressProperties,
           },
         })
-      : graphService?.updateEntity({
+      : graphModule?.updateEntity({
           data: {
             entityId: addressEntity.metadata.recordId.entityId,
             entityTypeId: addressEntity.metadata.entityTypeId,
@@ -326,7 +360,7 @@ export const App: BlockComponent<true, RootEntity> = ({
 
     if (addressEntityId) {
       if (!addressLinkEntity) {
-        await graphService?.createEntity({
+        await graphModule?.createEntity({
           data: {
             entityTypeId: addressLinkTypeId,
             properties: {},
@@ -342,7 +376,7 @@ export const App: BlockComponent<true, RootEntity> = ({
 
   const resetBlock = async () => {
     selectAddress();
-    await graphService?.updateEntity({
+    await graphModule?.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -353,7 +387,7 @@ export const App: BlockComponent<true, RootEntity> = ({
     // Remove the address link and all image links
     for (const { linkEntity } of linkedEntities) {
       if (linkEntity[0]) {
-        await graphService?.deleteEntity({
+        await graphModule?.deleteEntity({
           data: {
             entityId: linkEntity[0].metadata.recordId.entityId,
           },
@@ -389,6 +423,33 @@ export const App: BlockComponent<true, RootEntity> = ({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
+        <form onSubmit={handleMapboxSuggestSubmit}>
+          <label>
+            Mapbox Suggest API request
+            <br />
+            <input
+              type="text"
+              value={mapboxSuggestSearchText}
+              onChange={({ target }) =>
+                setMapboxSuggestSearchText(target.value)
+              }
+            />
+          </label>
+          <button type="submit" disabled={!mapboxSuggestSearchText}>
+            Suggest
+          </button>
+        </form>
+        {mapboxSuggestResponse === undefined ? (
+          <p>Loading...</p>
+        ) : mapboxSuggestResponse ? (
+          <ul>
+            {mapboxSuggestResponse.suggestions.map(({ place_name }, i) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <li key={`${place_name}${i}`}>{place_name}</li>
+            ))}
+          </ul>
+        ) : null}
+
         {!readonly ? (
           <Fade
             in={hovered || autocompleteFocused || animatingIn || animatingOut}
