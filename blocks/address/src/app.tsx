@@ -22,14 +22,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import {
-  FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
@@ -41,8 +34,6 @@ import {
   RootEntity,
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
-import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { MapboxSuggestAddressResponseData } from "@blockprotocol/service";
 
 const DEFAULT_ZOOM_LEVEL = 16;
 const ZOOM_LEVEL_STEP_SIZE = 2;
@@ -79,8 +70,6 @@ const addressIdKey =
 const zoomLevelKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/zoomlevel/";
 
-const accessToken = "";
-
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
 
@@ -92,7 +81,6 @@ export const App: BlockComponent<true, RootEntity> = ({
   }
 
   const blockRootRef = useRef<HTMLDivElement>(null);
-  const { serviceModule } = useServiceBlockModule(blockRootRef);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } =
     useEntitySubgraph(blockEntitySubgraph);
@@ -109,30 +97,6 @@ export const App: BlockComponent<true, RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [animatingIn, setAnimatingIn] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
-
-  const [mapboxSuggestSearchText, setMapboxSuggestSearchText] =
-    useState<string>("");
-  const [mapboxSuggestResponse, setMapboxSuggestResponse] = useState<
-    MapboxSuggestAddressResponseData | undefined | null
-  >(null);
-
-  const handleMapboxSuggestSubmit = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
-
-      const response = await serviceModule.mapboxSuggestAddress({
-        data: {
-          searchText: mapboxSuggestSearchText,
-          optionsArg: { sessionToken: "block" },
-        },
-      });
-
-      if (response.data) {
-        setMapboxSuggestResponse(response.data);
-      }
-    },
-    [mapboxSuggestSearchText, serviceModule],
-  );
 
   const {
     [titleKey]: title,
@@ -162,16 +126,16 @@ export const App: BlockComponent<true, RootEntity> = ({
     () =>
       linkedEntities.find(({ linkEntity }) => {
         return (
-          linkEntity[0]?.metadata.entityTypeId === imageLinkTypeId &&
-          linkEntity[0]?.properties[zoomLevelKey] === zoomLevel &&
-          linkEntity[0]?.properties[addressIdKey] === addressId
+          linkEntity.metadata.entityTypeId === imageLinkTypeId &&
+          linkEntity.properties[zoomLevelKey] === zoomLevel &&
+          linkEntity.properties[addressIdKey] === addressId
         );
       }),
     [linkedEntities, zoomLevel, addressId],
   );
 
-  const fileEntity: FileEntity | undefined = imageLinkedEntity?.rightEntity[0];
-  const imageLinkEntity = imageLinkedEntity?.linkEntity[0] as
+  const fileEntity: FileEntity | undefined = imageLinkedEntity?.rightEntity;
+  const imageLinkEntity = imageLinkedEntity?.linkEntity as
     | ImageLink
     | undefined;
 
@@ -181,11 +145,11 @@ export const App: BlockComponent<true, RootEntity> = ({
     return linkedEntities
       .filter(({ linkEntity }) => {
         return (
-          linkEntity[0]?.metadata.entityTypeId === imageLinkTypeId &&
-          linkEntity[0]?.properties[addressIdKey] === addressId
+          linkEntity.metadata.entityTypeId === imageLinkTypeId &&
+          linkEntity.properties[addressIdKey] === addressId
         );
       })
-      .map(({ linkEntity }) => linkEntity[0]?.properties[zoomLevelKey]);
+      .map(({ linkEntity }) => linkEntity.properties[zoomLevelKey]);
   }, [linkedEntities]);
 
   const {
@@ -197,9 +161,9 @@ export const App: BlockComponent<true, RootEntity> = ({
     selectedAddress,
     mapFile,
   } = useMapbox(
+    blockRootRef,
     zoomLevel,
     !availableZoomLevels.includes(zoomLevel),
-    accessToken,
   );
 
   const updateBlockAddress = async (address: Address) => {
@@ -423,33 +387,6 @@ export const App: BlockComponent<true, RootEntity> = ({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <form onSubmit={handleMapboxSuggestSubmit}>
-          <label>
-            Mapbox Suggest API request
-            <br />
-            <input
-              type="text"
-              value={mapboxSuggestSearchText}
-              onChange={({ target }) =>
-                setMapboxSuggestSearchText(target.value)
-              }
-            />
-          </label>
-          <button type="submit" disabled={!mapboxSuggestSearchText}>
-            Suggest
-          </button>
-        </form>
-        {mapboxSuggestResponse === undefined ? (
-          <p>Loading...</p>
-        ) : mapboxSuggestResponse ? (
-          <ul>
-            {mapboxSuggestResponse.suggestions.map(({ place_name }, i) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <li key={`${place_name}${i}`}>{place_name}</li>
-            ))}
-          </ul>
-        ) : null}
-
         {!readonly ? (
           <Fade
             in={hovered || autocompleteFocused || animatingIn || animatingOut}
@@ -558,7 +495,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                   setAnimatingIn(true);
 
                   setTimeout(() => {
-                    selectAddress(option.action.id);
+                    selectAddress(option);
                   }, 300);
                 }
               }}

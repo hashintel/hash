@@ -1,16 +1,24 @@
 import {
   AutofillFeatureSuggestion,
-  AutofillRetrieveResponse,
   AutofillSuggestion,
-  AutofillSuggestionResponse,
   SessionToken,
 } from "@mapbox/search-js-core";
-import axios from "axios";
 import debounce from "lodash.debounce";
-import { useEffect, useMemo, useState } from "react";
+import { RefObject, useEffect, useMemo, useState } from "react";
 import { useSessionstorageState } from "rooks";
+import { useServiceBlockModule } from "@blockprotocol/service/react";
 
-const MAPBOX_API_URL = "https://api.mapbox.com";
+const toArrayBuffer = (buffer: Buffer) => {
+  const arrayBuffer = new ArrayBuffer(buffer.length);
+  const view = new Uint8Array(arrayBuffer);
+  for (let i = 0; i < buffer.length; ++i) {
+    const bufferElem = buffer[i];
+    if (bufferElem) {
+      view[i] = bufferElem;
+    }
+  }
+  return arrayBuffer;
+};
 
 export type Address = {
   addressId: string;
@@ -24,10 +32,11 @@ export type Address = {
 };
 
 export const useMapbox = (
+  blockRootRef: RefObject<HTMLDivElement>,
   zoomLevel: number,
   shouldFetchImage: boolean,
-  accessToken: string,
 ) => {
+  const { serviceModule } = useServiceBlockModule(blockRootRef);
   const [sessionToken, setSessionToken] =
     useSessionstorageState<SessionToken | null>("mapboxSessionToken", null);
   const [suggestions, setSuggestions] = useState<AutofillSuggestion[]>([]);
@@ -51,13 +60,21 @@ export const useMapbox = (
 
   const fetchSuggestions = debounce((query: string) => {
     setSuggestionsLoading(true);
-    axios
-      .get<AutofillSuggestionResponse>(
-        `${MAPBOX_API_URL}/autofill/v1/suggest/${query}?types=country,region,place,district,locality,postcode,address,poi,poi.landmark&access_token=${accessToken}&session_token=${sessionToken?.id}&language=en&proximity=ip&streets=true`,
-      )
+
+    serviceModule
+      .mapboxSuggestAddress({
+        data: {
+          searchText: query,
+          optionsArg: {
+            sessionToken: sessionToken!.id,
+          },
+        },
+      })
       .then(({ data }) => {
         setSuggestionsError(false);
-        setSuggestions(data.suggestions);
+        if (data) {
+          setSuggestions(data.suggestions);
+        }
       })
       .catch(() => {
         setSuggestionsError(true);
@@ -67,17 +84,24 @@ export const useMapbox = (
       });
   }, 300);
 
-  const selectAddress = (addressId?: string) => {
-    if (addressId) {
-      setSelectedAddressId(addressId);
-      axios
-        .get<AutofillRetrieveResponse>(
-          `${MAPBOX_API_URL}/autofill/v1/retrieve/${addressId}?access_token=${accessToken}&session_token=${sessionToken?.id}`,
-        )
+  const selectAddress = (suggestion?: AutofillSuggestion) => {
+    if (suggestion) {
+      setSelectedAddressId(suggestion?.action.id);
+      serviceModule
+        .mapboxRetrieveAddress({
+          data: {
+            suggestion,
+            optionsArg: {
+              sessionToken: sessionToken!.id,
+            },
+          },
+        })
         .then(({ data }) => {
-          const address = data.features[0];
-          if (address) {
-            setSelectedAddress(address);
+          if (data) {
+            const address = data.features[0];
+            if (address) {
+              setSelectedAddress(address);
+            }
           }
         });
     } else {
@@ -90,25 +114,37 @@ export const useMapbox = (
   useEffect(() => {
     if (shouldFetchImage) {
       const coords = selectedAddress?.geometry.coordinates;
-
-      if (coords) {
-        axios
-          .get<any>(
-            `${MAPBOX_API_URL}/styles/v1/mapbox/streets-v11/static/pin-s+555555(${coords[0]},${coords[1]})/${coords[0]},${coords[1]},${zoomLevel},0/600x400?access_token=${accessToken}&attribution=false&logo=false&sku=20d0104e2f29c-6abd-4991-8861-20cc6100bb5e`,
-            {
-              responseType: "arraybuffer",
+      if (coords?.[0] && coords?.[1]) {
+        console.log(zoomLevel);
+        serviceModule
+          .mapboxRetrieveStaticMap({
+            data: {
+              username: "mapbox",
+              style_id: "streets-v11",
+              overlay: `pin-s+555555(${coords[0]},${coords[1]})`,
+              width: 600,
+              height: 400,
+              lon: coords[0],
+              lat: coords[1],
+              zoom: zoomLevel,
             },
-          )
-          .then(({ data, headers }) => {
-            let blob = new Blob([data], {
-              type: headers["content-type"],
-            });
-            setMapUrl(URL.createObjectURL(blob));
-            setMapFile(new File([blob], "map"));
+          })
+          .then((res) => {
+            console.log(res);
+            if (res.data) {
+              let blob = new Blob([toArrayBuffer(res.data.data)], {
+                type: "arraybuffer",
+              });
+
+              setMapUrl(URL.createObjectURL(blob));
+              setMapFile(new File([blob], "map"));
+            }
           });
       }
     }
   }, [shouldFetchImage, selectedAddress, zoomLevel]);
+
+  // https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+555555(1.2434574,52.62335255)/1.2434574,52.62335255,16,0/600x400?access_token=&attribution=false&logo=false&sku=20d0104e2f29c-6abd-4991-8861-20cc6100bb5e
 
   const address: Address | null = useMemo(
     () =>
