@@ -6,5 +6,5 @@ export const useCurrentTab = () => useRouter().query.tab ?? defaultTab;
 
 export const getTabValue = (tab: string) => (tab === defaultTab ? "" : tab);
 
-export const getTabUri = (baseUri: string, tab: string) =>
-  tab === defaultTab ? baseUri : `${baseUri}?tab=${encodeURIComponent(tab)}`;
+export const getTabUrl = (baseUrl: string, tab: string) =>
+  tab === defaultTab ? baseUrl : `${baseUrl}?tab=${encodeURIComponent(tab)}`;

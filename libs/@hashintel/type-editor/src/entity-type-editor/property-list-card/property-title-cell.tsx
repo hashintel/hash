@@ -1,29 +1,15 @@
 import { PropertyType } from "@blockprotocol/type-system/slim";
-import {
-  faArrowsRotate,
-  faChevronRight,
-  faList,
-} from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconArrowRight,
-  IconButton,
-} from "@hashintel/design-system";
-import {
-  Box,
-  Collapse,
-  Fade,
-  Stack,
-  svgIconClasses,
-  TableCell,
-  Typography,
-} from "@mui/material";
+import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { Box, Collapse, Fade, TableCell } from "@mui/material";
 
+import { useIsReadonly } from "../../shared/read-only-context";
 import {
   CollapsibleRowLine,
   ROW_DEPTH_INDENTATION,
 } from "../shared/collapsible-row-line";
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
+import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
 interface PropertyTitleCellProps {
   property: PropertyType;
@@ -31,10 +17,10 @@ interface PropertyTitleCellProps {
   depth: number;
   lines: boolean[];
   expanded?: boolean;
-  currentVersion?: number;
-  latestVersion?: number;
+  currentVersion: number;
+  latestVersion: number;
   setExpanded?: (expanded: boolean) => void;
-  onVersionUpdate?: () => void;
+  onUpdateVersion: () => void;
 }
 
 const PROPERTY_TITLE_CELL_WIDTH = 260;
@@ -48,8 +34,10 @@ export const PropertyTitleCell = ({
   setExpanded,
   currentVersion,
   latestVersion,
-  onVersionUpdate,
+  onUpdateVersion,
 }: PropertyTitleCellProps) => {
+  const isReadonly = useIsReadonly();
+
   return (
     <TableCell width={PROPERTY_TITLE_CELL_WIDTH} sx={{ position: "relative" }}>
       {depth !== 0 ? (
@@ -124,57 +112,12 @@ export const PropertyTitleCell = ({
           />
         </Fade>
 
-        {depth === 0 && currentVersion !== latestVersion ? (
-          <Stack direction="row" gap={1} alignItems="center">
-            <Typography
-              variant="smallTextLabels"
-              color="gray.50"
-              fontWeight={500}
-            >
-              v{currentVersion}
-            </Typography>
-            <IconArrowRight
-              sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
-            />
-            <Typography
-              variant="smallTextLabels"
-              color="blue.70"
-              fontWeight={500}
-            >
-              v{latestVersion}
-            </Typography>
-            <IconButton
-              onClick={onVersionUpdate}
-              sx={{
-                p: 0.5,
-                minWidth: 0,
-                minHeight: 0,
-                fontSize: 11,
-                fontWeight: 700,
-                color: ({ palette }) => palette.blue[70],
-                textTransform: "uppercase",
-                gap: 0.625,
-                lineHeight: "18px",
-                ":hover": {
-                  color: ({ palette }) => palette.blue[70],
-
-                  [`.${svgIconClasses.root}`]: {
-                    transform: "rotate(360deg)",
-                    transition: ({ transitions }) =>
-                      transitions.create("transform"),
-                  },
-                },
-              }}
-            >
-              <FontAwesomeIcon
-                icon={faArrowsRotate}
-                sx={{
-                  fontSize: 11,
-                }}
-              />
-              Update
-            </IconButton>
-          </Stack>
+        {depth === 0 && currentVersion !== latestVersion && !isReadonly ? (
+          <VersionUpgradeIndicator
+            currentVersion={currentVersion}
+            latestVersion={latestVersion}
+            onUpdateVersion={onUpdateVersion}
+          />
         ) : null}
       </EntityTypeTableTitleCellText>
     </TableCell>

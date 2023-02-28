@@ -12,8 +12,8 @@ import {
 import {
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
-  QueryGetAllLatestEntityTypesArgs,
   QueryGetEntityTypeArgs,
+  QueryQueryEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -38,11 +38,11 @@ export const createEntityTypeResolver: ResolverFn<
   return createdEntityType;
 };
 
-export const getAllLatestEntityTypesResolver: ResolverFn<
+export const queryEntityTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntityTypesArgs
+  QueryQueryEntityTypesArgs
 > = async (
   _,
   {
@@ -109,7 +109,7 @@ export const getEntityTypeResolver: ResolverFn<
 
   const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
     filter: {
-      equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
+      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
     graphResolveDepths: {
       inheritsFrom: { outgoing: 0 },

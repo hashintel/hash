@@ -1,10 +1,10 @@
 import { BlockMetadata } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
-  EmbedderGraphMessageCallbacks,
-} from "@blockprotocol/graph";
-import { useGraphEmbedderService } from "@blockprotocol/graph/react";
-import { useHookEmbedderService } from "@blockprotocol/hook/react";
+  GraphEmbedderMessageCallbacks,
+} from "@blockprotocol/graph/temporal";
+import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
+import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { v4 as uuid } from "uuid";
@@ -15,10 +15,10 @@ import { useRemoteBlock } from "./use-remote-block";
 type RemoteBlockProps = {
   graphCallbacks: Omit<
     /** @todo-0.3 - Add these back */
-    EmbedderGraphMessageCallbacks<true>,
+    GraphEmbedderMessageCallbacks,
     | "createEntity"
     | "getEntity"
-    | "aggregateEntities"
+    | "queryEntities"
     | "deleteEntity"
     | "createLink"
     | "getLink"
@@ -26,11 +26,11 @@ type RemoteBlockProps = {
     | "deleteLink"
     | "getLinkedAggregation"
     | "createPropertyType"
-    | "aggregatePropertyTypes"
+    | "queryPropertyTypes"
     | "updatePropertyType"
     | "getPropertyType"
     | "createEntityType"
-    | "aggregateEntityTypes"
+    | "queryEntityTypes"
     | "updateEntityType"
     | "getEntityType"
     | "deleteEntityType"
@@ -39,7 +39,7 @@ type RemoteBlockProps = {
     | "deleteLinkedAggregation"
     | "uploadFile"
   >;
-  graphProperties: Required<BlockGraphProperties<true>["graph"]>;
+  graphProperties: Required<BlockGraphProperties["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: (node: HTMLElement | null) => void;
@@ -81,20 +81,28 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { graphService } = useGraphEmbedderService(wrapperRef, {
+  const { graphModule } = useGraphEmbedderModule(wrapperRef, {
     callbacks: graphCallbacks,
     ...graphProperties,
   });
 
   useEffect(() => {
-    graphService.registerCallbacks(graphCallbacks);
-  }, [graphCallbacks, graphService]);
+    graphModule.registerCallbacks(graphCallbacks);
+  }, [graphCallbacks, graphModule]);
 
-  useHookEmbedderService(wrapperRef, {
+  useHookEmbedderModule(wrapperRef, {
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
       async hook({ data }) {
-        if (data?.type === "text" && data.path === "$.text") {
+        /*
+         *@todo-0.3 - update this when we update the text blocks, we should stop checking for typeof string,
+         *      it should become an array with a base URL
+         */
+        if (
+          data?.type === "text" &&
+          typeof data.path === "string" &&
+          data.path === "$.text"
+        ) {
           editableRef?.(data.node);
 
           const hookId = data.hookId ?? uuid();
@@ -109,16 +117,16 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   });
 
   useEffect(() => {
-    graphService.blockEntitySubgraph({
+    graphModule.blockEntitySubgraph({
       data: graphProperties.blockEntitySubgraph,
     });
-  }, [graphProperties.blockEntitySubgraph, graphService]);
+  }, [graphProperties.blockEntitySubgraph, graphModule]);
 
   useEffect(() => {
-    graphService.readonly({
+    graphModule.readonly({
       data: graphProperties.readonly,
     });
-  }, [graphProperties.readonly, graphService]);
+  }, [graphProperties.readonly, graphModule]);
 
   if (loading) {
     return <BlockLoadingIndicator />;
@@ -132,7 +140,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<true> = {
+  const propsToInject: BlockGraphProperties = {
     graph: graphProperties,
   };
 

@@ -3,7 +3,7 @@ use std::fmt;
 use error_stack::Context;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use type_system::{repr, uri::VersionedUri};
+use type_system::{repr, url::VersionedUrl};
 
 // We would really like to use error-stack for this. It's not possible because
 // we need Serialize and Deserialize for `Report`
@@ -17,7 +17,7 @@ impl Context for FetcherError {}
 
 impl fmt::Display for FetcherError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the type fetcher encountered an error during execution: ")?;
+        fmt.write_str("the type fetcher encountered an error durlng execution: ")?;
 
         match self {
             Self::NetworkError(message)
@@ -57,6 +57,6 @@ impl TypeFetchResponse {
 pub trait Fetcher {
     /// Fetch an ontology type by its URL and return all types that are reachable from it.
     async fn fetch_ontology_type_exhaustive(
-        ontology_type_url: VersionedUri,
+        ontology_type_url: VersionedUrl,
     ) -> Result<TypeFetchResponse, FetcherError>;
 }

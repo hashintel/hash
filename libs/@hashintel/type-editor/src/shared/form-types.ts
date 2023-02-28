@@ -1,7 +1,7 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 type EntityTypeEditorTypeData = {
-  $id: VersionedUri;
+  $id: VersionedUrl;
   minValue: number | string;
   maxValue: number | string;
   infinity: boolean;
@@ -13,7 +13,7 @@ export type EntityTypeEditorPropertyData = EntityTypeEditorTypeData & {
 };
 
 export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
-  entityTypes: VersionedUri[];
+  entityTypes: VersionedUrl[];
 };
 
 export type EntityTypeEditorFormData = {

@@ -1,4 +1,4 @@
-import { extractVersion, VersionedUri } from "@blockprotocol/type-system/slim";
+import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -6,7 +6,7 @@ import {
   MenuItem,
   MenuItemProps,
   OntologyChip,
-  parseUriForOntologyChip,
+  parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import {
   Box,
@@ -30,33 +30,36 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Fragment, useCallback, useId } from "react";
 
+import { useIsReadonly } from "../../shared/read-only-context";
+
 export const TYPE_MENU_CELL_WIDTH = 70;
 
 export const TypeMenuCell = ({
   typeId,
   variant,
-  canEdit = true,
-  canRemove = true,
+  editable = true,
   editButtonProps,
   onRemove,
   editButtonDisabled,
 }: {
-  typeId: VersionedUri;
+  typeId: VersionedUrl;
   variant: "property" | "link";
-  canRemove?: boolean;
-  canEdit?: boolean;
+  editable?: boolean;
   editButtonDisabled?: string;
   editButtonProps?: MenuItemProps;
   onRemove?: () => void;
 }) => {
   const version = extractVersion(typeId);
-  const ontology = parseUriForOntologyChip(typeId);
+  const ontology = parseUrlForOntologyChip(typeId);
 
   const popupId = useId();
   const popupState = usePopupState({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
   });
+
+  const isReadonly = useIsReadonly();
+  const canEdit = editable && !isReadonly;
 
   const EditButton = useCallback(
     () => (
@@ -131,7 +134,7 @@ export const TypeMenuCell = ({
           },
         })}
       >
-        {canEdit || canRemove
+        {canEdit
           ? [
               <Typography
                 key="actions"
@@ -140,28 +143,25 @@ export const TypeMenuCell = ({
               >
                 Actions
               </Typography>,
-              canEdit ? (
-                editButtonDisabled ? (
-                  <Tooltip key="edit" title={editButtonDisabled}>
-                    <Box>
-                      <EditButton />
-                    </Box>
-                  </Tooltip>
-                ) : (
-                  <EditButton key="edit" />
-                )
-              ) : null,
-              canRemove ? (
-                <MenuItem
-                  key="remove"
-                  onClick={() => {
-                    popupState.close();
-                    onRemove?.();
-                  }}
-                >
-                  <ListItemText primary={<>Remove {variant}</>} />
-                </MenuItem>
-              ) : null,
+
+              editButtonDisabled ? (
+                <Tooltip key="edit" title={editButtonDisabled}>
+                  <Box>
+                    <EditButton />
+                  </Box>
+                </Tooltip>
+              ) : (
+                <EditButton key="edit" />
+              ),
+              <MenuItem
+                key="remove"
+                onClick={() => {
+                  popupState.close();
+                  onRemove?.();
+                }}
+              >
+                <ListItemText primary={<>Remove {variant}</>} />
+              </MenuItem>,
               <Divider key="divider" />,
             ]
           : null}

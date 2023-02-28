@@ -8,7 +8,7 @@ use reqwest::{
 use tarpc::context::Context;
 use time::OffsetDateTime;
 use type_system::{
-    uri::VersionedUri, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+    url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
     PropertyTypeReference,
 };
 
@@ -22,7 +22,7 @@ impl Fetcher for FetchServer {
     async fn fetch_ontology_type_exhaustive(
         self,
         _context: Context,
-        ontology_type_url: VersionedUri,
+        ontology_type_url: VersionedUrl,
     ) -> Result<TypeFetchResponse, FetcherError> {
         fetch_ontology_type_exhaustive(ontology_type_url).await
     }
@@ -30,16 +30,16 @@ impl Fetcher for FetchServer {
 
 #[derive(Debug)]
 struct StreamState {
-    seen: HashSet<VersionedUri>,
-    queue: VecDeque<VersionedUri>,
+    seen: HashSet<VersionedUrl>,
+    queue: VecDeque<VersionedUrl>,
 }
 
 impl StreamState {
-    fn new(seen: HashSet<VersionedUri>, queue: VecDeque<VersionedUri>) -> Self {
+    fn new(seen: HashSet<VersionedUrl>, queue: VecDeque<VersionedUrl>) -> Self {
         Self { seen, queue }
     }
 
-    fn with_intitial_state(start: VersionedUri) -> Self {
+    fn with_intitial_state(start: VersionedUrl) -> Self {
         let mut seen = HashSet::new();
         seen.insert(start.clone());
         let mut queue = VecDeque::new();
@@ -50,7 +50,7 @@ impl StreamState {
 }
 
 async fn fetch_ontology_type_exhaustive(
-    ontology_type_url: VersionedUri,
+    ontology_type_url: VersionedUrl,
 ) -> Result<TypeFetchResponse, FetcherError> {
     let http_client = Client::new();
     let res = stream::try_unfold(
@@ -62,7 +62,7 @@ async fn fetch_ontology_type_exhaustive(
             let Some(url) = next_url else { return Ok(None) };
             let response = fetch_ontology_type(client, url).await?;
 
-            let uris: Vec<VersionedUri> = match response.ontology_type.clone() {
+            let urls: Vec<VersionedUrl> = match response.ontology_type.clone() {
                 OntologyType::EntityType(schema) => {
                     let entity_type: EntityType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Entity Type");
@@ -71,7 +71,7 @@ async fn fetch_ontology_type_exhaustive(
                         ))
                     })?;
                     traverse_entity_type_references(&entity_type)
-                        .map(|reference| reference.uri().clone())
+                        .map(|reference| reference.url().clone())
                         .collect()
                 }
                 OntologyType::PropertyType(schema) => {
@@ -83,7 +83,7 @@ async fn fetch_ontology_type_exhaustive(
                     })?;
 
                     traverse_property_type_references(&property_type)
-                        .map(|reference| reference.uri().clone())
+                        .map(|reference| reference.url().clone())
                         .collect()
                 }
                 OntologyType::DataType(schema) => {
@@ -95,15 +95,15 @@ async fn fetch_ontology_type_exhaustive(
                     })?;
 
                     traverse_data_type_references(&data_type)
-                        .map(|reference| reference.uri().clone())
+                        .map(|reference| reference.url().clone())
                         .collect()
                 }
             };
 
-            for uri in uris {
-                if !state.seen.contains(&uri) {
-                    state.seen.insert(uri.clone());
-                    state.queue.push_back(uri);
+            for url in urls {
+                if !state.seen.contains(&url) {
+                    state.seen.insert(url.clone());
+                    state.queue.push_back(url);
                 }
             }
 
@@ -122,7 +122,7 @@ async fn fetch_ontology_type_exhaustive(
 /// - If the client fails to deserialize the response
 pub async fn fetch_ontology_type(
     client: Client,
-    url: VersionedUri,
+    url: VersionedUrl,
 ) -> Result<FetchedOntologyType, FetcherError> {
     let ontology_type = client
         .get(url.to_url())
@@ -157,11 +157,11 @@ pub enum OntologyTypeReference<'a> {
 
 impl OntologyTypeReference<'_> {
     #[must_use]
-    pub const fn uri(&self) -> &VersionedUri {
+    pub const fn url(&self) -> &VersionedUrl {
         match self {
-            OntologyTypeReference::EntityTypeReference(r) => r.uri(),
-            OntologyTypeReference::PropertyTypeReference(r) => r.uri(),
-            OntologyTypeReference::DataTypeReference(r) => r.uri(),
+            OntologyTypeReference::EntityTypeReference(r) => r.url(),
+            OntologyTypeReference::PropertyTypeReference(r) => r.url(),
+            OntologyTypeReference::DataTypeReference(r) => r.url(),
         }
     }
 }
@@ -169,9 +169,9 @@ impl OntologyTypeReference<'_> {
 impl<'a> From<OntologyTypeReference<'a>> for String {
     fn from(val: OntologyTypeReference<'a>) -> Self {
         match val {
-            OntologyTypeReference::EntityTypeReference(r) => r.uri(),
-            OntologyTypeReference::PropertyTypeReference(r) => r.uri(),
-            OntologyTypeReference::DataTypeReference(r) => r.uri(),
+            OntologyTypeReference::EntityTypeReference(r) => r.url(),
+            OntologyTypeReference::PropertyTypeReference(r) => r.url(),
+            OntologyTypeReference::DataTypeReference(r) => r.url(),
         }
         .to_string()
     }

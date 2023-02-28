@@ -5,13 +5,13 @@ import {
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
-  BaseUri,
+  BaseUrl,
   Entity,
   EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
@@ -43,11 +43,11 @@ export const useEntitiesTable = (
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
-        const propertyTypeBaseUri = extractBaseUri(propertyType.$id);
+        const propertyTypeBaseUrl = extractBaseUrl(propertyType.$id);
 
-        if (!propertyColumnsMap.has(propertyTypeBaseUri)) {
-          propertyColumnsMap.set(propertyTypeBaseUri, {
-            id: propertyTypeBaseUri,
+        if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
+          propertyColumnsMap.set(propertyTypeBaseUrl, {
+            id: propertyTypeBaseUrl,
             title: propertyType.title,
             width: 200,
           });
@@ -108,7 +108,7 @@ export const useEntitiesTable = (
           // additionalTypes: "",
           ...propertyColumns.reduce((fields, column) => {
             if (column.id) {
-              const propertyValue = entity.properties[column.id as BaseUri];
+              const propertyValue = entity.properties[column.id as BaseUrl];
 
               const value = Array.isArray(propertyValue)
                 ? propertyValue.join(", ")

@@ -173,14 +173,14 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(context);
 
-  const orgSizeBaseUri = orgSizePropertyType.metadata.recordId.baseUri;
+  const orgSizeBaseUrl = orgSizePropertyType.metadata.recordId.baseUrl;
 
   return propertyTypeInitializer({
     ...types.propertyType.orgProvidedInfo,
     possibleValues: [
       {
         propertyTypeObjectProperties: {
-          [orgSizeBaseUri]: {
+          [orgSizeBaseUrl]: {
             $ref: orgSizePropertyType.schema.$id,
           },
         },
@@ -607,25 +607,25 @@ const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
     await SYSTEM_TYPES_INITIALIZERS.propertyType.externalFileUrl(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
-  const objectStoreKeyBaseUri =
-    objectStoreKeyPropertyType.metadata.recordId.baseUri;
+  const objectStoreKeyBaseUrl =
+    objectStoreKeyPropertyType.metadata.recordId.baseUrl;
 
-  const externalFileUrlBaseUri =
-    externalFileUrlPropertyType.metadata.recordId.baseUri;
+  const externalFileUrlBaseUrl =
+    externalFileUrlPropertyType.metadata.recordId.baseUrl;
 
   return propertyTypeInitializer({
     ...types.propertyType.fileKey,
     possibleValues: [
       {
         propertyTypeObjectProperties: {
-          [objectStoreKeyBaseUri]: {
+          [objectStoreKeyBaseUrl]: {
             $ref: objectStoreKeyPropertyType.schema.$id,
           },
         },
       },
       {
         propertyTypeObjectProperties: {
-          [externalFileUrlBaseUri]: {
+          [externalFileUrlBaseUrl]: {
             $ref: externalFileUrlPropertyType.schema.$id,
           },
         },

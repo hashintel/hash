@@ -79,6 +79,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
     "title": "Text",
@@ -90,7 +91,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("text_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Text data type
@@ -102,7 +103,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -171,6 +172,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "title": "Text",
     "description": "An ordered sequence of characters",
@@ -193,6 +195,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
     "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
     "title": "Name",
@@ -208,7 +211,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("person_property_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Name property type
@@ -218,7 +221,7 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["versionedUri"] },
+      { "path": ["versionedUrl"] },
       { "parameter": "{{person_property_type_id}}" }
     ]
   },
@@ -283,6 +286,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
     "title": "Name",
     "oneOf": [
@@ -377,6 +381,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
     "type": "object",
@@ -386,17 +391,15 @@ Accept: application/json
         "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ],
-    "properties": {},
-    "additionalProperties": false
-  },
-  "additionalProperties": false
+    "properties": {}
+  }
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friendship_link_entity_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("friendship_link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Friendship entity type
@@ -408,7 +411,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -477,6 +480,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
     "type": "object",
@@ -485,17 +489,15 @@ Accept: application/json
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
-    },
-    "additionalProperties": false
-  },
-  "additionalProperties": false
+    }
+  }
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("person_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Person entity type
@@ -505,7 +507,7 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["versionedUri"] },
+      { "path": ["versionedUrl"] },
       { "parameter": "{{person_entity_type_id}}" }
     ]
   },
@@ -570,6 +572,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "type": "object",
     "title": "Person",
@@ -590,10 +593,8 @@ Accept: application/json
         },
         "ordered": false
       }
-    },
-    "additionalProperties": false
-  },
-  "additionalProperties": false
+    }
+  }
 }
 
 > {%
@@ -682,7 +683,7 @@ Content-Type: application/json
         "path": [
           "inheritsFrom",
           "*",
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -755,7 +756,7 @@ Content-Type: application/json
             "path": [
               "links",
               "*",
-              "baseUri"
+              "baseUrl"
             ]
           },
           {

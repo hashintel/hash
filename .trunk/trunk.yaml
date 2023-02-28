@@ -15,7 +15,6 @@ merge:
     - Linting
     - Unit tests
     - Backend integration tests
-    - Playwright tests
     - Merging enabled
 actions:
   enabled:

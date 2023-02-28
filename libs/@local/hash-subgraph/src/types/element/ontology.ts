@@ -3,21 +3,21 @@ import {
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import {
   DataType,
   EntityType,
   PropertyType,
-  validateBaseUri,
-  VersionedUri,
+  validateBaseUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 
-import { BaseUri, OwnedById, ProvenanceMetadata, Timestamp } from "../shared";
+import { BaseUrl, OwnedById, ProvenanceMetadata, Timestamp } from "../shared";
 
 /**
- * The second component of the [{@link BaseUri}, RevisionId] tuple needed to identify a specific ontology type vertex
+ * The second component of the [{@link BaseUrl}, RevisionId] tuple needed to identify a specific ontology type vertex
  * within a {@link Subgraph}. This should be the version number as a string.
  */
 export type OntologyTypeRevisionId = Brand<
@@ -26,14 +26,14 @@ export type OntologyTypeRevisionId = Brand<
 >;
 
 export type OntologyTypeRecordId = {
-  baseUri: BaseUri;
+  baseUrl: BaseUrl;
   version: number;
 };
 
-export const ontologyTypeRecordIdToVersionedUri = (
+export const ontologyTypeRecordIdToVersionedUrl = (
   ontologyTypeRecordId: OntologyTypeRecordId,
-): VersionedUri => {
-  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
+): VersionedUrl => {
+  return `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version}`;
 };
 
 export const isOntologyTypeRecordId = (
@@ -42,14 +42,14 @@ export const isOntologyTypeRecordId = (
   return (
     "baseId" in editionId &&
     typeof editionId.baseId === "string" &&
-    validateBaseUri(editionId.baseId).type !== "Err" &&
+    validateBaseUrl(editionId.baseId).type !== "Err" &&
     "version" in editionId &&
     typeof editionId.version === "number" &&
     Number.isInteger(editionId.version)
   );
 };
 
-/** @todo-0.3 - Consider redefining `EntityType` and `PropertyType` to use the branded `BaseUri`s inside them */
+/** @todo-0.3 - Consider redefining `EntityType` and `PropertyType` to use the branded `BaseUrl`s inside them */
 
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;

@@ -12,7 +12,7 @@ import {
   getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
@@ -37,12 +37,12 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
 const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const { authenticatedUser } = useAuthenticatedUser();
   const [userSubgraph, setUserSubgraph] = useState<Subgraph<EntityRootType>>();
-  const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
+  const [queryEntitiesSubgraph, setQueryEntitiesSubgraph] =
     useState<Subgraph<EntityRootType>>();
 
   const [createdEntity, setCreatedEntity] = useState<Entity>();
 
-  const { getEntity, createEntity, archiveEntity, aggregateEntities } =
+  const { getEntity, createEntity, archiveEntity, queryEntities } =
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
@@ -55,16 +55,12 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   }, [authenticatedUser, getEntity]);
 
   useEffect(() => {
-    if (!aggregateEntitiesSubgraph) {
-      void aggregateEntities({ data: {} }).then(({ data }) => {
-        setAggregateEntitiesSubgraph(data);
+    if (!queryEntitiesSubgraph) {
+      void queryEntities({ data: {} }).then(({ data }) => {
+        setQueryEntitiesSubgraph(data);
       });
     }
-  }, [
-    aggregateEntities,
-    aggregateEntitiesSubgraph,
-    setAggregateEntitiesSubgraph,
-  ]);
+  }, [queryEntities, queryEntitiesSubgraph, setQueryEntitiesSubgraph]);
 
   const entity = userSubgraph ? getRoots(userSubgraph)[0] : undefined;
 
@@ -97,11 +93,8 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   );
 
   const allEntities = useMemo(
-    () =>
-      aggregateEntitiesSubgraph
-        ? getRoots(aggregateEntitiesSubgraph)
-        : undefined,
-    [aggregateEntitiesSubgraph],
+    () => (queryEntitiesSubgraph ? getRoots(queryEntitiesSubgraph) : undefined),
+    [queryEntitiesSubgraph],
   );
 
   const handleCreateEntity = async () => {
@@ -109,7 +102,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       data: {
         entityTypeId: types.entityType.text.entityTypeId,
         properties: {
-          [extractBaseUri(types.propertyType.tokens.propertyTypeId)]: [],
+          [extractBaseUrl(types.propertyType.tokens.propertyTypeId)]: [],
         },
       },
     }).then(({ data }) => setCreatedEntity(data));
@@ -150,7 +143,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(propertyTypeDefinitions ?? {}, null, 2)}
       </pre>
-      <Typography>Aggregate Entities</Typography>
+      <Typography>Query Entities</Typography>
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(allEntities ?? {}, null, 2)}
       </pre>

@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { WhiteCard } from "@hashintel/design-system";
 import {
   ButtonBase,
@@ -18,6 +18,8 @@ import { Box, styled } from "@mui/system";
 import memoize from "lodash.memoize";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
+import { useIsReadonly } from "../../shared/read-only-context";
+
 /**
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN hash-frontend
  * @todo make this a prop / shared some other way
@@ -36,9 +38,9 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
  * the same. This is a generic sort function which maps from a react hook form
  * field array to an object preserving the original index and sorting by title
  */
-export const sortRows = <V, R extends { $id: VersionedUri }>(
+export const sortRows = <V, R extends { $id: VersionedUrl }>(
   rows: R[],
-  resolveRow: ($id: VersionedUri) => V | undefined,
+  resolveRow: ($id: VersionedUrl) => V | undefined,
   resolveTitle: (row: V) => string,
 ) =>
   rows
@@ -112,6 +114,8 @@ export const EntityTypeTableRow = forwardRef<
   const [flashed, setFlashed] = useState(false);
   const rowRef = useRef<HTMLElement>(null);
 
+  const isReadonly = useIsReadonly();
+
   const combinedRef = useForkRef(ref, rowRef);
 
   if (flashed && !flash) {
@@ -180,9 +184,11 @@ export const EntityTypeTableRow = forwardRef<
               borderBottomRightRadius: theme.borderRadii.md,
             },
           },
-          [`&:hover .${tableCellClasses.root}`]: {
-            background: theme.palette.gray[10],
-          },
+          [`&:hover .${tableCellClasses.root}`]: isReadonly
+            ? {}
+            : {
+                background: theme.palette.gray[10],
+              },
         }),
         flash &&
           ((theme) => ({

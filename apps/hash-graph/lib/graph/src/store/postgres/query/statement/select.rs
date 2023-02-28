@@ -135,7 +135,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
         compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+            Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             )))),
@@ -158,7 +158,7 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 )))),
@@ -177,7 +177,7 @@ mod tests {
             FROM "data_types" AS "data_types_0_0_0"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
               ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-            WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+            WHERE ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
             "#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
@@ -201,7 +201,7 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_uri") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
+            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
             SELECT *
             FROM "data_types" AS "data_types_0_0_0"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
@@ -227,7 +227,7 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_uri") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
+            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
             SELECT *
             FROM "data_types" AS "data_types_0_0_0"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
@@ -270,7 +270,7 @@ mod tests {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                    DataTypeQueryPath::BaseUri,
+                    DataTypeQueryPath::BaseUrl,
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
@@ -299,7 +299,7 @@ mod tests {
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_1_3_0"
               ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
-              AND ("ontology_id_with_metadata_1_3_0"."base_uri" = $2) AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
+              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2) AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
             "#,
             &[
                 &"Text",
@@ -415,7 +415,7 @@ mod tests {
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::InheritsFrom(
-                Box::new(EntityTypeQueryPath::BaseUri),
+                Box::new(EntityTypeQueryPath::BaseUrl),
             ))),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
@@ -435,7 +435,7 @@ mod tests {
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
               ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
             WHERE jsonb_contains("entity_types_0_0_0"."schema"->'allOf', jsonb_build_array(jsonb_build_object('$ref', "entity_types_0_2_0"."schema"->>'$id'))) IS NOT NULL
-              AND "ontology_id_with_metadata_0_3_0"."base_uri" = $1
+              AND "ontology_id_with_metadata_0_3_0"."base_url" = $1
             "#,
             &[&"https://blockprotocol.org/@blockprotocol/types/entity-type/link/"],
         );
@@ -729,7 +729,7 @@ mod tests {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUri)),
+                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl)),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/address",
@@ -737,7 +737,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUri)),
+                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl)),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/name",
@@ -758,8 +758,8 @@ mod tests {
              WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
                AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
                AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
-               AND ("ontology_id_with_metadata_0_3_0"."base_uri" = $3)
-               AND ("ontology_id_with_metadata_0_3_1"."base_uri" = $4)
+               AND ("ontology_id_with_metadata_0_3_0"."base_url" = $3)
+               AND ("ontology_id_with_metadata_0_3_1"."base_url" = $4)
             "#,
             &[
                 &pinned_timestamp,
@@ -771,7 +771,7 @@ mod tests {
     }
 
     mod predefined {
-        use type_system::uri::{BaseUri, VersionedUri};
+        use type_system::url::{BaseUrl, VersionedUrl};
 
         use super::*;
         use crate::{
@@ -784,12 +784,12 @@ mod tests {
         };
 
         #[test]
-        fn for_versioned_uri() {
-            let uri = VersionedUri {
-                base_uri: BaseUri::new(
+        fn for_versioned_url() {
+            let url = VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
-                .expect("invalid base uri"),
+                .expect("invalid base url"),
                 version: 1,
             };
 
@@ -797,7 +797,7 @@ mod tests {
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_versioned_uri(&uri);
+            let filter = Filter::for_versioned_url(&url);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -807,22 +807,22 @@ mod tests {
                 FROM "data_types" AS "data_types_0_0_0"
                 INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-                WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                WHERE ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
                 &[
-                    &uri.base_uri.as_str(),
-                    &OntologyTypeVersion::new(uri.version),
+                    &url.base_url.as_str(),
+                    &OntologyTypeVersion::new(url.version),
                 ],
             );
         }
 
         #[test]
         fn for_ontology_type_record_id() {
-            let uri = OntologyTypeVertexId {
-                base_id: BaseUri::new(
+            let url = OntologyTypeVertexId {
+                base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
-                .expect("invalid base uri"),
+                .expect("invalid base url"),
                 revision_id: OntologyTypeVersion::new(1),
             };
 
@@ -830,7 +830,7 @@ mod tests {
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_ontology_type_vertex_id(&uri);
+            let filter = Filter::for_ontology_type_vertex_id(&url);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -840,9 +840,9 @@ mod tests {
                 FROM "data_types" AS "data_types_0_0_0"
                 INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-                WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                WHERE ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
-                &[&uri.base_id.as_str(), &uri.revision_id],
+                &[&url.base_id.as_str(), &url.revision_id],
             );
         }
 

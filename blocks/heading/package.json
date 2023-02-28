@@ -1,12 +1,12 @@
 {
-  "name": "@blocks/header",
+  "name": "@blocks/heading",
   "version": "0.2.1",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
-    "directory": "blocks/header"
+    "directory": "blocks/heading"
   },
   "license": "MIT",
   "author": "HASH",

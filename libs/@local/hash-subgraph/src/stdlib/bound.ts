@@ -1,4 +1,4 @@
-import { compareBounds as compareBoundsBp } from "@blockprotocol/graph/stdlib";
+import { compareBounds as compareBoundsBp } from "@blockprotocol/graph/temporal/stdlib";
 
 import { TemporalBound, TimeInterval } from "../main";
 

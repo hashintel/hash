@@ -29,17 +29,17 @@ Read more about Entities, Entity Types and embedding applications in the Block P
 
 The Block Protocol defines a communication standard which allows blocks to create, read, update, and delete data. With this use case, we will end up with a block which can be used to explore the structured data in an embedding application.
 
-The is possible because of the Block Protocol [Graph Service](https://blockprotocol.org/docs/spec/graph-service-specification). This service allows querying against Entities, Entity Types, and Links. For example, we can request to fetch all Entity Types from the Embedding Application and use those for the row dropdowns shown above. Once an Entity Type has been selected, all relevant Entities of that type can be requested, loaded, and made available for cell expressions.
+The is possible because of the Block Protocol [Graph module](https://blockprotocol.org/docs/spec/graph-module). This module allows querying against Entities, Entity Types, and Links. For example, we can request to fetch all Entity Types from the Embedding Application and use those for the row dropdowns shown above. Once an Entity Type has been selected, all relevant Entities of that type can be requested, loaded, and made available for cell expressions.
 
 To implement the Block Protocol in a language other than JavaScript or TypeScript:
 
 1.  translate the types in the Block Protocol Core specification to types your chosen language (F# in this case)
-1.  translate any types from services that the block requires e.g. types for requests and responses in the Graph Service
+1.  translate any types from modules that the block requires e.g. types for requests and responses in the Graph module
 1.  Implement the Block Protocol's message handling
 
     - the implementation details can be hidden behind easy-to-use abstractions
 
-1.  send the messages your block needs to update or retrieve data, as specified in the Graph Service specification
+1.  send the messages your block needs to update or retrieve data, as specified in the [Graph module specification](https://blockprotocol.org/docs/spec/graph-module)
 
 ### Block Protocol Core types
 
@@ -62,7 +62,7 @@ type BlockProtocolMessage<'payload> =
     { requestId: string
       messageName: string
       respondedToBy: string option
-      service: string
+      module: string
       source: BlockProtocolSource
       data: 'payload option
       errors: (MessageError []) option }
@@ -78,7 +78,7 @@ let BlockProtocolInitMessage () =
     { requestId = Guid.NewGuid().ToString()
       messageName = "init"
       respondedToBy = Some "initResponse"
-      service = "core"
+      module = "core"
       source = BlockProtocolSource.Block
       data = Some(createObj []) // just an empty JS object: {}
       errors = None }
@@ -86,11 +86,11 @@ let BlockProtocolInitMessage () =
 
 There's not much to this message, for now it's mostly a declaration of existence the block makes to the embedding application. The message does, however, expect a response: the `initResponse` message.
 
-In order to properly explain the response to this initial message, it's helpful to look at how the Graph Service [specification](https://blockprotocol.org/docs/spec/graph-service-specification) can be typed.
+In order to properly explain the response to this initial message, it's helpful to look at how the [Graph module specification](https://blockprotocol.org/docs/spec/graph-module) can be typed.
 
-### Block Protocol Graph Service types
+### Block Protocol Graph module types
 
-The Graph Service supplies an interface for managing Entities, Entity Types, and Links. Entity Types are _domain types_ defined in embedding applications, and Entities are instances of these.
+The Graph module supplies an interface for managing Entities, Entity Types, and Links. Entity Types are _domain types_ defined in embedding applications, and Entities are instances of these.
 
 ```fsharp
 // Graph
@@ -110,9 +110,9 @@ type BlockProtocolCorePayload<'a> = { graph: BlockEntity<'a> }
 
 When a block announces itself through an `init` request to the embedding application, an `initResponse` will be returned to the block with the shape `BlockProtocolMessage<Entity<'s>>`.
 
-These basic types define the shape of data going to and from the embedding application. However, the Graph Service also defines a large set of messages that a block can make use of. We don't necessarily have to implement all messages to make use of the Block Protocol—only the requests and the accompanying responses we are interested in.
+These basic types define the shape of data going to and from the embedding application. However, the Graph module also defines a large set of messages that a block can make use of. We don't necessarily have to implement all messages to make use of the Block Protocol—only the requests and the accompanying responses we are interested in.
 
-For the calculation block in particular, the `updateEntity`, `aggregateEntityTypes`, and `aggregateEntities` Graph Service messages are most important. These provide a way for the block to persists its internal state and fetch Entities and Entity Types from the embedding application. From the specification, these messages' types can be constructed as follows:
+For the calculation block in particular, the `updateEntity`, `aggregateEntityTypes`, and `aggregateEntities` Graph module messages are most important. These provide a way for the block to persists its internal state and fetch Entities and Entity Types from the embedding application. From the specification, these messages' types can be constructed as follows:
 
 ```fsharp
 type UpdateEntity<'props> =
@@ -137,14 +137,14 @@ type AggregateEntitiesResponse<'props> =
       operation: AggregateResult }
 ```
 
-These types are all valid message structures for communicating with the Graph Service in the embedding application.
+These types are all valid message structures for communicating with the Graph module in the embedding application.
 We can for example construct an `AggregateEntityTypes` request through a `BlockProtocolMessage<'a>` and get the following record:
 
 ```fsharp
 { requestId = "86179f1e-c538-4d8b-b0c0-2c7d9cfc63a0"
   messageName = "aggregateEntityTypes"
   respondedToBy = Some "aggregateEntityTypesResponse"
-  service = "graph"
+  module = "graph"
   source = Block
   data = Some { operation =
                     { entityTypeId = None
@@ -265,7 +265,7 @@ type BlockProtocolState =
 For example, calling `aggregateEntityTypes` would create a new promise and add it to the settler map, then the listener would eventually receive a response if all goes well and resolve the unresolved promise.
 This promise will be coerced into the type of the return value `AggregateEntityTypesResponse<unit>` once the promise is resolved.
 
-Now it's just a matter of creating our block and using the Block Protocol Graph Service as a data provider.
+Now it's just a matter of creating our block and using the Block Protocol Graph module as a data provider.
 
 ## Calculation block
 
@@ -319,7 +319,7 @@ type Event =
 
 The above type describes everything that can happen within our block and can be thought of as the only set of operations that can trigger the application state to change. Side effects can only happen when processing one of these events. In reality, side effects are delegated to the MVU runtime which will process them appropriately and dispatch more Events based on the outcome. _(Note, this is not entirely true as the UI itself is effectful, but for the purpose of this blog post it doesn't matter_).
 
-The `SaveState`, `DispatchLoadEntityTypes`, and `LoadRowEntities` variants are the only effectful messages that the application can dispatch and these make use of the `updateEntities`, `aggregateEntityTypes`, and `aggregateEntities` Block Protocol Graph Service requests. There's also the `init` message, defined in the Core Specification, which is used for the initial load and to load any saved state from previous sessions.
+The `SaveState`, `DispatchLoadEntityTypes`, and `LoadRowEntities` variants are the only effectful messages that the application can dispatch and these make use of the `updateEntities`, `aggregateEntityTypes`, and `aggregateEntities` Block Protocol Graph module requests. There's also the `init` message, defined in the Core Specification, which is used for the initial load and to load any saved state from previous sessions.
 
 The editor state holds all the data needed to draw the view, and is defined as follows:
 

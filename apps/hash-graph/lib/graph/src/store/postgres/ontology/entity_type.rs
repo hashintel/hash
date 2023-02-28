@@ -60,25 +60,25 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Collecting references before traversing further to avoid having a shared
             // reference to the subgraph when borrowing it mutably
-            let property_type_ref_uris =
+            let property_type_ref_urls =
                 (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
                     entity_type
                         .inner()
                         .property_type_references()
                         .into_iter()
-                        .map(PropertyTypeReference::uri)
+                        .map(PropertyTypeReference::url)
                         .cloned()
                         .collect::<Vec<_>>()
                 });
 
-            let inherits_from_type_ref_uris = (current_resolve_depths.inherits_from.outgoing > 0)
+            let inherits_from_type_ref_urls = (current_resolve_depths.inherits_from.outgoing > 0)
                 .then(|| {
                     entity_type
                         .inner()
                         .inherits_from()
                         .all_of()
                         .iter()
-                        .map(EntityTypeReference::uri)
+                        .map(EntityTypeReference::url)
                         .cloned()
                         .collect::<Vec<_>>()
                 });
@@ -95,11 +95,11 @@ impl<C: AsClient> PostgresStore<C> {
                     .into_iter()
                     .map(|(entity_type_ref, destinations)| {
                         (
-                            entity_type_ref.uri().clone(),
+                            entity_type_ref.url().clone(),
                             destinations
                                 .into_iter()
                                 .flatten()
-                                .map(EntityTypeReference::uri)
+                                .map(EntityTypeReference::url)
                                 .cloned()
                                 .collect::<Vec<_>>(),
                         )
@@ -107,9 +107,9 @@ impl<C: AsClient> PostgresStore<C> {
                     .collect::<Vec<_>>()
             });
 
-            if let Some(property_type_ref_uris) = property_type_ref_uris {
-                for property_type_ref_uri in property_type_ref_uris {
-                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_uri);
+            if let Some(property_type_ref_urls) = property_type_ref_urls {
+                for property_type_ref_url in property_type_ref_urls {
+                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_url);
 
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: entity_type_id.clone(),
@@ -138,10 +138,10 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             }
 
-            if let Some(inherits_from_type_ref_uris) = inherits_from_type_ref_uris {
-                for inherits_from_type_ref_uri in inherits_from_type_ref_uris {
+            if let Some(inherits_from_type_ref_urls) = inherits_from_type_ref_urls {
+                for inherits_from_type_ref_url in inherits_from_type_ref_urls {
                     let inherits_from_type_vertex_id =
-                        OntologyTypeVertexId::from(inherits_from_type_ref_uri);
+                        OntologyTypeVertexId::from(inherits_from_type_ref_url);
 
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: entity_type_id.clone(),
@@ -170,9 +170,9 @@ impl<C: AsClient> PostgresStore<C> {
             }
 
             if let Some(link_mappings) = link_mappings {
-                for (link_type_uri, destination_type_uris) in link_mappings {
+                for (link_type_url, destination_type_urls) in link_mappings {
                     if current_resolve_depths.constrains_links_on.outgoing > 0 {
-                        let link_type_vertex_id = OntologyTypeVertexId::from(link_type_uri);
+                        let link_type_vertex_id = OntologyTypeVertexId::from(link_type_url);
 
                         subgraph.edges.insert(Edge::Ontology {
                             vertex_id: entity_type_id.clone(),
@@ -204,9 +204,9 @@ impl<C: AsClient> PostgresStore<C> {
                             .outgoing
                             > 0
                         {
-                            for destination_type_uri in destination_type_uris {
+                            for destination_type_url in destination_type_urls {
                                 let destination_type_vertex_id =
-                                    OntologyTypeVertexId::from(destination_type_uri);
+                                    OntologyTypeVertexId::from(destination_type_url);
 
                                 subgraph.edges.insert(Edge::Ontology {
                                     vertex_id: entity_type_id.clone(),

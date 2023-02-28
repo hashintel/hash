@@ -1,7 +1,7 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
 use serde::Serialize;
-use type_system::uri::BaseUri;
+use type_system::url::BaseUrl;
 use utoipa::{
     openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
@@ -21,7 +21,7 @@ pub mod vertex;
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct OntologyVertices(pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
+pub struct OntologyVertices(pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]

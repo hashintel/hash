@@ -1,4 +1,4 @@
-import { extractVersion } from "@blockprotocol/type-system";
+import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -23,23 +23,25 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
+import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
-import { EditBarTypeEditor } from "./[entity-type-id].page/edit-bar-type-editor";
-import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
-import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
-import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
-import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
-import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
-import { LatestPropertyTypesContextProvider } from "./[entity-type-id].page/shared/latest-property-types-context";
-import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
-import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
-import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
+import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
+import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
+import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
+import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
+import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
+import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
+import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
+import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].page/shared/latest-property-types-context";
+import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
+import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
+import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -48,27 +50,42 @@ const Page: NextPageWithLayout = () => {
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
-  const entityTypeId = router.query["entity-type-id"] as string;
-  const baseEntityTypeUri = !isDraft
-    ? getEntityTypeBaseUri(entityTypeId, router.query.shortname as string)
+  const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
+    string,
+    "v" | undefined,
+    `${number}` | undefined,
+  ]; // @todo validate that the URL is formatted as expected;
+
+  const baseEntityTypeUrl = !isDraft
+    ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
     : null;
 
   const entityTypeEntitiesValue =
-    useEntityTypeEntitiesContextValue(baseEntityTypeUri);
+    useEntityTypeEntitiesContextValue(baseEntityTypeUrl);
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
-      // @todo use validation when validateEntityType doesn't return undefined
-      return JSON.parse(
+      const entityType = JSON.parse(
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
           "base64",
         ).toString("ascii"),
-      ) as EntityType;
+      );
+
+      const validationResult = validateEntityType(entityType);
+      if (validationResult.type === "Ok") {
+        return entityType as EntityType;
+      } else {
+        throw Error(
+          `Invalid draft entity type: ${JSON.stringify(validationResult)}`,
+        );
+      }
     } else {
       return null;
     }
   }, [router.query.draft]);
+
+  const isReadonly = useIsReadonlyModeForResource(routeNamespace?.accountId);
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { properties: [], links: [] },
@@ -82,9 +99,29 @@ const Page: NextPageWithLayout = () => {
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
-    baseEntityTypeUri,
+    baseEntityTypeUrl,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
+      if (
+        requestedVersion &&
+        parseInt(requestedVersion, 10) !== extractVersion(fetchedEntityType.$id)
+      ) {
+        /**
+         * @todo instead of redirecting to the latest version, handle loading earlier versions
+         *   - load requested version instead of always latest
+         *   - if a later version is available, provide an indicator + link to it
+         *   - put the form in readonly mode if not on the latest version
+         *   - check handling of external types
+         */
+        if (isHrefExternal(fetchedEntityType.$id)) {
+          // In the current routing this should never be the case, but this is a marker to handle it when external types exist
+          window.open(fetchedEntityType.$id);
+        } else {
+          void router.replace(fetchedEntityType.$id);
+        }
+      }
+
+      // Load the initial form data after the entity type has been fetched
       reset(getFormDataFromSchema(fetchedEntityType));
     },
   );
@@ -182,21 +219,23 @@ const Page: NextPageWithLayout = () => {
                   sx={{ bgcolor: "white" }}
                 />
 
-                <EditBarTypeEditor
-                  currentVersion={currentVersion}
-                  discardButtonProps={
-                    // @todo confirmation of discard when draft
-                    isDraft
-                      ? {
-                          href: `/new/types/entity-type`,
-                        }
-                      : {
-                          onClick() {
-                            reset();
-                          },
-                        }
-                  }
-                />
+                {!isReadonly && (
+                  <EditBarTypeEditor
+                    currentVersion={currentVersion}
+                    discardButtonProps={
+                      // @todo confirmation of discard when draft
+                      isDraft
+                        ? {
+                            href: `/new/types/entity-type`,
+                          }
+                        : {
+                            onClick() {
+                              reset();
+                            },
+                          }
+                    }
+                  />
+                )}
 
                 <Box
                   sx={{
@@ -230,7 +269,13 @@ const Page: NextPageWithLayout = () => {
                             fontWeight="bold"
                             color={(theme) => theme.palette.blue[70]}
                           >
-                            {entityTypeId}
+                            {slug}
+                          </Typography>
+                          <Typography
+                            component="span"
+                            color={(theme) => theme.palette.blue[70]}
+                          >
+                            /v/{currentVersion}
                           </Typography>
                         </>
                       }
@@ -261,6 +306,7 @@ const Page: NextPageWithLayout = () => {
                             entityTypeAndPropertyTypes
                           }
                           ownedById={routeNamespace.accountId as OwnedById}
+                          readonly={isReadonly}
                         />
                       ) : (
                         "Loading..."

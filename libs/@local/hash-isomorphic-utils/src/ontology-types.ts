@@ -1,20 +1,20 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
-import { BaseUri } from "@local/hash-subgraph";
+import { BaseUrl } from "@local/hash-subgraph";
 
 import { frontendUrl } from "./environment";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
 /**
- * Generate the base identifier of a type (its un-versioned URI).
+ * Generate the base identifier of a type (its un-versioned URL).
  *
  * @param [domain] - the domain of the type, defaults the frontend url.
  * @param namespace - the namespace of the type.
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
- * @param [slugOverride] - optional override for the slug used at the end of the URI
+ * @param [slugOverride] - optional override for the slug used at the end of the URL
  */
 export const generateBaseTypeId = ({
   domain,
@@ -28,19 +28,19 @@ export const generateBaseTypeId = ({
   kind: SchemaKind;
   title: string;
   slugOverride?: string;
-}): BaseUri =>
+}): BaseUrl =>
   `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${
     slugOverride ?? slugifyTypeTitle(title)
-  }/` as const as BaseUri;
+  }/` as const as BaseUrl;
 
 /**
- * Generate the identifier of a type (its versioned URI).
+ * Generate the identifier of a type (its versioned URL).
  *
  * @param domain (optional) - the domain of the type, defaults the frontend url.
  * @param namespace - the namespace of the type.
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
- * @param [slugOverride] - optional override for the slug used at the end of the URI
+ * @param [slugOverride] - optional override for the slug used at the end of the URL
  */
 export const generateTypeId = ({
   domain,
@@ -54,8 +54,8 @@ export const generateTypeId = ({
   kind: SchemaKind;
   title: string;
   slugOverride?: string;
-}): VersionedUri => {
-  // We purposefully don't use `versionedUriFromComponents` here as we want to limit the amount of functional code
+}): VersionedUrl => {
+  // We purposefully don't use `versionedUrlFromComponents` here as we want to limit the amount of functional code
   // we're calling when this package is imported (this happens every time on import, not as the result of a call).
   // We should be able to trust ourselves to create valid types here "statically", without needing to call the type
   // system to validate them.
@@ -65,11 +65,11 @@ export const generateTypeId = ({
     kind,
     title,
     slugOverride,
-  })}v/1` as VersionedUri;
+  })}v/1` as VersionedUrl;
 };
 
 /**
- * Generate the identifier of a system type (its versioned URI).
+ * Generate the identifier of a system type (its versioned URL).
  *
  * @param args.kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param args.title - the title of the type.
@@ -80,7 +80,7 @@ export const generateSystemTypeId = (args: {
 }) => generateTypeId({ namespace: systemUserShortname, ...args });
 
 /**
- * Generate the identifier of a block protocol type (its versioned URI).
+ * Generate the identifier of a block protocol type (its versioned URL).
  *
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
@@ -338,14 +338,14 @@ type TypeDefinition = {
   description?: string;
 };
 
-type EntityTypeDefinition = TypeDefinition & { entityTypeId: VersionedUri };
+type EntityTypeDefinition = TypeDefinition & { entityTypeId: VersionedUrl };
 
-type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUri };
+type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUrl };
 
-type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
+type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUrl };
 
 type LinkEntityTypeDefinition = TypeDefinition & {
-  linkEntityTypeId: VersionedUri;
+  linkEntityTypeId: VersionedUrl;
 };
 
 type TypeDefinitions = {

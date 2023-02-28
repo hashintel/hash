@@ -516,7 +516,7 @@ impl Modify for OntologyTypeSchemaAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
-                "BaseUri".to_owned(),
+                "BaseUrl".to_owned(),
                 ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }

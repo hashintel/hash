@@ -50,7 +50,7 @@ use graph::{
 };
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{repr, uri::VersionedUri, DataType, EntityType, PropertyType};
+use type_system::{repr, url::VersionedUrl, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -220,12 +220,12 @@ impl DatabaseApi<'_> {
 
     pub async fn get_data_type(
         &mut self,
-        uri: &VersionedUri,
+        url: &VersionedUrl,
     ) -> Result<DataTypeWithMetadata, QueryError> {
         Ok(self
             .store
             .get_data_type(&StructuralQuery {
-                filter: Filter::for_versioned_uri(uri),
+                filter: Filter::for_versioned_url(url),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -238,7 +238,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeVertexId::from(uri.clone()))
+            .remove(&OntologyTypeVertexId::from(url.clone()))
             .expect("no data type found"))
     }
 
@@ -270,12 +270,12 @@ impl DatabaseApi<'_> {
 
     pub async fn get_property_type(
         &mut self,
-        uri: &VersionedUri,
+        url: &VersionedUrl,
     ) -> Result<PropertyTypeWithMetadata, QueryError> {
         Ok(self
             .store
             .get_property_type(&StructuralQuery {
-                filter: Filter::for_versioned_uri(uri),
+                filter: Filter::for_versioned_url(url),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -288,7 +288,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeVertexId::from(uri.clone()))
+            .remove(&OntologyTypeVertexId::from(url.clone()))
             .expect("no property type found"))
     }
 
@@ -320,12 +320,12 @@ impl DatabaseApi<'_> {
 
     pub async fn get_entity_type(
         &mut self,
-        uri: &VersionedUri,
+        url: &VersionedUrl,
     ) -> Result<EntityTypeWithMetadata, QueryError> {
         Ok(self
             .store
             .get_entity_type(&StructuralQuery {
-                filter: Filter::for_versioned_uri(uri),
+                filter: Filter::for_versioned_url(url),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -338,7 +338,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeVertexId::from(uri.clone()))
+            .remove(&OntologyTypeVertexId::from(url.clone()))
             .expect("no entity type found"))
     }
 
@@ -354,7 +354,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity(
         &mut self,
         properties: EntityProperties,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         entity_uuid: Option<EntityUuid>,
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
@@ -443,7 +443,7 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_id: EntityId,
         properties: EntityProperties,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
@@ -462,7 +462,7 @@ impl DatabaseApi<'_> {
     async fn create_link_entity(
         &mut self,
         properties: EntityProperties,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
         right_entity_id: EntityId,
@@ -491,7 +491,7 @@ impl DatabaseApi<'_> {
     pub async fn get_link_entity_target(
         &self,
         source_entity_id: EntityId,
-        link_type_id: VersionedUri,
+        link_type_id: VersionedUrl,
     ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -512,10 +512,10 @@ impl DatabaseApi<'_> {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Type(
-                    EntityTypeQueryPath::BaseUri,
+                    EntityTypeQueryPath::BaseUrl,
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    link_type_id.base_uri.as_str(),
+                    link_type_id.base_url.as_str(),
                 )))),
             ),
             Filter::Equal(
@@ -615,7 +615,7 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_id: EntityId,
         properties: EntityProperties,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store

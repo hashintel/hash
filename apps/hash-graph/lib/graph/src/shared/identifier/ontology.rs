@@ -7,7 +7,7 @@ use std::{
 
 use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
 use crate::{
@@ -59,30 +59,30 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {
     #[schema(value_type = String)]
-    pub base_uri: BaseUri,
+    pub base_url: BaseUrl,
     #[schema(value_type = u32)]
     pub version: OntologyTypeVersion,
 }
 
 impl Display for OntologyTypeRecordId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}v/{}", self.base_uri.as_str(), self.version.inner())
+        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version.inner())
     }
 }
 
-impl From<VersionedUri> for OntologyTypeRecordId {
-    fn from(versioned_uri: VersionedUri) -> Self {
+impl From<VersionedUrl> for OntologyTypeRecordId {
+    fn from(versioned_url: VersionedUrl) -> Self {
         Self {
-            base_uri: versioned_uri.base_uri,
-            version: OntologyTypeVersion::new(versioned_uri.version),
+            base_url: versioned_url.base_url,
+            version: OntologyTypeVersion::new(versioned_url.version),
         }
     }
 }
 
-impl From<OntologyTypeRecordId> for VersionedUri {
+impl From<OntologyTypeRecordId> for VersionedUrl {
     fn from(record_id: OntologyTypeRecordId) -> Self {
         Self {
-            base_uri: record_id.base_uri,
+            base_url: record_id.base_url,
             version: record_id.version.inner(),
         }
     }
