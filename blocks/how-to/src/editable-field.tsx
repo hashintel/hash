@@ -4,7 +4,6 @@ import {
   Box,
   Fade,
   IconButton,
-  InputAdornment,
   inputBaseClasses,
   SxProps,
   TextField,
