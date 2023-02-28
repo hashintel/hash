@@ -89,6 +89,7 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
+  const [introAnimatingIn, setIntroAnimatingIn] = useState(false);
   const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
   const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
@@ -137,8 +138,14 @@ export const App: BlockComponent<RootEntity> = ({
     [graphModule],
   );
 
-  const createIntroduction = async () =>
+  const createIntroduction = async () => {
+    setIntroAnimatingIn(true);
     await createStepEntity(introductionLinkType);
+
+    setTimeout(() => {
+      setIntroAnimatingIn(false);
+    }, 300);
+  };
 
   const updateIntroductionField = async (
     value: string | boolean,
@@ -156,21 +163,17 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const removeIntroduction = () => {
+  const removeIntroduction = async () => {
     setIntroAnimatingOut(true);
+
+    await graphModule?.deleteEntity({
+      data: {
+        entityId: introLinkEntity.metadata.recordId.entityId,
+      },
+    });
 
     setTimeout(async () => {
       setIntroAnimatingOut(false);
-
-      await graphModule
-        ?.deleteEntity({
-          data: {
-            entityId: introLinkEntity.metadata.recordId.entityId,
-          },
-        })
-        .then((res) => {
-          console.log(res);
-        });
     }, 300);
   };
 
@@ -358,7 +361,7 @@ export const App: BlockComponent<RootEntity> = ({
 
             {introEntity || !readonly ? (
               <Box>
-                <Collapse in={!readonly && !introEntity}>
+                <Collapse in={!readonly && !introEntity && !introAnimatingOut}>
                   <Button
                     variant="tertiary"
                     size="small"
@@ -373,21 +376,16 @@ export const App: BlockComponent<RootEntity> = ({
                   </Button>
                 </Collapse>
 
-                <Collapse
-                  in={introEntity !== null && !introAnimatingOut}
-                  appear
-                >
-                  {introEntity ? (
-                    <Step
-                      header="Introduction"
-                      title={introEntity.properties[titleKey]}
-                      description={introEntity.properties[descriptionKey]}
-                      updateField={updateIntroductionField}
-                      onRemove={() => removeIntroduction()}
-                      readonly={readonly}
-                      deleteButtonText="Remove intro"
-                    />
-                  ) : null}
+                <Collapse in={!!introEntity && !introAnimatingIn} appear>
+                  <Step
+                    header="Introduction"
+                    title={introEntity?.properties[titleKey] ?? ""}
+                    description={introEntity?.properties[descriptionKey] ?? ""}
+                    updateField={updateIntroductionField}
+                    onRemove={() => removeIntroduction()}
+                    readonly={readonly}
+                    deleteButtonText="Remove intro"
+                  />
                 </Collapse>
               </Box>
             ) : null}
