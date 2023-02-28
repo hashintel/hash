@@ -51,8 +51,8 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "color": "black",
-        "height": "2px"
+        "https://blockprotocol.org/@nate/types/property-type/color/": "black",
+        "https://blockprotocol.org/@nate/types/property-type/height/": "2px"
       }
     ],
     "protocol": "0.3",

@@ -49,7 +49,7 @@
     "displayName": "Timer",
     "examples": [
       {
-        "initialDuration": "PT5M"
+        "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/initial-duration/": "PT5M"
       }
     ],
     "icon": "public/timer.svg",

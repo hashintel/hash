@@ -61,18 +61,18 @@
     "displayName": "shuffle",
     "examples": [
       {
-        "items": [
+        "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/": [
           {
-            "id": "1",
-            "value": "Alice"
+            "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": "1",
+            "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "Alice"
           },
           {
-            "id": "2",
-            "value": "Bob"
+            "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": "2",
+            "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "Bob"
           },
           {
-            "id": "3",
-            "value": "Charlie"
+            "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": "3",
+            "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "Charlie"
           }
         ]
       }

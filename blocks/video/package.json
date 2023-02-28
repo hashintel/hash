@@ -51,8 +51,8 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "initialCaption": "A blooming flower",
-        "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
+        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/": "A blooming flower",
+        "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/url/": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
       }
     ],
     "protocol": "0.3",

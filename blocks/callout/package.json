@@ -51,8 +51,8 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "icon": "📢",
-        "text": "Hello World!"
+        "https://blockprotocol.org/@nate/types/property-type/emoji/": "📢",
+        "https://blockprotocol.org/@nate/types/property-type/text/": "Hello World!"
       }
     ],
     "protocol": "0.3",

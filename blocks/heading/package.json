@@ -51,9 +51,9 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "text": "Hello World!",
-        "level": 2,
-        "color": "black"
+        "https://blockprotocol.org/@nate/types/property-type/text/": "Hello World!",
+        "https://blockprotocol.org/@nate/types/property-type/level/": 2,
+        "https://blockprotocol.org/@nate/types/property-type/color/": "black"
       }
     ],
     "protocol": "0.3",

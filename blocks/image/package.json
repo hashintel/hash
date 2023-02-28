@@ -52,8 +52,8 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "initialCaption": "Image of a Dog",
-        "url": "https://placedog.net/450/300"
+        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/": "Image of a Dog",
+        "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/url/": "https://placedog.net/450/300"
       }
     ],
     "protocol": "0.3",
