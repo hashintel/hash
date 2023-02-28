@@ -81,7 +81,7 @@ export const EditableField = ({
           }}
           onKeyDown={({ code }) => {
             if (code === "Enter") {
-              setEditing(false);
+              inputRef.current?.blur();
             }
           }}
           onClick={() => {
