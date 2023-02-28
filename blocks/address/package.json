@@ -52,12 +52,7 @@
       "entryPoint": "react"
     },
     "displayName": "Address",
-    "examples": [
-      {
-        "title": "Empire State Building",
-        "description": "A skyscraper in Midtown Manhattan, New York City"
-      }
-    ],
+    "examples": [],
     "icon": "public/address.svg",
     "image": "public/block-preview.png",
     "name": "@hash/address",
