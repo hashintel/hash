@@ -131,7 +131,6 @@ export const useMapbox = (
             },
           })
           .then((res) => {
-            console.log(res);
             if (res.data) {
               let blob = new Blob([toArrayBuffer(res.data.data)], {
                 type: "arraybuffer",
