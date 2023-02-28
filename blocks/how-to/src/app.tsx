@@ -399,7 +399,7 @@ export const App: BlockComponent<RootEntity> = ({
                 >
                   <Box
                     sx={{
-                      mt: index === 0 ? 0 : 3,
+                      mb: index === stepEntities.length - 1 ? 0 : 3,
                       transition: ({ transitions }) =>
                         transitions.create("margin-top"),
                     }}
@@ -422,7 +422,7 @@ export const App: BlockComponent<RootEntity> = ({
             </Box>
 
             {!readonly ? (
-              <Box mt={3}>
+              <Box>
                 <Button
                   variant="tertiary"
                   size="small"
