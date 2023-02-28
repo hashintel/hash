@@ -420,7 +420,7 @@ export const App: BlockComponent<RootEntity> = ({
                     sx={{
                       mb: index === stepEntities.length - 1 ? 0 : 3,
                       transition: ({ transitions }) =>
-                        transitions.create("margin-top"),
+                        transitions.create("margin-bottom"),
                     }}
                   >
                     <Step
