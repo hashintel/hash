@@ -187,7 +187,7 @@ export const Media: FunctionComponent<
   const propertiesRef = useRef(properties);
 
   useLayoutEffect(() => {
-    propertiesRef.current = propertiesRef;
+    propertiesRef.current = properties;
   });
 
   const updateData = useCallback(
