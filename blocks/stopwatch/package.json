@@ -15,17 +15,18 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "serve": "block-scripts serve"
+    "serve": "block-scripts serve",
+    "schema": "block-scripts codegen"
   },
   "dependencies": {
-    "blockprotocol": "0.0.12"
+    "@blockprotocol/graph": "0.1.0-canary-20230228103144"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.0-canary-20230228103144",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.10",
+    "mock-block-dock": "0.1.0-canary-20230228103144",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -39,12 +40,17 @@
     "servePort": 63214
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "name": "@hash/stopwatch",
     "displayName": "Stopwatch",
     "examples": [
       {}
     ],
     "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+    "image": "public/block-preview.svg",
+    "protocol": "0.3",
+    "schema": "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/stopwatch-block/v/3"
   }
 }
