@@ -118,8 +118,7 @@ export const App: BlockComponent<RootEntity> = ({
   const addressLinkedEntity = useMemo(
     () =>
       linkedEntities.find(
-        ({ linkEntity }) =>
-          linkEntity.metadata.entityTypeId === hasAddressMapLink,
+        ({ linkEntity }) => linkEntity.metadata.entityTypeId === hasAddressLink,
       ),
     [linkedEntities],
   );
@@ -334,7 +333,7 @@ export const App: BlockComponent<RootEntity> = ({
       if (!addressLinkEntity) {
         await graphModule?.createEntity({
           data: {
-            entityTypeId: hasAddressMapLink,
+            entityTypeId: hasAddressLink,
             properties: {},
             linkData: {
               leftEntityId: entityId,
