@@ -24,7 +24,6 @@ import { Step } from "./step";
 import { HowToStep, IntroductionLink, RootEntity } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { RichTextEditableField } from "./rich-text-editable-field";
 
 export const titleKey =
   "http://localhost:3000/@lbett/types/property-type/title/";
@@ -89,6 +88,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
+  const [descriptionValue, setDescriptionValue] = useState(description);
   const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
   const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
@@ -333,11 +333,15 @@ export const App: BlockComponent<RootEntity> = ({
                   readonly={readonly}
                 />
 
-                <RichTextEditableField
-                  fieldKey={descriptionKey}
-                  entityId={entityId}
-                  value={description}
+                <EditableField
+                  value={descriptionValue}
+                  onChange={(event) => setDescriptionValue(event.target.value)}
+                  onBlur={(event) =>
+                    updateField(event.target.value, descriptionKey)
+                  }
+                  height="18px"
                   sx={{
+                    fontWeight: 500,
                     fontSize: 14,
                     lineHeight: 1.3,
                     letterSpacing: "-0.02em",

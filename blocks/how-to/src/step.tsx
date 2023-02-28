@@ -1,36 +1,26 @@
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Fade, Typography, useTheme } from "@mui/material";
 import { FunctionComponent, useState } from "react";
-import {
-  descriptionKey,
-  titleKey,
-  TitleOrDescription,
-  Step as IStep,
-} from "./app";
+import { descriptionKey, titleKey, TitleOrDescription } from "./app";
 import { EditableField } from "./editable-field";
-// import { RichTextEditableField } from "./rich-text-editable-field";
 
 interface StepProps {
-  entityId: string;
   header: string;
   title?: string;
   description?: string;
   deletable?: boolean;
   readonly?: boolean;
-  setField: (title: string, field: keyof IStep) => void;
   updateField: (value: string, field: TitleOrDescription) => void;
   onRemove: () => void;
   deleteButtonText: string;
 }
 
 export const Step: FunctionComponent<StepProps> = ({
-  entityId,
   header,
   title,
   description,
   deletable = true,
   readonly,
-  setField,
   updateField,
   onRemove,
   deleteButtonText,
@@ -38,6 +28,7 @@ export const Step: FunctionComponent<StepProps> = ({
   const { palette } = useTheme();
 
   const [titleValue, setTitleValue] = useState(title ?? "");
+  const [descriptionValue, setDescriptionValue] = useState(description ?? "");
 
   return (
     <Box>
@@ -102,7 +93,6 @@ export const Step: FunctionComponent<StepProps> = ({
         }}
       >
         <EditableField
-          defaultValue={title}
           value={titleValue}
           onChange={(event) => setTitleValue(event.target.value)}
           onBlur={(event) => updateField(event.target.value, titleKey)}
@@ -134,11 +124,13 @@ export const Step: FunctionComponent<StepProps> = ({
             : {}),
         }}
       >
-        {/* <RichTextEditableField
-          fieldKey={descriptionKey}
-          entityId={entityId}
-          value={description}
+        <EditableField
+          value={descriptionValue}
+          onChange={(event) => setDescriptionValue(event.target.value)}
+          onBlur={(event) => updateField(event.target.value, descriptionKey)}
+          height="18px"
           sx={{
+            fontWeight: 400,
             fontSize: 14,
             lineHeight: 1.3,
             color: palette.gray[90],
@@ -146,7 +138,7 @@ export const Step: FunctionComponent<StepProps> = ({
           }}
           placeholder="Detailed instructions associated with the step can be added here. Click to start typing."
           readonly={readonly}
-        /> */}
+        />
       </Box>
     </Box>
   );
