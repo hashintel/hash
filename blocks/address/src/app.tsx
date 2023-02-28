@@ -1,4 +1,3 @@
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   useEntitySubgraph,
   useGraphBlockModule,
@@ -28,9 +27,9 @@ import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
-  AddressLink,
-  File as FileEntity,
-  ImageLink,
+  HasAddress,
+  HasAddressMap,
+  Image as ImageEntity,
   RootEntity,
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
@@ -40,40 +39,50 @@ const ZOOM_LEVEL_STEP_SIZE = 2;
 const MAX_ZOOM_LEVEL = 20;
 const MIN_ZOOM_LEVEL = 10;
 
-const addressTypeId =
-  "https://alpha.hash.ai/@luisbett/types/entity-type/address/v/1";
-const addressLinkTypeId =
-  "https://alpha.hash.ai/@luisbett/types/entity-type/address-link/v/1";
-const localityKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/addresslocality/";
-const regionKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/addressregion/";
-const postalCodeKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/postalcode/";
-const streetKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/streetaddress/";
-const countryKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/addresscountry/";
-const fullAddressKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/fulladdress/";
-
-const fileTypeId = "https://alpha.hash.ai/@luisbett/types/entity-type/file/v/1";
-const imageUrlKey = "https://alpha.hash.ai/@luisbett/types/property-type/url/";
-const imageLinkTypeId =
-  "https://alpha.hash.ai/@luisbett/types/entity-type/image-link/v/5";
-
-const titleKey = "https://alpha.hash.ai/@hash/types/property-type/title/";
+// Root entity property types
+const titleKey =
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 const descriptionKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/description/";
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/";
 const addressIdKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/addressid/";
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/mapbox-address-id/";
 const zoomLevelKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/zoomlevel/";
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/";
+
+// Address entity property types
+const localityKey =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-locality/";
+const regionKey =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-region/";
+const postalCodeKey =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/postal-code/";
+const streetKey =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/street-address/";
+const countryKey =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-country/";
+const fullAddressKey =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/full-address/";
+
+// Image property types
+const fileUrlKey =
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/file-url/";
+
+// Relevant Entity types
+const addressTypeId =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/address/v/2";
+const imageTypeId =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/image/v/2";
+
+// Link entity types
+const hasAddressLink =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address/v/1";
+const hasAddressMapLink =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address-map/v/2";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
 
-export const App: BlockComponent<true, RootEntity> = ({
+export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   if (!blockEntitySubgraph) {
@@ -106,27 +115,27 @@ export const App: BlockComponent<true, RootEntity> = ({
 
   const zoomLevel = properties[zoomLevelKey] ?? DEFAULT_ZOOM_LEVEL;
 
-  const addressLinkedEntity: LinkEntityAndRightEntity<true> = useMemo(
+  const addressLinkedEntity = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) =>
-          linkEntity[0]?.metadata.entityTypeId === addressLinkTypeId,
+          linkEntity.metadata.entityTypeId === hasAddressMapLink,
       ),
     [linkedEntities],
   )!;
 
   const addressEntity: AddressEntity | undefined =
-    addressLinkedEntity?.rightEntity[0];
-  const addressLinkEntity: AddressLink | undefined =
-    addressLinkedEntity?.linkEntity[0];
+    addressLinkedEntity?.rightEntity;
+  const addressLinkEntity: HasAddress | undefined =
+    addressLinkedEntity?.linkEntity;
 
   const fullAddress = addressEntity?.properties[fullAddressKey];
 
-  const imageLinkedEntity: LinkEntityAndRightEntity<true> | undefined = useMemo(
+  const imageLinkedEntity = useMemo(
     () =>
       linkedEntities.find(({ linkEntity }) => {
         return (
-          linkEntity.metadata.entityTypeId === imageLinkTypeId &&
+          linkEntity.metadata.entityTypeId === hasAddressMapLink &&
           linkEntity.properties[zoomLevelKey] === zoomLevel &&
           linkEntity.properties[addressIdKey] === addressId
         );
@@ -134,18 +143,18 @@ export const App: BlockComponent<true, RootEntity> = ({
     [linkedEntities, zoomLevel, addressId],
   );
 
-  const fileEntity: FileEntity | undefined = imageLinkedEntity?.rightEntity;
+  const fileEntity: ImageEntity | undefined = imageLinkedEntity?.rightEntity;
   const imageLinkEntity = imageLinkedEntity?.linkEntity as
-    | ImageLink
+    | HasAddressMap
     | undefined;
 
-  const mapUrl = fileEntity?.properties[imageUrlKey];
+  const mapUrl = fileEntity?.properties[fileUrlKey];
 
   const availableZoomLevels = useMemo(() => {
     return linkedEntities
       .filter(({ linkEntity }) => {
         return (
-          linkEntity.metadata.entityTypeId === imageLinkTypeId &&
+          linkEntity.metadata.entityTypeId === hasAddressMapLink &&
           linkEntity.properties[addressIdKey] === addressId
         );
       })
@@ -249,12 +258,12 @@ export const App: BlockComponent<true, RootEntity> = ({
 
         if (imageUrl) {
           const fileProperties = {
-            [imageUrlKey]: imageUrl,
+            [fileUrlKey]: imageUrl,
           };
 
           const createFileEntityResponse = await graphModule?.createEntity({
             data: {
-              entityTypeId: fileTypeId,
+              entityTypeId: imageTypeId,
               properties: fileProperties,
             },
           });
@@ -265,7 +274,7 @@ export const App: BlockComponent<true, RootEntity> = ({
           if (!imageLinkEntity && fileEntityId && addressId) {
             await graphModule?.createEntity({
               data: {
-                entityTypeId: imageLinkTypeId,
+                entityTypeId: hasAddressMapLink,
                 properties: {
                   [zoomLevelKey]: zoomLevel,
                   [addressIdKey]: addressId,
@@ -326,7 +335,7 @@ export const App: BlockComponent<true, RootEntity> = ({
       if (!addressLinkEntity) {
         await graphModule?.createEntity({
           data: {
-            entityTypeId: addressLinkTypeId,
+            entityTypeId: hasAddressMapLink,
             properties: {},
             linkData: {
               leftEntityId: entityId,
@@ -350,10 +359,10 @@ export const App: BlockComponent<true, RootEntity> = ({
 
     // Remove the address link and all image links
     for (const { linkEntity } of linkedEntities) {
-      if (linkEntity[0]) {
+      if (linkEntity) {
         await graphModule?.deleteEntity({
           data: {
-            entityId: linkEntity[0].metadata.recordId.entityId,
+            entityId: linkEntity.metadata.recordId.entityId,
           },
         });
       }

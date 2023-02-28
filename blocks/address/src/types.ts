@@ -2,12 +2,12 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/14 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/address-block/v/4 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * Description of something
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
 export type Description = Text;
 /**
@@ -15,7 +15,11 @@ export type Description = Text;
  */
 export type Text = string;
 /**
- * The level of zoom of the image
+ * The title of something
+ */
+export type Title = Text;
+/**
+ * The level that controls how zoomed in or out an image is.
  */
 export type ZoomLevel = Number;
 /**
@@ -23,47 +27,43 @@ export type ZoomLevel = Number;
  */
 export type Number = number;
 /**
- * The title of something.
+ * The Mapbox Id on an address.
  */
-export type Title = Text;
-/**
- * Mapbox identification string of the address
- */
-export type AddressId = Text;
+export type MapboxAddressId = Text;
 
 /**
- * Title, description, address and mapUrl of an address
+ * The specific place where a person, business, or organization can be found
  */
 export type AddressBlockProperties = {
-  "https://alpha.hash.ai/@luisbett/types/property-type/description/"?: Description;
-  "https://alpha.hash.ai/@luisbett/types/property-type/zoomlevel/"?: ZoomLevel;
-  "https://alpha.hash.ai/@hash/types/property-type/title/"?: Title;
-  "https://alpha.hash.ai/@luisbett/types/property-type/addressid/"?: AddressId;
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: Description;
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: Title;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/"?: ZoomLevel;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/mapbox-address-id/"?: MapboxAddressId;
 };
 
-export type AddressBlock = Entity<true, AddressBlockProperties>;
+export type AddressBlock = Entity<AddressBlockProperties>;
 
 /**
- * An address associated with the entity
+ * Contains an address defined by an Address entity.
  */
-export type AddressLinkProperties = AddressLinkProperties1 &
-  AddressLinkProperties2;
-export type AddressLinkProperties1 = Link;
+export type HasAddressProperties = HasAddressProperties1 &
+  HasAddressProperties2;
+export type HasAddressProperties1 = Link;
 
 export type Link = {
   leftEntityId?: string;
   rightEntityId?: string;
 };
-export type AddressLinkProperties2 = {};
+export type HasAddressProperties2 = {};
 
-export type AddressLink = Entity<true, AddressLinkProperties>;
-export type AddressLinkLinksByLinkTypeId = {};
+export type HasAddress = Entity<HasAddressProperties>;
+export type HasAddressLinksByLinkTypeId = {};
 
-export type AddressLinkLinkAndRightEntities = NonNullable<
-  AddressLinkLinksByLinkTypeId[keyof AddressLinkLinksByLinkTypeId]
+export type HasAddressLinkAndRightEntities = NonNullable<
+  HasAddressLinksByLinkTypeId[keyof HasAddressLinksByLinkTypeId]
 >;
 /**
- * Street of the address
+ * The street information of an address.
  */
 export type StreetAddress = Text;
 /**
@@ -71,114 +71,115 @@ export type StreetAddress = Text;
  */
 
 /**
- * The address in full
+ * The full information of an address.
  */
 export type FullAddress = Text;
 /**
- * Locality of the address
+ * The locality name of an address.
  */
 export type AddressLocality = Text;
 /**
- * Country of the address
+ * The country name of an address .
  */
 export type AddressCountry = Text;
 /**
- * Postal code of the address
+ * The postal code of an address.
  */
 export type PostalCode = Text;
 /**
- * Region of the address
+ * The region name of an address.
  */
 export type AddressRegion = Text;
 
 /**
- * Locality, region, street number and postal code of an address
+ * A collection of fields that describe a specific place.
  */
 export type AddressProperties = {
-  "https://alpha.hash.ai/@luisbett/types/property-type/streetaddress/"?: StreetAddress;
-  "https://alpha.hash.ai/@luisbett/types/property-type/fulladdress/"?: FullAddress;
-  "https://alpha.hash.ai/@luisbett/types/property-type/addresslocality/"?: AddressLocality;
-  "https://alpha.hash.ai/@luisbett/types/property-type/addresscountry/"?: AddressCountry;
-  "https://alpha.hash.ai/@luisbett/types/property-type/postalcode/"?: PostalCode;
-  "https://alpha.hash.ai/@luisbett/types/property-type/addressregion/"?: AddressRegion;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/street-address/"?: StreetAddress;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/full-address/"?: FullAddress;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-locality/"?: AddressLocality;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-country/"?: AddressCountry;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/postal-code/"?: PostalCode;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-region/"?: AddressRegion;
 };
 
-export type Address = Entity<true, AddressProperties>;
+export type Address = Entity<AddressProperties>;
 export type AddressLinksByLinkTypeId = {};
 
 export type AddressLinkAndRightEntities = NonNullable<
   AddressLinksByLinkTypeId[keyof AddressLinksByLinkTypeId]
 >;
-export type AddressBlockAddressLinkLinks =
+export type AddressBlockHasAddressLinks =
   | []
   | {
-      linkEntity: AddressLink;
+      linkEntity: HasAddress;
       rightEntity: Address;
     }[];
 
 /**
- * Image associated with the entity
+ * Contains an image defined by an Image entity.
  */
-export type ImageLinkProperties = ImageLinkProperties1 & ImageLinkProperties2;
-export type ImageLinkProperties1 = Link;
+export type HasAddressMapProperties = HasAddressMapProperties1 &
+  HasAddressMapProperties2;
+export type HasAddressMapProperties1 = Link;
 /**
- * Mapbox identification string of the address
- */
-
-/**
- * An ordered sequence of characters
- */
-
-/**
- * The level of zoom of the image
+ * The level that controls how zoomed in or out an image is.
  */
 
 /**
  * An arithmetical value (in the Real number system)
  */
 
-export type ImageLinkProperties2 = {
-  "https://alpha.hash.ai/@luisbett/types/property-type/addressid/"?: AddressId;
-  "https://alpha.hash.ai/@luisbett/types/property-type/zoomlevel/": ZoomLevel;
+/**
+ * The Mapbox Id on an address.
+ */
+
+/**
+ * An ordered sequence of characters
+ */
+
+export type HasAddressMapProperties2 = {
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/"?: ZoomLevel;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/mapbox-address-id/"?: MapboxAddressId;
 };
 
-export type ImageLink = Entity<true, ImageLinkProperties>;
-export type ImageLinkLinksByLinkTypeId = {};
+export type HasAddressMap = Entity<HasAddressMapProperties>;
+export type HasAddressMapLinksByLinkTypeId = {};
 
-export type ImageLinkLinkAndRightEntities = NonNullable<
-  ImageLinkLinksByLinkTypeId[keyof ImageLinkLinksByLinkTypeId]
+export type HasAddressMapLinkAndRightEntities = NonNullable<
+  HasAddressMapLinksByLinkTypeId[keyof HasAddressMapLinksByLinkTypeId]
 >;
 /**
- * url of the file
+ * A URL that serves a file.
  */
-export type Url = Text;
+export type FileURL = Text;
 /**
  * An ordered sequence of characters
  */
 
 /**
- * An entity that stores an image or other type of file.
+ * An image defined by a URL.
  */
-export type FileProperties = {
-  "https://alpha.hash.ai/@luisbett/types/property-type/url/"?: Url;
+export type ImageProperties = {
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/file-url/"?: FileURL;
 };
 
-export type File = Entity<true, FileProperties>;
-export type FileLinksByLinkTypeId = {};
+export type Image = Entity<ImageProperties>;
+export type ImageLinksByLinkTypeId = {};
 
-export type FileLinkAndRightEntities = NonNullable<
-  FileLinksByLinkTypeId[keyof FileLinksByLinkTypeId]
+export type ImageLinkAndRightEntities = NonNullable<
+  ImageLinksByLinkTypeId[keyof ImageLinksByLinkTypeId]
 >;
-export type AddressBlockImageLinkLinks =
+export type AddressBlockHasAddressMapLinks =
   | []
   | {
-      linkEntity: ImageLink;
-      rightEntity: File;
+      linkEntity: HasAddressMap;
+      rightEntity: Image;
     }[];
 
 export type AddressBlockLinksByLinkTypeId = {
-  "https://alpha.hash.ai/@luisbett/types/entity-type/address-link/v/1": AddressBlockAddressLinkLinks;
-  "https://alpha.hash.ai/@luisbett/types/entity-type/image-link/v/5": AddressBlockImageLinkLinks;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address/v/1": AddressBlockHasAddressLinks;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address-map/v/2": AddressBlockHasAddressMapLinks;
 };
 
 export type AddressBlockLinkAndRightEntities = NonNullable<
