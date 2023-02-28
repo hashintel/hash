@@ -1,32 +1,37 @@
-import "./styles.scss";
 import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-override.scss";
+import "./styles.scss";
 
 import {
   BlockComponent,
-  useGraphBlockService,
+  useEntitySubgraph,
+  useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CountdownTitle } from "./countdown-title";
 import { DatePickerInput } from "./date-picker-input";
 import { Display } from "./display";
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
-type BlockEntityProperties = {
-  title?: string;
-  targetDate: string | null;
-  displayTime?: boolean;
-};
-
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity, readonly },
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  const { rootEntity: blockEntity } = useEntitySubgraph(blockEntitySubgraph);
   const {
-    entityId,
-    properties: { targetDate, title, displayTime },
+    metadata: {
+      recordId: { entityId },
+      entityTypeId,
+    },
+    properties: {
+      [propertyIds.targetDateTime]: targetDate,
+      [propertyIds.title]: title,
+      [propertyIds.displayTime]: displayTime,
+    },
   } = blockEntity;
   const blockRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRef);
+  const { graphModule } = useGraphBlockModule(blockRef);
   const [localTargetDate, setLocalTargetDate] = useState<Date | null>(
     !targetDate ? null : new Date(targetDate),
   );
@@ -54,24 +59,31 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       if (readonly) {
         return;
       }
-      void graphService?.updateEntity({
+      const nextTargetDateTime = data?.targetDate ?? localTargetDate;
+      const nextTitle = data?.title ?? localTitle;
+
+      void graphModule.updateEntity({
         data: {
           entityId,
+          entityTypeId,
           properties: {
-            displayTime: data?.displayTime ?? localDisplayTime,
-            targetDate: data?.targetDate ?? localTargetDate,
-            title: data?.title ?? localTitle,
+            [propertyIds.displayTime]: data?.displayTime ?? localDisplayTime,
+            ...(nextTargetDateTime
+              ? { [propertyIds.targetDateTime]: nextTargetDateTime.toString() }
+              : {}),
+            ...(nextTitle ? { [propertyIds.title]: nextTitle } : {}),
           },
         },
       });
     },
     [
-      graphService,
-      entityId,
-      localDisplayTime,
+      readonly,
       localTargetDate,
       localTitle,
-      readonly,
+      graphModule,
+      entityId,
+      entityTypeId,
+      localDisplayTime,
     ],
   );
 

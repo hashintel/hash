@@ -20,10 +20,11 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "serve": "block-scripts serve"
+    "serve": "block-scripts serve",
+    "schema": "block-scripts codegen"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
+    "@blockprotocol/graph": "0.1.0-canary-20230228103144",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"
   },
@@ -31,9 +32,9 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-datepicker": "^4.8.0",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.0-canary-20230228103144",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.0-canary-20230228103144",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -61,6 +62,7 @@
     ],
     "icon": "public/icon.svg",
     "image": "public/preview.svg",
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "schema": "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/countdown/v/2"
   }
 }

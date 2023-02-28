@@ -5,19 +5,34 @@
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
+import packageJSON from "../package.json";
 import Component from "./index";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
-const App = () => (
-  <MockBlockDock
-    blockDefinition={{ ReactComponent: Component }}
-    blockEntity={{
+const initialData: RootEntity = {
+  metadata: {
+    recordId: {
       entityId: "entity-countdown",
-      properties: {},
-    }}
-    debug
-  />
-);
+      editionId: "1",
+    },
+    entityTypeId:
+      "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/countdown/v/2",
+  },
+  properties: {},
+};
+
+const App = () => {
+  return (
+    <MockBlockDock
+      blockDefinition={{ ReactComponent: Component }}
+      blockEntityRecordId={initialData.metadata.recordId}
+      initialData={{ initialEntities: [initialData] }}
+      blockInfo={packageJSON.blockprotocol}
+      debug
+    />
+  );
+};
 
 render(<App />, node);
