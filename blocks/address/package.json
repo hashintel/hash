@@ -59,7 +59,7 @@
         "description": "A skyscraper in Midtown Manhattan, New York City"
       }
     ],
-    "icon": "public/omega.svg",
+    "icon": "public/address.svg",
     "image": "public/block-preview.png",
     "name": "@hash/address",
     "protocol": "0.3",

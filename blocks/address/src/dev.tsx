@@ -28,7 +28,7 @@ const DevApp = () => {
       initialData={{
         initialEntities: [testEntity],
       }}
-      blockProtocolApiKey="b10ck5.0ffce85f8aa69ae4171bb7cf31e21ffa.f05b31ae-2340-4dd6-8d49-aae04a45f6f7"
+      blockProtocolApiKey="b10ck5.0f301b4ca291f59bc829570dd2e210b9.a90d38b5-d44f-4959-a1c6-9be3119b50b3"
       blockProtocolSiteHost="http://localhost:3000"
       debug
     />
