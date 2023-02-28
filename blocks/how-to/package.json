@@ -53,7 +53,7 @@
         "description": "Bring the clear water to a rolling boil for 1 minute"
       }
     ],
-    "icon": "public/omega.svg",
+    "icon": "public/book-arrow-right.svg",
     "image": "public/block-preview.png",
     "name": "@hash/how-to",
     "protocol": "0.3",
