@@ -249,14 +249,14 @@ export const App: BlockComponent<RootEntity> = ({
   ]);
 
   return (
-    <Box ref={blockRootRef}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <ThemeProvider theme={theme}>
         <Box
-          // ref={blockRootRef}
+          ref={blockRootRef}
           sx={{ display: "inline-block", width: 1 }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -379,7 +379,6 @@ export const App: BlockComponent<RootEntity> = ({
                 >
                   {introEntity ? (
                     <Step
-                      entityId={introEntity.metadata.recordId.entityId}
                       header="Introduction"
                       title={introEntity.properties[titleKey]}
                       description={introEntity.properties[descriptionKey]}
@@ -408,7 +407,6 @@ export const App: BlockComponent<RootEntity> = ({
                     }}
                   >
                     <Step
-                      entityId={stepEntity.metadata.recordId.entityId}
                       header={`Step ${index + 1}`}
                       title={stepEntity.properties[titleKey]}
                       description={stepEntity.properties[descriptionKey]}
@@ -444,6 +442,6 @@ export const App: BlockComponent<RootEntity> = ({
           </Card>
         </Box>
       </ThemeProvider>
-    </Box>
+    </>
   );
 };
