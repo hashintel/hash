@@ -104,7 +104,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [animatingIn, setAnimatingIn] = useState(false);
+  const [animatingIn, setAnimatingIn] = useState<AutofillSuggestion | null>();
   const [animatingOut, setAnimatingOut] = useState(false);
 
   const {
@@ -508,6 +508,11 @@ export const App: BlockComponent<RootEntity> = ({
               <Collapse
                 in={!selectedAddress && !animatingIn}
                 onEntered={() => setAnimatingOut(false)}
+                onExited={() => {
+                  if (animatingIn) {
+                    selectAddress(animatingIn);
+                  }
+                }}
               >
                 <Box sx={{ display: "flex", gap: 1.5 }}>
                   <Autocomplete
@@ -522,11 +527,7 @@ export const App: BlockComponent<RootEntity> = ({
                     }}
                     onChange={(_event, option) => {
                       if (option && typeof option === "object") {
-                        setAnimatingIn(true);
-
-                        setTimeout(() => {
-                          selectAddress(option);
-                        }, 300);
+                        setAnimatingIn(option);
                       }
                     }}
                     filterOptions={(options) => options}
@@ -678,7 +679,8 @@ export const App: BlockComponent<RootEntity> = ({
 
           <Collapse
             in={!!selectedAddress && !animatingOut}
-            onEntered={() => setAnimatingIn(false)}
+            onEntered={() => setAnimatingIn(null)}
+            onExited={() => selectAddress()}
           >
             {selectedAddress ? (
               <AddressCard
@@ -690,10 +692,6 @@ export const App: BlockComponent<RootEntity> = ({
                 readonly={readonly}
                 onClose={() => {
                   setAnimatingOut(true);
-
-                  setTimeout(() => {
-                    selectAddress();
-                  }, 300);
                 }}
                 updateTitle={updateTitle}
                 updateDescription={updateDescription}
