@@ -2,46 +2,46 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see http://localhost:3000/@lbett/types/entity-type/howto-block/v/2 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block/v/3 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * Title of something
+ * The title of something
  */
-export type Title = Text;
+export type TitlePropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataValue = string;
 /**
- * Description of something
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type Description = Text;
+export type DescriptionPropertyValue = TextDataValue;
 
 /**
- * HowTo Block root entity
+ * A step-by-step guide on how to do or achieve something.
  */
 export type HowToBlockProperties = {
-  "http://localhost:3000/@lbett/types/property-type/title/"?: Title;
-  "http://localhost:3000/@lbett/types/property-type/description/"?: Description;
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
 export type HowToBlock = Entity<HowToBlockProperties>;
 
 /**
- * Link to a step
+ * Defines a single step that belongs to a How-To Block entity.
  */
-export type StepLinkProperties = {};
+export type HasHowToBlockStepProperties = {};
 
-export type StepLink = Entity<StepLinkProperties>;
-export type StepLinkLinksByLinkTypeId = {};
+export type HasHowToBlockStep = Entity<HasHowToBlockStepProperties>;
+export type HasHowToBlockStepLinksByLinkTypeId = {};
 
-export type StepLinkLinkAndRightEntities = NonNullable<
-  StepLinkLinksByLinkTypeId[keyof StepLinkLinksByLinkTypeId]
+export type HasHowToBlockStepLinkAndRightEntities = NonNullable<
+  HasHowToBlockStepLinksByLinkTypeId[keyof HasHowToBlockStepLinksByLinkTypeId]
 >;
 /**
- * Title of something
+ * The title of something
  */
 
 /**
@@ -49,52 +49,52 @@ export type StepLinkLinkAndRightEntities = NonNullable<
  */
 
 /**
- * Description of something
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
 
 /**
- * Step belonging to a HowTo Block
+ * Defines a single step that belongs to a How-To Block entity.
  */
-export type HowToStepProperties = {
-  "http://localhost:3000/@lbett/types/property-type/title/"?: Title;
-  "http://localhost:3000/@lbett/types/property-type/description/"?: Description;
+export type HowToBlockStepProperties = {
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
-export type HowToStep = Entity<HowToStepProperties>;
-export type HowToStepLinksByLinkTypeId = {};
+export type HowToBlockStep = Entity<HowToBlockStepProperties>;
+export type HowToBlockStepLinksByLinkTypeId = {};
 
-export type HowToStepLinkAndRightEntities = NonNullable<
-  HowToStepLinksByLinkTypeId[keyof HowToStepLinksByLinkTypeId]
+export type HowToBlockStepLinkAndRightEntities = NonNullable<
+  HowToBlockStepLinksByLinkTypeId[keyof HowToBlockStepLinksByLinkTypeId]
 >;
-export type HowToBlockStepLinkLinks =
+export type HowToBlockHasHowToBlockStepLinks =
   | []
   | {
-      linkEntity: StepLink;
-      rightEntity: HowToStep;
+      linkEntity: HasHowToBlockStep;
+      rightEntity: HowToBlockStep;
     }[];
 
 /**
- * Link to the introduction
+ * Contains an introduction defined by a How-To Introduction entity.
  */
-export type IntroductionLinkProperties = {};
+export type HasHowToBlockIntroductionProperties = {};
 
-export type IntroductionLink = Entity<IntroductionLinkProperties>;
-export type IntroductionLinkLinksByLinkTypeId = {};
+export type HasHowToBlockIntroduction =
+  Entity<HasHowToBlockIntroductionProperties>;
+export type HasHowToBlockIntroductionLinksByLinkTypeId = {};
 
-export type IntroductionLinkLinkAndRightEntities = NonNullable<
-  IntroductionLinkLinksByLinkTypeId[keyof IntroductionLinkLinksByLinkTypeId]
+export type HasHowToBlockIntroductionLinkAndRightEntities = NonNullable<
+  HasHowToBlockIntroductionLinksByLinkTypeId[keyof HasHowToBlockIntroductionLinksByLinkTypeId]
 >;
-
-export type HowToBlockIntroductionLinkLinks =
+export type HowToBlockHasHowToBlockIntroductionLinks =
   | []
   | {
-      linkEntity: IntroductionLink;
-      rightEntity: HowToStep;
+      linkEntity: HasHowToBlockIntroduction;
+      rightEntity: Entity;
     }[];
 
 export type HowToBlockLinksByLinkTypeId = {
-  "http://localhost:3000/@lbett/types/entity-type/step-link/v/1": HowToBlockStepLinkLinks;
-  "http://localhost:3000/@lbett/types/entity-type/introduction-link/v/1": HowToBlockIntroductionLinkLinks;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-step/v/1": HowToBlockHasHowToBlockStepLinks;
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-introduction/v/1": HowToBlockHasHowToBlockIntroductionLinks;
 };
 
 export type HowToBlockLinkAndRightEntities = NonNullable<

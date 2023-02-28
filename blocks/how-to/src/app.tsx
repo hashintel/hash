@@ -25,20 +25,31 @@ import { HowToStep, IntroductionLink, RootEntity } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 
+// Property types
 export const titleKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 export const descriptionKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/";
 
-const howToStepType =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/howtostep/v/2";
-const introductionLinkType =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/introduction-link/v/1";
-const stepLinkType =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/step-link/v/1";
+// Relevant Entity Types
+const howToBlockStepType =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block-step/v/2";
+const howToBlockIntroductionType =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block-introduction/v/2";
+
+// Link Entity Types
+const hasHowToBlockStep =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-step/v/1";
+const hasHowToBlockIntroduction =
+  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-introduction/v/1";
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
-export type Link = typeof introductionLinkType | typeof stepLinkType;
+export type EntityType =
+  | typeof howToBlockIntroductionType
+  | typeof howToBlockStepType;
+export type LinkType =
+  | typeof hasHowToBlockIntroduction
+  | typeof hasHowToBlockStep;
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -61,14 +72,14 @@ export const App: BlockComponent<RootEntity> = ({
 
   const { [titleKey]: title, [descriptionKey]: description } = properties;
 
-  const introLinkedEntity: LinkEntityAndRightEntity = useMemo(
+  const introLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) =>
-          linkEntity?.metadata.entityTypeId === introductionLinkType,
+          linkEntity?.metadata.entityTypeId === hasHowToBlockIntroduction,
       ),
     [linkedEntities],
-  )!;
+  );
 
   const introEntity: HowToStep | undefined = introLinkedEntity?.rightEntity;
   const introLinkEntity: IntroductionLink | undefined =
@@ -77,7 +88,8 @@ export const App: BlockComponent<RootEntity> = ({
   const stepLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
     () =>
       linkedEntities.filter(
-        ({ linkEntity }) => linkEntity?.metadata.entityTypeId === stepLinkType,
+        ({ linkEntity }) =>
+          linkEntity?.metadata.entityTypeId === hasHowToBlockStep,
       ),
     [linkedEntities],
   )!;
@@ -106,15 +118,15 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const createStepEntity = useCallback(
-    async (linkType: Link) => {
+  const createHowToEntity = useCallback(
+    async (entityType: EntityType, linkType: LinkType) => {
       if (readonly) {
         return;
       }
 
       const createEntityResponse = await graphModule?.createEntity({
         data: {
-          entityTypeId: howToStepType,
+          entityTypeId: entityType,
           properties: {},
         },
       });
@@ -140,7 +152,10 @@ export const App: BlockComponent<RootEntity> = ({
 
   const createIntroduction = async () => {
     setIntroAnimatingIn(true);
-    await createStepEntity(introductionLinkType);
+    await createHowToEntity(
+      howToBlockIntroductionType,
+      hasHowToBlockIntroduction,
+    );
 
     setTimeout(() => {
       setIntroAnimatingIn(false);
@@ -154,7 +169,7 @@ export const App: BlockComponent<RootEntity> = ({
     await graphModule?.updateEntity({
       data: {
         entityId: introEntity.metadata.recordId.entityId,
-        entityTypeId: howToStepType,
+        entityTypeId: howToBlockIntroductionType,
         properties: {
           ...introEntity.properties,
           [field]: value,
@@ -177,7 +192,8 @@ export const App: BlockComponent<RootEntity> = ({
     }, 300);
   };
 
-  const addStep = () => createStepEntity(stepLinkType);
+  const addStep = () =>
+    createHowToEntity(howToBlockStepType, hasHowToBlockStep);
 
   const updateStepField = async (
     index: number,
@@ -193,7 +209,7 @@ export const App: BlockComponent<RootEntity> = ({
     await graphModule?.updateEntity({
       data: {
         entityId: stepEntity.metadata.recordId.entityId,
-        entityTypeId: howToStepType,
+        entityTypeId: howToBlockStepType,
         properties: {
           ...stepEntity.properties,
           [field]: value,
