@@ -12,8 +12,8 @@
     "build": "block-scripts build",
     "dev": "block-scripts dev",
     "format": "prettier --write --ignore-unknown .",
-    "generate-types": "block-scripts codegen",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
