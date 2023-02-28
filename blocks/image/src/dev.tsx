@@ -67,7 +67,7 @@ const App = () => {
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={initialData.metadata.recordId}
       initialData={{
-        initialEntities: [initialData],
+        initialEntities: [initialData, fileEntity, fileEntityLink],
       }}
       blockInfo={packageJSON.blockprotocol}
       debug

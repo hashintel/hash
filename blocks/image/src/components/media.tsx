@@ -12,6 +12,10 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import {
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib";
+import {
   Dispatch,
   FunctionComponent,
   RefObject,
@@ -19,13 +23,12 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
-import { propertyIds } from "../property-ids";
+import { linkIds, propertyIds } from "../property-ids";
 import { RootEntity } from "../types";
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
@@ -61,62 +64,6 @@ const useDefaultState = <
 
   return [currentValue, setState];
 };
-//
-// function getLinkGroup(params: {
-//   linkGroups: LinkGroup[];
-//   path: string;
-//   sourceEntityId: string;
-// }): LinkGroup | undefined {
-//   const { linkGroups, path, sourceEntityId } = params;
-//
-//   const matchingLinkGroup = linkGroups.find(
-//     (linkGroup) =>
-//       linkGroup.path === path && linkGroup.sourceEntityId === sourceEntityId,
-//   );
-//
-//   return matchingLinkGroup;
-// }
-//
-// function getLinkedEntities(params: {
-//   sourceEntityId: string;
-//   path: string;
-//   linkGroups: LinkGroup[];
-//   linkedEntities: Entity[];
-// }): (Entity & { url: string })[] | null {
-//   const { sourceEntityId, path, linkGroups, linkedEntities } = params;
-//
-//   const matchingLinkGroup = getLinkGroup({
-//     linkGroups,
-//     path,
-//     sourceEntityId,
-//   });
-//
-//   if (!matchingLinkGroup?.links[0]) {
-//     return null;
-//   }
-//
-//   if (!("destinationEntityId" in matchingLinkGroup.links[0])) {
-//     throw new Error(
-//       "No destinationEntityId present in matched link - cannot find linked file entity.",
-//     );
-//   }
-//
-//   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
-//
-//   const matchingLinkedEntities = linkedEntities.filter(
-//     (linkedEntity): linkedEntity is Entity & { url: string } =>
-//       linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
-//   );
-//
-//   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-//   if (!matchingLinkedEntities) {
-//     return null;
-//   }
-//
-//   return matchingLinkedEntities;
-// }
-
-// const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
@@ -131,7 +78,21 @@ export const Media: FunctionComponent<
     graph: { blockEntitySubgraph, readonly },
   } = props;
 
-  const { rootEntity, linkedEntities } = useEntitySubgraph(blockEntitySubgraph);
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
+  const outgoingLinks = getOutgoingLinksForEntity(
+    blockEntitySubgraph,
+    rootEntity.metadata.recordId.entityId,
+  );
+  const fileLink = outgoingLinks.find(
+    (potentialLink) => potentialLink.metadata.entityTypeId === linkIds.file,
+  );
+  const fileEntity = fileLink
+    ? getRightEntityForLinkEntity(
+        blockEntitySubgraph,
+        fileLink.metadata.recordId.entityId,
+      )
+    : null;
+
   const { metadata, properties } = rootEntity;
   const {
     [propertyIds.mediaType]: mediaType,
@@ -142,22 +103,8 @@ export const Media: FunctionComponent<
 
   const { graphModule } = useGraphBlockModule(blockRef);
 
-  const matchingLinkedEntities = useMemo(() => {
-    return [] as { url: string }[];
-
-    // // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    // if (blockGraph?.linkGroups && blockGraph.linkedEntities && entityId) {
-    //   return getLinkedEntities({
-    //     sourceEntityId: entityId,
-    //     path: "$.file",
-    //     linkGroups: blockGraph.linkGroups,
-    //     linkedEntities: blockGraph.linkedEntities,
-    //   });
-    // }
-  }, []);
-
   const [draftSrc, setDraftSrc] = useDefaultState(
-    url ?? matchingLinkedEntities[0]?.url ?? "",
+    url ?? fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
   );
 
   const [loading, setLoading] = useState(false);
@@ -258,29 +205,24 @@ export const Media: FunctionComponent<
               return;
             }
 
-            //
-            // const existingLinkGroup = getLinkGroup({
-            //   sourceEntityId: entityId,
-            //   linkGroups: blockGraph?.linkGroups ?? [],
-            //   path: "$.file",
-            // });
-            //
-            // const linkId =
-            //   existingLinkGroup?.links.filter(isSingleTargetLink)?.[0]?.linkId;
-            //
-            // if (linkId) {
-            //   await graphModule.deleteLink({
-            //     data: { linkId },
-            //   });
-            // }
-            //
-            // await graphModule.createLink({
-            //   data: {
-            //     sourceEntityId: entityId,
-            //     destinationEntityId: file.entityId,
-            //     path: "$.file",
-            //   },
-            // });
+            const linkId = fileLink?.metadata.recordId.entityId;
+
+            if (linkId) {
+              await graphModule.deleteEntity({
+                data: { entityId: linkId },
+              });
+            }
+
+            await graphModule.createEntity({
+              data: {
+                linkData: {
+                  leftEntityId: metadata.recordId.entityId,
+                  rightEntityId: file.metadata.recordId.entityId,
+                },
+                entityTypeId: linkIds.file,
+                properties: {},
+              },
+            });
 
             if (isMounted.current) {
               unstable_batchedUpdates(() => {
@@ -297,7 +239,14 @@ export const Media: FunctionComponent<
           );
       }
     },
-    [graphModule, loading, readonly, updateData],
+    [
+      readonly,
+      loading,
+      graphModule,
+      fileLink?.metadata.recordId.entityId,
+      metadata.recordId.entityId,
+      updateData,
+    ],
   );
 
   const onUrlConfirm = () => {
