@@ -43,6 +43,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
         return;
       }
 
+      setErrorMessage("");
       setLoading(true);
 
       const { data, errors } = await serviceModule.openaiCompleteText({
