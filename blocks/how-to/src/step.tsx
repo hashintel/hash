@@ -1,11 +1,12 @@
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Fade, Typography } from "@mui/material";
+import { Box, Fade, SxProps, Typography } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 import { descriptionKey, titleKey, TitleOrDescription } from "./app";
 import { EditableField } from "./editable-field";
 
 interface StepProps {
   header: string;
+  headerSx?: SxProps<Theme>;
   title?: string;
   description?: string;
   deletable?: boolean;
@@ -17,6 +18,7 @@ interface StepProps {
 
 export const Step: FunctionComponent<StepProps> = ({
   header,
+  headerSx = {},
   title,
   description,
   deletable = true,
@@ -39,6 +41,7 @@ export const Step: FunctionComponent<StepProps> = ({
             lineHeight: 1.2,
             color: ({ palette }) => palette.black,
             paddingY: 0.75,
+            ...headerSx,
           }}
         >
           {header}

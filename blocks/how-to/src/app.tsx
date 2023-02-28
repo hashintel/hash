@@ -425,6 +425,10 @@ export const App: BlockComponent<RootEntity> = ({
                   >
                     <Step
                       header={`Step ${index + 1}`}
+                      headerSx={{
+                        fontSize: 12,
+                        textTransform: "uppercase",
+                      }}
                       title={stepEntity.properties[titleKey]}
                       description={stepEntity.properties[descriptionKey]}
                       updateField={(value, field) =>
