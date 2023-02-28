@@ -144,8 +144,6 @@ export const useMapbox = (
     }
   }, [shouldFetchImage, selectedAddress, zoomLevel]);
 
-  // https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+555555(1.2434574,52.62335255)/1.2434574,52.62335255,16,0/600x400?access_token=&attribution=false&logo=false&sku=20d0104e2f29c-6abd-4991-8861-20cc6100bb5e
-
   const address: Address | null = useMemo(
     () =>
       selectedAddress
