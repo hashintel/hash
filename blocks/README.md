@@ -1,6 +1,7 @@
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
+[`address`]: address
 [`calculation`]: calculation
 [`callout`]: callout
 [`chart`]: chart
@@ -9,8 +10,7 @@
 [`divider`]: divider
 [`drawing`]: drawing
 [`embed`]: embed
-[`github-pr-overview`]: github-pr-overview
-[`header`]: header
+[`heading`]: heading
 [`html-para`]: html-para
 [`image`]: image
 [`paragraph`]: paragraph
