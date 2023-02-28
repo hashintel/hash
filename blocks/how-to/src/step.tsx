@@ -1,5 +1,5 @@
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Fade, Typography, useTheme } from "@mui/material";
+import { Box, Fade, Typography } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 import { descriptionKey, titleKey, TitleOrDescription } from "./app";
 import { EditableField } from "./editable-field";
@@ -25,8 +25,6 @@ export const Step: FunctionComponent<StepProps> = ({
   onRemove,
   deleteButtonText,
 }) => {
-  const { palette } = useTheme();
-
   const [titleValue, setTitleValue] = useState(title ?? "");
   const [descriptionValue, setDescriptionValue] = useState(description ?? "");
 
@@ -39,7 +37,7 @@ export const Step: FunctionComponent<StepProps> = ({
             fontWeight: 700,
             fontSize: 15,
             lineHeight: 1.2,
-            color: palette.black,
+            color: ({ palette }) => palette.black,
             paddingY: 0.75,
           }}
         >
@@ -51,7 +49,7 @@ export const Step: FunctionComponent<StepProps> = ({
             <Button
               variant="tertiary"
               size="xs"
-              sx={{
+              sx={({ palette }) => ({
                 paddingX: 1.25,
                 paddingY: 0.75,
                 fontSize: 13,
@@ -63,7 +61,7 @@ export const Step: FunctionComponent<StepProps> = ({
                 borderRadius: 1.25,
                 color: palette.gray[70],
                 fontWeight: 500,
-              }}
+              })}
               onClick={onRemove}
             >
               <FontAwesomeIcon
@@ -85,7 +83,7 @@ export const Step: FunctionComponent<StepProps> = ({
                 borderWidth: 1,
                 borderBottomWidth: 0,
                 borderStyle: "solid",
-                borderColor: palette.gray[20],
+                borderColor: ({ palette }) => palette.gray[20],
                 borderTopLeftRadius: 10,
                 borderTopRightRadius: 10,
               }
@@ -101,7 +99,7 @@ export const Step: FunctionComponent<StepProps> = ({
             fontWeight: 700,
             fontSize: 15,
             lineHeight: 1,
-            color: palette.gray[90],
+            color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
           placeholder="Step name goes here"
@@ -117,7 +115,7 @@ export const Step: FunctionComponent<StepProps> = ({
                 paddingX: 2.75,
                 borderWidth: 1,
                 borderStyle: "solid",
-                borderColor: palette.gray[20],
+                borderColor: ({ palette }) => palette.gray[20],
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
               }
@@ -133,7 +131,7 @@ export const Step: FunctionComponent<StepProps> = ({
             fontWeight: 400,
             fontSize: 14,
             lineHeight: 1.3,
-            color: palette.gray[90],
+            color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
           placeholder="Detailed instructions associated with the step can be added here. Click to start typing."
