@@ -106,7 +106,7 @@ export const App: BlockComponent<RootEntity> = ({
   const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
   const updateField = async (value: string, field: TitleOrDescription) => {
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -124,7 +124,7 @@ export const App: BlockComponent<RootEntity> = ({
         return;
       }
 
-      const createEntityResponse = await graphModule?.createEntity({
+      const createEntityResponse = await graphModule.createEntity({
         data: {
           entityTypeId: entityType,
           properties: {},
@@ -135,7 +135,7 @@ export const App: BlockComponent<RootEntity> = ({
         createEntityResponse?.data?.metadata.recordId.entityId;
 
       if (createdEntityId) {
-        await graphModule?.createEntity({
+        await graphModule.createEntity({
           data: {
             entityTypeId: linkType,
             properties: {},
@@ -166,7 +166,7 @@ export const App: BlockComponent<RootEntity> = ({
     value: string | boolean,
     field: TitleOrDescription,
   ) => {
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId: introEntity.metadata.recordId.entityId,
         entityTypeId: howToBlockIntroductionType,
@@ -181,7 +181,7 @@ export const App: BlockComponent<RootEntity> = ({
   const removeIntroduction = async () => {
     setIntroAnimatingOut(true);
 
-    await graphModule?.deleteEntity({
+    await graphModule.deleteEntity({
       data: {
         entityId: introLinkEntity.metadata.recordId.entityId,
       },
@@ -206,7 +206,7 @@ export const App: BlockComponent<RootEntity> = ({
       return;
     }
 
-    await graphModule?.updateEntity({
+    await graphModule.updateEntity({
       data: {
         entityId: stepEntity.metadata.recordId.entityId,
         entityTypeId: howToBlockStepType,
@@ -230,7 +230,7 @@ export const App: BlockComponent<RootEntity> = ({
     setTimeout(async () => {
       setStepAnimatingOut(-1);
 
-      await graphModule?.deleteEntity({
+      await graphModule.deleteEntity({
         data: {
           entityId: stepLink.metadata.recordId.entityId,
         },
