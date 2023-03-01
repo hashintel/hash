@@ -1,3 +1,4 @@
+import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   useEntitySubgraph,
   useGraphBlockModule,
@@ -28,7 +29,7 @@ import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
   HasAddress,
-  HasAddressMap,
+  HasMapImage,
   RootEntity,
   RemoteFile,
 } from "./types";
@@ -111,7 +112,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const zoomLevel = properties[zoomLevelKey] ?? DEFAULT_ZOOM_LEVEL;
 
-  const addressLinkedEntity = useMemo(
+  const addressLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) => linkEntity.metadata.entityTypeId === hasAddressLink,
@@ -126,7 +127,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const fullAddress = addressEntity?.properties[fullAddressKey];
 
-  const mapLinkedEntity = useMemo(
+  const mapLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
     () =>
       linkedEntities.find(({ linkEntity }) => {
         return (
@@ -139,7 +140,7 @@ export const App: BlockComponent<RootEntity> = ({
   );
 
   const mapEntity: RemoteFile | undefined = mapLinkedEntity?.rightEntity;
-  const mapLinkEntity: HasAddressMap | undefined = mapLinkedEntity?.linkEntity;
+  const mapLinkEntity: HasMapImage | undefined = mapLinkedEntity?.linkEntity;
 
   const mapUrl = mapEntity?.properties[fileUrlKey];
 
