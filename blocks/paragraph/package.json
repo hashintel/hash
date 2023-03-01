@@ -51,10 +51,10 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "https://blockprotocol.org/@nate/types/property-type/text/": "William Shakespeare was an English playwright, poet and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. He is often called England's national poet and the \"Bard of Avon\"."
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "William Shakespeare was an English playwright, poet and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. He is often called England's national poet and the \"Bard of Avon\"."
       }
     ],
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@nate/types/entity-type/paragraph/v/2"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/paragraph-block/v/2"
   }
 }
