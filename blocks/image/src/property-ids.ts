@@ -1,6 +1,4 @@
 export const propertyIds = {
-  mediaType:
-    "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/property-type/media-type/" as const,
   caption:
     "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/" as const,
   width:

@@ -71,13 +71,9 @@ const useDefaultState = <
 export const Media: FunctionComponent<
   BlockGraphProperties<RootEntity> & {
     blockRef: RefObject<HTMLDivElement>;
+    mediaType: "image" | "video";
   }
-> = (props) => {
-  const {
-    blockRef,
-    graph: { blockEntitySubgraph, readonly },
-  } = props;
-
+> = ({ blockRef, mediaType, graph: { blockEntitySubgraph, readonly } }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const outgoingLinks = getOutgoingLinksForEntity(
     blockEntitySubgraph,
@@ -95,7 +91,6 @@ export const Media: FunctionComponent<
 
   const { metadata, properties } = rootEntity;
   const {
-    [propertyIds.mediaType]: mediaType,
     [propertyIds.url]: url,
     [propertyIds.caption]: initialCaption,
     [propertyIds.width]: initialWidth,
@@ -274,10 +269,6 @@ export const Media: FunctionComponent<
       setDraftSrc("");
     });
   };
-
-  if (mediaType !== "image" && mediaType !== "video") {
-    throw new Error("Improper mediaType");
-  }
 
   return (
     <div ref={blockRef}>

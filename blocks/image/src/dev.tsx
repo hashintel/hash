@@ -16,7 +16,6 @@ const node = document.getElementById("app");
 
 const initialData: RootEntity = {
   properties: {
-    [propertyIds.mediaType]: "image",
     [propertyIds.caption]: "Placeholder image",
     [propertyIds.url]: "https://picsum.photos/450/300",
   },

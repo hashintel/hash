@@ -16,7 +16,6 @@ const node = document.getElementById("app");
 
 const initialData: RootEntity = {
   properties: {
-    [propertyIds.mediaType]: "video",
     [propertyIds.caption]: "A blooming flower",
     [propertyIds.url]:
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",

@@ -35,7 +35,6 @@ export type URL = Text;
  * Image or video
  */
 export type MediaProperties = {
-  "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/property-type/media-type/": MediaType;
   "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/"?: Caption;
   "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/width/"?: Width;
   "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/url/"?: URL;

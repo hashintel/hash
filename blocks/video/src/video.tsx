@@ -12,7 +12,7 @@ export const Video: BlockComponent<RootEntity> = (props) => {
 
   return (
     <div ref={blockRef}>
-      <Media {...props} blockRef={blockRef} />
+      <Media {...props} blockRef={blockRef} mediaType="video" />
     </div>
   );
 };
