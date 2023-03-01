@@ -11,11 +11,11 @@ import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 
 export const App: BlockComponent<RootEntity> = ({
-  graph: { blockEntitySubgraph },
+  graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const editableRef = useRef<HTMLDivElement>(null);
-  const { [propertyIds.emoji]: icon = "📢", [propertyIds.text]: text } =
+  const { [propertyIds.emoji]: icon, [propertyIds.text]: text } =
     rootEntity.properties;
   const { entityId } = rootEntity.metadata.recordId;
 
@@ -57,6 +57,10 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
+  if (readonly && !text && !icon) {
+    return null;
+  }
+
   return (
     <div
       style={{
@@ -70,10 +74,9 @@ export const App: BlockComponent<RootEntity> = ({
       ref={blockRef}
     >
       <EmojiIcon
-        // @todo is this right? how do i detect if its been created yet?
-        disabled={!entityId}
+        disabled={readonly}
         onChange={handleIconChange}
-        value={icon}
+        value={icon ?? "📢"}
       />
       <div
         style={{

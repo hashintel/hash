@@ -104,8 +104,6 @@ export const App: BlockComponent<RootEntity> = ({
   const {
     [propertyIds.totalDuration]: initialDuration = "PT5M",
     [propertyIds.progress]: timerProgress,
-    // [propertyIds.targetDateTime]: targetDateTime,
-    // [propertyIds.pauseDuration]: pauseDuration,
   } = rootEntity.properties;
 
   const pauseDuration = getPauseDuration(timerProgress);
