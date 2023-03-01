@@ -21,7 +21,12 @@ import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditableField } from "./editable-field";
 import { Step } from "./step";
-import { HowToStep, IntroductionLink, RootEntity } from "./types";
+import {
+  HowToBlockIntroduction,
+  HowToBlockStep,
+  HasHowToBlockIntroduction,
+  RootEntity,
+} from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 
@@ -81,8 +86,9 @@ export const App: BlockComponent<RootEntity> = ({
     [linkedEntities],
   );
 
-  const introEntity: HowToStep | undefined = introLinkedEntity?.rightEntity;
-  const introLinkEntity: IntroductionLink | undefined =
+  const introEntity: HowToBlockIntroduction | undefined =
+    introLinkedEntity?.rightEntity;
+  const introLinkEntity: HasHowToBlockIntroduction | undefined =
     introLinkedEntity?.linkEntity;
 
   const stepLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
@@ -94,7 +100,7 @@ export const App: BlockComponent<RootEntity> = ({
     [linkedEntities],
   );
 
-  const stepEntities: HowToStep[] | undefined = stepLinkedEntities?.map(
+  const stepEntities: HowToBlockStep[] | undefined = stepLinkedEntities?.map(
     (linkEntity) => linkEntity.rightEntity,
   );
 
@@ -162,26 +168,30 @@ export const App: BlockComponent<RootEntity> = ({
     value: string | boolean,
     field: TitleOrDescription,
   ) => {
-    await graphModule.updateEntity({
-      data: {
-        entityId: introEntity.metadata.recordId.entityId,
-        entityTypeId: howToBlockIntroductionType,
-        properties: {
-          ...introEntity.properties,
-          [field]: value,
+    if (introEntity) {
+      await graphModule.updateEntity({
+        data: {
+          entityId: introEntity.metadata.recordId.entityId,
+          entityTypeId: howToBlockIntroductionType,
+          properties: {
+            ...introEntity.properties,
+            [field]: value,
+          },
         },
-      },
-    });
+      });
+    }
   };
 
   const removeIntroduction = async () => {
     setIntroAnimatingOut(true);
 
-    await graphModule.deleteEntity({
-      data: {
-        entityId: introLinkEntity.metadata.recordId.entityId,
-      },
-    });
+    if (introLinkEntity) {
+      await graphModule.deleteEntity({
+        data: {
+          entityId: introLinkEntity.metadata.recordId.entityId,
+        },
+      });
+    }
   };
 
   const addStep = () =>

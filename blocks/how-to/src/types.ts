@@ -2,7 +2,7 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block/v/3 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block/v/4 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
@@ -85,11 +85,37 @@ export type HasHowToBlockIntroductionLinksByLinkTypeId = {};
 export type HasHowToBlockIntroductionLinkAndRightEntities = NonNullable<
   HasHowToBlockIntroductionLinksByLinkTypeId[keyof HasHowToBlockIntroductionLinksByLinkTypeId]
 >;
+/**
+ * The title of something
+ */
+
+/**
+ * An ordered sequence of characters
+ */
+
+/**
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
+ */
+
+/**
+ * Describes any pre-requisites necessary for completing a subsequent set of steps (specifically How-To Block Steps).
+ */
+export type HowToBlockIntroductionProperties = {
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: DescriptionPropertyValue;
+};
+
+export type HowToBlockIntroduction = Entity<HowToBlockIntroductionProperties>;
+export type HowToBlockIntroductionLinksByLinkTypeId = {};
+
+export type HowToBlockIntroductionLinkAndRightEntities = NonNullable<
+  HowToBlockIntroductionLinksByLinkTypeId[keyof HowToBlockIntroductionLinksByLinkTypeId]
+>;
 export type HowToBlockHasHowToBlockIntroductionLinks =
   | []
   | {
       linkEntity: HasHowToBlockIntroduction;
-      rightEntity: Entity;
+      rightEntity: HowToBlockIntroduction;
     }[];
 
 export type HowToBlockLinksByLinkTypeId = {
