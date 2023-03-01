@@ -12,7 +12,7 @@ The block stores its state locally in the following properties, ([view the Code 
 
 Whenever the code editing `textarea` is blurred, the caption input is blurred, or the language selection is changed, the Graph Module's `updateEntity` method is called to save the local data to the embedding application.
 
-###### Supported programming languages
+### Supported language syntax
 
 - C#
 - CSS
