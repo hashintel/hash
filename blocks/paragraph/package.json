@@ -5,7 +5,8 @@
   "description": "Write a block of text to express an idea, make a point, or record a thought",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

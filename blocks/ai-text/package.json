@@ -5,7 +5,8 @@
   "description": "Generate blog posts, press releases, ad copy – using the power of AI",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

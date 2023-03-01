@@ -5,7 +5,8 @@
   "description": "Embed JPG, GIF, and PNG images by URL or file upload and add an optional caption",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

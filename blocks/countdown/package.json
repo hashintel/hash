@@ -5,7 +5,8 @@
   "description": "Countdown to a time and date",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

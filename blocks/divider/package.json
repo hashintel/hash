@@ -5,7 +5,8 @@
   "description": "Break up content on a page with horizontal dividing lines",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

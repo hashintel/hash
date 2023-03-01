@@ -4,7 +4,8 @@
   "description": "Search for an address using the Mapbox Address Autofill and Mapbox Static Images APIs",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

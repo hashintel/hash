@@ -5,7 +5,8 @@
   "description": "stopwatch block",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

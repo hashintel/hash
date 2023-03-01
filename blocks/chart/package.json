@@ -5,7 +5,8 @@
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

@@ -5,7 +5,8 @@
   "description": "Display information about a person, including their name, job title, email, website address, and an avatar",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

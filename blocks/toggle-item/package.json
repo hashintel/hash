@@ -5,7 +5,8 @@
   "description": "Toggle list item block",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

@@ -4,7 +4,8 @@
   "description": "Describe a task or process via a list of steps ",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

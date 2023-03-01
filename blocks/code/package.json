@@ -5,7 +5,8 @@
   "description": "Write monospaced code with syntax highlighting in a range of programming and markup languages",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

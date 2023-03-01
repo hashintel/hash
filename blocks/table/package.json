@@ -5,7 +5,8 @@
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

@@ -5,7 +5,8 @@
   "description": "Spreadsheet-like table for doing computation on entities",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

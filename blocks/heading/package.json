@@ -5,7 +5,8 @@
   "description": "Write titles, sub-titles, and section headings in four different sizes",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

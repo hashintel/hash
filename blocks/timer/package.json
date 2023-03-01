@@ -5,7 +5,8 @@
   "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

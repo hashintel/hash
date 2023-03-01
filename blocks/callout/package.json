@@ -5,7 +5,8 @@
   "description": "Draw attention to an important point or message with framed text and a custom icon",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",

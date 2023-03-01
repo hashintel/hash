@@ -5,7 +5,8 @@
   "description": "Create a list and set it into a random order",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",
