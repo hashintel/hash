@@ -1,5 +1,7 @@
 export const propertyIds = {
-  level: "https://blockprotocol.org/@nate/types/property-type/level/" as const,
-  color: "https://blockprotocol.org/@nate/types/property-type/color/" as const,
-  text: "https://blockprotocol.org/@nate/types/property-type/text/" as const,
+  level:
+    "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/" as const,
+  color:
+    "https://blockprotocol.org/@blockprotocol/types/property-type/css-text-color/" as const,
+  text: "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as const,
 };

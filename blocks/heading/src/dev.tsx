@@ -2,6 +2,7 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
+import { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
@@ -14,8 +15,7 @@ const node = document.getElementById("app");
 
 const initialData: RootEntity = {
   metadata: {
-    entityTypeId:
-      "https://blockprotocol.org/@nate/types/entity-type/heading/v/2",
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
     recordId: {
       entityId: "entity-heading",
       editionId: "1",

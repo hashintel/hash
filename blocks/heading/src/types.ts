@@ -2,49 +2,63 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol.org/@nate/types/entity-type/heading/v/2 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/heading-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * The size of something
+ * The “level” or size of the heading, this can be an integer between 1 to 6 (inclusive).
+ *
+ * This corresponds to the equivalent HTML tags (h1, h2, etc.)
  */
-export type Level = Number;
+export type HTMLHeadingLevelPropertyValue = NumberDataValue;
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
+export type NumberDataValue = number;
 /**
- * CSS color
+ * The text color, represented as a CSS-compatible color property expressed as a string.
+ *
+ * This is any ‘legal’ color value in CSS, for example (but not limited to)
+ *
+ * - a hexadecimal string: “#FFFFFF”
+ *
+ * - a named color: “skyblue”
+ *
+ * - an RGB value in functional notation: “rgb(255, 0, 255)”
+ *
+ * - an HSLA value in functional notation: “hsla(120, 100%, 50%)”
+ *
+ * See: https://www.w3schools.com/cssref/css_colors_legal.php
  */
-export type Color = Text;
+export type CSSTextColorPropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataValue = string;
 /**
- * The text content
+ * The text material, information, or body, that makes up the content of this thing.
  */
-export type Text1 = Text;
+export type TextualContentPropertyValue = TextDataValue;
 
 /**
- * Big text
+ * The block entity for the “Heading” block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/heading
  */
-export type HeadingProperties = {
-  "https://blockprotocol.org/@nate/types/property-type/level/"?: Level;
-  "https://blockprotocol.org/@nate/types/property-type/color/"?: Color;
-  "https://blockprotocol.org/@nate/types/property-type/text/"?: Text1;
-}
-
-export type Heading = Entity<HeadingProperties>;
-export type HeadingLinksByLinkTypeId = {
-
+export type HeadingBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/"?: HTMLHeadingLevelPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/css-text-color/"?: CSSTextColorPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
-export type HeadingLinkAndRightEntities = NonNullable<
-  HeadingLinksByLinkTypeId[keyof HeadingLinksByLinkTypeId]
+export type HeadingBlock = Entity<HeadingBlockProperties>;
+export type HeadingBlockLinksByLinkTypeId = {};
+
+export type HeadingBlockLinkAndRightEntities = NonNullable<
+  HeadingBlockLinksByLinkTypeId[keyof HeadingBlockLinksByLinkTypeId]
 >;
 
-export type RootEntity = Heading;
-export type RootEntityLinkedEntities = HeadingLinkAndRightEntities;
-export type RootLinkMap = HeadingLinksByLinkTypeId;
+export type RootEntity = HeadingBlock;
+export type RootEntityLinkedEntities = HeadingBlockLinkAndRightEntities;
+export type RootLinkMap = HeadingBlockLinksByLinkTypeId;
