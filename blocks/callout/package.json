@@ -51,11 +51,11 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "https://blockprotocol.org/@nate/types/property-type/emoji/": "📢",
-        "https://blockprotocol.org/@nate/types/property-type/text/": "Hello World!"
+        "https://blockprotocol.org/@hash/types/property-type/callout-block-emoji/": "📢",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Hello World!"
       }
     ],
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@nate/types/entity-type/callout/v/2"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/callout-block/v/2"
   }
 }
