@@ -88,7 +88,9 @@ export const App: BlockComponent<RootEntity> = ({
     try {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(localData[propertyIds.content]);
+        await navigator.clipboard.writeText(
+          localData[propertyIds.content] ?? "",
+        );
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
@@ -168,7 +170,7 @@ export const App: BlockComponent<RootEntity> = ({
           </div>
         </div>
         <Editor
-          content={localData[propertyIds.content]}
+          content={localData[propertyIds.content] ?? ""}
           setContent={(text) =>
             updateLocalData({ [propertyIds.content]: text })
           }
