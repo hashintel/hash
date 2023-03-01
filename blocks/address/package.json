@@ -57,6 +57,6 @@
     "image": "public/block-preview.png",
     "name": "@hash/address",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/address-block/v/4"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/address-block/v/2"
   }
 }

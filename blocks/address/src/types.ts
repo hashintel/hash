@@ -2,59 +2,57 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/address-block/v/4 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/address-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type Description = Text;
+export type TitlePropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataValue = string;
 /**
- * The title of something
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type Title = Text;
+export type DescriptionPropertyValue = TextDataValue;
 /**
- * The level that controls how zoomed in or out an image is.
+ * The level that controls how zoomed in or out a Mapbox static image is. Should be an integer between 0 and 22 (inclusive).
+ *
+ * See: https://docs.mapbox.com/api/maps/static-images/#retrieve-a-static-map-from-a-style.
  */
-export type ZoomLevel = Number;
+export type MapboxStaticImageZoomLevelPropertyValue = NumberDataValue;
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
+export type NumberDataValue = number;
 /**
- * The Mapbox Id on an address.
+ * The ID provided by Mapbox used to identify and retrieve an address.
  */
-export type MapboxAddressId = Text;
+export type MapboxAddressIDPropertyValue = TextDataValue;
 
 /**
- * The specific place where a person, business, or organization can be found
+ * The root entity of the “Address” block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/address
  */
 export type AddressBlockProperties = {
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: Description;
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: Title;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/"?: ZoomLevel;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/mapbox-address-id/"?: MapboxAddressId;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-static-image-zoom-level/"?: MapboxStaticImageZoomLevelPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-address-id/"?: MapboxAddressIDPropertyValue;
 };
 
 export type AddressBlock = Entity<AddressBlockProperties>;
 
 /**
- * Contains an address defined by an Address entity.
+ * Contains an address.
+ *
+ * See: https://blockprotocol.org/@hash/types/entity-type/address
  */
-export type HasAddressProperties = HasAddressProperties1 &
-  HasAddressProperties2;
-export type HasAddressProperties1 = Link;
-
-export type Link = {
-  leftEntityId?: string;
-  rightEntityId?: string;
-};
-export type HasAddressProperties2 = {};
+export type HasAddressProperties = {};
 
 export type HasAddress = Entity<HasAddressProperties>;
 export type HasAddressLinksByLinkTypeId = {};
@@ -63,44 +61,61 @@ export type HasAddressLinkAndRightEntities = NonNullable<
   HasAddressLinksByLinkTypeId[keyof HasAddressLinksByLinkTypeId]
 >;
 /**
- * The street information of an address.
+ * The first line of street information of an address.
+ *
+ * Conforms to the “address-line1” field of the “WHATWG Autocomplete Specification”.
+ *
+ * See: https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fe-autocomplete-address-level1
  */
-export type StreetAddress = Text;
+export type StreetAddressLine1PropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
 
 /**
- * The full information of an address.
+ * The broadest administrative level in the address, i.e. the province within which the locality is found; for example, in the US, this would be the state; in Switzerland it would be the canton; in the UK, the post town.
+ *
+ * Corresponds to the “address-level1” field of the “WHATWG Autocomplete Specification”.
+ *
+ * See: https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fe-autocomplete-address-level1
  */
-export type FullAddress = Text;
-/**
- * The locality name of an address.
- */
-export type AddressLocality = Text;
-/**
- * The country name of an address .
- */
-export type AddressCountry = Text;
+export type AddressLevel1PropertyValue = TextDataValue;
 /**
  * The postal code of an address.
+ *
+ * This should conform to the standards of the area the code is from, for example
+ *
+ * - a UK postcode might look like: “SW1A 1AA”
+ *
+ * - a US ZIP code might look like: “20500”
  */
-export type PostalCode = Text;
+export type PostalCodePropertyValue = TextDataValue;
 /**
- * The region name of an address.
+ * The short-form of a country’s name.
+ *
+ * Conforms to the ISO 3166 alpha-2 country code specification.
+ *
+ * See: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
  */
-export type AddressRegion = Text;
+export type Alpha2CountryCodePropertyValue = TextDataValue;
+/**
+ * A complete address as a string.
+ *
+ * Conforms to the “full_address” output of the Mapbox Autofill API.
+ *
+ * See: https://docs.mapbox.com/mapbox-search-js/api/core/autofill/#autofillsuggestion#full_address
+ */
+export type MapboxFullAddressPropertyValue = TextDataValue;
 
 /**
- * A collection of fields that describe a specific place.
+ * Information required to identify a specific location on the planet associated with a postal address.
  */
 export type AddressProperties = {
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/street-address/"?: StreetAddress;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/full-address/"?: FullAddress;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-locality/"?: AddressLocality;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-country/"?: AddressCountry;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/postal-code/"?: PostalCode;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-region/"?: AddressRegion;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/street-address-line-1/": StreetAddressLine1PropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/address-level-1/": AddressLevel1PropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/postal-code/": PostalCodePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/alpha-2-country-code/": Alpha2CountryCodePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-full-address/"?: MapboxFullAddressPropertyValue;
 };
 
 export type Address = Entity<AddressProperties>;
@@ -117,69 +132,65 @@ export type AddressBlockHasAddressLinks =
     }[];
 
 /**
- * Contains an image defined by an Image entity.
+ * Contains an image of a map.
  */
-export type HasAddressMapProperties = HasAddressMapProperties1 &
-  HasAddressMapProperties2;
-export type HasAddressMapProperties1 = Link;
-/**
- * The level that controls how zoomed in or out an image is.
- */
+export type HasMapImageProperties = {};
 
-/**
- * An arithmetical value (in the Real number system)
- */
+export type HasMapImage = Entity<HasMapImageProperties>;
+export type HasMapImageLinksByLinkTypeId = {};
 
+export type HasMapImageLinkAndRightEntities = NonNullable<
+  HasMapImageLinksByLinkTypeId[keyof HasMapImageLinksByLinkTypeId]
+>;
 /**
- * The Mapbox Id on an address.
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
 
 /**
  * An ordered sequence of characters
  */
 
-export type HasAddressMapProperties2 = {
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/"?: ZoomLevel;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/mapbox-address-id/"?: MapboxAddressId;
-};
-
-export type HasAddressMap = Entity<HasAddressMapProperties>;
-export type HasAddressMapLinksByLinkTypeId = {};
-
-export type HasAddressMapLinkAndRightEntities = NonNullable<
-  HasAddressMapLinksByLinkTypeId[keyof HasAddressMapLinksByLinkTypeId]
->;
 /**
  * A URL that serves a file.
  */
-export type FileURL = Text;
+export type FileURLPropertyValue = TextDataValue;
 /**
- * An ordered sequence of characters
+ * A MIME (Multipurpose Internet Mail Extensions) type.
+ *
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types.
  */
+export type MIMETypePropertyValue = TextDataValue;
+/**
+ * The name of a file.
+ */
+export type FileNamePropertyValue = TextDataValue;
 
 /**
- * An image defined by a URL.
+ * Information about a file hosted at a remote URL.
  */
-export type ImageProperties = {
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/file-url/"?: FileURL;
+export type RemoteFileProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": FileNamePropertyValue;
 };
 
-export type Image = Entity<ImageProperties>;
-export type ImageLinksByLinkTypeId = {};
+export type RemoteFile = Entity<RemoteFileProperties>;
+export type RemoteFileLinksByLinkTypeId = {};
 
-export type ImageLinkAndRightEntities = NonNullable<
-  ImageLinksByLinkTypeId[keyof ImageLinksByLinkTypeId]
+export type RemoteFileLinkAndRightEntities = NonNullable<
+  RemoteFileLinksByLinkTypeId[keyof RemoteFileLinksByLinkTypeId]
 >;
-export type AddressBlockHasAddressMapLinks =
+export type AddressBlockHasMapImageLinks =
   | []
   | {
-      linkEntity: HasAddressMap;
-      rightEntity: Image;
+      linkEntity: HasMapImage;
+      rightEntity: RemoteFile;
     }[];
 
 export type AddressBlockLinksByLinkTypeId = {
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address/v/1": AddressBlockHasAddressLinks;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address-map/v/2": AddressBlockHasAddressMapLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-address/v/1": AddressBlockHasAddressLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/1": AddressBlockHasMapImageLinks;
 };
 
 export type AddressBlockLinkAndRightEntities = NonNullable<

@@ -29,8 +29,8 @@ import {
   Address as AddressEntity,
   HasAddress,
   HasAddressMap,
-  Image as ImageEntity,
   RootEntity,
+  RemoteFile,
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
 
@@ -41,45 +41,39 @@ const MIN_ZOOM_LEVEL = 10;
 
 // Root entity property types
 const titleKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 const descriptionKey =
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 const addressIdKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/mapbox-address-id/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-address-id/";
 const zoomLevelKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-static-image-zoom-level/";
 
 // Address entity property types
 const regionKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-region/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/address-level-1/";
 const postalCodeKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/postal-code/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/postal-code/";
 const streetKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/street-address/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/street-address-line-1/";
 const countryKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-country/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/alpha-2-country-code/";
 const fullAddressKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/full-address/";
-
-// Image property types
-const fileUrlKey =
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/file-url/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-full-address/";
 
 // Remote File property types
-const remoteFileUrlKey =
+const fileUrlKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
 
 // Relevant Entity types
 const addressTypeId =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/address/v/2";
-const imageTypeId =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/image/v/2";
+  "https://blockprotocol.org/@hash/types/entity-type/address/v/2";
 
 // Link entity types
 const hasAddressLink =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address/v/1";
+  "https://blockprotocol.org/@hash/types/entity-type/has-address/v/1";
 const hasAddressMapLink =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/has-address-map/v/2";
+  "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/1";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
@@ -132,7 +126,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const fullAddress = addressEntity?.properties[fullAddressKey];
 
-  const imageLinkedEntity = useMemo(
+  const mapLinkedEntity = useMemo(
     () =>
       linkedEntities.find(({ linkEntity }) => {
         return (
@@ -144,11 +138,10 @@ export const App: BlockComponent<RootEntity> = ({
     [linkedEntities, zoomLevel, addressId],
   );
 
-  const imageEntity: ImageEntity | undefined = imageLinkedEntity?.rightEntity;
-  const imageLinkEntity: HasAddressMap | undefined =
-    imageLinkedEntity?.linkEntity;
+  const mapEntity: RemoteFile | undefined = mapLinkedEntity?.rightEntity;
+  const mapLinkEntity: HasAddressMap | undefined = mapLinkedEntity?.linkEntity;
 
-  const mapUrl = imageEntity?.properties[fileUrlKey];
+  const mapUrl = mapEntity?.properties[fileUrlKey];
 
   const availableZoomLevels = useMemo(() => {
     return linkedEntities
@@ -251,38 +244,23 @@ export const App: BlockComponent<RootEntity> = ({
         data: { file: mapFile },
       })
       .then(async (uploadFileResponse) => {
-        const imageUrl = uploadFileResponse.data?.properties[remoteFileUrlKey];
+        const fileEntityId =
+          uploadFileResponse.data?.metadata.recordId.entityId;
 
-        if (imageUrl) {
-          const imageProperties = {
-            [fileUrlKey]: imageUrl,
-          };
-
-          const createImageEntityResponse = await graphModule.createEntity({
+        if (!mapLinkEntity && addressId && fileEntityId) {
+          await graphModule.createEntity({
             data: {
-              entityTypeId: imageTypeId,
-              properties: imageProperties,
+              entityTypeId: hasAddressMapLink,
+              properties: {
+                [zoomLevelKey]: zoomLevel,
+                [addressIdKey]: addressId,
+              },
+              linkData: {
+                leftEntityId: entityId,
+                rightEntityId: fileEntityId,
+              },
             },
           });
-
-          const imageEntityId =
-            createImageEntityResponse?.data?.metadata.recordId.entityId;
-
-          if (!imageLinkEntity && imageEntityId && addressId) {
-            await graphModule.createEntity({
-              data: {
-                entityTypeId: hasAddressMapLink,
-                properties: {
-                  [zoomLevelKey]: zoomLevel,
-                  [addressIdKey]: addressId,
-                },
-                linkData: {
-                  leftEntityId: entityId,
-                  rightEntityId: imageEntityId,
-                },
-              },
-            });
-          }
         }
       });
   };
@@ -352,7 +330,7 @@ export const App: BlockComponent<RootEntity> = ({
       },
     });
 
-    // Remove the address link and all image links
+    // Remove the address link and all map links
     for (const { linkEntity } of linkedEntities) {
       if (linkEntity) {
         await graphModule.deleteEntity({
