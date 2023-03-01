@@ -50,8 +50,6 @@ const zoomLevelKey =
   "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/zoom-level/";
 
 // Address entity property types
-const localityKey =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-locality/";
 const regionKey =
   "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/property-type/address-region/";
 const postalCodeKey =
@@ -295,7 +293,6 @@ export const App: BlockComponent<RootEntity> = ({
     }
 
     const {
-      addressLocality,
       addressRegion,
       postalCode,
       streetAddress,
@@ -304,7 +301,6 @@ export const App: BlockComponent<RootEntity> = ({
     } = address;
 
     const addressProperties = {
-      [localityKey]: addressLocality,
       [regionKey]: addressRegion,
       [postalCodeKey]: postalCode,
       [streetKey]: streetAddress,
@@ -393,7 +389,6 @@ export const App: BlockComponent<RootEntity> = ({
           "@context": "http://schema.org",
           "@type": "PostalAddress",
           addressCountry: addressEntity.properties[countryKey],
-          addressLocality: addressEntity.properties[localityKey],
           addressRegion: addressEntity.properties[regionKey],
           postalCode: addressEntity.properties[postalCodeKey],
           streetAddress: addressEntity.properties[streetKey],

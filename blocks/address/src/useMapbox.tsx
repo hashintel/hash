@@ -25,7 +25,6 @@ export type Address = {
   addressId: string;
   postalCode: string;
   streetAddress: string;
-  addressLocality: string;
   addressRegion: string;
   addressCountry: string;
   fullAddress: string;
@@ -155,7 +154,6 @@ export const useMapbox = (
             featureName: selectedAddress.properties.feature_name,
             postalCode: selectedAddress.properties.postcode ?? "",
             streetAddress: selectedAddress.properties.address_line1 ?? "",
-            addressLocality: selectedAddress.properties.address_level2 ?? "",
             addressRegion: selectedAddress.properties.address_level1 ?? "",
             addressCountry: selectedAddress.properties.country ?? "",
             fullAddress: selectedAddress.properties.full_address ?? "",
