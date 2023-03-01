@@ -71,9 +71,8 @@ const useDefaultState = <
 export const Media: FunctionComponent<
   BlockGraphProperties<RootEntity> & {
     blockRef: RefObject<HTMLDivElement>;
-    mediaType: "image" | "video";
   }
-> = ({ blockRef, mediaType, graph: { blockEntitySubgraph, readonly } }) => {
+> = ({ blockRef, graph: { blockEntitySubgraph, readonly } }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const outgoingLinks = getOutgoingLinksForEntity(
     blockEntitySubgraph,
@@ -105,10 +104,7 @@ export const Media: FunctionComponent<
   const [errorString, setErrorString] = useState<null | string>(null);
 
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
-  const [draftWidth, setDraftWidth] = useDefaultState(
-    // eslint-disable-next-line react/destructuring-assignment
-    mediaType === "image" ? initialWidth : 0,
-  );
+  const [draftWidth, setDraftWidth] = useDefaultState(initialWidth);
 
   /**
    * Default for this input field is blank, not the URL passed
@@ -143,7 +139,7 @@ export const Media: FunctionComponent<
           entityTypeId: metadata.entityTypeId,
         };
 
-        if (width && mediaType === "image") {
+        if (width) {
           updateEntityData.properties[propertyIds.width] = width;
         }
 
@@ -161,7 +157,6 @@ export const Media: FunctionComponent<
     [
       draftCaption,
       graphModule,
-      mediaType,
       metadata.entityTypeId,
       metadata.recordId.entityId,
       setDraftSrc,
@@ -277,7 +272,7 @@ export const Media: FunctionComponent<
           onCaptionConfirm={() => updateData({ src: draftSrc })}
           onReset={resetComponent}
           width={draftWidth}
-          type={mediaType}
+          type="image"
           readonly={readonly}
         />
       ) : (
@@ -293,7 +288,7 @@ export const Media: FunctionComponent<
             onFileChoose={(file) => handleImageUpload({ file })}
             onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
             loading={loading}
-            type={mediaType}
+            type="image"
             readonly={readonly}
           />
         </>

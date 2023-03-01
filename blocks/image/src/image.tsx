@@ -33,9 +33,7 @@ export const Image: BlockComponent<RootEntity> = (props) => {
 
   return (
     <div ref={blockRef} className={tw`font-sans box-border`}>
-      {showFallback && (
-        <Media {...props} blockRef={blockRef} mediaType="image" />
-      )}
+      {showFallback && <Media {...props} blockRef={blockRef} />}
     </div>
   );
 };
