@@ -1,3 +1,8 @@
+#![expect(
+    clippy::let_underscore_untyped,
+    reason = "Upstream issue of `derivative`"
+)]
+
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;

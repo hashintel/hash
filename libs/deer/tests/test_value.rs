@@ -272,7 +272,7 @@ fn null_ok() {
     let context = Context::new();
 
     let de = NullDeserializer::new(&context);
-    let _ = Null::deserialize(de).expect("able to deserializer");
+    _ = Null::deserialize(de).expect("able to deserializer");
 }
 
 #[test]
