@@ -156,7 +156,8 @@ export const useMapbox = (
             streetAddress: selectedAddress.properties.address_line1 ?? "",
             addressRegion: selectedAddress.properties.address_level1 ?? "",
             addressCountry:
-              selectedAddress.properties.metadata.iso_3166_1 ?? "",
+              selectedAddress.properties.metadata.iso_3166_1.toUpperCase() ??
+              "",
             fullAddress: selectedAddress.properties.full_address ?? "",
             addressId: selectedAddressId!,
           }
