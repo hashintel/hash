@@ -1,12 +1,12 @@
 {
-  "name": "@blocks/header",
+  "name": "@blocks/heading",
   "version": "0.2.1",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
-    "directory": "blocks/header"
+    "directory": "blocks/heading"
   },
   "license": "MIT",
   "author": "HASH",
@@ -16,18 +16,19 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
-    "@blockprotocol/hook": "0.0.8"
+    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/hook": "0.1.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -50,11 +51,12 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "text": "Hello World!",
-        "level": 2,
-        "color": "black"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Hello World!",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 2,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/css-text-color/": "black"
       }
     ],
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/heading-block/v/2"
   }
 }
