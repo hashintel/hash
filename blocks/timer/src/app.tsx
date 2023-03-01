@@ -20,7 +20,8 @@ import { clamp } from "./app/clamp";
 import { DurationInput } from "./app/duration-input";
 import { TimerStatus } from "./app/timer-status";
 import { useAutoRefresh } from "./app/use-auto-refresh";
-import { RootEntity } from "./types";
+import { propertyIds } from "./property-ids";
+import { RootEntity, TimerBlockProgressPropertyValue } from "./types";
 
 type TimerState = {
   initialDurationInMs: number;
@@ -80,62 +81,53 @@ const parseDurationIfPossible = (
   return undefined;
 };
 
-export const initialDurationProperty =
-  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/initial-duration/";
-export const targetDateTimeProperty =
-  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/target-date-time/";
-export const pauseDurationProperty =
-  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/pause-duration/";
+const getPauseDuration = (timerProgress?: TimerBlockProgressPropertyValue) => {
+  if (timerProgress && propertyIds.pauseDuration in timerProgress) {
+    return timerProgress[propertyIds.pauseDuration];
+  }
+};
+
+const getTargetDateTime = (timerProgress?: TimerBlockProgressPropertyValue) => {
+  if (timerProgress && propertyIds.targetDateTime in timerProgress) {
+    return timerProgress[propertyIds.targetDateTime];
+  }
+};
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("Block entity subgraph missing");
-  }
-
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
 
   const { entityId } = rootEntity.metadata.recordId;
   const { entityTypeId } = rootEntity.metadata;
 
   const {
-    [initialDurationProperty]: initialDuration,
-    [targetDateTimeProperty]: targetDateTime,
-    [pauseDurationProperty]: pauseDuration,
+    [propertyIds.totalDuration]: initialDuration = "PT5M",
+    [propertyIds.progress]: timerProgress,
+    // [propertyIds.targetDateTime]: targetDateTime,
+    // [propertyIds.pauseDuration]: pauseDuration,
   } = rootEntity.properties;
 
-  const blockEntityProperties = useMemo(
-    () => ({
-      pauseDuration,
-      initialDuration,
-      targetDateTime,
-    }),
-    [initialDuration, pauseDuration, targetDateTime],
-  );
+  const pauseDuration = getPauseDuration(timerProgress);
+  const targetDateTime = getTargetDateTime(timerProgress);
 
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const externalTimerState = useMemo<TimerState>(() => {
-    const unclampedPauseDuration = parseDurationIfPossible(
-      blockEntityProperties.pauseDuration,
-    );
+    const unclampedPauseDuration = parseDurationIfPossible(pauseDuration);
 
     return {
       initialDurationInMs: clamp(
-        parseDurationIfPossible(blockEntityProperties.initialDuration) ??
-          defaultInitialDurationInMs,
+        parseDurationIfPossible(initialDuration) ?? defaultInitialDurationInMs,
         [minInitialDurationInMs, maxInitialDurationInMs],
       ),
       pauseDurationInMs: unclampedPauseDuration
         ? clamp(unclampedPauseDuration, [0, maxInitialDurationInMs])
         : undefined,
-      targetTimestamp: parseDateIfPossible(
-        blockEntityProperties.targetDateTime,
-      ),
+      targetTimestamp: parseDateIfPossible(targetDateTime),
     };
-  }, [blockEntityProperties]);
+  }, [initialDuration, pauseDuration, targetDateTime]);
 
   const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
 
@@ -159,29 +151,31 @@ export const App: BlockComponent<RootEntity> = ({
       }
 
       const properties = {
-        [initialDurationProperty]: duration.toString(
+        [propertyIds.totalDuration]: duration.toString(
           normalizeDurationMinutesAndSeconds(
             duration.toString(newTimerState.initialDurationInMs),
           ),
         ),
-        ...(newTimerState.pauseDurationInMs
-          ? {
-              [pauseDurationProperty]: duration
-                .toString(
-                  normalizeDurationMinutesAndSeconds(
-                    newTimerState.pauseDurationInMs,
-                  ),
-                )
-                .replace(/,/g, "."), // https://github.com/dlevs/duration-fns/issues/26
-            }
-          : {}),
-        ...(newTimerState.targetTimestamp
-          ? {
-              [targetDateTimeProperty]: new Date(
-                newTimerState.targetTimestamp,
-              ).toISOString(),
-            }
-          : {}),
+        [propertyIds.progress]: {
+          ...(newTimerState.pauseDurationInMs
+            ? {
+                [propertyIds.pauseDuration]: duration
+                  .toString(
+                    normalizeDurationMinutesAndSeconds(
+                      newTimerState.pauseDurationInMs,
+                    ),
+                  )
+                  .replace(/,/g, "."), // https://github.com/dlevs/duration-fns/issues/26
+              }
+            : {}),
+          ...(newTimerState.targetTimestamp
+            ? {
+                [propertyIds.targetDateTime]: new Date(
+                  newTimerState.targetTimestamp,
+                ).toISOString(),
+              }
+            : {}),
+        },
       };
 
       if (readonly) {

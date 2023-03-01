@@ -6,8 +6,8 @@ import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
 import packageJSON from "../package.json";
-import { initialDurationProperty } from "./app";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
@@ -22,7 +22,7 @@ const initialData: RootEntity = {
     },
   },
   properties: {
-    [initialDurationProperty]: "PT5M",
+    [propertyIds.totalDuration]: "PT5M",
   },
 };
 
