@@ -23,7 +23,7 @@ const DevApp = () => {
       blockDefinition={{ ReactComponent: Component }}
       blockInfo={packageJSON.blockprotocol}
       blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // Set this to an API key when testing
-      blockProtocolSiteHost="https://blockprotocol-9a7200lt2.stage.hash.ai" // update this to a recent deployment when testing
+      blockProtocolSiteHost={process.env.BLOCK_PROTOCOL_SITE_HOST}
       debug
     />
   );
