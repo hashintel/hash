@@ -13,7 +13,7 @@
     "directory": "blocks/ai-image"
   },
   "license": "see LICENSE.md",
-  "author": "Ciaran Morinan",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",

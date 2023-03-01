@@ -7,7 +7,12 @@
     "blockprotocol",
     "blocks"
   ],
-  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "blocks/toggle-item"
+  },
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",

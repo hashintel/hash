@@ -6,8 +6,13 @@
     "blockprotocol",
     "blocks"
   ],
-  "license": "MIT",
-  "author": "luisbettencourt",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/how-to"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",

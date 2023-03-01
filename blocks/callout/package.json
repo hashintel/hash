@@ -3,12 +3,16 @@
   "version": "0.2.0",
   "private": true,
   "description": "Draw attention to an important point or message with framed text and a custom icon",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/callout"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",

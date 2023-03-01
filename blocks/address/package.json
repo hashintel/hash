@@ -11,8 +11,8 @@
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/address"
   },
-  "license": "MIT",
-  "author": "luisbettencourt",
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",

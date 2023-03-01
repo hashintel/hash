@@ -12,8 +12,8 @@
     "url": "https://github.com/hashintel/hash.git",
     "directory": "blocks/countdown"
   },
-  "license": "MIT",
-  "author": "Tim Diekmann",
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",

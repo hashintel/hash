@@ -12,7 +12,7 @@
     "url": "https://github.com/hashintel/hash.git",
     "directory": "blocks/calculation"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "Ahmad Sattar Atta",
   "scripts": {
     "build": "block-scripts build",

@@ -2,12 +2,16 @@
   "name": "@blocks/html-para",
   "version": "0.1.0",
   "private": true,
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/html-para"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "echo \"@blocks/html-para contains no resources to build\"",

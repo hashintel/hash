@@ -12,8 +12,8 @@
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/shuffle"
   },
-  "license": "MIT",
-  "author": "luisbettencourt",
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "node_modules/.bin/block-scripts build",
     "dev": "node_modules/.bin/block-scripts dev",
