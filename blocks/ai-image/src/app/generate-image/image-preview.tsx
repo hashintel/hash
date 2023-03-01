@@ -19,7 +19,6 @@ export const ImagePreview = ({
   const [selectedImageEntity, setSelectedImageEntity] =
     useState<RemoteFileEntity | null>(null);
 
-  console.log({ images, uploadInProgress });
 
   return (
     <div
