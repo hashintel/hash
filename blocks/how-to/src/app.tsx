@@ -26,14 +26,18 @@ import {
   HowToBlockStep,
   HasHowToBlockIntroduction,
   RootEntity,
+  HowToBlockLinksByLinkTypeId,
 } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 
+type RootEntityKey = keyof RootEntity["properties"];
+type LinkType = keyof HowToBlockLinksByLinkTypeId;
+
 // Property types
-export const titleKey =
+export const titleKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
-export const descriptionKey =
+export const descriptionKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 
 // Relevant Entity Types
@@ -43,18 +47,15 @@ const howToBlockIntroductionType =
   "https://blockprotocol.org/@hash/types/entity-type/how-to-block-introduction/v/2";
 
 // Link Entity Types
-const hasHowToBlockStep =
+const hasHowToBlockStep: LinkType =
   "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1";
-const hasHowToBlockIntroduction =
+const hasHowToBlockIntroduction: LinkType =
   "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1";
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
 export type EntityType =
   | typeof howToBlockIntroductionType
   | typeof howToBlockStepType;
-export type LinkType =
-  | typeof hasHowToBlockIntroduction
-  | typeof hasHowToBlockStep;
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
