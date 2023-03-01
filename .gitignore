@@ -100,6 +100,9 @@ __pycache__
 /var
 seed-users.json
 
+# Block Protocol
+.blockprotocolrc
+
 # Terraform
 **/.terraform
 *.terraform.lock.hcl
