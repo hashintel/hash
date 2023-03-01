@@ -28,7 +28,13 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useCallback, useId } from "react";
+import {
+  Fragment,
+  MouseEventHandler,
+  useCallback,
+  useId,
+  useState,
+} from "react";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 
@@ -80,6 +86,21 @@ export const TypeMenuCell = ({
     ),
     [editButtonDisabled, popupState, editButtonProps, variant],
   );
+
+  const [hasCopied, setHasCopied] = useState<boolean>(false);
+  const copyEntityTypeId = useCallback<MouseEventHandler>(
+    (event) => {
+      event.preventDefault();
+
+      setHasCopied(true);
+      return navigator.clipboard.writeText(typeId);
+    },
+    [typeId, setHasCopied],
+  );
+
+  const handleTooltipOpen = () => {
+    setHasCopied(false);
+  };
 
   return (
     <TableCell
@@ -171,35 +192,52 @@ export const TypeMenuCell = ({
         </Typography>
         <ListItem sx={{ pt: "0 !important" }}>
           <Tooltip
+            enterDelay={250}
+            onOpen={handleTooltipOpen}
             title={
               <>
+                <Typography
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                  }}
+                  align="center"
+                  variant="smallTextLabels"
+                >
+                  {hasCopied ? "Copied" : "Click to copy"}
+                </Typography>
                 {ontology.domain}/{ontology.path}
               </>
             }
             placement="bottom"
           >
-            <OntologyChip
-              {...ontology}
-              path={
-                <>
-                  {ontology.path.split("/").map((part, idx, parts) => {
-                    const last = idx === parts.length - 1;
-                    return (
-                      // eslint-disable-next-line react/no-array-index-key
-                      <Fragment key={idx}>
-                        <Typography
-                          component="span"
-                          maxWidth={last ? "5ch" : "6ch"}
-                        >
-                          {part}
-                        </Typography>
-                        {last ? null : <>/</>}
-                      </Fragment>
-                    );
-                  })}
-                </>
-              }
-            />
+            <Box onClick={copyEntityTypeId}>
+              <OntologyChip
+                {...ontology}
+                sx={{
+                  cursor: "pointer",
+                }}
+                path={
+                  <>
+                    {ontology.path.split("/").map((part, idx, parts) => {
+                      const last = idx === parts.length - 1;
+                      return (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <Fragment key={idx}>
+                          <Typography
+                            component="span"
+                            maxWidth={last ? "5ch" : "6ch"}
+                          >
+                            {part}
+                          </Typography>
+                          {last ? null : <>/</>}
+                        </Fragment>
+                      );
+                    })}
+                  </>
+                }
+              />
+            </Box>
           </Tooltip>
         </ListItem>
         <Divider />
