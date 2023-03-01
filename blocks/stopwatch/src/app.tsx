@@ -86,7 +86,7 @@ export const App: BlockComponent<RootEntity> = ({
           properties: {
             [propertyIds.laps]: laps_data,
             ...(start_data
-              ? { [propertyIds.startTime]: start_data.getTime() }
+              ? { [propertyIds.startTime]: start_data.toISOString() }
               : {}),
           },
         },
