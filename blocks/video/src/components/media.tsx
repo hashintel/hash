@@ -126,25 +126,22 @@ export const Media: FunctionComponent<
   const updateData = useCallback(
     ({ src }: { src: string | undefined }) => {
       if (src?.trim()) {
-        // @todo how to handle this not being defined now
-        if (metadata.recordId.entityId) {
-          const updateEntityData: UpdateEntityData = {
-            properties: {
-              ...propertiesRef.current,
-              [propertyIds.caption]: draftCaption,
-            },
-            entityId: metadata.recordId.entityId,
-            entityTypeId: metadata.entityTypeId,
-          };
+        const updateEntityData: UpdateEntityData = {
+          properties: {
+            ...propertiesRef.current,
+            [propertyIds.caption]: draftCaption,
+          },
+          entityId: metadata.recordId.entityId,
+          entityTypeId: metadata.entityTypeId,
+        };
 
-          void graphModule.updateEntity({ data: updateEntityData });
-        }
-
-        unstable_batchedUpdates(() => {
-          setErrorString(null);
-          setDraftSrc(src);
-        });
+        void graphModule.updateEntity({ data: updateEntityData });
       }
+
+      unstable_batchedUpdates(() => {
+        setErrorString(null);
+        setDraftSrc(src);
+      });
     },
     [
       draftCaption,
