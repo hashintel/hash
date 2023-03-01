@@ -1,19 +1,20 @@
 {
   "name": "@blocks/shuffle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Create a list and set it into a random order",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/shuffle"
   },
-  "license": "MIT",
-  "author": "luisbettencourt",
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "node_modules/.bin/block-scripts build",
     "dev": "node_modules/.bin/block-scripts dev",
