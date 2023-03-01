@@ -42,8 +42,7 @@ const fileEntity: Entity<RemoteFileEntityProperties> = {
       entityId: "entity-file",
       editionId: "1",
     },
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/file/v/1",
+    entityTypeId: linkIds.file,
   },
 };
 
