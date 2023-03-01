@@ -7,10 +7,10 @@ import { RootEntity } from "../types";
 import { TextPreview } from "./generate-text/text-preview";
 
 export const promptKey: keyof RootEntity["properties"] =
-  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/prompt/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-prompt/";
 
 export const modelKey: keyof RootEntity["properties"] =
-  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/model/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-name/";
 
 export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);

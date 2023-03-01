@@ -8,7 +8,7 @@ import { GenerateText } from "./app/generate-text";
 import { RootEntity } from "./types";
 
 export const contentKey: keyof RootEntity["properties"] =
-  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/";
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
