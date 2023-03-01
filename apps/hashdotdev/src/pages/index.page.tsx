@@ -222,14 +222,12 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
           >
             <Typography>
               An open-source, all-in-one workspace platform built around
-              structured data and interactive blocks. It feels like
-              taking notes, but works like a powerful database.{" "}
+              structured data and interactive blocks. It feels like taking
+              notes, but works like a powerful database.{" "}
             </Typography>
             <Typography>
               Join the beta at{" "}
-              <Link href="https://hash.ai/platform/hash">
-                hash.ai
-              </Link>
+              <Link href="https://hash.ai/platform/hash">hash.ai</Link>
             </Typography>
           </Project>
           <Project
@@ -264,8 +262,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <Typography>
-              Run agent-based simulations using your own private and public
-              data from HASH.
+              Run agent-based simulations using your own private and public data
+              from HASH.
             </Typography>
             <Typography>
               The HASH all-in-one workspace will make it easy to clean,
