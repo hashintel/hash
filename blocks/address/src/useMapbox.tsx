@@ -7,8 +7,9 @@ import {
   AutofillSuggestion,
 } from "@blockprotocol/service/dist/mapbox-types";
 import { v4 as uuid } from "uuid";
+import { MapboxRetrieveStaticMapData } from "@blockprotocol/service/.";
 
-const toArrayBuffer = (buffer: Buffer) => {
+const toArrayBuffer = (buffer: Uint8Array) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
   const view = new Uint8Array(arrayBuffer);
   for (let i = 0; i < buffer.length; ++i) {
@@ -128,13 +129,16 @@ export const useMapbox = (
               lon: coords[0],
               lat: coords[1],
               zoom: zoomLevel,
-            },
+            } as MapboxRetrieveStaticMapData,
           })
           .then((res) => {
             if (res.data) {
-              let blob = new Blob([toArrayBuffer(res.data.data)], {
-                type: "arraybuffer",
-              });
+              let blob = new Blob(
+                [toArrayBuffer(new Uint8Array(res.data.data))],
+                {
+                  type: "arraybuffer",
+                },
+              );
 
               setMapUrl(URL.createObjectURL(blob));
               setMapFile(new File([blob], "map"));

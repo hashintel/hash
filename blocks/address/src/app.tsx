@@ -67,6 +67,10 @@ const fullAddressKey =
 const fileUrlKey =
   "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/file-url/";
 
+// Remote File property types
+const remoteFileUrlKey =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
+
 // Relevant Entity types
 const addressTypeId =
   "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbett/types/entity-type/address/v/2";
@@ -249,10 +253,7 @@ export const App: BlockComponent<RootEntity> = ({
         data: { file: mapFile },
       })
       .then(async (uploadFileResponse) => {
-        const imageUrl =
-          uploadFileResponse.data?.properties[
-            "https://blockprotocol.org/@blockprotocol/types/property-type/url/"
-          ];
+        const imageUrl = uploadFileResponse.data?.properties[remoteFileUrlKey];
 
         if (imageUrl) {
           const imageProperties = {
