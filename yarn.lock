@@ -3264,6 +3264,11 @@
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0.tgz#951e3d4aa996440762a5207329e8e151176cd24f"
   integrity sha512-Q8EDKrGRyPETasWTJy1EX0PM66WlLZUbLwFuib8Gk8sGHdUSNLDP54fCjBO/DKDTahN25qTX04KxFJsC32RxMw==
 
+"@blockprotocol/type-system@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0.tgz#951e3d4aa996440762a5207329e8e151176cd24f"
+  integrity sha512-Q8EDKrGRyPETasWTJy1EX0PM66WlLZUbLwFuib8Gk8sGHdUSNLDP54fCjBO/DKDTahN25qTX04KxFJsC32RxMw==
+
 "@blockprotocol/type-system@0.1.0-canary-20230220234726":
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230220234726.tgz#58d88863e266592380d38fcb84acccc56b723b03"
