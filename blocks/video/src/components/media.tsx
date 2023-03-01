@@ -136,12 +136,12 @@ export const Media: FunctionComponent<
         };
 
         void graphModule.updateEntity({ data: updateEntityData });
-      }
 
-      unstable_batchedUpdates(() => {
-        setErrorString(null);
-        setDraftSrc(src);
-      });
+        unstable_batchedUpdates(() => {
+          setErrorString(null);
+          setDraftSrc(src);
+        });
+      }
     },
     [
       draftCaption,
