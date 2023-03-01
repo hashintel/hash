@@ -42,7 +42,7 @@ const getLastLap = (laps: number[]): number => {
 };
 
 export const App: BlockComponent<RootEntity> = ({
-  graph: { blockEntitySubgraph },
+  graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRef = useRef<HTMLDivElement>(null);
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
@@ -144,12 +144,20 @@ export const App: BlockComponent<RootEntity> = ({
 
   return (
     <div ref={blockRef}>
-      <button type="button" onClick={start_stop}>
-        {localStart !== null ? "stop" : allLaps === 0 ? "start" : "continue"}
-      </button>
-      <button type="button" onClick={lap_reset}>
-        {localStart !== null ? "lap" : "reset"}
-      </button>
+      {readonly ? null : (
+        <>
+          <button type="button" onClick={start_stop}>
+            {localStart !== null
+              ? "stop"
+              : allLaps === 0
+              ? "start"
+              : "continue"}
+          </button>
+          <button type="button" onClick={lap_reset}>
+            {localStart !== null ? "lap" : "reset"}
+          </button>
+        </>
+      )}
       <p>{formatDuration(allLaps + currentLap)}</p>
       {localLaps.length > 1 && (
         <ol>
