@@ -16,19 +16,20 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
-    "@blockprotocol/hook": "0.0.8",
+    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/hook": "0.1.0",
     "twind": "0.16.17"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -50,11 +51,9 @@
     "icon": "public/image.svg",
     "image": "public/preview.svg",
     "examples": [
-      {
-        "initialCaption": "Image of a Dog",
-        "url": "https://placedog.net/450/300"
-      }
+      {}
     ],
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/image-block/v/2"
   }
 }

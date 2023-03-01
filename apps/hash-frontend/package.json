@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
-    "@blockprotocol/core": "0.1.0-canary-20230227152050",
+    "@blockprotocol/core": "0.1.0",
     "@blockprotocol/graph": "0.1.0-canary-20230227152050",
     "@blockprotocol/hook": "0.1.0-canary-20230227152050",
     "@blockprotocol/type-system": "0.1.0-canary-20230227152050",

@@ -2,30 +2,81 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
+import { Entity, VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
-import React from "react";
 import { render } from "react-dom";
 
+import packageJSON from "../package.json";
 import Component from "./index";
+import { entityTypeIds, propertyIds } from "./property-ids";
+import { HasRepresentativeShuffleBlockItem, RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
-const DevApp = () => {
+const personEntity: Entity = {
+  metadata: {
+    entityTypeId: "https://mock-type/person/v/1",
+    recordId: {
+      entityId: "person-entity",
+      editionId: "1",
+    },
+  },
+  properties: {
+    "https://blockprotocol-r2l2zq4gf.stage.hash.ai/@blockprotocol/types/property-type/name/":
+      "John Doe",
+  },
+};
+
+const blockEntity: RootEntity = {
+  metadata: {
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    recordId: {
+      entityId: "entity-ordered-list",
+      editionId: "1",
+    },
+  },
+  properties: {
+    [propertyIds.list]: [
+      {
+        [propertyIds.id]: "1",
+        [propertyIds.value]: "Thing 1",
+      },
+      {
+        [propertyIds.id]: "2",
+        [propertyIds.linkEntityId]: "item-content-1",
+        [propertyIds.value]: "",
+      },
+    ],
+  },
+};
+
+const link1: HasRepresentativeShuffleBlockItem = {
+  properties: {},
+  metadata: {
+    entityTypeId: entityTypeIds.hasRepresentativeShuffleBlockItem,
+    recordId: {
+      entityId: "item-content-1",
+      editionId: "1",
+    },
+  },
+  linkData: {
+    leftEntityId: blockEntity.metadata.recordId.entityId,
+    rightEntityId: personEntity.metadata.recordId.entityId,
+  },
+};
+
+const initialEntities = [blockEntity, link1, personEntity];
+
+const App = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockEntity={{
-        entityId: "test-shuffle-1",
-        properties: {
-          items: [
-            { value: "Thing 1", id: "1" },
-            { value: "Thing 2", id: "2" },
-          ],
-        },
-      }}
+      blockEntityRecordId={blockEntity.metadata.recordId}
+      initialData={{ initialEntities }}
+      blockInfo={packageJSON.blockprotocol}
       debug
     />
   );
 };
 
-render(<DevApp />, node);
+render(<App />, node);
