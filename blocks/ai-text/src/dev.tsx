@@ -22,8 +22,9 @@ const DevApp = () => {
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
       blockInfo={packageJSON.blockprotocol}
-      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // Set this to an API key when testing
-      blockProtocolSiteHost={process.env.BLOCK_PROTOCOL_SITE_HOST}
+      // @todo add dot-env support
+      blockProtocolApiKey={undefined} // Set this to an API key when testing
+      blockProtocolSiteHost="https://blockprotocol.org" // update this to a recent staging deployment when testing
       debug
     />
   );
