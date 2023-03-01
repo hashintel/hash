@@ -61,18 +61,18 @@
     "displayName": "shuffle",
     "examples": [
       {
-        "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/": [
+        "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item/": [
           {
-            "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": "1",
-            "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "Alice"
+            "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item-id/": "1",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Alice"
           },
           {
-            "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": "2",
-            "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "Bob"
+            "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item-id/": "2",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Bob"
           },
           {
-            "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": "3",
-            "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "Charlie"
+            "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item-id/": "3",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Charlie"
           }
         ]
       }
@@ -80,6 +80,6 @@
     "icon": "public/shuffle.svg",
     "image": "public/preview.png",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/ordered-list-2/v/9"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/shuffle-block/v/2"
   }
 }

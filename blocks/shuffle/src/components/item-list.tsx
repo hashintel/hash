@@ -18,12 +18,12 @@ import { List } from "@mui/material";
 import React, { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { propertyIds } from "../property-ids";
-import { ListItem } from "../types";
+import { ShuffleBlockItemPropertyValue } from "../types";
 import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";
 
 type ItemListProps = {
-  list: ListItem[];
+  list: ShuffleBlockItemPropertyValue[];
   onReorder: (sourceIndex: number, destinationIndex: number) => void;
   onValueChange: (index: number, value: string) => void;
   onItemBlur: () => void;
@@ -37,7 +37,7 @@ const measuringConfig = {
   },
 };
 
-const findItemIndexById = (list: ListItem[], id: UniqueIdentifier) =>
+const findItemIndexById = (list: ShuffleBlockItemPropertyValue[], id: UniqueIdentifier) =>
   list.findIndex((item) => item[propertyIds.id] === id);
 
 const boxShadow =

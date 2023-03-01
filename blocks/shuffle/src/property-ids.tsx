@@ -1,11 +1,13 @@
 export const propertyIds = {
-  list: "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/" as const,
+  list: "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item/" as const,
   linkEntityId:
-    "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/link-entity-id/" as const,
+    "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item-associated-link-entity-id/" as const,
   value:
-    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/" as const,
-  id: "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/" as const,
-  itemContent:
-    "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/item-content-2/v/1" as const,
-  name: "https://blockprotocol-r2l2zq4gf.stage.hash.ai/@blockprotocol/types/property-type/name/" as const,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as const,
+  id: "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item-id/" as const,
+};
+
+export const entityTypeIds = {
+  hasRepresentativeShuffleBlockItem:
+    "https://blockprotocol.org/@hash/types/entity-type/has-representative-shuffle-block-item/v/1" as const,
 };

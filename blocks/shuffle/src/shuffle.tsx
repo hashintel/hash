@@ -6,7 +6,7 @@ import {
 import {
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
-  parseLabelFromEntity
+  parseLabelFromEntity,
 } from "@blockprotocol/graph/stdlib";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -20,9 +20,13 @@ import { v4 as uuid } from "uuid";
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
 import { propertyIds } from "./property-ids";
-import { ListItem, RootEntity, RootEntityLinkedEntities } from "./types";
+import {
+  RootEntity,
+  RootEntityLinkedEntities,
+  ShuffleBlockItemPropertyValue,
+} from "./types";
 
-const initialItems: ListItem[] = [
+const initialItems: ShuffleBlockItemPropertyValue[] = [
   { [propertyIds.id]: "1", [propertyIds.value]: "Thing 1" },
   { [propertyIds.id]: "2", [propertyIds.value]: "Thing 2" },
 ];
@@ -39,8 +43,8 @@ export const Shuffle: BlockComponent<RootEntity> = ({
 
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
-  const [draftItems, setDraftItems] = useState<ListItem[]>(
-    items.length ? items : initialItems,
+  const [draftItems, setDraftItems] = useState<ShuffleBlockItemPropertyValue[]>(
+    items?.length ? items : initialItems,
   );
   const [prevItems, setPrevItems] = useState(items);
 
@@ -48,11 +52,11 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     setPrevItems(items);
 
     if (!isEqual(items, draftItems)) {
-      setDraftItems(items);
+      setDraftItems(items ?? initialItems);
     }
   }
 
-  const publishItems = (newItems: ListItem[]) => {
+  const publishItems = (newItems: ShuffleBlockItemPropertyValue[]) => {
     if (readonly) {
       return;
     }
@@ -68,7 +72,10 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     });
   };
 
-  const updateItems = (newItems: ListItem[], publish = true) => {
+  const updateItems = (
+    newItems: ShuffleBlockItemPropertyValue[],
+    publish = true,
+  ) => {
     setDraftItems(newItems);
 
     if (publish) {

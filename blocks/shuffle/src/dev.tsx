@@ -2,35 +2,34 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
-import { Entity } from "@blockprotocol/graph";
+import { Entity, VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
-import { propertyIds } from "./property-ids";
-import { ItemContent2, RootEntity } from "./types";
+import { entityTypeIds, propertyIds } from "./property-ids";
+import { HasRepresentativeShuffleBlockItem, RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
 const personEntity: Entity = {
   metadata: {
-    entityTypeId:
-      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/person/v/2",
+    entityTypeId: "https://mock-type/person/v/1",
     recordId: {
       entityId: "person-entity",
       editionId: "1",
     },
   },
   properties: {
-    [propertyIds.name]: "John Doe",
+    "https://blockprotocol-r2l2zq4gf.stage.hash.ai/@blockprotocol/types/property-type/name/":
+      "John Doe",
   },
 };
 
 const blockEntity: RootEntity = {
   metadata: {
-    entityTypeId:
-      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/ordered-list-2/v/2",
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
     recordId: {
       entityId: "entity-ordered-list",
       editionId: "1",
@@ -51,10 +50,10 @@ const blockEntity: RootEntity = {
   },
 };
 
-const link1: ItemContent2 = {
+const link1: HasRepresentativeShuffleBlockItem = {
   properties: {},
   metadata: {
-    entityTypeId: propertyIds.itemContent,
+    entityTypeId: entityTypeIds.hasRepresentativeShuffleBlockItem,
     recordId: {
       entityId: "item-content-1",
       editionId: "1",
