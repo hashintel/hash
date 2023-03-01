@@ -3,6 +3,7 @@ import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
+import { generatedLinkKey } from "../app";
 import { RootEntity } from "../types";
 import { ImagePreview } from "./generate-image/image-preview";
 
@@ -40,8 +41,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const confirm = (imageEntityId: string) => {
     void graphModule.createEntity({
       data: {
-        entityTypeId:
-          "https://blockprotocol-87igvkbkw.stage.hash.ai/@ciaranm/types/entity-type/generatedimage/v/1",
+        entityTypeId: generatedLinkKey,
         linkData: {
           leftEntityId: blockEntity.metadata.recordId.entityId,
           rightEntityId: imageEntityId,

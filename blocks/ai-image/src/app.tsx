@@ -6,12 +6,19 @@ import {
 
 import { GenerateImage } from "./app/generate-image";
 import { Image } from "./app/image";
-import { RootEntity, RootEntityLinkedEntities } from "./types";
+import {
+  AIImageBlockLinksByLinkTypeId,
+  RootEntity,
+  RootEntityLinkedEntities,
+} from "./types";
 
 export const descriptionKey: keyof RemoteFileEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 export const urlKey: keyof RemoteFileEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
+
+export const generatedLinkKey: keyof AIImageBlockLinksByLinkTypeId =
+  "https://blockprotocol.org/@hash/types/entity-type/generated/v/1";
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -22,9 +29,7 @@ export const App: BlockComponent<RootEntity> = ({
   >(blockEntitySubgraph);
 
   const fileEntity = linkedEntities.find(
-    ({ linkEntity }) =>
-      linkEntity.metadata.entityTypeId ===
-      "https://blockprotocol.org/@hash/types/entity-type/generated/v/1",
+    ({ linkEntity }) => linkEntity.metadata.entityTypeId === generatedLinkKey,
   )?.rightEntity;
 
   if (readonly && !fileEntity) {
