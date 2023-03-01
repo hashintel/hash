@@ -18,9 +18,12 @@ import {
   listItemTextClasses,
   Menu,
   menuItemClasses,
+  styled,
   TableCell,
   tableRowClasses,
   Tooltip,
+  tooltipClasses,
+  TooltipProps,
   Typography,
 } from "@mui/material";
 import {
@@ -39,6 +42,14 @@ import {
 import { useIsReadonly } from "../../shared/read-only-context";
 
 export const TYPE_MENU_CELL_WIDTH = 70;
+
+const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))({
+  [`& .${tooltipClasses.tooltip}`]: {
+    maxWidth: "none",
+  },
+});
 
 export const TypeMenuCell = ({
   typeId,
@@ -191,7 +202,7 @@ export const TypeMenuCell = ({
           Source
         </Typography>
         <ListItem sx={{ pt: "0 !important" }}>
-          <Tooltip
+          <NoMaxWidthTooltip
             enterDelay={250}
             onOpen={handleTooltipOpen}
             title={
@@ -238,7 +249,7 @@ export const TypeMenuCell = ({
                 }
               />
             </Box>
-          </Tooltip>
+          </NoMaxWidthTooltip>
         </ListItem>
         <Divider />
         <ListItem>
