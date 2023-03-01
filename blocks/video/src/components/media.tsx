@@ -89,9 +89,7 @@ export const Media: FunctionComponent<
     : null;
 
   const { metadata, properties } = rootEntity;
-  const {
-    [propertyIds.caption]: initialCaption,
-  } = properties;
+  const { [propertyIds.caption]: initialCaption } = properties;
 
   const { graphModule } = useGraphBlockModule(blockRef);
 
@@ -126,7 +124,7 @@ export const Media: FunctionComponent<
   });
 
   const updateData = useCallback(
-    ({ src }: { src: string | undefined; }) => {
+    ({ src }: { src: string | undefined }) => {
       if (src?.trim()) {
         // @todo how to handle this not being defined now
         if (metadata.recordId.entityId) {

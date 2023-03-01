@@ -16,8 +16,8 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "serve": "block-scripts serve",
-    "schema": "block-scripts codegen"
+    "schema": "block-scripts codegen",
+    "serve": "block-scripts serve"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.1.0",

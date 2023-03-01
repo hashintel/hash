@@ -37,8 +37,10 @@ const measuringConfig = {
   },
 };
 
-const findItemIndexById = (list: ShuffleBlockItemPropertyValue[], id: UniqueIdentifier) =>
-  list.findIndex((item) => item[propertyIds.id] === id);
+const findItemIndexById = (
+  list: ShuffleBlockItemPropertyValue[],
+  id: UniqueIdentifier,
+) => list.findIndex((item) => item[propertyIds.id] === id);
 
 const boxShadow =
   "rgba(63, 63, 68, 0.05) 0px 0px 0px 1px, rgba(34, 33, 81, 0.15) 0px 1px 3px 0px";
