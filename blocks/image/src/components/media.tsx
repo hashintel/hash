@@ -6,14 +6,15 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
+import { BlockGraphProperties, UpdateEntityData } from "@blockprotocol/graph";
 import {
-  BlockGraphProperties,
-  Entity,
-  Link,
-  LinkGroup,
-  UpdateEntityData,
-} from "@blockprotocol/graph";
-import { useGraphBlockService } from "@blockprotocol/graph/react";
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
+import {
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib";
 import {
   Dispatch,
   FunctionComponent,
@@ -21,21 +22,17 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
-  useMemo,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
+import { linkIds, propertyIds } from "../property-ids";
+import { RootEntity } from "../types";
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
-
-export type MediaEntityProperties = {
-  initialCaption?: string;
-  initialWidth?: number;
-  url?: string;
-};
 
 const useDefaultState = <
   T extends number | string | boolean | null | undefined,
@@ -68,112 +65,46 @@ const useDefaultState = <
   return [currentValue, setState];
 };
 
-function getLinkGroup(params: {
-  linkGroups: LinkGroup[];
-  path: string;
-  sourceEntityId: string;
-}): LinkGroup | undefined {
-  const { linkGroups, path, sourceEntityId } = params;
-
-  const matchingLinkGroup = linkGroups.find(
-    (linkGroup) =>
-      linkGroup.path === path && linkGroup.sourceEntityId === sourceEntityId,
-  );
-
-  return matchingLinkGroup;
-}
-
-function getLinkedEntities(params: {
-  sourceEntityId: string;
-  path: string;
-  linkGroups: LinkGroup[];
-  linkedEntities: Entity[];
-}): (Entity & { url: string })[] | null {
-  const { sourceEntityId, path, linkGroups, linkedEntities } = params;
-
-  const matchingLinkGroup = getLinkGroup({
-    linkGroups,
-    path,
-    sourceEntityId,
-  });
-
-  if (!matchingLinkGroup?.links[0]) {
-    return null;
-  }
-
-  if (!("destinationEntityId" in matchingLinkGroup.links[0])) {
-    throw new Error(
-      "No destinationEntityId present in matched link - cannot find linked file entity.",
-    );
-  }
-
-  const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
-
-  const matchingLinkedEntities = linkedEntities.filter(
-    (linkedEntity): linkedEntity is Entity & { url: string } =>
-      linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  if (!matchingLinkedEntities) {
-    return null;
-  }
-
-  return matchingLinkedEntities;
-}
-
-const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
-
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
 export const Media: FunctionComponent<
-  BlockGraphProperties<MediaEntityProperties> & {
+  BlockGraphProperties<RootEntity> & {
     blockRef: RefObject<HTMLDivElement>;
-    mediaType: "image" | "video";
   }
-> = (props) => {
+> = ({ blockRef, graph: { blockEntitySubgraph, readonly } }) => {
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
+  const outgoingLinks = getOutgoingLinksForEntity(
+    blockEntitySubgraph,
+    rootEntity.metadata.recordId.entityId,
+  );
+  const fileLink = outgoingLinks.find(
+    (potentialLink) => potentialLink.metadata.entityTypeId === linkIds.file,
+  );
+  const fileEntity = fileLink
+    ? getRightEntityForLinkEntity(
+        blockEntitySubgraph,
+        fileLink.metadata.recordId.entityId,
+      )
+    : null;
+
+  const { metadata, properties } = rootEntity;
   const {
-    blockRef,
-    graph: {
-      blockEntity: {
-        entityId,
-        properties: { url, initialCaption, initialWidth },
-      },
-      blockGraph,
-      readonly,
-    },
-    mediaType,
-  } = props;
+    [propertyIds.caption]: initialCaption,
+    [propertyIds.width]: initialWidth,
+  } = properties;
 
-  const { graphService } = useGraphBlockService(blockRef);
-
-  const matchingLinkedEntities = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    if (blockGraph?.linkGroups && blockGraph.linkedEntities && entityId) {
-      return getLinkedEntities({
-        sourceEntityId: entityId,
-        path: "$.file",
-        linkGroups: blockGraph.linkGroups,
-        linkedEntities: blockGraph.linkedEntities,
-      });
-    }
-
-    return null;
-  }, [blockGraph?.linkGroups, blockGraph?.linkedEntities, entityId]);
+  const { graphModule } = useGraphBlockModule(blockRef);
 
   const [draftSrc, setDraftSrc] = useDefaultState(
-    url ?? matchingLinkedEntities?.[0]?.url ?? "",
+    fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
   );
 
   const [loading, setLoading] = useState(false);
   const [errorString, setErrorString] = useState<null | string>(null);
 
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
-  const [draftWidth, setDraftWidth] = useDefaultState(
-    // eslint-disable-next-line react/destructuring-assignment
-    props.mediaType === "image" ? initialWidth : 0,
-  );
+  const [draftWidth, setDraftWidth] = useDefaultState(initialWidth);
 
   /**
    * Default for this input field is blank, not the URL passed
@@ -190,23 +121,29 @@ export const Media: FunctionComponent<
     };
   }, []);
 
+  const propertiesRef = useRef(properties);
+
+  useLayoutEffect(() => {
+    propertiesRef.current = properties;
+  });
+
   const updateData = useCallback(
     ({ width, src }: { src: string | undefined; width?: number }) => {
       if (src?.trim()) {
-        if (graphService?.updateEntity && entityId) {
-          const updateEntityData: UpdateEntityData = {
-            properties: {
-              initialCaption: draftCaption,
-            },
-            entityId,
-          };
+        const updateEntityData: UpdateEntityData = {
+          properties: {
+            ...propertiesRef.current,
+            [propertyIds.caption]: draftCaption,
+          },
+          entityId: metadata.recordId.entityId,
+          entityTypeId: metadata.entityTypeId,
+        };
 
-          if (width && mediaType === "image") {
-            updateEntityData.properties.initialWidth = width;
-          }
-
-          void graphService.updateEntity({ data: updateEntityData });
+        if (width) {
+          updateEntityData.properties[propertyIds.width] = width;
         }
+
+        void graphModule.updateEntity({ data: updateEntityData });
 
         unstable_batchedUpdates(() => {
           setErrorString(null);
@@ -219,9 +156,9 @@ export const Media: FunctionComponent<
     },
     [
       draftCaption,
-      entityId,
-      graphService,
-      mediaType,
+      graphModule,
+      metadata.entityTypeId,
+      metadata.recordId.entityId,
       setDraftSrc,
       setDraftWidth,
     ],
@@ -239,55 +176,43 @@ export const Media: FunctionComponent<
       if (readonly) {
         return;
       }
-      if (
-        !loading &&
-        entityId &&
-        graphService?.createLink &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        graphService.deleteLink &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        graphService.uploadFile
-      ) {
+      if (!loading) {
         unstable_batchedUpdates(() => {
           setErrorString(null);
           setLoading(true);
         });
 
-        graphService
+        graphModule
           .uploadFile({
-            data: { ...imageProp, mediaType },
+            data: imageProp,
           })
           .then(async ({ data: file }) => {
             if (!file) {
               return;
             }
 
-            const existingLinkGroup = getLinkGroup({
-              sourceEntityId: entityId,
-              linkGroups: blockGraph?.linkGroups ?? [],
-              path: "$.file",
-            });
-
-            const linkId =
-              existingLinkGroup?.links.filter(isSingleTargetLink)?.[0]?.linkId;
+            const linkId = fileLink?.metadata.recordId.entityId;
 
             if (linkId) {
-              await graphService.deleteLink({
-                data: { linkId },
+              await graphModule.deleteEntity({
+                data: { entityId: linkId },
               });
             }
 
-            await graphService.createLink({
+            await graphModule.createEntity({
               data: {
-                sourceEntityId: entityId,
-                destinationEntityId: file.entityId,
-                path: "$.file",
+                linkData: {
+                  leftEntityId: metadata.recordId.entityId,
+                  rightEntityId: file.metadata.recordId.entityId,
+                },
+                entityTypeId: linkIds.file,
+                properties: {},
               },
             });
 
             if (isMounted.current) {
               unstable_batchedUpdates(() => {
-                updateData({ src: file.url });
+                updateData({ src: file.properties[propertyIds.bpUrl] });
                 setLoading(false);
               });
             }
@@ -301,12 +226,11 @@ export const Media: FunctionComponent<
       }
     },
     [
-      blockGraph?.linkGroups,
-      entityId,
-      graphService,
-      loading,
-      mediaType,
       readonly,
+      loading,
+      graphModule,
+      fileLink?.metadata.recordId.entityId,
+      metadata.recordId.entityId,
       updateData,
     ],
   );
@@ -348,7 +272,7 @@ export const Media: FunctionComponent<
           onCaptionConfirm={() => updateData({ src: draftSrc })}
           onReset={resetComponent}
           width={draftWidth}
-          type={mediaType}
+          type="image"
           readonly={readonly}
         />
       ) : (
@@ -364,7 +288,7 @@ export const Media: FunctionComponent<
             onFileChoose={(file) => handleImageUpload({ file })}
             onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
             loading={loading}
-            type={mediaType}
+            type="image"
             readonly={readonly}
           />
         </>
