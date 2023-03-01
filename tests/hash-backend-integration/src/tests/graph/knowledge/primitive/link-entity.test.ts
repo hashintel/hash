@@ -84,7 +84,6 @@ describe("Link entity", () => {
         schema: {
           title: "Friends",
           description: "Friend of",
-          kind: "entityType",
           type: "object",
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
@@ -98,7 +97,6 @@ describe("Link entity", () => {
         schema: {
           title: "Acquaintance",
           description: "Acquainted with",
-          kind: "entityType",
           type: "object",
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},

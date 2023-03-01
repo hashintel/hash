@@ -502,16 +502,17 @@ export const PropertyListCard = () => {
   const [searchText, setSearchText] = useState("");
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
-  const cancelAddingNewProperty = () => {
-    setAddingNewProperty(false);
-    setSearchText("");
-  };
-
   const modalTooltipId = useId();
   const createModalPopupState = usePopupState({
     variant: "popover",
     popupId: `createProperty-${modalTooltipId}`,
   });
+
+  const cancelAddingNewProperty = () => {
+    createModalPopupState.close();
+    setAddingNewProperty(false);
+    setSearchText("");
+  };
   const [flashingRows, flashRow] = useFlashRow();
 
   const handleAddPropertyType = (propertyType: PropertyType) => {

@@ -1,9 +1,11 @@
 import {
   Array,
   DataTypeReference,
+  ENTITY_TYPE_META_SCHEMA,
   EntityType,
   Object,
   OneOf,
+  PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
@@ -142,8 +144,9 @@ export const generateSystemPropertyTypeSchema = (
   );
 
   return {
-    $id: params.propertyTypeId,
+    $schema: PROPERTY_TYPE_META_SCHEMA,
     kind: "propertyType",
+    $id: params.propertyTypeId,
     title: params.title,
     description: params.description,
     oneOf: possibleValues as [PropertyValues, ...PropertyValues[]],
@@ -287,11 +290,12 @@ export const generateSystemEntityTypeSchema = (
     ) ?? undefined;
 
   return {
+    $schema: ENTITY_TYPE_META_SCHEMA,
+    kind: "entityType",
     $id: params.entityTypeId,
     title: params.title,
     description: params.description,
     type: "object",
-    kind: "entityType",
     properties,
     required: requiredProperties,
     links,
