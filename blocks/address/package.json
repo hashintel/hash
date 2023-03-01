@@ -6,6 +6,11 @@
     "blockprotocol",
     "blocks"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/address"
+  },
   "license": "MIT",
   "author": "luisbettencourt",
   "scripts": {
