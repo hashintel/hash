@@ -33,7 +33,8 @@ This directory contains the source code for all HASH-developed public [Block Pro
 You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
 | Directory              | Spec Target | Status         | Publication URL                                                                                | Description |
-| ---------------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
+|------------------------| ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
+| [`address`]            | 0.3         | Maintained     |                                                                                                |             |
 | [`calculation`]        | 0.2         | Unmaintained   | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
 | [`callout`]            | 0.3         | Maintained     |                                                                                                |             |
 | [`chart`]              | 0.X         | Pending Update |                                                                                                |             |
@@ -43,7 +44,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`drawing`]            | 0.3         | Maintained     |                                                                                                |             |
 | [`embed`]              | 0.1         | Pending Update |                                                                                                |             |
 | [`github-pr-overview`] | 0.2         | Pending Update |                                                                                                |             |
-| [`header`]             | 0.3         | Maintained     |                                                                                                |             |
+| [`heading`]            | 0.3         | Maintained     |                                                                                                |             |
 | [`html-para`]          | 0.1         | Unmaintained   |                                                                                                |             |
 | [`image`]              | 0.3         | Maintained     |                                                                                                |             |
 | [`paragraph`]          | 0.3         | Maintained     |                                                                                                |             |
