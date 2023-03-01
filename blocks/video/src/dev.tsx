@@ -3,7 +3,7 @@
  * This file is not bundled with the library during the build process.
  */
 
-import { Entity, FileEntityProperties } from "@blockprotocol/graph";
+import { Entity, RemoteFileEntityProperties } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
@@ -30,7 +30,7 @@ const initialData: RootEntity = {
   },
 };
 
-const fileEntity: Entity<FileEntityProperties> = {
+const fileEntity: Entity<RemoteFileEntityProperties> = {
   properties: {
     [propertyIds.bpUrl]:
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
