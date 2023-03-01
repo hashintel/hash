@@ -1,41 +1,50 @@
-import { Entity } from "@blockprotocol/graph";
+import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/entity-type/code-snippet/v/2 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/code-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * A language (human or programming)
+ * A brief explanation or accompanying message.
  */
-export type Language = Text;
+export type CaptionPropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataValue = string;
 /**
- * A textual description of something
+ * The text material, information, or body, that makes up the content of this thing.
  */
-export type Caption = Text;
+export type TextualContentPropertyValue = TextDataValue;
 /**
- * Textual content
+ * A description of the language the code is written in.
+ *
+ * This should conform to one of the languages supported by Prism, for example "javascript".
+ *
+ * See: https://prismjs.com/#supported-languages
  */
-export type Content = Text;
+export type CodeBlockLanguagePropertyValue = TextDataValue;
 
-export type CodeSnippetProperties = {
-  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/": Language;
-  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/"?: Caption;
-  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": Content;
+/**
+ * The root entity of the “Code” block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/code
+ */
+export type CodeBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/caption/"?: CaptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/code-block-language/"?: CodeBlockLanguagePropertyValue;
 };
 
-export type CodeSnippet = Entity<CodeSnippetProperties>;
-export type CodeSnippetLinksByLinkTypeId = {};
+export type CodeBlock = Entity<CodeBlockProperties>;
+export type CodeBlockLinksByLinkTypeId = {};
 
-export type CodeSnippetLinkAndRightEntities = NonNullable<
-  CodeSnippetLinksByLinkTypeId[keyof CodeSnippetLinksByLinkTypeId]
+export type CodeBlockLinkAndRightEntities = NonNullable<
+  CodeBlockLinksByLinkTypeId[keyof CodeBlockLinksByLinkTypeId]
 >;
 
-export type RootEntity = CodeSnippet;
-export type RootEntityLinkedEntities = CodeSnippetLinkAndRightEntities;
-export type RootLinkMap = CodeSnippetLinksByLinkTypeId;
+export type RootEntity = CodeBlock;
+export type RootEntityLinkedEntities = CodeBlockLinkAndRightEntities;
+export type RootLinkMap = CodeBlockLinksByLinkTypeId;

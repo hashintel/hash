@@ -52,12 +52,12 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}",
-        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/": "javascript",
-        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/": "A JavaScript code example."
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}",
+        "https://blockprotocol.org/@hash/types/property-type/code-block-language/": "javascript",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/caption/": "A JavaScript code example."
       }
     ],
     "protocol": "0.3",
-    "schema": "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/entity-type/code-snippet/v/2"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/code-block/v/2"
   }
 }
