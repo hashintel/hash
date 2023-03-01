@@ -5,17 +5,33 @@
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
+import packageJSON from "../package.json";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
+
+const initialData: RootEntity = {
+  metadata: {
+    entityTypeId:
+      "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/entity-type/timer/v/2",
+    recordId: {
+      entityId: "entity-timer",
+      editionId: "1",
+    },
+  },
+  properties: {
+    [propertyIds.totalDuration]: "PT5M",
+  },
+};
 
 const App = () => (
   <MockBlockDock
     blockDefinition={{ ReactComponent: Component }}
-    blockEntity={{
-      entityId: "entity-timer",
-      properties: {},
-    }}
+    blockEntityRecordId={initialData.metadata.recordId}
+    initialData={{ initialEntities: [initialData] }}
+    blockInfo={packageJSON.blockprotocol}
     debug
   />
 );

@@ -33,7 +33,7 @@
     "rooks": "7.4.3"
   },
   "devDependencies": {
-    "@types/react-dom": "^18.0.9",
+    "@types/react-dom": "18.0.9",
     "block-scripts": "0.1.0-canary-20230210130343",
     "mock-block-dock": "0.1.0-canary-20230210130343",
     "prettier": "2.8.2",

@@ -1,4 +1,4 @@
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
+import { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import {
   useEntitySubgraph,
   useGraphBlockService,

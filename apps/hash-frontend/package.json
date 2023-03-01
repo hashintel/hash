@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
-    "@blockprotocol/core": "0.1.0-canary-20230227152050",
+    "@blockprotocol/core": "0.1.0",
     "@blockprotocol/graph": "0.1.0-canary-20230227152050",
     "@blockprotocol/hook": "0.1.0-canary-20230227152050",
     "@blockprotocol/type-system": "0.1.0-canary-20230227152050",
@@ -102,7 +102,7 @@
     "@types/lodash": "4.14.188",
     "@types/pluralize": "0.0.29",
     "@types/react": "18.0.25",
-    "@types/react-dom": "^18.0.9",
+    "@types/react-dom": "18.0.9",
     "@types/url-regex-safe": "1.0.0",
     "@types/uuid": "8.3.0",
     "eslint": "8.33.0",

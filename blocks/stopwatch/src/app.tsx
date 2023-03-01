@@ -1,10 +1,12 @@
-import { BlockComponent } from "blockprotocol/react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  BlockComponent,
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-type BlockEntityProperties = {
-  start?: Date;
-  laps?: number[];
-};
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
 const formatDuration = (duration: number) => {
   const MILLISECONDS = 1;
@@ -39,13 +41,25 @@ const getLastLap = (laps: number[]): number => {
   return last === undefined ? 0 : last;
 };
 
-export const App: BlockComponent<BlockEntityProperties> = ({
-  entityId,
-  accountId,
-  updateEntities,
-  start = null,
-  laps = [0],
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
+  const { graphModule } = useGraphBlockModule(blockRef);
+
+  const {
+    metadata: {
+      recordId: { entityId },
+      entityTypeId,
+    },
+
+    properties: {
+      [propertyIds.startTime]: start = null,
+      [propertyIds.laps]: laps = [0],
+    },
+  } = rootEntity;
+
   const [localStart, setLocalStart] = useState(
     start !== null ? new Date(start) : null,
   );
@@ -65,20 +79,20 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     (laps_data: number[], start_data: Date | null) => {
       setLocalLaps(laps_data);
       setLocalStart(start_data);
-      if (updateEntities) {
-        void updateEntities([
-          {
-            entityId,
-            accountId,
-            data: {
-              laps: laps_data,
-              start: start_data,
-            },
+      void graphModule.updateEntity({
+        data: {
+          entityId,
+          entityTypeId,
+          properties: {
+            [propertyIds.laps]: laps_data,
+            ...(start_data
+              ? { [propertyIds.startTime]: start_data.toISOString() }
+              : {}),
           },
-        ]);
-      }
+        },
+      });
     },
-    [entityId, accountId, updateEntities],
+    [entityId, entityTypeId, graphModule],
   );
 
   useEffect(() => {
@@ -129,13 +143,21 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <>
-      <button type="button" onClick={start_stop}>
-        {localStart !== null ? "stop" : allLaps === 0 ? "start" : "continue"}
-      </button>
-      <button type="button" onClick={lap_reset}>
-        {localStart !== null ? "lap" : "reset"}
-      </button>
+    <div ref={blockRef}>
+      {readonly ? null : (
+        <>
+          <button type="button" onClick={start_stop}>
+            {localStart !== null
+              ? "stop"
+              : allLaps === 0
+              ? "start"
+              : "continue"}
+          </button>
+          <button type="button" onClick={lap_reset}>
+            {localStart !== null ? "lap" : "reset"}
+          </button>
+        </>
+      )}
       <p>{formatDuration(allLaps + currentLap)}</p>
       {localLaps.length > 1 && (
         <ol>
@@ -147,6 +169,6 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           </li>
         </ol>
       )}
-    </>
+    </div>
   );
 };
