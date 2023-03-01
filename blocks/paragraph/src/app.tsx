@@ -1,31 +1,33 @@
-import { BlockComponent } from "@blockprotocol/graph/react";
-import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
+import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef } from "react";
 
-type BlockEntityProperties = {
-  text?: string;
-};
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: {
-    blockEntity: {
-      entityId,
-      properties: { text },
-    },
-  },
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph },
 }) => {
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const ref = useRef<HTMLHeadingElement>(null);
-  const { hookService } = useHookBlockService(ref);
+  const { hookModule } = useHookBlockModule(ref);
 
-  useHook(hookService, ref, "text", entityId, "$.text", (node) => {
-    // eslint-disable-next-line no-param-reassign
-    node.innerText = text ?? "";
-
-    return () => {
+  useHook(
+    hookModule,
+    ref,
+    "text",
+    rootEntity.metadata.recordId.entityId,
+    [propertyIds.text],
+    (node) => {
       // eslint-disable-next-line no-param-reassign
-      node.innerText = "";
-    };
-  });
+      node.innerText = rootEntity.properties[propertyIds.text] ?? "";
+
+      return () => {
+        // eslint-disable-next-line no-param-reassign
+        node.innerText = "";
+      };
+    },
+  );
 
   return <div ref={ref} />;
 };

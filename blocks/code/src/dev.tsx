@@ -2,11 +2,13 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
+import { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
@@ -16,18 +18,16 @@ const node = document.getElementById("app");
  */
 const initialEntity: RootEntity = {
   metadata: {
-    entityTypeId:
-      "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/entity-type/code-snippet/v/2",
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
     recordId: {
       entityId: "entity-code",
       editionId: new Date().toISOString(),
     },
   },
   properties: {
-    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
+    [propertyIds.content]:
       "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}",
-    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/":
-      "javascript",
+    [propertyIds.language]: "javascript",
   },
 };
 

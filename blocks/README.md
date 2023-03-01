@@ -41,7 +41,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`countdown`]          | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)                     |             |
 | [`divider`]            | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)                         |             |
 | [`embed`]              | 0.1         | Pending Update |                                                                                                |             |
-| [`heading`]             | 0.3         | **Maintained** |                                                                                                |             |
+| [`heading`]            | 0.3         | **Maintained** |                                                                                                |             |
 | [`html-para`]          | 0.1         | Unmaintained   |                                                                                                |             |
 | [`image`]              | 0.3         | **Maintained** |                                                                                                |             |
 | [`paragraph`]          | 0.3         | **Maintained** |                                                                                                |             |
