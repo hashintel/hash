@@ -3,14 +3,18 @@
  * This file is not bundled with the library during the build process.
  */
 
-import { Entity, RemoteFileEntityProperties } from "@blockprotocol/graph";
+import {
+  Entity,
+  RemoteFileEntityProperties,
+  VersionedUrl,
+} from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
 import { linkIds, propertyIds } from "./property-ids";
-import { File, RootEntity } from "./types";
+import { DisplaysMediaFile, RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
@@ -23,7 +27,7 @@ const initialData: RootEntity = {
       entityId: "entity-image",
       editionId: "1",
     },
-    entityTypeId: "https://blockprotocol.org/@nate/types/entity-type/media/v/2",
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
   },
 };
 
@@ -43,7 +47,7 @@ const fileEntity: Entity<RemoteFileEntityProperties> = {
   },
 };
 
-const fileEntityLink: File = {
+const fileEntityLink: DisplaysMediaFile = {
   linkData: {
     leftEntityId: initialData.metadata.recordId.entityId,
     rightEntityId: fileEntity.metadata.recordId.entityId,

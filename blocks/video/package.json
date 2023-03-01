@@ -51,10 +51,9 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/": "A blooming flower"
       }
     ],
     "protocol": "0.3",
-    "schema": "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/media/v/4"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/video-block/v/2"
   }
 }

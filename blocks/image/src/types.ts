@@ -2,78 +2,104 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/media/v/4 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/image-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * Whether the entity is an image or video
+ * A brief explanation or accompanying message.
  */
-export type MediaType = Text;
+export type CaptionPropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataValue = string;
 /**
- * A textual description of something
+ * The width of a UI element in pixels.
  */
-export type Caption = Text;
-/**
- * Width (in pixels)
- */
-export type Width = Number;
+export type WidthInPixelsPropertyValue = NumberDataValue;
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
-/**
- * The location where an entity can be found online
- */
-export type URL = Text;
+export type NumberDataValue = number;
 
 /**
- * Image or video
+ * The block entity for the “Image” block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/image
  */
-export type MediaProperties = {
-  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/"?: Caption;
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/width/"?: Width;
+export type ImageBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/caption/"?: CaptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/width-in-pixels/"?: WidthInPixelsPropertyValue;
 };
 
-export type Media = Entity<MediaProperties>;
+export type ImageBlock = Entity<ImageBlockProperties>;
 
 /**
- * The file an entity describes
+ * Displays this media file.
  */
-export type FileProperties = FileProperties1 & FileProperties2;
-export type FileProperties1 = Link;
+export type DisplaysMediaFileProperties = {};
 
-export type Link = {
-  leftEntityId?: string;
-  rightEntityId?: string;
-};
-export type FileProperties2 = {};
+export type DisplaysMediaFile = Entity<DisplaysMediaFileProperties>;
+export type DisplaysMediaFileLinksByLinkTypeId = {};
 
-export type File = Entity<FileProperties>;
-export type FileLinksByLinkTypeId = {};
-
-export type FileLinkAndRightEntities = NonNullable<
-  FileLinksByLinkTypeId[keyof FileLinksByLinkTypeId]
+export type DisplaysMediaFileLinkAndRightEntities = NonNullable<
+  DisplaysMediaFileLinksByLinkTypeId[keyof DisplaysMediaFileLinksByLinkTypeId]
 >;
-export type MediaFileLinks =
+/**
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
+ */
+export type DescriptionPropertyValue = TextDataValue;
+/**
+ * An ordered sequence of characters
+ */
+
+/**
+ * A URL that serves a file.
+ */
+export type FileURLPropertyValue = TextDataValue;
+/**
+ * A MIME (Multipurpose Internet Mail Extensions) type.
+ *
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+ */
+export type MIMETypePropertyValue = TextDataValue;
+/**
+ * The name of a file.
+ */
+export type FileNamePropertyValue = TextDataValue;
+
+/**
+ * Information about a file hosted at a remote URL.
+ */
+export type RemoteFileProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": FileNamePropertyValue;
+};
+
+export type RemoteFile = Entity<RemoteFileProperties>;
+export type RemoteFileLinksByLinkTypeId = {};
+
+export type RemoteFileLinkAndRightEntities = NonNullable<
+  RemoteFileLinksByLinkTypeId[keyof RemoteFileLinksByLinkTypeId]
+>;
+export type ImageBlockDisplaysMediaFileLinks =
   | []
   | {
-      linkEntity: File;
-      rightEntity: Entity;
+      linkEntity: DisplaysMediaFile;
+      rightEntity: RemoteFile;
     }[];
 
-export type MediaLinksByLinkTypeId = {
-  "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/file/v/1": MediaFileLinks;
+export type ImageBlockLinksByLinkTypeId = {
+  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": ImageBlockDisplaysMediaFileLinks;
 };
 
-export type MediaLinkAndRightEntities = NonNullable<
-  MediaLinksByLinkTypeId[keyof MediaLinksByLinkTypeId]
+export type ImageBlockLinkAndRightEntities = NonNullable<
+  ImageBlockLinksByLinkTypeId[keyof ImageBlockLinksByLinkTypeId]
 >;
 
-export type RootEntity = Media;
-export type RootEntityLinkedEntities = MediaLinkAndRightEntities;
-export type RootLinkMap = MediaLinksByLinkTypeId;
+export type RootEntity = ImageBlock;
+export type RootEntityLinkedEntities = ImageBlockLinkAndRightEntities;
+export type RootLinkMap = ImageBlockLinksByLinkTypeId;
