@@ -2,12 +2,12 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block/v/4 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/how-to-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 export type TitlePropertyValue = TextDataValue;
 /**
@@ -20,17 +20,21 @@ export type TextDataValue = string;
 export type DescriptionPropertyValue = TextDataValue;
 
 /**
- * A step-by-step guide on how to do or achieve something.
+ * The block entity for the "How-To" block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/how-to
  */
 export type HowToBlockProperties = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
 export type HowToBlock = Entity<HowToBlockProperties>;
 
 /**
- * Defines a single step that belongs to a How-To Block entity.
+ * Contains a How-To Block step.
+ *
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-step
  */
 export type HasHowToBlockStepProperties = {};
 
@@ -41,7 +45,7 @@ export type HasHowToBlockStepLinkAndRightEntities = NonNullable<
   HasHowToBlockStepLinksByLinkTypeId[keyof HasHowToBlockStepLinksByLinkTypeId]
 >;
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 
 /**
@@ -53,11 +57,13 @@ export type HasHowToBlockStepLinkAndRightEntities = NonNullable<
  */
 
 /**
- * Defines a single step that belongs to a How-To Block entity.
+ * Defines a single step within a How-To Block.
+ *
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block
  */
 export type HowToBlockStepProperties = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
 export type HowToBlockStep = Entity<HowToBlockStepProperties>;
@@ -74,7 +80,9 @@ export type HowToBlockHasHowToBlockStepLinks =
     }[];
 
 /**
- * Contains an introduction defined by a How-To Introduction entity.
+ * Contains a How-To Block Introduction
+ *
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-introduction
  */
 export type HasHowToBlockIntroductionProperties = {};
 
@@ -86,7 +94,7 @@ export type HasHowToBlockIntroductionLinkAndRightEntities = NonNullable<
   HasHowToBlockIntroductionLinksByLinkTypeId[keyof HasHowToBlockIntroductionLinksByLinkTypeId]
 >;
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 
 /**
@@ -98,11 +106,15 @@ export type HasHowToBlockIntroductionLinkAndRightEntities = NonNullable<
  */
 
 /**
- * Describes any pre-requisites necessary for completing a subsequent set of steps (specifically How-To Block Steps).
+ * A short description or precursor that explains the process that’s defined within the How-To block, or defines any preliminary context.
+ *
+ * It also often describes any pre-requisites necessary for completing the subsequent set of “How-To Block Step”s.
+ *
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-step
  */
 export type HowToBlockIntroductionProperties = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
 export type HowToBlockIntroduction = Entity<HowToBlockIntroductionProperties>;
@@ -119,8 +131,8 @@ export type HowToBlockHasHowToBlockIntroductionLinks =
     }[];
 
 export type HowToBlockLinksByLinkTypeId = {
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-step/v/1": HowToBlockHasHowToBlockStepLinks;
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-introduction/v/1": HowToBlockHasHowToBlockIntroductionLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1": HowToBlockHasHowToBlockStepLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1": HowToBlockHasHowToBlockIntroductionLinks;
 };
 
 export type HowToBlockLinkAndRightEntities = NonNullable<

@@ -32,21 +32,21 @@ import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 
 // Property types
 export const titleKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 export const descriptionKey =
-  "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 
 // Relevant Entity Types
 const howToBlockStepType =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block-step/v/2";
+  "https://blockprotocol.org/@hash/types/entity-type/how-to-block-step/v/2";
 const howToBlockIntroductionType =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/how-to-block-introduction/v/2";
+  "https://blockprotocol.org/@hash/types/entity-type/how-to-block-introduction/v/2";
 
 // Link Entity Types
 const hasHowToBlockStep =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-step/v/1";
+  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1";
 const hasHowToBlockIntroduction =
-  "https://blockprotocol-o5q8a2drq.stage.hash.ai/@luisbet/types/entity-type/has-how-to-block-introduction/v/1";
+  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1";
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
 export type EntityType =
