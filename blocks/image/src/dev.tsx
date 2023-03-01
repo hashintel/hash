@@ -17,8 +17,8 @@ const node = document.getElementById("app");
 const initialData: RootEntity = {
   properties: {
     [propertyIds.mediaType]: "image",
-    [propertyIds.caption]: "Image of a Dog",
-    [propertyIds.url]: "https://placedog.net/450/300",
+    [propertyIds.caption]: "Placeholder image",
+    [propertyIds.url]: "https://picsum.photos/450/300",
   },
   metadata: {
     recordId: {
@@ -31,7 +31,7 @@ const initialData: RootEntity = {
 
 const fileEntity: Entity<FileEntityProperties> = {
   properties: {
-    [propertyIds.bpUrl]: "https://placedog.net/450/300",
+    [propertyIds.bpUrl]: "https://picsum.photos/450/300",
     [propertyIds.filename]: "300.jpg",
     [propertyIds.mimeType]: "image/jpg",
   },

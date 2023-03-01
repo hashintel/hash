@@ -8,9 +8,9 @@ export const propertyIds = {
   url: "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/url/" as const,
 
   bpUrl:
-    "https://blockprotocol.org/@blockprotocol/types/property-type/url/" as const,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/" as const,
   filename:
-    "https://blockprotocol.org/@blockprotocol/types/property-type/filename/" as const,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/" as const,
   mimeType:
     "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/" as const,
 };
