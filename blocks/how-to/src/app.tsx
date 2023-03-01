@@ -225,11 +225,11 @@ export const App: BlockComponent<RootEntity> = ({
     setStepAnimatingOut(index);
   };
 
-  useEffect(() => {
-    if (!stepEntities.length) {
-      addStep();
-    }
-  }, [stepEntities]);
+  // useEffect(() => {
+  //   if (!stepEntities.length) {
+  //     addStep();
+  //   }
+  // }, [stepEntities]);
 
   const schema = useMemo(() => {
     const stepsWithTitle = stepEntities.filter(
