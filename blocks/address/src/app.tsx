@@ -1,4 +1,3 @@
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   useEntitySubgraph,
   useGraphBlockModule,
@@ -32,6 +31,9 @@ import {
   HasMapImage,
   RootEntity,
   RemoteFile,
+  AddressBlockHasMapImageLinks,
+  AddressBlockHasAddressLinks,
+  AddressBlockLinksByLinkTypeId,
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
 
@@ -40,41 +42,46 @@ const ZOOM_LEVEL_STEP_SIZE = 2;
 const MAX_ZOOM_LEVEL = 20;
 const MIN_ZOOM_LEVEL = 10;
 
+type RootEntityKey = keyof RootEntity["properties"];
+type AddressEntityKey = keyof AddressEntity["properties"];
+type FileUrlEntityKey = keyof RemoteFile["properties"];
+type LinkType = keyof AddressBlockLinksByLinkTypeId;
+
 // Root entity property types
-const titleKey =
+export const titleKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
-const descriptionKey =
+export const descriptionKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
-const addressIdKey =
+export const addressIdKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-address-id/";
-const zoomLevelKey =
+export const zoomLevelKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-static-image-zoom-level/";
 
 // Address entity property types
-const regionKey =
+export const regionKey: AddressEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/address-level-1/";
-const postalCodeKey =
+export const postalCodeKey: AddressEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/postal-code/";
-const streetKey =
+export const streetKey: AddressEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/street-address-line-1/";
-const countryKey =
+export const countryKey: AddressEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/alpha-2-country-code/";
-const fullAddressKey =
+export const fullAddressKey: AddressEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-full-address/";
 
 // Remote File property types
-const fileUrlKey =
+export const fileUrlKey: FileUrlEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
 
-// Relevant Entity types
-const addressTypeId =
-  "https://blockprotocol.org/@hash/types/entity-type/address/v/2";
-
 // Link entity types
-const hasAddressLink =
+export const hasAddressLink: LinkType =
   "https://blockprotocol.org/@hash/types/entity-type/has-address/v/1";
-const hasAddressMapLink =
+export const hasAddressMapLink: LinkType =
   "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/1";
+
+// Relevant Entity types
+export const addressTypeId =
+  "https://blockprotocol.org/@hash/types/entity-type/address/v/2";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
@@ -112,11 +119,11 @@ export const App: BlockComponent<RootEntity> = ({
 
   const zoomLevel = properties[zoomLevelKey] ?? DEFAULT_ZOOM_LEVEL;
 
-  const addressLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
+  const addressLinkedEntity = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) => linkEntity.metadata.entityTypeId === hasAddressLink,
-      ),
+      ) as AddressBlockHasAddressLinks[0] | undefined,
     [linkedEntities],
   );
 
@@ -127,7 +134,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const fullAddress = addressEntity?.properties[fullAddressKey];
 
-  const mapLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
+  const mapLinkedEntity = useMemo(
     () =>
       linkedEntities.find(({ linkEntity }) => {
         return (
@@ -135,7 +142,7 @@ export const App: BlockComponent<RootEntity> = ({
           linkEntity.properties[zoomLevelKey] === zoomLevel &&
           linkEntity.properties[addressIdKey] === addressId
         );
-      }),
+      }) as AddressBlockHasMapImageLinks[0] | undefined,
     [linkedEntities, zoomLevel, addressId],
   );
 

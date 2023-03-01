@@ -21,7 +21,7 @@ export type DescriptionPropertyValue = TextDataValue;
 /**
  * The level that controls how zoomed in or out a Mapbox static image is. Should be an integer between 0 and 22 (inclusive).
  *
- * See: https://docs.mapbox.com/api/maps/static-images/#retrieve-a-static-map-from-a-style.
+ * See: https://docs.mapbox.com/api/maps/static-images/#retrieve-a-static-map-from-a-style
  */
 export type MapboxStaticImageZoomLevelPropertyValue = NumberDataValue;
 /**
@@ -34,7 +34,7 @@ export type NumberDataValue = number;
 export type MapboxAddressIDPropertyValue = TextDataValue;
 
 /**
- * The root entity of the “Address” block.
+ * The block entity of the “Address” block.
  *
  * See: https://blockprotocol.org/@hash/blocks/address
  */
@@ -157,7 +157,7 @@ export type FileURLPropertyValue = TextDataValue;
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
  *
- * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types.
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
  */
 export type MIMETypePropertyValue = TextDataValue;
 /**
