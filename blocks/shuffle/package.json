@@ -24,7 +24,7 @@
     "schema": "block-scripts codegen"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230220234726",
+    "@blockprotocol/graph": "0.1.0-canary-20230228184514",
     "@dnd-kit/core": "6.0.5",
     "@dnd-kit/sortable": "7.0.1",
     "@dnd-kit/utilities": "3.2.0",
@@ -40,9 +40,9 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.6",
-    "block-scripts": "0.1.0-canary-20230220234726",
+    "block-scripts": "0.1.0-canary-20230228184514",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0-canary-20230220234726",
+    "mock-block-dock": "0.1.0-canary-20230228184514",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

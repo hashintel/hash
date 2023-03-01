@@ -44,7 +44,7 @@ const blockEntity: RootEntity = {
       },
       {
         [propertyIds.id]: "2",
-        [propertyIds.linkEntityId]: "person-entity",
+        [propertyIds.linkEntityId]: "item-content-1",
         [propertyIds.value]: "",
       },
     ],

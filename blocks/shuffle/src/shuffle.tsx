@@ -6,10 +6,10 @@ import {
 import {
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
+  parseLabelFromEntity
 } from "@blockprotocol/graph/stdlib";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
-import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
 import Box from "@mui/material/Box";
 import produce from "immer";
@@ -17,17 +17,10 @@ import isEqual from "lodash.isequal";
 import React, { useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
-import { AddEntitiesDialog } from "./components/add-entities-dialog";
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
 import { propertyIds } from "./property-ids";
 import { ListItem, RootEntity, RootEntityLinkedEntities } from "./types";
-import { parseLabelFromEntity } from "./utils";
-
-// @todo remove this type
-export type Item = ListItem;
-
-type Items = Item[];
 
 const initialItems: ListItem[] = [
   { [propertyIds.id]: "1", [propertyIds.value]: "Thing 1" },
@@ -37,10 +30,6 @@ const initialItems: ListItem[] = [
 export const Shuffle: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("blockEntitySubgraph missing");
-  }
-
   const { rootEntity } = useEntitySubgraph<
     RootEntity,
     RootEntityLinkedEntities
@@ -50,29 +39,10 @@ export const Shuffle: BlockComponent<RootEntity> = ({
 
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
-  const [entitiesDialogOpen, setEntitiesDialogOpen] = useState(false);
-  const [draftItems, setDraftItems] = useState<Items>(
+  const [draftItems, setDraftItems] = useState<ListItem[]>(
     items.length ? items : initialItems,
   );
   const [prevItems, setPrevItems] = useState(items);
-
-  // useEffect(() => {
-  //   /**
-  //    * setting the entityTypes to the state,
-  //    * so we can show entityTypes in modal
-  //    * */
-  //   const requestEntityTypes = async () => {
-  //     const { data, errors } = await graphModule.aggregateEntityTypes({
-  //       data: {
-  //         includeOtherTypesInUse: true,
-  //       },
-  //     });
-  //
-  //     if (errors || !data) return;
-  //   };
-  //
-  //   void requestEntityTypes();
-  // }, [graphModule]);
 
   if (items !== prevItems) {
     setPrevItems(items);
@@ -82,7 +52,7 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     }
   }
 
-  const publishItems = (newItems: Items) => {
+  const publishItems = (newItems: ListItem[]) => {
     if (readonly) {
       return;
     }
@@ -98,7 +68,7 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     });
   };
 
-  const updateItems = (newItems: Items, publish = true) => {
+  const updateItems = (newItems: ListItem[], publish = true) => {
     setDraftItems(newItems);
 
     if (publish) {
@@ -169,8 +139,6 @@ export const Shuffle: BlockComponent<RootEntity> = ({
       }),
     );
 
-  const handleAddEntitiesClick = () => setEntitiesDialogOpen(true);
-
   const handleRemoveAllClick = () => {
     // we also want to remove all links for the linked items
     void Promise.all(
@@ -189,11 +157,6 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     updateItems([], true);
   };
 
-  // adds the items selected on AddEntitiesDialog to the list
-  const handleAddEntityItems = (entityItems: Items) => {
-    updateItems(draftItems.concat(entityItems), true);
-  };
-
   /**
    * linked items does not store a `value`,
    * instead we use `entityId` to set the up-to-date entity label as `value`
@@ -207,7 +170,7 @@ export const Shuffle: BlockComponent<RootEntity> = ({
 
     const linksMap = new Map(
       outgoingLinks.map((link) => [
-        link.linkData!.rightEntityId,
+        link.metadata.recordId.entityId,
         getRightEntityForLinkEntity(
           blockEntitySubgraph,
           link.metadata.recordId.entityId,
@@ -248,13 +211,6 @@ export const Shuffle: BlockComponent<RootEntity> = ({
           </TooltipButton>
 
           <TooltipButton
-            tooltip="Add entities"
-            onClick={handleAddEntitiesClick}
-          >
-            <DatasetLinkedIcon />
-          </TooltipButton>
-
-          <TooltipButton
             tooltip="Remove all"
             onClick={handleRemoveAllClick}
             disabled={draftItems.length < 1}
@@ -270,15 +226,6 @@ export const Shuffle: BlockComponent<RootEntity> = ({
         onItemBlur={handleItemBlur}
         onDelete={handleDelete}
         readonly={!!readonly}
-      />
-      <AddEntitiesDialog
-        open={entitiesDialogOpen}
-        onClose={() => setEntitiesDialogOpen(false)}
-        graphModule={graphModule}
-        // @todo restore fetching these
-        entityTypes={[]}
-        blockEntityId={rootEntity.metadata.recordId.entityId}
-        onAddEntityItems={handleAddEntityItems}
       />
     </Box>
   );

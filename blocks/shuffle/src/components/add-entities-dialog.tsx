@@ -16,7 +16,7 @@ import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { propertyIds } from "../property-ids";
-import { Item } from "../shuffle";
+import { ListItem } from "../types";
 
 const SFormControlLabel = styled(FormControlLabel)(({ theme }) =>
   theme.unstable_sx({
@@ -33,7 +33,7 @@ const SFormControlLabel = styled(FormControlLabel)(({ theme }) =>
 interface AddEntitiesDialogProps {
   entityTypes: EntityType[];
   blockEntityId: string;
-  onAddEntityItems: (items: Item[]) => void;
+  onAddEntityItems: (items: ListItem[]) => void;
   graphModule?: GraphBlockHandler | null;
   open: boolean;
   onClose: () => void;
