@@ -2686,11 +2686,9 @@ dependencies = [
 name = "type-fetcher"
 version = "0.0.0"
 dependencies = [
- "error-stack",
  "futures",
  "reqwest",
  "serde",
- "serde_json",
  "tarpc",
  "time",
  "tokio",
