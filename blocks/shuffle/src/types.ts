@@ -1,4 +1,4 @@
-import { Entity, JsonObject } from "@blockprotocol/graph";
+import { Entity } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
@@ -41,28 +41,28 @@ export type ShuffleBlockProperties = {
    * @minItems 0
    */
   "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item/"?: ShuffleBlockItemPropertyValue[];
-}
+};
 
 export type ShuffleBlock = Entity<ShuffleBlockProperties>;
 
 /**
  * A link to an arbitrary entity which has an associated representation as a Shuffle Block Item
  */
-export type HasRepresentativeShuffleBlockItemProperties = {}
+export type HasRepresentativeShuffleBlockItemProperties = {};
 
-export type HasRepresentativeShuffleBlockItem = Entity<HasRepresentativeShuffleBlockItemProperties>;
-export type HasRepresentativeShuffleBlockItemLinksByLinkTypeId = {
-
-};
+export type HasRepresentativeShuffleBlockItem =
+  Entity<HasRepresentativeShuffleBlockItemProperties>;
+export type HasRepresentativeShuffleBlockItemLinksByLinkTypeId = {};
 
 export type HasRepresentativeShuffleBlockItemLinkAndRightEntities = NonNullable<
   HasRepresentativeShuffleBlockItemLinksByLinkTypeId[keyof HasRepresentativeShuffleBlockItemLinksByLinkTypeId]
 >;
-export type ShuffleBlockHasRepresentativeShuffleBlockItemLinks = [] |
-  {
-    linkEntity: HasRepresentativeShuffleBlockItem;
-    rightEntity: Entity;
-  }[];
+export type ShuffleBlockHasRepresentativeShuffleBlockItemLinks =
+  | []
+  | {
+      linkEntity: HasRepresentativeShuffleBlockItem;
+      rightEntity: Entity;
+    }[];
 
 export type ShuffleBlockLinksByLinkTypeId = {
   "https://blockprotocol.org/@hash/types/entity-type/has-representative-shuffle-block-item/v/1": ShuffleBlockHasRepresentativeShuffleBlockItemLinks;

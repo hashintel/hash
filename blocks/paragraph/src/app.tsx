@@ -4,6 +4,7 @@ import { useRef } from "react";
 
 import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
+
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph },
 }) => {

@@ -23,7 +23,6 @@ export const Image: BlockComponent<RootEntity> = (props) => {
     hookModule,
     blockRef,
     "image",
-    // eslint-disable-next-line react/destructuring-assignment -- need to pass props through to Media
     rootEntity.metadata.recordId.entityId,
     [linkIds.file],
     () => {

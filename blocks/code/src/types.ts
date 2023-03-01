@@ -1,4 +1,4 @@
-import { Entity, JsonObject } from "@blockprotocol/graph";
+import { Entity } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
