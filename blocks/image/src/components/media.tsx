@@ -91,7 +91,6 @@ export const Media: FunctionComponent<
 
   const { metadata, properties } = rootEntity;
   const {
-    [propertyIds.url]: url,
     [propertyIds.caption]: initialCaption,
     [propertyIds.width]: initialWidth,
   } = properties;
@@ -99,7 +98,7 @@ export const Media: FunctionComponent<
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const [draftSrc, setDraftSrc] = useDefaultState(
-    url ?? fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
+    fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
   );
 
   const [loading, setLoading] = useState(false);
@@ -135,23 +134,20 @@ export const Media: FunctionComponent<
   const updateData = useCallback(
     ({ width, src }: { src: string | undefined; width?: number }) => {
       if (src?.trim()) {
-        // @todo how to handle this not being defined now
-        if (metadata.recordId.entityId) {
-          const updateEntityData: UpdateEntityData = {
-            properties: {
-              ...propertiesRef.current,
-              [propertyIds.caption]: draftCaption,
-            },
-            entityId: metadata.recordId.entityId,
-            entityTypeId: metadata.entityTypeId,
-          };
+        const updateEntityData: UpdateEntityData = {
+          properties: {
+            ...propertiesRef.current,
+            [propertyIds.caption]: draftCaption,
+          },
+          entityId: metadata.recordId.entityId,
+          entityTypeId: metadata.entityTypeId,
+        };
 
-          if (width && mediaType === "image") {
-            updateEntityData.properties[propertyIds.width] = width;
-          }
-
-          void graphModule.updateEntity({ data: updateEntityData });
+        if (width && mediaType === "image") {
+          updateEntityData.properties[propertyIds.width] = width;
         }
+
+        void graphModule.updateEntity({ data: updateEntityData });
 
         unstable_batchedUpdates(() => {
           setErrorString(null);
