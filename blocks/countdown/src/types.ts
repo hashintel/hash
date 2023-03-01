@@ -2,47 +2,53 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/countdown/v/2 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/countdown-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type Title = Text;
+export type TitlePropertyValue = TextDataValue;
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataValue = string;
 /**
- * Target date and time
+ * An ISO-8601 formatted date and time that acts as the target for something.
+ *
+ * For example: “2233-03-22T13:30:23Z”
  */
-export type TargetDateTime = Text;
+export type TargetDateAndTimePropertyValue = TextDataValue;
 /**
- * Whether to display the time or not
+ * Whether or not the Countdown block should display granular time-related information, or just date information.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/countdown
  */
-export type DisplayTime = Boolean;
+export type CountdownBlockShouldDisplayTimePropertyValue = BooleanDataValue;
 /**
  * A True or False value
  */
-export type Boolean = boolean;
+export type BooleanDataValue = boolean;
 
 /**
- * A countdown to a date and time
+ * The block entity for the “Countdown” block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/countdown
  */
-export type CountdownProperties = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: Title;
-  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/target-date-time/"?: TargetDateTime;
-  "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/property-type/display-time/"?: DisplayTime;
+export type CountdownBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/target-date-and-time/"?: TargetDateAndTimePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/countdown-block-should-display-time/"?: CountdownBlockShouldDisplayTimePropertyValue;
 };
 
-export type Countdown = Entity<CountdownProperties>;
-export type CountdownLinksByLinkTypeId = {};
+export type CountdownBlock = Entity<CountdownBlockProperties>;
+export type CountdownBlockLinksByLinkTypeId = {};
 
-export type CountdownLinkAndRightEntities = NonNullable<
-  CountdownLinksByLinkTypeId[keyof CountdownLinksByLinkTypeId]
+export type CountdownBlockLinkAndRightEntities = NonNullable<
+  CountdownBlockLinksByLinkTypeId[keyof CountdownBlockLinksByLinkTypeId]
 >;
 
-export type RootEntity = Countdown;
-export type RootEntityLinkedEntities = CountdownLinkAndRightEntities;
-export type RootLinkMap = CountdownLinksByLinkTypeId;
+export type RootEntity = CountdownBlock;
+export type RootEntityLinkedEntities = CountdownBlockLinkAndRightEntities;
+export type RootLinkMap = CountdownBlockLinksByLinkTypeId;

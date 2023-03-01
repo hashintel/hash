@@ -2,6 +2,7 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
+import { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
@@ -17,8 +18,7 @@ const initialData: RootEntity = {
       entityId: "entity-countdown",
       editionId: "1",
     },
-    entityTypeId:
-      "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/countdown/v/2",
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
   },
   properties: {},
 };

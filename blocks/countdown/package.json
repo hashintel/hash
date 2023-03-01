@@ -55,14 +55,14 @@
     "displayName": "Countdown",
     "examples": [
       {
-        "title": "The Beta Launch",
-        "targetDate": null,
-        "displayTime": false
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "The Beta Launch",
+        "https://blockprotocol.org/@hash/types/property-type/target-date-and-time/": null,
+        "https://blockprotocol.org/@hash/types/property-type/countdown-block-should-display-time/": false
       }
     ],
     "icon": "public/icon.svg",
     "image": "public/preview.svg",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/countdown/v/2"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/countdown-block/v/2"
   }
 }

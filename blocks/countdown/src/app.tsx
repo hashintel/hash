@@ -69,7 +69,10 @@ export const App: BlockComponent<RootEntity> = ({
           properties: {
             [propertyIds.displayTime]: data?.displayTime ?? localDisplayTime,
             ...(nextTargetDateTime
-              ? { [propertyIds.targetDateTime]: nextTargetDateTime.toString() }
+              ? {
+                  [propertyIds.targetDateTime]:
+                    nextTargetDateTime.toISOString(),
+                }
               : {}),
             ...(nextTitle ? { [propertyIds.title]: nextTitle } : {}),
           },
