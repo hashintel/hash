@@ -51,6 +51,6 @@
     "icon": "public/omega.svg",
     "image": "public/block-preview.svg",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/entity-type/stopwatch-block/v/3"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/stopwatch-block/v/2"
   }
 }

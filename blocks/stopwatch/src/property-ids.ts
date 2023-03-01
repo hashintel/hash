@@ -1,5 +1,5 @@
 export const propertyIds = {
-  laps: "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/property-type/stopwatch-laps/" as const,
+  laps: "https://blockprotocol.org/@hash/types/property-type/stopwatch-block-lap/" as const,
   startTime:
-    "https://blockprotocol-g5unaez7e.stage.hash.ai/@nate/types/property-type/stopwatch-start-time/" as const,
+    "https://blockprotocol.org/@hash/types/property-type/start-time/" as const,
 };
