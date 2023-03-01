@@ -20,16 +20,16 @@
     "schema": "block-scripts codegen"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230228103144",
-    "@blockprotocol/hook": "0.1.0-canary-20230228103144",
+    "@blockprotocol/graph": "0.1.0-canary-20230228184514",
+    "@blockprotocol/hook": "0.1.0-canary-20230228184514",
     "twind": "0.16.17"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.1.0-canary-20230228103144",
+    "block-scripts": "0.1.0-canary-20230228184514",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0-canary-20230228103144",
+    "mock-block-dock": "0.1.0-canary-20230228184514",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
