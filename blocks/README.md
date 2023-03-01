@@ -41,17 +41,17 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`countdown`]          | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)                     |             |
 | [`divider`]            | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)                         |             |
 | [`embed`]              | 0.1         | Pending Update |                                                                                                |             |
-| [`heading`]            | 0.3         | **Maintained** |                                                                                                |             |
+| [`heading`]            | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)                         |             |
 | [`html-para`]          | 0.1         | Unmaintained   |                                                                                                |             |
-| [`image`]              | 0.3         | **Maintained** |                                                                                                |             |
-| [`paragraph`]          | 0.3         | **Maintained** |                                                                                                |             |
+| [`image`]              | 0.3         | **Maintained** |  [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                            |             |
+| [`paragraph`]          | 0.3         | **Maintained** |  [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)                    |             |
 | [`person`]             | 0.2         | Pending Update |                                                                                                |             |
-| [`shuffle`]            | 0.3         | **Maintained** |                                                                                                |             |
-| [`stopwatch`]          | 0.3         | **Maintained** |                                                                                                |             |
+| [`shuffle`]            | 0.3         | **Maintained** |  [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)                        |             |
+| [`stopwatch`]          | 0.3         | Unmaintained   |  [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                    |             |
 | [`table`]              | 0.2         | Pending Update |                                                                                                |             |
-| [`timer`]              | 0.3         | **Maintained** |                                                                                                |             |
+| [`timer`]              | 0.3         | **Maintained** |  [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)                            |             |
 | [`toggle-item`]        | 0.1         | Unmaintained   |                                                                                                |             |
-| [`video`]              | 0.3         | **Maintained** |                                                                                                |             |
+| [`video`]              | 0.3         | **Maintained** |  [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)                            |             |
 
 ## Running these blocks
 
