@@ -69,7 +69,7 @@ Key projects within are summarized below.
 
 ### Blocks
 
-- Various directories containing the source code for all of HASH's open-source [Block Protocol] blocks
+- Various directories containing the source code for all of HASH's open-source [Block Protocol] (**Þ**) blocks, summarized in a [handy table](https://github.com/hashintel/hash/tree/main/blocks#blocks). Please note: this table/directory contains HASH-published blocks only, and does not contain the full extent of available Þ blocks.
 
 ### Infrastructure
 

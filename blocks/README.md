@@ -8,7 +8,6 @@
 [`code`]: code
 [`countdown`]: countdown
 [`divider`]: divider
-[`drawing`]: drawing
 [`embed`]: embed
 [`heading`]: heading
 [`html-para`]: html-para
@@ -32,29 +31,27 @@ This directory contains the source code for all HASH-developed public [Block Pro
 
 You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
-| Directory              | Spec Target | Status         | Publication URL                                                                                | Description |
-| ---------------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
-| [`address`]            | 0.3         | Maintained     |                                                                                                |             |
-| [`calculation`]        | 0.2         | Unmaintained   | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
-| [`callout`]            | 0.3         | Maintained     |                                                                                                |             |
-| [`chart`]              | 0.X         | Pending Update |                                                                                                |             |
-| [`code`]               | 0.3         | Maintained     |                                                                                                |             |
-| [`countdown`]          | 0.3         | Maintained     |                                                                                                |             |
-| [`divider`]            | 0.3         | Maintained     |                                                                                                |             |
-| [`drawing`]            | 0.3         | Maintained     |                                                                                                |             |
-| [`embed`]              | 0.1         | Pending Update |                                                                                                |             |
-| [`github-pr-overview`] | 0.2         | Pending Update |                                                                                                |             |
-| [`heading`]            | 0.3         | Maintained     |                                                                                                |             |
-| [`html-para`]          | 0.1         | Unmaintained   |                                                                                                |             |
-| [`image`]              | 0.3         | Maintained     |                                                                                                |             |
-| [`paragraph`]          | 0.3         | Maintained     |                                                                                                |             |
-| [`person`]             | 0.2         | Pending Update |                                                                                                |             |
-| [`shuffle`]            | 0.3         | Maintained     |                                                                                                |             |
-| [`stopwatch`]          | 0.3         | Maintained     |                                                                                                |             |
-| [`table`]              | 0.2         | Pending Update |                                                                                                |             |
-| [`timer`]              | 0.3         | Maintained     |                                                                                                |             |
-| [`toggle-item`]        | 0.1         | Unmaintained   |                                                                                                |             |
-| [`video`]              | 0.3         | Maintained     |                                                                                                |             |
+| Directory       | Spec Target | Status         | Þ Hub URL                                                                                      | Description |
+| --------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
+| [`address`]     | 0.3         | Maintained     |                                                                                                |             |
+| [`calculation`] | 0.2         | Unmaintained   | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
+| [`callout`]     | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)                         |             |
+| [`chart`]       | 0.1         | Pending Update |                                                                                                |             |
+| [`code`]        | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                               |             |
+| [`countdown`]   | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)                     |             |
+| [`divider`]     | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)                         |             |
+| [`embed`]       | 0.1         | Pending Update |                                                                                                |             |
+| [`heading`]     | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)                         |             |
+| [`html-para`]   | 0.1         | Unmaintained   |                                                                                                |             |
+| [`image`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                             |             |
+| [`paragraph`]   | 0.3         | **Maintained** | [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)                     |             |
+| [`person`]      | 0.2         | Pending Update |                                                                                                |             |
+| [`shuffle`]     | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)                         |             |
+| [`stopwatch`]   | 0.3         | Unmaintained   | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                     |             |
+| [`table`]       | 0.2         | Pending Update |                                                                                                |             |
+| [`timer`]       | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)                             |             |
+| [`toggle-item`] | 0.1         | Unmaintained   |                                                                                                |             |
+| [`video`]       | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)                             |             |
 
 ## Running these blocks
 
