@@ -1,6 +1,6 @@
 {
   "name": "@blocks/image",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Embed JPG, GIF, and PNG images by URL or file upload and add an optional caption",
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@blocks/person",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Display information about a person, including their name, job title, email, website address, and an avatar",
   "keywords": [

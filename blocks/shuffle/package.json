@@ -1,6 +1,6 @@
 {
   "name": "@blocks/shuffle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Create a list and set it into a random order",
   "keywords": [

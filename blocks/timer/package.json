@@ -1,6 +1,6 @@
 {
   "name": "@blocks/timer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@blocks/video",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Embed MP4 and WEBM videos by URL or file upload and add an optional caption",
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@blocks/code",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Write monospaced code with syntax highlighting in a range of programming and markup languages",
   "keywords": [

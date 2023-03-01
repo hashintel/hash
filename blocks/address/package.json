@@ -1,6 +1,6 @@
 {
   "name": "@blocks/address",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Search for an address using the Mapbox Address Autofill and Mapbox Static Images APIs",
   "keywords": [
     "blockprotocol",
