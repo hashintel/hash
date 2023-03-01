@@ -71,9 +71,8 @@ const useDefaultState = <
 export const Media: FunctionComponent<
   BlockGraphProperties<RootEntity> & {
     blockRef: RefObject<HTMLDivElement>;
-    mediaType: "image" | "video";
   }
-> = ({ blockRef, mediaType, graph: { blockEntitySubgraph, readonly } }) => {
+> = ({ blockRef, graph: { blockEntitySubgraph, readonly } }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const outgoingLinks = getOutgoingLinksForEntity(
     blockEntitySubgraph,
@@ -91,25 +90,19 @@ export const Media: FunctionComponent<
 
   const { metadata, properties } = rootEntity;
   const {
-    [propertyIds.url]: url,
     [propertyIds.caption]: initialCaption,
-    [propertyIds.width]: initialWidth,
   } = properties;
 
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const [draftSrc, setDraftSrc] = useDefaultState(
-    url ?? fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
+    fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
   );
 
   const [loading, setLoading] = useState(false);
   const [errorString, setErrorString] = useState<null | string>(null);
 
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
-  const [draftWidth, setDraftWidth] = useDefaultState(
-    // eslint-disable-next-line react/destructuring-assignment
-    mediaType === "image" ? initialWidth : 0,
-  );
 
   /**
    * Default for this input field is blank, not the URL passed
@@ -133,7 +126,7 @@ export const Media: FunctionComponent<
   });
 
   const updateData = useCallback(
-    ({ width, src }: { src: string | undefined; width?: number }) => {
+    ({ src }: { src: string | undefined; }) => {
       if (src?.trim()) {
         // @todo how to handle this not being defined now
         if (metadata.recordId.entityId) {
@@ -146,18 +139,11 @@ export const Media: FunctionComponent<
             entityTypeId: metadata.entityTypeId,
           };
 
-          if (width && mediaType === "image") {
-            updateEntityData.properties[propertyIds.width] = width;
-          }
-
           void graphModule.updateEntity({ data: updateEntityData });
         }
 
         unstable_batchedUpdates(() => {
           setErrorString(null);
-          if (width) {
-            setDraftWidth(width);
-          }
           setDraftSrc(src);
         });
       }
@@ -165,19 +151,10 @@ export const Media: FunctionComponent<
     [
       draftCaption,
       graphModule,
-      mediaType,
       metadata.entityTypeId,
       metadata.recordId.entityId,
       setDraftSrc,
-      setDraftWidth,
     ],
-  );
-
-  const updateWidth = useCallback(
-    (width: number) => {
-      updateData({ src: draftSrc, width });
-    },
-    [draftSrc, updateData],
   );
 
   const handleImageUpload = useCallback(
@@ -263,7 +240,6 @@ export const Media: FunctionComponent<
     unstable_batchedUpdates(() => {
       setLoading(false);
       setErrorString(null);
-      setDraftWidth(undefined);
       setDraftUrl("");
       setDraftCaption("");
       setDraftSrc("");
@@ -275,13 +251,11 @@ export const Media: FunctionComponent<
       {draftSrc ? (
         <MediaWithCaption
           src={draftSrc}
-          onWidthChange={updateWidth}
           caption={draftCaption}
           onCaptionChange={(caption) => setDraftCaption(caption)}
           onCaptionConfirm={() => updateData({ src: draftSrc })}
           onReset={resetComponent}
-          width={draftWidth}
-          type={mediaType}
+          type="video"
           readonly={readonly}
         />
       ) : (
@@ -297,7 +271,7 @@ export const Media: FunctionComponent<
             onFileChoose={(file) => handleImageUpload({ file })}
             onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
             loading={loading}
-            type={mediaType}
+            type="video"
             readonly={readonly}
           />
         </>
