@@ -3,6 +3,12 @@
   "description": "Specifies the structure of a Property Type",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+      ]
+    },
     "kind": {
       "enum": ["propertyType"]
     },
@@ -23,7 +29,7 @@
       }
     }
   },
-  "required": ["kind", "$id", "title", "oneOf"],
+  "required": ["$schema", "kind", "$id", "title", "oneOf"],
   "additionalProperties": false,
   "$defs": {
     "propertyValues": {

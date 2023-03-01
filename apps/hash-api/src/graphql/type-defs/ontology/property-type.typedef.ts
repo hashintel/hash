@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const propertyTypeTypedef = gql`
-  scalar PropertyTypeWithoutId
+  scalar ConstructPropertyTypeParams
   scalar PropertyTypeWithMetadata
 
   extend type Query {
@@ -32,7 +32,7 @@ export const propertyTypeTypedef = gql`
       The id of the account who owns the property type. Defaults to the user calling the mutation.
       """
       ownedById: OwnedById
-      propertyType: PropertyTypeWithoutId!
+      propertyType: ConstructPropertyTypeParams!
     ): PropertyTypeWithMetadata!
 
     """
@@ -46,7 +46,7 @@ export const propertyTypeTypedef = gql`
       """
       New property type schema contents to be used.
       """
-      updatedPropertyType: PropertyTypeWithoutId!
+      updatedPropertyType: ConstructPropertyTypeParams!
     ): PropertyTypeWithMetadata!
   }
 `;

@@ -105,7 +105,7 @@ const getExpectedValueSchemaById = (
 
 export const getPropertyTypeSchema = (
   data: PropertyTypeFormValues,
-): Omit<PropertyType, "$id"> => {
+): Omit<PropertyType, "$schema" | "kind" | "$id"> => {
   if (!data.expectedValues.length) {
     throw new Error("Must have an expected value");
   }
@@ -125,6 +125,5 @@ export const getPropertyTypeSchema = (
     oneOf,
     description: data.description,
     title: data.name,
-    kind: "propertyType" as const,
   };
 };
