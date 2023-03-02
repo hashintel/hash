@@ -19,7 +19,11 @@ date: "2023-02-28"
 
 The Block Protocol 0.3 release represents the specification’s biggest evolution yet, building on a wealth of developer feedback and our own experiences integrating the protocol into a wide array of apps and frameworks.
 
+### Data structure and type system
+
 This release primarily focuses on the way data is structured, resulting in major updates to the Core and Graph modules [introduced in version 0.2](https://hash.dev/blog/block-protocol-v02), making them significantly more robust, and expanding the modelling capabilities of links between entities.
+
+### External services
 
 It also introduces a new **Service module**, which defines an interface for accessing external services (aka. APIs) consistently and reliably from within blocks, irrespective of the integrations that an embedding application natively supports. This allows embedders to implement their own integrations as they already might, while allowing the [Þ Hub](https://blockprotocol.org/hub) to act as a fallback for any integrations they don't (yet!) themselves support.
 
@@ -51,14 +55,21 @@ WordPress admins can choose to allow users to insert any Block Protocol block on
 
 ## External services & APIs in blocks
 
-The _AI Text_ and _AI Image_ blocks are powered by OpenAI GPT-3 Davinci, and OpenAI DALL-E respectively.
+Following the introduction of the _Services_ module in Block Protocol 0.3, blocks that utilize third-party APIs are now supported. This includes external services that have their own authentication and billing requirements, allowing a wide range of powerful blocks to be developed.
 
-- The AI text block lets you to quickly generate content outlines, as well as actual prose, and can assist in rewriting chunks of existing text to match a particular style or level of quality.
-- The AI image block takes a simple sentence as an input, and converts it into a high-resolution image in line with your description.
+### OpenAI blocks
 
-The _Address_ block is meanwhile powered by Mapbox, utilizing autocomplete to assist in quickly filling addresses and storing them as structured data, and rendering good looking maps side-by-side.
+A new [AI Text](https://blockprotocol.org/@hash/blocks/ai-text) block is powered by OpenAI **GPT-3** and **GPT-3.5 Turbo**. This allows you to quickly generate content outlines, as well as actual prose, and can assist in rewriting chunks of existing text to match a particular style or level of quality.
 
-All of these blocks can be used in WordPress today, alongside the existing catalog of Þ blocks.
+An [AI Image](https://blockprotocol.org/@hash/blocks/ai-image) block, powered by OpenAI **DALL-E**, meanwhile takes a simple sentence as an input, and converts it into a high-resolution image in line with your description - outputting at the maximum resolution available.
+
+### Mapbox blocks
+
+An [Address](https://blockprotocol.org/@hash/blocks/address) block is meanwhile powered by Mapbox, utilizing a number of their different APIs. This block employs smart search suggestions and autocomplete to assist in quickly filling addresses which it then stores as structured data, before rendering a nicely styled map side-by-side the address. It also provides room for a custom label, description, or instructions to be provided alongside the address.
+
+### Using these new blocks
+
+All of these blocks can be [used in WordPress](https://blockprotocol.org/wordpress) today, alongside the existing catalog of Þ blocks.
 
 ## Join the Þ project
 
