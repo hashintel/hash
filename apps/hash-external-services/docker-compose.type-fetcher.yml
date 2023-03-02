@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  type-fetcher:
+    init: true
+    build:
+      dockerfile: docker/Dockerfile
+      context: ../../apps/hash-graph
+      args:
+        PROFILE: dev
+        TYPE_FETCHER: yes
+    image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - log:/log
+    command: type-fetcher
+    environment:
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FOLDER: "/log/graph-type-fetcher"
+      HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
+      HASH_GRAPH_TYPE_FETCHER_PORT: 4444
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,type_fetcher=trace,hash_graph=trace,reqwest=debug}"
+      RUST_BACKTRACE: 1
+    ports:
+      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
+    healthcheck:
+      test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  graph:
+    depends_on:
+      type-fetcher:
+        condition: service_healthy
+    build:
+      args:
+        TYPE_FETCHER: yes
