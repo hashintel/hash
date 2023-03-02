@@ -9,12 +9,6 @@ const nextConfig = {
   // PRs.
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-  
-  // External domains to allow loading images from
-  images: {
-    loader: 'custom',
-    loaderFile: './src/util/img-cdn-loader.ts',
-  },
 };
 
 module.exports = nextConfig;
