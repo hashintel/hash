@@ -9,6 +9,19 @@ const nextConfig = {
   // PRs.
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  
+  // External domains to allow loading images from
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'hash.ai',
+        port: '',
+        pathname: '/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/**',
+      },
+    ],
+  },
+}
 };
 
 module.exports = nextConfig;
