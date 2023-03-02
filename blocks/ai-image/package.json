@@ -1,11 +1,12 @@
 {
   "name": "@blocks/ai-image",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Generate any image you can put into words, in just a few seconds",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",
@@ -13,7 +14,7 @@
     "directory": "blocks/ai-image"
   },
   "license": "see LICENSE.md",
-  "author": "Ciaran Morinan",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",

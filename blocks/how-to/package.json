@@ -1,13 +1,19 @@
 {
   "name": "@blocks/how-to",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Describe a task or process via a list of steps ",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
-  "license": "MIT",
-  "author": "luisbettencourt",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/how-to"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
@@ -49,8 +55,8 @@
     "displayName": "How To",
     "examples": [
       {
-        "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/": "Boil water",
-        "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/": "Bring the clear water to a rolling boil for 1 minute"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Boil water",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "Bring the clear water to a rolling boil for 1 minute"
       }
     ],
     "icon": "public/book-arrow-right.svg",
