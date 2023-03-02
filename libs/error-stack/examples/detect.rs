@@ -38,7 +38,7 @@ impl Display for ParseConfigError {
 impl std::error::Error for ParseConfigError {}
 
 fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
-    let _ = path.as_ref();
+    _ = path.as_ref();
 
     /*
        usually you would actually do something here, we just error out, for a more complete example

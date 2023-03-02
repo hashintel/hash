@@ -65,7 +65,7 @@ impl<'a> BareError<'a> {
 
         let properties = object.get("properties")?;
 
-        let _ = object.get("message")?;
+        _ = object.get("message")?;
 
         // ensure that there are exactly 4 properties
         if object.len() != 4 {
