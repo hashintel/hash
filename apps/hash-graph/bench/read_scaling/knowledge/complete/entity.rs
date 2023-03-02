@@ -179,6 +179,10 @@ pub fn bench_get_entity_by_id(
 }
 
 #[criterion]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "false positive, see https://github.com/rust-lang/rust-clippy/issues/10413"
+)]
 fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_complete_zero_depth");
 
@@ -230,6 +234,10 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 }
 
 #[criterion]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "false positive, see https://github.com/rust-lang/rust-clippy/issues/10413"
+)]
 fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_complete_one_depth");
 
