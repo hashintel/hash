@@ -19,7 +19,13 @@ export const MdxImage: FunctionComponent<
     throw new Error(
       `You must provide a src, width, and height if using a custom img tag.`,
     );
-  }
+  };
+
+  // Allow loading of images from Cloudflare Images
+  // Docs: https://developers.cloudflare.com/images/cloudflare-images/serve-images/serve-images-custom-domains/
+  const cloudflareLoader = ({ src }) => {
+    return `https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/${src}`
+  };
 
   const inline = typeof width !== "undefined" && typeof height !== "undefined";
 

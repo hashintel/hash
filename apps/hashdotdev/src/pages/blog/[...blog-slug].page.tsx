@@ -43,12 +43,6 @@ type BlogPostPageQueryParams = {
   "blog-slug"?: string[];
 };
 
-// Allow loading of images from Cloudflare Images
-// Docs: https://developers.cloudflare.com/images/cloudflare-images/serve-images/serve-images-custom-domains/
-const cloudflareLoader = ({ src }) => {
-  return `https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/${src}`
-};
-
 export const getStaticPaths: GetStaticPaths<BlogPostPageQueryParams> = () => {
   const paths = getAllPageHrefs({ folderName: "blog" }).map((href) => ({
     params: {
