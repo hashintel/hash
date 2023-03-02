@@ -82,7 +82,7 @@ export const getDataTypeById: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { dataTypeId } = params;
 
-  const dataTypeSubgraph = await graphApi
+  const [dataType] = await graphApi
     .getDataTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
@@ -102,9 +102,9 @@ export const getDataTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<DataTypeRootType>);
-
-  const [dataType] = getRoots(dataTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<DataTypeRootType>),
+    );
 
   if (!dataType) {
     throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);

@@ -1,4 +1,5 @@
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
@@ -84,7 +85,7 @@ export const queryEntityTypesResolver: ResolverFn<
     },
   });
 
-  return entityTypeSubgraph as Subgraph;
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -135,7 +136,7 @@ export const getEntityTypeResolver: ResolverFn<
     },
   });
 
-  return entityTypeSubgraph as Subgraph;
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const updateEntityTypeResolver: ResolverFn<

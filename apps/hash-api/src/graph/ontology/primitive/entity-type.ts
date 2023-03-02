@@ -83,7 +83,7 @@ export const getEntityTypeById: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { entityTypeId } = params;
 
-  const entityTypeSubgraph = await graphApi
+  const [entityType] = await graphApi
     .getEntityTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -103,9 +103,9 @@ export const getEntityTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<EntityTypeRootType>);
-
-  const [entityType] = getRoots(entityTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<EntityTypeRootType>),
+    );
 
   if (!entityType) {
     throw new NotFoundError(

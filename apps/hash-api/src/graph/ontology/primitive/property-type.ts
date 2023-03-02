@@ -78,7 +78,8 @@ export const getPropertyTypeById: ImpureGraphFunction<
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, params) => {
   const { propertyTypeId } = params;
-  const propertyTypeSubgraph = await graphApi
+
+  const [propertyType] = await graphApi
     .getPropertyTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
@@ -98,9 +99,9 @@ export const getPropertyTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<PropertyTypeRootType>);
-
-  const [propertyType] = getRoots(propertyTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<PropertyTypeRootType>),
+    );
 
   if (!propertyType) {
     throw new NotFoundError(

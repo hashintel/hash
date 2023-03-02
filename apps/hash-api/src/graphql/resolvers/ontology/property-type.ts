@@ -1,5 +1,6 @@
 import {
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -86,7 +87,8 @@ export const queryPropertyTypesResolver: ResolverFn<
       },
     },
   );
-  return propertyTypeSubgraph as Subgraph;
+
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -133,7 +135,7 @@ export const getPropertyTypeResolver: ResolverFn<
     },
   );
 
-  return propertyTypeSubgraph as Subgraph;
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

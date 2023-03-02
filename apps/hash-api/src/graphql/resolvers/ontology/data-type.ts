@@ -1,4 +1,4 @@
-import { Subgraph } from "@local/hash-subgraph";
+import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
 import {
   QueryGetDataTypeArgs,
@@ -44,7 +44,7 @@ export const queryDataTypes: ResolverFn<
     },
   });
 
-  return dataTypeSubgraph as Subgraph;
+  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };
 
 export const getDataType: ResolverFn<
@@ -85,5 +85,5 @@ export const getDataType: ResolverFn<
     },
   });
 
-  return dataTypeSubgraph as Subgraph;
+  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };
