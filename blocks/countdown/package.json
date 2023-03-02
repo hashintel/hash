@@ -1,19 +1,20 @@
 {
   "name": "@blocks/countdown",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Countdown to a time and date",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "blocks/countdown"
   },
-  "license": "MIT",
-  "author": "Tim Diekmann",
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
