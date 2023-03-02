@@ -25,7 +25,9 @@ This release primarily focuses on the way data is structured, resulting in major
 
 ### External services
 
-It also introduces a new **Service module**, which defines an interface for accessing external services (aka. APIs) consistently and reliably from within blocks, irrespective of the integrations that an embedding application natively supports. This allows embedders to implement their own integrations as they already might, while allowing the [Þ Hub](https://blockprotocol.org/hub) to act as a fallback for any integrations they don't (yet!) themselves support.
+It also introduces a new [_Service_ module](https://blockprotocol.org/docs/spec/service-module), which defines an interface for accessing external services (aka. APIs) consistently and reliably from within blocks, irrespective of the integrations that an embedding application natively supports.
+
+This allows embedders to implement their own integrations as they already might, while utilizing the [Þ Hub](https://blockprotocol.org/hub) as a fallback to support blocks integrating with external services and applications they don't yet (or may never!) themselves support.
 
 Read on to learn more or [jump over to the docs](https://blockprotocol.org/docs) to get into the technical details.
 
