@@ -12,14 +12,8 @@ const nextConfig = {
   
   // External domains to allow loading images from
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'hash.ai',
-        port: '',
-        pathname: '/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/**',
-      },
-    ],
+    loader: 'custom',
+    loaderFile: './src/util/img-cdn-loader.ts',
   },
 };
 
