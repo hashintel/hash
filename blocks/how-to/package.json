@@ -55,8 +55,8 @@
     "displayName": "How To",
     "examples": [
       {
-        "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/": "Boil water",
-        "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/": "Bring the clear water to a rolling boil for 1 minute"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Boil water",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "Bring the clear water to a rolling boil for 1 minute"
       }
     ],
     "icon": "public/book-arrow-right.svg",
