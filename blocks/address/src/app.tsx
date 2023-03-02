@@ -520,6 +520,7 @@ export const App: BlockComponent<RootEntity> = ({
                       return (
                         <TextField
                           {...params}
+                          autoFocus
                           placeholder={
                             isMobile
                               ? "Enter an address"
@@ -611,6 +612,7 @@ export const App: BlockComponent<RootEntity> = ({
                       width: 1,
                       [`.${autocompleteClasses.input}`]: {
                         paddingLeft: "0 !important",
+                        outline: "none",
                       },
                       [`.${autocompleteClasses.inputRoot}`]: {
                         paddingX: ({ spacing }) =>
