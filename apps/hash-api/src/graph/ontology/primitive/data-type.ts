@@ -15,7 +15,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -83,7 +82,7 @@ export const getDataTypeById: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { dataTypeId } = params;
 
-  const dataTypeSubgraph = await graphApi
+  const [dataType] = await graphApi
     .getDataTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
@@ -103,9 +102,9 @@ export const getDataTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<DataTypeRootType>);
-
-  const [dataType] = getRoots(dataTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<DataTypeRootType>),
+    );
 
   if (!dataType) {
     throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
