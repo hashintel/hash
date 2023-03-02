@@ -18,8 +18,8 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
         val directories = HashMap<String, AbstractTreeNode<PsiDirectory>>()
         val files = HashMap<String, AbstractTreeNode<PsiFile>>()
 
-        // To merge all `module` with their corresponding `module.rs` file we need to do two iterations
-        // ... first collect all directories and files via lookup tables
+        // To merge all `module` with their corresponding `module.rs` file we need to do two iterations.
+        // First collect all directories and files via lookup tables...
         for (child in children) {
             val value = child.value
 
@@ -42,7 +42,7 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
             }
         }
 
-        // ... then only retain directories that have corresponding files
+        // ... then only retain directories that have corresponding files.
         val modules = directories
             .filter { (key, _) ->
                 files.contains(key)
