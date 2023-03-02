@@ -1,14 +1,19 @@
 {
   "name": "@blocks/code",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Write monospaced code with syntax highlighting in a range of programming and markup languages",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/code"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",

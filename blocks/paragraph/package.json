@@ -1,14 +1,19 @@
 {
   "name": "@blocks/paragraph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Write a block of text to express an idea, make a point, or record a thought",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/paragraph"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",

@@ -1,14 +1,20 @@
 {
   "name": "@blocks/chart",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
-  "license": "MIT",
-  "author": "Ben Werner",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/chart"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
