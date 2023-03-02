@@ -1136,7 +1136,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), included_included(0, 5)],
             merge: included_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1159,7 +1159,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), included_excluded(0, 5)],
             merge: included_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1182,7 +1182,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), included_included(0, 5)],
             merge: included_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1205,7 +1205,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), included_excluded(0, 5)],
             merge: included_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1228,7 +1228,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), excluded_included(0, 5)],
             merge: excluded_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1251,7 +1251,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), excluded_excluded(0, 5)],
             merge: excluded_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1274,7 +1274,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), excluded_included(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1297,7 +1297,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), excluded_excluded(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1320,7 +1320,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), included_included(0, 5)],
             merge: included_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1343,7 +1343,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), included_excluded(0, 5)],
             merge: included_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1366,7 +1366,7 @@ mod tests {
             lhs: excluded_excluded(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), excluded_excluded(10, 15)],
+            union: [excluded_excluded(10, 15), included_included(0, 5)],
             merge: included_excluded(0, 15),
             difference: [excluded_excluded(10, 15)],
         });
@@ -1389,7 +1389,7 @@ mod tests {
             lhs: excluded_excluded(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), excluded_excluded(10, 15)],
+            union: [excluded_excluded(10, 15), included_excluded(0, 5)],
             merge: included_excluded(0, 15),
             difference: [excluded_excluded(10, 15)],
         });
@@ -1412,7 +1412,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), excluded_included(0, 5)],
             merge: excluded_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1435,7 +1435,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), excluded_excluded(0, 5)],
             merge: excluded_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1458,7 +1458,7 @@ mod tests {
             lhs: excluded_excluded(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), excluded_excluded(10, 15)],
+            union: [excluded_excluded(10, 15), excluded_included(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [excluded_excluded(10, 15)],
         });
@@ -1481,7 +1481,7 @@ mod tests {
             lhs: excluded_excluded(5, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), excluded_excluded(5, 15)],
+            union: [excluded_excluded(5, 15), excluded_excluded(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [excluded_excluded(5, 15)],
         });
@@ -1576,7 +1576,7 @@ mod tests {
             lhs: excluded_included(5, 10),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), excluded_included(5, 10)],
+            union: [excluded_included(5, 10), included_excluded(0, 5)],
             merge: included_included(0, 10),
             difference: [excluded_included(5, 10)],
         });
