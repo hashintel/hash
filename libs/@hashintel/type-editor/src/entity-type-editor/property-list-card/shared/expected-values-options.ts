@@ -1,6 +1,6 @@
 import {
-  validateVersionedUri,
-  VersionedUri,
+  validateVersionedUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import {
   faList,
@@ -137,5 +137,5 @@ export const expectedValuesOptions: ExpectedValueOptionMap = {
 };
 
 export const dataTypeOptions = Object.keys(expectedValuesOptions).filter(
-  (key) => validateVersionedUri(key).type === "Ok",
-) as VersionedUri[];
+  (key) => validateVersionedUrl(key).type === "Ok",
+) as VersionedUrl[];

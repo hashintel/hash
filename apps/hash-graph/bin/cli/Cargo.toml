@@ -10,7 +10,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 [dependencies]
 type-fetcher = { path = "../../lib/type-fetcher", optional = true }
 
-axum = "0.6.7"
+axum = "0.6.9"
 clap = { version = "4.1.6", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.1.2"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
@@ -24,11 +24,11 @@ tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 tracing = "0.1.37"
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "adab205" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b8351b3" }
 uuid = "1.3.0"
 
 # Remove again when the type fetcher is used in the graph
-time = "0.3.19"
+time = "0.3.20"
 
 [features]
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde", "dep:futures", "graph/type-fetcher"]

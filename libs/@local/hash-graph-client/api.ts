@@ -204,6 +204,12 @@ export interface DataType {
 
   /**
    *
+   * @type {string}
+   * @memberof DataType
+   */
+  $schema: DataTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof DataType
    */
@@ -234,6 +240,13 @@ export interface DataType {
   type: string;
 }
 
+export const DataTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaDataType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+} as const;
+
+export type DataTypeSchemaEnum =
+  (typeof DataTypeSchemaEnum)[keyof typeof DataTypeSchemaEnum];
 export const DataTypeKindEnum = {
   DataType: "dataType",
 } as const;
@@ -248,9 +261,9 @@ export type DataTypeKindEnum =
  */
 
 export const DataTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
@@ -601,6 +614,12 @@ export interface EntityTemporalMetadata {
 export interface EntityType {
   /**
    *
+   * @type {string}
+   * @memberof EntityType
+   */
+  $schema: EntityTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof EntityType
    */
@@ -631,12 +650,6 @@ export interface EntityType {
   description?: string;
   /**
    *
-   * @type {object}
-   * @memberof EntityType
-   */
-  default?: object;
-  /**
-   *
    * @type {Array<object>}
    * @memberof EntityType
    */
@@ -659,14 +672,15 @@ export interface EntityType {
    * @memberof EntityType
    */
   links?: object;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof EntityType
-   */
-  requiredLinks?: Array<string>;
 }
 
+export const EntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type EntityTypeSchemaEnum =
+  (typeof EntityTypeSchemaEnum)[keyof typeof EntityTypeSchemaEnum];
 export const EntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
@@ -687,19 +701,17 @@ export type EntityTypeTypeEnum =
  */
 
 export const EntityTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
   Description: "description",
-  Default: "default",
   Examples: "examples",
   Properties: "properties",
   Required: "required",
   Links: "links",
-  RequiredLinks: "requiredLinks",
   InheritsFrom: "inheritsFrom",
 } as const;
 
@@ -1290,7 +1302,7 @@ export interface OntologyTypeRecordId {
    * @type {string}
    * @memberof OntologyTypeRecordId
    */
-  baseUri: string;
+  baseUrl: string;
   /**
    *
    * @type {number}
@@ -1543,11 +1555,38 @@ export type PropertyObjectValueTypeEnum =
   (typeof PropertyObjectValueTypeEnum)[keyof typeof PropertyObjectValueTypeEnum];
 
 /**
+ *
+ * @export
+ * @interface PropertyObjectValue1
+ */
+export interface PropertyObjectValue1 {
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyObjectValue1
+   */
+  type: PropertyObjectValue1TypeEnum;
+}
+
+export const PropertyObjectValue1TypeEnum = {
+  Object: "object",
+} as const;
+
+export type PropertyObjectValue1TypeEnum =
+  (typeof PropertyObjectValue1TypeEnum)[keyof typeof PropertyObjectValue1TypeEnum];
+
+/**
  * Specifies the structure of a Property Type
  * @export
  * @interface PropertyType
  */
 export interface PropertyType {
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyType
+   */
+  $schema: PropertyTypeSchemaEnum;
   /**
    *
    * @type {object}
@@ -1580,6 +1619,13 @@ export interface PropertyType {
   oneOf: Array<PropertyValues>;
 }
 
+export const PropertyTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaPropertyType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+} as const;
+
+export type PropertyTypeSchemaEnum =
+  (typeof PropertyTypeSchemaEnum)[keyof typeof PropertyTypeSchemaEnum];
 export const PropertyTypeKindEnum = {
   PropertyType: "propertyType",
 } as const;
@@ -1594,9 +1640,9 @@ export type PropertyTypeKindEnum =
  */
 
 export const PropertyTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
@@ -1695,7 +1741,7 @@ export type PropertyValues =
 export type PropertyValuesUpdate =
   | DataTypeReferenceUpdate
   | PropertyArrayValueUpdate
-  | PropertyObjectValue;
+  | PropertyObjectValue1;
 
 /**
  *
@@ -2137,6 +2183,12 @@ export interface UpdateDataType {
 
   /**
    *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  $schema: UpdateDataTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdateDataType
    */
@@ -2161,6 +2213,13 @@ export interface UpdateDataType {
   type: string;
 }
 
+export const UpdateDataTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaDataType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+} as const;
+
+export type UpdateDataTypeSchemaEnum =
+  (typeof UpdateDataTypeSchemaEnum)[keyof typeof UpdateDataTypeSchemaEnum];
 export const UpdateDataTypeKindEnum = {
   DataType: "dataType",
 } as const;
@@ -2287,6 +2346,12 @@ export interface UpdateEntityRequestAllOf {
 export interface UpdateEntityType {
   /**
    *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  $schema: UpdateEntityTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdateEntityType
    */
@@ -2311,12 +2376,6 @@ export interface UpdateEntityType {
   description?: string;
   /**
    *
-   * @type {object}
-   * @memberof UpdateEntityType
-   */
-  default?: object;
-  /**
-   *
    * @type {Array<object>}
    * @memberof UpdateEntityType
    */
@@ -2339,14 +2398,15 @@ export interface UpdateEntityType {
    * @memberof UpdateEntityType
    */
   links?: object;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof UpdateEntityType
-   */
-  requiredLinks?: Array<string>;
 }
 
+export const UpdateEntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type UpdateEntityTypeSchemaEnum =
+  (typeof UpdateEntityTypeSchemaEnum)[keyof typeof UpdateEntityTypeSchemaEnum];
 export const UpdateEntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
@@ -2393,6 +2453,12 @@ export interface UpdateEntityTypeRequest {
 export interface UpdatePropertyType {
   /**
    *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  $schema: UpdatePropertyTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdatePropertyType
    */
@@ -2417,6 +2483,13 @@ export interface UpdatePropertyType {
   oneOf: Array<PropertyValuesUpdate>;
 }
 
+export const UpdatePropertyTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaPropertyType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+} as const;
+
+export type UpdatePropertyTypeSchemaEnum =
+  (typeof UpdatePropertyTypeSchemaEnum)[keyof typeof UpdatePropertyTypeSchemaEnum];
 export const UpdatePropertyTypeKindEnum = {
   PropertyType: "propertyType",
 } as const;

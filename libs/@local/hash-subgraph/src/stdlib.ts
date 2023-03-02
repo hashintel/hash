@@ -29,7 +29,7 @@ export {
   getDataTypeById,
   getDataTypeByVertexId,
   getDataTypes,
-  getDataTypesByBaseUri,
+  getDataTypesByBaseUrl,
 } from "./stdlib/subgraph/element/data-type";
 export {
   getEntities,
@@ -40,14 +40,14 @@ export {
   getEntityTypeById,
   getEntityTypeByVertexId,
   getEntityTypes,
-  getEntityTypesByBaseUri,
+  getEntityTypesByBaseUrl,
 } from "./stdlib/subgraph/element/entity-type";
 export { mapElementsIntoRevisions } from "./stdlib/subgraph/element/map-revisions";
 export {
   getPropertyTypeById,
   getPropertyTypeByVertexId,
   getPropertyTypes,
-  getPropertyTypesByBaseUri,
+  getPropertyTypesByBaseUrl,
 } from "./stdlib/subgraph/element/property-type";
 export { getRoots } from "./stdlib/subgraph/roots";
 export { getLatestInstantIntervalForSubgraph } from "./stdlib/subgraph/temporal-axes";

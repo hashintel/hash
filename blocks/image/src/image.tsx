@@ -1,28 +1,30 @@
-import { BlockComponent } from "@blockprotocol/graph/react";
-import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
+import { BlockComponent, useEntitySubgraph } from "@blockprotocol/graph/react";
+import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef, useState } from "react";
 import { setup, tw } from "twind";
 
-import { Media, MediaEntityProperties } from "./components/media";
-
-export type BlockEntityProperties = MediaEntityProperties;
+import { Media } from "./components/media";
+import { linkIds } from "./property-ids";
+import { RootEntity } from "./types";
 
 setup({ preflight: false });
 
-export const Image: BlockComponent<BlockEntityProperties> = (props) => {
+export const Image: BlockComponent<RootEntity> = (props) => {
+  const { graph } = props;
+  const { blockEntitySubgraph } = graph;
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const [showFallback, setShowFallback] = useState(false);
 
   const blockRef = useRef<HTMLDivElement>(null);
 
-  const { hookService } = useHookBlockService(blockRef);
+  const { hookModule } = useHookBlockModule(blockRef);
 
   useHook(
-    hookService,
+    hookModule,
     blockRef,
     "image",
-    // eslint-disable-next-line react/destructuring-assignment -- need to pass props through to Media
-    props.graph.blockEntity.entityId,
-    "$.image",
+    rootEntity.metadata.recordId.entityId,
+    [linkIds.file],
     () => {
       setShowFallback(true);
     },
@@ -30,9 +32,7 @@ export const Image: BlockComponent<BlockEntityProperties> = (props) => {
 
   return (
     <div ref={blockRef} className={tw`font-sans box-border`}>
-      {showFallback && (
-        <Media {...props} blockRef={blockRef} mediaType="image" />
-      )}
+      {showFallback && <Media {...props} blockRef={blockRef} />}
     </div>
   );
 };

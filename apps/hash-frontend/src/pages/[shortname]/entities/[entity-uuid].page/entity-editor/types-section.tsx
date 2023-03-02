@@ -1,14 +1,14 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import {
-  extractBaseUri,
-  versionedUriFromComponents,
+  extractBaseUrl,
+  versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
@@ -24,7 +24,7 @@ export const TypesSection = () => {
     properties,
   } = entity;
 
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
   const [newVersion, setNewVersion] = useState<number>();
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updatingVersion, setUpdatingVersion] = useState(false);
@@ -32,7 +32,7 @@ export const TypesSection = () => {
   useEffect(() => {
     const init = async () => {
       /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
-      const res = await aggregateEntityTypes({
+      const res = await queryEntityTypes({
         data: {
           graphResolveDepths: {
             constrainsValuesOn: { outgoing: 0 },
@@ -43,7 +43,7 @@ export const TypesSection = () => {
         },
       });
 
-      const baseId = extractBaseUri(entityTypeId);
+      const baseId = extractBaseUrl(entityTypeId);
       const entityTypeWithSameBaseId = res.data?.roots.find(
         (root) => root.baseId === baseId,
       );
@@ -65,11 +65,11 @@ export const TypesSection = () => {
     if (!readonly) {
       void init();
     }
-  }, [aggregateEntityTypes, entityTypeId, readonly]);
+  }, [queryEntityTypes, entityTypeId, readonly]);
 
   const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
   const entityTypeTitle = entityType?.schema.title ?? "";
-  const entityTypeBaseUri = extractBaseUri(entityTypeId);
+  const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
 
   const handleUpdateVersion = async () => {
     if (!newVersion) {
@@ -81,8 +81,8 @@ export const TypesSection = () => {
 
       const res = await updateEntity({
         data: {
-          entityTypeId: versionedUriFromComponents(
-            entityTypeBaseUri,
+          entityTypeId: versionedUrlFromComponents(
+            entityTypeBaseUrl,
             newVersion,
           ),
           entityId: recordId.entityId,
@@ -111,7 +111,7 @@ export const TypesSection = () => {
     >
       <Box display="flex" gap={2}>
         <TypeCard
-          url={entityTypeBaseUri}
+          url={entityTypeBaseUrl}
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={

@@ -18,7 +18,7 @@ import {
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId } from "@local/hash-subgraph";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -136,7 +136,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const preferredName = useMemo(
     () =>
       author.properties[
-        extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+        extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
       ] as string,
     [author.properties],
   );

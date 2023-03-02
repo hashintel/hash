@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity, EntityId, Timestamp, UpdatedById } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -30,7 +30,7 @@ export const createDraftLinkEntity = ({
 }: {
   rightEntityId: EntityId;
   leftEntityId: EntityId;
-  linkEntityTypeId: VersionedUri;
+  linkEntityTypeId: VersionedUrl;
 }): Entity => {
   return {
     properties: {},

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
-use type_system::uri::BaseUri;
+use type_system::url::BaseUrl;
 use utoipa::{
     openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
@@ -68,7 +68,7 @@ pub struct KnowledgeGraphRootedEdges(
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
-    pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
+    pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
 #[derive(Serialize)]

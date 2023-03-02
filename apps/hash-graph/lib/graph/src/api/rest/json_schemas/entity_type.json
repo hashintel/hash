@@ -3,6 +3,12 @@
   "description": "Specifies the structure of an Entity Type",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+      ]
+    },
     "kind": {
       "enum": ["entityType"]
     },
@@ -15,22 +21,13 @@
     },
     "title": { "type": "string" },
     "description": { "type": "string" },
-    "default": {
-      "$comment": "Default Entity instance",
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URI to a Property Type",
-        "type": "string",
-        "format": "uri"
-      }
-    },
     "examples": {
       "$comment": "Example Entity instances",
       "type": "array",
       "items": {
         "type": "object",
         "propertyNames": {
-          "$comment": "Property names must be a valid URI to a Property Type",
+          "$comment": "Property names must be a valid URL to a Property Type",
           "type": "string",
           "format": "uri"
         }
@@ -44,22 +41,15 @@
         "format": "uri"
       }
     },
-    "links": { "$ref": "#/$defs/linkTypeObject" },
-    "requiredLinks": {
-      "$comment": "TODO: update this https://app.asana.com/0/1202805690238892/1203260690980368/f. A list of link-types which are required. This is a separate field to 'required' to avoid breaking standard JSON schema validation",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
+    "links": { "$ref": "#/$defs/linkTypeObject" }
   },
   "additionalProperties": false,
-  "required": ["kind", "$id", "type", "title", "properties"],
+  "required": ["$schema", "kind", "$id", "type", "title", "properties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",
       "propertyNames": {
-        "$comment": "Property names must be a valid URI to a Property Type",
+        "$comment": "Property names must be a valid URL to a Property Type",
         "type": "string",
         "format": "uri"
       },
@@ -99,7 +89,7 @@
       "type": "object",
       "properties": {
         "$ref": {
-          "$comment": "Property Object values must be defined through references to the same valid URI to a Property Type",
+          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
           "type": "string",
           "format": "uri"
         }
@@ -110,7 +100,7 @@
     "linkTypeObject": {
       "type": "object",
       "propertyNames": {
-        "$comment": "Property names must be a valid URI to a Property Type",
+        "$comment": "Property names must be a valid URL to a Property Type",
         "type": "string",
         "format": "uri"
       },

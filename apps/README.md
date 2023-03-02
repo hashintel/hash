@@ -9,11 +9,15 @@
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
-# About this directory
+# Applications
+
+## About this directory
 
 This `apps` directory contains the source-code and/or content for a number of HASH's projects and websites.
 
-| Directory                | Description                                                                                                                                                                                  |
+## Overview
+
+| Subdirectory             | Description                                                                                                                                                                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`engine`](engine)       | Codebase of our next-generation version of [HASH Engine], a versatile agent-based simulation engine written in Rust                                                                          |
 | [`hash`](hash)           | Entrypoint for [HASH](https://hash.ai/platform/hash), a block-based, data-centric, all-in-one workspace                                                                                      |

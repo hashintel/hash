@@ -1,7 +1,4 @@
-import {
-  extractBaseUri,
-  validateVersionedUri,
-} from "@blockprotocol/type-system/slim";
+import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Box,
   Stack,
@@ -14,17 +11,19 @@ import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
 
 import { OntologyIcon } from "./ontology-icon";
 
-export const parseUriForOntologyChip = (uri: string) => {
-  const validated = validateVersionedUri(uri);
-  const parsed = validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
-  const url = new URL(parsed);
-  const domain = url.host === "localhost:3000" ? "localhost" : url.host;
-  const pathname = url.pathname.slice(1);
+export const parseUrlForOntologyChip = (url: string) => {
+  const validationResult = validateVersionedUrl(url);
+  if (validationResult.type === "Err") {
+    throw new Error(
+      `Could not validate url as VersionedUrl: ${validationResult.inner.reason}`,
+    );
+  }
+  const parsed = validationResult.inner;
+  const parsedUrl = new URL(parsed);
+  const domain =
+    parsedUrl.host === "localhost:3000" ? "localhost" : parsedUrl.host;
+  const path = parsedUrl.pathname.slice(1);
   const isHash = domain === "hash.ai";
-  const parts = pathname.split("/");
-  const path = isHash
-    ? `${parts[0] ?? "malformed-uri"}/${parts.at(-2) ?? "malformed-uri"}`
-    : pathname;
   const icon = isHash ? <OntologyIcon /> : null;
 
   return { domain, path, icon };
@@ -83,15 +82,17 @@ const OntologyChip: ForwardRefRenderFunction<
         clipPath: "polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%)",
       }}
     >
-      <Box
-        width={16}
-        height={16}
-        mr={1.25}
-        overflow="hidden"
-        position="relative"
-      >
-        {icon}
-      </Box>
+      {icon && (
+        <Box
+          width={16}
+          height={16}
+          mr={1.25}
+          overflow="hidden"
+          position="relative"
+        >
+          {icon}
+        </Box>
+      )}
       <Typography
         sx={(theme) => ({
           color: theme.palette.gray[80],

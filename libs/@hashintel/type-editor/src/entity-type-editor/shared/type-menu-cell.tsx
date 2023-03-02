@@ -1,4 +1,4 @@
-import { extractVersion, VersionedUri } from "@blockprotocol/type-system/slim";
+import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -6,7 +6,7 @@ import {
   MenuItem,
   MenuItemProps,
   OntologyChip,
-  parseUriForOntologyChip,
+  parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import {
   Box,
@@ -18,9 +18,12 @@ import {
   listItemTextClasses,
   Menu,
   menuItemClasses,
+  styled,
   TableCell,
   tableRowClasses,
   Tooltip,
+  tooltipClasses,
+  TooltipProps,
   Typography,
 } from "@mui/material";
 import {
@@ -28,35 +31,52 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useCallback, useId } from "react";
+import {
+  Fragment,
+  MouseEventHandler,
+  useCallback,
+  useId,
+  useState,
+} from "react";
+
+import { useIsReadonly } from "../../shared/read-only-context";
 
 export const TYPE_MENU_CELL_WIDTH = 70;
+
+const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))({
+  [`& .${tooltipClasses.tooltip}`]: {
+    maxWidth: "none",
+  },
+});
 
 export const TypeMenuCell = ({
   typeId,
   variant,
-  canEdit = true,
-  canRemove = true,
+  editable = true,
   editButtonProps,
   onRemove,
   editButtonDisabled,
 }: {
-  typeId: VersionedUri;
+  typeId: VersionedUrl;
   variant: "property" | "link";
-  canRemove?: boolean;
-  canEdit?: boolean;
+  editable?: boolean;
   editButtonDisabled?: string;
   editButtonProps?: MenuItemProps;
   onRemove?: () => void;
 }) => {
   const version = extractVersion(typeId);
-  const ontology = parseUriForOntologyChip(typeId);
+  const ontology = parseUrlForOntologyChip(typeId);
 
   const popupId = useId();
   const popupState = usePopupState({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
   });
+
+  const isReadonly = useIsReadonly();
+  const canEdit = editable && !isReadonly;
 
   const EditButton = useCallback(
     () => (
@@ -77,6 +97,21 @@ export const TypeMenuCell = ({
     ),
     [editButtonDisabled, popupState, editButtonProps, variant],
   );
+
+  const [hasCopied, setHasCopied] = useState<boolean>(false);
+  const copyEntityTypeId = useCallback<MouseEventHandler>(
+    (event) => {
+      event.preventDefault();
+
+      setHasCopied(true);
+      return navigator.clipboard.writeText(typeId);
+    },
+    [typeId, setHasCopied],
+  );
+
+  const handleTooltipOpen = () => {
+    setHasCopied(false);
+  };
 
   return (
     <TableCell
@@ -131,7 +166,7 @@ export const TypeMenuCell = ({
           },
         })}
       >
-        {canEdit || canRemove
+        {canEdit
           ? [
               <Typography
                 key="actions"
@@ -140,28 +175,25 @@ export const TypeMenuCell = ({
               >
                 Actions
               </Typography>,
-              canEdit ? (
-                editButtonDisabled ? (
-                  <Tooltip key="edit" title={editButtonDisabled}>
-                    <Box>
-                      <EditButton />
-                    </Box>
-                  </Tooltip>
-                ) : (
-                  <EditButton key="edit" />
-                )
-              ) : null,
-              canRemove ? (
-                <MenuItem
-                  key="remove"
-                  onClick={() => {
-                    popupState.close();
-                    onRemove?.();
-                  }}
-                >
-                  <ListItemText primary={<>Remove {variant}</>} />
-                </MenuItem>
-              ) : null,
+
+              editButtonDisabled ? (
+                <Tooltip key="edit" title={editButtonDisabled}>
+                  <Box>
+                    <EditButton />
+                  </Box>
+                </Tooltip>
+              ) : (
+                <EditButton key="edit" />
+              ),
+              <MenuItem
+                key="remove"
+                onClick={() => {
+                  popupState.close();
+                  onRemove?.();
+                }}
+              >
+                <ListItemText primary={<>Remove {variant}</>} />
+              </MenuItem>,
               <Divider key="divider" />,
             ]
           : null}
@@ -170,37 +202,54 @@ export const TypeMenuCell = ({
           Source
         </Typography>
         <ListItem sx={{ pt: "0 !important" }}>
-          <Tooltip
+          <NoMaxWidthTooltip
+            enterDelay={250}
+            onOpen={handleTooltipOpen}
             title={
               <>
+                <Typography
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                  }}
+                  align="center"
+                  variant="smallTextLabels"
+                >
+                  {hasCopied ? "Copied" : "Click to copy"}
+                </Typography>
                 {ontology.domain}/{ontology.path}
               </>
             }
             placement="bottom"
           >
-            <OntologyChip
-              {...ontology}
-              path={
-                <>
-                  {ontology.path.split("/").map((part, idx, parts) => {
-                    const last = idx === parts.length - 1;
-                    return (
-                      // eslint-disable-next-line react/no-array-index-key
-                      <Fragment key={idx}>
-                        <Typography
-                          component="span"
-                          maxWidth={last ? "5ch" : "6ch"}
-                        >
-                          {part}
-                        </Typography>
-                        {last ? null : <>/</>}
-                      </Fragment>
-                    );
-                  })}
-                </>
-              }
-            />
-          </Tooltip>
+            <Box onClick={copyEntityTypeId}>
+              <OntologyChip
+                {...ontology}
+                sx={{
+                  cursor: "pointer",
+                }}
+                path={
+                  <>
+                    {ontology.path.split("/").map((part, idx, parts) => {
+                      const last = idx === parts.length - 1;
+                      return (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <Fragment key={idx}>
+                          <Typography
+                            component="span"
+                            maxWidth={last ? "5ch" : "6ch"}
+                          >
+                            {part}
+                          </Typography>
+                          {last ? null : <>/</>}
+                        </Fragment>
+                      );
+                    })}
+                  </>
+                }
+              />
+            </Box>
+          </NoMaxWidthTooltip>
         </ListItem>
         <Divider />
         <ListItem>

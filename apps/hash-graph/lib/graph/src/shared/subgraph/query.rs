@@ -1,3 +1,8 @@
+#![expect(
+    clippy::let_underscore_untyped,
+    reason = "Upstream issue of `derivative`"
+)]
+
 use std::fmt::Debug;
 
 use derivative::Derivative;
@@ -58,7 +63,7 @@ use crate::{
 ///     "all": [
 ///       {
 ///         "equal": [
-///           { "path": ["type", "baseUri"] },
+///           { "path": ["type", "baseUrl"] },
 ///           { "parameter": "foo" }
 ///         ]
 ///       },

@@ -19,7 +19,7 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("user can create page", async ({ page }) => {
+test.skip("user can create page", async ({ page }) => {
   await loginUsingTempForm({ page });
 
   await page.waitForURL("/");

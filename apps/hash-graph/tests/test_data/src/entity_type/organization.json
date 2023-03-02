@@ -1,4 +1,5 @@
 {
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
   "kind": "entityType",
   "$id": "https://blockprotocol.org/@alice/types/entity-type/organization/v/1",
   "type": "object",
@@ -7,6 +8,5 @@
     "https://blockprotocol.org/@alice/types/property-type/name/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
     }
-  },
-  "additionalProperties": false
+  }
 }

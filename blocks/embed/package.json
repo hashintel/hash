@@ -1,14 +1,19 @@
 {
   "name": "@blocks/embed",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Embed external content",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/embed"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
@@ -43,6 +48,9 @@
     "servePort": 62680
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "name": "@hash/embed",
     "displayName": "Embed",
     "icon": "public/embed.svg",

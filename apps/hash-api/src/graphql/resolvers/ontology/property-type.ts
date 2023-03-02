@@ -11,8 +11,8 @@ import {
 import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
+  QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -37,11 +37,11 @@ export const createPropertyTypeResolver: ResolverFn<
   return createdPropertyType;
 };
 
-export const getAllLatestPropertyTypesResolver: ResolverFn<
+export const queryPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPropertyTypesArgs
+  QueryQueryPropertyTypesArgs
 > = async (
   _,
   { constrainsValuesOn, constrainsPropertiesOn },
@@ -105,7 +105,7 @@ export const getPropertyTypeResolver: ResolverFn<
   const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
     {
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
         inheritsFrom: { outgoing: 0 },

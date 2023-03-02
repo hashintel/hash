@@ -1,0 +1,65 @@
+---
+authors:
+  - name: Ciaran Morinan
+    jobTitle: Head of Engineering, HASH
+    photo: blog/authors/ciaran-morinan.jpg
+  - name: David Wilkinson
+    jobTitle: Co-founder, HASH
+    photo: blog/authors/david-wilkinson.jpg
+  - name: Joel Spolsky
+    jobTitle: Co-founder, HASH
+    photo: blog/authors/joel-spolsky.jpg
+postPhoto: blog/0012_block-protocol-0-3-wordpress/12_0-3-wordpress_70.webp
+title: "Block Protocol 0.3 and WordPress support"
+subtitle: A new type system, link metadata, updated Core and Graph modules, and an ability to use Þ blocks in WordPress
+date: "2023-02-28"
+---
+
+## Block Protocol 0.3 Release
+
+The Block Protocol 0.3 release represents the specification’s biggest evolution yet, building on a wealth of developer feedback and our own experiences integrating the protocol into a wide array of apps and frameworks.
+
+This release primarily focuses on the way data is structured, resulting in major updates to the Core and Graph modules [introduced in version 0.2](https://hash.dev/blog/block-protocol-v02), making them significantly more robust, and expanding the modelling capabilities of links between entities.
+
+It also introduces a new **Service module**, which defines an interface for accessing external services (aka. APIs) consistently and reliably from within blocks, irrespective of the integrations that an embedding application natively supports. This allows embedders to implement their own integrations as they already might, while allowing the [Þ Hub](https://blockprotocol.org/hub) to act as a fallback for any integrations they don't (yet!) themselves support.
+
+Read on to learn more or [jump over to the docs](https://blockprotocol.org/docs) to get into the technical details.
+
+## The Block Protocol expands to WordPress
+
+In addition to the version 0.3 release, today we’re excited to launch the [Block Protocol for WordPress](https://blockprotocol.org/wordpress) plugin into public beta.
+
+**WordPress admins** who install the Block Protocol plugin can provide their users with access to the entire catalogue of high-quality blocks and services on the [Þ Hub](https://blockprotocol.org/hub), and **block developers** can create and publish new blocks instantly — with no more writing PHP, wrangling with Subversion, or setting up a WordPress plugin to simply add a new block.
+
+## How does the Block Protocol in WordPress actually work?
+
+The Block Protocol for WordPress plugin works by effectively turning WordPress into an embedding application for the Block Protocol. It introduces no breaking changes to WordPress sites, and you can continue to use and update WordPress as normal.
+
+The plugin sets up a table in the WordPress database of any site using it. In this table, **entities** and **links** are stored. API routes are then added that allow Block Protocol blocks to use that table.
+
+Block Protocol blocks are dynamically fetched from the [Þ Hub](https://blockprotocol.org/wordpress) and registered in WordPress, appearing like native blocks in WordPress’s normal block editor (known as “Gutenberg”).
+
+When a Block Protocol block is selected, the plugin loads that block and stores its data in the new `entity` table in the database. With that data stored, the block will load in edit mode when opened from post/page editor, and in read-only mode when viewed on the live website, or in preview.
+
+WordPress admins can choose to allow users to insert any Block Protocol block on their site, or limit the selection to pre-approved (Þ team reviewed) blocks only.
+
+## What WordPress support means
+
+**For users:** Making the entire catalogue of Þ blocks available in WordPress means that, in just a few clicks, blocks developed for the Block Protocol can be used by the 43% of websites on the internet powered by WordPress.
+
+**For developers:** The WordPress plugin also demonstrates the interoperability of Block Protocol blocks. Existing and new blocks on the [Þ Hub](https://blockprotocol.org/wordpress) now work in both [HASH](https://blockprotocol.org/docs/using-blocks#hash) and WordPress, without any application-specific logic, and next-up we’ll be working on both [Figma & FigJam](https://blockprotocol.org/docs/using-blocks#figma) plugins, as well as integration with [GitHub Blocks](https://blockprotocol.org/docs/using-blocks#github-blocks), providing even more environments for Þ blocks to be used in. If you’re thinking about developing a new block for WordPress, we’d strongly encourage you to consider [building a Þ block](https://blockprotocol.org/docs/developing-blocks) instead, allowing your block to be used not only within WordPress, but all of these environments (as well as future ones TBC).
+
+## External services & APIs in blocks
+
+The _AI Text_ and _AI Image_ blocks are powered by OpenAI GPT-3 Davinci, and OpenAI DALL-E respectively.
+
+- The AI text block lets you to quickly generate content outlines, as well as actual prose, and can assist in rewriting chunks of existing text to match a particular style or level of quality.
+- The AI image block takes a simple sentence as an input, and converts it into a high-resolution image in line with your description.
+
+The _Address_ block is meanwhile powered by Mapbox, utilizing autocomplete to assist in quickly filling addresses and storing them as structured data, and rendering good looking maps side-by-side.
+
+All of these blocks can be used in WordPress today, alongside the existing catalog of Þ blocks.
+
+## Join the Þ project
+
+If you have ideas or want to get involved, we’d love to [hear from you on our Discord](https://hash.ai/discord).

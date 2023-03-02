@@ -10,13 +10,17 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import {
+  ConstructEntityTypeParams,
+  SystemDefinedProperties,
+} from "@local/hash-graphql-shared/graphql/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
@@ -35,7 +39,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 let testUser: User;
 let testUser2: User;
-let entityTypeSchema: Omit<EntityType, "$id">;
+let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
 let textDataType: DataTypeWithMetadata;
 let namePropertyType: PropertyTypeWithMetadata;
@@ -54,7 +58,6 @@ beforeAll(async () => {
   textDataType = await createDataType(graphContext, {
     ownedById: testUser.accountId as OwnedById,
     schema: {
-      kind: "dataType",
       title: "Text",
       type: "string",
     },
@@ -65,11 +68,9 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Worker",
         type: "object",
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -78,11 +79,9 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Address",
         type: "object",
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -91,7 +90,6 @@ beforeAll(async () => {
     createPropertyType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "propertyType",
         title: "Favorite Book",
         oneOf: [{ $ref: textDataType.schema.$id }],
       },
@@ -102,7 +100,6 @@ beforeAll(async () => {
     createPropertyType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "propertyType",
         title: "Name",
         oneOf: [{ $ref: textDataType.schema.$id }],
       },
@@ -113,13 +110,12 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Knows",
         description: "Knows of someone",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUri }],
+        allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
-        additionalProperties: false,
+        ...({} as Record<SystemDefinedProperties, never>),
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -128,13 +124,11 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Previous Address",
         description: "A previous address of something.",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUri }],
+        allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
-        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -143,14 +137,13 @@ beforeAll(async () => {
   ]);
 
   entityTypeSchema = {
-    kind: "entityType",
     title: "Some",
     type: "object",
     properties: {
-      [favoriteBookPropertyType.metadata.recordId.baseUri]: {
+      [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
         $ref: favoriteBookPropertyType.schema.$id,
       },
-      [namePropertyType.metadata.recordId.baseUri]: {
+      [namePropertyType.metadata.recordId.baseUrl]: {
         $ref: namePropertyType.schema.$id,
       },
     },
@@ -170,7 +163,6 @@ beforeAll(async () => {
         ordered: true,
       },
     },
-    additionalProperties: false,
   };
 });
 

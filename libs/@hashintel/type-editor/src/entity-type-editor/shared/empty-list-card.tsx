@@ -30,11 +30,13 @@ export const EmptyListCard = ({
   <WhiteCard
     onClick={onClick}
     actionSx={(theme) => ({
-      "&:hover": {
-        [`.EmptyListCard-icon, .${typographyClasses.body1}`]: {
-          color: theme.palette.blue[70],
-        },
-      },
+      "&:hover": onClick
+        ? {
+            [`.EmptyListCard-icon, .${typographyClasses.body1}`]: {
+              color: theme.palette.blue[70],
+            },
+          }
+        : {},
     })}
   >
     <Stack
@@ -59,7 +61,7 @@ export const EmptyListCard = ({
           <Box component="span" mr={1} fontWeight={500}>
             {headline}
           </Box>
-          <FontAwesomeIcon icon={faPlus} />
+          {onClick ? <FontAwesomeIcon icon={faPlus} /> : null}
         </Typography>
         <Typography
           variant="microText"

@@ -1,15 +1,18 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
-import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
+import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   EntityTypeRootType,
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OntologyElementMetadata,
   OntologyTypeRecordId,
-  ontologyTypeRecordIdToVersionedUri,
+  ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -33,7 +36,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    schema: EntityTypeWithoutId;
+    schema: ConstructEntityTypeParams;
     actorId: AccountId;
   },
   Promise<EntityTypeWithMetadata>
@@ -49,31 +52,32 @@ export const createEntityType: ImpureGraphFunction<
     title: params.schema.title,
   });
 
-  const schema = { $id: entityTypeId, ...params.schema };
+  const schema = {
+    $schema: ENTITY_TYPE_META_SCHEMA,
+    kind: "entityType" as const,
+    $id: entityTypeId,
+    ...params.schema,
+  };
 
   const { graphApi } = ctx;
 
   const { data: metadata } = await graphApi.createEntityType({
     actorId,
     ownedById,
-    schema: {
-      ...schema,
-      // @ts-expect-error: graph API expects this but the type in HASH hasn't been updated
-      additionalProperties: false,
-    },
+    schema,
   });
 
   return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
- * Get an entity type by its versioned URI.
+ * Get an entity type by its versioned URL.
  *
- * @param params.entityTypeId the unique versioned URI for an entity type.
+ * @param params.entityTypeId the unique versioned URL for an entity type.
  */
 export const getEntityTypeById: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUri;
+    entityTypeId: VersionedUrl;
   },
   Promise<EntityTypeWithMetadata>
 > = async ({ graphApi }, params) => {
@@ -82,7 +86,7 @@ export const getEntityTypeById: ImpureGraphFunction<
   const entityTypeSubgraph = await graphApi
     .getEntityTypesByQuery({
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: {
@@ -121,8 +125,8 @@ export const getEntityTypeById: ImpureGraphFunction<
  */
 export const updateEntityType: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUri;
-    schema: Omit<EntityType, "$id">;
+    entityTypeId: VersionedUrl;
+    schema: ConstructEntityTypeParams;
     actorId: AccountId;
   },
   Promise<EntityTypeWithMetadata>
@@ -131,7 +135,11 @@ export const updateEntityType: ImpureGraphFunction<
   const updateArguments: UpdateEntityTypeRequest = {
     actorId,
     typeToUpdate: entityTypeId,
-    schema,
+    schema: {
+      kind: "entityType",
+      $schema: ENTITY_TYPE_META_SCHEMA,
+      ...schema,
+    },
   };
 
   const { data: metadata } = await graphApi.updateEntityType(updateArguments);
@@ -140,8 +148,10 @@ export const updateEntityType: ImpureGraphFunction<
 
   return {
     schema: {
+      kind: "entityType",
+      $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
     metadata: metadata as OntologyElementMetadata,
   };
@@ -163,6 +173,6 @@ export const isEntityTypeLinkEntityType: PureGraphFunction<
 
   return (
     !!schema.allOf &&
-    schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUri)
+    schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUrl)
   );
 };

@@ -9,7 +9,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
 use crate::identifier::{
@@ -35,15 +35,15 @@ pub struct EntityIdWithInterval {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeVertexId {
-    pub base_id: BaseUri,
+    pub base_id: BaseUrl,
     pub revision_id: OntologyTypeVersion,
 }
 
-impl From<VersionedUri> for OntologyTypeVertexId {
-    fn from(uri: VersionedUri) -> Self {
+impl From<VersionedUrl> for OntologyTypeVertexId {
+    fn from(url: VersionedUrl) -> Self {
         Self {
-            base_id: uri.base_uri,
-            revision_id: OntologyTypeVersion::new(uri.version),
+            base_id: url.base_url,
+            revision_id: OntologyTypeVersion::new(url.version),
         }
     }
 }
@@ -77,7 +77,7 @@ pub trait VertexId {
 }
 
 impl VertexId for OntologyTypeVertexId {
-    type BaseId = BaseUri;
+    type BaseId = BaseUrl;
     type RevisionId = OntologyTypeVersion;
 
     fn new(base_id: Self::BaseId, revision_id: Self::RevisionId) -> Self {
@@ -125,7 +125,7 @@ pub trait EdgeEndpoint {
 }
 
 impl EdgeEndpoint for OntologyTypeVertexId {
-    type BaseId = BaseUri;
+    type BaseId = BaseUrl;
     type RightEndpoint = OntologyTypeVersion;
 
     fn base_id(&self) -> &Self::BaseId {

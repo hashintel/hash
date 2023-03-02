@@ -1,5 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   getPageQuery,
   updatePageContents,
@@ -32,7 +32,7 @@ const generatePlaceholderId = () => `placeholder-${uuid()}`;
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
+type EntityTypeForComponentResult = [VersionedUrl, UpdatePageAction[]];
 
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
@@ -41,7 +41,7 @@ type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
 const calculateSaveActions = async (
   store: EntityStore,
   ownedById: OwnedById,
-  textEntityTypeId: VersionedUri,
+  textEntityTypeId: VersionedUrl,
   blocks: BlockEntity[],
   doc: Node,
   getEntityTypeForComponent: (
@@ -118,7 +118,7 @@ const calculateSaveActions = async (
         draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
       }
 
-      let entityTypeId: VersionedUri | null = null;
+      let entityTypeId: VersionedUrl | null = null;
 
       if (isDraftTextEntity(draftEntity)) {
         /**

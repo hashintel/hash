@@ -24,8 +24,8 @@ import {
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
   MutationUpdateEntityArgs,
-  QueryGetAllLatestEntitiesArgs,
   QueryGetEntityArgs,
+  QueryQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -91,11 +91,11 @@ export const createEntityResolver: ResolverFn<
   return mapEntityToGQL(entity);
 };
 
-export const getAllLatestEntitiesResolver: ResolverFn<
+export const queryEntitiesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntitiesArgs
+  QueryQueryEntitiesArgs
 > = async (
   _,
   {
@@ -125,7 +125,7 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     filter.all.push({
       any: rootEntityTypeIds.map((entityTypeId) => ({
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: entityTypeId },
         ],
       })),

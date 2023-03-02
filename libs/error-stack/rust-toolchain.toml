@@ -1,4 +1,4 @@
 [toolchain]
 # Please also update the badges in `README.md`s (`error-stack` and `error-stack-macros`), and `src/lib.rs`
-channel = "nightly-2023-02-13"
+channel = "nightly-2023-02-20"
 components = ['rust-src', 'miri', 'clippy', 'rustfmt']

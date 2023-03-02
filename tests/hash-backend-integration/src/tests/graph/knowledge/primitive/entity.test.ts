@@ -25,7 +25,7 @@ import {
   EntityRootType,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
@@ -64,7 +64,6 @@ describe("Entity CRU", () => {
     textDataType = await createDataType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "dataType",
         title: "Text",
         type: "string",
       },
@@ -78,13 +77,11 @@ describe("Entity CRU", () => {
       createEntityType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "entityType",
           title: "Friends",
           description: "Friend of",
           type: "object",
           properties: {},
-          allOf: [{ $ref: linkEntityTypeUri }],
-          additionalProperties: false,
+          allOf: [{ $ref: linkEntityTypeUrl }],
         },
         actorId: testUser.accountId,
       })
@@ -98,7 +95,6 @@ describe("Entity CRU", () => {
       createPropertyType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "propertyType",
           title: "Favorite Book",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
@@ -114,7 +110,6 @@ describe("Entity CRU", () => {
       createPropertyType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "propertyType",
           title: "Name",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
@@ -158,8 +153,8 @@ describe("Entity CRU", () => {
     createdEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [namePropertyType.metadata.recordId.baseUri]: "Bob",
-        [favoriteBookPropertyType.metadata.recordId.baseUri]: "some text",
+        [namePropertyType.metadata.recordId.baseUrl]: "Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       entityTypeId: entityType.schema.$id,
       actorId: testUser.accountId,
@@ -188,8 +183,8 @@ describe("Entity CRU", () => {
     updatedEntity = await updateEntity(graphContext, {
       entity: createdEntity,
       properties: {
-        [namePropertyType.metadata.recordId.baseUri]: "Updated Bob",
-        [favoriteBookPropertyType.metadata.recordId.baseUri]:
+        [namePropertyType.metadata.recordId.baseUrl]: "Updated Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]:
           "Even more text than before",
       },
       actorId: testUser2.accountId,
@@ -201,7 +196,7 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest entities", async () => {
-    const allEntitys = await graphApi
+    const allEntities = await graphApi
       .getEntitiesByQuery({
         filter: {
           all: [],
@@ -229,7 +224,7 @@ describe("Entity CRU", () => {
         ),
       );
 
-    const newlyUpdated = allEntitys.find(
+    const newlyUpdated = allEntities.find(
       (ent) =>
         ent.metadata.recordId.entityId ===
         updatedEntity.metadata.recordId.entityId,
@@ -239,16 +234,16 @@ describe("Entity CRU", () => {
     // of the same entity. This should only retrieve a single entity.
     // Other tests pollute the database, though, so we can't rely on this test's
     // results in isolation.
-    expect(allEntitys.length).toBeGreaterThanOrEqual(1);
+    expect(allEntities.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(
       updatedEntity.metadata.recordId.editionId,
     );
     expect(
-      newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUri],
+      newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUrl],
     ).toEqual(
-      updatedEntity.properties[namePropertyType.metadata.recordId.baseUri],
+      updatedEntity.properties[namePropertyType.metadata.recordId.baseUrl],
     );
   });
 
@@ -258,8 +253,8 @@ describe("Entity CRU", () => {
       // First create a new entity given the following definition
       entityTypeId: entityType.schema.$id,
       properties: {
-        [namePropertyType.metadata.recordId.baseUri]: "Alice",
-        [favoriteBookPropertyType.metadata.recordId.baseUri]: "some text",
+        [namePropertyType.metadata.recordId.baseUrl]: "Alice",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       linkedEntities: [
         {
