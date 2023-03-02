@@ -1,6 +1,7 @@
 import { Filter } from "@local/hash-graph-client";
 import {
   Entity,
+  EntityRootType,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -159,7 +160,7 @@ export const queryEntitiesResolver: ResolverFn<
     },
   });
 
-  return entitySubgraph as Subgraph;
+  return entitySubgraph as Subgraph<EntityRootType>;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -228,7 +229,7 @@ export const getEntityResolver: ResolverFn<
     },
   });
 
-  return entitySubgraph as Subgraph;
+  return entitySubgraph as Subgraph<EntityRootType>;
 };
 
 export const updateEntityResolver: ResolverFn<
