@@ -35,7 +35,9 @@ impl<'de, T: Deserialize<'de>> OptionalVisitor<'de> for OptionVisitor<T> {
     }
 }
 
-impl<T: Reflection + ?Sized> Reflection for Option<T> {
+struct OptionReflection<T: ?Sized>(PhantomData<fn() -> *const T>);
+
+impl<T: Reflection + ?Sized> Reflection for OptionReflection<T> {
     fn schema(doc: &mut Document) -> Schema {
         // TODO: how?!
         todo!()
@@ -43,7 +45,7 @@ impl<T: Reflection + ?Sized> Reflection for Option<T> {
 }
 
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Option<T> {
-    type Reflection = Option<T::Reflection>;
+    type Reflection = OptionReflection<T::Reflection>;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         de.deserialize_optional(OptionVisitor(PhantomData))
