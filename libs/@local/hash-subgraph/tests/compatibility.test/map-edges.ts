@@ -1,22 +1,26 @@
-import { validateBaseUri } from "@blockprotocol/type-system";
+import { validateBaseUrl } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
-  KnowledgeGraphOutwardEdges,
-  OntologyOutwardEdges,
+  EntityIdWithInterval as EntityIdWithIntervalGraphApi,
+  ExclusiveBound as ExclusiveBoundGraphApi,
+  KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeGraphApi,
+  OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
+  OntologyTypeVertexId as OntologyTypeVertexIdGraphApi,
 } from "@local/hash-graph-client";
-
 import {
+  BaseUrl,
   Edges,
+  EntityId,
   isEntityId,
-  isEntityIdAndTimestamp,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
-  isOntologyTypeRecordId,
+  OntologyTypeRevisionId,
   OutwardEdge,
-} from "../../src/main";
+  Timestamp,
+} from "@local/hash-subgraph";
 
 export const mapOutwardEdge = (
-  outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,
+  outwardEdge: OntologyOutwardEdgeGraphApi | KnowledgeGraphOutwardEdgeGraphApi,
 ): OutwardEdge => {
   switch (outwardEdge.kind) {
     // Ontology edge-kind cases
@@ -28,45 +32,86 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseUri: outwardEdge.rightEndpoint.baseId,
-          version: outwardEdge.rightEndpoint.version,
+          baseId: outwardEdge.rightEndpoint.baseId as BaseUrl,
+          revisionId:
+            `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
         },
       };
     }
     // Knowledge-graph edge-kind cases
     case "HAS_LEFT_ENTITY":
     case "HAS_RIGHT_ENTITY": {
-      if (!isEntityIdAndTimestamp(outwardEdge.rightEndpoint)) {
-        throw new Error(
-          `Expected an \`EntityAndTimestamp\` for knowledge-graph edge-kind endpoint but found:\n${JSON.stringify(
-            outwardEdge,
-          )}`,
-        );
-      }
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseId: outwardEdge.rightEndpoint.baseId,
-          timestamp: outwardEdge.rightEndpoint.timestamp,
+          entityId: outwardEdge.rightEndpoint.entityId as EntityId,
+          interval: {
+            start: {
+              kind: "inclusive",
+              limit: outwardEdge.rightEndpoint.interval.start
+                .limit as Timestamp,
+            },
+            end:
+              outwardEdge.rightEndpoint.interval.end.kind === "unbounded"
+                ? {
+                    kind: "unbounded",
+                  }
+                : {
+                    kind: "exclusive",
+                    limit: outwardEdge.rightEndpoint.interval.end
+                      .limit as Timestamp,
+                  },
+          },
         },
       };
     }
     // Shared edge-kind cases
     case "IS_OF_TYPE": {
-      if (!isOntologyTypeRecordId(outwardEdge.rightEndpoint)) {
-        throw new Error(
-          `Expected an \`OntologyTypeRecordId\` for knowledge-graph to ontology edge endpoint but found:\n${JSON.stringify(
-            outwardEdge,
-          )}`,
-        );
-      }
-      return {
-        ...outwardEdge,
-        rightEndpoint: {
-          baseUri: outwardEdge.rightEndpoint.baseId,
-          version: outwardEdge.rightEndpoint.version,
-        },
-      };
+      return outwardEdge.reversed
+        ? {
+            ...outwardEdge,
+            reversed: outwardEdge.reversed,
+            rightEndpoint: {
+              entityId: (
+                outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi
+              ).entityId as EntityId,
+              interval: {
+                start: {
+                  kind: "inclusive",
+                  limit: (
+                    outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi
+                  ).interval.start.limit as Timestamp,
+                },
+                end:
+                  (outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi)
+                    .interval.end.kind === "unbounded"
+                    ? {
+                        kind: "unbounded",
+                      }
+                    : {
+                        kind: "exclusive",
+                        limit: (
+                          (
+                            outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi
+                          ).interval.end as ExclusiveBoundGraphApi
+                        ).limit as Timestamp,
+                      },
+              },
+            },
+          }
+        : {
+            ...outwardEdge,
+            reversed: outwardEdge.reversed,
+            rightEndpoint: {
+              baseId: (
+                outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi
+              ).baseId as BaseUrl,
+              revisionId: `${
+                (outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi)
+                  .revisionId
+              }` as OntologyTypeRevisionId,
+            },
+          };
     }
   }
 };
@@ -76,12 +121,12 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
 
   // Trying to build this with `Object.fromEntries` breaks tsc and leads to `any` typed values
   for (const [baseId, inner] of Object.entries(edges)) {
-    const result = validateBaseUri(baseId);
+    const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUrl = result.inner as BaseUrl;
 
-      mappedEdges[baseUri] = Object.fromEntries(
+      mappedEdges[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, outwardEdges]) => {
           const versionNumber = Number(version);
 

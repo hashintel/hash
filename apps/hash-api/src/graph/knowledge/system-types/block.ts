@@ -2,9 +2,9 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
   extractOwnedByIdFromEntityId,
-  PropertyObject,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -44,7 +44,7 @@ export const getBlockFromEntity: PureGraphFunction<
   }
 
   const componentId = entity.properties[
-    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl
   ] as string;
 
   return {
@@ -84,8 +84,8 @@ export const createBlock: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { componentId, blockData, ownedById, actorId } = params;
 
-  const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri]:
+  const properties: EntityPropertiesObject = {
+    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl]:
       componentId,
   };
 

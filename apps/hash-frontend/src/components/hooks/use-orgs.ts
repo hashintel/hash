@@ -1,15 +1,16 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
-  GetAllLatestEntitiesQuery,
-  GetAllLatestEntitiesQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructOrg, Org } from "../../lib/user-and-org";
+
 /**
  * Retrieves a list of organizations.
  * @todo the API should provide this, and it should only be available to admins.
@@ -22,9 +23,9 @@ export const useOrgs = (
   orgs?: Org[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestEntitiesQuery,
-    GetAllLatestEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       rootEntityTypeIds: [types.entityType.org.entityTypeId],
       constrainsValuesOn: { outgoing: 0 },
@@ -39,7 +40,7 @@ export const useOrgs = (
     fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
-  const { getAllLatestEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
     if (!subgraph) {
@@ -51,14 +52,13 @@ export const useOrgs = (
     const resolvedOrgs = {};
 
     /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>).map(
-      (orgEntity) =>
-        constructOrg({
-          subgraph,
-          orgEntity,
-          resolvedUsers,
-          resolvedOrgs,
-        }),
+    return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
+      constructOrg({
+        subgraph,
+        orgEntity,
+        resolvedUsers,
+        resolvedOrgs,
+      }),
     );
   }, [subgraph]);
 

@@ -1,10 +1,11 @@
+#![allow(clippy::unwrap_used)]
 use rustc_version::{version_meta, Channel, Version};
 
 fn main() {
     let version_meta = version_meta().unwrap();
 
     if version_meta.channel == Channel::Nightly {
-        println!("cargo:rustc-cfg=nightly")
+        println!("cargo:rustc-cfg=nightly");
     }
 
     let rustc_version = version_meta.semver;

@@ -6,54 +6,57 @@
  * of functions provided to blocks, but for now the added operations are mostly
  * relevant for the type editors.
  */
-import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { OwnedById } from "@local/hash-subgraph/main";
+import { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph/temporal";
+import { OwnedById } from "@local/hash-subgraph";
 
-import { KnowledgeCallbacks } from "../../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
-import { useBlockProtocolAggregateEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
+import {
+  KnowledgeCallbacks,
+  UploadFileRequestCallback,
+} from "../../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import { useBlockProtocolArchiveEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolFileUpload } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 // Knowledge Graph Operations
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolQueryEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { OntologyCallbacks } from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
-// Ontology operations
-import { useBlockProtocolAggregateDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-data-types";
-import { useBlockProtocolAggregateEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
-import { useBlockProtocolAggregatePropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";
 import { useBlockProtocolCreateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolCreatePropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
 import { useBlockProtocolGetDataType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-data-type";
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useBlockProtocolGetPropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
+// Ontology operations
+import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
+import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
+import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { useBlockProtocolUpdateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useIsReadonlyModeForApp } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<
-  EmbedderGraphMessageCallbacks,
-  | "getEntity"
-  | "createEntity"
-  | "aggregateEntities"
-  | "getEntityType"
-  | "createLink"
-  | "getLink"
-  | "updateLink"
-  | "deleteLink"
+  GraphEmbedderMessageCallbacks,
   | "getLinkedAggregation"
   | "deleteEntity"
   | "deleteEntityType"
   | "createLinkedAggregation"
   | "updateLinkedAggregation"
   | "deleteLinkedAggregation"
-  // Replaced by new ontology callbacks
+  /** @todo-0.3 fix these inconsistencies */
+  | "getEntity"
+  | "createEntity"
+  | "queryEntities"
+  | "getEntityType"
   | "createEntityType"
   | "updateEntityType"
-  | "aggregateEntityTypes"
+  | "queryEntityTypes"
+  | "queryPropertyTypes"
+  | "getPropertyType"
+  | "uploadFile"
+  | "updateEntity"
 > &
   OntologyCallbacks &
-  KnowledgeCallbacks;
+  KnowledgeCallbacks & { uploadFile: UploadFileRequestCallback };
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
@@ -61,7 +64,7 @@ export const useBlockProtocolFunctionsWithOntology = (
 ): GraphMessageCallbacks => {
   const isReadonlyMode = useIsReadonlyModeForApp();
 
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { queryEntities } = useBlockProtocolQueryEntities();
   const { createEntity } = useBlockProtocolCreateEntity(
     ownedById,
     isReadonlyMode,
@@ -75,13 +78,13 @@ export const useBlockProtocolFunctionsWithOntology = (
 
   // Ontology operations
 
-  const { aggregateDataTypes } = useBlockProtocolAggregateDataTypes();
+  const { queryDataTypes } = useBlockProtocolQueryDataTypes();
   const { getDataType } = useBlockProtocolGetDataType();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
     ownedById,
     isReadonlyMode,
   );
-  const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
+  const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
   const { getPropertyType } = useBlockProtocolGetPropertyType();
   const { updatePropertyType } =
     useBlockProtocolUpdatePropertyType(isReadonlyMode);
@@ -89,12 +92,12 @@ export const useBlockProtocolFunctionsWithOntology = (
     ownedById,
     isReadonlyMode,
   );
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntityType } = useBlockProtocolUpdateEntityType(isReadonlyMode);
 
   return {
-    aggregateEntities,
+    queryEntities,
     createEntity,
     uploadFile,
     // Knowledge operations
@@ -102,14 +105,14 @@ export const useBlockProtocolFunctionsWithOntology = (
     updateEntity,
     archiveEntity,
     // Ontology operations
-    aggregateDataTypes,
+    queryDataTypes,
     getDataType,
     createPropertyType,
-    aggregatePropertyTypes,
+    queryPropertyTypes,
     getPropertyType,
     updatePropertyType,
     createEntityType,
-    aggregateEntityTypes,
+    queryEntityTypes,
     getEntityType,
     updateEntityType,
   };

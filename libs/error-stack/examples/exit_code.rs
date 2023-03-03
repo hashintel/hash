@@ -1,3 +1,12 @@
+#![allow(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    unreachable_pub,
+    clippy::use_debug,
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core
+)]
 //! Example of using `attach` to set a custom exit code. Requires nightly and std feature.
 
 use std::process::{ExitCode, Termination};

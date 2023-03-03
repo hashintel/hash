@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use error_stack::Result;
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 
 use crate::{
     identifier::{
@@ -36,7 +36,7 @@ pub trait EntityStore: crud::Read<Entity> {
         decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError>;
@@ -73,7 +73,7 @@ pub trait EntityStore: crud::Read<Entity> {
             IntoIter: Send,
         > + Send,
         actor_id: UpdatedById,
-        entity_type_id: &VersionedUri,
+        entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
@@ -100,7 +100,7 @@ pub trait EntityStore: crud::Read<Entity> {
         decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError>;

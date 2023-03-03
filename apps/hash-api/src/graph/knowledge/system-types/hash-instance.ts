@@ -1,12 +1,11 @@
 import {
   AccountId,
   Entity,
+  EntityRootType,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -49,17 +48,17 @@ export const getHashInstanceFromEntity: PureGraphFunction<
 
   const userSelfRegistrationIsEnabled = entity.properties[
     SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
-      .baseUri
+      .baseUrl
   ] as boolean;
 
   const userRegistrationByInviteIsEnabled = entity.properties[
     SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-      .recordId.baseUri
+      .recordId.baseUrl
   ] as boolean;
 
   const orgSelfRegistrationIsEnabled = entity.properties[
     SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
-      .baseUri
+      .baseUrl
   ] as boolean;
 
   return {
@@ -81,29 +80,29 @@ export const getHashInstance: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           {
             parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
           },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: subgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
-      ),
+      getRoots(subgraph as Subgraph<EntityRootType>),
     );
 
   if (entities.length > 1) {
@@ -156,11 +155,11 @@ export const createHashInstance: ImpureGraphFunction<
     ownedById: systemUserAccountId as OwnedById,
     properties: {
       [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
-        .baseUri]: params.userSelfRegistrationIsEnabled ?? true,
+        .baseUrl]: params.userSelfRegistrationIsEnabled ?? true,
       [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-        .recordId.baseUri]: params.userRegistrationByInviteIsEnabled ?? true,
+        .recordId.baseUrl]: params.userRegistrationByInviteIsEnabled ?? true,
       [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
-        .baseUri]: params.orgSelfRegistrationIsEnabled ?? true,
+        .baseUrl]: params.orgSelfRegistrationIsEnabled ?? true,
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
     actorId,

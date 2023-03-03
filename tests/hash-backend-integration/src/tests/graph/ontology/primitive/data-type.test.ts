@@ -8,13 +8,14 @@ import {
   getDataTypeById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -31,15 +32,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 let testUser: User;
 let testUser2: User;
 
-// we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-//  https://github.com/microsoft/TypeScript/issues/50638
-//  this is needed for as long as DataType extends Record
-const dataTypeSchema: Pick<
-  DataType,
-  "kind" | "title" | "description" | "type"
-> &
-  Record<string, any> = {
-  kind: "dataType",
+const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
   type: "string",
 };

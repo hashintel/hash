@@ -2,16 +2,15 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
   Uuid,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import {
   kratosIdentityApi,
@@ -71,19 +70,19 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   }
 
   const kratosIdentityId = entity.properties[
-    SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUrl
   ] as string;
 
   const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const preferredName = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const emails = entity.properties[
-    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl
   ] as string[];
 
   const isAccountSignupComplete = !!shortname && !!preferredName;
@@ -130,7 +129,7 @@ export const getUserByShortname: ImpureGraphFunction<
         all: [
           {
             equal: [
-              { path: ["type", "versionedUri"] },
+              { path: ["type", "versionedUrl"] },
               { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
             ],
           },
@@ -139,7 +138,7 @@ export const getUserByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
+                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
                 ],
               },
               { parameter: params.shortname },
@@ -148,24 +147,22 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -192,7 +189,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         all: [
           {
             equal: [
-              { path: ["type", "versionedUri"] },
+              { path: ["type", "versionedUrl"] },
               { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
             ],
           },
@@ -202,7 +199,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
                 path: [
                   "properties",
                   SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId
-                    .baseUri,
+                    .baseUrl,
                 ],
               },
               { parameter: params.kratosIdentityId },
@@ -211,24 +208,22 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -303,19 +298,19 @@ export const createUser: ImpureGraphFunction<
   const userAccountId =
     params.userAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri]: emails,
-    [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUri]:
+  const properties: EntityPropertiesObject = {
+    [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
+    [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUrl]:
       kratosIdentityId,
     ...(shortname
       ? {
-          [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri]:
+          [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl]:
             shortname,
         }
       : {}),
     ...(preferredName
       ? {
-          [SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUri]:
+          [SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl]:
             preferredName,
         }
       : {}),
@@ -421,8 +416,8 @@ export const updateUserShortname: ImpureGraphFunction<
 
   const updatedUser = await updateEntityProperty(ctx, {
     entity: user.entity,
-    propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
+    propertyTypeBaseUrl:
+      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
     value: updatedShortname,
     actorId,
   }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
@@ -434,8 +429,8 @@ export const updateUserShortname: ImpureGraphFunction<
     // If an error occurred updating the entity, set the property to have the previous shortname
     await updateEntityProperty(ctx, {
       entity: user.entity,
-      propertyTypeBaseUri:
-        SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
+      propertyTypeBaseUrl:
+        SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
       value: previousShortname,
       actorId,
     });
@@ -467,8 +462,8 @@ export const updateUserPreferredName: ImpureGraphFunction<
 
   const updatedEntity = await updateEntityProperty(ctx, {
     entity: user.entity,
-    propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUri,
+    propertyTypeBaseUrl:
+      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl,
     value: updatedPreferredName,
     actorId,
   });

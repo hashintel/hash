@@ -96,9 +96,15 @@ __pycache__
 # Sentry
 .sentryclirc
 
+# Block Protocol
+.blockprotocolrc
+
 # Application data
 /var
 seed-users.json
+
+# Block Protocol
+.blockprotocolrc
 
 # Terraform
 **/.terraform

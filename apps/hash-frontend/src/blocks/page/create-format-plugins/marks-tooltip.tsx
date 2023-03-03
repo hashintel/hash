@@ -1,3 +1,4 @@
+import { LinkIcon } from "@hashintel/design-system";
 import {
   Divider,
   Paper,
@@ -12,7 +13,6 @@ import { FunctionComponent } from "react";
 import { BoldIcon } from "../../../shared/icons/bold-icon";
 import { HighlighterIcon } from "../../../shared/icons/hightlighter-icon";
 import { ItalicIcon } from "../../../shared/icons/italic-icon";
-import { LinkIcon } from "../../../shared/icons/link-icon";
 import { StrikethroughIcon } from "../../../shared/icons/strikethrough-icon";
 import { UnderlineIcon } from "../../../shared/icons/underline-icon";
 

@@ -1,4 +1,3 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronDown,
@@ -18,7 +17,8 @@ import {
 } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId } from "@local/hash-subgraph/main";
+import { EntityId } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -121,7 +121,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   const commentCreatedAt = useMemo(() => {
     // @todo: replace this with the createdAt from the comment entity
-    const updatedAt = new Date(textUpdatedAt.decisionTime.start);
+    const updatedAt = new Date(textUpdatedAt.decisionTime.start.limit);
     const timeDistance = formatDistanceToNowStrict(updatedAt);
     return timeDistance === "0 seconds"
       ? "Just now"
@@ -136,7 +136,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const preferredName = useMemo(
     () =>
       author.properties[
-        extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+        extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
       ] as string,
     [author.properties],
   );

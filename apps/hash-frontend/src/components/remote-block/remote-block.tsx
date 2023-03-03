@@ -1,10 +1,10 @@
 import { BlockMetadata } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
-  EmbedderGraphMessageCallbacks,
-} from "@blockprotocol/graph";
-import { useGraphEmbedderService } from "@blockprotocol/graph/react";
-import { useHookEmbedderService } from "@blockprotocol/hook/react";
+  GraphEmbedderMessageCallbacks,
+} from "@blockprotocol/graph/temporal";
+import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
+import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { v4 as uuid } from "uuid";
@@ -14,24 +14,30 @@ import { useRemoteBlock } from "./use-remote-block";
 
 type RemoteBlockProps = {
   graphCallbacks: Omit<
-    EmbedderGraphMessageCallbacks,
+    /** @todo-0.3 - Add these back */
+    GraphEmbedderMessageCallbacks,
     | "createEntity"
     | "getEntity"
-    | "aggregateEntities"
+    | "queryEntities"
     | "deleteEntity"
     | "createLink"
     | "getLink"
     | "updateLink"
     | "deleteLink"
     | "getLinkedAggregation"
+    | "createPropertyType"
+    | "queryPropertyTypes"
+    | "updatePropertyType"
+    | "getPropertyType"
     | "createEntityType"
-    | "aggregateEntityTypes"
+    | "queryEntityTypes"
     | "updateEntityType"
     | "getEntityType"
     | "deleteEntityType"
     | "createLinkedAggregation"
     | "updateLinkedAggregation"
     | "deleteLinkedAggregation"
+    | "uploadFile"
   >;
   graphProperties: Required<BlockGraphProperties["graph"]>;
   blockMetadata: BlockMetadata;
@@ -75,22 +81,28 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { graphService } = useGraphEmbedderService(wrapperRef, {
+  const { graphModule } = useGraphEmbedderModule(wrapperRef, {
     callbacks: graphCallbacks,
     ...graphProperties,
   });
 
   useEffect(() => {
-    if (graphService) {
-      graphService.registerCallbacks(graphCallbacks);
-    }
-  }, [graphCallbacks, graphService]);
+    graphModule.registerCallbacks(graphCallbacks);
+  }, [graphCallbacks, graphModule]);
 
-  useHookEmbedderService(wrapperRef, {
+  useHookEmbedderModule(wrapperRef, {
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
       async hook({ data }) {
-        if (data?.type === "text" && data.path === "$.text") {
+        /*
+         *@todo-0.3 - update this when we update the text blocks, we should stop checking for typeof string,
+         *      it should become an array with a base URL
+         */
+        if (
+          data?.type === "text" &&
+          typeof data.path === "string" &&
+          data.path === "$.text"
+        ) {
           editableRef?.(data.node);
 
           const hookId = data.hookId ?? uuid();
@@ -105,20 +117,16 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   });
 
   useEffect(() => {
-    if (graphService) {
-      graphService.blockEntitySubgraph({
-        data: graphProperties.blockEntitySubgraph,
-      });
-    }
-  }, [graphProperties.blockEntitySubgraph, graphService]);
+    graphModule.blockEntitySubgraph({
+      data: graphProperties.blockEntitySubgraph,
+    });
+  }, [graphProperties.blockEntitySubgraph, graphModule]);
 
   useEffect(() => {
-    if (graphService) {
-      graphService.readonly({
-        data: graphProperties.readonly,
-      });
-    }
-  }, [graphProperties.readonly, graphService]);
+    graphModule.readonly({
+      data: graphProperties.readonly,
+    });
+  }, [graphProperties.readonly, graphModule]);
 
   if (loading) {
     return <BlockLoadingIndicator />;
@@ -138,16 +146,12 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   return (
     <div ref={wrapperRef}>
-      {graphService ? (
-        <BlockRenderer
-          blockSource={blockSource}
-          blockType={blockMetadata.blockType}
-          properties={propsToInject}
-          sourceUrl={blockMetadata.source}
-        />
-      ) : (
-        <BlockLoadingIndicator />
-      )}
+      <BlockRenderer
+        blockSource={blockSource}
+        blockType={blockMetadata.blockType}
+        properties={propsToInject}
+        sourceUrl={blockMetadata.source}
+      />
     </div>
   );
 };

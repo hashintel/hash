@@ -22,16 +22,16 @@ enum Return<T> {
 }
 
 impl<T> Return<T> {
-    fn none() -> Self {
-        Return::None
+    const fn none() -> Self {
+        Self::None
     }
 
     fn one(value: T) -> Self {
-        Return::One(once(value))
+        Self::One(once(value))
     }
 
     fn two(first: T, second: T) -> Self {
-        Return::Two(once(first).chain(once(second)))
+        Self::Two(once(first).chain(once(second)))
     }
 }
 
@@ -40,17 +40,17 @@ impl<T> Iterator for Return<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Return::None => None,
-            Return::One(value) => value.next(),
-            Return::Two(values) => values.next(),
+            Self::None => None,
+            Self::One(value) => value.next(),
+            Self::Two(values) => values.next(),
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         match self {
-            Return::None => (0, Some(0)),
-            Return::One(_) => (1, Some(1)),
-            Return::Two(_) => (2, Some(2)),
+            Self::None => (0, Some(0)),
+            Self::One(_) => (1, Some(1)),
+            Self::Two(_) => (2, Some(2)),
         }
     }
 }
@@ -61,9 +61,6 @@ impl<T> ExactSizeIterator for Return<T> {
     }
 }
 
-// TODO: We want some sensible aliases for intervals with specific bounds, so we don't have to
-//       write `Interval<T, S, E>` everywhere. This also improves the `ToSchema` definition.
-//   see https://app.asana.com/0/0/1203783495017458/f
 #[derive(Copy, Clone, Serialize, Deserialize)]
 #[serde(bound(
     serialize = "S: Serialize, E: Serialize",
@@ -82,7 +79,7 @@ impl<T, S, E> Interval<T, S, E> {
     /// # Safety
     ///
     /// The start bound must be less than or equal to the end bound.
-    pub fn new_unchecked(start: S, end: E) -> Self {
+    pub const fn new_unchecked(start: S, end: E) -> Self {
         Self {
             start,
             end,
@@ -91,16 +88,20 @@ impl<T, S, E> Interval<T, S, E> {
     }
 
     /// Returns a reference to the start bound of this interval
-    pub fn start(&self) -> &S {
+    pub const fn start(&self) -> &S {
         &self.start
     }
 
     /// Returns a reference to the end bound of this interval
-    pub fn end(&self) -> &E {
+    pub const fn end(&self) -> &E {
         &self.end
     }
 
     /// Converts the interval into its bounds.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "false positive: the destructor for this type cannot be evaluated at compile-time"
+    )]
     pub fn into_bounds(self) -> (S, E) {
         (self.start, self.end)
     }
@@ -114,7 +115,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// Panics if the start bound is greater than the end bound.
     pub fn new(start: S, end: E) -> Self
     where
-        T: PartialOrd,
+        T: Ord,
     {
         assert_ne!(
             compare_bounds(
@@ -122,6 +123,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
                 end.as_bound(),
                 BoundType::Start,
                 BoundType::End,
+                Ord::cmp,
             ),
             Ordering::Greater,
             "Start bound must be less than or equal to end bound"
@@ -148,7 +150,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> bool
     where
-        T: PartialOrd,
+        T: Ord,
     {
         // Examples |      1     |     2
         // =========|============|============
@@ -176,11 +178,11 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> bool
     where
-        T: PartialEq,
+        T: Eq,
     {
         fn bounds_are_adjacent<T>(lhs: &impl IntervalBound<T>, rhs: &impl IntervalBound<T>) -> bool
         where
-            T: PartialEq,
+            T: Eq,
         {
             match (lhs.as_bound(), rhs.as_bound()) {
                 (Bound::Included(lhs), Bound::Excluded(rhs))
@@ -200,7 +202,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn contains_point(&self, other: &T) -> bool
     where
-        T: PartialOrd,
+        T: Ord,
     {
         matches!(
             compare_bounds(
@@ -208,6 +210,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
                 Bound::Included(other),
                 BoundType::Start,
                 BoundType::Start,
+                Ord::cmp,
             ),
             Ordering::Less | Ordering::Equal
         ) && matches!(
@@ -216,6 +219,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
                 Bound::Included(other),
                 BoundType::End,
                 BoundType::End,
+                Ord::cmp,
             ),
             Ordering::Greater | Ordering::Equal
         )
@@ -232,7 +236,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> bool
     where
-        T: PartialOrd,
+        T: Ord,
     {
         matches!(
             self.cmp_start_to_start(other),
@@ -250,7 +254,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn complement(self) -> impl ExactSizeIterator<Item = Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         // Examples   |      1      |    2    |    3    |    4    |    5
         // =========================|=========|=========|=========|=========
@@ -266,9 +270,10 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     ///
     /// In comparison to [`Self::union`], this method does also return the points between the
     /// intervals if they do not overlap.
+    #[must_use]
     pub fn merge(self, other: Self) -> Self
     where
-        T: PartialOrd,
+        T: Ord,
     {
         let start_ordering = self.cmp_start_to_start(&other);
         let end_ordering = self.cmp_end_to_end(&other);
@@ -293,16 +298,16 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// Returns a new interval that contains all points in both intervals.
     ///
     /// In comparison to [`Self::merge`], this method returns two intervals if they don't overlap.
+    /// If two intervals are returned, the ordering is stable, i.e. `self` is always the first
+    /// interval and `other` is always the second interval.
     pub fn union(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         if self.overlaps(&other) || self.is_adjacent_to(&other) {
             Return::one(self.merge(other))
-        } else if self.cmp_start_to_start(&other) == Ordering::Less {
-            Return::two(self, other)
         } else {
-            Return::two(other, self)
+            Return::two(self, other)
         }
     }
 
@@ -310,7 +315,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn intersect(self, other: Self) -> Option<Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         self.overlaps(&other).then(|| {
             let start_ordering = self.cmp_start_to_start(&other);
@@ -341,7 +346,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// disjoint intervals, `None` is returned.
     pub fn difference(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         match (
             self.cmp_start_to_start(&other),
@@ -446,6 +451,45 @@ where
 {
 }
 
+impl<T, S, E> PartialOrd for Interval<T, S, E>
+where
+    T: PartialOrd,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let start_ordering = compare_bounds(
+            self.start_bound(),
+            other.start_bound(),
+            BoundType::Start,
+            BoundType::Start,
+            PartialOrd::partial_cmp,
+        )?;
+        match start_ordering {
+            Ordering::Equal => compare_bounds(
+                self.end_bound(),
+                other.end_bound(),
+                BoundType::End,
+                BoundType::End,
+                PartialOrd::partial_cmp,
+            ),
+            ordering => Some(ordering),
+        }
+    }
+}
+
+impl<T, S, E> Ord for Interval<T, S, E>
+where
+    T: Ord,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.cmp_start_to_start(other)
+            .then_with(|| self.cmp_end_to_end(other))
+    }
+}
+
 impl<T, S, E> Hash for Interval<T, S, E>
 where
     S: Hash,
@@ -499,11 +543,6 @@ where
             .into(),
         )
     }
-}
-
-#[inline(never)]
-fn invalid_bounds() -> ! {
-    panic!("interval lower bound must be less than or equal to its upper bound")
 }
 
 #[cfg(test)]
@@ -659,6 +698,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn partially_overlapping() {
         // Range A:      [-----]   |   [-----]
         // Range B:        [-----] | [-----]
@@ -1076,6 +1116,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn disjoint() {
         // Range A:      [---]       |       [---]
         // Range B:            [---] | [---]
@@ -1095,7 +1136,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), included_included(0, 5)],
             merge: included_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1118,7 +1159,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), included_excluded(0, 5)],
             merge: included_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1141,7 +1182,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), included_included(0, 5)],
             merge: included_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1164,7 +1205,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), included_excluded(0, 5)],
             merge: included_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1187,7 +1228,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), excluded_included(0, 5)],
             merge: excluded_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1210,7 +1251,7 @@ mod tests {
             lhs: included_included(10, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), included_included(10, 15)],
+            union: [included_included(10, 15), excluded_excluded(0, 5)],
             merge: excluded_included(0, 15),
             difference: [included_included(10, 15)],
         });
@@ -1233,7 +1274,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), excluded_included(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1256,7 +1297,7 @@ mod tests {
             lhs: included_excluded(10, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), included_excluded(10, 15)],
+            union: [included_excluded(10, 15), excluded_excluded(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [included_excluded(10, 15)],
         });
@@ -1279,7 +1320,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), included_included(0, 5)],
             merge: included_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1302,7 +1343,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), included_excluded(0, 5)],
             merge: included_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1325,7 +1366,7 @@ mod tests {
             lhs: excluded_excluded(10, 15),
             rhs: included_included(0, 5),
             intersection: [],
-            union: [included_included(0, 5), excluded_excluded(10, 15)],
+            union: [excluded_excluded(10, 15), included_included(0, 5)],
             merge: included_excluded(0, 15),
             difference: [excluded_excluded(10, 15)],
         });
@@ -1348,7 +1389,7 @@ mod tests {
             lhs: excluded_excluded(10, 15),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), excluded_excluded(10, 15)],
+            union: [excluded_excluded(10, 15), included_excluded(0, 5)],
             merge: included_excluded(0, 15),
             difference: [excluded_excluded(10, 15)],
         });
@@ -1371,7 +1412,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), excluded_included(0, 5)],
             merge: excluded_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1394,7 +1435,7 @@ mod tests {
             lhs: excluded_included(10, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), excluded_included(10, 15)],
+            union: [excluded_included(10, 15), excluded_excluded(0, 5)],
             merge: excluded_included(0, 15),
             difference: [excluded_included(10, 15)],
         });
@@ -1417,7 +1458,7 @@ mod tests {
             lhs: excluded_excluded(10, 15),
             rhs: excluded_included(0, 5),
             intersection: [],
-            union: [excluded_included(0, 5), excluded_excluded(10, 15)],
+            union: [excluded_excluded(10, 15), excluded_included(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [excluded_excluded(10, 15)],
         });
@@ -1440,7 +1481,7 @@ mod tests {
             lhs: excluded_excluded(5, 15),
             rhs: excluded_excluded(0, 5),
             intersection: [],
-            union: [excluded_excluded(0, 5), excluded_excluded(5, 15)],
+            union: [excluded_excluded(5, 15), excluded_excluded(0, 5)],
             merge: excluded_excluded(0, 15),
             difference: [excluded_excluded(5, 15)],
         });
@@ -1535,7 +1576,7 @@ mod tests {
             lhs: excluded_included(5, 10),
             rhs: included_excluded(0, 5),
             intersection: [],
-            union: [included_excluded(0, 5), excluded_included(5, 10)],
+            union: [excluded_included(5, 10), included_excluded(0, 5)],
             merge: included_included(0, 10),
             difference: [excluded_included(5, 10)],
         });
@@ -1661,6 +1702,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::cognitive_complexity)]
     fn contains_point() {
         assert!(included_included(5, 10).contains_point(&5));
         assert!(included_included(5, 10).contains_point(&10));

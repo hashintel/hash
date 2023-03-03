@@ -8,9 +8,9 @@ export const frontendDomain = new URL(frontendUrl).hostname;
 
 /**
  * NOTE: these are used by the frontend because the frontend _imports_ the system type definitions,
- * to find their base URI and title.
+ * to find their base URL and title.
  * @todo - This shouldn't be set via an env-var. We should be resolving this as necessary through the model classes
- * @todo stop the frontend importing the system type definitions. it should just know their URIs and get them from the API
+ * @todo stop the frontend importing the system type definitions. it should just know their URLs and get them from the API
  * */
 export const systemUserShortname =
   process.env.SYSTEM_USER_SHORTNAME ??

@@ -1,8 +1,12 @@
 import { faArrowsRotate, faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  WhiteCard,
+} from "@hashintel/design-system";
 import { Box, Tooltip, Typography } from "@mui/material";
 
-import { WhiteCard } from "../../../../shared/white-card";
+import { Link } from "../../../../../../shared/ui/link";
 
 interface TypeCardProps {
   url: string;
@@ -23,7 +27,7 @@ export const TypeCard = ({
   const { newVersion, onUpdateVersion } = newVersionConfig ?? {};
 
   return (
-    <WhiteCard href={url}>
+    <WhiteCard href={url} LinkComponent={Link}>
       <Box
         sx={{
           height: 40,

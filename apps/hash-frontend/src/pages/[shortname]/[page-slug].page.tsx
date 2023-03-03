@@ -17,12 +17,14 @@ import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -55,11 +57,11 @@ import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
-  GetAllLatestEntitiesQuery,
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
+  QueryEntitiesQuery,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import {
@@ -128,9 +130,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const { cookie } = req.headers ?? {};
 
-  const workspacesSubgraph = await apolloClient
-    .query<GetAllLatestEntitiesQuery>({
-      query: getAllLatestEntitiesQuery,
+  const workspacesSubgraph = (await apolloClient
+    .query<QueryEntitiesQuery>({
+      query: queryEntitiesQuery,
       variables: {
         rootEntityTypeIds: [
           types.entityType.user.entityTypeId,
@@ -146,9 +148,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
       },
       context: { headers: { cookie } },
     })
-    .then(({ data }) => data.getAllLatestEntities);
+    .then(({ data }) => data.queryEntities)) as Subgraph<EntityRootType>;
 
-  const workspaces = getRootsAsEntities(workspacesSubgraph).map((entity) =>
+  const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
           userEntity: entity,

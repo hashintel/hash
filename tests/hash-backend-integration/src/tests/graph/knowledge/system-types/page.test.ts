@@ -23,7 +23,7 @@ import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-subgraph/main";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -55,7 +55,7 @@ describe("Page", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
         properties: {
-          [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: [],
+          [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: [],
         },
         actorId: testUser.accountId,
       }),

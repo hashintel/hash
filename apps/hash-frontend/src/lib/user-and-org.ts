@@ -1,4 +1,3 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
@@ -9,13 +8,17 @@ import {
   entityRecordIdToString,
   extractAccountId,
   Subgraph,
-} from "@local/hash-subgraph/main";
+  Timestamp,
+} from "@local/hash-subgraph";
 import {
-  getIncomingLinksForEntityAtMoment,
-  getLeftEntityForLinkEntityAtMoment,
-  getOutgoingLinksForEntityAtMoment,
-  getRightEntityForLinkEntityAtMoment,
-} from "@local/hash-subgraph/stdlib/edge/link";
+  getIncomingLinksForEntity,
+  getLeftEntityForLinkEntity,
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+  intervalCompareWithInterval,
+  intervalForTimestamp,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
@@ -33,11 +36,11 @@ export const constructMinimalUser = (params: {
   const { userEntity } = params;
 
   const shortname: string = userEntity.properties[
-    extractBaseUri(types.propertyType.shortName.propertyTypeId)
+    extractBaseUrl(types.propertyType.shortName.propertyTypeId)
   ] as string;
 
   const preferredName: string = userEntity.properties[
-    extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+    extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
   ] as string;
 
   const accountSignupComplete = !!shortname && !!preferredName;
@@ -70,10 +73,10 @@ export const constructUser = (params: {
   const resolvedUsers = params.resolvedUsers ?? {};
   const resolvedOrgs = params.resolvedOrgs ?? {};
 
-  const orgMemberships = getOutgoingLinksForEntityAtMoment(
+  const orgMemberships = getOutgoingLinksForEntity(
     subgraph,
     userEntity.metadata.recordId.entityId,
-    new Date(),
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
   ).filter(
     (linkEntity) =>
       linkEntity.metadata.entityTypeId ===
@@ -88,17 +91,32 @@ export const constructUser = (params: {
 
   user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
-      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
     ] as string;
 
     if (!linkData?.rightEntityId) {
       throw new Error("Expected org membership to contain a right entity");
     }
-    const orgEntity = getRightEntityForLinkEntityAtMoment(
+    const orgEntityRevisions = getRightEntityForLinkEntity(
       subgraph,
       metadata.recordId.entityId,
-      new Date(),
+      intervalForTimestamp(new Date().toISOString() as Timestamp),
     );
+
+    if (!orgEntityRevisions || orgEntityRevisions.length === 0) {
+      throw new Error(
+        `Failed to find the current org entity associated with the membership with entity ID: ${metadata.recordId.entityId}`,
+      );
+    }
+
+    const variableAxis = subgraph.temporalAxes.resolved.variable.axis;
+    orgEntityRevisions.sort((entityA, entityB) =>
+      intervalCompareWithInterval(
+        entityA.metadata.temporalVersioning[variableAxis],
+        entityB.metadata.temporalVersioning[variableAxis],
+      ),
+    );
+    const orgEntity = orgEntityRevisions.at(-1)!;
 
     let org = resolvedOrgs[entityRecordIdToString(orgEntity.metadata.recordId)];
 
@@ -136,7 +154,7 @@ export const constructAuthenticatedUser = (params: {
   const { userEntity, subgraph } = params;
 
   const primaryEmailAddress: string = userEntity.properties[
-    extractBaseUri(types.propertyType.email.propertyTypeId)
+    extractBaseUrl(types.propertyType.email.propertyTypeId)
   ] as string;
 
   const isPrimaryEmailAddressVerified =
@@ -184,11 +202,11 @@ export const constructMinimalOrg = (params: {
   const { orgEntity } = params;
 
   const shortname: string = orgEntity.properties[
-    extractBaseUri(types.propertyType.shortName.propertyTypeId)
+    extractBaseUrl(types.propertyType.shortName.propertyTypeId)
   ] as string;
 
   const name: string = orgEntity.properties[
-    extractBaseUri(types.propertyType.orgName.propertyTypeId)
+    extractBaseUrl(types.propertyType.orgName.propertyTypeId)
   ] as string;
 
   return {
@@ -217,10 +235,10 @@ export const constructOrg = (params: {
   const resolvedUsers = params.resolvedUsers ?? {};
   const resolvedOrgs = params.resolvedOrgs ?? {};
 
-  const orgMemberships = getIncomingLinksForEntityAtMoment(
+  const orgMemberships = getIncomingLinksForEntity(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    new Date(),
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
   ).filter(
     (linkEntity) =>
       linkEntity.metadata.entityTypeId ===
@@ -237,17 +255,32 @@ export const constructOrg = (params: {
 
   org.members = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
-      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
     ] as string;
 
     if (!linkData?.leftEntityId) {
       throw new Error("Expected org membership to contain a left entity");
     }
-    const userEntity = getLeftEntityForLinkEntityAtMoment(
+    const userEntityRevisions = getLeftEntityForLinkEntity(
       subgraph,
       metadata.recordId.entityId,
-      new Date(),
+      intervalForTimestamp(new Date().toISOString() as Timestamp),
     );
+
+    if (!userEntityRevisions || userEntityRevisions.length === 0) {
+      throw new Error(
+        `Failed to find the current user entity associated with the membership with entity ID: ${metadata.recordId.entityId}`,
+      );
+    }
+
+    const variableAxis = subgraph.temporalAxes.resolved.variable.axis;
+    userEntityRevisions.sort((entityA, entityB) =>
+      intervalCompareWithInterval(
+        entityA.metadata.temporalVersioning[variableAxis],
+        entityB.metadata.temporalVersioning[variableAxis],
+      ),
+    );
+    const userEntity = userEntityRevisions.at(-1)!;
 
     let user =
       resolvedUsers[entityRecordIdToString(userEntity.metadata.recordId)];

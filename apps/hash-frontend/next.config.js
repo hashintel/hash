@@ -1,6 +1,11 @@
 const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
+  "@blockprotocol/core",
+  "@blockprotocol/graph",
+  "@blockprotocol/hook",
+  "@blockprotocol/type-system",
   "@hashintel/design-system",
+  "@hashintel/type-editor",
   "@local/advanced-types",
   "@local/hash-graph-client",
   "@local/hash-graphql-shared",

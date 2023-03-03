@@ -4,9 +4,9 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityMutation = gql`
   mutation createEntity(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $ownedById: OwnedById
-    $properties: PropertyObject!
+    $properties: EntityPropertiesObject!
     $linkData: LinkData
   ) {
     # This is a scalar, which has no selection.
@@ -48,9 +48,9 @@ export const getEntityQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestEntitiesQuery = gql`
-  query getAllLatestEntities(
-    $rootEntityTypeIds: [VersionedUri!]
+export const queryEntitiesQuery = gql`
+  query queryEntities(
+    $rootEntityTypeIds: [VersionedUrl!]
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -59,7 +59,7 @@ export const getAllLatestEntitiesQuery = gql`
     $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: EdgeResolveDepthsInput!
   ) {
-    getAllLatestEntities(
+    queryEntities(
       rootEntityTypeIds: $rootEntityTypeIds
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
@@ -78,10 +78,10 @@ export const getAllLatestEntitiesQuery = gql`
 export const updateEntityMutation = gql`
   mutation updateEntity(
     $entityId: EntityId!
-    $updatedProperties: PropertyObject!
+    $updatedProperties: EntityPropertiesObject!
     $leftToRightOrder: Int
     $rightToLeftOrder: Int
-    $entityTypeId: VersionedUri
+    $entityTypeId: VersionedUrl
   ) {
     # This is a scalar, which has no selection.
     updateEntity(

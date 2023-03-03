@@ -4,15 +4,15 @@ use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
-        time::{TemporalTagged, TimeAxis},
+        knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
+        time::{ClosedTemporalBound, TemporalTagged, TimeAxis},
         EntityVertexId,
     },
     provenance::ProvenanceMetadata,
@@ -31,6 +31,7 @@ use crate::{
     Serialize,
     Deserialize,
     ToSchema,
+    FromSql,
     ToSql,
 )]
 #[postgres(transparent)]
@@ -74,7 +75,7 @@ impl LinkOrder {
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
-pub struct EntityProperties(HashMap<BaseUri, serde_json::Value>);
+pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
 
 impl EntityProperties {
     #[must_use]
@@ -85,139 +86,90 @@ impl EntityProperties {
 
 impl EntityProperties {
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
+    pub const fn properties(&self) -> &HashMap<BaseUrl, serde_json::Value> {
         &self.0
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct EntityLinkOrder {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    left_to_right_order: Option<LinkOrder>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    right_to_left_order: Option<LinkOrder>,
-}
-
-impl EntityLinkOrder {
-    #[must_use]
-    pub const fn new(
-        left_to_right_order: Option<LinkOrder>,
-        right_to_left_order: Option<LinkOrder>,
-    ) -> Self {
-        Self {
-            left_to_right_order,
-            right_to_left_order,
-        }
-    }
-
-    #[must_use]
-    pub const fn left_to_right(&self) -> Option<LinkOrder> {
-        self.left_to_right_order
-    }
-
-    #[must_use]
-    pub const fn right_to_left(&self) -> Option<LinkOrder> {
-        self.right_to_left_order
-    }
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "leftToRightOrder"
+    )]
+    pub left_to_right: Option<LinkOrder>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "rightToLeftOrder"
+    )]
+    pub right_to_left: Option<LinkOrder>,
 }
 
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkData {
-    left_entity_id: EntityId,
-    right_entity_id: EntityId,
+    pub left_entity_id: EntityId,
+    pub right_entity_id: EntityId,
     #[serde(flatten)]
-    order: EntityLinkOrder,
-}
-
-impl LinkData {
-    #[must_use]
-    pub const fn new(
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
-        left_to_right_order: Option<LinkOrder>,
-        right_to_left_order: Option<LinkOrder>,
-    ) -> Self {
-        Self {
-            left_entity_id,
-            right_entity_id,
-            order: EntityLinkOrder::new(left_to_right_order, right_to_left_order),
-        }
-    }
-
-    #[must_use]
-    pub const fn left_entity_id(&self) -> EntityId {
-        self.left_entity_id
-    }
-
-    #[must_use]
-    pub const fn right_entity_id(&self) -> EntityId {
-        self.right_entity_id
-    }
-
-    #[must_use]
-    pub const fn left_to_right_order(&self) -> Option<LinkOrder> {
-        self.order.left_to_right_order
-    }
-
-    #[must_use]
-    pub const fn right_to_left_order(&self) -> Option<LinkOrder> {
-        self.order.right_to_left_order
-    }
+    pub order: EntityLinkOrder,
 }
 
 /// The metadata of an [`Entity`] record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
+// TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
+//   see https://github.com/rust-lang/rust/issues/105077
+//   see https://app.asana.com/0/0/1203977361907407/f
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
-    edition_id: EntityEditionId,
-    version: EntityVersion,
+    record_id: EntityRecordId,
+    temporal_versioning: EntityTemporalMetadata,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
+    entity_type_id: VersionedUrl,
+    provenance: ProvenanceMetadata,
     archived: bool,
 }
 
 impl EntityMetadata {
     #[must_use]
     pub const fn new(
-        edition_id: EntityEditionId,
-        version: EntityVersion,
-        entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
+        record_id: EntityRecordId,
+        temporal_versioning: EntityTemporalMetadata,
+        entity_type_id: VersionedUrl,
+        provenance: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
-            edition_id,
-            version,
+            record_id,
+            temporal_versioning,
             entity_type_id,
-            provenance_metadata,
+            provenance,
             archived,
         }
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> EntityEditionId {
-        self.edition_id
+    pub const fn record_id(&self) -> EntityRecordId {
+        self.record_id
     }
 
     #[must_use]
-    pub const fn version(&self) -> &EntityVersion {
-        &self.version
+    pub const fn temporal_versioning(&self) -> &EntityTemporalMetadata {
+        &self.temporal_versioning
     }
 
     #[must_use]
-    pub const fn entity_type_id(&self) -> &VersionedUri {
+    pub const fn entity_type_id(&self) -> &VersionedUrl {
         &self.entity_type_id
     }
 
     #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
+    pub const fn provenance(&self) -> ProvenanceMetadata {
+        self.provenance
     }
 
     #[must_use]
@@ -231,71 +183,39 @@ impl EntityMetadata {
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
-    properties: EntityProperties,
+    pub properties: EntityProperties,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_data: Option<LinkData>,
-    metadata: EntityMetadata,
-}
-
-impl Entity {
-    #[must_use]
-    pub const fn new(
-        properties: EntityProperties,
-        link_data: Option<LinkData>,
-        identifier: EntityEditionId,
-        version: EntityVersion,
-        entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
-        archived: bool,
-    ) -> Self {
-        Self {
-            properties,
-            link_data,
-            metadata: EntityMetadata::new(
-                identifier,
-                version,
-                entity_type_id,
-                provenance_metadata,
-                archived,
-            ),
-        }
-    }
-
-    #[must_use]
-    pub const fn properties(&self) -> &EntityProperties {
-        &self.properties
-    }
-
-    #[must_use]
-    pub const fn link_data(&self) -> Option<LinkData> {
-        self.link_data
-    }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &EntityMetadata {
-        &self.metadata
-    }
+    pub link_data: Option<LinkData>,
+    pub metadata: EntityMetadata,
 }
 
 impl Record for Entity {
-    type EditionId = EntityEditionId;
     type QueryPath<'p> = EntityQueryPath<'p>;
     type VertexId = EntityVertexId;
 
-    fn edition_id(&self) -> &Self::EditionId {
-        &self.metadata.edition_id
-    }
-
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
-        let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata().version().decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata().version().transaction_time.start().cast(),
+        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
+            TimeAxis::DecisionTime => self
+                .metadata
+                .temporal_versioning()
+                .decision_time
+                .start()
+                .cast(),
+            TimeAxis::TransactionTime => self
+                .metadata
+                .temporal_versioning()
+                .transaction_time
+                .start()
+                .cast(),
         };
-        EntityVertexId::new(self.edition_id().base_id(), timestamp.into())
+        EntityVertexId {
+            base_id: self.metadata.record_id().entity_id,
+            revision_id: timestamp,
+        }
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_entity_by_id(vertex_id.base_id())
+        Filter::for_entity_by_entity_id(vertex_id.base_id)
     }
 }
 
@@ -338,7 +258,7 @@ mod tests {
 
     #[test]
     fn person() {
-        test_entity(graph_test_data::entity::PERSON_A_V1);
+        test_entity(graph_test_data::entity::PERSON_ALICE_V1);
     }
 
     #[test]

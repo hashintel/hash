@@ -8,7 +8,7 @@ tags: ["Software Engineering", "Standards"]
 
 The Block Protocol is an open standard which standardizes the means by which [blocks](https://hash.ai/glossary/blocks) and applications are able to communicate, so that any block can be embedded in any application, without either one possessing any special knowledge about the other.
 
-The Block Protocol consists of a **core specification**, and various optional **services**, each with their own additional specifications. You can learn about these in full by reading the Block Protocol documentation and specification at blockprotocol.org/docs.
+The Block Protocol consists of a **Core** specification, and various optional **modules**, each with their own additional specifications. You can learn about these in full by reading the Block Protocol documentation and specification at blockprotocol.org/docs.
 
 Blocks built in accordance with the Block Protocol are also made available on the Block Protocol Hub, located at blockprotocol.org/hub
 
@@ -32,28 +32,28 @@ The Block Protocol Core outlines what constitutes a bare minimum block publishab
 
 The combination of these two things is called a **block package**, and it is these that can be submitted for listing on the Block Protocol Hub, for download and use by others as **blocks**.
 
-The Block Protocol Core also defines how services can be specified.
+The Block Protocol Core also defines how modules can be specified.
 
-### Block Protocol Services
+### Block Protocol Modules
 
-The Block Protocol Core specifies how a block is defined, and how they communicate with embedding applications. Services define what blocks and applications can communicate.
+The Block Protocol Core specifies how a block is defined, and how they communicate with embedding applications. Modules define what blocks and applications can communicate.
 
-Services provide logical groups of functionality or aim to solve a specific problem related to block-application interaction. Services are defined in their own specifications that live separate to, but alongside, the Block Protocol Core.
+Modules provide logical groups of functionality or aim to solve a specific problem related to block-application interaction. Modules are defined in their own specifications that live separate to, but alongside, the Block Protocol Core.
 
-Most blocks will want to use one or more services defined as part of the Block Protocol specification.
+Most blocks will want to use one or more modules defined as part of the Block Protocol specification.
 
-For example, the **graph** service defines the protocol by which blocks can create, read, update or delete **entities** -- as well as any **links** between those entities -- within an embedding application’s datastore.
+For example, the **Graph** module defines the protocol by which blocks can create, read, update or delete **entities** -- as well as any **links** between those entities -- within an embedding application’s datastore.
 
-There are many different types of services under discussion for inclusion in the Block Protocol, which are described alongside the specification.
+There are many different types of modules under discussion for inclusion in the Block Protocol, which are described alongside the specification.
 
-In their metadata, blocks can declare which services (and which version of those services) they support.
+In their metadata, blocks can declare which modules (and which version of those modules) they support.
 
-Not all embedding applications will support all services. For example:
+Not all embedding applications will support all modules. For example:
 
-- New services are likely to be added on a regular basis, and embedding application developers will require time to build in support for them within their applications.
-- Application developers may have limited bandwidth, and elect to support services in an incremental manner - prioritizing support for some services before others.
-- Application developers may never intend to support certain services, disagreeing with their approach to solving a problem, or because the service is related to functionality which is irrelevant to or unwanted by the application.
+- New modules are likely to be added on a regular basis, and embedding application developers will require time to build in support for them within their applications.
+- Application developers may have limited bandwidth, and elect to support modules in an incremental manner - prioritizing support for some modules before others.
+- Application developers may never intend to support certain modules, disagreeing with their approach to solving a problem, or because the module is related to functionality which is irrelevant to or unwanted by the application.
 
-In any case, embedding applications can filter the blocks on the Block Protocol Hub to ensure only those blocks requiring services that their application supports are shown. This allows application creators (and sometimes their users, depending on how the Block Protocol has been integrated) to search, embed and use blocks that are guaranteed to work out-the-box, extending the functionality of embedding applications beyond their original purposes.
+In any case, embedding applications can filter the blocks on the Block Protocol Hub to ensure only those blocks requiring modules that their application supports are shown. This allows application creators (and sometimes their users, depending on how the Block Protocol has been integrated) to search, embed and use blocks that are guaranteed to work out-the-box, extending the functionality of embedding applications beyond their original purposes.
 
-HASH supports all of the published Block Protocol services, and lets you access and use any block published on the Block Protocol Hub.
+HASH supports all of the published Block Protocol modules, and lets you access and use any block published on the Block Protocol Hub.

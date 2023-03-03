@@ -1,9 +1,9 @@
 import {
+  EntityPropertiesObject,
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
   Uuid,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -39,7 +39,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   }
 
   const responsibility = linkEntity.properties[
-    SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUrl
   ] as string;
 
   return {
@@ -72,8 +72,8 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, { user, org, responsibility, actorId }) => {
-  const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri]:
+  const properties: EntityPropertiesObject = {
+    [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUrl]:
       responsibility,
   };
 

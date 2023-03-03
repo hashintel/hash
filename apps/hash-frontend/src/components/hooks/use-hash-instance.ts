@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useMemo } from "react";
 
 import {
@@ -23,8 +23,8 @@ export const useHashInstance = (): {
   hashInstance?: HashInstance;
 } => {
   /**
-   * @todo: use aggregate entity query instead so that all entities don't have to
-   * be fetched to get the HASH instance entity.
+   * @todo: use queryEntities instead so that all entities don't have to
+   *   be fetched to get the HASH instance entity.
    */
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,
@@ -44,19 +44,19 @@ export const useHashInstance = (): {
     const { properties } = hashInstanceEntity;
 
     const userSelfRegistrationIsEnabled = properties[
-      extractBaseUri(
+      extractBaseUrl(
         types.propertyType.userSelfRegistrationIsEnabled.propertyTypeId,
       )
     ] as boolean;
 
     const orgSelfRegistrationIsEnabled = properties[
-      extractBaseUri(
+      extractBaseUrl(
         types.propertyType.orgSelfRegistrationIsEnabled.propertyTypeId,
       )
     ] as boolean;
 
     const userRegistrationByInviteIsEnabled = properties[
-      extractBaseUri(
+      extractBaseUrl(
         types.propertyType.userRegistrationByInviteIsEnabled.propertyTypeId,
       )
     ] as boolean;

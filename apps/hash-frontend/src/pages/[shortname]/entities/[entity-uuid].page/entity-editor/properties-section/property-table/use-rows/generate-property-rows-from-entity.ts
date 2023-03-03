@@ -1,12 +1,11 @@
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { BaseUrl, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 
 import { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
 
 export const generatePropertyRowsFromEntity = (
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>,
+  entitySubgraph: Subgraph<EntityRootType>,
 ): PropertyRow[] => {
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -19,19 +18,19 @@ export const generatePropertyRowsFromEntity = (
     return [];
   }
 
-  const requiredPropertyTypes = entityType.schema.required ?? [];
+  const requiredPropertyTypes = (entityType.schema.required ?? []) as BaseUrl[];
 
   return Object.keys(entityType.schema.properties).map(
-    (propertyTypeBaseUri) => {
-      const property = entityType.schema.properties[propertyTypeBaseUri];
+    (propertyTypeBaseUrl) => {
+      const property = entityType.schema.properties[propertyTypeBaseUrl];
 
       if (!property) {
         throw new Error("Property not found");
       }
 
       return generatePropertyRowRecursively({
-        propertyTypeBaseUri,
-        propertyKeyChain: [propertyTypeBaseUri],
+        propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,
+        propertyKeyChain: [propertyTypeBaseUrl as BaseUrl],
         entity,
         entitySubgraph,
         requiredPropertyTypes,

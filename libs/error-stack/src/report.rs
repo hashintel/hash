@@ -385,6 +385,7 @@ impl<C> Report<C> {
     ///
     /// [`extend_one()`]: Self::extend_one
     // TODO: once #7261 is stabilized deprecate and remove this function
+    #[allow(clippy::same_name_method)]
     pub fn extend_one(&mut self, mut report: Self) {
         self.frames.append(&mut report.frames);
     }

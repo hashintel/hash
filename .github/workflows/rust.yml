@@ -103,12 +103,19 @@ jobs:
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: cargo +${{ matrix.toolchain }} make doc
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: cargo +${{ matrix.toolchain }} make doc --document-private-items
+
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
 
   test:
     name: test
@@ -129,13 +136,6 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
-
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Install tools
         shell: bash
@@ -214,13 +214,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -250,7 +243,9 @@ jobs:
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
+          ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
+          ## on coverage reports more strictly
+          fail_ci_if_error: false
           files: ${{ matrix.directory }}/lcov.info
           flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
@@ -269,13 +264,6 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
-
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Install tools
         run: |

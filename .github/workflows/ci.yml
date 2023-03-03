@@ -196,7 +196,9 @@ jobs:
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
+          ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
+          ## on coverage reports more strictly
+          fail_ci_if_error: false
           files: tests/hash-backend-integration/coverage/lcov.info
           flags: backend-integration-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
@@ -318,7 +320,9 @@ jobs:
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
+          ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
+          ## on coverage reports more strictly
+          fail_ci_if_error: false
           files: apps/hash-api/coverage/lcov.info,apps/hash-frontend/coverage/lcov.info,libs/@local/hash-backend-utils/coverage/lcov.info,libs/@local/hash-isomorphic-utils/coverage/lcov.info,
           flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved

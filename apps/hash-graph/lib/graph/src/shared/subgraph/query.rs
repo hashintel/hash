@@ -1,3 +1,8 @@
+#![expect(
+    clippy::let_underscore_untyped,
+    reason = "Upstream issue of `derivative`"
+)]
+
 use std::fmt::Debug;
 
 use derivative::Derivative;
@@ -8,11 +13,10 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::time::UnresolvedTimeProjection,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::{query::Filter, Record},
-    subgraph::edges::GraphResolveDepths,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 
 /// Structural queries are the main entry point to read data from the Graph.
@@ -59,7 +63,7 @@ use crate::{
 ///     "all": [
 ///       {
 ///         "equal": [
-///           { "path": ["type", "baseUri"] },
+///           { "path": ["type", "baseUrl"] },
 ///           { "parameter": "foo" }
 ///         ]
 ///       },
@@ -162,28 +166,25 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
-    pub time_projection: UnresolvedTimeProjection,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {
-    fn schema() -> RefOr<Schema> {
-        Schema::Object(
-            ObjectBuilder::new()
-                .property("filter", Ref::from_schema_name("Filter"))
-                .required("filter")
-                .property(
-                    "graphResolveDepths",
-                    Ref::from_schema_name(GraphResolveDepths::schema().0),
-                )
-                .required("graphResolveDepths")
-                .property(
-                    "timeProjection",
-                    Ref::from_schema_name(UnresolvedTimeProjection::schema().0),
-                )
-                .required("timeProjection")
-                .build(),
-        )
-        .into()
+    fn generate_schema() -> RefOr<Schema> {
+        ObjectBuilder::new()
+            .property("filter", Ref::from_schema_name("Filter"))
+            .required("filter")
+            .property(
+                "graphResolveDepths",
+                Ref::from_schema_name(GraphResolveDepths::schema().0),
+            )
+            .required("graphResolveDepths")
+            .property(
+                "temporalAxes",
+                Ref::from_schema_name(QueryTemporalAxesUnresolved::schema().0),
+            )
+            .required("temporalAxes")
+            .into()
     }
 }
 
@@ -196,7 +197,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, DataTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "DataTypeStructuralQuery",
-            StructuralQuery::<'p, DataTypeWithMetadata>::schema(),
+            StructuralQuery::<'p, DataTypeWithMetadata>::generate_schema(),
         )
     }
 }
@@ -205,7 +206,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, PropertyTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "PropertyTypeStructuralQuery",
-            StructuralQuery::<'p, PropertyTypeWithMetadata>::schema(),
+            StructuralQuery::<'p, PropertyTypeWithMetadata>::generate_schema(),
         )
     }
 }
@@ -214,7 +215,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, EntityTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "EntityTypeStructuralQuery",
-            StructuralQuery::<'p, EntityTypeWithMetadata>::schema(),
+            StructuralQuery::<'p, EntityTypeWithMetadata>::generate_schema(),
         )
     }
 }
@@ -223,7 +224,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, Entity> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "EntityStructuralQuery",
-            StructuralQuery::<'p, Entity>::schema(),
+            StructuralQuery::<'p, Entity>::generate_schema(),
         )
     }
 }

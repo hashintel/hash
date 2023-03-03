@@ -1,9 +1,9 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph/main";
+import { SelectorAutocomplete } from "@hashintel/design-system";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
 import { useEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
-import { HashSelectorAutocomplete } from "../../../shared/hash-selector-autocomplete";
 
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
@@ -11,14 +11,13 @@ export const EntityTypeSelector: FunctionComponent<{
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const entityTypesObject = useEntityTypesOptional();
-  const entityTypes = Object.values(entityTypesObject ?? {});
+  const entityTypes = useEntityTypesOptional();
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
 
   return (
-    <HashSelectorAutocomplete
+    <SelectorAutocomplete
       dropdownProps={{
         query: search,
         createButtonProps: {
@@ -30,7 +29,7 @@ export const EntityTypeSelector: FunctionComponent<{
         },
         variant: "entityType",
       }}
-      options={entityTypes}
+      options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         $id,
         title,

@@ -1,10 +1,14 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
+  Entity,
+  EntityId,
+  EntityRevisionId,
   GraphResolveDepths,
+  KnowledgeGraphVertices,
   Subgraph,
-  SubgraphRootTypes,
-} from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-subgraph/main";
+  Timestamp,
+  UpdatedById,
+} from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import { useBlockProtocolGetEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
@@ -13,8 +17,14 @@ export const useFetchBlockSubgraph = () => {
   const { getEntity } = useBlockProtocolGetEntity();
 
   const fetchBlockSubgraph = useCallback(
-    async (blockEntityTypeId: VersionedUri, blockEntityId?: EntityId) => {
+    async (blockEntityTypeId: VersionedUrl, blockEntityId?: EntityId) => {
       const depths: GraphResolveDepths = {
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
         hasRightEntity: {
           incoming: 2,
           outgoing: 2,
@@ -30,36 +40,82 @@ export const useFetchBlockSubgraph = () => {
         // there's a delay while the request to the API to insert it is processed
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
-        const now: string = new Date().toISOString();
-        const placeholderEntity = {
+        const now = new Date().toISOString() as Timestamp;
+        const placeholderEntity: Entity = {
           metadata: {
             recordId: {
-              entityId: "placeholder-account%entity-id-not-set",
-              version: now, // @todo-0.3 check this against types in @blockprotocol/graph when mismatches fixed
-              versionId: now,
+              entityId: "placeholder-account%entity-id-not-set" as EntityId,
+              editionId: now,
             },
             entityTypeId: blockEntityTypeId,
+            temporalVersioning: {
+              decisionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+            },
+            archived: false,
+            provenance: {
+              updatedById: "placeholder-account" as UpdatedById,
+            },
           },
-
           properties: {},
-        };
-        const blockEntitySubgraph = {
+        } as const;
+
+        const subgraphTemporalAxes = {
+          pinned: {
+            axis: "transactionTime",
+            timestamp: now,
+          },
+          variable: {
+            axis: "decisionTime",
+            interval: {
+              start: {
+                kind: "inclusive",
+                limit: now,
+              },
+              end: {
+                kind: "inclusive",
+                limit: now,
+              },
+            },
+          },
+        } as const;
+        const blockEntitySubgraph: Subgraph = {
           depths,
           edges: {},
           roots: [
             {
               baseId: placeholderEntity.metadata.recordId.entityId,
-              versionId: placeholderEntity.metadata.recordId.version,
+              revisionId: now as EntityRevisionId,
             },
-          ], // @todo-0.3 fix when type mismatches fixed
+          ],
           vertices: {
             [placeholderEntity.metadata.recordId.entityId]: {
-              [placeholderEntity.metadata.recordId.version]: {
-                kind: "entity",
+              [now]: {
+                kind: "entity" as const,
                 inner: placeholderEntity,
               },
             },
-          } as unknown as Subgraph["vertices"], // @todo-0.3 do something about this
+          } as KnowledgeGraphVertices,
+          temporalAxes: {
+            initial: subgraphTemporalAxes,
+            resolved: subgraphTemporalAxes,
+          },
         };
 
         return blockEntitySubgraph;
@@ -77,16 +133,7 @@ export const useFetchBlockSubgraph = () => {
             );
           }
 
-          return {
-            ...(data as unknown as Subgraph<SubgraphRootTypes["entity"]>), // @todo-0.3 do something about this,
-            roots: [
-              // @todo-0.3 remove this when edition ids match between HASH and BP
-              {
-                baseId: data.roots[0]!.baseId,
-                versionId: data.roots[0]!.version,
-              },
-            ],
-          } as Subgraph<SubgraphRootTypes["entity"]>;
+          return data;
         })
         .catch((err) => {
           // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors
