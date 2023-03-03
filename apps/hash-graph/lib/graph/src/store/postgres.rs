@@ -52,23 +52,23 @@ use crate::{
 /// Status of a traversal of the graph.
 ///
 /// This is used to determine whether a traversal should continue or stop. If a traversal is
-/// resolved for a sufficient depths and a large enough interval, [`DependencyStatus::Resolved`]
-/// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
+/// resolved for a sufficient depths and a large enough interval, [`TraversalStatus::Resolved`]
+/// will be returned from [`TraversalMap::update`], otherwise [`TraversalStatus::Unresolved`] will
 /// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
 ///
 /// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DependencyStatus {
+pub enum TraversalStatus {
     Unresolved(GraphResolveDepths, TemporalInterval<VariableAxis>),
     Resolved,
 }
 
-pub struct DependencyMap<K> {
+pub struct TraversalMap<K> {
     resolved: HashMap<K, (GraphResolveDepths, TemporalInterval<VariableAxis>)>,
 }
 
-impl<K> Default for DependencyMap<K> {
+impl<K> Default for TraversalMap<K> {
     fn default() -> Self {
         Self {
             resolved: HashMap::default(),
@@ -76,30 +76,30 @@ impl<K> Default for DependencyMap<K> {
     }
 }
 
-impl<K> DependencyMap<K>
+impl<K> TraversalMap<K>
 where
     K: Eq + Hash + Clone + Debug,
 {
-    /// Inserts a dependency into the map.
+    /// Inserts new traversal parameters into the map.
     ///
-    /// If the dependency does not already exist in the dependency map, it will be inserted with the
-    /// provided `new_resolve_depth` and `new_interval`. If the dependency was already resolved it
-    /// is checked whether the new resolve depth and interval are more general than the existing
-    /// resolve depth and interval. If they are, the existing resolve depth and interval are updated
-    /// to cover the new resolve depth and interval.
+    /// If the traversed object does not already exist in the traversal map, it will be inserted
+    /// with the provided `new_resolve_depth` and `new_interval`. If the traversed object was
+    /// already resolved it is checked whether the new resolve depth and interval are more
+    /// general than the existing resolve depth and interval. If they are, the existing resolve
+    /// depth and interval are updated to cover the new resolve depth and interval.
     ///
-    /// If the traversed entry has to be resolved further, [`DependencyStatus::Unresolved`] is
+    /// If the traversed entry has to be resolved further, [`TraversalStatus::Unresolved`] is
     /// returned with the new resolve depth and interval that the traversal should continue with.
     pub fn update(
         &mut self,
         identifier: &K,
         new_resolve_depth: GraphResolveDepths,
         new_interval: TemporalInterval<VariableAxis>,
-    ) -> DependencyStatus {
+    ) -> TraversalStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 entry.insert(identifier.clone(), (new_resolve_depth, new_interval));
-                DependencyStatus::Unresolved(new_resolve_depth, new_interval)
+                TraversalStatus::Unresolved(new_resolve_depth, new_interval)
             }
             RawEntryMut::Occupied(entry) => {
                 let (current_depths, current_interval) = entry.into_mut();
@@ -119,21 +119,21 @@ where
                     // We currently don't have a way to store different resolve depths for different
                     // intervals for the same identifier. For simplicity, we require to resolve the
                     // full interval with the updated resolve depths.
-                    DependencyStatus::Unresolved(*current_depths, *current_interval)
+                    TraversalStatus::Unresolved(*current_depths, *current_interval)
                 } else if old_interval.contains_interval(&new_interval) {
-                    // The dependency is already resolved for the required interval
+                    // The traversed object is already resolved for the required interval
                     // old: [-----)
                     // new:  [---)
-                    DependencyStatus::Resolved
+                    TraversalStatus::Resolved
                 } else if new_interval.contains_interval(&old_interval)
                     || new_interval.is_adjacent_to(&old_interval)
                 {
-                    // The dependency is already resolved, but not for the required interval. If the
-                    // old interval is contained in the new interval, this means, that a portion of
-                    // the new interval has already been resolved, but not all of it. Ideally we
-                    // only want to resolve the difference of `new - old`, but we don't have a way
-                    // to store different resolve depths for different intervals for the same
-                    // identifier. For simplicity, we require to resolve the full interval.
+                    // The traversed object is already resolved, but not for the required interval.
+                    // If the old interval is contained in the new interval, this means, that a
+                    // portion of the new interval has already been resolved, but not all of it.
+                    // Ideally we only want to resolve the difference of `new - old`, but we don't
+                    // have a way to store different resolve depths for different intervals for the
+                    // same identifier. For simplicity, we require to resolve the full interval.
                     //
                     //         |  contains   |  adjacent
                     // old     |    [---)    | [---)
@@ -141,7 +141,7 @@ where
                     // ========|=============|===========
                     // optimal | [--)   [--) |     [---)
                     // current | [---------) |     [---)
-                    DependencyStatus::Unresolved(*current_depths, new_interval)
+                    TraversalStatus::Unresolved(*current_depths, new_interval)
                 } else if old_interval.overlaps(&new_interval) {
                     // This is a similar case to the above, but as the old interval is not contained
                     // in the new interval, we can resolve the difference of `new - old`.
@@ -153,7 +153,7 @@ where
                     // the required interval, so the difference must be a single interval
                     debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
 
-                    DependencyStatus::Unresolved(
+                    TraversalStatus::Unresolved(
                         *current_depths,
                         difference
                             .into_iter()
@@ -163,7 +163,7 @@ where
                 } else {
                     // The time intervals are disjoint and not adjacent. Ideally, we only would
                     // resolve the new interval, but we did not come up with a good way to store the
-                    // different intervals in the dependency map. So we resolve the full interval
+                    // different intervals in the traversal map. So we resolve the full interval
                     // for now.
                     //
                     // We only require this logic when traversing edges of the graph, so the roots
@@ -189,7 +189,7 @@ where
                     let difference = old_interval.merge(new_interval).difference(old_interval);
                     debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
 
-                    DependencyStatus::Unresolved(
+                    TraversalStatus::Unresolved(
                         *current_depths,
                         difference
                             .into_iter()
@@ -203,9 +203,9 @@ where
 }
 
 #[derive(Default)]
-pub struct DependencyContext {
-    pub ontology_dependency_map: DependencyMap<OntologyTypeVertexId>,
-    pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
+pub struct TraversalContext {
+    pub ontology_traversal_map: TraversalMap<OntologyTypeVertexId>,
+    pub knowledge_traversal_map: TraversalMap<EntityVertexId>,
 }
 
 /// A Postgres-backed store

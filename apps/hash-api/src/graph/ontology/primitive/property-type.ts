@@ -16,7 +16,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -79,7 +78,8 @@ export const getPropertyTypeById: ImpureGraphFunction<
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, params) => {
   const { propertyTypeId } = params;
-  const propertyTypeSubgraph = await graphApi
+
+  const [propertyType] = await graphApi
     .getPropertyTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
@@ -99,9 +99,9 @@ export const getPropertyTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<PropertyTypeRootType>);
-
-  const [propertyType] = getRoots(propertyTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<PropertyTypeRootType>),
+    );
 
   if (!propertyType) {
     throw new NotFoundError(

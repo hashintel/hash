@@ -38,7 +38,7 @@ use deer::{
         ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
         ValueError, Variant,
     },
-    Context, Deserialize, DeserializeOwned, Document, Reflection, Schema, Visitor,
+    Context, Deserialize, DeserializeOwned, Document, OptionalVisitor, Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -374,6 +374,18 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             Value::Object(map) => visitor.visit_object(ObjectAccess::new(map, self.context)),
             else => Error
         })
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        match &self.value {
+            None => visitor.visit_none(),
+            Some(Value::Null) => visitor.visit_null(),
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
     }
 }
 

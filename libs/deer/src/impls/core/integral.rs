@@ -45,6 +45,7 @@ macro_rules! impl_integral {
     };
 }
 
+// TODO: fit smaller values (visit) into them / try to fit them
 impl_integral![
     u8::deserialize_u8() <- U8Visitor.visit_u8(),
     u16::deserialize_u16() <- U16Visitor.visit_u16(),

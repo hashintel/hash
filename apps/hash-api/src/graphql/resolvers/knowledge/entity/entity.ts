@@ -1,11 +1,11 @@
 import { Filter } from "@local/hash-graph-client";
 import {
   Entity,
+  EntityRootType,
   OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -160,7 +160,7 @@ export const queryEntitiesResolver: ResolverFn<
     },
   });
 
-  return mapSubgraph(entitySubgraph);
+  return entitySubgraph as Subgraph<EntityRootType>;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -229,7 +229,7 @@ export const getEntityResolver: ResolverFn<
     },
   });
 
-  return mapSubgraph(entitySubgraph);
+  return entitySubgraph as Subgraph<EntityRootType>;
 };
 
 export const updateEntityResolver: ResolverFn<
