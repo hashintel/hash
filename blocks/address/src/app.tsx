@@ -430,7 +430,6 @@ export const App: BlockComponent<RootEntity> = ({
               >
                 <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
                   <Link
-                    //  @todo: link this to the block's hub page
                     href="https://blockprotocol.org/@hash/blocks/address"
                     target="_blank"
                     variant="regularTextLabels"
