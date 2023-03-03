@@ -47,6 +47,7 @@ import {
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
 
+const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
 const ZOOM_LEVEL_STEP_SIZE = 2;
 const MAX_ZOOM_LEVEL = 20;
@@ -519,7 +520,9 @@ export const App: BlockComponent<RootEntity> = ({
                   }
                 }}
               >
-                <Box sx={{ display: "flex", gap: 1.5, maxWidth: 420 }}>
+                <Box
+                  sx={{ display: "flex", gap: 1.5, maxWidth: INPUT_MAX_WIDTH }}
+                >
                   <Autocomplete
                     open={open}
                     onOpen={() => setOpen(true)}
