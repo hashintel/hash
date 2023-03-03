@@ -6,12 +6,22 @@ import {
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, theme } from "@hashintel/design-system";
+import {
+  addPopperPositionClassPopperModifier,
+  AutocompleteDropdown,
+  FontAwesomeIcon,
+  popperPlacementInputNoBorder,
+  popperPlacementInputNoRadius,
+  theme,
+  TYPE_SELECTOR_HEIGHT,
+} from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,
   Fade,
   Link,
+  outlinedInputClasses,
+  PopperProps,
   ThemeProvider,
   Typography,
   useMediaQuery,
@@ -37,6 +47,7 @@ import {
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
 
+const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
 const ZOOM_LEVEL_STEP_SIZE = 2;
 const MAX_ZOOM_LEVEL = 20;
@@ -382,6 +393,17 @@ export const App: BlockComponent<RootEntity> = ({
       : null;
   }, [addressEntity]);
 
+  const allModifiers = useMemo(
+    (): PopperProps["modifiers"] => [
+      addPopperPositionClassPopperModifier,
+      // We don't want the popup shifting position as that will break styles
+      { name: "preventOverflow", enabled: false },
+    ],
+    [],
+  );
+  const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+
   return (
     <>
       {schema ? (
@@ -409,8 +431,7 @@ export const App: BlockComponent<RootEntity> = ({
               >
                 <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
                   <Link
-                    //  @todo: link this to the block's hub page
-                    href=""
+                    href="https://blockprotocol.org/@hash/blocks/address"
                     target="_blank"
                     variant="regularTextLabels"
                     sx={({ palette }) => ({
@@ -499,8 +520,17 @@ export const App: BlockComponent<RootEntity> = ({
                   }
                 }}
               >
-                <Box sx={{ display: "flex", gap: 1.5 }}>
+                <Box
+                  sx={{ display: "flex", gap: 1.5, maxWidth: INPUT_MAX_WIDTH }}
+                >
                   <Autocomplete
+                    open={open}
+                    onOpen={() => setOpen(true)}
+                    onClose={(_, reason) => {
+                      if (reason !== "toggleInput") {
+                        setOpen(false);
+                      }
+                    }}
                     onFocus={() => setAutocompleteFocused(true)}
                     onBlur={() => setAutocompleteFocused(false)}
                     getOptionLabel={getOptionLabel}
@@ -516,10 +546,21 @@ export const App: BlockComponent<RootEntity> = ({
                       }
                     }}
                     filterOptions={(options) => options}
+                    /**
+                     * By default, the anchor element for an autocomplete dropdown is the
+                     * input base, but we some uses of this component depend on resizing the
+                     * autocomplete root in order to attach the popup in a slightly different
+                     * place, so we make the autocomplete root the anchor element for the
+                     * popup.
+                     *
+                     * @see LinkEntityTypeSelector
+                     */
+                    ref={setAnchorEl}
                     renderInput={({ InputProps, ...params }) => {
                       return (
                         <TextField
                           {...params}
+                          autoFocus
                           placeholder={
                             isMobile
                               ? "Enter an address"
@@ -545,10 +586,32 @@ export const App: BlockComponent<RootEntity> = ({
                                 }}
                               />
                             ),
-                          }}
-                          sx={{
-                            display: "inline-flex",
-                            maxWidth: 420,
+                            sx: [
+                              (theme) => ({
+                                // The popover needs to know how tall this is to draw
+                                // a shadow around it
+                                height: TYPE_SELECTOR_HEIGHT,
+
+                                // Focus is handled by the options popover
+                                "&.Mui-focused": {
+                                  boxShadow: "none",
+                                },
+
+                                [`.${outlinedInputClasses.notchedOutline}`]: {
+                                  border: `1px solid ${theme.palette.gray[30]} !important`,
+                                },
+                              }),
+                              ...(open && suggestions.length
+                                ? [
+                                    popperPlacementInputNoRadius,
+                                    popperPlacementInputNoBorder,
+                                    {
+                                      borderRadiusBottomLeft: "0 !important",
+                                      borderRadiusBottomRight: "0 !important",
+                                    },
+                                  ]
+                                : []),
+                            ],
                           }}
                         />
                       );
@@ -584,9 +647,11 @@ export const App: BlockComponent<RootEntity> = ({
                       );
                     }}
                     PaperComponent={({ children, ...props }) => (
-                      <Paper
+                      <AutocompleteDropdown
+                        inputHeight={TYPE_SELECTOR_HEIGHT}
                         {...props}
                         sx={{
+                          padding: "0 !important",
                           filter:
                             "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
                           border: ({ palette }) =>
@@ -600,17 +665,22 @@ export const App: BlockComponent<RootEntity> = ({
                               paddingX: ({ spacing }) =>
                                 `${spacing(2.5)} !important`,
                               paddingY: 1.25,
+                              marginY: 0,
                             },
                           },
                         }}
                       >
                         {children}
-                      </Paper>
+                      </AutocompleteDropdown>
                     )}
+                    componentsProps={{
+                      popper: { modifiers: allModifiers, anchorEl },
+                    }}
                     sx={{
                       width: 1,
                       [`.${autocompleteClasses.input}`]: {
                         paddingLeft: "0 !important",
+                        outline: "none",
                       },
                       [`.${autocompleteClasses.inputRoot}`]: {
                         paddingX: ({ spacing }) =>
@@ -618,6 +688,7 @@ export const App: BlockComponent<RootEntity> = ({
                       },
                     }}
                   />
+
                   {suggestionsError ? (
                     <Box
                       display="flex"
