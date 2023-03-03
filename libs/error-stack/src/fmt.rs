@@ -133,6 +133,118 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
 //!
+//! ## Implementation Details
+//!
+//! Nothing here explained is under any semver guarantees and just outlines how internally the
+//! formatting works.
+//!
+//! In all our examples during explanation we will refer to two different trees
+//!
+//! Overview (Context only) Tree:
+//!
+//! ```text
+//!     0
+//!     |
+//!     1
+//!    / \
+//!   2   6
+//!  / \  |
+//! 3   4 7
+//!     | |
+//!     5 8
+//! ```
+//!
+//!
+//! Detailed (Context + Attachment) Tree:
+//!
+//! ```text
+//!    Aᶜ
+//!    |
+//!    Bᵃ
+//!   / \
+//!  Cᵃ  Eᵃ
+//!  |   |
+//!  Dᶜ  Fᵃ
+//!     / \
+//!    Gᵃ  Iᶜ
+//!    |
+//!    Hᶜ
+//! ```
+//!
+//! The differentiation between is indicated by their corresponding superscript letter, e.g. `Bᵃ` is
+//! an attachment, while `Dᶜ` is a context. For clarity the detailed uses alphabetic characters for
+//! identification instead of numerical characters.
+//!
+//! During formatting we distinct between two cases of formatting (1) `List`, (2) `Group`. A list
+//! always happens whenever there are context nodes that follow one after the other without a split
+//! in the tree, this means `[6, 7, 8]` and `[4, 5]` are considered lists, while `[2, 6]` is
+//! **not**. A group happens whenever there is a split in the tree, this means that `(2, 6)` is a
+//! group. These groups travel across boundaries, that means that even though there's no context
+//! between `Bᵃ` and `Fᵃ`, `(Dᶜ, Hᶜ, Cᶜ)` is considered a group. Groups always contain lists. Groups
+//! are ordered from left-to-right, while lists are ordered by depth. A group can never exist
+//! without a leading `List`, lists are never empty. If a group is at the top level the resulting
+//! groups are output separately.
+//!
+//! Attachments that are between contexts are ordered not by insertion order, but by depth in the
+//! tree and are attached to the context following them, if there is a split they are duplicated and
+//! represented in each following context.
+//!
+//! ### Output Formatting
+//!
+//! Lists are guaranteed to be non-empty and have at least a single context. The context is the
+//! heading of the whole list, while all other contexts are intended. The last entry in that
+//! indentation is (if present) the group that follows, taking the detailed example this means that
+//! the following output would be rendered:
+//!
+//! ```text
+//! Aᶜ
+//! │
+//! ╰┬▶ Dᶜ
+//!  │  ├╴Bᵃ
+//!  │  ╰╴Cᵃ
+//!  │
+//!  ├▶ Hᶜ
+//!  │  ├╴Bᵃ
+//!  │  ├╴Eᵃ
+//!  │  ├╴Fᵃ
+//!  │  ╰╴Gᵃ
+//!  │
+//!  ╰▶ Iᶜ
+//!     ├╴Bᵃ
+//!     ├╴Eᵃ
+//!     ╰╴Fᵃ
+//! ```
+//!
+//! Groups are visually represented as an additional distinct indentation for other contexts in the
+//! preceding list, taking the overview tree this means:
+//!
+//! ```text
+//! 0
+//! ├╴Attachment
+//! │
+//! ├─▶ 1
+//! │   ╰╴Attachment
+//! │
+//! ╰┬▶ 2
+//!  │  │
+//!  │  ╰┬▶ 3
+//!  │   │
+//!  │   ╰▶ 4
+//!  │      │
+//!  │      ╰─▶ 5
+//!  ╰▶ 6
+//!     │
+//!     ├─▶ 7
+//!     │
+//!     ╰─▶ 8
+//! ```
+//!
+//! Attachments have been added to various places to simulate a real usecase with attachment and
+//! visualise their placement.
+//!
+//! The spacing and characters used are chosen carefully, as even when you have a context vs. group
+//! of contexts (as seen above) alignment is still ensured.
+//!
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`Mutex`]: std::sync::Mutex
