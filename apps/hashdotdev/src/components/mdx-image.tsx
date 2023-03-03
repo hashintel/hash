@@ -19,9 +19,11 @@ export const MdxImage: FunctionComponent<
     throw new Error(
       `You must provide a src, width, and height if using a custom img tag.`,
     );
-  };
-  
+  }
+
   const inline = typeof width !== "undefined" && typeof height !== "undefined";
+
+  console.log({ src, width, height });
 
   return (
     <Box
@@ -43,7 +45,7 @@ export const MdxImage: FunctionComponent<
       <Image
         {...props}
         {...details}
-        src={`/${src.replace(/^\//, "")}`}
+        src={src.startsWith("https:") ? src : `/${src.replace(/^\//, "")}`}
         width={width ?? details?.width}
         height={height ?? details?.height}
         layout={inline ? "intrinsic" : "responsive"}
