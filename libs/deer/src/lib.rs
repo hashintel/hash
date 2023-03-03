@@ -16,16 +16,16 @@
 use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{FutureExt, Report, Result, ResultExt};
 use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
 pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
-        VisitorError,
+        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, FieldAccessError,
+        MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError,
+        Variant, VisitorError,
     },
     schema::visitor,
 };
@@ -40,6 +40,20 @@ mod schema;
 pub mod value;
 
 extern crate alloc;
+
+struct GenericFieldAccess<T, U>(PhantomData<fn() -> *const (T, U)>);
+
+impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for GenericFieldAccess<T, U> {
+    type Key = T;
+    type Value = U;
+
+    fn value<D>(&self, _: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    where
+        D: Deserializer<'de>,
+    {
+        U::deserialize(deserializer).change_context(FieldAccessError)
+    }
+}
 
 pub trait ObjectAccess<'de> {
     /// This enables bound-checking for [`ObjectAccess`].
@@ -69,11 +83,34 @@ pub trait ObjectAccess<'de> {
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
         K: Deserialize<'de>,
-        V: Deserialize<'de>;
+        V: Deserialize<'de>,
+    {
+        self.field(GenericFieldAccess(PhantomData))
+    }
+
+    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
+    where
+        F: FieldAccess<'de>;
 
     fn size_hint(&self) -> Option<usize>;
 
     fn end(self) -> Result<(), ObjectAccessError>;
+}
+
+pub trait FieldAccess<'de> {
+    type Key: Deserialize<'de>;
+    type Value: Deserialize<'de>;
+
+    fn key<D>(&self, deserializer: D) -> Result<Self::Key, FieldAccessError>
+    where
+        D: Deserializer<'de>,
+    {
+        <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(FieldAccessError)
+    }
+
+    fn value<D>(&self, key: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    where
+        D: Deserializer<'de>;
 }
 
 pub trait ArrayAccess<'de> {
