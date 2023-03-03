@@ -13,14 +13,14 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
         time::{DecisionTime, Timestamp},
-        EntityVertexId, OntologyTypeVertexId,
+        EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        postgres::{DependencyContext, DependencyStatus},
+        postgres::{TraversalContext, TraversalStatus},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -36,14 +36,14 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read an [`Entity`] into a [`DependencyContext`].
+    /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) fn traverse_entity<'a>(
         &'a self,
         entity_vertex_id: EntityVertexId,
-        dependency_context: &'a mut DependencyContext,
+        traversal_context: &'a mut TraversalContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
         temporal_axes: QueryTemporalAxes,
@@ -71,24 +71,24 @@ impl<C: AsClient> PostgresStore<C> {
             let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
                 // `temporal_axes`. This implies, that the version interval of `entity` overlaps
-                // with `temporal_axes`. `version_interval` returns `None` if there are
+                // with `temporal_axes`. `variable_interval` returns `None` if there are
                 // no overlapping points, so this should never happen.
                 unreachable!("the version interval of the entity does not overlap with the variable axis's time interval");
             };
 
-            let dependency_status = dependency_context.knowledge_dependency_map.update(
+            let traversal_status = traversal_context.knowledge_traversal_map.update(
                 &entity_vertex_id,
                 current_resolve_depths,
                 intersected_temporal_axes.variable_interval().convert(),
             );
 
-            match dependency_status {
-                DependencyStatus::Unresolved(depths, interval) => {
+            match traversal_status {
+                TraversalStatus::Unresolved(depths, interval) => {
                     // Depending on previous traversals, we may have to resolve with parameters
                     // different to those provided, so we update the resolve depths and the temporal
                     // axes.
                     //
-                    // `DependencyMap::update` may return a higher resolve depth than the one
+                    // `TraversalMap::update` may return a higher resolve depth than the one
                     // requested, so we update the `resolve_depths` to the returned value.
                     current_resolve_depths = depths;
                     // It may also return a different time interval than the one requested, so
@@ -96,7 +96,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // value.
                     intersected_temporal_axes.set_variable_interval(interval.convert());
                 }
-                DependencyStatus::Resolved => return Ok(()),
+                TraversalStatus::Resolved => return Ok(()),
             };
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
@@ -113,7 +113,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                 self.traverse_entity_type(
                     &entity_type_id,
-                    dependency_context,
+                    traversal_context,
                     subgraph,
                     GraphResolveDepths {
                         is_of_type: OutgoingEdgeResolveDepth {
@@ -135,6 +135,11 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                     .await?
                 {
+                    let link_entity_interval = outgoing_link_entity
+                        .metadata
+                        .temporal_versioning()
+                        .variable_time_interval(time_axis);
+
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
@@ -142,7 +147,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            right_endpoint: outgoing_link_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: outgoing_link_entity.metadata.record_id().entity_id,
+                                interval: link_entity_interval,
+                            }
                         }),
                     });
 
@@ -151,7 +159,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         outgoing_link_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_left_entity: EdgeResolveDepths {
@@ -174,6 +182,11 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                     .await?
                 {
+                    let link_entity_interval = incoming_link_entity
+                        .metadata
+                        .temporal_versioning()
+                        .variable_time_interval(time_axis);
+
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
@@ -181,7 +194,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: true,
-                            right_endpoint: incoming_link_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: incoming_link_entity.metadata.record_id().entity_id,
+                                interval: link_entity_interval,
+                            }
                         }),
                     });
 
@@ -190,7 +206,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         incoming_link_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_right_entity: EdgeResolveDepths {
@@ -220,7 +236,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            right_endpoint: left_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: left_entity.metadata.record_id().entity_id,
+                                interval: variable_interval,
+                            }
                         }),
                     });
 
@@ -229,7 +248,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         left_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_left_entity: EdgeResolveDepths {
@@ -259,7 +278,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            right_endpoint: right_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: right_entity.metadata.record_id().entity_id,
+                                interval: variable_interval,
+                            }
                         }),
                     });
 
@@ -268,7 +290,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         right_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_right_entity: EdgeResolveDepths {
@@ -503,7 +525,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        let mut traversal_context = TraversalContext::default();
 
         for entity in Read::<Entity>::read(self, filter, &temporal_axes).await? {
             let vertex_id = entity.vertex_id(time_axis);
@@ -512,7 +534,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             self.traverse_entity(
                 vertex_id,
-                &mut dependency_context,
+                &mut traversal_context,
                 &mut subgraph,
                 graph_resolve_depths,
                 temporal_axes.clone(),

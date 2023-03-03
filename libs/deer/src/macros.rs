@@ -100,4 +100,7 @@ macro_rules! forward_to_deserialize_any_helper {
     (array < $l:tt, $v:ident >) => {
         forward_to_deserialize_any_method! {deserialize_array<$l, $v>()}
     };
+    (optional < $l:tt, $v:ident >) => {
+        forward_to_deserialize_any_method! {deserialize_optional<$l, $v>()}
+    };
 }

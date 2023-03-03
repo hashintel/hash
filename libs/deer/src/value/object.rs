@@ -1,6 +1,8 @@
 use error_stack::{Result, ResultExt};
 
-use crate::{error::DeserializerError, Context, Deserializer, ObjectAccess, Visitor};
+use crate::{
+    error::DeserializerError, Context, Deserializer, ObjectAccess, OptionalVisitor, Visitor,
+};
 
 // TODO: MapDeserializer/IteratorDeserializer
 
@@ -44,5 +46,12 @@ where
         visitor
             .visit_object(self.value)
             .change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        visitor.visit_some(self).change_context(DeserializerError)
     }
 }

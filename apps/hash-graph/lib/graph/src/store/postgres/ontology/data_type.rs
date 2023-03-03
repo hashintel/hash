@@ -10,7 +10,7 @@ use crate::{
     provenance::UpdatedById,
     store::{
         crud::Read,
-        postgres::{DependencyContext, DependencyStatus},
+        postgres::{TraversalContext, TraversalStatus},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
@@ -20,36 +20,40 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
+    /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
         data_type_id: &OntologyTypeVertexId,
-        dependency_context: &mut DependencyContext,
+        traversal_context: &mut TraversalContext,
         subgraph: &mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
         mut temporal_axes: QueryTemporalAxes,
     ) -> Result<(), QueryError> {
-        let dependency_status = dependency_context.ontology_dependency_map.update(
+        let traversal_status = traversal_context.ontology_traversal_map.update(
             data_type_id,
             current_resolve_depths,
             temporal_axes.variable_interval().convert(),
         );
 
         #[expect(unused_assignments, unused_variables)]
-        let data_type = match dependency_status {
-            DependencyStatus::Unresolved(depths, interval) => {
-                // The dependency may have to be resolved more than anticipated, so we update
-                // the resolve depth and the temporal axes.
+        let data_type = match traversal_status {
+            TraversalStatus::Unresolved(depths, interval) => {
+                // Depending on previous traversals, we may have to resolve with parameters
+                // different to those provided, so we update the resolve depths and the temporal
+                // axes.
+                //
+                // `TraversalMap::update` may return a higher resolve depth than the one
+                // requested, so we update the `resolve_depths` to the returned value.
                 current_resolve_depths = depths;
                 temporal_axes.set_variable_interval(interval.convert());
                 subgraph
                     .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &temporal_axes)
                     .await?
             }
-            DependencyStatus::Resolved => return Ok(()),
+            TraversalStatus::Resolved => return Ok(()),
         };
 
         // TODO: data types currently have no references to other types, so we don't need to do
@@ -102,7 +106,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        let mut traversal_context = TraversalContext::default();
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes).await? {
             let vertex_id = data_type.vertex_id(time_axis);
@@ -111,7 +115,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             self.traverse_data_type(
                 &vertex_id,
-                &mut dependency_context,
+                &mut traversal_context,
                 &mut subgraph,
                 graph_resolve_depths,
                 temporal_axes.clone(),
