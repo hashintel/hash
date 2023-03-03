@@ -76,9 +76,21 @@ pub trait ObjectAccess<'de> {
         K: Deserialize<'de>,
         V: Deserialize<'de>;
 
+    fn field<F>(&mut self) -> Option<Result<(F, F::Value), ObjectAccessError>>
+    where
+        F: FieldAccess<'de>;
+
     fn size_hint(&self) -> Option<usize>;
 
     fn end(self) -> Result<(), ObjectAccessError>;
+}
+
+pub trait FieldAccess<'de>: Deserialize<'de> {
+    type Value;
+
+    fn value<D>(&self, deserializer: D) -> Result<Self::Value, ObjectAccessError>
+    where
+        D: Deserializer<'de>;
 }
 
 pub trait ArrayAccess<'de> {
