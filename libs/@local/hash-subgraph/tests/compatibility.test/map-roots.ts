@@ -5,7 +5,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { isBaseUri, isEntityId } from "../../src/types/shared/branded";
+import { isBaseUrl, isEntityId } from "../../src/types/shared/branded";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],
@@ -14,12 +14,12 @@ export const mapRoots = (
     if (isEntityId(root.baseId)) {
       return {
         baseId: root.baseId,
-        revisionId: root.version as EntityRevisionId,
+        revisionId: root.revisionId as EntityRevisionId,
       };
-    } else if (isBaseUri(root.baseId)) {
+    } else if (isBaseUrl(root.baseId)) {
       return {
         baseId: root.baseId,
-        revisionId: root.version as OntologyTypeRevisionId,
+        revisionId: root.revisionId as OntologyTypeRevisionId,
       };
     } else {
       throw new Error(

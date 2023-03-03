@@ -1,15 +1,19 @@
 import { faPlus, faWarning } from "@fortawesome/free-solid-svg-icons";
-import { Button, Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Button,
+  Chip,
+  FontAwesomeIcon,
+  OntologyChip,
+  OntologyIcon,
+  WhiteCard,
+} from "@hashintel/design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
 import { SectionWrapper } from "../../shared/section-wrapper";
-import { WhiteCard } from "../../shared/white-card";
 import { EntityTypeSelector } from "./create-entity-page/entity-type-selector";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
@@ -36,7 +40,7 @@ export const SelectEntityTypePage = () => {
           lightTitle
           chip={
             <OntologyChip
-              icon={<HashOntologyIcon />}
+              icon={<OntologyIcon />}
               domain="hash.ai"
               path={
                 <>

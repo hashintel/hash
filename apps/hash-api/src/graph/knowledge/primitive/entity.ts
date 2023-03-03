@@ -1,14 +1,11 @@
-import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  Filter,
-  GraphResolveDepths,
-  UnresolvedTimeProjection,
-} from "@local/hash-graph-client";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
 import {
   AccountId,
-  BaseUri,
+  BaseUrl,
   Entity,
   EntityId,
+  EntityMetadata,
   EntityPropertiesObject,
   EntityRootType,
   EntityTypeWithMetadata,
@@ -16,11 +13,11 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
+  QueryTemporalAxesUnresolved,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapEntityMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -39,13 +36,13 @@ import {
 export type CreateEntityParams = {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
   actorId: AccountId;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
-export type PropertyValue = EntityPropertiesObject[BaseUri];
+export type PropertyValue = EntityPropertiesObject[BaseUrl];
 
 /**
  * Create an entity.
@@ -68,7 +65,7 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
   } = params;
 
-  const { data: createdEntityMetadata } = await graphApi.createEntity({
+  const { data: metadata } = await graphApi.createEntity({
     ownedById,
     entityTypeId,
     properties,
@@ -78,7 +75,7 @@ export const createEntity: ImpureGraphFunction<
 
   return {
     properties,
-    metadata: mapEntityMetadata(createdEntityMetadata),
+    metadata: metadata as EntityMetadata,
   };
 };
 
@@ -120,20 +117,22 @@ export const getLatestEntityById: ImpureGraphFunction<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: subgraph }) =>
-      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
+      getRoots(subgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -225,7 +224,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
 export const createEntityWithLinks: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    entityTypeId: VersionedUri;
+    entityTypeId: VersionedUrl;
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
     actorId: AccountId;
@@ -320,7 +319,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
 export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
-    entityTypeId?: VersionedUri;
+    entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     actorId: AccountId;
   },
@@ -328,7 +327,7 @@ export const updateEntity: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { entity, properties, actorId, entityTypeId } = params;
 
-  const { data: createdEntityMetadata } = await graphApi.updateEntity({
+  const { data: metadata } = await graphApi.updateEntity({
     actorId,
     entityId: entity.metadata.recordId.entityId,
     /**
@@ -343,7 +342,7 @@ export const updateEntity: ImpureGraphFunction<
 
   return {
     ...entity,
-    metadata: mapEntityMetadata(createdEntityMetadata),
+    metadata: metadata as EntityMetadata,
     properties,
   };
 };
@@ -381,7 +380,7 @@ export const updateEntityProperties: ImpureGraphFunction<
   {
     entity: Entity;
     updatedProperties: {
-      propertyTypeBaseUri: BaseUri;
+      propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined | undefined;
     }[];
     actorId: AccountId;
@@ -393,11 +392,11 @@ export const updateEntityProperties: ImpureGraphFunction<
   return await updateEntity(ctx, {
     entity,
     properties: updatedProperties.reduce<EntityPropertiesObject>(
-      (prev, { propertyTypeBaseUri, value }) =>
+      (prev, { propertyTypeBaseUrl, value }) =>
         value
           ? {
               ...prev,
-              [propertyTypeBaseUri]: value,
+              [propertyTypeBaseUrl]: value,
             }
           : prev,
       entity.properties,
@@ -410,24 +409,24 @@ export const updateEntityProperties: ImpureGraphFunction<
  * Update a top-level property on an entity.
  *
  * @param params.entity - the entity being updated
- * @param params.propertyTypeBaseUri - the property type base URI of the property being updated
+ * @param params.propertyTypeBaseUrl - the property type base URL of the property being updated
  * @param params.value - the updated value of the property
  * @param params.actorId - the id of the account that is updating the entity
  */
 export const updateEntityProperty: ImpureGraphFunction<
   {
     entity: Entity;
-    propertyTypeBaseUri: BaseUri;
+    propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
     actorId: AccountId;
   },
   Promise<Entity>
 > = async (ctx, params) => {
-  const { entity, propertyTypeBaseUri, value, actorId } = params;
+  const { entity, propertyTypeBaseUrl, value, actorId } = params;
 
   return await updateEntityProperties(ctx, {
     entity,
-    updatedProperties: [{ propertyTypeBaseUri, value }],
+    updatedProperties: [{ propertyTypeBaseUrl, value }],
     actorId,
   });
 };
@@ -474,23 +473,24 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     ],
   };
 
-  /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const timeAxes: UnresolvedTimeProjection = {
+  const temporalAxes: QueryTemporalAxesUnresolved = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
     },
     variable: {
       axis: "decisionTime",
-      start: null,
-      end: null,
+      interval: {
+        start: null,
+        end: null,
+      },
     },
   };
 
   if (params.linkEntityType) {
     filter.all.push({
       equal: [
-        { path: ["type", "versionedUri"] },
+        { path: ["type", "versionedUrl"] },
         {
           parameter: params.linkEntityType.schema.$id,
         },
@@ -502,9 +502,9 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes,
+      temporalAxes,
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
+    .then(({ data }) => data as Subgraph<EntityRootType>);
 
   const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -566,7 +566,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   if (params.linkEntityType) {
     filter.all.push({
       equal: [
-        { path: ["type", "versionedUri"] },
+        { path: ["type", "versionedUrl"] },
         {
           parameter: params.linkEntityType.schema.$id,
         },
@@ -599,16 +599,17 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const timeAxes: UnresolvedTimeProjection = {
+  const temporalAxes: QueryTemporalAxesUnresolved = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
     },
     variable: {
       axis: "decisionTime",
-      start: null,
-      end: null,
+      interval: {
+        start: null,
+        end: null,
+      },
     },
   };
 
@@ -616,9 +617,9 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes,
+      temporalAxes,
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
+    .then(({ data }) => data as Subgraph<EntityRootType>);
 
   const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -683,18 +684,20 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       hasRightEntity: { incoming: 0, outgoing: 0 },
       ...graphResolveDepths,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
 
-  return mapSubgraph(entitySubgraph) as Subgraph<EntityRootType>;
+  return entitySubgraph as Subgraph<EntityRootType>;
 };

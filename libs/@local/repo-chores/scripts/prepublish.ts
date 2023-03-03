@@ -79,7 +79,7 @@ const script = async () => {
           `Unexpected value for field "types" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.types}"`,
         );
       }
-      packageJson.types = "dist/main.d.js";
+      packageJson.types = "dist/main.d.ts";
 
       if (packageJson.exports) {
         throw new UserFriendlyError(

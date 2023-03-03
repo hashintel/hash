@@ -4,7 +4,7 @@ import { gql } from "apollo-server-express";
 
 export const subgraphTypedef = gql`
   scalar GraphElementVertexId
-  scalar VersionedUri
+  scalar VersionedUrl
   scalar Vertices
   scalar Edges
   scalar SubgraphTemporalAxes

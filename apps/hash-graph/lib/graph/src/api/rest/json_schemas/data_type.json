@@ -3,6 +3,12 @@
   "description": "Specifies the structure of a Data Type",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
+      ]
+    },
     "kind": {
       "enum": ["dataType"]
     },
@@ -11,6 +17,6 @@
     "description": { "type": "string" },
     "type": { "type": "string" }
   },
-  "required": ["kind", "$id", "title", "type"],
+  "required": ["$schema", "kind", "$id", "title", "type"],
   "additionalProperties": true
 }

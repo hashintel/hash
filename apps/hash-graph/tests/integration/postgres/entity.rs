@@ -1,6 +1,9 @@
-use graph::knowledge::{EntityLinkOrder, EntityProperties};
+use graph::{
+    identifier::time::ClosedTemporalBound,
+    knowledge::{EntityLinkOrder, EntityProperties},
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
 
@@ -22,11 +25,11 @@ async fn insert() {
     let metadata = api
         .create_entity(
             person.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             None,
@@ -59,11 +62,11 @@ async fn query() {
     let metadata = api
         .create_entity(
             organization.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             None,
@@ -98,11 +101,11 @@ async fn update() {
     let v1_metadata = api
         .create_entity(
             page_v1.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             None,
@@ -114,11 +117,11 @@ async fn update() {
         .update_entity(
             v1_metadata.record_id().entity_id,
             page_v2.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             EntityLinkOrder {
@@ -143,22 +146,20 @@ async fn update() {
 
     assert_eq!(entity_v2.properties, page_v2);
 
+    let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
+        *v1_metadata.temporal_versioning().decision_time.start();
     let entity_v1 = api
-        .get_entity_by_timestamp(
-            v1_metadata.record_id().entity_id,
-            (*v1_metadata.version().decision_time.start()).into(),
-        )
+        .get_entity_by_timestamp(v1_metadata.record_id().entity_id, entity_v1_timestamp)
         .await
-        .expect("could not get entity");
+        .expect("could not get entity v1");
     assert_eq!(entity_v1.properties, page_v1);
 
+    let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
+        *v2_metadata.temporal_versioning().decision_time.start();
     let entity_v2 = api
-        .get_entity_by_timestamp(
-            v2_metadata.record_id().entity_id,
-            (*v2_metadata.version().decision_time.start()).into(),
-        )
+        .get_entity_by_timestamp(v2_metadata.record_id().entity_id, entity_v2_timestamp)
         .await
-        .expect("could not get entity");
+        .expect("could not get entity v2");
 
     assert_eq!(entity_v2.properties, page_v2);
 }

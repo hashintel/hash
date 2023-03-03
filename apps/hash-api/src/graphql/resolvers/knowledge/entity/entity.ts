@@ -1,11 +1,11 @@
 import { Filter } from "@local/hash-graph-client";
 import {
   Entity,
+  EntityRootType,
   OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -25,8 +25,8 @@ import {
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
   MutationUpdateEntityArgs,
-  QueryGetAllLatestEntitiesArgs,
   QueryGetEntityArgs,
+  QueryQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -92,11 +92,11 @@ export const createEntityResolver: ResolverFn<
   return mapEntityToGQL(entity);
 };
 
-export const getAllLatestEntitiesResolver: ResolverFn<
+export const queryEntitiesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntitiesArgs
+  QueryQueryEntitiesArgs
 > = async (
   _,
   {
@@ -126,7 +126,7 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     filter.all.push({
       any: rootEntityTypeIds.map((entityTypeId) => ({
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: entityTypeId },
         ],
       })),
@@ -145,20 +145,22 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
 
-  return mapSubgraph(entitySubgraph);
+  return entitySubgraph as Subgraph<EntityRootType>;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -208,22 +210,26 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
       },
       variable: {
         axis: "decisionTime",
-        start: entityVersion
-          ? { kind: "inclusive", limit: entityVersion }
-          : null,
-        end: entityVersion ? { kind: "inclusive", limit: entityVersion } : null,
+        interval: {
+          start: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+          end: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+        },
       },
     },
   });
 
-  return mapSubgraph(entitySubgraph);
+  return entitySubgraph as Subgraph<EntityRootType>;
 };
 
 export const updateEntityResolver: ResolverFn<

@@ -10,7 +10,7 @@ use tokio_serde::formats::MessagePack;
 use type_fetcher::fetcher::FetcherClient;
 use type_fetcher::{fetcher::OntologyType, fetcher_server::OntologyTypeReference};
 use type_system::{
-    uri::VersionedUri, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+    url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
     PropertyTypeReference,
 };
 
@@ -18,10 +18,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
-        time::{
-            DecisionTime, TimeProjection, Timestamp, UnresolvedImage, UnresolvedKernel,
-            UnresolvedProjection, UnresolvedTimeProjection,
-        },
+        time::{DecisionTime, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
@@ -35,7 +32,15 @@ use crate::{
         AccountStore, DataTypeStore, EntityStore, EntityTypeStore, InsertionError,
         PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+        Subgraph,
+    },
 };
 
 pub struct FetchingPool<P, A> {
@@ -129,27 +134,27 @@ where
         S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
         A: Send + Sync,
     {
-        fn create_query<'u, T>(versioned_uri: &'u VersionedUri) -> StructuralQuery<'u, T>
+        fn create_query<'u, T>(versioned_url: &'u VersionedUrl) -> StructuralQuery<'u, T>
         where
             T: Record<QueryPath<'u>: OntologyQueryPath>,
         {
             StructuralQuery {
-                filter: Filter::for_versioned_uri(versioned_uri),
+                filter: Filter::for_versioned_url(versioned_url),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(None, None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
             }
         }
 
-        let uri = match ontology_type_reference {
-            OntologyTypeReference::DataTypeReference(reference) => reference.uri(),
-            OntologyTypeReference::PropertyTypeReference(reference) => reference.uri(),
-            OntologyTypeReference::EntityTypeReference(reference) => reference.uri(),
+        let url = match ontology_type_reference {
+            OntologyTypeReference::DataTypeReference(reference) => reference.url(),
+            OntologyTypeReference::PropertyTypeReference(reference) => reference.url(),
+            OntologyTypeReference::EntityTypeReference(reference) => reference.url(),
         };
 
-        if self.domain_validator.validate_url(uri.base_uri.as_str()) {
+        if self.domain_validator.validate_url(url.base_url.as_str()) {
             // If the domain is valid, we own the data type and it either exists or we cannot
             // reference it.
             return Ok(true);
@@ -157,13 +162,13 @@ where
 
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => {
-                self.store.get_data_type(&create_query(uri)).await
+                self.store.get_data_type(&create_query(url)).await
             }
             OntologyTypeReference::PropertyTypeReference(_) => {
-                self.store.get_property_type(&create_query(uri)).await
+                self.store.get_property_type(&create_query(url)).await
             }
             OntologyTypeReference::EntityTypeReference(_) => {
-                self.store.get_entity_type(&create_query(uri)).await
+                self.store.get_entity_type(&create_query(url)).await
             }
         }
         .change_context(StoreError)
@@ -212,7 +217,7 @@ where
         for (reference, fetched_by) in ontology_type_references {
             let provenance_metadata = ProvenanceMetadata::new(fetched_by);
             let fetched_ontology_types = fetcher_client
-                .fetch_ontology_type_exhaustive(context::current(), reference.uri().clone())
+                .fetch_ontology_type_exhaustive(context::current(), reference.url().clone())
                 .await
                 .into_report()
                 .change_context(StoreError)?
@@ -366,9 +371,9 @@ where
     async fn read(
         &self,
         query: &Filter<R>,
-        time_projection: &TimeProjection,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<R>, QueryError> {
-        self.store.read(query, time_projection).await
+        self.store.read(query, temporal_axes).await
     }
 }
 
@@ -542,7 +547,7 @@ where
         decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
@@ -581,7 +586,7 @@ where
             IntoIter: Send,
         > + Send,
         actor_id: UpdatedById,
-        entity_type_id: &VersionedUri,
+        entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
@@ -605,7 +610,7 @@ where
         decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {

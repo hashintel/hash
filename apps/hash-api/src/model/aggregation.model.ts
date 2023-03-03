@@ -6,9 +6,9 @@ import jp from "jsonpath";
 import { get, merge, orderBy } from "lodash";
 
 import {
-  AggregateOperation,
-  AggregateOperationInput,
   LinkedAggregation as GQLLinkedAggregation,
+  QueryOperation,
+  QueryOperationInput,
 } from "../graphql/api-types.gen";
 import {
   Aggregation,
@@ -21,10 +21,7 @@ import {
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
 
-export type UnresolvedGQLAggregateOperation = Omit<
-  AggregateOperation,
-  "pageCount"
->;
+export type UnresolvedGQLQueryOperation = Omit<QueryOperation, "pageCount">;
 
 export type UnresolvedGQLLinkedAggregation = Omit<
   GQLLinkedAggregation,
@@ -33,7 +30,7 @@ export type UnresolvedGQLLinkedAggregation = Omit<
 
 export type CreateAggregationArgs = {
   stringifiedPath: string;
-  operation: AggregateOperationInput;
+  operation: QueryOperationInput;
   source: Entity;
   createdBy: User;
 };
@@ -52,7 +49,7 @@ export type AggregationConstructorArgs = {
   removedFromSourceAt?: Date;
   removedFromSourceByAccountId?: string;
 
-  operation: UnresolvedGQLAggregateOperation;
+  operation: UnresolvedGQLQueryOperation;
 
   updatedAt: Date;
   updatedByAccountId: string;
@@ -62,7 +59,7 @@ const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
   new Aggregation({
     ...dbAggregation,
     stringifiedPath: dbAggregation.path,
-    operation: dbAggregation.operation as UnresolvedGQLAggregateOperation,
+    operation: dbAggregation.operation as UnresolvedGQLQueryOperation,
   });
 
 class __Aggregation {
@@ -80,7 +77,7 @@ class __Aggregation {
   removedFromSourceAt?: Date;
   removedFromSourceByAccountId?: string;
 
-  operation: UnresolvedGQLAggregateOperation;
+  operation: UnresolvedGQLQueryOperation;
 
   updatedAt: Date;
   updatedByAccountId: string;
@@ -151,7 +148,7 @@ class __Aggregation {
 
   static filterEntities(
     data: Entity[],
-    multiFilter: NonNullable<AggregateOperation["multiFilter"]>,
+    multiFilter: NonNullable<QueryOperation["multiFilter"]>,
   ) {
     return data.filter((entity) => {
       const results = multiFilter.filters
@@ -217,7 +214,7 @@ class __Aggregation {
 
   static sortEntities(
     entities: Entity[],
-    multiSort: NonNullable<AggregateOperation["multiSort"]>,
+    multiSort: NonNullable<QueryOperation["multiSort"]>,
   ) {
     return orderBy(
       entities,
@@ -249,7 +246,7 @@ class __Aggregation {
       createdBy,
     } = params;
 
-    const operation: UnresolvedGQLAggregateOperation = {
+    const operation: UnresolvedGQLQueryOperation = {
       ...operationInput,
       itemsPerPage: operationInput.itemsPerPage ?? 10,
       pageNumber: operationInput.pageNumber ?? 1,
@@ -334,7 +331,7 @@ class __Aggregation {
   async updateOperation(
     client: DbClient,
     params: {
-      operation: AggregateOperationInput;
+      operation: QueryOperationInput;
       updatedByAccountId: string;
     },
   ): Promise<Aggregation> {

@@ -4,14 +4,13 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::TimeProjection,
+        knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -25,6 +24,7 @@ use crate::{
         query::Filter,
         AsClient, PostgresStore, QueryError,
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 #[async_trait]
@@ -33,7 +33,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     async fn read(
         &self,
         filter: &Filter<Entity>,
-        time_projection: &TimeProjection,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
@@ -43,7 +43,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_owned_by_id_query_path =
             EntityQueryPath::RightEntity(Box::new(EntityQueryPath::OwnedById));
 
-        let mut compiler = SelectCompiler::new(time_projection);
+        let mut compiler = SelectCompiler::new(temporal_axes);
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
@@ -56,7 +56,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let transaction_time_index = compiler.add_selection_path(&EntityQueryPath::TransactionTime);
 
         let type_id_index =
-            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri));
+            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUrl));
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
@@ -89,7 +89,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     serde_json::from_value(row.get(properties_index))
                         .into_report()
                         .change_context(QueryError)?;
-                let entity_type_id = VersionedUri::from_str(row.get(type_id_index))
+                let entity_type_id = VersionedUrl::from_str(row.get(type_id_index))
                     .into_report()
                     .change_context(QueryError)?;
 
@@ -146,7 +146,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             },
                             edition_id: row.get(edition_id_index),
                         },
-                        EntityVersion {
+                        EntityTemporalMetadata {
                             decision_time: row.get(decision_time_index),
                             transaction_time: row.get(transaction_time_index),
                         },

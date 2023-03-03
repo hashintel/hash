@@ -37,24 +37,19 @@ use crate::{
     api::rest::{
         middleware::log_request_and_response,
         utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+            Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
             KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, TemporalAxes, Vertex, Vertices,
+            Subgraph, Vertex, Vertices,
         },
     },
     identifier::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
-            DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
-            IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeIntervalBound, TimeProjection,
-            Timestamp, TransactionTime, TransactionTimeImage, TransactionTimeKernel,
-            TransactionTimeProjection, UnboundedOrExcludedTimeIntervalBound,
-            UnresolvedDecisionTimeImage, UnresolvedDecisionTimeKernel,
-            UnresolvedDecisionTimeProjection, UnresolvedTimeProjection,
-            UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
-            UnresolvedTransactionTimeProjection,
+            ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+            OpenTemporalBound, RightBoundedTemporalInterval,
+            RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
-        EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
+        EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -62,9 +57,13 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{QueryError, StorePool},
-    subgraph::edges::{
-        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-        OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+    subgraph::{
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+            OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
+        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
+        SubgraphTemporalAxes,
     },
 };
 
@@ -182,6 +181,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OwnedOntologyElementMetadata,
             ExternalOntologyElementMetadata,
             EntityVertexId,
+            EntityIdWithInterval,
             OntologyTypeVertexId,
             OntologyTypeVersion,
             Selector,
@@ -196,8 +196,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             SharedEdgeKind,
             KnowledgeGraphEdgeKind,
             OntologyEdgeKind,
-            OntologyOutwardEdges,
-            KnowledgeGraphOutwardEdges,
+            OntologyOutwardEdge,
+            KnowledgeGraphOutwardEdge,
             OntologyRootedEdges,
             KnowledgeGraphRootedEdges,
             Edges,
@@ -205,24 +205,12 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
-            TemporalAxes,
+            SubgraphTemporalAxes,
 
             DecisionTime,
             TransactionTime,
-            TimeProjection,
-            UnresolvedTimeProjection,
-            UnresolvedDecisionTimeProjection,
-            UnresolvedDecisionTimeImage,
-            UnresolvedDecisionTimeKernel,
-            UnresolvedTransactionTimeProjection,
-            UnresolvedTransactionTimeImage,
-            UnresolvedTransactionTimeKernel,
-            DecisionTimeProjection,
-            DecisionTimeImage,
-            DecisionTimeKernel,
-            TransactionTimeProjection,
-            TransactionTimeImage,
-            TransactionTimeKernel,
+            QueryTemporalAxes,
+            QueryTemporalAxesUnresolved,
         )
     ),
 )]
@@ -489,22 +477,34 @@ impl Modify for TimeSchemaAddon {
                     .into(),
             );
             components.schemas.insert(
-                UnboundedOrExcludedTimeIntervalBound::<()>::schema()
+                TemporalBound::<()>::schema().0.to_owned(),
+                TemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                LimitedTemporalBound::<()>::schema().0.to_owned(),
+                LimitedTemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                OpenTemporalBound::<()>::schema().0.to_owned(),
+                OpenTemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                ClosedTemporalBound::<()>::schema().0.to_owned(),
+                ClosedTemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                "LeftClosedTemporalInterval".to_owned(),
+                LeftClosedTemporalInterval::<()>::schema().1,
+            );
+            components.schemas.insert(
+                "RightBoundedTemporalInterval".to_owned(),
+                RightBoundedTemporalInterval::<()>::schema().1,
+            );
+            components.schemas.insert(
+                RightBoundedTemporalIntervalUnresolved::<()>::schema()
                     .0
                     .to_owned(),
-                UnboundedOrExcludedTimeIntervalBound::<()>::schema().1,
-            );
-            components.schemas.insert(
-                IncludedTimeIntervalBound::<()>::schema().0.to_owned(),
-                IncludedTimeIntervalBound::<()>::schema().1,
-            );
-            components.schemas.insert(
-                TimeIntervalBound::<()>::schema().0.to_owned(),
-                TimeIntervalBound::<()>::schema().1,
-            );
-            components.schemas.insert(
-                LimitedTimeIntervalBound::<()>::schema().0.to_owned(),
-                LimitedTimeIntervalBound::<()>::schema().1,
+                RightBoundedTemporalIntervalUnresolved::<()>::schema().1,
             );
         }
     }
@@ -517,7 +517,7 @@ impl Modify for OntologyTypeSchemaAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
-                "BaseUri".to_owned(),
+                "BaseUrl".to_owned(),
                 ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }

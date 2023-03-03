@@ -86,23 +86,26 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         identifier::account::AccountId,
         ontology::{ExternalOntologyElementMetadata, OntologyElementMetadata},
         provenance::{ProvenanceMetadata, UpdatedById},
-        store::{AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, StorePool},
+        store::{
+            error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, EntityTypeStore,
+            StorePool,
+        },
     };
     use serde_json::json;
     use time::OffsetDateTime;
     use type_system::{
-        uri::{BaseUri, VersionedUri},
+        url::{BaseUrl, VersionedUrl},
         AllOf, DataType, EntityType, Links, Object,
     };
     use uuid::Uuid;
 
-    // TODO: how do we make these URIs compliant
+    // TODO: how do we make these URLs compliant
     let text = DataType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Text".to_owned(),
@@ -112,11 +115,11 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let number = DataType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Number".to_owned(),
@@ -126,11 +129,11 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let boolean = DataType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Boolean".to_owned(),
@@ -140,11 +143,11 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let null = DataType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/null/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Null".to_owned(),
@@ -154,11 +157,11 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let object = DataType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Object".to_owned(),
@@ -168,11 +171,11 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let empty_list = DataType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Empty List".to_owned(),
@@ -222,7 +225,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             .await
             .change_context(GraphError)
         {
-            if error.contains::<BaseUriAlreadyExists>() {
+            if error.contains::<VersionedUrlAlreadyExists>() {
                 tracing::info!(%root_account_id, "tried to insert primitive {title} data type, but it already exists");
             } else {
                 return Err(error.change_context(GraphError));
@@ -232,19 +235,18 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         }
     }
     let link_entity_type = EntityType::new(
-        VersionedUri {
-            base_uri: BaseUri::new(
+        VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
             )
-            .expect("failed to construct base URI"),
+            .expect("failed to construct base URL"),
             version: 1,
         },
         "Link".to_owned(),
         Some("A link".to_owned()),
         Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
         AllOf::new([]),
-        Links::new(HashMap::default(), Vec::new()).expect("invalid links"),
-        HashMap::default(),
+        Links::new(HashMap::default()),
         Vec::default(),
     );
 
@@ -261,7 +263,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .create_entity_type(link_entity_type, &link_entity_type_metadata)
         .await
     {
-        if error.contains::<BaseUriAlreadyExists>() {
+        if error.contains::<VersionedUrlAlreadyExists>() {
             tracing::info!(%root_account_id, "tried to insert {title} entity type, but it already exists");
         } else {
             return Err(error.change_context(GraphError));

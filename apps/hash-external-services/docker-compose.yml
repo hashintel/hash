@@ -78,6 +78,7 @@ services:
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
+        TYPE_FETCHER: no
     image: hash-graph
     read_only: true
     security_opt:
@@ -125,36 +126,6 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 
-  type-fetcher:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      telemetry-collector:
-        condition: service_healthy
-    build: *graph-build
-    image: hash-graph
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - log:/log
-    command: type-fetcher
-    environment:
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/log/graph-type-fetcher"
-      HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
-      HASH_GRAPH_TYPE_FETCHER_PORT: 4444
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,hash_type_fetcher=trace,reqwest=debug}"
-      RUST_BACKTRACE: 1
-    ports:
-      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
-    healthcheck:
-      test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-
   graph:
     init: true
     depends_on:
@@ -163,8 +134,6 @@ services:
       graph-migrate:
         condition: service_completed_successfully
       telemetry-collector:
-        condition: service_healthy
-      type-fetcher:
         condition: service_healthy
     build: *graph-build
     image: hash-graph
@@ -190,7 +159,7 @@ services:
       # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash-graph=trace,tokio_postgres=debug}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash_graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     ports:
       - "${HASH_GRAPH_API_PORT}:4000"

@@ -22,9 +22,9 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by `metadata` does not exist.
-    /// - if the [`BaseUri`] of the `data_type` already exists.
+    /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_type(
         &mut self,
         schema: DataType,
@@ -38,9 +38,9 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by the metadata does not exist.
-    /// - if any [`BaseUri`] of the data type already exists.
+    /// - if any [`BaseUrl`] of the data type already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_types(
         &mut self,
         data_types: impl IntoIterator<
@@ -79,9 +79,9 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by `metadata` does not exist.
-    /// - if the [`BaseUri`] of the `property_type` already exists.
+    /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_property_type(
         &mut self,
         schema: PropertyType,
@@ -96,9 +96,9 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by the metadata does not exist.
-    /// - if any [`BaseUri`] of the property type already exists.
+    /// - if any [`BaseUrl`] of the property type already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
@@ -140,9 +140,9 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by `metadata` does not exist.
-    /// - if the [`BaseUri`] of the `entity_type` already exists.
+    /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_type(
         &mut self,
         schema: EntityType,
@@ -157,9 +157,9 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by the metadata does not exist.
-    /// - if any [`BaseUri`] of the entity type already exists.
+    /// - if any [`BaseUrl`] of the entity type already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_types(
         &mut self,
         property_types: impl IntoIterator<

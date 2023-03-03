@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Entity,
   EntityId,
@@ -17,7 +17,7 @@ export const useFetchBlockSubgraph = () => {
   const { getEntity } = useBlockProtocolGetEntity();
 
   const fetchBlockSubgraph = useCallback(
-    async (blockEntityTypeId: VersionedUri, blockEntityId?: EntityId) => {
+    async (blockEntityTypeId: VersionedUrl, blockEntityId?: EntityId) => {
       const depths: GraphResolveDepths = {
         inheritsFrom: { outgoing: 0 },
         constrainsValuesOn: { outgoing: 0 },
@@ -106,7 +106,7 @@ export const useFetchBlockSubgraph = () => {
           ],
           vertices: {
             [placeholderEntity.metadata.recordId.entityId]: {
-              [now as EntityRevisionId]: {
+              [now]: {
                 kind: "entity" as const,
                 inner: placeholderEntity,
               },

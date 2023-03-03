@@ -10,7 +10,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -67,23 +66,23 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   }
 
   const title = entity.properties[
-    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl
   ] as string;
 
   const summary = entity.properties[
-    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const index = entity.properties[
-    SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const icon = entity.properties[
-    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const archived = entity.properties[
-    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUrl
   ] as boolean | undefined;
 
   return {
@@ -135,16 +134,16 @@ export const createPage: ImpureGraphFunction<
   const index = generateKeyBetween(prevIndex ?? null, null);
 
   const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri]: title,
+    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
     ...(summary
       ? {
-          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUri]:
+          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl]:
             summary,
         }
       : {}),
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
     ...(index !== undefined
-      ? { [SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri]: index }
+      ? { [SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl]: index }
       : {}),
   };
 
@@ -167,7 +166,7 @@ export const createPage: ImpureGraphFunction<
             blockData: await createEntity(ctx, {
               ownedById,
               properties: {
-                [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]:
+                [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]:
                   [],
               },
               entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
@@ -252,25 +251,27 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: subgraph }) =>
-      getEntities(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
+      getEntities(subgraph as Subgraph<EntityRootType>),
     );
 
   const pages = pageEntities
@@ -421,8 +422,8 @@ export const setPageParentPage: ImpureGraphFunction<
   if (page.index !== newIndex) {
     const updatedPageEntity = await updateEntityProperty(ctx, {
       entity: page.entity,
-      propertyTypeBaseUri:
-        SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri,
+      propertyTypeBaseUrl:
+        SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl,
       value: newIndex,
       actorId,
     });

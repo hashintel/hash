@@ -23,7 +23,7 @@ import {
 } from "../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[entity-type-id].page/shared/edit-bar";
+import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";

@@ -70,20 +70,18 @@ export const FramedBlock: FunctionComponent = () => {
    * @todo set loading / error states based on promise status and pass into block.
    *    in order to provide aggregateLoading, aggregateError, etc
    */
-  const aggregateEntities: BlockProtocolAggregateEntitiesFunction = (
-    ...payload
-  ) =>
+  const queryEntities: BlockProtocolAggregateEntitiesFunction = (...payload) =>
     sendMessage({
       payload,
-      type: "aggregateEntities",
+      type: "queryEntities",
     });
 
-  const aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction = (
+  const queryEntityTypes: BlockProtocolAggregateEntityTypesFunction = (
     ...payload
   ) =>
     sendMessage({
       payload,
-      type: "aggregateEntityTypes",
+      type: "queryEntityTypes",
     });
 
   const createEntities: BlockProtocolCreateEntitiesFunction = (...payload) =>
@@ -103,8 +101,8 @@ export const FramedBlock: FunctionComponent = () => {
   }
 
   const _blockFunctions = {
-    aggregateEntities,
-    aggregateEntityTypes,
+    queryEntities,
+    queryEntityTypes,
     createEntities,
     getEmbedBlock,
     updateEntities,

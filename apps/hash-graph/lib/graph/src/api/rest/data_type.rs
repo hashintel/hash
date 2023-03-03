@@ -6,7 +6,7 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri, DataType};
+use type_system::{repr, url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -18,7 +18,7 @@ use crate::{
         OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
+    store::{BaseUrlAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool},
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
 
@@ -76,7 +76,7 @@ struct CreateDataTypeRequest {
         (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
+        (status = 409, description = "Unable to create data type in the store as the base data type URL already exists"),
         (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateDataTypeRequest,
@@ -120,10 +120,10 @@ async fn create_data_type<P: StorePool + Send>(
         .create_data_type(data_type, &metadata)
         .await
         .map_err(|report| {
-            // TODO: consider adding the data type, or at least its URI in the trace
+            // TODO: consider adding the data type, or at least its URL in the trace
             tracing::error!(error=?report, "Could not create data type");
 
-            if report.contains::<BaseUriAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -180,7 +180,7 @@ struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = String)]
-    type_to_update: VersionedUri,
+    type_to_update: VersionedUrl,
     actor_id: UpdatedById,
 }
 
@@ -228,7 +228,7 @@ async fn update_data_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
 
-            if report.contains::<BaseUriDoesNotExist>() {
+            if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 

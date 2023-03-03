@@ -1,4 +1,5 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import { VersionedUrl } from "@blockprotocol/type-system";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
@@ -122,9 +123,12 @@ const transformBlockConfig = ({
     ...metadata,
     componentId,
     variants,
-    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
-    image: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
-    schema: deriveAbsoluteUrl({ baseUrl, path: metadata.schema }),
+    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
+    image: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
+    schema: deriveAbsoluteUrl({
+      baseUrl,
+      path: metadata.schema,
+    }) as VersionedUrl,
     source: deriveAbsoluteUrl({ baseUrl, path: metadata.source }),
   };
 };
@@ -161,15 +165,18 @@ export const fetchBlock = async (
     // the spec requires a metadata file called `block-metadata.json`
     const metadataUrl = `${baseUrl}/block-metadata.json`;
     let metadata: BlockMetadata;
+    let responseText: string = "";
     try {
       // @todo needs validation
-      metadata = await (await fetch(metadataUrl)).json();
+      const response = await fetch(metadataUrl);
+      responseText = await response.text();
+      metadata = await JSON.parse(responseText);
     } catch (err) {
       blockCache.delete(baseUrl);
       throw new Error(
         `Could not fetch and parse block metadata at url ${metadataUrl}: ${
           (err as Error).message
-        }`,
+        }. Raw response text: ${responseText}`,
       );
     }
 
@@ -209,14 +216,13 @@ export const fetchBlock = async (
  */
 export const blockProtocolHubOrigin =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
-  process.env.BLOCK_PROTOCOL_HUB_ORIGIN ||
-  "https://blockprotocol-git-03.stage.hash.ai";
+  process.env.BLOCK_PROTOCOL_HUB_ORIGIN || "https://blockprotocol.org";
 
 export const paragraphBlockComponentId = `${blockProtocolHubOrigin}/blocks/@hash/paragraph`;
 
 const textBlockComponentIds = new Set([
   paragraphBlockComponentId,
-  `${blockProtocolHubOrigin}/blocks/@hash/header`,
+  `${blockProtocolHubOrigin}/blocks/@hash/heading`,
   `${blockProtocolHubOrigin}/blocks/@hash/callout`,
 ]);
 
@@ -233,7 +239,6 @@ export const defaultBlockComponentIds = [
   `${blockProtocolHubOrigin}/blocks/@hash/person`,
   `${blockProtocolHubOrigin}/blocks/@hash/image`,
   `${blockProtocolHubOrigin}/blocks/@hash/table`,
-  `${blockProtocolHubOrigin}/blocks/@hash/divider`,
   `${blockProtocolHubOrigin}/blocks/@hash/embed`,
   `${blockProtocolHubOrigin}/blocks/@hash/code`,
   `${blockProtocolHubOrigin}/blocks/@hash/video`,

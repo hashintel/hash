@@ -1,10 +1,15 @@
+#![expect(
+    clippy::let_underscore_untyped,
+    reason = "Upstream issue of `derivative`"
+)]
+
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;
 use error_stack::{bail, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use serde_json::{Number, Value};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
@@ -45,23 +50,23 @@ where
     R: Record<QueryPath<'p>: OntologyQueryPath>,
 {
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`BaseUri`].
+    /// [`BaseUrl`].
     #[must_use]
-    pub fn for_base_uri(base_uri: &'p BaseUri) -> Self {
+    pub fn for_base_url(base_url: &'p BaseUrl) -> Self {
         Self::Equal(
-            Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::base_url())),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                base_uri.as_str(),
+                base_url.as_str(),
             )))),
         )
     }
 
     /// Creates a `Filter` to search for the latest specific ontology type of kind `R`, identified
-    /// by its [`BaseUri`].
+    /// by its [`BaseUrl`].
     #[must_use]
-    pub fn for_latest_base_uri(base_uri: &'p BaseUri) -> Self {
+    pub fn for_latest_base_url(base_url: &'p BaseUrl) -> Self {
         Self::All(vec![
-            Self::for_base_uri(base_uri),
+            Self::for_base_url(base_url),
             Self::Equal(
                 Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -83,12 +88,12 @@ where
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`VersionedUri`].
+    /// [`VersionedUrl`].
     #[must_use]
-    pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
+    pub fn for_versioned_url(versioned_url: &'p VersionedUrl) -> Self {
         Self::All(vec![
-            Self::for_base_uri(&versioned_uri.base_uri),
-            Self::for_version(OntologyTypeVersion::new(versioned_uri.version)),
+            Self::for_base_url(&versioned_url.base_url),
+            Self::for_version(OntologyTypeVersion::new(versioned_url.version)),
         ])
     }
 
@@ -97,8 +102,8 @@ where
     #[must_use]
     pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
         Self::All(vec![
-            Self::for_base_uri(&ontology_type_vertex_id.base_id),
-            Self::for_version(ontology_type_vertex_id.version),
+            Self::for_base_url(&ontology_type_vertex_id.base_id),
+            Self::for_version(ontology_type_vertex_id.revision_id),
         ])
     }
 }
@@ -267,11 +272,11 @@ pub enum FilterExpression<'p, R: Record + ?Sized> {
     Parameter(Parameter<'p>),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
-    Number(f64),
+    Number(i32),
     Text(Cow<'p, str>),
     Any(Value),
     #[serde(skip)]
@@ -345,33 +350,31 @@ impl Parameter<'_> {
 
             // Number conversions
             (Parameter::Number(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
-                    || {
-                        Report::new(ParameterConversionError {
-                            actual: self.to_owned(),
-                            expected,
-                        })
-                    },
-                )?));
+                *self = Parameter::Any(Value::Number(Number::from(*number)));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
-                *self = Parameter::Number(number.as_f64().ok_or_else(|| {
+                let number = number.as_i64().ok_or_else(|| {
                     Report::new(ParameterConversionError {
                         actual: self.to_owned(),
                         expected,
                     })
-                })?);
-            }
-            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
-                // Postgres cannot represent unsigned integer, so we use i64 instead
-                let number = number.round() as i64;
-                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                    number.try_into().into_report().change_context_lazy(|| {
-                        ParameterConversionError {
+                })?;
+                *self =
+                    Parameter::Number(i32::try_from(number).into_report().change_context_lazy(
+                        || ParameterConversionError {
                             actual: self.to_owned(),
                             expected: ParameterType::OntologyTypeVersion,
-                        }
-                    })?,
+                        },
+                    )?);
+            }
+            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
+                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                    u32::try_from(*number)
+                        .into_report()
+                        .change_context_lazy(|| ParameterConversionError {
+                            actual: self.to_owned(),
+                            expected: ParameterType::OntologyTypeVersion,
+                        })?,
                 ));
             }
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
@@ -385,12 +388,12 @@ impl Parameter<'_> {
             (Parameter::Any(Value::String(string)), ParameterType::Text) => {
                 *self = Parameter::Text(Cow::Owned(string.clone()));
             }
-            (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
-                // TODO: validate base uri
+            (Parameter::Text(_base_url), ParameterType::BaseUrl) => {
+                // TODO: validate base url
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
-            (Parameter::Text(_versioned_uri), ParameterType::VersionedUri) => {
-                // TODO: validate versioned uri
+            (Parameter::Text(_versioned_url), ParameterType::VersionedUrl) => {
+                // TODO: validate versioned url
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
@@ -418,7 +421,7 @@ impl Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use type_system::uri::BaseUri;
+    use type_system::url::BaseUrl;
 
     use super::*;
     use crate::{
@@ -439,59 +442,59 @@ mod tests {
     }
 
     #[test]
-    fn for_versioned_uri() {
-        let uri = VersionedUri {
-            base_uri: BaseUri::new(
+    fn for_versioned_url() {
+        let url = VersionedUrl {
+            base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
-            .expect("invalid base uri"),
+            .expect("invalid base url"),
             version: 1,
         };
 
         let expected = json! {{
           "all": [
             { "equal": [
-              { "path": ["baseUri"] },
-              { "parameter": uri.base_uri }
+              { "path": ["baseUrl"] },
+              { "parameter": url.base_url }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": uri.version }
+              { "parameter": url.version }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_versioned_uri(&uri),
+            &Filter::<DataTypeWithMetadata>::for_versioned_url(&url),
             &expected,
         );
     }
 
     #[test]
     fn for_ontology_type_version_id() {
-        let uri = OntologyTypeVertexId {
-            base_id: BaseUri::new(
+        let url = OntologyTypeVertexId {
+            base_id: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
-            .expect("invalid base uri"),
-            version: OntologyTypeVersion::new(1),
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
         };
 
         let expected = json! {{
           "all": [
             { "equal": [
-              { "path": ["baseUri"] },
-              { "parameter": uri.base_id }
+              { "path": ["baseUrl"] },
+              { "parameter": url.base_id }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": uri.version }
+              { "parameter": url.revision_id }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&uri),
+            &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&url),
             &expected,
         );
     }

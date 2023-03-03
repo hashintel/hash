@@ -9,8 +9,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
@@ -40,7 +39,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
     await graphApi.getEntitiesByQuery({
       filter: {
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: types.entityType.user.entityTypeId },
         ],
       },
@@ -54,27 +53,29 @@ export const ensureSystemUserAccountIdExists = async (params: {
         hasLeftEntity: { outgoing: 0, incoming: 0 },
         hasRightEntity: { outgoing: 0, incoming: 0 },
       },
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     });
 
   const existingUserEntities = getEntities(
-    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<EntityRootType>,
+    existingUserEntitiesSubgraph as Subgraph<EntityRootType>,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(
     ({ properties }) =>
       properties[
-        extractBaseUri(types.propertyType.shortName.propertyTypeId)
+        extractBaseUrl(types.propertyType.shortName.propertyTypeId)
       ] === systemUserShortname,
   );
 

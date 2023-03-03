@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 
 import {
@@ -105,7 +105,7 @@ export const useBlockProtocolFileUpload = (
       await uploadFileToStorageProvider(presignedPost, file);
 
       const uploadedFileUrl = uploadedFileEntity.properties[
-        extractBaseUri(types.propertyType.fileUrl.propertyTypeId)
+        extractBaseUrl(types.propertyType.fileUrl.propertyTypeId)
       ] as string;
 
       return {

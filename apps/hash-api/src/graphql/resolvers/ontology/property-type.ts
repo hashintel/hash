@@ -1,9 +1,9 @@
 import {
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createPropertyType,
@@ -12,8 +12,8 @@ import {
 import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
+  QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -38,11 +38,11 @@ export const createPropertyTypeResolver: ResolverFn<
   return createdPropertyType;
 };
 
-export const getAllLatestPropertyTypesResolver: ResolverFn<
+export const queryPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPropertyTypesArgs
+  QueryQueryPropertyTypesArgs
 > = async (
   _,
   { constrainsValuesOn, constrainsPropertiesOn },
@@ -72,20 +72,23 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },
   );
-  return mapSubgraph(propertyTypeSubgraph);
+
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -104,7 +107,7 @@ export const getPropertyTypeResolver: ResolverFn<
   const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
     {
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
         inheritsFrom: { outgoing: 0 },
@@ -116,21 +119,23 @@ export const getPropertyTypeResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },
   );
 
-  return mapSubgraph(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

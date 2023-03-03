@@ -4,15 +4,15 @@ use std::{collections::HashMap, fmt};
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::{TemporalTagged, TimeAxis},
+        knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
+        time::{ClosedTemporalBound, TemporalTagged, TimeAxis},
         EntityVertexId,
     },
     provenance::ProvenanceMetadata,
@@ -75,7 +75,7 @@ impl LinkOrder {
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
-pub struct EntityProperties(HashMap<BaseUri, serde_json::Value>);
+pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
 
 impl EntityProperties {
     #[must_use]
@@ -86,7 +86,7 @@ impl EntityProperties {
 
 impl EntityProperties {
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
+    pub const fn properties(&self) -> &HashMap<BaseUrl, serde_json::Value> {
         &self.0
     }
 }
@@ -127,11 +127,10 @@ pub struct LinkData {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     record_id: EntityRecordId,
-    version: EntityVersion,
+    temporal_versioning: EntityTemporalMetadata,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
+    entity_type_id: VersionedUrl,
+    provenance: ProvenanceMetadata,
     archived: bool,
 }
 
@@ -139,16 +138,16 @@ impl EntityMetadata {
     #[must_use]
     pub const fn new(
         record_id: EntityRecordId,
-        version: EntityVersion,
-        entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
+        temporal_versioning: EntityTemporalMetadata,
+        entity_type_id: VersionedUrl,
+        provenance: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
             record_id,
-            version,
+            temporal_versioning,
             entity_type_id,
-            provenance_metadata,
+            provenance,
             archived,
         }
     }
@@ -159,18 +158,18 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn version(&self) -> &EntityVersion {
-        &self.version
+    pub const fn temporal_versioning(&self) -> &EntityTemporalMetadata {
+        &self.temporal_versioning
     }
 
     #[must_use]
-    pub const fn entity_type_id(&self) -> &VersionedUri {
+    pub const fn entity_type_id(&self) -> &VersionedUrl {
         &self.entity_type_id
     }
 
     #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
+    pub const fn provenance(&self) -> ProvenanceMetadata {
+        self.provenance
     }
 
     #[must_use]
@@ -195,13 +194,23 @@ impl Record for Entity {
     type VertexId = EntityVertexId;
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
-        let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata.version().decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata.version().transaction_time.start().cast(),
+        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
+            TimeAxis::DecisionTime => self
+                .metadata
+                .temporal_versioning()
+                .decision_time
+                .start()
+                .cast(),
+            TimeAxis::TransactionTime => self
+                .metadata
+                .temporal_versioning()
+                .transaction_time
+                .start()
+                .cast(),
         };
         EntityVertexId {
             base_id: self.metadata.record_id().entity_id,
-            version: timestamp.into(),
+            revision_id: timestamp,
         }
     }
 

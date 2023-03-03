@@ -1,14 +1,19 @@
 {
   "name": "@blocks/paragraph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Write a block of text to express an idea, make a point, or record a thought",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/paragraph"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
@@ -16,18 +21,19 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
-    "@blockprotocol/hook": "0.0.8"
+    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/hook": "0.1.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -50,9 +56,10 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "text": "William Shakespeare was an English playwright, poet and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. He is often called England's national poet and the \"Bard of Avon\"."
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "William Shakespeare was an English playwright, poet and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. He is often called England's national poet and the \"Bard of Avon\"."
       }
     ],
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/paragraph-block/v/2"
   }
 }

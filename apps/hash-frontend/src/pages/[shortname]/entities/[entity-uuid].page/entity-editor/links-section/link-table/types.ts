@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   Entity,
@@ -12,7 +12,7 @@ export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
 
 export type LinkRow = {
   rowId: string;
-  linkEntityTypeId: VersionedUri;
+  linkEntityTypeId: VersionedUrl;
   linkTitle: string;
   maxItems?: number;
   isList: boolean;

@@ -12,12 +12,11 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{
-            DecisionTime, IncludedTimeIntervalBound, ProjectedTime, TemporalTagged, TimeAxis,
-            Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+            DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
+            VariableAxis,
         },
         EntityVertexId,
     },
-    interval::Interval,
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
     subgraph::{Subgraph, SubgraphIndex},
@@ -78,31 +77,17 @@ impl ToSchema<'_> for EntityId {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntityVersion {
-    #[schema(inline)]
-    pub decision_time: Interval<
-        Timestamp<DecisionTime>,
-        IncludedTimeIntervalBound<DecisionTime>,
-        UnboundedOrExcludedTimeIntervalBound<DecisionTime>,
-    >,
-    #[schema(inline)]
-    pub transaction_time: Interval<
-        Timestamp<TransactionTime>,
-        IncludedTimeIntervalBound<TransactionTime>,
-        UnboundedOrExcludedTimeIntervalBound<TransactionTime>,
-    >,
+pub struct EntityTemporalMetadata {
+    pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-impl EntityVersion {
+impl EntityTemporalMetadata {
     #[must_use]
-    pub fn projected_time(
+    pub fn variable_time_interval(
         &self,
         time_axis: TimeAxis,
-    ) -> Interval<
-        Timestamp<ProjectedTime>,
-        IncludedTimeIntervalBound<ProjectedTime>,
-        UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
-    > {
+    ) -> LeftClosedTemporalInterval<VariableAxis> {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),
