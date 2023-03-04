@@ -8,6 +8,7 @@ import {
 } from "@blockprotocol/service/dist/mapbox-types";
 import { v4 as uuid } from "uuid";
 import { MapboxRetrieveStaticMapData } from "@blockprotocol/service/.";
+import { Address as AddressEntity } from "./types";
 
 const toArrayBuffer = (buffer: Uint8Array) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
@@ -33,8 +34,10 @@ export type Address = {
 
 export const useMapbox = (
   blockRootRef: RefObject<HTMLDivElement>,
+  initialAddress: AddressEntity,
   zoomLevel: number,
   shouldFetchImage: boolean,
+  uploadMap: (mapFile: File, addressId: string) => Promise<void>,
 ) => {
   const { serviceModule } = useServiceBlockModule(blockRootRef);
   const [sessionToken, setSessionToken] = useSessionstorageState<string | null>(
@@ -45,10 +48,11 @@ export const useMapbox = (
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
+  const [address, setAddress] = useState<Address | null>(
+    initialAddress ?? null,
+  );
   const [selectedAddress, setSelectedAddress] =
     useState<AutofillFeatureSuggestion | null>(null);
-  const [mapUrl, setMapUrl] = useState<string | null>(null);
-  const [mapFile, setMapFile] = useState<File | null>(null);
 
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState(false);
@@ -88,7 +92,8 @@ export const useMapbox = (
 
   const selectAddress = (suggestion?: AutofillSuggestion) => {
     if (suggestion) {
-      setSelectedAddressId(suggestion?.action.id);
+      const addressId = suggestion?.action.id;
+      setSelectedAddressId(addressId);
       serviceModule
         .mapboxRetrieveAddress({
           data: {
@@ -103,18 +108,28 @@ export const useMapbox = (
             const address = data.features[0];
             if (address) {
               setSelectedAddress(address);
+              setAddress({
+                featureName: address.properties.feature_name,
+                postalCode: address.properties.postcode ?? "",
+                streetAddress: address.properties.address_line1 ?? "",
+                addressRegion: address.properties.address_level1 ?? "",
+                addressCountry:
+                  address.properties.metadata.iso_3166_1.toUpperCase() ?? "",
+                fullAddress: address.properties.full_address ?? "",
+                addressId,
+              });
             }
           }
         });
     } else {
       setSelectedAddressId(null);
       setSelectedAddress(null);
-      setMapUrl(null);
+      setAddress(null);
     }
   };
 
   useEffect(() => {
-    if (shouldFetchImage) {
+    if (shouldFetchImage && selectedAddressId) {
       const coords = selectedAddress?.geometry.coordinates;
       if (coords?.[0] && coords?.[1]) {
         serviceModule
@@ -130,7 +145,7 @@ export const useMapbox = (
               zoom: zoomLevel,
             } as MapboxRetrieveStaticMapData,
           })
-          .then((res) => {
+          .then(async (res) => {
             if (res.data) {
               let blob = new Blob(
                 [toArrayBuffer(new Uint8Array(res.data.data))],
@@ -139,31 +154,17 @@ export const useMapbox = (
                 },
               );
 
-              setMapUrl(URL.createObjectURL(blob));
-              setMapFile(new File([blob], "map"));
+              const file = new File(
+                [blob],
+                `${selectedAddressId}_${zoomLevel}x.png`,
+              );
+
+              await uploadMap(file, selectedAddressId);
             }
           });
       }
     }
   }, [shouldFetchImage, selectedAddress, zoomLevel]);
-
-  const address: Address | null = useMemo(
-    () =>
-      selectedAddress
-        ? {
-            featureName: selectedAddress.properties.feature_name,
-            postalCode: selectedAddress.properties.postcode ?? "",
-            streetAddress: selectedAddress.properties.address_line1 ?? "",
-            addressRegion: selectedAddress.properties.address_level1 ?? "",
-            addressCountry:
-              selectedAddress.properties.metadata.iso_3166_1.toUpperCase() ??
-              "",
-            fullAddress: selectedAddress.properties.full_address ?? "",
-            addressId: selectedAddressId!,
-          }
-        : null,
-    [selectedAddress, mapUrl],
-  );
 
   return {
     suggestions,
@@ -172,6 +173,5 @@ export const useMapbox = (
     suggestionsError,
     selectAddress,
     selectedAddress: address,
-    mapFile,
   };
 };

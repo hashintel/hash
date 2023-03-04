@@ -57,6 +57,7 @@ export const EditableField = ({
         placeholder={!readonly ? placeholder : undefined}
         sx={{
           width: "100%",
+          background: "none !important",
           [`.${inputBaseClasses.root}`]: {
             paddingTop: 0,
             transition: transitions.create("padding"),

@@ -173,36 +173,32 @@ export const App: BlockComponent<RootEntity> = ({
       .map(({ linkEntity }) => linkEntity.properties[zoomLevelKey]);
   }, [linkedEntities]);
 
-  const {
-    suggestions,
-    suggestionsLoading,
-    suggestionsError,
-    fetchSuggestions,
-    selectAddress,
-    selectedAddress,
-    mapFile,
-  } = useMapbox(
-    blockRootRef,
-    zoomLevel,
-    !availableZoomLevels.includes(zoomLevel),
-  );
+  const updateBlockAddress = async (address?: Address) => {
+    if (readonly) {
+      return;
+    }
 
-  const updateBlockAddress = async (address: Address) => {
     await graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
-        properties: {
-          [addressIdKey]: address.addressId,
-          [titleKey]: address.featureName,
-          [descriptionKey]: "",
-          [zoomLevelKey]: 16,
-        },
+        properties: address
+          ? {
+              [addressIdKey]: address.addressId,
+              [titleKey]: address.featureName,
+              [descriptionKey]: "",
+              [zoomLevelKey]: DEFAULT_ZOOM_LEVEL,
+            }
+          : {},
       },
     });
   };
 
   const updateTitle = async (title: string) => {
+    if (readonly) {
+      return;
+    }
+
     await graphModule.updateEntity({
       data: {
         entityId,
@@ -216,6 +212,10 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const updateDescription = async (description: string) => {
+    if (readonly) {
+      return;
+    }
+
     await graphModule.updateEntity({
       data: {
         entityId,
@@ -229,6 +229,10 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const updateZoomLevel = async (zoomLevel: number) => {
+    if (readonly) {
+      return;
+    }
+
     await graphModule.updateEntity({
       data: {
         entityId,
@@ -253,14 +257,17 @@ export const App: BlockComponent<RootEntity> = ({
     }
   }, [zoomLevel, properties]);
 
-  const uploadMap = async (mapFile: File) => {
+  const uploadMap = async (mapFile: File, addressId: string) => {
     if (readonly || !mapFile) {
       return;
     }
 
     graphModule
       ?.uploadFile({
-        data: { file: mapFile },
+        data: {
+          file: mapFile,
+          description: selectedAddress?.fullAddress,
+        },
       })
       .then(async (uploadFileResponse) => {
         const fileEntityId =
@@ -339,15 +346,28 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
+  const {
+    suggestions,
+    suggestionsLoading,
+    suggestionsError,
+    fetchSuggestions,
+    selectAddress,
+    selectedAddress,
+  } = useMapbox(
+    blockRootRef,
+    addressEntity,
+    zoomLevel,
+    !availableZoomLevels.includes(zoomLevel),
+    uploadMap,
+  );
+
   const resetBlock = async () => {
+    if (readonly) {
+      return;
+    }
+
     selectAddress();
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {},
-      },
-    });
+    updateBlockAddress();
 
     // Remove the address link and all map links
     for (const { linkEntity } of linkedEntities) {
@@ -367,16 +387,8 @@ export const App: BlockComponent<RootEntity> = ({
         updateAddress(selectedAddress);
         updateBlockAddress(selectedAddress);
       }
-    } else {
-      resetBlock();
     }
   }, [selectedAddress]);
-
-  useEffect(() => {
-    if (mapFile) {
-      uploadMap(mapFile);
-    }
-  }, [mapFile]);
 
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -415,7 +427,10 @@ export const App: BlockComponent<RootEntity> = ({
       <ThemeProvider theme={theme}>
         <Box
           ref={blockRootRef}
-          sx={{ display: "inline-block", width: { xs: "100%", md: "auto" } }}
+          sx={{
+            display: "inline-block",
+            width: { xs: "100%", md: "auto" },
+          }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
@@ -437,13 +452,13 @@ export const App: BlockComponent<RootEntity> = ({
                     sx={({ palette }) => ({
                       display: "inline-flex",
                       alignItems: "center",
-                      textDecoration: "none",
                       fontSize: 15,
                       lineHeight: 1,
                       letterSpacing: -0.02,
                       marginBottom: 1.5,
                       whiteSpace: "nowrap",
-                      color: palette.gray[50],
+                      textDecoration: "none !important",
+                      color: `${palette.gray[50]} !important`,
                       fill: palette.gray[40],
                       ":hover": {
                         color: palette.gray[60],
@@ -680,7 +695,11 @@ export const App: BlockComponent<RootEntity> = ({
                       width: 1,
                       [`.${autocompleteClasses.input}`]: {
                         paddingLeft: "0 !important",
-                        outline: "none",
+                        // Override WP Input styles
+                        lineHeight: "24px",
+                        minHeight: "unset",
+                        border: "none",
+                        boxShadow: "none",
                       },
                       [`.${autocompleteClasses.inputRoot}`]: {
                         paddingX: ({ spacing }) =>
@@ -736,13 +755,13 @@ export const App: BlockComponent<RootEntity> = ({
           <Collapse
             in={!!selectedAddress && !animatingOut}
             onEntered={() => setAnimatingIn(null)}
-            onExited={() => selectAddress()}
+            onExited={() => resetBlock()}
           >
             {selectedAddress ? (
               <AddressCard
-                title={selectedAddress.featureName ?? title}
+                title={title ?? selectedAddress?.featureName}
                 description={description}
-                fullAddress={selectedAddress.fullAddress ?? fullAddress}
+                fullAddress={selectedAddress?.fullAddress ?? fullAddress}
                 mapUrl={mapUrl}
                 hovered={hovered}
                 readonly={readonly}
