@@ -22,7 +22,7 @@ postgres-protocol = "0.6.4"
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"
-tokio = { version = "1.25.0", default-features = false }
+tokio = { version = "1.26.0", default-features = false }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tower = "0.4.13"
 tower-http = { version = "0.4.0", features = ["trace"] }
@@ -44,7 +44,7 @@ tarpc = { version = "0.31", features = ["serde-transport", "tcp"], optional = tr
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.26.0", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 

@@ -16,6 +16,6 @@ tracing = "0.1.37"
 
 futures = "0.3"
 tarpc = { version = "0.31", features = ["tokio1"] }
-tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.26.0", features = ["rt-multi-thread", "macros"] }
 
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
