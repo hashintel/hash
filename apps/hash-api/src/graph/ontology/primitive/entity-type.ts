@@ -17,7 +17,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -84,7 +83,7 @@ export const getEntityTypeById: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { entityTypeId } = params;
 
-  const entityTypeSubgraph = await graphApi
+  const [entityType] = await graphApi
     .getEntityTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -104,9 +103,9 @@ export const getEntityTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityTypeRootType>);
-
-  const [entityType] = getRoots(entityTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<EntityTypeRootType>),
+    );
 
   if (!entityType) {
     throw new NotFoundError(

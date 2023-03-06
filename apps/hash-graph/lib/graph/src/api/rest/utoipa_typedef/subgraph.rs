@@ -28,16 +28,10 @@ pub struct Subgraph {
 
 impl From<crate::subgraph::Subgraph> for Subgraph {
     fn from(subgraph: crate::subgraph::Subgraph) -> Self {
-        let vertices = subgraph.vertices.into();
-        let edges = Edges::from_vertices_and_store_edges(
-            subgraph.edges,
-            &vertices,
-            subgraph.temporal_axes.resolved.variable_time_axis(),
-        );
         Self {
             roots: subgraph.roots.into_iter().collect(),
-            vertices,
-            edges,
+            vertices: subgraph.vertices.into(),
+            edges: subgraph.edges.into(),
             depths: subgraph.depths,
             temporal_axes: subgraph.temporal_axes,
         }

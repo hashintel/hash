@@ -11,7 +11,7 @@ use crate::{
     provenance::UpdatedById,
     store::{
         crud::Read,
-        postgres::{DependencyContext, DependencyStatus},
+        postgres::{TraversalContext, TraversalStatus},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
         UpdateError,
     },
@@ -27,29 +27,33 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
+    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
         property_type_id: &'a OntologyTypeVertexId,
-        dependency_context: &'a mut DependencyContext,
+        traversal_context: &'a mut TraversalContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
         mut temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let dependency_status = dependency_context.ontology_dependency_map.update(
+            let traversal_status = traversal_context.ontology_traversal_map.update(
                 property_type_id,
                 current_resolve_depths,
                 temporal_axes.variable_interval().convert(),
             );
 
-            let property_type = match dependency_status {
-                DependencyStatus::Unresolved(depths, interval) => {
-                    // The dependency may have to be resolved more than anticipated, so we update
-                    // the resolve depth and the temporal axes.
+            let property_type = match traversal_status {
+                TraversalStatus::Unresolved(depths, interval) => {
+                    // Depending on previous traversals, we may have to resolve with parameters
+                    // different to those provided, so we update the resolve depths and the temporal
+                    // axes.
+                    //
+                    // `TraversalMap::update` may return a higher resolve depth than the one
+                    // requested, so we update the `resolve_depths` to the returned value.
                     current_resolve_depths = depths;
                     temporal_axes.set_variable_interval(interval.convert());
                     subgraph
@@ -60,7 +64,7 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?
                 }
-                DependencyStatus::Resolved => return Ok(()),
+                TraversalStatus::Resolved => return Ok(()),
             };
 
             // Collecting references before traversing further to avoid having a shared
@@ -102,7 +106,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_data_type(
                         &data_type_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             constrains_values_on: OutgoingEdgeResolveDepth {
@@ -132,7 +136,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_property_type(
                         &property_type_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             constrains_properties_on: OutgoingEdgeResolveDepth {
@@ -216,7 +220,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        let mut traversal_context = TraversalContext::default();
 
         for property_type in
             Read::<PropertyTypeWithMetadata>::read(self, filter, &temporal_axes).await?
@@ -227,7 +231,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
             self.traverse_property_type(
                 &vertex_id,
-                &mut dependency_context,
+                &mut traversal_context,
                 &mut subgraph,
                 graph_resolve_depths,
                 temporal_axes.clone(),

@@ -11,7 +11,6 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
@@ -211,7 +210,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {

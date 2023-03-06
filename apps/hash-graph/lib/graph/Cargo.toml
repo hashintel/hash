@@ -9,9 +9,9 @@ description = "HASH Graph API"
 type-fetcher = { path = "../type-fetcher", optional = true }
 
 async-trait = "0.1.64"
-axum = "0.6.9"
+axum = "0.6.10"
 bb8-postgres = "0.8.1"
-clap = { version = "4.1.6", features = ["derive", "env"], optional = true }
+clap = { version = "4.1.8", features = ["derive", "env"], optional = true }
 time = { version = "0.3.20", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
