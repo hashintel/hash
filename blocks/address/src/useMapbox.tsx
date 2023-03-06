@@ -7,7 +7,10 @@ import {
   AutofillSuggestion,
 } from "@blockprotocol/service/dist/mapbox-types";
 import { v4 as uuid } from "uuid";
-import { MapboxRetrieveStaticMapData } from "@blockprotocol/service/.";
+import {
+  MapboxRetrieveAddressData,
+  MapboxRetrieveStaticMapData,
+} from "@blockprotocol/service/.";
 
 const toArrayBuffer = (buffer: Uint8Array) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
@@ -35,7 +38,7 @@ export const useMapbox = (
   blockRootRef: RefObject<HTMLDivElement>,
   zoomLevel: number,
   shouldFetchImage: boolean,
-  onSelectAddress: (address: Address) => Promise<void>,
+  onSelectAddress: (address: Address) => void,
   uploadMap: (mapFile: File, addressId: string) => Promise<void>,
   addressId?: string,
 ) => {
@@ -100,7 +103,7 @@ export const useMapbox = (
               action: {
                 id: addressId,
               },
-            },
+            } as AutofillSuggestion,
             optionsArg: {
               sessionToken: sessionToken ?? uuid(),
             },
