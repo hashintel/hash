@@ -23,8 +23,6 @@ export const MdxImage: FunctionComponent<
 
   const inline = typeof width !== "undefined" && typeof height !== "undefined";
 
-  console.log({ src, width, height });
-
   return (
     <Box
       className={mdxImageClasses.root}
