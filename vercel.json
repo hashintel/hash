@@ -2,10 +2,5 @@
   "github": {
     "silent": true,
     "autoJobCancelation": true
-  },
-  "git": {
-    "deploymentEnabled": {
-      "trunk-merge/*": false
-    }
   }
 }
