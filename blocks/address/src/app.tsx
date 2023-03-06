@@ -711,7 +711,7 @@ export const App: BlockComponent<RootEntity> = ({
                         lineHeight: "24px",
                         minHeight: "unset",
                         border: "none",
-                        boxShadow: "none",
+                        boxShadow: "none !important",
                       },
                       [`.${autocompleteClasses.inputRoot}`]: {
                         paddingX: ({ spacing }) =>
