@@ -565,7 +565,9 @@ export const App: BlockComponent<RootEntity> = ({
                     popupIcon={null}
                     freeSolo
                     onInputChange={(_event, newInputValue) => {
-                      fetchSuggestions(newInputValue);
+                      if (newInputValue.trim() !== "") {
+                        fetchSuggestions(newInputValue);
+                      }
                     }}
                     onChange={(_event, option) => {
                       if (option && typeof option === "object") {
