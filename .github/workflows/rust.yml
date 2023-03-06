@@ -6,7 +6,6 @@ on:
     branches:
       - main
       - dev/**
-      - "trunk-merge/**"
   merge_group:
 
 defaults:
@@ -298,7 +297,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install tools
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         shell: bash
         run: |
           cargo install cargo-quickinstall
@@ -308,12 +307,12 @@ jobs:
           cargo quickinstall cargo-semver-checks --version 0.17.0 || cargo install --version 0.17.0 cargo-semver-checks
 
       - name: Run lints
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
 
       - name: Run tests
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
@@ -323,12 +322,12 @@ jobs:
           cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
       - name: SemVer check
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 
