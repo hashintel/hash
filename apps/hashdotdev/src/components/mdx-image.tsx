@@ -43,7 +43,7 @@ export const MdxImage: FunctionComponent<
       <Image
         {...props}
         {...details}
-        src={`/${src.replace(/^\//, "")}`}
+        src={src.startsWith("https:") ? src : `/${src.replace(/^\//, "")}`}
         width={width ?? details?.width}
         height={height ?? details?.height}
         layout={inline ? "intrinsic" : "responsive"}
