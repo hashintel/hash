@@ -25,7 +25,7 @@ import { MapButton } from "./map-button";
 type AddressCardProps = {
   title?: string;
   description?: string;
-  fullAddress: string;
+  fullAddress?: string;
   mapUrl?: string;
   hovered: boolean;
   readonly?: boolean;
@@ -67,15 +67,20 @@ export const AddressCard = ({
   }, [description]);
 
   const [googleMapsUrl, appleMapsUrl] = useMemo(
-    () => [
-      `https://www.google.com/maps?q=${encodeURI(fullAddress)}`,
-      `http://maps.apple.com/?q=${encodeURI(fullAddress)}`,
-    ],
+    () =>
+      fullAddress
+        ? [
+            `https://www.google.com/maps?q=${encodeURI(fullAddress)}`,
+            `http://maps.apple.com/?q=${encodeURI(fullAddress)}`,
+          ]
+        : ["", ""],
     [fullAddress],
   );
 
   const copyToClipboard = useCallback(() => {
-    navigator.clipboard.writeText(fullAddress);
+    if (fullAddress) {
+      navigator.clipboard.writeText(fullAddress);
+    }
   }, [fullAddress]);
 
   return (
@@ -122,17 +127,19 @@ export const AddressCard = ({
           />
 
           <Box display="flex">
-            <Typography
-              variant="regularTextLabels"
-              sx={{
-                fontWeight: 500,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: ({ palette }) => palette.gray[90],
-              }}
-            >
-              {fullAddress}
-            </Typography>
+            {fullAddress ? (
+              <Typography
+                variant="regularTextLabels"
+                sx={{
+                  fontWeight: 500,
+                  lineHeight: 1.3,
+                  letterSpacing: "-0.02em",
+                  color: ({ palette }) => palette.gray[90],
+                }}
+              >
+                {fullAddress}
+              </Typography>
+            ) : null}
             {readonly ? (
               <Button
                 onClick={copyToClipboard}
@@ -154,14 +161,18 @@ export const AddressCard = ({
         </Stack>
 
         <Stack gap={1.5}>
-          <MapButton href={googleMapsUrl}>
-            <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
-            Open in Google Maps
-          </MapButton>
-          <MapButton href={appleMapsUrl}>
-            <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
-            Open in Apple Maps
-          </MapButton>
+          {googleMapsUrl ? (
+            <MapButton href={googleMapsUrl}>
+              <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
+              Open in Google Maps
+            </MapButton>
+          ) : null}
+          {appleMapsUrl ? (
+            <MapButton href={appleMapsUrl}>
+              <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
+              Open in Apple Maps
+            </MapButton>
+          ) : null}
         </Stack>
 
         {description || editingDescription || readonly ? (

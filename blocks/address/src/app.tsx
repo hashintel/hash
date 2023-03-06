@@ -346,6 +346,11 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
+  const onSelectAddress = (address: Address) => {
+    updateAddress(address);
+    updateBlockAddress(address);
+  };
+
   const {
     suggestions,
     suggestionsLoading,
@@ -355,10 +360,11 @@ export const App: BlockComponent<RootEntity> = ({
     selectedAddress,
   } = useMapbox(
     blockRootRef,
-    addressEntity,
     zoomLevel,
     !availableZoomLevels.includes(zoomLevel),
+    onSelectAddress,
     uploadMap,
+    addressId,
   );
 
   const resetBlock = async () => {
@@ -380,15 +386,6 @@ export const App: BlockComponent<RootEntity> = ({
       }
     }
   };
-
-  useEffect(() => {
-    if (selectedAddress) {
-      if (addressId !== selectedAddress.addressId) {
-        updateAddress(selectedAddress);
-        updateBlockAddress(selectedAddress);
-      }
-    }
-  }, [selectedAddress]);
 
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -416,6 +413,7 @@ export const App: BlockComponent<RootEntity> = ({
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
+  const displayCard = !!(selectedAddress || addressEntity);
   return (
     <>
       {schema ? (
@@ -490,7 +488,7 @@ export const App: BlockComponent<RootEntity> = ({
                     <Box component="span" sx={{ mr: 1 }}>
                       Using
                     </Box>
-                    {!selectedAddress ? (
+                    {!displayCard ? (
                       <>
                         <Box
                           component="span"
@@ -527,7 +525,7 @@ export const App: BlockComponent<RootEntity> = ({
               </Fade>
 
               <Collapse
-                in={!selectedAddress && !animatingIn}
+                in={!displayCard && !animatingIn}
                 onEntered={() => setAnimatingOut(false)}
                 onExited={() => {
                   if (animatingIn) {
@@ -753,31 +751,29 @@ export const App: BlockComponent<RootEntity> = ({
           ) : null}
 
           <Collapse
-            in={!!selectedAddress && !animatingOut}
+            in={displayCard && !animatingOut}
             onEntered={() => setAnimatingIn(null)}
             onExited={() => resetBlock()}
           >
-            {selectedAddress ? (
-              <AddressCard
-                title={title ?? selectedAddress?.featureName}
-                description={description}
-                fullAddress={selectedAddress?.fullAddress ?? fullAddress}
-                mapUrl={mapUrl}
-                hovered={hovered}
-                readonly={readonly}
-                onClose={() => {
-                  setAnimatingOut(true);
-                }}
-                updateTitle={updateTitle}
-                updateDescription={updateDescription}
-                incrementZoomLevel={
-                  zoomLevel >= MAX_ZOOM_LEVEL ? undefined : incrementZoomLevel
-                }
-                decrementZoomLevel={
-                  zoomLevel <= MIN_ZOOM_LEVEL ? undefined : decrementZoomLevel
-                }
-              />
-            ) : null}
+            <AddressCard
+              title={title ?? selectedAddress?.featureName}
+              description={description}
+              fullAddress={selectedAddress?.fullAddress ?? fullAddress}
+              mapUrl={mapUrl}
+              hovered={hovered}
+              readonly={readonly}
+              onClose={() => {
+                setAnimatingOut(true);
+              }}
+              updateTitle={updateTitle}
+              updateDescription={updateDescription}
+              incrementZoomLevel={
+                zoomLevel >= MAX_ZOOM_LEVEL ? undefined : incrementZoomLevel
+              }
+              decrementZoomLevel={
+                zoomLevel <= MIN_ZOOM_LEVEL ? undefined : decrementZoomLevel
+              }
+            />
           </Collapse>
         </Box>
       </ThemeProvider>

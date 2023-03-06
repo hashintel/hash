@@ -8,7 +8,6 @@ import {
 } from "@blockprotocol/service/dist/mapbox-types";
 import { v4 as uuid } from "uuid";
 import { MapboxRetrieveStaticMapData } from "@blockprotocol/service/.";
-import { Address as AddressEntity } from "./types";
 
 const toArrayBuffer = (buffer: Uint8Array) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
@@ -34,10 +33,11 @@ export type Address = {
 
 export const useMapbox = (
   blockRootRef: RefObject<HTMLDivElement>,
-  initialAddress: AddressEntity,
   zoomLevel: number,
   shouldFetchImage: boolean,
+  onSelectAddress: (address: Address) => Promise<void>,
   uploadMap: (mapFile: File, addressId: string) => Promise<void>,
+  addressId?: string,
 ) => {
   const { serviceModule } = useServiceBlockModule(blockRootRef);
   const [sessionToken, setSessionToken] = useSessionstorageState<string | null>(
@@ -45,14 +45,13 @@ export const useMapbox = (
     null,
   );
   const [suggestions, setSuggestions] = useState<AutofillSuggestion[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    null,
-  );
-  const [address, setAddress] = useState<Address | null>(
-    initialAddress ?? null,
-  );
-  const [selectedAddress, setSelectedAddress] =
+  const [selectedMapboxSuggestion, setSelectedMapboxSuggestion] =
     useState<AutofillFeatureSuggestion | null>(null);
+  const [
+    selectedMapboxSuggestionActionId,
+    setSelectedMapboxSuggestionActionId,
+  ] = useState<string | null>(addressId ? addressId : null);
+  const [address, setAddress] = useState<Address | null>(null);
 
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState(false);
@@ -90,25 +89,31 @@ export const useMapbox = (
       });
   }, 300);
 
-  const selectAddress = (suggestion?: AutofillSuggestion) => {
+  const selectAddress = (suggestion?: AutofillSuggestion | string) => {
     if (suggestion) {
-      const addressId = suggestion?.action.id;
-      setSelectedAddressId(addressId);
+      const addressId =
+        typeof suggestion === "string" ? suggestion : suggestion?.action.id;
       serviceModule
         .mapboxRetrieveAddress({
           data: {
-            suggestion,
+            suggestion: {
+              action: {
+                id: addressId,
+              },
+            },
             optionsArg: {
               sessionToken: sessionToken ?? uuid(),
             },
           },
         })
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (data) {
             const address = data.features[0];
             if (address) {
-              setSelectedAddress(address);
-              setAddress({
+              setSelectedMapboxSuggestionActionId(addressId);
+              setSelectedMapboxSuggestion(address);
+
+              const addr = {
                 featureName: address.properties.feature_name,
                 postalCode: address.properties.postcode ?? "",
                 streetAddress: address.properties.address_line1 ?? "",
@@ -117,54 +122,67 @@ export const useMapbox = (
                   address.properties.metadata.iso_3166_1.toUpperCase() ?? "",
                 fullAddress: address.properties.full_address ?? "",
                 addressId,
-              });
+              };
+
+              setAddress(addr);
+              onSelectAddress(addr);
             }
           }
         });
     } else {
-      setSelectedAddressId(null);
-      setSelectedAddress(null);
+      setSelectedMapboxSuggestionActionId(null);
+      setSelectedMapboxSuggestion(null);
       setAddress(null);
     }
   };
 
   useEffect(() => {
-    if (shouldFetchImage && selectedAddressId) {
-      const coords = selectedAddress?.geometry.coordinates;
-      if (coords?.[0] && coords?.[1]) {
-        serviceModule
-          .mapboxRetrieveStaticMap({
-            data: {
-              username: "mapbox",
-              style_id: "streets-v11",
-              overlay: `pin-s+555555(${coords[0]},${coords[1]})`,
-              width: 600,
-              height: 400,
-              lon: coords[0],
-              lat: coords[1],
-              zoom: zoomLevel,
-            } as MapboxRetrieveStaticMapData,
-          })
-          .then(async (res) => {
-            if (res.data) {
-              let blob = new Blob(
-                [toArrayBuffer(new Uint8Array(res.data.data))],
-                {
-                  type: "arraybuffer",
-                },
-              );
+    if (shouldFetchImage && selectedMapboxSuggestionActionId) {
+      if (selectedMapboxSuggestion) {
+        const coords = selectedMapboxSuggestion?.geometry.coordinates;
 
-              const file = new File(
-                [blob],
-                `${selectedAddressId}_${zoomLevel}x.png`,
-              );
+        if (coords?.[0] && coords?.[1]) {
+          serviceModule
+            .mapboxRetrieveStaticMap({
+              data: {
+                username: "mapbox",
+                style_id: "streets-v11",
+                overlay: `pin-s+555555(${coords[0]},${coords[1]})`,
+                width: 600,
+                height: 400,
+                lon: coords[0],
+                lat: coords[1],
+                zoom: zoomLevel,
+              } as MapboxRetrieveStaticMapData,
+            })
+            .then(async (res) => {
+              if (res.data) {
+                let blob = new Blob(
+                  [toArrayBuffer(new Uint8Array(res.data.data))],
+                  {
+                    type: "arraybuffer",
+                  },
+                );
 
-              await uploadMap(file, selectedAddressId);
-            }
-          });
+                const file = new File(
+                  [blob],
+                  `${selectedMapboxSuggestionActionId}_${zoomLevel}x.png`,
+                );
+
+                await uploadMap(file, selectedMapboxSuggestionActionId);
+              }
+            });
+        }
+      } else {
+        selectAddress(selectedMapboxSuggestionActionId);
       }
     }
-  }, [shouldFetchImage, selectedAddress, zoomLevel]);
+  }, [
+    shouldFetchImage,
+    selectedMapboxSuggestion,
+    selectedMapboxSuggestionActionId,
+    zoomLevel,
+  ]);
 
   return {
     suggestions,
