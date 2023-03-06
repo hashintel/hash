@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - "trunk-merge/**"
+  merge_group:
 
 env:
   TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)
@@ -16,8 +17,8 @@ env:
 jobs:
   linting:
     name: Linting
-    # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' }}
+    # Run only on push to `main` or `trunk_merge/**`, in a merge group, or on pull requests
+    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -221,8 +222,8 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' }}
+    # Run only on push to `main` or `trunk_merge/**`, in a merge group, or on pull requests
+    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
