@@ -297,7 +297,10 @@ export const AddressCard = ({
               <Link
                 href="https://www.mapbox.com/about/maps/"
                 target="_blank"
-                sx={{ color: "inherit", textDecoration: "none" }}
+                sx={{
+                  color: "inherit !important",
+                  textDecoration: "none !important",
+                }}
               >
                 Mapbox
               </Link>{" "}
@@ -305,7 +308,10 @@ export const AddressCard = ({
               <Link
                 href="https://www.openstreetmap.org/copyright"
                 target="_blank"
-                sx={{ color: "inherit", textDecoration: "none" }}
+                sx={{
+                  color: "inherit !important",
+                  textDecoration: "none !important",
+                }}
               >
                 OpenStreetMap
               </Link>
