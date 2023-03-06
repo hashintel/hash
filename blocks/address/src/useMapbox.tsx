@@ -156,6 +156,8 @@ export const useMapbox = (
                 lon: coords[0],
                 lat: coords[1],
                 zoom: zoomLevel,
+                logo: false,
+                attribution: false,
               } as MapboxRetrieveStaticMapData,
             })
             .then(async (res) => {
