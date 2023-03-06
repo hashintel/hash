@@ -35,6 +35,7 @@
     "@mapbox/search-js-react": "1.0.0-beta.14",
     "@mui/material": "5.11.8",
     "lodash.debounce": "4.0.8",
+    "react-container-query": "0.12.1",
     "rooks": "7.4.3",
     "uuid": "8.3.2"
   },

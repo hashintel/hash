@@ -28,10 +28,9 @@ import {
 } from "@mui/material";
 import Autocomplete, { autocompleteClasses } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
@@ -46,6 +45,8 @@ import {
   AddressBlockLinksByLinkTypeId,
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
+import { useContainerQuery } from "react-container-query";
+import { useMergeRefs } from "rooks";
 
 const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
@@ -414,6 +415,18 @@ export const App: BlockComponent<RootEntity> = ({
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
   const displayCard = !!(selectedAddress || addressEntity);
+
+  const [params, containerRef] = useContainerQuery(
+    {
+      isMobile: {
+        maxWidth: 800,
+      },
+    },
+    { width: 800, height: 500 },
+  );
+
+  const blockRef = useMergeRefs(blockRootRef, containerRef);
+
   return (
     <>
       {schema ? (
@@ -424,10 +437,11 @@ export const App: BlockComponent<RootEntity> = ({
       ) : null}
       <ThemeProvider theme={theme}>
         <Box
-          ref={blockRootRef}
+          ref={blockRef}
+          className={params}
           sx={{
             display: "inline-block",
-            width: { xs: "100%", md: "auto" },
+            width: 1,
           }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}

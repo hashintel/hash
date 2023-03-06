@@ -87,11 +87,13 @@ export const AddressCard = ({
     <Card
       sx={{
         display: "flex",
+        width: "min-content",
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: 2.5,
         boxShadow: "none",
-        [theme.breakpoints.down("md")]: {
+        ".isMobile &": {
           flexDirection: "column",
+          width: 1,
         },
       }}
     >
@@ -103,7 +105,7 @@ export const AddressCard = ({
           paddingX: 3.75,
           gap: 4,
           width: 300,
-          [theme.breakpoints.down("md")]: {
+          ".isMobile &": {
             width: 1,
           },
         }}
@@ -224,7 +226,9 @@ export const AddressCard = ({
           background: palette.gray[10],
           borderLeft: `1px solid ${palette.gray[20]}`,
           width: 500,
-          [theme.breakpoints.down("md")]: {
+          minHeight: 300,
+
+          ".isMobile &": {
             width: 1,
             height: 300,
           },
