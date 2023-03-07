@@ -60,7 +60,6 @@ where
     }
 }
 
-#[expect(clippy::significant_drop_tightening, reason = "false positive")]
 fn configure_opentelemetry_layer(
     otlp_endpoint: &str,
 ) -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
