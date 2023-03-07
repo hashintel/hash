@@ -99,6 +99,7 @@ export const AddressCard = ({
     >
       <Stack
         sx={{
+          boxSizing: "border-box",
           display: "flex",
           justifyContent: "space-between",
           paddingY: 3,
@@ -128,7 +129,7 @@ export const AddressCard = ({
             readonly={readonly}
           />
 
-          <Box display="flex">
+          <Box display="flex" gap={1} alignItems="center">
             {fullAddress ? (
               <Typography
                 variant="regularTextLabels"
@@ -204,6 +205,7 @@ export const AddressCard = ({
               setEditingDescription(true);
             }}
             sx={{
+              display: "flex",
               fontWeight: 500,
               fontSize: 14,
               lineHeight: 1.3,

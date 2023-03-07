@@ -5,7 +5,7 @@ export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
     <Link
       href={href}
       sx={{
-        textDecoration: "none",
+        textDecoration: "none !important",
       }}
     >
       <Button
