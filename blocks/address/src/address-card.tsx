@@ -165,16 +165,20 @@ export const AddressCard = ({
 
         <Stack gap={1.5}>
           {googleMapsUrl ? (
-            <MapButton href={googleMapsUrl}>
-              <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
-              Open in Google Maps
-            </MapButton>
+            <Box>
+              <MapButton href={googleMapsUrl}>
+                <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
+                Open in Google Maps
+              </MapButton>
+            </Box>
           ) : null}
           {appleMapsUrl ? (
-            <MapButton href={appleMapsUrl}>
-              <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
-              Open in Apple Maps
-            </MapButton>
+            <Box>
+              <MapButton href={appleMapsUrl}>
+                <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
+                Open in Apple Maps
+              </MapButton>
+            </Box>
           ) : null}
         </Stack>
 
