@@ -6,30 +6,19 @@ import {
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  addPopperPositionClassPopperModifier,
-  AutocompleteDropdown,
-  FontAwesomeIcon,
-  popperPlacementInputNoBorder,
-  popperPlacementInputNoRadius,
-  theme,
-  TYPE_SELECTOR_HEIGHT,
-} from "@hashintel/design-system";
+import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,
   Fade,
   Link,
-  outlinedInputClasses,
-  PopperProps,
   ThemeProvider,
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import Autocomplete, { autocompleteClasses } from "@mui/material/Autocomplete";
+import { autocompleteClasses } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
@@ -403,19 +392,6 @@ export const App: BlockComponent<RootEntity> = ({
       : null;
   }, [addressEntity]);
 
-  const allModifiers = useMemo(
-    (): PopperProps["modifiers"] => [
-      addPopperPositionClassPopperModifier,
-      // We don't want the popup shifting position as that will break styles
-      { name: "preventOverflow", enabled: false },
-    ],
-    [],
-  );
-  const [open, setOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
-
-  const displayCard = !!(selectedAddress || addressEntity);
-
   const [params, containerRef] = useContainerQuery(
     {
       isMobile: {
@@ -426,6 +402,8 @@ export const App: BlockComponent<RootEntity> = ({
   );
 
   const blockRef = useMergeRefs(blockRootRef, containerRef);
+
+  const displayCard = !!(selectedAddress || addressEntity);
 
   return (
     <>
@@ -551,19 +529,11 @@ export const App: BlockComponent<RootEntity> = ({
                   sx={{ display: "flex", gap: 1.5, maxWidth: INPUT_MAX_WIDTH }}
                 >
                   <Autocomplete
-                    open={open}
-                    onOpen={() => setOpen(true)}
-                    onClose={(_, reason) => {
-                      if (reason !== "toggleInput") {
-                        setOpen(false);
-                      }
-                    }}
                     onFocus={() => setAutocompleteFocused(true)}
                     onBlur={() => setAutocompleteFocused(false)}
                     getOptionLabel={getOptionLabel}
                     options={suggestions}
                     popupIcon={null}
-                    freeSolo
                     onInputChange={(_event, newInputValue) => {
                       if (newInputValue.trim() !== "") {
                         fetchSuggestions(newInputValue);
@@ -575,75 +545,30 @@ export const App: BlockComponent<RootEntity> = ({
                       }
                     }}
                     filterOptions={(options) => options}
-                    /**
-                     * By default, the anchor element for an autocomplete dropdown is the
-                     * input base, but we some uses of this component depend on resizing the
-                     * autocomplete root in order to attach the popup in a slightly different
-                     * place, so we make the autocomplete root the anchor element for the
-                     * popup.
-                     *
-                     * @see LinkEntityTypeSelector
-                     */
-                    ref={setAnchorEl}
-                    renderInput={({ InputProps, ...params }) => {
-                      return (
-                        <TextField
-                          {...params}
-                          autoFocus
-                          placeholder={
-                            isMobile
-                              ? "Enter an address"
-                              : "Start typing to enter an address or location"
-                          }
-                          InputProps={{
-                            ...InputProps,
-                            endAdornment: suggestionsError ? (
-                              <TriangleExclamationIcon
-                                sx={{
-                                  fontSize: 14,
-                                  fill: ({ palette }) => palette.red[70],
-                                }}
-                              />
-                            ) : suggestionsLoading ? (
-                              <CircularProgress size={14} />
-                            ) : (
-                              <FontAwesomeIcon
-                                icon={faSearch}
-                                sx={{
-                                  fontSize: 14,
-                                  color: ({ palette }) => palette.gray[40],
-                                }}
-                              />
-                            ),
-                            sx: [
-                              (theme) => ({
-                                // The popover needs to know how tall this is to draw
-                                // a shadow around it
-                                height: TYPE_SELECTOR_HEIGHT,
-
-                                // Focus is handled by the options popover
-                                "&.Mui-focused": {
-                                  boxShadow: "none",
-                                },
-
-                                [`.${outlinedInputClasses.notchedOutline}`]: {
-                                  border: `1px solid ${theme.palette.gray[30]} !important`,
-                                },
-                              }),
-                              ...(open && suggestions.length
-                                ? [
-                                    popperPlacementInputNoRadius,
-                                    popperPlacementInputNoBorder,
-                                    {
-                                      borderRadiusBottomLeft: "0 !important",
-                                      borderRadiusBottomRight: "0 !important",
-                                    },
-                                  ]
-                                : []),
-                            ],
+                    inputPlaceholder={
+                      isMobile
+                        ? "Enter an address"
+                        : "Start typing to enter an address or location"
+                    }
+                    inputProps={{
+                      endAdornment: suggestionsError ? (
+                        <TriangleExclamationIcon
+                          sx={{
+                            fontSize: 14,
+                            fill: ({ palette }) => palette.red[70],
                           }}
                         />
-                      );
+                      ) : suggestionsLoading ? (
+                        <CircularProgress size={14} />
+                      ) : (
+                        <FontAwesomeIcon
+                          icon={faSearch}
+                          sx={{
+                            fontSize: 14,
+                            color: ({ palette }) => palette.gray[40],
+                          }}
+                        />
+                      ),
                     }}
                     renderOption={(props, option) => {
                       const label = getOptionLabel(option);
@@ -675,11 +600,9 @@ export const App: BlockComponent<RootEntity> = ({
                         </Stack>
                       );
                     }}
-                    PaperComponent={({ children, ...props }) => (
-                      <AutocompleteDropdown
-                        inputHeight={TYPE_SELECTOR_HEIGHT}
-                        {...props}
-                        sx={{
+                    componentsProps={{
+                      paper: {
+                        sx: {
                           padding: "0 !important",
                           filter:
                             "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
@@ -697,13 +620,8 @@ export const App: BlockComponent<RootEntity> = ({
                               marginY: 0,
                             },
                           },
-                        }}
-                      >
-                        {children}
-                      </AutocompleteDropdown>
-                    )}
-                    componentsProps={{
-                      popper: { modifiers: allModifiers, anchorEl },
+                        },
+                      },
                     }}
                     sx={{
                       width: 1,
