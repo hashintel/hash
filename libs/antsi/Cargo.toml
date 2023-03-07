@@ -1,0 +1,16 @@
+[package]
+name = "antsi"
+version = "0.0.0-reserved"
+authors = ["HASH"]
+edition = "2021"
+rust-version = "1.63.0"
+license = "MIT OR Apache-2.0"
+description = "A no-std mini-crate that provides support ANSI escape sequences"
+documentation = "https://docs.rs/antsi"
+readme = "README.md"
+repository = "https://github.com/hashintel/hash/tree/main/libs/antsi"
+keywords = ["no_std", "ansi", "color", "term", "terminal"]
+categories = ["no-std", "command-line-interface", "no-std::no-alloc"]
+
+[build-dependencies]
+rustc_version = "0.4.0"

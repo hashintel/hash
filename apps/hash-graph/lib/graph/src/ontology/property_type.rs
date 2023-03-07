@@ -16,20 +16,20 @@ use crate::{
 /// [`PropertyType`]: type_system::PropertyType
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath<'p> {
-    /// The [`BaseUri`] of the [`PropertyType`].
+    /// The [`BaseUrl`] of the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["baseUri"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::BaseUri);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["baseUrl"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::BaseUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    BaseUri,
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    BaseUrl,
     /// The version of the [`PropertyType`].
     ///
     /// ```rust
@@ -47,20 +47,20 @@ pub enum PropertyTypeQueryPath<'p> {
     ///
     /// [`PropertyType`]: type_system::PropertyType
     Version,
-    /// The [`VersionedUri`] of the [`PropertyType`].
+    /// The [`VersionedUrl`] of the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUri"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::VersionedUri);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::VersionedUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
-    VersionedUri,
+    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    VersionedUrl,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
@@ -165,26 +165,24 @@ pub enum PropertyTypeQueryPath<'p> {
     /// [`PropertyType::property_type_references()`]: type_system::PropertyType::property_type_references
     PropertyTypes(Box<Self>),
     /// Only used internally and not available for deserialization.
-    VersionId,
+    OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata(Option<JsonPath<'p>>),
 }
 
 impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
-    fn base_uri() -> Self {
-        Self::BaseUri
+    fn base_url() -> Self {
+        Self::BaseUrl
     }
 
-    fn versioned_uri() -> Self {
-        Self::VersionedUri
+    fn versioned_url() -> Self {
+        Self::VersionedUrl
     }
 
     fn version() -> Self {
         Self::Version
-    }
-
-    fn owned_by_id() -> Self {
-        Self::OwnedById
     }
 
     fn updated_by_id() -> Self {
@@ -194,16 +192,20 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
     fn schema() -> Self {
         Self::Schema(None)
     }
+
+    fn additional_metadata() -> Self {
+        Self::AdditionalMetadata(None)
+    }
 }
 
 impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) => ParameterType::Any,
-            Self::BaseUri => ParameterType::BaseUri,
-            Self::VersionedUri => ParameterType::VersionedUri,
-            Self::Version => ParameterType::UnsignedInteger,
+            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
+            Self::BaseUrl => ParameterType::BaseUrl,
+            Self::VersionedUrl => ParameterType::VersionedUrl,
+            Self::Version => ParameterType::OntologyTypeVersion,
             Self::Title | Self::Description => ParameterType::Text,
             Self::DataTypes(path) => path.expected_type(),
             Self::PropertyTypes(path) => path.expected_type(),
@@ -214,10 +216,10 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
 impl fmt::Display for PropertyTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VersionId => fmt.write_str("versionId"),
-            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::OntologyId => fmt.write_str("ontologyId"),
+            Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
@@ -226,6 +228,8 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::Description => fmt.write_str("description"),
             Self::DataTypes(path) => write!(fmt, "dataTypes.{path}"),
             Self::PropertyTypes(path) => write!(fmt, "propertyTypes.{path}"),
+            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
+            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
     }
 }
@@ -234,9 +238,9 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
 #[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum PropertyTypeQueryToken {
-    BaseUri,
+    BaseUrl,
     Version,
-    VersionedUri,
+    VersionedUrl,
     OwnedById,
     UpdatedById,
     Title,
@@ -254,7 +258,7 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
+    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
                                          `ownedById`, `updatedById`, `title`, `description`, \
                                          `dataTypes`, `propertyTypes`";
 
@@ -283,8 +287,8 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
             PropertyTypeQueryToken::UpdatedById => PropertyTypeQueryPath::UpdatedById,
-            PropertyTypeQueryToken::BaseUri => PropertyTypeQueryPath::BaseUri,
-            PropertyTypeQueryToken::VersionedUri => PropertyTypeQueryPath::VersionedUri,
+            PropertyTypeQueryToken::BaseUrl => PropertyTypeQueryPath::BaseUrl,
+            PropertyTypeQueryToken::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,
             PropertyTypeQueryToken::Title => PropertyTypeQueryPath::Title,
             PropertyTypeQueryToken::Description => PropertyTypeQueryPath::Description,
@@ -348,11 +352,11 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["baseUri"]), PropertyTypeQueryPath::BaseUri);
+        assert_eq!(deserialize(["baseUrl"]), PropertyTypeQueryPath::BaseUrl);
         assert_eq!(deserialize(["version"]), PropertyTypeQueryPath::Version);
         assert_eq!(
-            deserialize(["versionedUri"]),
-            PropertyTypeQueryPath::VersionedUri
+            deserialize(["versionedUrl"]),
+            PropertyTypeQueryPath::VersionedUrl
         );
         assert_eq!(deserialize(["ownedById"]), PropertyTypeQueryPath::OwnedById);
         assert_eq!(deserialize(["title"]), PropertyTypeQueryPath::Title);
@@ -365,13 +369,13 @@ mod tests {
             PropertyTypeQueryPath::DataTypes(DataTypeQueryPath::Version)
         );
         assert_eq!(
-            deserialize(["propertyTypes", "*", "baseUri"]),
-            PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::BaseUri))
+            deserialize(["propertyTypes", "*", "baseUrl"]),
+            PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::BaseUrl))
         );
 
         assert_eq!(
             PropertyTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("ontology_id"))
             )
             .expect_err(
                 "managed to convert property type query path with hidden token when it should \
@@ -379,7 +383,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
+                "unknown variant `ontology_id`, expected {}",
                 PropertyTypeQueryPathVisitor::EXPECTING
             )
         );
@@ -402,7 +406,7 @@ mod tests {
         assert_eq!(
             PropertyTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["baseUri", "test"].into_iter()
+                    ["baseUrl", "test"].into_iter()
                 )
             )
             .expect_err(
@@ -433,7 +437,7 @@ mod tests {
         assert_eq!(
             PropertyTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["dataTypes", "*", "versionedUri", "invalid"].into_iter()
+                    ["dataTypes", "*", "versionedUrl", "invalid"].into_iter()
                 )
             )
             .expect_err(

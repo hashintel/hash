@@ -5,8 +5,8 @@ resource "aws_db_subnet_group" "postgres" {
 }
 
 resource "aws_db_parameter_group" "postgres" {
-  name   = "${var.prefix}-pgparamgrp"
-  family = "postgres13"
+  name   = "${var.prefix}-pgparamgrp14"
+  family = "postgres14"
 
   parameter {
     name  = "password_encryption"
@@ -57,7 +57,8 @@ resource "aws_db_instance" "postgres" {
   parameter_group_name            = aws_db_parameter_group.postgres.name
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   engine                          = "postgres"
-  engine_version                  = "13.7"
+  engine_version                  = "14.6"
+  allow_major_version_upgrade     = true
   instance_class                  = var.instance_class
   db_name                         = "postgres" # Initial database name
   username                        = var.pg_superuser_username

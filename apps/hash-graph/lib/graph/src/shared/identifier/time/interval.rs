@@ -1,129 +1,20 @@
-use std::{error::Error, ops::Bound};
+#![expect(
+    clippy::let_underscore_untyped,
+    reason = "Upstream issue of `derivative`"
+)]
+
+use std::{error::Error, fmt, ops::Bound};
 
 use derivative::Derivative;
-use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
-use postgres_protocol::types::RangeBound;
-use postgres_types::{private::BytesMut, ToSql};
+use postgres_protocol::types::{timestamp_from_sql, RangeBound};
+use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::Timestamp;
-
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(
-    Debug(bound = ""),
-    Clone(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
-#[serde(
-    rename_all = "camelCase",
-    bound = "",
-    tag = "bound",
-    content = "timestamp"
-)]
-pub enum TimeIntervalBound<A> {
-    Unbounded,
-    Included(Timestamp<A>),
-    Excluded(Timestamp<A>),
-}
-
-impl<A> TimeIntervalBound<A> {
-    #[must_use]
-    pub const fn cast<B>(&self) -> TimeIntervalBound<B> {
-        match self {
-            Self::Unbounded => TimeIntervalBound::Unbounded,
-            Self::Included(timestamp) => TimeIntervalBound::Included(timestamp.cast()),
-            Self::Excluded(timestamp) => TimeIntervalBound::Excluded(timestamp.cast()),
-        }
-    }
-}
-
-impl<A> From<Bound<Timestamp<A>>> for TimeIntervalBound<A> {
-    fn from(bound: Bound<Timestamp<A>>) -> Self {
-        match bound {
-            Bound::Included(timestamp) => Self::Included(timestamp),
-            Bound::Excluded(timestamp) => Self::Excluded(timestamp),
-            Bound::Unbounded => Self::Unbounded,
-        }
-    }
-}
-
-impl<A> From<TimeIntervalBound<A>> for Bound<Timestamp<A>> {
-    fn from(bound: TimeIntervalBound<A>) -> Self {
-        match bound {
-            TimeIntervalBound::Included(timestamp) => Self::Included(timestamp),
-            TimeIntervalBound::Excluded(timestamp) => Self::Excluded(timestamp),
-            TimeIntervalBound::Unbounded => Self::Unbounded,
-        }
-    }
-}
-
-impl<A> LowerBound<Timestamp<A>> for TimeIntervalBound<A> {
-    fn as_bound(&self) -> Bound<&Timestamp<A>> {
-        match self {
-            Self::Unbounded => Bound::Unbounded,
-            Self::Included(timestamp) => Bound::Included(timestamp),
-            Self::Excluded(timestamp) => Bound::Excluded(timestamp),
-        }
-    }
-
-    fn into_bound(self) -> Bound<Timestamp<A>> {
-        self.into()
-    }
-
-    fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
-        bound.into()
-    }
-}
-
-impl<A> UpperBound<Timestamp<A>> for TimeIntervalBound<A> {
-    fn as_bound(&self) -> Bound<&Timestamp<A>> {
-        match self {
-            Self::Unbounded => Bound::Unbounded,
-            Self::Included(timestamp) => Bound::Included(timestamp),
-            Self::Excluded(timestamp) => Bound::Excluded(timestamp),
-        }
-    }
-
-    fn into_bound(self) -> Bound<Timestamp<A>> {
-        self.into()
-    }
-
-    fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
-        bound.into()
-    }
-}
-
-impl<A> ToSchema for TimeIntervalBound<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::OneOf(
-            openapi::OneOfBuilder::new()
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property(
-                            "bound",
-                            openapi::ObjectBuilder::new().enum_values(Some(["unbounded"])),
-                        )
-                        .required("bound"),
-                )
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property(
-                            "bound",
-                            openapi::ObjectBuilder::new()
-                                .enum_values(Some(["included", "excluded"])),
-                        )
-                        .required("bound")
-                        .property("timestamp", Timestamp::<A>::schema())
-                        .required("timestamp"),
-                )
-                .build(),
-        )
-        .into()
-    }
-}
+use crate::{
+    identifier::time::{axis::TemporalTagged, LimitedTemporalBound, TemporalBound, Timestamp},
+    interval::{Interval, IntervalBound},
+};
 
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(
@@ -134,127 +25,151 @@ impl<A> ToSchema for TimeIntervalBound<A> {
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct UnresolvedTimeInterval<A> {
-    pub start: Option<TimeIntervalBound<A>>,
-    pub end: Option<TimeIntervalBound<A>>,
+pub struct RightBoundedTemporalIntervalUnresolved<A> {
+    pub start: Option<TemporalBound<A>>,
+    pub end: Option<LimitedTemporalBound<A>>,
 }
 
-impl<A> ToSchema for UnresolvedTimeInterval<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property(
-                "start",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("start")
-            .property(
-                "end",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("end")
-            .build()
-            .into()
+impl<A, S, E> TemporalTagged for Interval<Timestamp<A>, S, E>
+where
+    S: TemporalTagged<Axis = A>,
+    E: TemporalTagged<Axis = A>,
+{
+    type Axis = A;
+    type Tagged<T> = Interval<Timestamp<T>, S::Tagged<T>, E::Tagged<T>>;
+
+    fn cast<T>(self) -> Self::Tagged<T> {
+        let (start, end) = self.into_bounds();
+        Interval::new_unchecked(start.cast(), end.cast())
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize, ToSchema)]
-#[derivative(
-    Debug(bound = ""),
-    Clone(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
-#[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct TimeInterval<A> {
-    pub start: TimeIntervalBound<A>,
-    pub end: TimeIntervalBound<A>,
-}
-
-impl<A> TimeInterval<A> {
-    #[must_use]
-    pub const fn cast<B>(&self) -> TimeInterval<B> {
-        TimeInterval {
-            start: self.start.cast(),
-            end: self.end.cast(),
-        }
-    }
-
-    #[must_use]
-    pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
-        IntervalBounds::from_range((Bound::from(self.start), Bound::from(self.end)))
-    }
-}
-
-impl<A> Interval<Timestamp<A>> for TimeInterval<A> {
-    type LowerBound = TimeIntervalBound<A>;
-    type UpperBound = TimeIntervalBound<A>;
-
-    fn from_bounds(lower: Self::LowerBound, upper: Self::UpperBound) -> Self
-    where
-        Timestamp<A>: PartialOrd,
-    {
-        Self {
-            start: lower,
-            end: upper,
-        }
-    }
-
-    fn lower_bound(&self) -> &Self::LowerBound {
-        &self.start
-    }
-
-    fn upper_bound(&self) -> &Self::UpperBound {
-        &self.end
-    }
-
-    fn into_bound(self) -> (Self::LowerBound, Self::UpperBound) {
-        (self.start, self.end)
-    }
-}
-
-impl<A> ToSql for TimeInterval<A> {
+impl<A, S, E> ToSql for Interval<Timestamp<A>, S, E>
+where
+    S: IntervalBound<Timestamp<A>> + fmt::Debug,
+    E: IntervalBound<Timestamp<A>> + fmt::Debug,
+{
     postgres_types::accepts!(TSTZ_RANGE);
 
     postgres_types::to_sql_checked!();
 
     fn to_sql(
         &self,
-        _: &postgres_types::Type,
+        _: &Type,
         buf: &mut BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>> {
         fn bound_to_sql<A>(
-            bound: TimeIntervalBound<A>,
+            bound: Bound<&Timestamp<A>>,
             buf: &mut BytesMut,
         ) -> Result<RangeBound<postgres_protocol::IsNull>, Box<dyn Error + Sync + Send>> {
-            Ok(match bound {
-                TimeIntervalBound::Unbounded => RangeBound::Unbounded,
-                TimeIntervalBound::Included(timestamp) => {
-                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+            Ok(match bound.as_bound() {
+                Bound::Unbounded => RangeBound::Unbounded,
+                Bound::Included(timestamp) => {
+                    timestamp.to_sql(&Type::TIMESTAMPTZ, buf)?;
                     RangeBound::Inclusive(postgres_protocol::IsNull::No)
                 }
-                TimeIntervalBound::Excluded(timestamp) => {
-                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                Bound::Excluded(timestamp) => {
+                    timestamp.to_sql(&Type::TIMESTAMPTZ, buf)?;
                     RangeBound::Exclusive(postgres_protocol::IsNull::No)
                 }
             })
         }
 
         postgres_protocol::types::range_to_sql(
-            |buf| bound_to_sql(self.start.clone(), buf),
-            |buf| bound_to_sql(self.end.clone(), buf),
+            |buf| bound_to_sql(self.start().as_bound(), buf),
+            |buf| bound_to_sql(self.end().as_bound(), buf),
             buf,
         )?;
         Ok(postgres_types::IsNull::No)
+    }
+}
+
+fn is_infinity(bytes: &[u8]) -> Result<bool, Box<dyn Error + Send + Sync>> {
+    let sql_timestamp = timestamp_from_sql(bytes)?;
+    Ok(sql_timestamp == i64::MIN || sql_timestamp == i64::MAX)
+}
+
+fn parse_bound<A>(
+    bound: &RangeBound<Option<&[u8]>>,
+) -> Result<Bound<Timestamp<A>>, Box<dyn Error + Send + Sync>> {
+    match bound {
+        RangeBound::Inclusive(Some(bytes)) | RangeBound::Exclusive(Some(bytes))
+            if is_infinity(bytes)? =>
+        {
+            tracing::warn!(
+                "Found an `-infinity` or `infinity` timestamp in the database, falling back to \
+                 unbounded range instead"
+            );
+            Ok(Bound::Unbounded)
+        }
+        RangeBound::Inclusive(Some(bytes)) => Ok(Bound::Included(
+            Timestamp::from_sql(&Type::TIMESTAMPTZ, bytes)?.cast(),
+        )),
+        RangeBound::Exclusive(Some(bytes)) => Ok(Bound::Excluded(
+            Timestamp::from_sql(&Type::TIMESTAMPTZ, bytes)?.cast(),
+        )),
+        RangeBound::Inclusive(None) | RangeBound::Exclusive(None) => {
+            unimplemented!("null ranges are not supported")
+        }
+        RangeBound::Unbounded => Ok(Bound::Unbounded),
+    }
+}
+
+impl<A, S, E> FromSql<'_> for Interval<Timestamp<A>, S, E>
+where
+    S: IntervalBound<Timestamp<A>>,
+    E: IntervalBound<Timestamp<A>>,
+{
+    fn from_sql(_: &Type, buf: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        match postgres_protocol::types::range_from_sql(buf)? {
+            postgres_protocol::types::Range::Empty => {
+                unimplemented!("Empty ranges are not supported")
+            }
+            postgres_protocol::types::Range::Nonempty(lower, upper) => Ok(Self::new_unchecked(
+                S::from_bound(parse_bound(&lower)?),
+                E::from_bound(parse_bound(&upper)?),
+            )),
+        }
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        matches!(ty, &Type::TSTZ_RANGE)
+    }
+}
+
+impl<'s, A> ToSchema<'s> for RightBoundedTemporalIntervalUnresolved<A>
+where
+    A: ToSchema<'s>,
+{
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "UnresolvedRightBoundedTemporalInterval",
+            openapi::ObjectBuilder::new()
+                .property(
+                    "start",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("start")
+                .property(
+                    "end",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                LimitedTemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("end")
+                .into(),
+        )
     }
 }

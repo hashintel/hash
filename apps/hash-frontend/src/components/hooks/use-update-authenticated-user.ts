@@ -1,8 +1,8 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
@@ -50,9 +50,9 @@ export const useUpdateAuthenticatedUser = () => {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const latestUserEntitySubgraph = await getMe()
+        const latestUserEntitySubgraph = (await getMe()
           .then(({ data }) => data?.me)
-          .catch(() => undefined);
+          .catch(() => undefined)) as Subgraph<EntityRootType> | undefined;
 
         if (!latestUserEntitySubgraph) {
           throw new Error(
@@ -60,9 +60,7 @@ export const useUpdateAuthenticatedUser = () => {
           );
         }
 
-        const latestUserEntity = getRootsAsEntities(
-          latestUserEntitySubgraph,
-        )[0]!;
+        const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;
 
         /**
          * @todo: use a partial update mutation instead
@@ -72,19 +70,19 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.editionId.baseId as EntityId,
+            entityId: latestUserEntity.metadata.recordId.entityId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname
                 ? {
-                    [extractBaseUri(
+                    [extractBaseUrl(
                       types.propertyType.shortName.propertyTypeId,
                     )]: params.shortname,
                   }
                 : {}),
               ...(params.preferredName
                 ? {
-                    [extractBaseUri(
+                    [extractBaseUrl(
                       types.propertyType.preferredName.propertyTypeId,
                     )]: params.preferredName,
                   }

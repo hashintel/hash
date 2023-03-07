@@ -70,6 +70,7 @@ module.exports = {
           "^@apps/",
           "^@blockprotocol/graph",
           "^@blockprotocol/hook",
+          "^@blockprotocol/service",
           "^@blockprotocol/type-system",
           "^@hashintel/",
           "^@local/",
@@ -183,8 +184,8 @@ module.exports = {
         ],
         patterns: [
           {
-            group: ["@local/design-system/*"],
-            message: "Please import from @local/design-system instead.",
+            group: ["@hashintel/design-system/*"],
+            message: "Please import from @hashintel/design-system instead.",
           },
         ],
       },

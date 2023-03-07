@@ -1,5 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@local/design-system";
+import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   Box,
@@ -9,7 +9,7 @@ import {
   MenuList,
   Typography,
 } from "@mui/material";
-import { PopupState } from "material-ui-popup-state/core";
+import { PopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../shared/ui";

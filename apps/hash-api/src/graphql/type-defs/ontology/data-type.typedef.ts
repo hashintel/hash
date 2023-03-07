@@ -1,24 +1,24 @@
 import { gql } from "apollo-server-express";
 
 export const dataTypeTypedef = gql`
-  scalar VersionedUri
+  scalar VersionedUrl
   # scalar DataType
-  # scalar DataTypeWithoutId
+  # scalar ConstructDataTypeParams
   # scalar DataTypeWithMetadata
 
   extend type Query {
     """
-    Get a subgraph rooted at all data types at their latest version.
+    Get a subgraph rooted at all data types that match a given filter.
     """
-    getAllLatestDataTypes(
+    queryDataTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 
     """
-    Get a subgraph rooted at an data type resolved by its versioned URI.
+    Get a subgraph rooted at an data type resolved by its versioned URL.
     """
     getDataType(
-      dataTypeId: VersionedUri!
+      dataTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
@@ -26,7 +26,7 @@ export const dataTypeTypedef = gql`
   # The following mutations should not be exposed until user defined data types
   # have been described and specified as an RFC.
   # extend type Mutation {
-  #   createDataType(accountId: AccountId!, dataType: DataTypeWithoutId!): Subgraph!
-  #   updateDataType(accountId: AccountId!, dataType: DataTypeWithoutId!): Subgraph!
+  #   createDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
+  #   updateDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
   # }
 `;

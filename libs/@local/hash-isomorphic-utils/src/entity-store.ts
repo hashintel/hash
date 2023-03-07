@@ -1,10 +1,11 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityId,
   EntityMetadata,
-  EntityVersion,
+  EntityPropertiesObject,
+  EntityRevisionId,
+  EntityTemporalVersioningMetadata,
   LinkData,
-  PropertyObject,
-  VersionedUri,
 } from "@local/hash-subgraph";
 import { Draft, produce } from "immer";
 
@@ -15,22 +16,23 @@ import { types } from "./ontology-types";
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
 export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
-// `extractBaseUri` does not work within this context, so this is a hacky way to get the base URI.
-export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URI =
+// `extractBaseUrl` does not work within this context, so this is a hacky way to get the base URL.
+export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URL =
   types.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
-    editionId: {
-      baseId: EntityId | null;
-      version?: EntityVersion;
+    recordId: {
+      entityId: EntityId | null;
+      revisionId?: EntityRevisionId;
     };
-    entityTypeId?: VersionedUri | null;
+    entityTypeId?: VersionedUrl | null;
     provenance?: EntityMetadata["provenance"];
+    temporalVersioning?: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
-  properties: PropertyObject & { entity?: DraftEntity };
+  properties: EntityPropertiesObject & { entity?: DraftEntity };
   linkData?: LinkData;
 
   componentId?: string;
@@ -81,7 +83,7 @@ export const getDraftEntityByEntityId = (
   entityId: EntityId,
 ): DraftEntity | undefined =>
   Object.values(draft).find(
-    (entity) => entity.metadata.editionId.baseId === entityId,
+    (entity) => entity.metadata.recordId.entityId === entityId,
   );
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
@@ -89,6 +91,7 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
 
   for (const entity of contents) {
     entities.push(entity);
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity.blockChildEntity) {
       entities.push(entity.blockChildEntity);
@@ -131,15 +134,16 @@ export const createEntityStore = (
   );
 
   for (const row of Object.values(draftData)) {
-    if (row.metadata.editionId.baseId) {
-      entityToDraft[row.metadata.editionId.baseId] = row.draftId;
+    if (row.metadata.recordId.entityId) {
+      entityToDraft[row.metadata.recordId.entityId] = row.draftId;
     }
   }
 
   const entities = findEntities(contents);
 
   for (const entity of entities) {
-    const entityId = entity.metadata.editionId.baseId;
+    const entityId = entity.metadata.recordId.entityId;
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity && !entityToDraft[entityId]) {
       entityToDraft[entityId] = generateDraftIdForEntity(entityId);
@@ -147,7 +151,7 @@ export const createEntityStore = (
   }
 
   for (const entity of entities) {
-    const entityId = entity.metadata.editionId.baseId;
+    const entityId = entity.metadata.recordId.entityId;
 
     saved[entityId] = entity;
     const draftId = entityToDraft[entityId]!;
@@ -166,11 +170,12 @@ export const createEntityStore = (
         if (draftData[draftId]) {
           if (
             new Date(
-              draftData[draftId]!.metadata.editionId.version?.decisionTime
-                .start ?? 0,
+              draftData[draftId]!.metadata.temporalVersioning?.decisionTime
+                .start.limit ?? 0,
             ).getTime() >
             new Date(
-              draftEntity.metadata.editionId.version?.decisionTime.start ?? 0,
+              draftEntity.metadata.temporalVersioning?.decisionTime.start
+                .limit ?? 0,
             ).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
@@ -188,7 +193,7 @@ export const createEntityStore = (
               // This type is very deep now, so traversal causes TS to complain.
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
-              entityId: draftEntity.metadata.editionId.baseId,
+              entityId: draftEntity.metadata.recordId.entityId,
               draftId: draftEntity.draftId,
             },
             entityToDraft,
@@ -199,12 +204,12 @@ export const createEntityStore = (
           // Set the blockChildEntity's draft ID on a block draft.
           if (
             !draftEntity.blockChildEntity?.draftId &&
-            draftEntity.blockChildEntity?.metadata.editionId.baseId
+            draftEntity.blockChildEntity?.metadata.recordId.entityId
           ) {
             const restoredBlockDraftId = restoreDraftId(
               {
                 entityId:
-                  draftEntity.blockChildEntity.metadata.editionId.baseId,
+                  draftEntity.blockChildEntity.metadata.recordId.entityId,
                 draftId: draftEntity.blockChildEntity.draftId,
               },
               entityToDraft,
@@ -219,15 +224,15 @@ export const createEntityStore = (
 
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
     // BaseId is readonly, so we have to do this instead of assigning
-    // updated.metadata.editionId.baseId
+    // updated.metadata.recordId.baseUrl
     const updated = {
       ...draftEntity,
       metadata: {
         ...draftEntity.metadata,
         editionId: {
-          ...draftEntity.metadata.editionId,
+          ...draftEntity.metadata.recordId,
           baseId: (presetDraftIds[draftEntity.draftId] ??
-            draftEntity.metadata.editionId.baseId) as EntityId,
+            draftEntity.metadata.recordId.entityId) as EntityId,
         },
       },
     };
@@ -241,14 +246,14 @@ export const createEntityStore = (
       throw new Error("Cannot update relevant entity id");
     }
     if (
-      draftEntity.metadata.editionId.baseId &&
-      draftEntity.metadata.editionId.baseId !== entityId
+      draftEntity.metadata.recordId.entityId &&
+      draftEntity.metadata.recordId.entityId !== entityId
     ) {
       throw new Error("Cannot update entity id of existing draft entity");
     }
 
     draft[draftId] = produce(draftEntity, (draftDraftEntity) => {
-      draftDraftEntity.metadata.editionId.baseId = entityId as EntityId;
+      draftDraftEntity.metadata.recordId.entityId = entityId as EntityId;
     });
   }
 

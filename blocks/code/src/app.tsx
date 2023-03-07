@@ -1,51 +1,41 @@
 import {
   BlockComponent,
   useEntitySubgraph,
-  useGraphBlockService,
+  useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./app.module.css";
 import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
+import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 import { languages, LanguageType } from "./utils";
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("No blockEntitySubgraph provided");
-  }
-
   const { rootEntity: blockEntity } = useEntitySubgraph(blockEntitySubgraph);
-
-  const captionKey =
-    "https://alpha.hash.ai/@ciaran/types/property-type/caption/";
-  const contentKey =
-    "https://alpha.hash.ai/@ciaran/types/property-type/content/";
-  const languageKey =
-    "https://alpha.hash.ai/@ciaran/types/property-type/language/";
 
   const {
     metadata: {
-      editionId: { baseId: entityId },
+      recordId: { entityId },
       entityTypeId,
     },
     properties: {
-      [captionKey]: caption,
-      [contentKey]: content,
-      [languageKey]: language,
+      [propertyIds.caption]: caption,
+      [propertyIds.content]: content,
+      [propertyIds.language]: language,
     },
   } = blockEntity;
 
   const blockRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRef);
+  const { graphModule } = useGraphBlockModule(blockRef);
 
   const [localData, setLocalData] = useState(() => ({
-    [captionKey]: caption,
-    [contentKey]: content,
-    [languageKey]: language,
+    [propertyIds.caption]: caption,
+    [propertyIds.content]: content,
+    [propertyIds.language]: language,
   }));
   const [copied, setCopied] = useState(false);
   const [captionIsVisible, setCaptionVisibility] = useState(
@@ -56,9 +46,9 @@ export const App: BlockComponent<RootEntity> = ({
 
   useEffect(() => {
     setLocalData({
-      [captionKey]: caption,
-      [contentKey]: content,
-      [languageKey]: language,
+      [propertyIds.caption]: caption,
+      [propertyIds.content]: content,
+      [propertyIds.language]: language,
     });
   }, [caption, content, language]);
 
@@ -76,7 +66,7 @@ export const App: BlockComponent<RootEntity> = ({
     if (readonly) {
       return;
     }
-    void graphService?.updateEntity({
+    void graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,
@@ -88,7 +78,7 @@ export const App: BlockComponent<RootEntity> = ({
   const handleLanguageChange = (newLanguage: LanguageType) => {
     const newData = {
       ...localData,
-      [languageKey]: newLanguage,
+      [propertyIds.language]: newLanguage,
     };
     updateLocalData(newData);
     updateRemoteData(newData);
@@ -98,7 +88,9 @@ export const App: BlockComponent<RootEntity> = ({
     try {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(localData[contentKey]);
+        await navigator.clipboard.writeText(
+          localData[propertyIds.content] ?? "",
+        );
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
@@ -130,9 +122,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(
-        localData[captionKey] && localData[captionKey].length > 0,
-      );
+      setCaptionVisibility(!!localData[propertyIds.caption]?.length);
     }
   }, [localData]);
 
@@ -147,7 +137,7 @@ export const App: BlockComponent<RootEntity> = ({
         <div className={styles.topPanel}>
           <select
             className={styles.languageSelect}
-            value={localData[languageKey]}
+            value={localData[propertyIds.language]}
             onChange={
               // @todo remove assertion when the type system supports enums and CodeSnippet type is update
               (evt) => handleLanguageChange(evt.target.value as LanguageType)
@@ -180,10 +170,12 @@ export const App: BlockComponent<RootEntity> = ({
           </div>
         </div>
         <Editor
-          content={localData[contentKey]}
-          setContent={(text) => updateLocalData({ [contentKey]: text })}
+          content={localData[propertyIds.content] ?? ""}
+          setContent={(text) =>
+            updateLocalData({ [propertyIds.content]: text })
+          }
           // @todo remove assertion when the type system supports enums and CodeSnippet type is update
-          language={localData[languageKey] as LanguageType}
+          language={localData[propertyIds.language] as LanguageType}
           editorRef={editorRef}
           onBlur={() => updateRemoteData(localData)}
           readonly={!!readonly}
@@ -194,8 +186,10 @@ export const App: BlockComponent<RootEntity> = ({
         className={styles.caption}
         style={captionIsVisible ? {} : { visibility: "hidden" }}
         placeholder="Write a caption..."
-        value={localData[captionKey] ?? ""}
-        onChange={(evt) => updateLocalData({ [captionKey]: evt.target.value })}
+        value={localData[propertyIds.caption] ?? ""}
+        onChange={(evt) =>
+          updateLocalData({ [propertyIds.caption]: evt.target.value })
+        }
         onBlur={handleCaptionInputBlur}
       />
     </div>

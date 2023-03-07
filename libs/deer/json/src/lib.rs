@@ -9,7 +9,8 @@
     clippy::std_instead_of_core,
     clippy::if_then_some_else_none,
     clippy::print_stdout,
-    clippy::print_stderr
+    clippy::print_stderr,
+    clippy::mod_module_files
 )]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
@@ -37,7 +38,7 @@ use deer::{
         ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
         ValueError, Variant,
     },
-    Context, Deserialize, DeserializeOwned, Document, Reflection, Schema, Visitor,
+    Context, Deserialize, DeserializeOwned, Document, OptionalVisitor, Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -62,9 +63,9 @@ fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
 #[allow(clippy::unnecessary_wraps)]
 #[cfg(feature = "arbitrary-precision")]
 fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
+    #[allow(unsafe_code)]
     // SAFETY: we know that `number` is already valid, therefore we can safely construct the deer
     // variant.
-    #[allow(unsafe_code)]
     unsafe {
         Some(deer::Number::from_string_unchecked(format!("{number}")))
     }
@@ -240,7 +241,12 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             Some(Value::Null) => visitor.visit_null(),
             Some(Value::Bool(bool)) => visitor.visit_bool(bool),
             Some(Value::Number(number)) => serde_to_deer_number(&number)
-                .ok_or_else(|| todo!())
+                .ok_or_else(|| {
+                    unimplemented!(
+                        "serde number has arbitrary precision enabled, deer has not, no fallback \
+                         is implemented just yet"
+                    )
+                })
                 .and_then(|number| visitor.visit_number(number)),
             Some(Value::Array(array)) => visitor.visit_array(ArrayAccess::new(array, self.context)),
             Some(Value::Object(object)) => {
@@ -368,6 +374,18 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             Value::Object(map) => visitor.visit_object(ObjectAccess::new(map, self.context)),
             else => Error
         })
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        match &self.value {
+            None => visitor.visit_none(),
+            Some(Value::Null) => visitor.visit_null(),
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
     }
 }
 

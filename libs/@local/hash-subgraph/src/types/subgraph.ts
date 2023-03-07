@@ -1,45 +1,84 @@
 import {
-  GraphResolveDepths,
-  OntologyTypeEditionId,
-} from "@local/hash-graph-client";
+  type DataTypeRootType as DataTypeRootTypeBp,
+  type EntityRootType as EntityRootTypeBp,
+  type EntityTypeRootType as EntityTypeRootTypeBp,
+  type PropertyTypeRootType as PropertyTypeRootTypeBp,
+  type SubgraphRootType as SubgraphRootTypeBp,
+} from "@blockprotocol/graph/temporal";
+import { Subtype } from "@local/advanced-types/subtype";
 
-import { Edges } from "./edge";
 import {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
-import { EntityVertexId } from "./identifier";
-import { ResolvedTimeProjection, TimeProjection } from "./time";
-import { Vertices } from "./vertex";
+import { Edges } from "./subgraph/edges";
+import { GraphResolveDepths } from "./subgraph/graph-resolve-depths";
+import { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
+import {
+  EntityVertexId,
+  OntologyTypeVertexId,
+  Vertices,
+} from "./subgraph/vertices";
 
-export type SubgraphRootTypes = {
-  dataType: {
-    vertexId: OntologyTypeEditionId;
+export * from "./subgraph/edges";
+export * from "./subgraph/graph-resolve-depths";
+export * from "./subgraph/temporal-axes";
+export * from "./subgraph/vertices";
+
+export type DataTypeRootType = Subtype<
+  DataTypeRootTypeBp,
+  {
+    vertexId: OntologyTypeVertexId;
     element: DataTypeWithMetadata;
-  };
-  propertyType: {
-    vertexId: OntologyTypeEditionId;
+  }
+>;
+
+export type PropertyTypeRootType = Subtype<
+  PropertyTypeRootTypeBp,
+  {
+    vertexId: OntologyTypeVertexId;
     element: PropertyTypeWithMetadata;
-  };
-  entityType: {
-    vertexId: OntologyTypeEditionId;
+  }
+>;
+
+export type EntityTypeRootType = Subtype<
+  EntityTypeRootTypeBp,
+  {
+    vertexId: OntologyTypeVertexId;
     element: EntityTypeWithMetadata;
-  };
-  entity: {
+  }
+>;
+
+export type EntityRootType = Subtype<
+  EntityRootTypeBp,
+  {
     vertexId: EntityVertexId;
     element: Entity;
-  };
-};
+  }
+>;
 
-export type SubgraphRootType = SubgraphRootTypes[keyof SubgraphRootTypes];
+export type SubgraphRootType = Subtype<
+  SubgraphRootTypeBp,
+  DataTypeRootType | PropertyTypeRootType | EntityTypeRootType | EntityRootType
+>;
+
+/** @todo - Figure out the incompatible vertices/edges is it the `&` instead of `|`? */
+// export type Subgraph<
+//   RootType extends SubgraphRootType = SubgraphRootType,
+//   > = Subtype<{
+//   roots: RootType["vertexId"][];
+//   vertices: Vertices;
+//   edges: Edges;
+//   depths: GraphResolveDepths;
+//   temporalAxes: SubgraphTemporalAxes
+// }, SubgraphBp< RootType>;
 
 export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   roots: RootType["vertexId"][];
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;
-  timeProjection: TimeProjection;
-  resolvedTimeProjection: ResolvedTimeProjection;
+  temporalAxes: SubgraphTemporalAxes;
 };

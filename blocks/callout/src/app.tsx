@@ -1,54 +1,65 @@
 import {
   BlockComponent,
-  useGraphBlockService,
+  useEntitySubgraph,
+  useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
+import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
+import { propertyIds } from "./property-ids";
+import { RootEntity } from "./types";
 
-type BlockEntityProperties = {
-  icon?: string;
-  text?: string;
-};
-
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: {
-    blockEntity: { entityId, properties },
-  },
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const editableRef = useRef<HTMLDivElement>(null);
-  const { icon = "📢", text } = properties;
+  const { [propertyIds.emoji]: icon, [propertyIds.text]: text } =
+    rootEntity.properties;
+  const { entityId } = rootEntity.metadata.recordId;
 
   const blockRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRef);
-  const { hookService } = useHookBlockService(blockRef);
+  const { graphModule } = useGraphBlockModule(blockRef);
+  const { hookModule } = useHookBlockModule(blockRef);
 
-  useHook(hookService, editableRef, "text", entityId, "$.text", (node) => {
-    // eslint-disable-next-line no-param-reassign
-    node.innerText = text ?? "";
-
-    return () => {
+  useHook(
+    hookModule,
+    editableRef,
+    "text",
+    entityId,
+    [propertyIds.text],
+    (node) => {
       // eslint-disable-next-line no-param-reassign
-      node.innerText = "";
-    };
-  });
+      node.innerText = text ?? "";
+
+      return () => {
+        // eslint-disable-next-line no-param-reassign
+        node.innerText = "";
+      };
+    },
+  );
 
   const handleIconChange = (newIcon: string | undefined): void => {
     if (!entityId) {
       return;
     }
 
-    void graphService?.updateEntity({
+    void graphModule.updateEntity({
       data: {
         entityId,
+        entityTypeId: rootEntity.metadata.entityTypeId,
         properties: {
-          ...properties,
-          icon: newIcon ?? null,
+          ...rootEntity.properties,
+          [propertyIds.emoji]: newIcon ?? null,
         },
       },
     });
   };
+
+  if (readonly && !text && !icon) {
+    return null;
+  }
 
   return (
     <div
@@ -63,9 +74,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       ref={blockRef}
     >
       <EmojiIcon
-        disabled={typeof entityId !== "string"}
+        disabled={readonly}
         onChange={handleIconChange}
-        value={icon}
+        value={icon ?? "📢"}
       />
       <div
         style={{

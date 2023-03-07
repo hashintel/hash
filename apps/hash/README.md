@@ -1,10 +1,16 @@
+[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[github_star]: https://github.com/hashintel/hash#
+
+<!-- markdownlint-disable link-fragments -->
+
+[gh-about-directory]: #--about-the-hash-application
+[gh-getting-started]: #--getting-started
+
 <p align="center">
   <img src="https://cdn-us1.hash.ai/assets/hash-github-readme-header%402x.png">
 </p>
-<div align="center">
- <a href="[https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md)"><img src="https://cdn-us1.hash.ai/assets/license-badge-agpl3.svg" alt="GNU Affero General Public License version 3" /></a>
- <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_hash"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
-</div>
+
+[![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
 # HASH
 
@@ -18,7 +24,26 @@ We will be developing HASH into a production-grade application which can be self
 > The repository is currently in a state of flux while some large improvements are being implemented.
 > As such, portions of this README may prove outdated in the interim, this could include guides on how to load blocks, references to various services, broken tests, features, etc.
 
-## Getting started
+## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-about-directory] &nbsp; About the HASH application
+
+This folder contains only the _HASH_ project README. The application is split across several different modules which can be found colocated alongside this directory:
+
+- [hash-api](../hash-api): API for accessing HASH
+- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)_
+- [hash-frontend](../hash-frontend): GUI for accessing HASH
+- [hash-graph](../hash-graph): application graph query layer
+- [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
+- [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
+- [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
+
+<!-- It would be nice to add a dependency graph here showing which services rely on one another -->
+
+## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
+
+<details>
+  <summary>Running HASH locally</summary>
+  
+### Running HASH locally
 
 To run HASH locally, please follow these steps:
 
@@ -69,6 +94,8 @@ To run HASH locally, please follow these steps:
 
     1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
+    1.  When using `yarn external-services-offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+
 1.  Launch app services:
 
     ```sh
@@ -86,7 +113,7 @@ To run HASH locally, please follow these steps:
 
     See `package.json` → `scripts` for details and more options.
 
-### External services test mode
+#### External services test mode
 
 The external services of the system can be started in 'test mode' to prevent polluting the development database.
 This is useful for situations where the database is used for tests that modify the database without cleaning up afterwards.
@@ -96,6 +123,17 @@ To make use of this test mode, the external services can be started as follows:
 ```sh
 yarn external-services-test up
 ```
+
+</details>
+
+<details>
+  <summary>Deploying HASH to the cloud</summary>
+  
+### Deploying HASH to the cloud
+
+To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
+
+</details>
 
 ## User authentication
 
@@ -138,7 +176,7 @@ See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) pa
 
 ### The Graph Query Layer
 
-HASH's primary datastore is an entity graph. The service that provides this is located within the /apps/hash-graph folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
+HASH's primary datastore is an entity graph. The service that provides this is located within the `/apps/hash-graph` folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
 
 ## Testing
 
@@ -152,7 +190,7 @@ localStorage["hash.internal.debugging"] = "true";
 
 ### Backend integration tests
 
-Backend integration tests are located in the [/tests/hash-backend-integration](/tests/hash-backend-integration) folder.
+Backend integration tests are located in the [`/tests/hash-backend-integration`](/tests/hash-backend-integration) folder.
 
 _The tests require a running instance of `hash-external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
 
@@ -166,7 +204,7 @@ Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably c
 ### Playwright tests
 
 [Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
-The playwright tests are located within the [/tests/hash-playwright/tests](/tests/hash-playwright/tests) folder.
+The playwright tests are located within the [`/tests/hash-playwright/tests`](/tests/hash-playwright/tests) folder.
 To run these tests locally, you will need to have both backend and frontend running.
 
 - _The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._

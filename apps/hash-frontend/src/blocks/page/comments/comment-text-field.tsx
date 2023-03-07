@@ -3,8 +3,8 @@ import {
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
-} from "@local/design-system";
-import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
+} from "@hashintel/design-system";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   createSchema,
   formatKeymap,

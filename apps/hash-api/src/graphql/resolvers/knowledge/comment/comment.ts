@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@local/hash-isomorphic-utils/types";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
@@ -21,7 +21,7 @@ export const createCommentResolver: ResolverFn<
 
   const comment = await createComment(context, {
     tokens,
-    ownedById: extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId),
+    ownedById: extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId),
     parent,
     author: user,
     actorId: user.accountId,

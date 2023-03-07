@@ -23,10 +23,13 @@ A-learn:
   - "apps/hashdotai/glossary/**"
 
 A-error-stack:
-  - "packages/libs/error-stack/**"
+  - "libs/error-stack/**"
 
 A-deer:
   - "libs/deer/**"
+
+A-antsi:
+  - "libs/antsi/**"
 
 A-backend:
   - "apps/hash-graph/**"

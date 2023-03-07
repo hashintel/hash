@@ -11,7 +11,7 @@ import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -64,14 +64,14 @@ describe("File", () => {
     expect(
       (
         file.entity.properties[
-          SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId
+          SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl
         ] as string
       ).endsWith(fileKey),
     ).toBeTruthy();
 
     expect(
       file.entity.properties[
-        SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId
+        SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl
       ],
     ).toEqual(mediaType);
 
@@ -95,22 +95,22 @@ describe("File", () => {
 
     expect(
       file.properties[
-        SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId
+        SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl
       ],
     ).toEqual(externalUrl);
 
     expect(
       file.properties[
-        SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId
+        SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl
       ],
     ).toEqual(mediaType);
 
     expect(
       file.properties[
-        SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId
+        SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUrl
       ],
     ).toEqual({
-      [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId]:
+      [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUrl]:
         externalUrl,
     });
   });

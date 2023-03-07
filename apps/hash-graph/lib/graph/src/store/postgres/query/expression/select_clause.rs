@@ -43,7 +43,7 @@ mod tests {
     fn transpile_select_expression() {
         assert_eq!(
             SelectExpression::from_column(
-                DataTypeQueryPath::BaseUri
+                DataTypeQueryPath::BaseUrl
                     .terminating_column()
                     .aliased(Alias {
                         condition_index: 1,
@@ -53,22 +53,22 @@ mod tests {
                 None
             )
             .transpile_to_string(),
-            r#""type_ids_1_2_3"."base_uri""#
+            r#""ontology_id_with_metadata_1_2_3"."base_url""#
         );
 
         assert_eq!(
             SelectExpression::from_column(
-                DataTypeQueryPath::VersionedUri
+                DataTypeQueryPath::VersionedUrl
                     .terminating_column()
                     .aliased(Alias {
                         condition_index: 1,
                         chain_depth: 2,
                         number: 3,
                     }),
-                Some(Cow::Borrowed("versionedUri"))
+                Some(Cow::Borrowed("versionedUrl"))
             )
             .transpile_to_string(),
-            r#""data_types_1_2_3"."schema"->>'$id' AS "versionedUri""#
+            r#""data_types_1_2_3"."schema"->>'$id' AS "versionedUrl""#
         );
 
         assert_eq!(
@@ -86,7 +86,7 @@ mod tests {
                         )
                     )))),
                     WindowStatement::partition_by(
-                        DataTypeQueryPath::BaseUri
+                        DataTypeQueryPath::BaseUrl
                             .terminating_column()
                             .aliased(Alias {
                                 condition_index: 1,
@@ -98,7 +98,7 @@ mod tests {
                 Some(Cow::Borrowed("latest_version"))
             )
             .transpile_to_string(),
-            r#"MAX("type_ids_1_2_3"."version") OVER (PARTITION BY "type_ids_1_2_3"."base_uri") AS "latest_version""#
+            r#"MAX("ontology_id_with_metadata_1_2_3"."version") OVER (PARTITION BY "ontology_id_with_metadata_1_2_3"."base_url") AS "latest_version""#
         );
     }
 }

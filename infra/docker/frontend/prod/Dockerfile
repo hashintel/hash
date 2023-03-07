@@ -14,10 +14,12 @@ RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 
 # Also ensure that frontend node modules can be cached
 COPY apps/hash-frontend/package.json apps/hash-frontend/
-COPY libs/@local/design-system/package.json libs/@local/design-system/
+COPY libs/@hashintel/design-system/package.json libs/@hashintel/design-system/
+COPY libs/@hashintel/type-editor/package.json libs/@hashintel/type-editor/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
+COPY libs/@local/hash-graphql-shared/package.json libs/@local/hash-graphql-shared/
 COPY libs/@local/hash-subgraph/package.json libs/@local/hash-subgraph/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 RUN yarn workspace @apps/hash-frontend install --frozen-lockfile --prefer-offline
@@ -26,19 +28,25 @@ COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
 COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
 COPY apps/hash-frontend/codegen.config.ts apps/hash-frontend/codegen.config.ts
 COPY apps/hash-frontend/src/graphql/queries apps/hash-frontend/src/graphql/queries
-COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
-COPY libs/@local/hash-isomorphic-utils/src/queries libs/@local/hash-isomorphic-utils/src/queries
+COPY libs/@local/hash-graphql-shared/src/graphql libs/@local/hash-graphql-shared/src/graphql
+COPY libs/@local/hash-graphql-shared/src/queries libs/@local/hash-graphql-shared/src/queries
 
 RUN yarn workspace @apps/hash-frontend codegen
+
+COPY libs/@local/hash-graphql-shared/codegen.config.ts libs/@local/hash-graphql-shared/codegen.config.ts
+
+RUN yarn workspace @local/hash-graphql-shared codegen
 
 COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomorphic-utils/codegen.config.ts
 
 RUN yarn workspace @local/hash-isomorphic-utils codegen
 
 COPY apps/hash-frontend apps/hash-frontend
-COPY libs/@local/design-system libs/@local/design-system
+COPY libs/@hashintel/design-system libs/@hashintel/design-system
+COPY libs/@hashintel/type-editor/package.json libs/@hashintel/type-editor/
 COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY libs/@local/hash-graph-client libs/@local/hash-graph-client
+COPY libs/@local/hash-graphql-shared libs/@local/hash-graphql-shared
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/hash-subgraph libs/@local/hash-subgraph
 COPY libs/@local/tsconfig libs/@local/tsconfig
@@ -72,4 +80,3 @@ USER appuser
 ENV NODE_ENV production
 
 CMD ["yarn", "workspace","@apps/hash-frontend", "start"]
-

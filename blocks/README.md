@@ -1,16 +1,57 @@
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
+[`address`]: address
+[`calculation`]: calculation
+[`callout`]: callout
+[`chart`]: chart
+[`code`]: code
+[`countdown`]: countdown
+[`divider`]: divider
+[`embed`]: embed
+[`heading`]: heading
+[`html-para`]: html-para
+[`image`]: image
+[`paragraph`]: paragraph
+[`person`]: person
+[`shuffle`]: shuffle
+[`stopwatch`]: stopwatch
+[`table`]: table
+[`timer`]: timer
+[`toggle-item`]: toggle-item
+[`video`]: video
 
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a38c5f3-6474-4b6c-71e6-ecf01914f000/github)][github_banner]
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
-# HASH Blocks
+# Blocks
 
-This directory contains the source code for all of the public [Block Protocol](https://blockprotocol.org/) blocks published by HASH.
+This directory contains the source code for all HASH-developed public [Block Protocol](https://blockprotocol.org/) blocks.
 
-You can view rich previews of each of these on the [`@hash` page](https://blockprotocol.org/@hash) in the [Þ Hub](https://blockprotocol.org/hub).
+You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
+
+| Directory       | Spec Target | Status         | Þ Hub URL                                                                                      | Description |
+| --------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
+| [`address`]     | 0.3         | Maintained     |                                                                                                |             |
+| [`calculation`] | 0.2         | Unmaintained   | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
+| [`callout`]     | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)                         |             |
+| [`chart`]       | 0.1         | Pending Update |                                                                                                |             |
+| [`code`]        | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                               |             |
+| [`countdown`]   | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)                     |             |
+| [`divider`]     | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)                         |             |
+| [`embed`]       | 0.1         | Pending Update |                                                                                                |             |
+| [`heading`]     | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)                         |             |
+| [`html-para`]   | 0.1         | Unmaintained   |                                                                                                |             |
+| [`image`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                             |             |
+| [`paragraph`]   | 0.3         | **Maintained** | [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)                     |             |
+| [`person`]      | 0.2         | Pending Update |                                                                                                |             |
+| [`shuffle`]     | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)                         |             |
+| [`stopwatch`]   | 0.3         | Unmaintained   | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                     |             |
+| [`table`]       | 0.2         | Pending Update |                                                                                                |             |
+| [`timer`]       | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)                             |             |
+| [`toggle-item`] | 0.1         | Unmaintained   |                                                                                                |             |
+| [`video`]       | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)                             |             |
 
 ## Running these blocks
 

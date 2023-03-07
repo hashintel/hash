@@ -1,9 +1,9 @@
-import { Button } from "@local/design-system";
-import { Box, experimental_sx as sx, styled } from "@mui/material";
+import { Button } from "@hashintel/design-system";
+import { Box, styled } from "@mui/material";
 import { isNumber } from "lodash";
 
-const StyledBox = styled(Box)(
-  sx({
+const StyledBox = styled(Box)(({ theme }) =>
+  theme.unstable_sx({
     borderRadius: 1,
     mr: 0.5,
     backgroundColor: "gray.20",

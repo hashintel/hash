@@ -18,7 +18,7 @@ export const commentParentResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const comment = await getCommentById(context, {
-    entityId: metadata.editionId.baseId,
+    entityId: metadata.recordId.entityId,
   });
   const parent = await getCommentParent(context, { comment });
 

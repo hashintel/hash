@@ -1,13 +1,14 @@
-import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { extractVersion } from "@blockprotocol/type-system";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
@@ -19,11 +20,11 @@ export const TypesSection = () => {
   const entity = getRoots(entitySubgraph)[0]!;
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const {
-    metadata: { editionId, entityTypeId },
+    metadata: { recordId, entityTypeId },
     properties,
   } = entity;
 
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
   const [newVersion, setNewVersion] = useState<number>();
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updatingVersion, setUpdatingVersion] = useState(false);
@@ -31,7 +32,7 @@ export const TypesSection = () => {
   useEffect(() => {
     const init = async () => {
       /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
-      const res = await aggregateEntityTypes({
+      const res = await queryEntityTypes({
         data: {
           graphResolveDepths: {
             constrainsValuesOn: { outgoing: 0 },
@@ -42,7 +43,7 @@ export const TypesSection = () => {
         },
       });
 
-      const baseId = extractBaseUri(entityTypeId);
+      const baseId = extractBaseUrl(entityTypeId);
       const entityTypeWithSameBaseId = res.data?.roots.find(
         (root) => root.baseId === baseId,
       );
@@ -51,21 +52,24 @@ export const TypesSection = () => {
         return;
       }
 
-      const currentEntityVersion = extractVersion(entityTypeId);
+      const currentEntityTypeVersion = extractVersion(entityTypeId);
+      const entityTypeWithSameBaseIdVersion = Number(
+        entityTypeWithSameBaseId.revisionId,
+      );
 
-      if (entityTypeWithSameBaseId.version > currentEntityVersion) {
-        setNewVersion(entityTypeWithSameBaseId.version);
+      if (entityTypeWithSameBaseIdVersion > currentEntityTypeVersion) {
+        setNewVersion(entityTypeWithSameBaseIdVersion);
       }
     };
 
     if (!readonly) {
       void init();
     }
-  }, [aggregateEntityTypes, entityTypeId, readonly]);
+  }, [queryEntityTypes, entityTypeId, readonly]);
 
   const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
   const entityTypeTitle = entityType?.schema.title ?? "";
-  const entityTypeBaseUri = extractBaseUri(entityTypeId);
+  const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
 
   const handleUpdateVersion = async () => {
     if (!newVersion) {
@@ -77,11 +81,11 @@ export const TypesSection = () => {
 
       const res = await updateEntity({
         data: {
-          entityTypeId: versionedUriFromComponents(
-            entityTypeBaseUri,
+          entityTypeId: versionedUrlFromComponents(
+            entityTypeBaseUrl,
             newVersion,
           ),
-          entityId: editionId.baseId as EntityId,
+          entityId: recordId.entityId,
           properties,
         },
       });
@@ -107,7 +111,7 @@ export const TypesSection = () => {
     >
       <Box display="flex" gap={2}>
         <TypeCard
-          url={entityTypeBaseUri}
+          url={entityTypeBaseUrl}
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={

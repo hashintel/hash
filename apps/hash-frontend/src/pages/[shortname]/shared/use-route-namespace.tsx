@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-isomorphic-utils/types";
+import { AccountId } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 

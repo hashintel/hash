@@ -1,8 +1,5 @@
 import { useMutation } from "@apollo/client";
-import {
-  EntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-isomorphic-utils/types";
+import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -25,7 +22,7 @@ export const useReorderPage = () => {
               query: getAccountPagesTree,
               variables: {
                 ownedById: extractOwnedByIdFromEntityId(
-                  data.setParentPage.metadata.editionId.baseId,
+                  data.setParentPage.metadata.recordId.entityId,
                 ),
               },
             },

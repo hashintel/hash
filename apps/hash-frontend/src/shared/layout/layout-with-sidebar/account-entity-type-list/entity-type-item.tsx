@@ -1,6 +1,7 @@
-import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
@@ -10,7 +11,7 @@ import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
 
 type EntityTypeItemProps = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   title: string;
 };
 
@@ -63,16 +64,16 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
   const router = useRouter();
 
   // @todo once data fetching is moved to server, use that to identify if selected
-  const baseUri = extractBaseUri(entityTypeId);
+  const baseUrl = extractBaseUrl(entityTypeId);
   const url = new URL(`${window.location.origin}${router.asPath}/`);
   const urlBase = `${url.origin}${url.pathname.replace(/\/$/, "")}/`;
   const selected =
     router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
-    urlBase === baseUri;
+    urlBase === baseUrl;
 
   return (
     <Container component="li" tabIndex={0} selected={selected}>
-      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUri} flex={1}>
+      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUrl} flex={1}>
         <Typography
           variant="smallTextLabels"
           sx={{
@@ -114,7 +115,7 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
         entityTypeId={entityTypeId}
         popupState={popupState}
         title={title}
-        uri={baseUri}
+        url={baseUrl}
       />
     </Container>
   );

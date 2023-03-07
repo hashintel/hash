@@ -2,11 +2,13 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
+import { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
 import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
@@ -14,18 +16,18 @@ const node = document.getElementById("app");
 /**
  * @type {{content: string; language: import("./utils").LanguageType;}}
  */
-const initialData: RootEntity = {
+const initialEntity: RootEntity = {
   metadata: {
-    entityTypeId: "https://alpha.hash.ai/@ciaran/types/entity-type/code/v/1",
-    editionId: {
-      baseId: "entity-code",
-      versionId: "1",
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    recordId: {
+      entityId: "entity-code",
+      editionId: new Date().toISOString(),
     },
   },
   properties: {
-    "https://alpha.hash.ai/@ciaran/types/property-type/content/":
-      'var foo = "bar";',
-    "https://alpha.hash.ai/@ciaran/types/property-type/language/": "javascript",
+    [propertyIds.content]:
+      "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}",
+    [propertyIds.language]: "javascript",
   },
 };
 
@@ -33,8 +35,8 @@ const DevApp = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockEntityEditionId={initialData.metadata.editionId}
-      initialEntities={[initialData]}
+      blockEntityRecordId={initialEntity.metadata.recordId}
+      initialData={{ initialEntities: [initialEntity] }}
       blockInfo={packageJSON.blockprotocol}
       debug
     />

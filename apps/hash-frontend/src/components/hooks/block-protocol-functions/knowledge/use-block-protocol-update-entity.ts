@@ -1,6 +1,4 @@
 import { useMutation } from "@apollo/client";
-import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { useCallback } from "react";
 
 import {
@@ -8,11 +6,12 @@ import {
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import { UpdateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolUpdateEntity = (
   readonly?: boolean,
 ): {
-  updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
+  updateEntity: UpdateEntityMessageCallback;
 } => {
   const [updateFn] = useMutation<
     UpdateEntityMutation,
@@ -22,69 +21,67 @@ export const useBlockProtocolUpdateEntity = (
     fetchPolicy: "no-cache",
   });
 
-  // @ts-expect-error todo-0.3 fix mismatch between EntityId in @blockprotocol/graph and HASH
-  const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
-    useCallback(
-      async ({ data }) => {
-        if (readonly) {
-          return {
-            errors: [
-              {
-                code: "FORBIDDEN",
-                message: "Operation can't be carried out in readonly mode",
-              },
-            ],
-          };
-        }
+  const updateEntity = useCallback<UpdateEntityMessageCallback>(
+    async ({ data }) => {
+      if (readonly) {
+        return {
+          errors: [
+            {
+              code: "FORBIDDEN",
+              message: "Operation can't be carried out in readonly mode",
+            },
+          ],
+        };
+      }
 
-        if (!data) {
-          return {
-            errors: [
-              {
-                code: "INVALID_INPUT",
-                message: "'data' must be provided for updateEntity",
-              },
-            ],
-          };
-        }
+      if (!data) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "'data' must be provided for updateEntity",
+            },
+          ],
+        };
+      }
 
-        const {
-          entityId,
+      const {
+        entityId,
+        entityTypeId,
+        leftToRightOrder,
+        rightToLeftOrder,
+        properties,
+      } = data;
+
+      const { data: updateEntityResponseData } = await updateFn({
+        variables: {
+          entityId, // @todo-0.3 consider validating that this matches the id format,
           entityTypeId,
+          updatedProperties: properties,
           leftToRightOrder,
           rightToLeftOrder,
-          properties,
-        } = data;
+        },
+      });
 
-        const { data: updateEntityResponseData } = await updateFn({
-          variables: {
-            entityId: entityId as EntityId, // @todo-0.3 consider validating that this matches the id format,
-            entityTypeId,
-            updatedProperties: properties,
-            leftToRightOrder,
-            rightToLeftOrder,
-          },
-        });
+      const { updateEntity: updatedEntity } = updateEntityResponseData ?? {};
 
-        const { updateEntity: updatedEntity } = updateEntityResponseData ?? {};
-
-        if (!updatedEntity) {
-          return {
-            errors: [
-              {
-                code: "INVALID_INPUT",
-                message: "Error calling updateEntity",
-              },
-            ],
-          };
-        }
-
+      if (!updatedEntity) {
         return {
-          data: updatedEntity,
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling updateEntity",
+            },
+          ],
         };
-      },
-      [updateFn, readonly],
-    );
+      }
+
+      return {
+        data: updatedEntity,
+      };
+    },
+    [updateFn, readonly],
+  );
 
   return {
     updateEntity,

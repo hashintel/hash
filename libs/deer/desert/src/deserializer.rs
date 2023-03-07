@@ -1,7 +1,7 @@
 use alloc::borrow::ToOwned;
 use core::ops::Range;
 
-use deer::{error::DeserializerError, Context, Visitor};
+use deer::{error::DeserializerError, Context, OptionalVisitor, Visitor};
 use error_stack::{Result, ResultExt};
 
 use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
@@ -82,11 +82,28 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        let token = self.peek();
+
+        match token {
+            Token::Null => {
+                // only eat the token if we're going to visit null
+                self.next();
+                visitor.visit_null()
+            }
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
-        Self { tape, context }
+    pub(crate) const fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
+        Self { context, tape }
     }
 
     pub fn new(tokens: &'de [Token], context: &'a Context) -> Self {
@@ -105,7 +122,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) fn tape(&self) -> &Tape<'a, 'de> {
+    pub(crate) const fn tape(&self) -> &Tape<'a, 'de> {
         &self.tape
     }
 
@@ -113,11 +130,11 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         &mut self.tape
     }
 
-    pub fn remaining(&self) -> usize {
+    pub const fn remaining(&self) -> usize {
         self.tape.remaining()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.tape.is_empty()
     }
 }
@@ -148,6 +165,13 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }

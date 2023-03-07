@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-isomorphic-utils/types";
+import { AccountId } from "@local/hash-subgraph";
 import { DataSource } from "apollo-datasource";
 
 export enum StorageType {

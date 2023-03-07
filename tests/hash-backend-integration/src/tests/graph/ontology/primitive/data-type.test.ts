@@ -8,10 +8,14 @@ import {
   getDataTypeById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import {
+  DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
+  OwnedById,
+} from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -28,15 +32,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 let testUser: User;
 let testUser2: User;
 
-// we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-//  https://github.com/microsoft/TypeScript/issues/50638
-//  this is needed for as long as DataType extends Record
-const dataTypeSchema: Pick<
-  DataType,
-  "kind" | "title" | "description" | "type"
-> &
-  Record<string, any> = {
-  kind: "dataType",
+const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
   type: "string",
 };
@@ -70,18 +66,20 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdDataType.metadata) &&
+        createdDataType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
-    createdDataType = await updateDataType(graphContext, {
+    const updatedDataType = await updateDataType(graphContext, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
+        updatedDataType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

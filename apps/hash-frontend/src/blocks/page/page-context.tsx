@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-subgraph";
 import { EditorView } from "prosemirror-view";
 import {
   createContext,

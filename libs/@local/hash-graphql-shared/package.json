@@ -1,0 +1,45 @@
+{
+  "name": "@local/hash-graphql-shared",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Shared GraphQL definitions",
+  "license": "AGPL-3.0",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@apollo/client": "3.6.9",
+    "@blockprotocol/core": "0.1.0",
+    "@blockprotocol/type-system": "0.1.0-canary-20230227152050",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
+    "@sentry/browser": "7.30.0",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "2.16.4",
+    "@graphql-codegen/fragment-matcher": "3.3.3",
+    "@graphql-codegen/typescript": "2.8.7",
+    "@graphql-codegen/typescript-operations": "2.5.12",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/node": "18.11.9",
+    "@types/node-fetch": "^2.6.2",
+    "eslint": "8.33.0",
+    "rimraf": "^3.0.2",
+    "typescript": "4.9.4"
+  }
+}

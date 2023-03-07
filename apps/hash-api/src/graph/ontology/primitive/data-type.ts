@@ -1,14 +1,20 @@
-import { DataType } from "@blockprotocol/type-system";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
+  DATA_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  AccountId,
+  DataTypeRootType,
   DataTypeWithMetadata,
+  OntologyElementMetadata,
+  OntologyTypeRecordId,
+  ontologyTypeRecordIdToVersionedUrl,
+  OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-  VersionedUri,
 } from "@local/hash-subgraph";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -30,11 +36,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createDataType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-    //  https://github.com/microsoft/TypeScript/issues/50638
-    //  this is needed for as long as DataType extends Record
-    schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
-      Record<string, any>;
+    schema: ConstructDataTypeParams;
     actorId: AccountId;
   },
   Promise<DataTypeWithMetadata>
@@ -46,12 +48,17 @@ export const createDataType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const dataTypeUri = generateTypeId({
+  const dataTypeUrl = generateTypeId({
     namespace,
     kind: "data-type",
     title: params.schema.title,
   });
-  const schema = { $id: dataTypeUri, ...params.schema };
+  const schema = {
+    $schema: DATA_TYPE_META_SCHEMA,
+    kind: "dataType" as const,
+    $id: dataTypeUrl,
+    ...params.schema,
+  };
 
   const { data: metadata } = await graphApi.createDataType({
     schema,
@@ -59,43 +66,45 @@ export const createDataType: ImpureGraphFunction<
     actorId,
   });
 
-  return { schema, metadata };
+  return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
- * Get a data type by its versioned URI.
+ * Get a data type by its versioned URL.
  *
- * @param params.dataTypeId the unique versioned URI for a data type.
+ * @param params.dataTypeId the unique versioned URL for a data type.
  */
 export const getDataTypeById: ImpureGraphFunction<
   {
-    dataTypeId: VersionedUri;
+    dataTypeId: VersionedUrl;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, params) => {
   const { dataTypeId } = params;
 
-  const dataTypeSubgraph = await graphApi
+  const [dataType] = await graphApi
     .getDataTypesByQuery({
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["dataType"]>);
-
-  const [dataType] = getRoots(dataTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<DataTypeRootType>),
+    );
 
   if (!dataType) {
     throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
@@ -119,12 +128,8 @@ export const getDataTypeById: ImpureGraphFunction<
  */
 export const updateDataType: ImpureGraphFunction<
   {
-    dataTypeId: VersionedUri;
-    // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-    //  https://github.com/microsoft/TypeScript/issues/50638
-    //  this is needed for as long as DataType extends Record
-    schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
-      Record<string, any>;
+    dataTypeId: VersionedUrl;
+    schema: ConstructDataTypeParams;
     actorId: AccountId;
   },
   Promise<DataTypeWithMetadata>
@@ -134,16 +139,22 @@ export const updateDataType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.updateDataType({
     actorId,
     typeToUpdate: dataTypeId,
-    schema,
+    schema: {
+      $schema: DATA_TYPE_META_SCHEMA,
+      kind: "dataType",
+      ...schema,
+    },
   });
 
-  const { editionId } = metadata;
+  const { recordId } = metadata;
 
   return {
     schema: {
+      $schema: DATA_TYPE_META_SCHEMA,
+      kind: "dataType",
       ...schema,
-      $id: versionedUriFromComponents(editionId.baseId, editionId.version),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata,
+    metadata: metadata as OntologyElementMetadata,
   };
 };

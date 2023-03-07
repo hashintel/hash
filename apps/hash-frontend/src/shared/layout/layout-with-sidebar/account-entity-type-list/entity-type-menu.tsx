@@ -1,12 +1,12 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
+import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
   faAdd,
   faLink,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
-import { bindMenu, PopupState } from "material-ui-popup-state/core";
+import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import pluralize from "pluralize";
 import { FunctionComponent, useState } from "react";
 
@@ -14,10 +14,10 @@ import { useFrozenValue } from "../../../frozen";
 import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   popupState: PopupState;
   title: string;
-  uri: BaseUri;
+  url: BaseUrl;
 };
 
 const EntityTypeMenuItem = ({
@@ -55,7 +55,7 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
   entityTypeId,
   popupState,
   title,
-  uri,
+  url,
 }) => {
   const [copied, setCopied] = useState(false);
   const copiedFrozen = useFrozenValue(copied, !popupState.isOpen);
@@ -73,7 +73,7 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
         icon={faLink}
         popupState={popupState}
         onClick={() => {
-          void navigator.clipboard.writeText(uri);
+          void navigator.clipboard.writeText(url);
           setCopied(true);
           setTimeout(() => {
             setCopied(false);

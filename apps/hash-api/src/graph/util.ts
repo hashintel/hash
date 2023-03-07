@@ -1,23 +1,25 @@
 import {
   Array,
   DataTypeReference,
+  ENTITY_TYPE_META_SCHEMA,
   EntityType,
   Object,
   OneOf,
+  PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   PrimitiveDataTypeKey,
   types,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
+  OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -88,12 +90,12 @@ export const RESTRICTED_SHORTNAMES = [
 ];
 
 export type PropertyTypeCreatorParams = {
-  propertyTypeId: VersionedUri;
+  propertyTypeId: VersionedUrl;
   title: string;
   description?: string;
   possibleValues: {
     primitiveDataType?: PrimitiveDataTypeKey;
-    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUri } };
+    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
     array?: boolean;
   }[];
 };
@@ -142,8 +144,9 @@ export const generateSystemPropertyTypeSchema = (
   );
 
   return {
-    $id: params.propertyTypeId,
+    $schema: PROPERTY_TYPE_META_SCHEMA,
     kind: "propertyType",
+    $id: params.propertyTypeId,
     title: params.title,
     description: params.description,
     oneOf: possibleValues as [PropertyValues, ...PropertyValues[]],
@@ -207,7 +210,7 @@ type linkDestinationConstraint =
   | "SELF_REFERENCE";
 
 export type EntityTypeCreatorParams = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   title: string;
   description?: string;
   properties?: {
@@ -238,7 +241,7 @@ export const generateSystemEntityTypeSchema = (
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyType.metadata.editionId.baseId]: array
+        [propertyType.metadata.recordId.baseUrl]: array
           ? {
               type: "array",
               items: { $ref: propertyType.schema.$id },
@@ -251,7 +254,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyType }) => propertyType.metadata.editionId.baseId);
+    .map(({ propertyType }) => propertyType.metadata.recordId.baseUrl);
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(
@@ -287,11 +290,12 @@ export const generateSystemEntityTypeSchema = (
     ) ?? undefined;
 
   return {
+    $schema: ENTITY_TYPE_META_SCHEMA,
+    kind: "entityType",
     $id: params.entityTypeId,
     title: params.title,
     description: params.description,
     type: "object",
-    kind: "entityType",
     properties,
     required: requiredProperties,
     links,
@@ -302,7 +306,7 @@ export type LinkEntityTypeCreatorParams = Omit<
   EntityTypeCreatorParams,
   "entityTypeId"
 > & {
-  linkEntityTypeId: VersionedUri;
+  linkEntityTypeId: VersionedUrl;
 };
 
 /**
@@ -315,7 +319,7 @@ export const generateSystemLinkEntityTypeSchema = (
     ...params,
     entityTypeId: params.linkEntityTypeId,
   }),
-  allOf: [{ $ref: linkEntityTypeUri }],
+  allOf: [{ $ref: linkEntityTypeUrl }],
 });
 
 /**

@@ -19,18 +19,18 @@ import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   Entity,
+  EntityRootType,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
+  OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -64,7 +64,6 @@ describe("Entity CRU", () => {
     textDataType = await createDataType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "dataType",
         title: "Text",
         type: "string",
       },
@@ -78,12 +77,11 @@ describe("Entity CRU", () => {
       createEntityType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "entityType",
           title: "Friends",
           description: "Friend of",
           type: "object",
           properties: {},
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
         },
         actorId: testUser.accountId,
       })
@@ -97,7 +95,6 @@ describe("Entity CRU", () => {
       createPropertyType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "propertyType",
           title: "Favorite Book",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
@@ -113,7 +110,6 @@ describe("Entity CRU", () => {
       createPropertyType(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         schema: {
-          kind: "propertyType",
           title: "Name",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
@@ -157,8 +153,8 @@ describe("Entity CRU", () => {
     createdEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Bob",
-        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
+        [namePropertyType.metadata.recordId.baseUrl]: "Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       entityTypeId: entityType.schema.$id,
       actorId: testUser.accountId,
@@ -167,14 +163,14 @@ describe("Entity CRU", () => {
 
   it("can read an entity", async () => {
     const fetchedEntity = await getLatestEntityById(graphContext, {
-      entityId: createdEntity.metadata.editionId.baseId,
+      entityId: createdEntity.metadata.recordId.entityId,
     });
 
-    expect(fetchedEntity.metadata.editionId.baseId).toEqual(
-      createdEntity.metadata.editionId.baseId,
+    expect(fetchedEntity.metadata.recordId.entityId).toEqual(
+      createdEntity.metadata.recordId.entityId,
     );
-    expect(fetchedEntity.metadata.editionId.recordId).toEqual(
-      createdEntity.metadata.editionId.recordId,
+    expect(fetchedEntity.metadata.recordId.editionId).toEqual(
+      createdEntity.metadata.recordId.editionId,
     );
   });
 
@@ -187,8 +183,8 @@ describe("Entity CRU", () => {
     updatedEntity = await updateEntity(graphContext, {
       entity: createdEntity,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Updated Bob",
-        [favoriteBookPropertyType.metadata.editionId.baseId]:
+        [namePropertyType.metadata.recordId.baseUrl]: "Updated Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]:
           "Even more text than before",
       },
       actorId: testUser2.accountId,
@@ -200,54 +196,54 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest entities", async () => {
-    const allEntitys = await graphApi
+    const allEntities = await graphApi
       .getEntitiesByQuery({
         filter: {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        timeProjection: {
-          kernel: {
-            axis: "transaction",
+        temporalAxes: {
+          pinned: {
+            axis: "transactionTime",
             timestamp: null,
           },
-          image: {
-            axis: "decision",
-            start: null,
-            end: null,
+          variable: {
+            axis: "decisionTime",
+            interval: {
+              start: null,
+              end: null,
+            },
           },
         },
       })
       .then(({ data }) =>
-        getRootsAsEntities(
-          data as Subgraph<SubgraphRootTypes["entity"]>,
-        ).filter(
+        getRoots(data as Subgraph<EntityRootType>).filter(
           (entity) =>
-            extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,
         ),
       );
 
-    const newlyUpdated = allEntitys.find(
+    const newlyUpdated = allEntities.find(
       (ent) =>
-        ent.metadata.editionId.baseId ===
-        updatedEntity.metadata.editionId.baseId,
+        ent.metadata.recordId.entityId ===
+        updatedEntity.metadata.recordId.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions
     // of the same entity. This should only retrieve a single entity.
     // Other tests pollute the database, though, so we can't rely on this test's
     // results in isolation.
-    expect(allEntitys.length).toBeGreaterThanOrEqual(1);
+    expect(allEntities.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated?.metadata.editionId.recordId).toEqual(
-      updatedEntity.metadata.editionId.recordId,
+    expect(newlyUpdated?.metadata.recordId.editionId).toEqual(
+      updatedEntity.metadata.recordId.editionId,
     );
     expect(
-      newlyUpdated?.properties[namePropertyType.metadata.editionId.baseId],
+      newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUrl],
     ).toEqual(
-      updatedEntity.properties[namePropertyType.metadata.editionId.baseId],
+      updatedEntity.properties[namePropertyType.metadata.recordId.baseUrl],
     );
   });
 
@@ -257,8 +253,8 @@ describe("Entity CRU", () => {
       // First create a new entity given the following definition
       entityTypeId: entityType.schema.$id,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Alice",
-        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
+        [namePropertyType.metadata.recordId.baseUrl]: "Alice",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       linkedEntities: [
         {
@@ -267,8 +263,7 @@ describe("Entity CRU", () => {
           linkEntityTypeId: linkEntityTypeFriend.schema.$id,
           entity: {
             // The "new" entity is in fact just an existing entity, so only a link will be created.
-            existingEntityId: updatedEntity.metadata.editionId
-              .baseId as EntityId,
+            existingEntityId: updatedEntity.metadata.recordId.entityId,
           },
         },
       ],

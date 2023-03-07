@@ -1,10 +1,10 @@
 import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
-import { Button } from "@local/design-system";
+import { Button } from "@hashintel/design-system";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { AccountId, EntityId } from "@local/hash-isomorphic-utils/types";
+import { AccountId, EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
 import { useRouter } from "next/router";
@@ -149,7 +149,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
               >
                 {pageComments.map((comment) => (
                   <CommentThread
-                    key={comment.metadata.editionId.baseId}
+                    key={comment.metadata.recordId.entityId}
                     pageId={entityId}
                     comment={comment}
                   />

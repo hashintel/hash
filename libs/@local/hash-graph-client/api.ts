@@ -71,6 +71,12 @@ export interface AnyFilter {
   any: Array<Filter>;
 }
 /**
+ * @type ClosedTemporalBound
+ * @export
+ */
+export type ClosedTemporalBound = InclusiveBound;
+
+/**
  *
  * @export
  * @interface CreateDataTypeRequest
@@ -198,6 +204,12 @@ export interface DataType {
 
   /**
    *
+   * @type {string}
+   * @memberof DataType
+   */
+  $schema: DataTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof DataType
    */
@@ -228,6 +240,13 @@ export interface DataType {
   type: string;
 }
 
+export const DataTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaDataType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+} as const;
+
+export type DataTypeSchemaEnum =
+  (typeof DataTypeSchemaEnum)[keyof typeof DataTypeSchemaEnum];
 export const DataTypeKindEnum = {
   DataType: "dataType",
 } as const;
@@ -242,9 +261,9 @@ export type DataTypeKindEnum =
  */
 
 export const DataTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
@@ -282,7 +301,7 @@ export interface DataTypeReferenceUpdate {
   $ref: string;
 }
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface DataTypeStructuralQuery
  */
@@ -301,11 +320,38 @@ export interface DataTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof DataTypeStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
+/**
+ *
+ * @export
+ * @interface DataTypeVertex
+ */
+export interface DataTypeVertex {
+  /**
+   *
+   * @type {DataTypeWithMetadata}
+   * @memberof DataTypeVertex
+   */
+  inner: DataTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof DataTypeVertex
+   */
+  kind: DataTypeVertexKindEnum;
+}
+
+export const DataTypeVertexKindEnum = {
+  DataType: "dataType",
+} as const;
+
+export type DataTypeVertexKindEnum =
+  (typeof DataTypeVertexKindEnum)[keyof typeof DataTypeVertexKindEnum];
+
 /**
  *
  * @export
@@ -332,106 +378,11 @@ export interface DataTypeWithMetadata {
  */
 
 export const DecisionTime = {
-  Decision: "decision",
+  DecisionTime: "decisionTime",
 } as const;
 
 export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
 
-/**
- *
- * @export
- * @interface DecisionTimeImage
- */
-export interface DecisionTimeImage {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeImage
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImage
-   */
-  end: TimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImage
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface DecisionTimeImageAllOf
- */
-export interface DecisionTimeImageAllOf {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeImageAllOf
-   */
-  axis: DecisionTime;
-}
-/**
- *
- * @export
- * @interface DecisionTimeImageAllOf1
- */
-export interface DecisionTimeImageAllOf1 {
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImageAllOf1
-   */
-  end: TimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImageAllOf1
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface DecisionTimeKernel
- */
-export interface DecisionTimeKernel {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeKernel
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof DecisionTimeKernel
-   */
-  timestamp: string;
-}
-/**
- *
- * @export
- * @interface DecisionTimeProjection
- */
-export interface DecisionTimeProjection {
-  /**
-   *
-   * @type {DecisionTimeImage}
-   * @memberof DecisionTimeProjection
-   */
-  image: DecisionTimeImage;
-  /**
-   *
-   * @type {TransactionTimeKernel}
-   * @memberof DecisionTimeProjection
-   */
-  kernel: TransactionTimeKernel;
-}
 /**
  *
  * @export
@@ -464,8 +415,8 @@ export interface Edges {
  * @export
  */
 export type EdgesValueValueInner =
-  | KnowledgeGraphOutwardEdges
-  | OntologyOutwardEdges;
+  | KnowledgeGraphOutwardEdge
+  | OntologyOutwardEdge;
 
 /**
  * A record of an [`Entity`] that has been persisted in the datastore, with its associated metadata.
@@ -495,40 +446,21 @@ export interface Entity {
 /**
  *
  * @export
- * @interface EntityEditionId
+ * @interface EntityIdWithInterval
  */
-export interface EntityEditionId {
+export interface EntityIdWithInterval {
   /**
    *
    * @type {string}
-   * @memberof EntityEditionId
+   * @memberof EntityIdWithInterval
    */
-  baseId: string;
+  entityId: string;
   /**
    *
-   * @type {number}
-   * @memberof EntityEditionId
+   * @type {LeftClosedTemporalInterval}
+   * @memberof EntityIdWithInterval
    */
-  recordId: number;
-}
-/**
- *
- * @export
- * @interface EntityIdAndTimestamp
- */
-export interface EntityIdAndTimestamp {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityIdAndTimestamp
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityIdAndTimestamp
-   */
-  timestamp: string;
+  interval: LeftClosedTemporalInterval;
 }
 /**
  *
@@ -563,12 +495,6 @@ export interface EntityMetadata {
   archived: boolean;
   /**
    *
-   * @type {EntityEditionId}
-   * @memberof EntityMetadata
-   */
-  editionId: EntityEditionId;
-  /**
-   *
    * @type {string}
    * @memberof EntityMetadata
    */
@@ -581,10 +507,16 @@ export interface EntityMetadata {
   provenance: ProvenanceMetadata;
   /**
    *
-   * @type {EntityVersion}
+   * @type {EntityRecordId}
    * @memberof EntityMetadata
    */
-  version: EntityVersion;
+  recordId: EntityRecordId;
+  /**
+   *
+   * @type {EntityTemporalMetadata}
+   * @memberof EntityMetadata
+   */
+  temporalVersioning: EntityTemporalMetadata;
 }
 /**
  * A single token in an [`EntityQueryPath`].
@@ -594,7 +526,7 @@ export interface EntityMetadata {
 
 export const EntityQueryToken = {
   Uuid: "uuid",
-  RecordId: "recordId",
+  EditionId: "editionId",
   Archived: "archived",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
@@ -612,7 +544,26 @@ export type EntityQueryToken =
   (typeof EntityQueryToken)[keyof typeof EntityQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
+ * @export
+ * @interface EntityRecordId
+ */
+export interface EntityRecordId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  editionId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  entityId: string;
+}
+/**
+ *
  * @export
  * @interface EntityStructuralQuery
  */
@@ -631,10 +582,29 @@ export interface EntityStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof EntityStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
+}
+/**
+ *
+ * @export
+ * @interface EntityTemporalMetadata
+ */
+export interface EntityTemporalMetadata {
+  /**
+   *
+   * @type {LeftClosedTemporalInterval}
+   * @memberof EntityTemporalMetadata
+   */
+  decisionTime: LeftClosedTemporalInterval;
+  /**
+   *
+   * @type {LeftClosedTemporalInterval}
+   * @memberof EntityTemporalMetadata
+   */
+  transactionTime: LeftClosedTemporalInterval;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -642,6 +612,12 @@ export interface EntityStructuralQuery {
  * @interface EntityType
  */
 export interface EntityType {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityType
+   */
+  $schema: EntityTypeSchemaEnum;
   /**
    *
    * @type {object}
@@ -674,12 +650,6 @@ export interface EntityType {
   description?: string;
   /**
    *
-   * @type {object}
-   * @memberof EntityType
-   */
-  default?: object;
-  /**
-   *
    * @type {Array<object>}
    * @memberof EntityType
    */
@@ -702,14 +672,15 @@ export interface EntityType {
    * @memberof EntityType
    */
   links?: object;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof EntityType
-   */
-  requiredLinks?: Array<string>;
 }
 
+export const EntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type EntityTypeSchemaEnum =
+  (typeof EntityTypeSchemaEnum)[keyof typeof EntityTypeSchemaEnum];
 export const EntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
@@ -730,19 +701,17 @@ export type EntityTypeTypeEnum =
  */
 
 export const EntityTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
   Description: "description",
-  Default: "default",
   Examples: "examples",
   Properties: "properties",
   Required: "required",
   Links: "links",
-  RequiredLinks: "requiredLinks",
   InheritsFrom: "inheritsFrom",
 } as const;
 
@@ -750,7 +719,7 @@ export type EntityTypeQueryToken =
   (typeof EntityTypeQueryToken)[keyof typeof EntityTypeQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface EntityTypeStructuralQuery
  */
@@ -769,11 +738,38 @@ export interface EntityTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof EntityTypeStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
+/**
+ *
+ * @export
+ * @interface EntityTypeVertex
+ */
+export interface EntityTypeVertex {
+  /**
+   *
+   * @type {EntityTypeWithMetadata}
+   * @memberof EntityTypeVertex
+   */
+  inner: EntityTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityTypeVertex
+   */
+  kind: EntityTypeVertexKindEnum;
+}
+
+export const EntityTypeVertexKindEnum = {
+  EntityType: "entityType",
+} as const;
+
+export type EntityTypeVertexKindEnum =
+  (typeof EntityTypeVertexKindEnum)[keyof typeof EntityTypeVertexKindEnum];
+
 /**
  *
  * @export
@@ -796,22 +792,30 @@ export interface EntityTypeWithMetadata {
 /**
  *
  * @export
- * @interface EntityVersion
+ * @interface EntityVertex
  */
-export interface EntityVersion {
+export interface EntityVertex {
   /**
    *
-   * @type {VersionInterval}
-   * @memberof EntityVersion
+   * @type {Entity}
+   * @memberof EntityVertex
    */
-  decisionTime: VersionInterval;
+  inner: Entity;
   /**
    *
-   * @type {VersionInterval}
-   * @memberof EntityVersion
+   * @type {string}
+   * @memberof EntityVertex
    */
-  transactionTime: VersionInterval;
+  kind: EntityVertexKindEnum;
 }
+
+export const EntityVertexKindEnum = {
+  Entity: "entity",
+} as const;
+
+export type EntityVertexKindEnum =
+  (typeof EntityVertexKindEnum)[keyof typeof EntityVertexKindEnum];
+
 /**
  *
  * @export
@@ -829,7 +833,7 @@ export interface EntityVertexId {
    * @type {string}
    * @memberof EntityVertexId
    */
-  version: string;
+  revisionId: string;
 }
 /**
  *
@@ -843,6 +847,58 @@ export interface EqualFilter {
    * @memberof EqualFilter
    */
   equal: Array<FilterExpression>;
+}
+/**
+ *
+ * @export
+ * @interface ExclusiveBound
+ */
+export interface ExclusiveBound {
+  /**
+   *
+   * @type {string}
+   * @memberof ExclusiveBound
+   */
+  kind: ExclusiveBoundKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof ExclusiveBound
+   */
+  limit: string;
+}
+
+export const ExclusiveBoundKindEnum = {
+  Exclusive: "exclusive",
+} as const;
+
+export type ExclusiveBoundKindEnum =
+  (typeof ExclusiveBoundKindEnum)[keyof typeof ExclusiveBoundKindEnum];
+
+/**
+ *
+ * @export
+ * @interface ExternalOntologyElementMetadata
+ */
+export interface ExternalOntologyElementMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  fetchedAt: string;
+  /**
+   *
+   * @type {ProvenanceMetadata}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  * @type Filter
@@ -862,16 +918,10 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
- * @type GraphElementId
- * @export
- */
-export type GraphElementId = string;
-
-/**
  * @type GraphElementVertexId
  * @export
  */
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
@@ -931,6 +981,33 @@ export interface GraphResolveDepths {
 /**
  *
  * @export
+ * @interface InclusiveBound
+ */
+export interface InclusiveBound {
+  /**
+   *
+   * @type {string}
+   * @memberof InclusiveBound
+   */
+  kind: InclusiveBoundKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof InclusiveBound
+   */
+  limit: string;
+}
+
+export const InclusiveBoundKindEnum = {
+  Inclusive: "inclusive",
+} as const;
+
+export type InclusiveBoundKindEnum =
+  (typeof InclusiveBoundKindEnum)[keyof typeof InclusiveBoundKindEnum];
+
+/**
+ *
+ * @export
  * @enum {string}
  */
 
@@ -943,184 +1020,77 @@ export type KnowledgeGraphEdgeKind =
   (typeof KnowledgeGraphEdgeKind)[keyof typeof KnowledgeGraphEdgeKind];
 
 /**
- * @type KnowledgeGraphOutwardEdges
+ * @type KnowledgeGraphOutwardEdge
  * @export
  */
-export type KnowledgeGraphOutwardEdges =
-  | KnowledgeGraphOutwardEdgesOneOf
-  | KnowledgeGraphOutwardEdgesOneOf1;
+export type KnowledgeGraphOutwardEdge =
+  | KnowledgeGraphToKnowledgeGraphOutwardEdge
+  | KnowledgeGraphToOntologyOutwardEdge;
 
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOf
- */
-export interface KnowledgeGraphOutwardEdgesOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  kind: KnowledgeGraphOutwardEdgesOneOfKindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOfRightEndpoint}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  rightEndpoint: KnowledgeGraphOutwardEdgesOneOfRightEndpoint;
-}
-
-export const KnowledgeGraphOutwardEdgesOneOfKindEnum = {
-  LeftEntity: "HAS_LEFT_ENTITY",
-  RightEntity: "HAS_RIGHT_ENTITY",
-} as const;
-
-export type KnowledgeGraphOutwardEdgesOneOfKindEnum =
-  (typeof KnowledgeGraphOutwardEdgesOneOfKindEnum)[keyof typeof KnowledgeGraphOutwardEdgesOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOf1
- */
-export interface KnowledgeGraphOutwardEdgesOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  kind: KnowledgeGraphOutwardEdgesOneOf1KindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
-}
-
-export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
-  IsOfType: "IS_OF_TYPE",
-} as const;
-
-export type KnowledgeGraphOutwardEdgesOneOf1KindEnum =
-  (typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum)[keyof typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
- */
-export interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
-   */
-  version: number;
-}
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOfRightEndpoint
- */
-export interface KnowledgeGraphOutwardEdgesOneOfRightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfRightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfRightEndpoint
-   */
-  timestamp: string;
-}
 /**
  *
  * @export
  * @interface KnowledgeGraphRootedEdges
  */
 export interface KnowledgeGraphRootedEdges {
-  [key: string]: { [key: string]: Array<KnowledgeGraphOutwardEdges> };
+  [key: string]: { [key: string]: Array<KnowledgeGraphOutwardEdge> };
+}
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphToKnowledgeGraphOutwardEdge
+ */
+export interface KnowledgeGraphToKnowledgeGraphOutwardEdge {
+  /**
+   *
+   * @type {KnowledgeGraphEdgeKind}
+   * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
+   */
+  kind: KnowledgeGraphEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {EntityIdWithInterval}
+   * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
+   */
+  rightEndpoint: EntityIdWithInterval;
+}
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphToOntologyOutwardEdge
+ */
+export interface KnowledgeGraphToOntologyOutwardEdge {
+  /**
+   *
+   * @type {SharedEdgeKind}
+   * @memberof KnowledgeGraphToOntologyOutwardEdge
+   */
+  kind: SharedEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof KnowledgeGraphToOntologyOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {OntologyTypeVertexId}
+   * @memberof KnowledgeGraphToOntologyOutwardEdge
+   */
+  rightEndpoint: OntologyTypeVertexId;
 }
 /**
  * @type KnowledgeGraphVertex
  * @export
  */
-export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
+export type KnowledgeGraphVertex = EntityVertex;
 
-/**
- *
- * @export
- * @interface KnowledgeGraphVertexOneOf
- */
-export interface KnowledgeGraphVertexOneOf {
-  /**
-   *
-   * @type {KnowledgeGraphVertexOneOfInner}
-   * @memberof KnowledgeGraphVertexOneOf
-   */
-  inner: KnowledgeGraphVertexOneOfInner;
-  /**
-   *
-   * @type {object}
-   * @memberof KnowledgeGraphVertexOneOf
-   */
-  kind: KnowledgeGraphVertexOneOfKindEnum;
-}
-
-export const KnowledgeGraphVertexOneOfKindEnum = {
-  Entity: "entity",
-} as const;
-
-export type KnowledgeGraphVertexOneOfKindEnum =
-  (typeof KnowledgeGraphVertexOneOfKindEnum)[keyof typeof KnowledgeGraphVertexOneOfKindEnum];
-
-/**
- * A record of an [`Entity`] that has been persisted in the datastore, with its associated metadata.
- * @export
- * @interface KnowledgeGraphVertexOneOfInner
- */
-export interface KnowledgeGraphVertexOneOfInner {
-  /**
-   *
-   * @type {LinkData}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  linkData?: LinkData;
-  /**
-   *
-   * @type {EntityMetadata}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  metadata: EntityMetadata;
-  /**
-   *
-   * @type {object}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  properties: object;
-}
 /**
  *
  * @export
@@ -1129,6 +1099,31 @@ export interface KnowledgeGraphVertexOneOfInner {
 export interface KnowledgeGraphVertices {
   [key: string]: { [key: string]: KnowledgeGraphVertex };
 }
+/**
+ *
+ * @export
+ * @interface LeftClosedTemporalInterval
+ */
+export interface LeftClosedTemporalInterval {
+  /**
+   *
+   * @type {OpenTemporalBound}
+   * @memberof LeftClosedTemporalInterval
+   */
+  end: OpenTemporalBound;
+  /**
+   *
+   * @type {ClosedTemporalBound}
+   * @memberof LeftClosedTemporalInterval
+   */
+  start: ClosedTemporalBound;
+}
+/**
+ * @type LimitedTemporalBound
+ * @export
+ */
+export type LimitedTemporalBound = ExclusiveBound | InclusiveBound;
+
 /**
  * The associated information for \'Link\' entities
  * @export
@@ -1223,301 +1218,126 @@ export type OntologyEdgeKind =
   (typeof OntologyEdgeKind)[keyof typeof OntologyEdgeKind];
 
 /**
- *
- * @export
- * @interface OntologyElementMetadata
- */
-export interface OntologyElementMetadata {
-  /**
-   *
-   * @type {OntologyTypeEditionId}
-   * @memberof OntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyElementMetadata
-   */
-  ownedById: string;
-  /**
-   *
-   * @type {ProvenanceMetadata}
-   * @memberof OntologyElementMetadata
-   */
-  provenance: ProvenanceMetadata;
-}
-/**
- * @type OntologyOutwardEdges
+ * @type OntologyElementMetadata
  * @export
  */
-export type OntologyOutwardEdges =
-  | OntologyOutwardEdgesOneOf
-  | OntologyOutwardEdgesOneOf1;
+export type OntologyElementMetadata =
+  | ExternalOntologyElementMetadata
+  | OwnedOntologyElementMetadata;
 
 /**
- *
+ * @type OntologyOutwardEdge
  * @export
- * @interface OntologyOutwardEdgesOneOf
  */
-export interface OntologyOutwardEdgesOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  kind: OntologyOutwardEdgesOneOfKindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
-}
+export type OntologyOutwardEdge =
+  | OntologyToKnowledgeGraphOutwardEdge
+  | OntologyToOntologyOutwardEdge;
 
-export const OntologyOutwardEdgesOneOfKindEnum = {
-  InheritsFrom: "INHERITS_FROM",
-  ConstrainsValuesOn: "CONSTRAINS_VALUES_ON",
-  ConstrainsPropertiesOn: "CONSTRAINS_PROPERTIES_ON",
-  ConstrainsLinksOn: "CONSTRAINS_LINKS_ON",
-  ConstrainsLinkDestinationsOn: "CONSTRAINS_LINK_DESTINATIONS_ON",
-} as const;
-
-export type OntologyOutwardEdgesOneOfKindEnum =
-  (typeof OntologyOutwardEdgesOneOfKindEnum)[keyof typeof OntologyOutwardEdgesOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface OntologyOutwardEdgesOneOf1
- */
-export interface OntologyOutwardEdgesOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  kind: OntologyOutwardEdgesOneOf1KindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {OntologyOutwardEdgesOneOf1RightEndpoint}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  rightEndpoint: OntologyOutwardEdgesOneOf1RightEndpoint;
-}
-
-export const OntologyOutwardEdgesOneOf1KindEnum = {
-  IsOfType: "IS_OF_TYPE",
-} as const;
-
-export type OntologyOutwardEdgesOneOf1KindEnum =
-  (typeof OntologyOutwardEdgesOneOf1KindEnum)[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface OntologyOutwardEdgesOneOf1RightEndpoint
- */
-export interface OntologyOutwardEdgesOneOf1RightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
-   */
-  version: string;
-}
 /**
  *
  * @export
  * @interface OntologyRootedEdges
  */
 export interface OntologyRootedEdges {
-  [key: string]: { [key: string]: Array<OntologyOutwardEdges> };
+  [key: string]: { [key: string]: Array<OntologyOutwardEdge> };
 }
 /**
  *
  * @export
- * @interface OntologyTypeEditionId
+ * @interface OntologyToKnowledgeGraphOutwardEdge
  */
-export interface OntologyTypeEditionId {
+export interface OntologyToKnowledgeGraphOutwardEdge {
+  /**
+   *
+   * @type {SharedEdgeKind}
+   * @memberof OntologyToKnowledgeGraphOutwardEdge
+   */
+  kind: SharedEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof OntologyToKnowledgeGraphOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {EntityIdWithInterval}
+   * @memberof OntologyToKnowledgeGraphOutwardEdge
+   */
+  rightEndpoint: EntityIdWithInterval;
+}
+/**
+ *
+ * @export
+ * @interface OntologyToOntologyOutwardEdge
+ */
+export interface OntologyToOntologyOutwardEdge {
+  /**
+   *
+   * @type {OntologyEdgeKind}
+   * @memberof OntologyToOntologyOutwardEdge
+   */
+  kind: OntologyEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof OntologyToOntologyOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {OntologyTypeVertexId}
+   * @memberof OntologyToOntologyOutwardEdge
+   */
+  rightEndpoint: OntologyTypeVertexId;
+}
+/**
+ *
+ * @export
+ * @interface OntologyTypeRecordId
+ */
+export interface OntologyTypeRecordId {
   /**
    *
    * @type {string}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeRecordId
+   */
+  baseUrl: string;
+  /**
+   *
+   * @type {number}
+   * @memberof OntologyTypeRecordId
+   */
+  version: number;
+}
+/**
+ *
+ * @export
+ * @interface OntologyTypeVertexId
+ */
+export interface OntologyTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyTypeVertexId
    */
   baseId: string;
   /**
    *
    * @type {number}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeVertexId
    */
-  version: number;
+  revisionId: number;
 }
 /**
  * @type OntologyVertex
  * @export
  */
 export type OntologyVertex =
-  | OntologyVertexOneOf
-  | OntologyVertexOneOf1
-  | OntologyVertexOneOf2;
+  | DataTypeVertex
+  | EntityTypeVertex
+  | PropertyTypeVertex;
 
-/**
- *
- * @export
- * @interface OntologyVertexOneOf
- */
-export interface OntologyVertexOneOf {
-  /**
-   *
-   * @type {OntologyVertexOneOfInner}
-   * @memberof OntologyVertexOneOf
-   */
-  inner: OntologyVertexOneOfInner;
-  /**
-   *
-   * @type {object}
-   * @memberof OntologyVertexOneOf
-   */
-  kind: OntologyVertexOneOfKindEnum;
-}
-
-export const OntologyVertexOneOfKindEnum = {
-  DataType: "dataType",
-} as const;
-
-export type OntologyVertexOneOfKindEnum =
-  (typeof OntologyVertexOneOfKindEnum)[keyof typeof OntologyVertexOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf1
- */
-export interface OntologyVertexOneOf1 {
-  /**
-   *
-   * @type {OntologyVertexOneOf1Inner}
-   * @memberof OntologyVertexOneOf1
-   */
-  inner: OntologyVertexOneOf1Inner;
-  /**
-   *
-   * @type {object}
-   * @memberof OntologyVertexOneOf1
-   */
-  kind: OntologyVertexOneOf1KindEnum;
-}
-
-export const OntologyVertexOneOf1KindEnum = {
-  PropertyType: "propertyType",
-} as const;
-
-export type OntologyVertexOneOf1KindEnum =
-  (typeof OntologyVertexOneOf1KindEnum)[keyof typeof OntologyVertexOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf1Inner
- */
-export interface OntologyVertexOneOf1Inner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOf1Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {PropertyType}
-   * @memberof OntologyVertexOneOf1Inner
-   */
-  schema: PropertyType;
-}
-/**
- *
- * @export
- * @interface OntologyVertexOneOf2
- */
-export interface OntologyVertexOneOf2 {
-  /**
-   *
-   * @type {OntologyVertexOneOf2Inner}
-   * @memberof OntologyVertexOneOf2
-   */
-  inner: OntologyVertexOneOf2Inner;
-  /**
-   *
-   * @type {object}
-   * @memberof OntologyVertexOneOf2
-   */
-  kind: OntologyVertexOneOf2KindEnum;
-}
-
-export const OntologyVertexOneOf2KindEnum = {
-  EntityType: "entityType",
-} as const;
-
-export type OntologyVertexOneOf2KindEnum =
-  (typeof OntologyVertexOneOf2KindEnum)[keyof typeof OntologyVertexOneOf2KindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf2Inner
- */
-export interface OntologyVertexOneOf2Inner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOf2Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {EntityType}
-   * @memberof OntologyVertexOneOf2Inner
-   */
-  schema: EntityType;
-}
-/**
- *
- * @export
- * @interface OntologyVertexOneOfInner
- */
-export interface OntologyVertexOneOfInner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOfInner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {DataType}
-   * @memberof OntologyVertexOneOfInner
-   */
-  schema: DataType;
-}
 /**
  *
  * @export
@@ -1526,6 +1346,12 @@ export interface OntologyVertexOneOfInner {
 export interface OntologyVertices {
   [key: string]: { [key: string]: OntologyVertex };
 }
+/**
+ * @type OpenTemporalBound
+ * @export
+ */
+export type OpenTemporalBound = ExclusiveBound | UnboundedBound;
+
 /**
  *
  * @export
@@ -1538,6 +1364,31 @@ export interface OutgoingEdgeResolveDepth {
    * @memberof OutgoingEdgeResolveDepth
    */
   outgoing: number;
+}
+/**
+ *
+ * @export
+ * @interface OwnedOntologyElementMetadata
+ */
+export interface OwnedOntologyElementMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  ownedById: string;
+  /**
+   *
+   * @type {ProvenanceMetadata}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  *
@@ -1704,11 +1555,38 @@ export type PropertyObjectValueTypeEnum =
   (typeof PropertyObjectValueTypeEnum)[keyof typeof PropertyObjectValueTypeEnum];
 
 /**
+ *
+ * @export
+ * @interface PropertyObjectValue1
+ */
+export interface PropertyObjectValue1 {
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyObjectValue1
+   */
+  type: PropertyObjectValue1TypeEnum;
+}
+
+export const PropertyObjectValue1TypeEnum = {
+  Object: "object",
+} as const;
+
+export type PropertyObjectValue1TypeEnum =
+  (typeof PropertyObjectValue1TypeEnum)[keyof typeof PropertyObjectValue1TypeEnum];
+
+/**
  * Specifies the structure of a Property Type
  * @export
  * @interface PropertyType
  */
 export interface PropertyType {
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyType
+   */
+  $schema: PropertyTypeSchemaEnum;
   /**
    *
    * @type {object}
@@ -1741,6 +1619,13 @@ export interface PropertyType {
   oneOf: Array<PropertyValues>;
 }
 
+export const PropertyTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaPropertyType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+} as const;
+
+export type PropertyTypeSchemaEnum =
+  (typeof PropertyTypeSchemaEnum)[keyof typeof PropertyTypeSchemaEnum];
 export const PropertyTypeKindEnum = {
   PropertyType: "propertyType",
 } as const;
@@ -1755,9 +1640,9 @@ export type PropertyTypeKindEnum =
  */
 
 export const PropertyTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
@@ -1770,7 +1655,7 @@ export type PropertyTypeQueryToken =
   (typeof PropertyTypeQueryToken)[keyof typeof PropertyTypeQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface PropertyTypeStructuralQuery
  */
@@ -1789,11 +1674,38 @@ export interface PropertyTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
+/**
+ *
+ * @export
+ * @interface PropertyTypeVertex
+ */
+export interface PropertyTypeVertex {
+  /**
+   *
+   * @type {PropertyTypeWithMetadata}
+   * @memberof PropertyTypeVertex
+   */
+  inner: PropertyTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyTypeVertex
+   */
+  kind: PropertyTypeVertexKindEnum;
+}
+
+export const PropertyTypeVertexKindEnum = {
+  PropertyType: "propertyType",
+} as const;
+
+export type PropertyTypeVertexKindEnum =
+  (typeof PropertyTypeVertexKindEnum)[keyof typeof PropertyTypeVertexKindEnum];
+
 /**
  *
  * @export
@@ -1829,7 +1741,7 @@ export type PropertyValues =
 export type PropertyValuesUpdate =
   | DataTypeReferenceUpdate
   | PropertyArrayValueUpdate
-  | PropertyObjectValue;
+  | PropertyObjectValue1;
 
 /**
  *
@@ -1843,6 +1755,271 @@ export interface ProvenanceMetadata {
    * @memberof ProvenanceMetadata
    */
   updatedById: string;
+}
+/**
+ * @type QueryTemporalAxes
+ * Defines the two possible combinations of pinned/variable temporal axes that are used in responses to queries that return [`Subgraph`]s.  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Subgraph`]: crate::subgraph::Subgraph [`Interval`]: crate::interval::Interval
+ * @export
+ */
+export type QueryTemporalAxes =
+  | QueryTemporalAxesDecisionTime
+  | QueryTemporalAxesTransactionTime;
+
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTime
+ */
+export interface QueryTemporalAxesDecisionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesDecisionTimePinned}
+   * @memberof QueryTemporalAxesDecisionTime
+   */
+  pinned: QueryTemporalAxesDecisionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesDecisionTimeVariable}
+   * @memberof QueryTemporalAxesDecisionTime
+   */
+  variable: QueryTemporalAxesDecisionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTimePinned
+ */
+export interface QueryTemporalAxesDecisionTimePinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesDecisionTimePinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesDecisionTimePinned
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTimeVariable
+ */
+export interface QueryTemporalAxesDecisionTimeVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesDecisionTimeVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {RightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesDecisionTimeVariable
+   */
+  interval: RightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTime
+ */
+export interface QueryTemporalAxesTransactionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesTransactionTimePinned}
+   * @memberof QueryTemporalAxesTransactionTime
+   */
+  pinned: QueryTemporalAxesTransactionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesTransactionTimeVariable}
+   * @memberof QueryTemporalAxesTransactionTime
+   */
+  variable: QueryTemporalAxesTransactionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTimePinned
+ */
+export interface QueryTemporalAxesTransactionTimePinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesTransactionTimePinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesTransactionTimePinned
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTimeVariable
+ */
+export interface QueryTemporalAxesTransactionTimeVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesTransactionTimeVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {RightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesTransactionTimeVariable
+   */
+  interval: RightBoundedTemporalInterval;
+}
+/**
+ * @type QueryTemporalAxesUnresolved
+ * Defines the two possible combinations of pinned/variable temporal axes that are used in queries that return [`Subgraph`]s.  The [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided bounds an inclusive bound at the timestamp at point of resolving is assumed.  [`Subgraph`]: crate::subgraph::Subgraph
+ * @export
+ */
+export type QueryTemporalAxesUnresolved =
+  | QueryTemporalAxesUnresolvedDecisionTime
+  | QueryTemporalAxesUnresolvedTransactionTime;
+
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTime
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedDecisionTimePinned}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTime
+   */
+  pinned: QueryTemporalAxesUnresolvedDecisionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedDecisionTimeVariable}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTime
+   */
+  variable: QueryTemporalAxesUnresolvedDecisionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTimePinned
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTimePinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimePinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimePinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTimeVariable
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTimeVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimeVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimeVariable
+   */
+  interval: UnresolvedRightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTime
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedTransactionTimePinned}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTime
+   */
+  pinned: QueryTemporalAxesUnresolvedTransactionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedTransactionTimeVariable}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTime
+   */
+  variable: QueryTemporalAxesUnresolvedTransactionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTimePinned
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTimePinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimePinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimePinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTimeVariable
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTimeVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimeVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimeVariable
+   */
+  interval: UnresolvedRightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface RightBoundedTemporalInterval
+ */
+export interface RightBoundedTemporalInterval {
+  /**
+   *
+   * @type {LimitedTemporalBound}
+   * @memberof RightBoundedTemporalInterval
+   */
+  end: LimitedTemporalBound;
+  /**
+   *
+   * @type {TemporalBound}
+   * @memberof RightBoundedTemporalInterval
+   */
+  start: TemporalBound;
 }
 /**
  *
@@ -1889,22 +2066,16 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
-   * @type {TimeProjection}
-   * @memberof Subgraph
-   */
-  resolvedTimeProjection: TimeProjection;
-  /**
-   *
    * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
   roots: Array<GraphElementVertexId>;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {SubgraphTemporalAxes}
    * @memberof Subgraph
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: SubgraphTemporalAxes;
   /**
    *
    * @type {Vertices}
@@ -1913,67 +2084,29 @@ export interface Subgraph {
   vertices: Vertices;
 }
 /**
- * @type TimeIntervalBound
- * @export
- */
-export type TimeIntervalBound =
-  | TimeIntervalBoundOneOf
-  | TimeIntervalBoundOneOf1;
-
-/**
  *
  * @export
- * @interface TimeIntervalBoundOneOf
+ * @interface SubgraphTemporalAxes
  */
-export interface TimeIntervalBoundOneOf {
+export interface SubgraphTemporalAxes {
   /**
    *
-   * @type {object}
-   * @memberof TimeIntervalBoundOneOf
+   * @type {QueryTemporalAxesUnresolved}
+   * @memberof SubgraphTemporalAxes
    */
-  bound: TimeIntervalBoundOneOfBoundEnum;
+  initial: QueryTemporalAxesUnresolved;
+  /**
+   *
+   * @type {QueryTemporalAxes}
+   * @memberof SubgraphTemporalAxes
+   */
+  resolved: QueryTemporalAxes;
 }
-
-export const TimeIntervalBoundOneOfBoundEnum = {
-  Unbounded: "unbounded",
-} as const;
-
-export type TimeIntervalBoundOneOfBoundEnum =
-  (typeof TimeIntervalBoundOneOfBoundEnum)[keyof typeof TimeIntervalBoundOneOfBoundEnum];
-
 /**
- *
- * @export
- * @interface TimeIntervalBoundOneOf1
- */
-export interface TimeIntervalBoundOneOf1 {
-  /**
-   *
-   * @type {object}
-   * @memberof TimeIntervalBoundOneOf1
-   */
-  bound: TimeIntervalBoundOneOf1BoundEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf1
-   */
-  timestamp: string;
-}
-
-export const TimeIntervalBoundOneOf1BoundEnum = {
-  Included: "included",
-  Excluded: "excluded",
-} as const;
-
-export type TimeIntervalBoundOneOf1BoundEnum =
-  (typeof TimeIntervalBoundOneOf1BoundEnum)[keyof typeof TimeIntervalBoundOneOf1BoundEnum];
-
-/**
- * @type TimeProjection
+ * @type TemporalBound
  * @export
  */
-export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
+export type TemporalBound = ExclusiveBound | InclusiveBound | UnboundedBound;
 
 /**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
@@ -1982,7 +2115,7 @@ export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
  */
 
 export const TransactionTime = {
-  Transaction: "transaction",
+  TransactionTime: "transactionTime",
 } as const;
 
 export type TransactionTime =
@@ -1991,232 +2124,55 @@ export type TransactionTime =
 /**
  *
  * @export
- * @interface TransactionTimeImage
+ * @interface UnboundedBound
  */
-export interface TransactionTimeImage {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeImage
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof TransactionTimeImage
-   */
-  end: TimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof TransactionTimeImage
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface TransactionTimeImageAllOf
- */
-export interface TransactionTimeImageAllOf {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeImageAllOf
-   */
-  axis: TransactionTime;
-}
-/**
- *
- * @export
- * @interface TransactionTimeKernel
- */
-export interface TransactionTimeKernel {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeKernel
-   */
-  axis: TransactionTime;
+export interface UnboundedBound {
   /**
    *
    * @type {string}
-   * @memberof TransactionTimeKernel
+   * @memberof UnboundedBound
    */
-  timestamp: string;
+  kind: UnboundedBoundKindEnum;
 }
-/**
- *
- * @export
- * @interface TransactionTimeProjection
- */
-export interface TransactionTimeProjection {
-  /**
-   *
-   * @type {TransactionTimeImage}
-   * @memberof TransactionTimeProjection
-   */
-  image: TransactionTimeImage;
-  /**
-   *
-   * @type {DecisionTimeKernel}
-   * @memberof TransactionTimeProjection
-   */
-  kernel: DecisionTimeKernel;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeImage
- */
-export interface UnresolvedDecisionTimeImage {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  end: TimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  start: TimeIntervalBound | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeImageAllOf
- */
-export interface UnresolvedDecisionTimeImageAllOf {
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  end: TimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  start: TimeIntervalBound | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeKernel
- */
-export interface UnresolvedDecisionTimeKernel {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeKernel
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedDecisionTimeKernel
-   */
-  timestamp: string | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeProjection
- */
-export interface UnresolvedDecisionTimeProjection {
-  /**
-   *
-   * @type {UnresolvedDecisionTimeImage}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  image: UnresolvedDecisionTimeImage;
-  /**
-   *
-   * @type {UnresolvedTransactionTimeKernel}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  kernel: UnresolvedTransactionTimeKernel;
-}
-/**
- * @type UnresolvedTimeProjection
- * @export
- */
-export type UnresolvedTimeProjection =
-  | UnresolvedDecisionTimeProjection
-  | UnresolvedTransactionTimeProjection;
+
+export const UnboundedBoundKindEnum = {
+  Unbounded: "unbounded",
+} as const;
+
+export type UnboundedBoundKindEnum =
+  (typeof UnboundedBoundKindEnum)[keyof typeof UnboundedBoundKindEnum];
 
 /**
  *
  * @export
- * @interface UnresolvedTransactionTimeImage
+ * @interface UnresolvedRightBoundedTemporalInterval
  */
-export interface UnresolvedTransactionTimeImage {
+export interface UnresolvedRightBoundedTemporalInterval {
   /**
    *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeImage
+   * @type {UnresolvedRightBoundedTemporalIntervalEnd}
+   * @memberof UnresolvedRightBoundedTemporalInterval
    */
-  axis: TransactionTime;
+  end: UnresolvedRightBoundedTemporalIntervalEnd | null;
   /**
    *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedTransactionTimeImage
+   * @type {UnresolvedRightBoundedTemporalIntervalStart}
+   * @memberof UnresolvedRightBoundedTemporalInterval
    */
-  end: TimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedTransactionTimeImage
-   */
-  start: TimeIntervalBound | null;
+  start: UnresolvedRightBoundedTemporalIntervalStart | null;
 }
 /**
- *
+ * @type UnresolvedRightBoundedTemporalIntervalEnd
  * @export
- * @interface UnresolvedTransactionTimeKernel
  */
-export interface UnresolvedTransactionTimeKernel {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeKernel
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedTransactionTimeKernel
-   */
-  timestamp: string | null;
-}
+export type UnresolvedRightBoundedTemporalIntervalEnd = LimitedTemporalBound;
+
 /**
- *
+ * @type UnresolvedRightBoundedTemporalIntervalStart
  * @export
- * @interface UnresolvedTransactionTimeProjection
  */
-export interface UnresolvedTransactionTimeProjection {
-  /**
-   *
-   * @type {UnresolvedTransactionTimeImage}
-   * @memberof UnresolvedTransactionTimeProjection
-   */
-  image: UnresolvedTransactionTimeImage;
-  /**
-   *
-   * @type {UnresolvedDecisionTimeKernel}
-   * @memberof UnresolvedTransactionTimeProjection
-   */
-  kernel: UnresolvedDecisionTimeKernel;
-}
+export type UnresolvedRightBoundedTemporalIntervalStart = TemporalBound;
+
 /**
  * The contents of a Data Type update request
  * @export
@@ -2225,6 +2181,12 @@ export interface UnresolvedTransactionTimeProjection {
 export interface UpdateDataType {
   [key: string]: any;
 
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  $schema: UpdateDataTypeSchemaEnum;
   /**
    *
    * @type {object}
@@ -2251,6 +2213,13 @@ export interface UpdateDataType {
   type: string;
 }
 
+export const UpdateDataTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaDataType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+} as const;
+
+export type UpdateDataTypeSchemaEnum =
+  (typeof UpdateDataTypeSchemaEnum)[keyof typeof UpdateDataTypeSchemaEnum];
 export const UpdateDataTypeKindEnum = {
   DataType: "dataType",
 } as const;
@@ -2377,6 +2346,12 @@ export interface UpdateEntityRequestAllOf {
 export interface UpdateEntityType {
   /**
    *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  $schema: UpdateEntityTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdateEntityType
    */
@@ -2401,12 +2376,6 @@ export interface UpdateEntityType {
   description?: string;
   /**
    *
-   * @type {object}
-   * @memberof UpdateEntityType
-   */
-  default?: object;
-  /**
-   *
    * @type {Array<object>}
    * @memberof UpdateEntityType
    */
@@ -2429,14 +2398,15 @@ export interface UpdateEntityType {
    * @memberof UpdateEntityType
    */
   links?: object;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof UpdateEntityType
-   */
-  requiredLinks?: Array<string>;
 }
 
+export const UpdateEntityTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaEntityType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+} as const;
+
+export type UpdateEntityTypeSchemaEnum =
+  (typeof UpdateEntityTypeSchemaEnum)[keyof typeof UpdateEntityTypeSchemaEnum];
 export const UpdateEntityTypeKindEnum = {
   EntityType: "entityType",
 } as const;
@@ -2483,6 +2453,12 @@ export interface UpdateEntityTypeRequest {
 export interface UpdatePropertyType {
   /**
    *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  $schema: UpdatePropertyTypeSchemaEnum;
+  /**
+   *
    * @type {object}
    * @memberof UpdatePropertyType
    */
@@ -2507,6 +2483,13 @@ export interface UpdatePropertyType {
   oneOf: Array<PropertyValuesUpdate>;
 }
 
+export const UpdatePropertyTypeSchemaEnum = {
+  HttpsBlockprotocolOrgTypesModulesGraph03SchemaPropertyType:
+    "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+} as const;
+
+export type UpdatePropertyTypeSchemaEnum =
+  (typeof UpdatePropertyTypeSchemaEnum)[keyof typeof UpdatePropertyTypeSchemaEnum];
 export const UpdatePropertyTypeKindEnum = {
   PropertyType: "propertyType",
 } as const;
@@ -2538,25 +2521,6 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
-}
-/**
- *
- * @export
- * @interface VersionInterval
- */
-export interface VersionInterval {
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  end: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  start: string;
 }
 /**
  * @type Vertex

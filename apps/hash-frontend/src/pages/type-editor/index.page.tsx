@@ -1,12 +1,12 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { AccountId, OwnedById } from "@local/hash-subgraph";
 import { Box, Container } from "@mui/material";
 import { ChangeEvent, useCallback, useState } from "react";
 
 import {
-  AggregateDataTypesMessageCallback,
-  AggregateEntityTypesMessageCallback,
-  AggregatePropertyTypesMessageCallback,
+  QueryDataTypesMessageCallback,
+  QueryEntityTypesMessageCallback,
+  QueryPropertyTypesMessageCallback,
 } from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
 import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui";
@@ -27,9 +27,9 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
   const getType = useCallback(
     (
         fn:
-          | AggregateDataTypesMessageCallback
-          | AggregatePropertyTypesMessageCallback
-          | AggregateEntityTypesMessageCallback,
+          | QueryDataTypesMessageCallback
+          | QueryPropertyTypesMessageCallback
+          | QueryEntityTypesMessageCallback,
       ) =>
       (_: any) => {
         void (async () => {
@@ -45,7 +45,6 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
       .createPropertyType({
         data: {
           propertyType: {
-            kind: "propertyType",
             title: "Name",
             oneOf: [{ $ref: types.dataType.text.dataTypeId }],
           },
@@ -96,18 +95,15 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
           marginBottom: "2em",
         }}
       >
-        <Button size="medium" onClick={getType(functions.aggregateDataTypes)}>
+        <Button size="medium" onClick={getType(functions.queryDataTypes)}>
           Get data types
         </Button>
 
-        <Button
-          size="medium"
-          onClick={getType(functions.aggregatePropertyTypes)}
-        >
+        <Button size="medium" onClick={getType(functions.queryPropertyTypes)}>
           Get property types
         </Button>
 
-        <Button size="medium" onClick={getType(functions.aggregateEntityTypes)}>
+        <Button size="medium" onClick={getType(functions.queryEntityTypes)}>
           Get entity types
         </Button>
 

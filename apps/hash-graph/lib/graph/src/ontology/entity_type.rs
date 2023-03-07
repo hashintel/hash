@@ -16,20 +16,20 @@ use crate::{
 /// [`EntityType`]: type_system::EntityType
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath<'p> {
-    /// The [`BaseUri`] of the [`EntityType`].
+    /// The [`BaseUrl`] of the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["baseUri"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::BaseUri);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::BaseUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    BaseUri,
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    BaseUrl,
     /// The version of the [`EntityType`].
     ///
     /// ```rust
@@ -62,20 +62,20 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType`]: type_system::EntityType
     Version,
-    /// The [`VersionedUri`] of the [`EntityType`].
+    /// The [`VersionedUrl`] of the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUri"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::VersionedUri);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::VersionedUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
-    VersionedUri,
+    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    VersionedUrl,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
@@ -132,19 +132,6 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::description()`]: type_system::EntityType::description
     Description,
-    /// Corresponds to [`EntityType::default()`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["default"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::Default);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType::default()`]: type_system::EntityType::default
-    Default,
     /// Corresponds to [`EntityType::examples()`].
     ///
     /// ```rust
@@ -169,10 +156,10 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
-    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUri"]))?;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
-    ///     EntityTypeQueryPath::Properties(PropertyTypeQueryPath::BaseUri)
+    ///     EntityTypeQueryPath::Properties(PropertyTypeQueryPath::BaseUrl)
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -206,10 +193,10 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUri"]))?;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
-    ///     EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::BaseUri))
+    ///     EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::BaseUrl))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -217,19 +204,6 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`EntityType`]: type_system::EntityType
     /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
     Links(Box<Self>),
-    /// Corresponds to [`EntityType::required_links()`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["requiredLinks"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::RequiredLinks);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType::required_links()`]: type_system::EntityType::required_links
-    RequiredLinks,
     /// Currently, does not correspond to any field of [`EntityType`].
     ///
     /// In the future, this will most likely correspond to something like
@@ -245,10 +219,10 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUri"]))?;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
-    ///     EntityTypeQueryPath::InheritsFrom(Box::new(EntityTypeQueryPath::BaseUri))
+    ///     EntityTypeQueryPath::InheritsFrom(Box::new(EntityTypeQueryPath::BaseUrl))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -257,26 +231,24 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
     InheritsFrom(Box<Self>),
     /// Only used internally and not available for deserialization.
-    VersionId,
+    OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata(Option<JsonPath<'p>>),
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
-    fn base_uri() -> Self {
-        Self::BaseUri
+    fn base_url() -> Self {
+        Self::BaseUrl
     }
 
-    fn versioned_uri() -> Self {
-        Self::VersionedUri
+    fn versioned_url() -> Self {
+        Self::VersionedUrl
     }
 
     fn version() -> Self {
         Self::Version
-    }
-
-    fn owned_by_id() -> Self {
-        Self::OwnedById
     }
 
     fn updated_by_id() -> Self {
@@ -286,20 +258,23 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
     fn schema() -> Self {
         Self::Schema(None)
     }
+
+    fn additional_metadata() -> Self {
+        Self::AdditionalMetadata(None)
+    }
 }
 
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) => ParameterType::Any,
-            Self::BaseUri => ParameterType::BaseUri,
-            Self::VersionedUri => ParameterType::VersionedUri,
-            Self::Version => ParameterType::UnsignedInteger,
-            Self::Title | Self::Description => ParameterType::Text,
-            Self::Default | Self::Examples | Self::Required | Self::RequiredLinks => {
+            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::Schema(_) | Self::AdditionalMetadata(_) | Self::Examples | Self::Required => {
                 ParameterType::Any
             }
+            Self::BaseUrl => ParameterType::BaseUrl,
+            Self::VersionedUrl => ParameterType::VersionedUrl,
+            Self::Version => ParameterType::OntologyTypeVersion,
+            Self::Title | Self::Description => ParameterType::Text,
             Self::Properties(path) => path.expected_type(),
             Self::Links(path) | Self::InheritsFrom(path) => path.expected_type(),
         }
@@ -309,23 +284,23 @@ impl QueryPath for EntityTypeQueryPath<'_> {
 impl fmt::Display for EntityTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VersionId => fmt.write_str("versionId"),
-            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::OntologyId => fmt.write_str("ontologyId"),
+            Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
-            Self::Default => fmt.write_str("default"),
             Self::Examples => fmt.write_str("examples"),
             Self::Properties(path) => write!(fmt, "properties.{path}"),
             Self::Required => fmt.write_str("required"),
             Self::Links(path) => write!(fmt, "links.{path}"),
-            Self::RequiredLinks => fmt.write_str("requiredLinks"),
             Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
+            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
+            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
     }
 }
@@ -334,19 +309,17 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
 #[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {
-    BaseUri,
+    BaseUrl,
     Version,
-    VersionedUri,
+    VersionedUrl,
     OwnedById,
     UpdatedById,
     Title,
     Description,
-    Default,
     Examples,
     Properties,
     Required,
     Links,
-    RequiredLinks,
     InheritsFrom,
     #[serde(skip)]
     Schema,
@@ -359,10 +332,9 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `updatedById`, `title`, `description`, \
-                                         `default`, `examples`, `properties`, `required`, \
-                                         `links`, `requiredLinks`, `inheritsFrom`";
+    pub const EXPECTING: &'static str =
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `updatedById`, `title`, \
+         `description`, `examples`, `properties`, `required`, `links`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -389,12 +361,11 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
             EntityTypeQueryToken::UpdatedById => EntityTypeQueryPath::UpdatedById,
-            EntityTypeQueryToken::BaseUri => EntityTypeQueryPath::BaseUri,
-            EntityTypeQueryToken::VersionedUri => EntityTypeQueryPath::VersionedUri,
+            EntityTypeQueryToken::BaseUrl => EntityTypeQueryPath::BaseUrl,
+            EntityTypeQueryToken::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,
             EntityTypeQueryToken::Title => EntityTypeQueryPath::Title,
             EntityTypeQueryToken::Description => EntityTypeQueryPath::Description,
-            EntityTypeQueryToken::Default => EntityTypeQueryPath::Default,
             EntityTypeQueryToken::Examples => EntityTypeQueryPath::Examples,
             EntityTypeQueryToken::Properties => {
                 seq.next_element::<Selector>()?
@@ -413,7 +384,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
 
                 EntityTypeQueryPath::Links(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
-            EntityTypeQueryToken::RequiredLinks => EntityTypeQueryPath::RequiredLinks,
             EntityTypeQueryToken::InheritsFrom => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
@@ -464,11 +434,11 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["baseUri"]), EntityTypeQueryPath::BaseUri);
+        assert_eq!(deserialize(["baseUrl"]), EntityTypeQueryPath::BaseUrl);
         assert_eq!(deserialize(["version"]), EntityTypeQueryPath::Version);
         assert_eq!(
-            deserialize(["versionedUri"]),
-            EntityTypeQueryPath::VersionedUri
+            deserialize(["versionedUrl"]),
+            EntityTypeQueryPath::VersionedUrl
         );
         assert_eq!(deserialize(["ownedById"]), EntityTypeQueryPath::OwnedById);
         assert_eq!(deserialize(["title"]), EntityTypeQueryPath::Title);
@@ -476,7 +446,6 @@ mod tests {
             deserialize(["description"]),
             EntityTypeQueryPath::Description
         );
-        assert_eq!(deserialize(["default"]), EntityTypeQueryPath::Default);
         assert_eq!(deserialize(["examples"]), EntityTypeQueryPath::Examples);
         assert_eq!(
             deserialize(["properties", "*", "version"]),
@@ -487,14 +456,10 @@ mod tests {
             deserialize(["links", "*", "version"]),
             EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::Version))
         );
-        assert_eq!(
-            deserialize(["requiredLinks"]),
-            EntityTypeQueryPath::RequiredLinks
-        );
 
         assert_eq!(
             EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("ontology_id"))
             )
             .expect_err(
                 "managed to convert entity type query path with hidden token when it should have \
@@ -502,7 +467,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
+                "unknown variant `ontology_id`, expected {}",
                 EntityTypeQueryPathVisitor::EXPECTING
             )
         );
@@ -525,7 +490,7 @@ mod tests {
         assert_eq!(
             EntityTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["baseUri", "test"].into_iter()
+                    ["baseUrl", "test"].into_iter()
                 )
             )
             .expect_err(
@@ -553,7 +518,7 @@ mod tests {
         assert_eq!(
             EntityTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["links", "*", "versionedUri", "invalid"].into_iter()
+                    ["links", "*", "versionedUrl", "invalid"].into_iter()
                 )
             )
             .expect_err(

@@ -1,6 +1,10 @@
 import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton, TextField } from "@local/design-system";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  TextField,
+} from "@hashintel/design-system";
+import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import {
   Box,
   Collapse,
@@ -20,7 +24,7 @@ import {
 } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useEntityTypesSubgraphOptional } from "../../entity-types-context/hooks";
+import { useEntityTypesOptional } from "../../entity-types-context/hooks";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -138,16 +142,14 @@ export const AccountEntityTypeList: FunctionComponent<
     }
   }, [searchVisible]);
 
-  const entityTypesSubgraph = useEntityTypesSubgraphOptional();
-  const allEntityTypes = useMemo(
-    () => (entityTypesSubgraph ? getRoots(entityTypesSubgraph) : null),
-    [entityTypesSubgraph],
-  );
+  const allEntityTypes = useEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
       return allEntityTypes.filter(
-        (root) => root.metadata.ownedById === ownedById,
+        (root) =>
+          isOwnedOntologyElementMetadata(root.metadata) &&
+          root.metadata.ownedById === ownedById,
       );
     }
 

@@ -1,18 +1,19 @@
 {
   "name": "@blocks/calculation",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Spreadsheet-like table for doing computation on entities",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "blocks/calculation"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "Ahmad Sattar Atta",
   "scripts": {
     "build": "block-scripts build",
@@ -46,6 +47,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@thehabbos007/calculation",
     "displayName": "Calculation",
     "examples": [
       {

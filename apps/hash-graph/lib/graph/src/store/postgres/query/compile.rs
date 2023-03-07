@@ -4,12 +4,11 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::TimeProjection,
     store::{
         postgres::query::{
             expression::Constant,
             table::{
-                DataTypes, Entities, EntityTypes, JsonField, PropertyTypes, Relation, TypeIds,
+                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes, Relation,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
@@ -18,6 +17,7 @@ use crate::{
         },
         query::{Filter, FilterExpression, Parameter},
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 // # Lifetime guidance
@@ -27,8 +27,8 @@ use crate::{
 
 pub struct TemporalTableInfo {
     tables: HashSet<AliasedTable>,
-    kernel_index: usize,
-    image_index: usize,
+    pinned_timestamp_index: usize,
+    variable_interval_index: usize,
 }
 
 pub struct CompilerArtifacts<'p> {
@@ -41,13 +41,13 @@ pub struct CompilerArtifacts<'p> {
 pub struct SelectCompiler<'c, 'p, T> {
     statement: SelectStatement<'c>,
     artifacts: CompilerArtifacts<'p>,
-    time_projection: &'p TimeProjection,
+    temporal_axes: &'p QueryTemporalAxes,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(time_projection: &'p TimeProjection) -> Self {
+    pub fn new(temporal_axes: &'p QueryTemporalAxes) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -68,14 +68,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 required_tables: HashSet::new(),
                 temporal_tables: None,
             },
-            time_projection,
+            temporal_axes,
             _marker: PhantomData,
         }
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(time_projection: &'p TimeProjection) -> Self {
-        let mut default = Self::new(time_projection);
+    pub fn with_asterisk(temporal_axes: &'p QueryTemporalAxes) -> Self {
+        let mut default = Self::new(temporal_axes);
         default
             .statement
             .selects
@@ -86,36 +86,36 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn pin_entity_table(&mut self, alias: Alias) {
         let table = Table::Entities.aliased(alias);
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
-            match self.time_projection {
-                TimeProjection::DecisionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.interval);
+            match self.temporal_axes {
+                QueryTemporalAxes::DecisionTime { pinned, variable } => {
+                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts.parameters.push(&variable.interval);
                 }
-                TimeProjection::TransactionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.interval);
+                QueryTemporalAxes::TransactionTime { pinned, variable } => {
+                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts.parameters.push(&variable.interval);
                 }
             };
 
             TemporalTableInfo {
                 tables: HashSet::new(),
-                kernel_index: self.artifacts.parameters.len() - 1,
-                image_index: self.artifacts.parameters.len(),
+                pinned_timestamp_index: self.artifacts.parameters.len() - 1,
+                variable_interval_index: self.artifacts.parameters.len(),
             }
         });
 
         if !temporal_table_info.tables.contains(&table) {
-            // Adds the kernel timestamp condition, so for the projected decision time, we use the
+            // Adds the pinned timestamp condition, so for the projected decision time, we use the
             // transaction time and vice versa.
             self.statement.where_expression.add_condition(
                 Condition::TimeIntervalContainsTimestamp(
                     Expression::Column(
                         Column::Entities(Entities::from_time_axis(
-                            self.time_projection.kernel_time_axis(),
+                            self.temporal_axes.pinned_time_axis(),
                         ))
                         .aliased(alias),
                     ),
-                    Expression::Parameter(temporal_table_info.kernel_index),
+                    Expression::Parameter(temporal_table_info.pinned_timestamp_index),
                 ),
             );
             self.statement
@@ -123,11 +123,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 .add_condition(Condition::Overlap(
                     Expression::Column(
                         Column::Entities(Entities::from_time_axis(
-                            self.time_projection.image_time_axis(),
+                            self.temporal_axes.variable_time_axis(),
                         ))
                         .aliased(alias),
                     ),
-                    Expression::Parameter(temporal_table_info.image_index),
+                    Expression::Parameter(temporal_table_info.variable_interval_index),
                 ));
             temporal_table_info.tables.insert(table);
         }
@@ -225,15 +225,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
-    // Warning: This adds a CTE to the statement, which is overwriting the `type_ids` table. When
-    //          more CTEs are needed, a test should be added to cover both CTEs in one statement to
-    //          ensure compatibility
+    // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
+    // When          more CTEs are needed, a test should be added to cover both CTEs in one
+    // statement to          ensure compatibility
     fn compile_latest_ontology_version_filter(
         &mut self,
         path: &R::QueryPath<'_>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let version_column = Column::TypeIds(TypeIds::Version).aliased(Alias {
+        let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
             number: 0,
@@ -242,7 +242,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         // Add a WITH expression selecting the partitioned version
         self.statement
             .with
-            .add_statement(Table::TypeIds, SelectStatement {
+            .add_statement(Table::OntologyIds, SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -253,7 +253,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                 Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
-                                Column::TypeIds(TypeIds::BaseUri).aliased(version_column.alias),
+                                Column::OntologyIds(OntologyIds::BaseUrl)
+                                    .aliased(version_column.alias),
                             ),
                         ),
                         Some(Cow::Borrowed("latest_version")),
@@ -268,7 +269,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
         let latest_version_expression = Some(Expression::Column(
-            Column::TypeIds(TypeIds::LatestVersion).aliased(alias),
+            Column::OntologyIds(OntologyIds::LatestVersion).aliased(alias),
         ));
         let version_expression = Some(Expression::Column(version_column.column.aliased(alias)));
 
@@ -289,12 +290,12 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ) -> Condition<'c> {
         let alias = self.add_join_statements(path);
         self.pin_entity_table(alias);
-        // Adds the image timestamp condition, so we use the same time axis as specified in the
-        // projection.
+        // Adds the variable interval condition, so we use the same time axis as specified in the
+        // temporal axes.
         let condition = Condition::TimeIntervalContainsTimestamp(
             Expression::Column(
                 Column::Entities(Entities::from_time_axis(
-                    self.time_projection.image_time_axis(),
+                    self.temporal_axes.variable_time_axis(),
                 ))
                 .aliased(alias),
             ),
@@ -311,7 +312,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// condition if any.
     ///
     /// The following [`Filter`]s will be special cased:
-    /// - Comparing the `"version"` field on [`Table::TypeIds`] with `"latest"` for equality.
+    /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
     fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
@@ -323,10 +324,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Some(FilterExpression::Parameter(Parameter::Text(parameter))),
                     Some(FilterExpression::Path(path)),
                 ) => match (path.terminating_column(), filter, parameter.as_ref()) {
-                    (Column::TypeIds(TypeIds::Version), Filter::Equal(..), "latest") => Some(
-                        self.compile_latest_ontology_version_filter(path, EqualityOperator::Equal),
-                    ),
-                    (Column::TypeIds(TypeIds::Version), Filter::NotEqual(..), "latest") => {
+                    (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
+                        Some(
+                            self.compile_latest_ontology_version_filter(
+                                path,
+                                EqualityOperator::Equal,
+                            ),
+                        )
+                    }
+                    (Column::OntologyIds(OntologyIds::Version), Filter::NotEqual(..), "latest") => {
                         Some(self.compile_latest_ontology_version_filter(
                             path,
                             EqualityOperator::NotEqual,
@@ -405,7 +411,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 if column.column == Column::Entities(Entities::ProjectedTime) {
                     Expression::Function(Function::Lower(Box::new(Expression::Column(
                         Column::Entities(Entities::from_time_axis(
-                            self.time_projection.image_time_axis(),
+                            self.temporal_axes.variable_time_axis(),
                         ))
                         .aliased(column.alias),
                     ))))
@@ -420,7 +426,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
                     Parameter::Any(json) => self.artifacts.parameters.push(json),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
-                    Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
+                    Parameter::OntologyTypeVersion(version) => {
+                        self.artifacts.parameters.push(version);
+                    }
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }
@@ -509,10 +517,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 });
 
                 // If we join on the same column as the previous join, we can reuse the that join.
-                // For example, if we join on `entities.entity_type_version_id =
-                // entity_type.version_id` and then on `entity_type.version_id =
-                // type_ids.version_id`, we can merge the two joins into `entities.
-                // entity_type_version_id = type_ids.version_id`. We, however, need to
+                // For example, if we join on `entities.entity_type_ontology_id =
+                // entity_type.ontology_id` and then on `entity_type.ontology_id =
+                // ontology_ids.ontology_id`, we can merge the two joins into `entities.
+                // entity_type_ontology_id = ontology_ids.ontology_id`. We, however, need to
                 // make sure, that we only alter a join statement with a table we don't require
                 // anymore.
                 if let Some(last_join) = self.statement.joins.pop() {

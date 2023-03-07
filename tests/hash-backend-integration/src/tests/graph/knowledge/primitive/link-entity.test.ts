@@ -22,11 +22,11 @@ import {
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
+  OwnedById,
 } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -84,9 +84,8 @@ describe("Link entity", () => {
         schema: {
           title: "Friends",
           description: "Friend of",
-          kind: "entityType",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
         },
         actorId: testUser.accountId,
@@ -98,9 +97,8 @@ describe("Link entity", () => {
         schema: {
           title: "Acquaintance",
           description: "Acquainted with",
-          kind: "entityType",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
         },
         actorId: testUser.accountId,
@@ -160,17 +158,17 @@ describe("Link entity", () => {
   it("can link entities", async () => {
     linkEntityFriend = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityType: friendLinkEntityType,
-      rightEntityId: friendRightEntity.metadata.editionId.baseId,
+      rightEntityId: friendRightEntity.metadata.recordId.entityId,
       actorId: testUser.accountId,
     });
 
     linkEntityAcquaintance = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityType: acquaintanceLinkEntityType,
-      rightEntityId: acquaintanceRightEntity.metadata.editionId.baseId,
+      rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
       actorId: testUser.accountId,
     });
   });

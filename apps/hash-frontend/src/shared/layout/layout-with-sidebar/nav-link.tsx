@@ -4,7 +4,7 @@ import {
   IconButton,
   IconButtonProps,
   LoadingSpinner,
-} from "@local/design-system";
+} from "@hashintel/design-system";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent, ReactNode, useState } from "react";
 

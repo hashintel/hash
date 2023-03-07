@@ -10,7 +10,7 @@ import {
   isEntityNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-subgraph";
 import { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -72,7 +72,7 @@ export class BlockView implements NodeView {
     const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
 
     return (
-      (draftEntity?.metadata.editionId.baseId as EntityId | undefined) ?? null
+      (draftEntity?.metadata.recordId.entityId as EntityId | undefined) ?? null
     );
   };
 

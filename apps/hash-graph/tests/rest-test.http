@@ -46,18 +46,18 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
       }
     }
   }
@@ -66,7 +66,7 @@ Content-Type: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 6, "Unexpected number of data types"); // The number of primitive data types
+        client.assert(response.body.roots.length === 0, "Unexpected number of data types"); // The number of primitive data types
     });
 %}
 
@@ -79,6 +79,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
     "title": "Text",
@@ -90,7 +91,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("text_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Text data type
@@ -102,7 +103,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -138,18 +139,18 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
       }
     }
   }
@@ -171,6 +172,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "title": "Text",
     "description": "An ordered sequence of characters",
@@ -193,6 +195,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
     "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
     "title": "Name",
@@ -208,7 +211,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("person_property_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Name property type
@@ -218,7 +221,7 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["versionedUri"] },
+      { "path": ["versionedUrl"] },
       { "parameter": "{{person_property_type_id}}" }
     ]
   },
@@ -250,18 +253,18 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
       }
     }
   }
@@ -283,6 +286,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
     "title": "Name",
     "oneOf": [
@@ -344,18 +348,18 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+          "start": {
+          "kind": "unbounded"
+          },
+          "end": null
       }
     }
   }
@@ -377,6 +381,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
     "type": "object",
@@ -394,7 +399,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friendship_link_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("friendship_link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Friendship entity type
@@ -406,7 +411,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -442,19 +447,19 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
-      }
+    "variable": {
+      "axis": "decisionTime",
+        "interval": {
+          "start": {
+            "kind": "unbounded"
+          },
+          "end": null
+        }
     }
   }
 }
@@ -475,6 +480,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
     "type": "object",
@@ -491,7 +497,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("person_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Person entity type
@@ -501,7 +507,7 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["versionedUri"] },
+      { "path": ["versionedUrl"] },
       { "parameter": "{{person_entity_type_id}}" }
     ]
   },
@@ -533,18 +539,18 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
       }
     }
   }
@@ -566,6 +572,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "type": "object",
     "title": "Person",
@@ -641,18 +648,18 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+          "start": {
+          "kind": "unbounded"
+          },
+          "end": null
       }
     }
   }
@@ -676,7 +683,7 @@ Content-Type: application/json
         "path": [
           "inheritsFrom",
           "*",
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -712,18 +719,18 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+          "start": {
+          "kind": "unbounded"
+          },
+          "end": null
       }
     }
   }
@@ -749,7 +756,7 @@ Content-Type: application/json
             "path": [
               "links",
               "*",
-              "baseUri"
+              "baseUrl"
             ]
           },
           {
@@ -787,18 +794,18 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
       }
     }
   }
@@ -831,9 +838,9 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_id", response.body.editionId.baseId);
-    client.global.set("person_a_owned_by_id", response.body.editionId.baseId.split("%")[0])
-    client.global.set("person_a_entity_uuid", response.body.editionId.baseId.split("%")[1])
+    client.global.set("person_a_entity_id", response.body.recordId.entityId);
+    client.global.set("person_a_owned_by_id", response.body.recordId.entityId.split("%")[0])
+    client.global.set("person_a_entity_uuid", response.body.recordId.entityId.split("%")[1])
 %}
 
 ### Get latest Person entity
@@ -897,15 +904,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": null,
-      "end": null
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
     }
   }
 }
@@ -956,8 +965,8 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_id", response.body.editionId.baseId);
-    client.global.set("person_b_entity_uuid", response.body.editionId.baseId.split("%")[1])
+    client.global.set("person_b_entity_id", response.body.recordId.entityId);
+    client.global.set("person_b_entity_uuid", response.body.recordId.entityId.split("%")[1])
 %}
 
 ### Get all latest entities by using a query
@@ -996,15 +1005,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": null,
-      "end": null
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
     }
   }
 }
@@ -1106,15 +1117,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": { "bound": "unbounded" },
-      "end": { "bound": "unbounded" }
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": { "kind": "unbounded" },
+        "end": null
+      }
     }
   }
 }
@@ -1193,15 +1206,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": null,
-      "end": null
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
     }
   }
 }
@@ -1259,18 +1274,16 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": {
-        "bound": "unbounded"
-      },
-      "end": {
-        "bound": "unbounded"
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": { "kind": "unbounded" },
+        "end": null
       }
     }
   }

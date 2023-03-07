@@ -1,14 +1,15 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
+  EntityRootType,
   extractAccountId,
-} from "@local/hash-isomorphic-utils/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getEntities } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
@@ -38,7 +39,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
     await graphApi.getEntitiesByQuery({
       filter: {
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: types.entityType.user.entityTypeId },
         ],
       },
@@ -52,33 +53,35 @@ export const ensureSystemUserAccountIdExists = async (params: {
         hasLeftEntity: { outgoing: 0, incoming: 0 },
         hasRightEntity: { outgoing: 0, incoming: 0 },
       },
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     });
 
   const existingUserEntities = getEntities(
-    existingUserEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+    existingUserEntitiesSubgraph as Subgraph<EntityRootType>,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(
     ({ properties }) =>
       properties[
-        extractBaseUri(types.propertyType.shortName.propertyTypeId)
+        extractBaseUrl(types.propertyType.shortName.propertyTypeId)
       ] === systemUserShortname,
   );
 
   if (existingSystemUserEntity) {
     systemUserAccountId = extractAccountId(
-      existingSystemUserEntity.metadata.editionId.baseId as AccountEntityId,
+      existingSystemUserEntity.metadata.recordId.entityId as AccountEntityId,
     );
     logger.info(
       `Using existing system user account id: ${systemUserAccountId}`,

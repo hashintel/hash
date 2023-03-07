@@ -2,9 +2,10 @@ import {
   DataType,
   EntityType,
   PropertyType,
-  VersionedUri,
-} from "@blockprotocol/type-system";
-import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
+import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
+import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -49,19 +50,19 @@ const makeGraphQlRequest = async <Data, Variables>(
   return { data, errors };
 };
 
-const versionedUriRegExp =
+const versionedUrlRegExp =
   /types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
-const validateVersionedUri = (uri: string): uri is VersionedUri =>
-  !!uri.match(versionedUriRegExp);
+const validateVersionedUrl = (url: string): url is VersionedUrl =>
+  !!url.match(versionedUrlRegExp);
 
 export const returnTypeAsJson = async (request: NextRequest) => {
   const { url } = request;
 
-  const ontologyType = url.match(versionedUriRegExp)?.[1];
-  const isUriValid = validateVersionedUri(url);
+  const ontologyType = url.match(versionedUrlRegExp)?.[1];
+  const isUrlValid = validateVersionedUrl(url);
 
-  if (!isUriValid) {
+  if (!isUrlValid) {
     return generateErrorResponse(
       400,
       "Malformed URL - expected to be in format @[workspace]/types/(entity-type|data-type|property-type)/[slug]/v/[version]",
@@ -99,23 +100,17 @@ export const returnTypeAsJson = async (request: NextRequest) => {
       ? data.getEntityType
       : data.getPropertyType;
 
-  const root = roots[0];
+  const root = roots[0] as OntologyTypeVertexId | undefined;
   if (!root) {
     return generateErrorResponse(
       404,
-      `Could not find requested ${ontologyType} type at URI ${url}`,
+      `Could not find requested ${ontologyType} type at URL ${url}`,
     );
   }
 
-  const { baseId, version } = root;
-  if (typeof version !== "number") {
-    return generateErrorResponse(
-      500,
-      "Internal error: ontology root version not a number",
-    );
-  }
+  const { baseId, revisionId } = root;
 
-  const type = vertices[baseId]?.[version];
+  const type = vertices[baseId]?.[revisionId];
 
   if (!type) {
     return generateErrorResponse(

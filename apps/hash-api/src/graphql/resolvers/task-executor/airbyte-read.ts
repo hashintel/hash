@@ -2,12 +2,11 @@ import { JsonObject } from "@blockprotocol/core";
 import {
   EntityType,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
-import { PropertyObject } from "@local/hash-subgraph";
+import { EntityPropertiesObject, OwnedById } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";
@@ -76,8 +75,10 @@ export const readFromAirbyte = async ({
     Record<string, PropertyType>
   > = {};
   const streamToEntityTypes: Record<string, EntityType> = {};
-  const entityTypeIdToEntityProperties: Record<VersionedUri, PropertyObject[]> =
-    {};
+  const entityTypeIdToEntityProperties: Record<
+    VersionedUrl,
+    EntityPropertiesObject[]
+  > = {};
 
   for (const record of airbyteRecords) {
     const streamName = record.stream;
@@ -117,7 +118,7 @@ export const readFromAirbyte = async ({
   );
 
   const propertyTypeMap: Record<
-    VersionedUri,
+    VersionedUrl,
     { schema: PropertyType; created: boolean }
   > = Object.fromEntries(
     Object.values(streamToKeyToPropertyTypes)
@@ -128,7 +129,7 @@ export const readFromAirbyte = async ({
       ]),
   );
   const entityTypeMap: Record<
-    VersionedUri,
+    VersionedUrl,
     { schema: EntityType; created: boolean }
   > = Object.fromEntries(
     Object.values(streamToEntityTypes).map((entityType) => [
@@ -141,7 +142,7 @@ export const readFromAirbyte = async ({
   const createdPropertyTypes = [];
   const createdEntities = [];
 
-  const visited: VersionedUri[] = [];
+  const visited: VersionedUrl[] = [];
   /** @todo - Check if entity type already exists */
   for (const entityTypeId of typedKeys(entityTypeMap)) {
     logger.debug(`Creating entity type with ID: ${entityTypeId}`);

@@ -10,13 +10,18 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import {
+  ConstructEntityTypeParams,
+  SystemDefinedProperties,
+} from "@local/hash-graphql-shared/graphql/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  isOwnedOntologyElementMetadata,
+  linkEntityTypeUrl,
+  OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -34,7 +39,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 let testUser: User;
 let testUser2: User;
-let entityTypeSchema: Omit<EntityType, "$id">;
+let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
 let textDataType: DataTypeWithMetadata;
 let namePropertyType: PropertyTypeWithMetadata;
@@ -53,7 +58,6 @@ beforeAll(async () => {
   textDataType = await createDataType(graphContext, {
     ownedById: testUser.accountId as OwnedById,
     schema: {
-      kind: "dataType",
       title: "Text",
       type: "string",
     },
@@ -64,7 +68,6 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Worker",
         type: "object",
         properties: {},
@@ -76,7 +79,6 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Address",
         type: "object",
         properties: {},
@@ -88,7 +90,6 @@ beforeAll(async () => {
     createPropertyType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "propertyType",
         title: "Favorite Book",
         oneOf: [{ $ref: textDataType.schema.$id }],
       },
@@ -99,7 +100,6 @@ beforeAll(async () => {
     createPropertyType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "propertyType",
         title: "Name",
         oneOf: [{ $ref: textDataType.schema.$id }],
       },
@@ -110,12 +110,12 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Knows",
         description: "Knows of someone",
         type: "object",
+        allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
-        allOf: [{ $ref: linkEntityTypeUri }],
+        ...({} as Record<SystemDefinedProperties, never>),
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -124,12 +124,11 @@ beforeAll(async () => {
     createEntityType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       schema: {
-        kind: "entityType",
         title: "Previous Address",
         description: "A previous address of something.",
         type: "object",
+        allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
-        allOf: [{ $ref: linkEntityTypeUri }],
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -138,14 +137,13 @@ beforeAll(async () => {
   ]);
 
   entityTypeSchema = {
-    kind: "entityType",
     title: "Some",
     type: "object",
     properties: {
-      [favoriteBookPropertyType.metadata.editionId.baseId]: {
+      [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
         $ref: favoriteBookPropertyType.schema.$id,
       },
-      [namePropertyType.metadata.editionId.baseId]: {
+      [namePropertyType.metadata.recordId.baseUrl]: {
         $ref: namePropertyType.schema.$id,
       },
     },
@@ -190,9 +188,10 @@ describe("Entity type CRU", () => {
   const updatedTitle = "New text!";
 
   it("can update an entity type", async () => {
-    expect(createdEntityType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
+        createdEntityType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
     const updatedEntityType = await updateEntityType(graphContext, {
       entityTypeId: createdEntityType.schema.$id,
@@ -200,8 +199,9 @@ describe("Entity type CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntityType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
+        updatedEntityType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

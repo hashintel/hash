@@ -1,10 +1,15 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityRevisionId,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { Dispatch, SetStateAction } from "react";
 
 export const updateEntitySubgraphStateByEntity = (
   entity: Entity,
   setStateAction: Dispatch<
-    SetStateAction<Subgraph<SubgraphRootTypes["entity"]> | undefined>
+    SetStateAction<Subgraph<EntityRootType> | undefined>
   >,
 ) =>
   setStateAction((subgraph) => {
@@ -15,28 +20,31 @@ export const updateEntitySubgraphStateByEntity = (
      *   allow for optimistic updates without being incorrect.
      */
     const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
-    const newEntityVersion = new Date().toISOString();
-    newEntity.metadata.version.decisionTime.start = newEntityVersion;
+    const newEntityRevisionId = new Date().toISOString() as EntityRevisionId;
+    newEntity.metadata.temporalVersioning.decisionTime.start.limit =
+      newEntityRevisionId;
+    newEntity.metadata.temporalVersioning.transactionTime.start.limit =
+      newEntityRevisionId;
 
     return subgraph
       ? ({
           ...subgraph,
           roots: [
             {
-              baseId: newEntity.metadata.editionId.baseId,
-              version: newEntityVersion,
+              baseId: newEntity.metadata.recordId.entityId,
+              revisionId: newEntityRevisionId,
             },
           ],
           vertices: {
             ...subgraph.vertices,
-            [newEntity.metadata.editionId.baseId]: {
-              ...subgraph.vertices[newEntity.metadata.editionId.baseId],
-              [newEntityVersion]: {
+            [newEntity.metadata.recordId.entityId]: {
+              ...subgraph.vertices[newEntity.metadata.recordId.entityId],
+              [newEntityRevisionId]: {
                 kind: "entity",
                 inner: newEntity,
               },
             },
           },
-        } as Subgraph<SubgraphRootTypes["entity"]>)
+        } as Subgraph<EntityRootType>)
       : undefined;
   });

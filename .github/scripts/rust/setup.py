@@ -25,11 +25,15 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "libs/deer": ["1.65"],
-    "packages/libs/error-stack": ["1.63", "1.65"]
+    "libs/antsi": ["1.63"],
+    "libs/error-stack": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+PUBLISH_PATTERNS = [
+    "libs/error-stack**",
+    "libs/antsi**",
+]
 # deer is disabled for now because we don't want to publish it just yet
 # "libs/deer**"
 
@@ -61,12 +65,7 @@ def find_local_crates():
     `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
-    all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
-    checked_crates = []
-    for crate in all_crates:
-        if not any(path in crate.parents for path in all_crates):
-            checked_crates.append(crate)
-    return checked_crates
+    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
 
 
 def find_toolchain(crate):
@@ -79,7 +78,7 @@ def find_toolchain(crate):
     """
     directory = crate
     root = Path(directory.root)
-    
+
     while directory != root:
         toolchain_file = directory / "rust-toolchain.toml"
         if toolchain_file.exists():
@@ -87,9 +86,9 @@ def find_toolchain(crate):
             if toolchain:
                 return toolchain
         directory = directory.parent
-        
+
     raise Exception("No rust-toolchain.toml with a `toolchain.channel` attribute found")
-    
+
 
 
 def filter_parent_crates(crates):
@@ -254,7 +253,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
             for crate in crates
         ],
     )
-            
+
     if len(matrix["name"]) == 0:
         matrix = {}
 
@@ -271,7 +270,7 @@ def main():
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
-    
+
     output_matrix("lint", github_output_file, changed_parent_crates)
     if IS_PULL_REQUEST_EVENT:
         output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])

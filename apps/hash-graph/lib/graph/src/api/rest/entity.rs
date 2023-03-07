@@ -5,16 +5,14 @@ use std::sync::Arc;
 use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource,
-        report_to_status_code,
-        utoipa_typedef::{subgraph::Subgraph, EntityIdAndTimestamp},
+        api_resource::RoutedResource, report_to_status_code, utoipa_typedef::subgraph::Subgraph,
     },
-    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkData, LinkOrder,
@@ -45,13 +43,11 @@ use crate::{
             EntityUuid,
             EntityId,
             EntityEditionId,
-            EntityIdAndTimestamp,
             EntityMetadata,
             EntityLinkOrder,
             EntityProperties,
             EntityRecordId,
-            EntityVersion,
-            EntityStructuralQuery,
+            EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
             LinkOrder,
@@ -81,7 +77,7 @@ impl RoutedResource for EntityResource {
 struct CreateEntityRequest {
     properties: EntityProperties,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
+    entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
     entity_uuid: Option<EntityUuid>,
     actor_id: UpdatedById,
@@ -100,7 +96,7 @@ struct CreateEntityRequest {
         (status = 201, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Entity Type URI was not found"),
+        (status = 404, description = "Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
     ),
 )]
@@ -189,7 +185,7 @@ struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
+    entity_type_id: VersionedUrl,
     actor_id: UpdatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
@@ -205,7 +201,7 @@ struct UpdateEntityRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
-        (status = 404, description = "Entity ID or Entity Type URI was not found"),
+        (status = 404, description = "Entity ID or Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityRequest,

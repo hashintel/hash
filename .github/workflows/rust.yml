@@ -6,7 +6,7 @@ on:
     branches:
       - main
       - dev/**
-      - "trunk-merge/**"
+  merge_group:
 
 defaults:
   run:
@@ -76,8 +76,8 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -103,12 +103,19 @@ jobs:
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: cargo +${{ matrix.toolchain }} make doc
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: cargo +${{ matrix.toolchain }} make doc --document-private-items
+
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
 
   test:
     name: test
@@ -130,20 +137,13 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
-
       - name: Install tools
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.37
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
+          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -214,20 +214,13 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
-
       - name: Install tools
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-nextest --version 0.9.37
-          cargo quickinstall cargo-llvm-cov --version 0.5.9
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
+          cargo quickinstall cargo-llvm-cov --version 0.5.9 || cargo install --version 0.5.9 cargo-llvm-cov
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -250,7 +243,9 @@ jobs:
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
+          ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
+          ## on coverage reports more strictly
+          fail_ci_if_error: false
           files: ${{ matrix.directory }}/lcov.info
           flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
@@ -270,17 +265,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
-
       - name: Install tools
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -309,21 +297,22 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install tools
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.37
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
+          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
+          cargo quickinstall cargo-semver-checks --version 0.17.0 || cargo install --version 0.17.0 cargo-semver-checks
 
       - name: Run lints
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
 
       - name: Run tests
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
@@ -332,8 +321,13 @@ jobs:
           [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
           cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
+      - name: SemVer check
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} semver-checks check-release
+
       - name: Publish (dry run)
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 

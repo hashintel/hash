@@ -9,14 +9,13 @@ import {
   getPropertyTypeById,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import {
-  PropertyType,
-  TypeSystemInitializer,
-} from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
+  OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -35,7 +34,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 let testUser: User;
 let testUser2: User;
 let textDataType: DataTypeWithMetadata;
-let propertyTypeSchema: Omit<PropertyType, "$id">;
+let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
@@ -55,7 +54,6 @@ beforeAll(async () => {
   });
 
   propertyTypeSchema = {
-    kind: "propertyType",
     title: "A property type",
     oneOf: [
       {
@@ -87,11 +85,12 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
+        createdPropertyType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
-    createdPropertyType = await updatePropertyType(graphContext, {
+    const updatedPropertyType = await updatePropertyType(graphContext, {
       propertyTypeId: createdPropertyType.schema.$id,
       schema: {
         ...propertyTypeSchema,
@@ -100,8 +99,9 @@ describe("Property type CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
+        updatedPropertyType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

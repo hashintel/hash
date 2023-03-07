@@ -1,9 +1,12 @@
 import { faCheck, faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/design-system";
+import {
+  FontAwesomeIcon,
+  GRID_CLICK_IGNORE_CLASS,
+  IconButton,
+} from "@hashintel/design-system";
 import { Box, Popper, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../../components/grid/utils";
 import { JsonEditor } from "./json-input/json-editor";
 import { CellInputProps } from "./types";
 

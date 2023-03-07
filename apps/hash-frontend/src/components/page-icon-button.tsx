@@ -1,5 +1,5 @@
-import { fontAwesomeIconClasses, IconButton } from "@local/design-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { fontAwesomeIconClasses, IconButton } from "@hashintel/design-system";
+import { EntityId } from "@local/hash-subgraph";
 import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";

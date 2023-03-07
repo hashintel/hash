@@ -1,15 +1,21 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
-import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
-import { PropertyTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
+  PROPERTY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
+import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  AccountId,
+  OntologyElementMetadata,
+  OntologyTypeRecordId,
+  ontologyTypeRecordIdToVersionedUrl,
+  OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -25,7 +31,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createPropertyType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    schema: PropertyTypeWithoutId;
+    schema: ConstructPropertyTypeParams;
     actorId: AccountId;
   },
   Promise<PropertyTypeWithMetadata>
@@ -42,7 +48,12 @@ export const createPropertyType: ImpureGraphFunction<
     title: params.schema.title,
   });
 
-  const schema = { $id: propertyTypeId, ...params.schema };
+  const schema = {
+    $schema: PROPERTY_TYPE_META_SCHEMA,
+    kind: "propertyType" as const,
+    $id: propertyTypeId,
+    ...params.schema,
+  };
 
   const { graphApi } = ctx;
 
@@ -52,42 +63,45 @@ export const createPropertyType: ImpureGraphFunction<
     actorId,
   });
 
-  return { schema, metadata };
+  return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
- * Get a property type by its versioned URI.
+ * Get a property type by its versioned URL.
  *
- * @param params.propertyTypeId the unique versioned URI for a property type.
+ * @param params.propertyTypeId the unique versioned URL for a property type.
  */
 export const getPropertyTypeById: ImpureGraphFunction<
   {
-    propertyTypeId: VersionedUri;
+    propertyTypeId: VersionedUrl;
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, params) => {
   const { propertyTypeId } = params;
-  const propertyTypeSubgraph = await graphApi
+
+  const [propertyType] = await graphApi
     .getPropertyTypesByQuery({
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["propertyType"]>);
-
-  const [propertyType] = getRoots(propertyTypeSubgraph);
+    .then(({ data: subgraph }) =>
+      getRoots(subgraph as Subgraph<PropertyTypeRootType>),
+    );
 
   if (!propertyType) {
     throw new NotFoundError(
@@ -107,8 +121,8 @@ export const getPropertyTypeById: ImpureGraphFunction<
  */
 export const updatePropertyType: ImpureGraphFunction<
   {
-    propertyTypeId: VersionedUri;
-    schema: Omit<PropertyType, "$id">;
+    propertyTypeId: VersionedUrl;
+    schema: ConstructPropertyTypeParams;
     actorId: AccountId;
   },
   Promise<PropertyTypeWithMetadata>
@@ -116,20 +130,25 @@ export const updatePropertyType: ImpureGraphFunction<
   const { schema, actorId, propertyTypeId } = params;
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,
-    schema,
+    schema: {
+      $schema: PROPERTY_TYPE_META_SCHEMA,
+      kind: "propertyType" as const,
+      ...schema,
+    },
     actorId,
   };
 
   const { data: metadata } = await graphApi.updatePropertyType(updateArguments);
 
+  const { recordId } = metadata;
+
   return {
     schema: {
+      $schema: PROPERTY_TYPE_META_SCHEMA,
+      kind: "propertyType" as const,
       ...schema,
-      $id: versionedUriFromComponents(
-        metadata.editionId.baseId,
-        metadata.editionId.version,
-      ),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata,
+    metadata: metadata as OntologyElementMetadata,
   };
 };

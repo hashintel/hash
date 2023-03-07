@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - "trunk-merge/**"
+  merge_group:
 
 env:
   TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)
@@ -16,8 +16,6 @@ env:
 jobs:
   linting:
     name: Linting
-    # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -196,7 +194,9 @@ jobs:
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
+          ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
+          ## on coverage reports more strictly
+          fail_ci_if_error: false
           files: tests/hash-backend-integration/coverage/lcov.info
           flags: backend-integration-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
@@ -219,8 +219,6 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -318,7 +316,9 @@ jobs:
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
+          ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
+          ## on coverage reports more strictly
+          fail_ci_if_error: false
           files: apps/hash-api/coverage/lcov.info,apps/hash-frontend/coverage/lcov.info,libs/@local/hash-backend-utils/coverage/lcov.info,libs/@local/hash-isomorphic-utils/coverage/lcov.info,
           flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved

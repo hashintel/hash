@@ -4,13 +4,17 @@ use std::{
 };
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use tokio_postgres::types::ToSql;
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi, ToSchema};
+use uuid::Uuid;
 
 use crate::{
     identifier::{
         account::AccountId,
-        time::{DecisionTime, ProjectedTime, TimeAxis, TransactionTime, VersionInterval},
+        time::{
+            DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
+            VariableAxis,
+        },
         EntityVertexId,
     },
     knowledge::{Entity, EntityUuid},
@@ -20,28 +24,8 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityId {
-    owned_by_id: OwnedById,
-    entity_uuid: EntityUuid,
-}
-
-impl EntityId {
-    #[must_use]
-    pub const fn new(owned_by_id: OwnedById, entity_uuid: EntityUuid) -> Self {
-        Self {
-            owned_by_id,
-            entity_uuid,
-        }
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-
-    #[must_use]
-    pub const fn entity_uuid(&self) -> EntityUuid {
-        self.entity_uuid
-    }
+    pub owned_by_id: OwnedById,
+    pub entity_uuid: EntityUuid,
 }
 
 impl Serialize for EntityId {
@@ -79,64 +63,31 @@ impl<'de> Deserialize<'de> for EntityId {
     }
 }
 
-impl ToSchema for EntityId {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::Object(openapi::schema::Object::with_type(
-            openapi::SchemaType::String,
-        ))
-        .into()
+impl ToSchema<'_> for EntityId {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityId",
+            openapi::Schema::Object(openapi::schema::Object::with_type(
+                openapi::SchemaType::String,
+            ))
+            .into(),
+        )
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntityVersion {
-    decision_time: VersionInterval<DecisionTime>,
-    transaction_time: VersionInterval<TransactionTime>,
+pub struct EntityTemporalMetadata {
+    pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-impl ToSchema for EntityVersion {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property(
-                "decisionTime",
-                openapi::Ref::from_schema_name("VersionInterval"),
-            )
-            .required("decisionTime")
-            .property(
-                "transactionTime",
-                openapi::Ref::from_schema_name("VersionInterval"),
-            )
-            .required("transactionTime")
-            .build()
-            .into()
-    }
-}
-
-impl EntityVersion {
+impl EntityTemporalMetadata {
     #[must_use]
-    pub const fn new(
-        decision_time: VersionInterval<DecisionTime>,
-        transaction_time: VersionInterval<TransactionTime>,
-    ) -> Self {
-        Self {
-            decision_time,
-            transaction_time,
-        }
-    }
-
-    #[must_use]
-    pub const fn decision_time(&self) -> VersionInterval<DecisionTime> {
-        self.decision_time
-    }
-
-    #[must_use]
-    pub const fn transaction_time(&self) -> VersionInterval<TransactionTime> {
-        self.transaction_time
-    }
-
-    #[must_use]
-    pub fn projected_time(&self, time_axis: TimeAxis) -> VersionInterval<ProjectedTime> {
+    pub fn variable_time_interval(
+        &self,
+        time_axis: TimeAxis,
+    ) -> LeftClosedTemporalInterval<VariableAxis> {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),
@@ -144,28 +95,30 @@ impl EntityVersion {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityRecordId(i64);
+pub struct EntityEditionId(Uuid);
 
-impl EntityRecordId {
+impl EntityEditionId {
     #[must_use]
-    pub const fn new(id: i64) -> Self {
+    pub const fn new(id: Uuid) -> Self {
         Self(id)
     }
 
     #[must_use]
-    pub const fn as_i64(&self) -> i64 {
+    pub const fn as_uuid(&self) -> Uuid {
         self.0
     }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct EntityEditionId {
-    base_id: EntityId,
-    record_id: EntityRecordId,
+pub struct EntityRecordId {
+    pub entity_id: EntityId,
+    pub edition_id: EntityEditionId,
 }
 
 impl SubgraphIndex<Entity> for EntityVertexId {
@@ -174,25 +127,5 @@ impl SubgraphIndex<Entity> for EntityVertexId {
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {
         subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
-}
-
-impl EntityEditionId {
-    #[must_use]
-    pub const fn new(entity_id: EntityId, record_id: EntityRecordId) -> Self {
-        Self {
-            base_id: entity_id,
-            record_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> EntityRecordId {
-        self.record_id
     }
 }

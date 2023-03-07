@@ -1,6 +1,11 @@
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  Entity,
+  EntityRootType,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -35,25 +40,25 @@ export const getHashInstanceFromEntity: PureGraphFunction<
     SYSTEM_TYPES.entityType.hashInstance.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
 
   const userSelfRegistrationIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.editionId
-      .baseId
+    SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
+      .baseUrl
   ] as boolean;
 
   const userRegistrationByInviteIsEnabled = entity.properties[
     SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-      .editionId.baseId
+      .recordId.baseUrl
   ] as boolean;
 
   const orgSelfRegistrationIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.editionId
-      .baseId
+    SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
+      .baseUrl
   ] as boolean;
 
   return {
@@ -75,27 +80,29 @@ export const getHashInstance: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           {
             parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
           },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: subgraph }) =>
-      getRootsAsEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
+      getRoots(subgraph as Subgraph<EntityRootType>),
     );
 
   if (entities.length > 1) {
@@ -147,12 +154,12 @@ export const createHashInstance: ImpureGraphFunction<
   const entity = await createEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     properties: {
-      [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata
-        .editionId.baseId]: params.userSelfRegistrationIsEnabled ?? true,
+      [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
+        .baseUrl]: params.userSelfRegistrationIsEnabled ?? true,
       [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-        .editionId.baseId]: params.userRegistrationByInviteIsEnabled ?? true,
-      [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.editionId
-        .baseId]: params.orgSelfRegistrationIsEnabled ?? true,
+        .recordId.baseUrl]: params.userRegistrationByInviteIsEnabled ?? true,
+      [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
+        .baseUrl]: params.orgSelfRegistrationIsEnabled ?? true,
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
     actorId,
@@ -180,7 +187,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
 
   if (isAlreadyHashInstanceAdmin) {
     throw new Error(
-      `User with entityId "${user.entity.metadata.editionId.baseId}" is already a hash instance admin.`,
+      `User with entityId "${user.entity.metadata.recordId.entityId}" is already a hash instance admin.`,
     );
   }
 
@@ -189,8 +196,8 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
   await createLinkEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    leftEntityId: hashInstance.entity.metadata.editionId.baseId,
-    rightEntityId: user.entity.metadata.editionId.baseId,
+    leftEntityId: hashInstance.entity.metadata.recordId.entityId,
+    rightEntityId: user.entity.metadata.recordId.entityId,
     actorId,
   });
 };
@@ -224,7 +231,7 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
 
   if (!outgoingAdminLinkEntity) {
     throw new Error(
-      `The user with entity ID ${user.entity.metadata.editionId.baseId} is not a HASH instance admin.`,
+      `The user with entity ID ${user.entity.metadata.recordId.entityId} is not a HASH instance admin.`,
     );
   }
 

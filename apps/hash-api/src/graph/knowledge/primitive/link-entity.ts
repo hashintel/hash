@@ -1,11 +1,12 @@
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
+  AccountId,
   Entity,
   EntityId,
   EntityMetadata,
+  EntityPropertiesObject,
   EntityTypeWithMetadata,
   LinkData,
-  PropertyObject,
+  OwnedById,
 } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "../..";
@@ -14,7 +15,7 @@ import { getLatestEntityById } from "./entity";
 
 export type CreateLinkEntityParams = {
   ownedById: OwnedById;
-  properties?: PropertyObject;
+  properties?: EntityPropertiesObject;
   linkEntityType: EntityTypeWithMetadata;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
@@ -69,7 +70,7 @@ export const createLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   };
 
-  const { data: linkEntityMetadata } = await graphApi.createEntity({
+  const { data: metadata } = await graphApi.createEntity({
     ownedById,
     linkData,
     actorId,
@@ -78,7 +79,7 @@ export const createLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: linkEntityMetadata as EntityMetadata,
+    metadata: metadata as EntityMetadata,
     properties,
     linkData,
   };
@@ -96,7 +97,7 @@ export const createLinkEntity: ImpureGraphFunction<
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
-    properties?: PropertyObject;
+    properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
     actorId: AccountId;
@@ -109,7 +110,7 @@ export const updateLinkEntity: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.updateEntity({
     actorId,
-    entityId: linkEntity.metadata.editionId.baseId,
+    entityId: linkEntity.metadata.recordId.entityId,
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,

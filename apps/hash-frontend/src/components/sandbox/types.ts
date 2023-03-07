@@ -28,11 +28,11 @@ export type MessageFromFramedBlock = {
       payload: Parameters<BlockProtocolCreateEntitiesFunction>;
     }
   | {
-      type: "aggregateEntities";
+      type: "queryEntities";
       payload: Parameters<BlockProtocolAggregateEntitiesFunction>;
     }
   | {
-      type: "aggregateEntityTypes";
+      type: "queryEntityTypes";
       payload: Parameters<BlockProtocolAggregateEntityTypesFunction>;
     }
 );

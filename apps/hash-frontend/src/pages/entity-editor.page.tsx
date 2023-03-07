@@ -1,15 +1,18 @@
-import {
-  Array,
-  extractBaseUri,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
-import { Button } from "@local/design-system";
+import { Array, ValueOrArray } from "@blockprotocol/type-system";
+import { Button } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  Entity,
+  EntityRootType,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getPropertyTypeById,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
@@ -33,19 +36,18 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
  */
 const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const [userSubgraph, setUserSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
-  const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+  const [userSubgraph, setUserSubgraph] = useState<Subgraph<EntityRootType>>();
+  const [queryEntitiesSubgraph, setQueryEntitiesSubgraph] =
+    useState<Subgraph<EntityRootType>>();
 
   const [createdEntity, setCreatedEntity] = useState<Entity>();
 
-  const { getEntity, createEntity, archiveEntity, aggregateEntities } =
+  const { getEntity, createEntity, archiveEntity, queryEntities } =
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
     // As an example entity, we are going to use the currently logged in user's entity ID
-    const entityId = authenticatedUser.entityEditionId.baseId as EntityId;
+    const entityId = authenticatedUser.entityRecordId.entityId;
 
     void getEntity({ data: { entityId } }).then(({ data }) => {
       setUserSubgraph(data);
@@ -53,16 +55,12 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   }, [authenticatedUser, getEntity]);
 
   useEffect(() => {
-    if (!aggregateEntitiesSubgraph) {
-      void aggregateEntities({ data: {} }).then(({ data }) => {
-        setAggregateEntitiesSubgraph(data);
+    if (!queryEntitiesSubgraph) {
+      void queryEntities({ data: {} }).then(({ data }) => {
+        setQueryEntitiesSubgraph(data);
       });
     }
-  }, [
-    aggregateEntities,
-    aggregateEntitiesSubgraph,
-    setAggregateEntitiesSubgraph,
-  ]);
+  }, [queryEntities, queryEntitiesSubgraph, setQueryEntitiesSubgraph]);
 
   const entity = userSubgraph ? getRoots(userSubgraph)[0] : undefined;
 
@@ -95,11 +93,8 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   );
 
   const allEntities = useMemo(
-    () =>
-      aggregateEntitiesSubgraph
-        ? getRoots(aggregateEntitiesSubgraph)
-        : undefined,
-    [aggregateEntitiesSubgraph],
+    () => (queryEntitiesSubgraph ? getRoots(queryEntitiesSubgraph) : undefined),
+    [queryEntitiesSubgraph],
   );
 
   const handleCreateEntity = async () => {
@@ -107,7 +102,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       data: {
         entityTypeId: types.entityType.text.entityTypeId,
         properties: {
-          [extractBaseUri(types.propertyType.tokens.propertyTypeId)]: [],
+          [extractBaseUrl(types.propertyType.tokens.propertyTypeId)]: [],
         },
       },
     }).then(({ data }) => setCreatedEntity(data));
@@ -118,7 +113,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       return;
     }
     await archiveEntity({
-      data: { entityId: createdEntity.metadata.editionId.baseId as EntityId },
+      data: { entityId: createdEntity.metadata.recordId.entityId },
     }).then(() => setCreatedEntity(undefined));
   };
 
@@ -148,7 +143,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(propertyTypeDefinitions ?? {}, null, 2)}
       </pre>
-      <Typography>Aggregate Entities</Typography>
+      <Typography>Query Entities</Typography>
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(allEntities ?? {}, null, 2)}
       </pre>

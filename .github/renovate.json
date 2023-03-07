@@ -73,7 +73,15 @@
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/graph/**"],
+      "matchPaths": ["**/antsi/**"],
+      "groupName": "antsi",
+      "commitMessageTopic": "Rust toolchain for `antsi`"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "matchPaths": ["**/hash-graph/**"],
       "groupName": "graph",
       "commitMessageTopic": "Rust toolchain for `graph`"
     }
