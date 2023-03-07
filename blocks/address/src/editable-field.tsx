@@ -9,7 +9,7 @@ import {
   TextFieldProps,
   useTheme,
 } from "@mui/material";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const EditableField = ({
   iconSize,
@@ -19,12 +19,21 @@ export const EditableField = ({
   sx,
   onBlur,
   ...props
-}: { iconSize: string; readonly?: boolean } & TextFieldProps) => {
+}: {
+  iconSize: string;
+  readonly?: boolean;
+} & TextFieldProps) => {
   const { transitions } = useTheme();
 
   const [hovered, setHovered] = useState(false);
-  const [editing, setEditing] = useState(!readonly && !value ? true : false);
+  const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!readonly && !value) {
+      setEditing(true);
+    }
+  }, []);
 
   return (
     <Box
