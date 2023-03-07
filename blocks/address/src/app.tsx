@@ -12,6 +12,8 @@ import {
   Collapse,
   Fade,
   Link,
+  outlinedInputClasses,
+  PopperProps,
   ThemeProvider,
   Typography,
   useMediaQuery,
