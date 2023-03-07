@@ -101,7 +101,7 @@ impl<C: AsClient> PostgresStore<C> {
                     },
                     intersected_temporal_axes.clone(),
                 )
-                    .await?;
+                .await?;
             }
 
             if current_resolve_depths.has_left_entity.incoming > 0 {
@@ -110,7 +110,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id),
                     &intersected_temporal_axes,
                 )
-                    .await?
+                .await?
                 {
                     let link_entity_interval = outgoing_link_entity
                         .metadata
@@ -127,7 +127,7 @@ impl<C: AsClient> PostgresStore<C> {
                             right_endpoint: EntityIdWithInterval {
                                 entity_id: outgoing_link_entity.metadata.record_id().entity_id,
                                 interval: link_entity_interval,
-                            }
+                            },
                         }),
                     });
 
@@ -147,7 +147,7 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         intersected_temporal_axes.clone(),
                     )
-                        .await?;
+                    .await?;
                 }
             }
 
@@ -157,7 +157,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id),
                     &intersected_temporal_axes,
                 )
-                    .await?
+                .await?
                 {
                     let link_entity_interval = incoming_link_entity
                         .metadata
@@ -174,7 +174,7 @@ impl<C: AsClient> PostgresStore<C> {
                             right_endpoint: EntityIdWithInterval {
                                 entity_id: incoming_link_entity.metadata.record_id().entity_id,
                                 interval: link_entity_interval,
-                            }
+                            },
                         }),
                     });
 
@@ -194,7 +194,7 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         intersected_temporal_axes.clone(),
                     )
-                        .await?;
+                    .await?;
                 }
             }
 
@@ -204,7 +204,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id),
                     &intersected_temporal_axes,
                 )
-                    .await?
+                .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
@@ -216,7 +216,7 @@ impl<C: AsClient> PostgresStore<C> {
                             right_endpoint: EntityIdWithInterval {
                                 entity_id: left_entity.metadata.record_id().entity_id,
                                 interval: variable_interval,
-                            }
+                            },
                         }),
                     });
 
@@ -236,7 +236,7 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         intersected_temporal_axes.clone(),
                     )
-                        .await?;
+                    .await?;
                 }
             }
 
@@ -246,7 +246,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id),
                     &intersected_temporal_axes,
                 )
-                    .await?
+                .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
@@ -258,7 +258,7 @@ impl<C: AsClient> PostgresStore<C> {
                             right_endpoint: EntityIdWithInterval {
                                 entity_id: right_entity.metadata.record_id().entity_id,
                                 interval: variable_interval,
-                            }
+                            },
                         }),
                     });
 
@@ -278,13 +278,13 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         intersected_temporal_axes.clone(),
                     )
-                        .await?;
+                    .await?;
                 }
             }
 
             Ok(())
         }
-            .boxed()
+        .boxed()
     }
 }
 
