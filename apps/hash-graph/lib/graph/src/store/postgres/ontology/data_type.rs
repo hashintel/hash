@@ -9,9 +9,8 @@ use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
-        crud::Read,
-        postgres::{TraversalContext, TraversalStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
+        PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::QueryTemporalAxes,
@@ -23,39 +22,15 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
         data_type_id: &OntologyTypeVertexId,
-        traversal_context: &mut TraversalContext,
-        subgraph: &mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: QueryTemporalAxes,
+        _traversal_context: &mut TraversalContext,
+        _subgraph: &mut Subgraph,
+        current_resolve_depths: GraphResolveDepths,
+        temporal_axes: QueryTemporalAxes,
     ) -> Result<(), QueryError> {
-        let traversal_status = traversal_context.ontology_traversal_map.update(
-            data_type_id,
-            current_resolve_depths,
-            temporal_axes.variable_interval().convert(),
-        );
-
-        #[expect(unused_assignments, unused_variables)]
-        let data_type = match traversal_status {
-            TraversalStatus::Unresolved(depths, interval) => {
-                // Depending on previous traversals, we may have to resolve with parameters
-                // different to those provided, so we update the resolve depths and the temporal
-                // axes.
-                //
-                // `TraversalMap::update` may return a higher resolve depth than the one
-                // requested, so we update the `resolve_depths` to the returned value.
-                current_resolve_depths = depths;
-                temporal_axes.set_variable_interval(interval.convert());
-                subgraph
-                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &temporal_axes)
-                    .await?
-            }
-            TraversalStatus::Resolved => return Ok(()),
-        };
-
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
         //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
