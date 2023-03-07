@@ -177,7 +177,7 @@ export const AddressCard = ({
           ) : null}
         </Stack>
 
-        {description || editingDescription || readonly ? (
+        {description || editingDescription ? (
           <EditableField
             value={descriptionValue}
             onChange={(event) => setDescriptionValue(event.target.value)}
@@ -198,7 +198,7 @@ export const AddressCard = ({
             }}
             readonly={readonly}
           />
-        ) : (
+        ) : !readonly ? (
           <Typography
             onClick={() => {
               setEditingDescription(true);
@@ -214,7 +214,7 @@ export const AddressCard = ({
             Click here to add a description or more detailed information
             <FontAwesomeIcon icon={faPenToSquare} sx={{ ml: 1 }} />
           </Typography>
-        )}
+        ) : null}
       </Stack>
 
       <Box
