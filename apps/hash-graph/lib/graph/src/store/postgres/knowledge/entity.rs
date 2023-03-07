@@ -20,7 +20,7 @@ use crate::{
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        postgres::{TraversalContext, TraversalStatus},
+        postgres::TraversalContext,
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -45,7 +45,7 @@ impl<C: AsClient> PostgresStore<C> {
         entity_vertex_id: EntityVertexId,
         traversal_context: &'a mut TraversalContext,
         subgraph: &'a mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
+        current_resolve_depths: GraphResolveDepths,
         temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
@@ -68,35 +68,12 @@ impl<C: AsClient> PostgresStore<C> {
             // Intersects the version interval of the entity with the variable axis's time
             // interval. We only want to resolve the entity further for the overlap of these two
             // intervals.
-            let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
+            let Some(intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
                 // `temporal_axes`. This implies, that the version interval of `entity` overlaps
                 // with `temporal_axes`. `variable_interval` returns `None` if there are
                 // no overlapping points, so this should never happen.
                 unreachable!("the version interval of the entity does not overlap with the variable axis's time interval");
-            };
-
-            let traversal_status = traversal_context.knowledge_traversal_map.update(
-                &entity_vertex_id,
-                current_resolve_depths,
-                intersected_temporal_axes.variable_interval().convert(),
-            );
-
-            match traversal_status {
-                TraversalStatus::Unresolved(depths, interval) => {
-                    // Depending on previous traversals, we may have to resolve with parameters
-                    // different to those provided, so we update the resolve depths and the temporal
-                    // axes.
-                    //
-                    // `TraversalMap::update` may return a higher resolve depth than the one
-                    // requested, so we update the `resolve_depths` to the returned value.
-                    current_resolve_depths = depths;
-                    // It may also return a different time interval than the one requested, so
-                    // we update the `intersected_temporal_axes`'s time interval to the returned
-                    // value.
-                    intersected_temporal_axes.set_variable_interval(interval.convert());
-                }
-                TraversalStatus::Resolved => return Ok(()),
             };
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
