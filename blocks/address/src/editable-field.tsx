@@ -51,8 +51,8 @@ export const EditableField = ({
           setEditing(false);
           onBlur?.(event);
         }}
-        onKeyDown={({ code }) => {
-          if (code === "Enter") {
+        onKeyDown={({ code, shiftKey }) => {
+          if (!shiftKey && code === "Enter") {
             inputRef.current?.blur();
           }
         }}
