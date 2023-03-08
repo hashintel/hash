@@ -37,7 +37,7 @@ const MODELS_BY_GROUP: { [key in ModelGroupName]: ModelGroup } = {
         id: "gpt-3.5-turbo",
         name: "GPT-3.5 Turbo",
         description:
-          "The best current language model for many use cases. Newer, faster and 10x cheaper than Davinci.",
+          "The best current language model for many use cases; newer, faster and 10x cheaper than Davinci.",
       },
       {
         id: "text-davinci-003",
