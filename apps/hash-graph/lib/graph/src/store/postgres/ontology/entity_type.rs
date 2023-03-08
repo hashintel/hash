@@ -1,8 +1,7 @@
-use std::{borrow::Borrow, future::Future, pin::Pin};
+use std::{borrow::Borrow, mem};
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
-use futures::FutureExt;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
@@ -29,203 +28,211 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
-    pub(crate) fn traverse_entity_type<'a>(
-        &'a self,
-        entity_type_id: &'a OntologyTypeVertexId,
-        traversal_context: &'a mut TraversalContext,
-        subgraph: &'a mut Subgraph,
-        current_resolve_depths: GraphResolveDepths,
+    pub(crate) async fn traverse_entity_type(
+        &self,
+        entity_type_ids: Vec<OntologyTypeVertexId>,
         temporal_axes: QueryTemporalAxes,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        async move {
-            let entity_type = subgraph
-                .get_or_read::<EntityTypeWithMetadata>(self, entity_type_id, &temporal_axes)
-                .await?;
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_context: &mut TraversalContext,
+        subgraph: &mut Subgraph,
+    ) -> Result<(), QueryError> {
+        let mut queue = entity_type_ids
+            .into_iter()
+            .map(|id| (id, graph_resolve_depths, temporal_axes.clone()))
+            .collect::<Vec<_>>();
 
-            // Collecting references before traversing further to avoid having a shared
-            // reference to the subgraph when borrowing it mutably
-            let property_type_ref_urls =
-                (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
-                    entity_type
-                        .inner()
-                        .property_type_references()
-                        .into_iter()
-                        .map(PropertyTypeReference::url)
-                        .cloned()
-                        .collect::<Vec<_>>()
-                });
+        while !queue.is_empty() {
+            for (entity_type_id, current_resolve_depths, temporal_axes) in mem::take(&mut queue) {
+                let entity_type = subgraph
+                    .get_or_read::<EntityTypeWithMetadata>(self, &entity_type_id, &temporal_axes)
+                    .await?;
 
-            let inherits_from_type_ref_urls = (current_resolve_depths.inherits_from.outgoing > 0)
+                // Collecting references before traversing further to avoid having a shared
+                // reference to the subgraph when borrowing it mutably
+                let property_type_ref_urls =
+                    (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
+                        entity_type
+                            .inner()
+                            .property_type_references()
+                            .into_iter()
+                            .map(PropertyTypeReference::url)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    });
+
+                let inherits_from_type_ref_urls =
+                    (current_resolve_depths.inherits_from.outgoing > 0).then(|| {
+                        entity_type
+                            .inner()
+                            .inherits_from()
+                            .all_of()
+                            .iter()
+                            .map(EntityTypeReference::url)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    });
+
+                let link_mappings = (current_resolve_depths.constrains_links_on.outgoing > 0
+                    || current_resolve_depths
+                        .constrains_link_destinations_on
+                        .outgoing
+                        > 0)
                 .then(|| {
                     entity_type
                         .inner()
-                        .inherits_from()
-                        .all_of()
-                        .iter()
-                        .map(EntityTypeReference::url)
-                        .cloned()
+                        .link_mappings()
+                        .into_iter()
+                        .map(|(entity_type_ref, destinations)| {
+                            (
+                                entity_type_ref.url().clone(),
+                                destinations
+                                    .into_iter()
+                                    .flatten()
+                                    .map(EntityTypeReference::url)
+                                    .cloned()
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
                         .collect::<Vec<_>>()
                 });
 
-            let link_mappings = (current_resolve_depths.constrains_links_on.outgoing > 0
-                || current_resolve_depths
-                    .constrains_link_destinations_on
-                    .outgoing
-                    > 0)
-            .then(|| {
-                entity_type
-                    .inner()
-                    .link_mappings()
-                    .into_iter()
-                    .map(|(entity_type_ref, destinations)| {
-                        (
-                            entity_type_ref.url().clone(),
-                            destinations
-                                .into_iter()
-                                .flatten()
-                                .map(EntityTypeReference::url)
-                                .cloned()
-                                .collect::<Vec<_>>(),
-                        )
-                    })
-                    .collect::<Vec<_>>()
-            });
-
-            if let Some(property_type_ref_urls) = property_type_ref_urls {
-                for property_type_ref_url in property_type_ref_urls {
-                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_url);
-
-                    subgraph.edges.insert(Edge::Ontology {
-                        vertex_id: entity_type_id.clone(),
-                        outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                            kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                            reversed: false,
-                            right_endpoint: property_type_vertex_id.clone(),
-                        }),
-                    });
-
-                    self.traverse_property_type(
-                        &property_type_vertex_id,
-                        traversal_context,
-                        subgraph,
-                        GraphResolveDepths {
-                            constrains_properties_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.constrains_properties_on.outgoing
-                                    - 1,
-                                ..current_resolve_depths.constrains_properties_on
-                            },
-                            ..current_resolve_depths
-                        },
-                        temporal_axes.clone(),
-                    )
-                    .await?;
-                }
-            }
-
-            if let Some(inherits_from_type_ref_urls) = inherits_from_type_ref_urls {
-                for inherits_from_type_ref_url in inherits_from_type_ref_urls {
-                    let inherits_from_type_vertex_id =
-                        OntologyTypeVertexId::from(inherits_from_type_ref_url);
-
-                    subgraph.edges.insert(Edge::Ontology {
-                        vertex_id: entity_type_id.clone(),
-                        outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                            kind: OntologyEdgeKind::InheritsFrom,
-                            reversed: false,
-                            right_endpoint: inherits_from_type_vertex_id.clone(),
-                        }),
-                    });
-
-                    self.traverse_entity_type(
-                        &inherits_from_type_vertex_id,
-                        traversal_context,
-                        subgraph,
-                        GraphResolveDepths {
-                            inherits_from: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.inherits_from.outgoing - 1,
-                                ..current_resolve_depths.inherits_from
-                            },
-                            ..current_resolve_depths
-                        },
-                        temporal_axes.clone(),
-                    )
-                    .await?;
-                }
-            }
-
-            if let Some(link_mappings) = link_mappings {
-                for (link_type_url, destination_type_urls) in link_mappings {
-                    if current_resolve_depths.constrains_links_on.outgoing > 0 {
-                        let link_type_vertex_id = OntologyTypeVertexId::from(link_type_url);
+                if let Some(property_type_ref_urls) = property_type_ref_urls {
+                    for property_type_ref_url in property_type_ref_urls {
+                        let property_type_vertex_id =
+                            OntologyTypeVertexId::from(property_type_ref_url);
 
                         subgraph.edges.insert(Edge::Ontology {
                             vertex_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsLinksOn,
+                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                                 reversed: false,
-                                right_endpoint: link_type_vertex_id.clone(),
+                                right_endpoint: property_type_vertex_id.clone(),
                             }),
                         });
 
-                        self.traverse_entity_type(
-                            &link_type_vertex_id,
+                        self.traverse_property_type(
+                            vec![property_type_vertex_id],
+                            temporal_axes.clone(),
+                            GraphResolveDepths {
+                                constrains_properties_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depths
+                                        .constrains_properties_on
+                                        .outgoing
+                                        - 1,
+                                    ..current_resolve_depths.constrains_properties_on
+                                },
+                                ..current_resolve_depths
+                            },
                             traversal_context,
                             subgraph,
+                        )
+                        .await?;
+                    }
+                }
+
+                if let Some(inherits_from_type_ref_urls) = inherits_from_type_ref_urls {
+                    for inherits_from_type_ref_url in inherits_from_type_ref_urls {
+                        let inherits_from_type_vertex_id =
+                            OntologyTypeVertexId::from(inherits_from_type_ref_url);
+
+                        subgraph.edges.insert(Edge::Ontology {
+                            vertex_id: entity_type_id.clone(),
+                            outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
+                                kind: OntologyEdgeKind::InheritsFrom,
+                                reversed: false,
+                                right_endpoint: inherits_from_type_vertex_id.clone(),
+                            }),
+                        });
+
+                        queue.push((
+                            inherits_from_type_vertex_id,
                             GraphResolveDepths {
-                                constrains_links_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depths.constrains_links_on.outgoing
-                                        - 1,
-                                    ..current_resolve_depths.constrains_links_on
+                                inherits_from: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depths.inherits_from.outgoing - 1,
+                                    ..current_resolve_depths.inherits_from
                                 },
                                 ..current_resolve_depths
                             },
                             temporal_axes.clone(),
-                        )
-                        .await?;
+                        ));
+                    }
+                }
 
-                        if current_resolve_depths
-                            .constrains_link_destinations_on
-                            .outgoing
-                            > 0
-                        {
-                            for destination_type_url in destination_type_urls {
-                                let destination_type_vertex_id =
-                                    OntologyTypeVertexId::from(destination_type_url);
+                if let Some(link_mappings) = link_mappings {
+                    for (link_type_url, destination_type_urls) in link_mappings {
+                        if current_resolve_depths.constrains_links_on.outgoing > 0 {
+                            let link_type_vertex_id = OntologyTypeVertexId::from(link_type_url);
 
-                                subgraph.edges.insert(Edge::Ontology {
-                                    vertex_id: entity_type_id.clone(),
-                                    outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                        kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                                        reversed: false,
-                                        right_endpoint: destination_type_vertex_id.clone(),
-                                    }),
-                                });
+                            subgraph.edges.insert(Edge::Ontology {
+                                vertex_id: entity_type_id.clone(),
+                                outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
+                                    kind: OntologyEdgeKind::ConstrainsLinksOn,
+                                    reversed: false,
+                                    right_endpoint: link_type_vertex_id.clone(),
+                                }),
+                            });
 
-                                self.traverse_entity_type(
-                                    &destination_type_vertex_id,
-                                    traversal_context,
-                                    subgraph,
-                                    GraphResolveDepths {
-                                        constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                                            outgoing: current_resolve_depths
-                                                .constrains_link_destinations_on
-                                                .outgoing
-                                                - 1,
-                                            ..current_resolve_depths.constrains_link_destinations_on
-                                        },
-                                        ..current_resolve_depths
+                            queue.push((
+                                link_type_vertex_id,
+                                GraphResolveDepths {
+                                    constrains_links_on: OutgoingEdgeResolveDepth {
+                                        outgoing: current_resolve_depths
+                                            .constrains_links_on
+                                            .outgoing
+                                            - 1,
+                                        ..current_resolve_depths.constrains_links_on
                                     },
-                                    temporal_axes.clone(),
-                                )
-                                .await?;
+                                    ..current_resolve_depths
+                                },
+                                temporal_axes.clone(),
+                            ));
+
+                            if current_resolve_depths
+                                .constrains_link_destinations_on
+                                .outgoing
+                                > 0
+                            {
+                                for destination_type_url in destination_type_urls {
+                                    let destination_type_vertex_id =
+                                        OntologyTypeVertexId::from(destination_type_url);
+
+                                    subgraph.edges.insert(Edge::Ontology {
+                                        vertex_id: entity_type_id.clone(),
+                                        outward_edge: OntologyOutwardEdge::ToOntology(
+                                            OutwardEdge {
+                                                kind:
+                                                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                                                reversed: false,
+                                                right_endpoint: destination_type_vertex_id.clone(),
+                                            },
+                                        ),
+                                    });
+
+                                    queue.push((
+                                        destination_type_vertex_id,
+                                        GraphResolveDepths {
+                                            constrains_link_destinations_on:
+                                                OutgoingEdgeResolveDepth {
+                                                    outgoing: current_resolve_depths
+                                                        .constrains_link_destinations_on
+                                                        .outgoing
+                                                        - 1,
+                                                    ..current_resolve_depths
+                                                        .constrains_link_destinations_on
+                                                },
+                                            ..current_resolve_depths
+                                        },
+                                        temporal_axes.clone(),
+                                    ));
+                                }
                             }
                         }
                     }
                 }
             }
-            Ok(())
         }
-        .boxed()
+
+        Ok(())
     }
 }
 
@@ -286,31 +293,33 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
+        let entity_types = Read::<EntityTypeWithMetadata>::read(self, filter, &temporal_axes)
+            .await?
+            .into_iter()
+            .map(|entity| (entity.vertex_id(time_axis), entity))
+            .collect();
+
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut traversal_context = TraversalContext::default();
+        subgraph.vertices.entity_types = entity_types;
 
-        for entity_type in
-            Read::<EntityTypeWithMetadata>::read(self, filter, &temporal_axes).await?
-        {
-            let vertex_id = entity_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, entity_type);
-
-            self.traverse_entity_type(
-                &vertex_id,
-                &mut traversal_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                temporal_axes.clone(),
-            )
-            .await?;
-
-            subgraph.roots.insert(vertex_id.into());
+        for vertex_id in subgraph.vertices.entity_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
         }
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_entity_type(
+            subgraph.vertices.entity_types.keys().cloned().collect(),
+            subgraph.temporal_axes.resolved.clone(),
+            subgraph.depths,
+            &mut TraversalContext,
+            &mut subgraph,
+        )
+        .await?;
 
         Ok(subgraph)
     }
