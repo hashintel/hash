@@ -139,7 +139,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Fade in={true || hovered || inputFocused || animatingIn || animatingOut}>
+      <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
           <Link
             href="https://blockprotocol.org/@hash/blocks/ai-text"
