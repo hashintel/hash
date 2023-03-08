@@ -6,7 +6,6 @@ import {
   Fade,
   ImageList,
   ImageListItem,
-  Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
@@ -18,31 +17,30 @@ import { ImageIcon } from "../../icons/image";
 import { SquareDashedCirclePlusIcon } from "../../icons/square-dashed-circle-plus";
 import { ImageObject } from "../generate-image";
 
-const fileUrlKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
+// const fileUrlKey =
+//   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
 
 const IMAGE_SIZE = 182;
 const IMAGE_LIST_GAP = 30;
 
-const getImageDimensionsAndSize = async (url: string) => {
-  const response = await fetch(url);
-  const contentLength = response.headers.get("content-length");
-  const img = new Image();
-  img.src = url;
-  await img.decode();
+// const getImageDimensionsAndSize = async (url: string) => {
+//   const response = await fetch(url);
+//   const contentLength = response.headers.get("content-length");
+//   const img = new Image();
+//   img.src = url;
+//   await img.decode();
 
-  const size = parseInt(contentLength ?? "0", 10);
-  const unitSize = size >= 1048576 ? 1048576 : 1024;
-  const unitName = size >= 1048576 ? "MB" : "KB";
-  const sizeString = `${Math.floor(size / unitSize)}${unitName}`;
-  return {
-    width: img.naturalWidth,
-    height: img.naturalHeight,
-    size: sizeString,
-  };
-};
+//   const size = parseInt(contentLength ?? "0", 10);
+//   const unitSize = size >= 1048576 ? 1048576 : 1024;
+//   const unitName = size >= 1048576 ? "MB" : "KB";
+//   const sizeString = `${Math.floor(size / unitSize)}${unitName}`;
+//   return {
+//     width: img.naturalWidth,
+//     height: img.naturalHeight,
+//     size: sizeString,
+//   };
+// };
 
-// @todo reuse repeated styles
 export const ImagePreview = ({
   onConfirm,
   onDiscard,
@@ -58,11 +56,11 @@ export const ImagePreview = ({
 }) => {
   const [selectedImageEntity, setSelectedImageEntity] =
     useState<RemoteFileEntity | null>(null);
-  const [selectedImageMetadata, setSelectedImageMetadata] = useState<{
-    size: string;
-    width: number;
-    height: number;
-  } | null>(null);
+  // const [selectedImageMetadata, setSelectedImageMetadata] = useState<{
+  //   size: string;
+  //   width: number;
+  //   height: number;
+  // } | null>(null);
   const [imageListCols, setImageListCols] = useState(0);
   const [imageSize, setImageSize] = useState(0);
 
@@ -142,15 +140,15 @@ export const ImagePreview = ({
   );
 
   useEffect(() => {
-    const url = selectedImageEntity?.properties[fileUrlKey];
+    // const url = selectedImageEntity?.properties[fileUrlKey];
 
-    if (url) {
-      void getImageDimensionsAndSize(url).then((imageMetadata) => {
-        setSelectedImageMetadata(imageMetadata);
-      });
-    } else {
-      setSelectedImageMetadata(null);
-    }
+    // if (url) {
+    //   void getImageDimensionsAndSize(url).then((imageMetadata) => {
+    //     setSelectedImageMetadata(imageMetadata);
+    //   });
+    // } else {
+    //   setSelectedImageMetadata(null);
+    // }
 
     calculateSelectedImageTransition();
   }, [selectedImageEntity, calculateSelectedImageTransition]);
@@ -353,7 +351,7 @@ export const ImagePreview = ({
               gap={isMobile ? 6 : 9.75}
             >
               <Stack gap={3}>
-                <Stack gap={0.75}>
+                {/* <Stack gap={0.75}>
                   <Typography
                     sx={{
                       color: ({ palette }) => palette.gray[60],
@@ -379,7 +377,7 @@ export const ImagePreview = ({
                   ) : (
                     <Skeleton height={19} />
                   )}
-                </Stack>
+                </Stack> */}
 
                 <Stack gap={0.75}>
                   <Typography
@@ -394,7 +392,17 @@ export const ImagePreview = ({
                     Image Dimensions
                   </Typography>
 
-                  {selectedImageMetadata ? (
+                  <Typography
+                    sx={{
+                      color: ({ palette }) => palette.gray[60],
+                      fontSize: 16,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    1024 x 1024 pixels
+                  </Typography>
+
+                  {/* {selectedImageMetadata ? (
                     <Typography
                       sx={{
                         color: ({ palette }) => palette.gray[60],
@@ -407,7 +415,7 @@ export const ImagePreview = ({
                     </Typography>
                   ) : (
                     <Skeleton height={19} />
-                  )}
+                  )} */}
                 </Stack>
 
                 <Stack gap={0.75}>
