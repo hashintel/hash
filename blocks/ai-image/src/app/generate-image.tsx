@@ -1,9 +1,12 @@
 import { RemoteFileEntity } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
+import { Button, TextField } from "@hashintel/design-system";
+import { inputBaseClasses, Typography } from "@mui/material";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { generatedLinkKey } from "../app";
+import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
 import { ImagePreview } from "./generate-image/image-preview";
 
@@ -22,6 +25,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { serviceModule } = useServiceBlockModule(blockRootRef);
+
+  const initialPromptText = blockEntity.properties[promptKey];
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,7 +66,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const generateAndUploadImages = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
-      if (loading) {
+      if (loading || promptText.trim().length === 0) {
         return;
       }
 
@@ -130,82 +135,79 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       ref={blockRootRef}
       style={{ fontFamily: "colfax-web", fontWeight: 400 }}
     >
-      <link rel="stylesheet" href="https://use.typekit.net/igj4jff.css" />
       <form onSubmit={generateAndUploadImages}>
-        <label>
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>
-            DESCRIBE THE IMAGE TO GENERATE
-          </div>
-          <input
-            onChange={(event) => setPromptText(event.target.value)}
-            placeholder="Enter a prompt to generate images"
-            required
-            ref={inputRef}
-            style={{
-              border: "1px solid rgba(235, 242, 247, 1)",
-              borderRadius: 10,
-              boxShadow:
-                "0px 4px 11px rgba(39, 50, 86, 0.04), 0px 2.59259px 6.44213px rgba(39, 50, 86, 0.08), 0px 0.5px 1px rgba(39, 50, 86, 0.15)",
+        <TextField
+          onChange={(event) => setPromptText(event.target.value)}
+          placeholder="Enter a prompt to generate image, and hit enter"
+          required
+          ref={inputRef}
+          sx={{
+            maxWidth: 580,
+            width: 1,
+            [`& .${inputBaseClasses.input}`]: {
+              minHeight: "unset",
               fontSize: 16,
-              fontFamily: "colfax-web",
-              marginRight: -14,
-              height: 54,
-              padding: "0 31px 0 16px",
-              width: 320,
-              maxWidth: "100%",
-            }}
-            value={promptText}
-          />
-        </label>
-        {promptText.trim().length > 0 && (
-          <button
-            disabled={loading}
-            style={{
-              background: loading
-                ? "#0059A5"
-                : images
-                ? "rgba(221, 231, 240, 1)"
-                : "#0775E3",
-              borderRadius: 10,
-              boxShadow:
-                "0px 4px 11px rgba(39, 50, 86, 0.04), 0px 2.59259px 6.44213px rgba(39, 50, 86, 0.08), 0px 0.5px 1px rgba(39, 50, 86, 0.15)",
-              color: loading
-                ? "rgba(180, 226, 253, 1)"
-                : images
-                ? "rgba(117, 138, 161, 1)"
-                : "white",
-              cursor: "pointer",
-              border: "none",
-              fontWeight: 600,
-              fontSize: 14,
-              height: 55,
-              padding: "0px 15px",
-              position: "relative",
-            }}
-            type="submit"
-          >
-            {loading
-              ? "GENERATING ..."
-              : uploadInProgress
-              ? "UPLOADING..."
-              : images
-              ? "GENERATED"
-              : "GENERATE IMAGE"}
-          </button>
-        )}
+              lineHeight: "21px",
+              paddingY: 2.125,
+              paddingLeft: 2.75,
+              paddingRight: 0,
+            },
+          }}
+          InputProps={{
+            endAdornment: (
+              <Button
+                type="submit"
+                variant="tertiary_quiet"
+                disabled={loading || uploadInProgress}
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1,
+                  color: ({ palette }) => palette.blue[70],
+                  textTransform: "uppercase",
+                  height: 1,
+                  width: 1,
+                  maxWidth: 168,
+                  mr: 0.25,
+                  minHeight: 51,
+                }}
+              >
+                {loading ? (
+                  "GENERATING ..."
+                ) : uploadInProgress ? (
+                  "UPLOADING ..."
+                ) : (
+                  <>
+                    Submit Prompt{" "}
+                    <ArrowTurnDownLeftIcon
+                      sx={{
+                        ml: 1,
+                        fontSize: 12,
+                      }}
+                    />
+                  </>
+                )}
+              </Button>
+            ),
+          }}
+          value={promptText}
+        />
+
         {errorMessage && (
-          <div
-            style={{
-              color: "red",
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.red[50],
               fontSize: 14,
               fontWeight: 500,
-              marginTop: 10,
+              marginTop: 1.25,
             }}
           >
             {errorMessage}
-          </div>
+          </Typography>
         )}
       </form>
+
       {images && (
         <ImagePreview
           onConfirm={(image) => {
