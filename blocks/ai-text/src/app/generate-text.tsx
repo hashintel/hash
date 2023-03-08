@@ -1,7 +1,6 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import { Button } from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
@@ -17,6 +16,7 @@ import { FormEvent, useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
+import { QuestionCircleIcon } from "../icons/question-circle";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import {
@@ -158,10 +158,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
             })}
           >
             Get help{" "}
-            <FontAwesomeIcon
-              icon={faQuestionCircle}
-              sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-            />
+            <QuestionCircleIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
           </Link>
 
           <Fade in={!generatedText}>
