@@ -217,7 +217,7 @@ export const ModelSelector = ({
                 {groupName}
               </Typography>
 
-              <Stack gap={1}>
+              <Stack>
                 {models.map(({ id, name, description }) => {
                   const active = id === model;
                   return (
@@ -229,6 +229,7 @@ export const ModelSelector = ({
                       }}
                       sx={({ palette }) => ({
                         display: "flex",
+                        mb: 1,
                         gap: 1.5,
                         ":hover": {
                           ".menu-item-icon": {
