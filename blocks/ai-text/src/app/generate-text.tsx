@@ -45,6 +45,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [selectorOpen, setSelectorOpen] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -137,7 +138,11 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
+      <Fade
+        in={
+          hovered || inputFocused || animatingIn || animatingOut || selectorOpen
+        }
+      >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
           <Link
             href="https://blockprotocol.org/@hash/blocks/ai-text"
@@ -165,7 +170,13 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
           <Fade in={!generatedText}>
             <Box display="flex" gap={1} alignItems="center">
-              <ModelSelector model={model} onModelChange={setModel} />
+              <ModelSelector
+                open={selectorOpen}
+                onOpen={() => setSelectorOpen(true)}
+                onClose={() => setSelectorOpen(false)}
+                model={model}
+                onModelChange={setModel}
+              />
             </Box>
           </Fade>
         </Box>

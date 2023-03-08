@@ -5,6 +5,7 @@ import {
   ListSubheader,
   menuItemClasses,
   outlinedInputClasses,
+  SelectProps,
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
@@ -73,11 +74,12 @@ const INPUT_PADDING_BOTTOM = 12;
 export const ModelSelector = ({
   model,
   onModelChange,
+  open,
+  ...props
 }: {
   model: string;
   onModelChange: (model: string) => void;
-}) => {
-  const [open, setOpen] = useState(false);
+} & Pick<SelectProps, "open" | "onOpen" | "onClose">) => {
   const [selectRef, setSelectRef] = useState<HTMLSelectElement | null>(null);
   const [menuRef, setMenuRef] = useState<HTMLUListElement | null>(null);
 
@@ -116,9 +118,8 @@ export const ModelSelector = ({
 
   return (
     <Select
+      {...props}
       open={open}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
       value={model}
       onChange={(event) => {
         onModelChange(event.target.value);
