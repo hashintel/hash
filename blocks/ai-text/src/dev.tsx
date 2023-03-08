@@ -45,7 +45,7 @@ const DevApp = () => {
         ],
       }}
       // @todo add dot-env support
-      blockProtocolApiKey="b10ck5.43430b0bbd608928f03b8fe5aff452c8.fe03fe6b-e8ed-4725-8eae-adcb890af804" // Set this to an API key when testing
+      blockProtocolApiKey={undefined} // Set this to an API key when testing
       blockProtocolSiteHost="https://blockprotocol.org" // update this to a recent staging deployment when testing
       debug
     />
