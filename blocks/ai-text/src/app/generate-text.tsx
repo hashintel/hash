@@ -193,6 +193,12 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             onChange={(event) => setPromptText(event.target.value)}
+            onKeyDown={async (event) => {
+              const { shiftKey, code } = event;
+              if (!shiftKey && code === "Enter") {
+                await onSubmit(event);
+              }
+            }}
             placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={inputRef}
