@@ -12,7 +12,7 @@ use crate::{
     },
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{vertices::SubgraphIndex, Subgraph},
+    subgraph::vertices::{VertexIndex, Vertices},
 };
 
 pub trait VertexId {
@@ -43,38 +43,42 @@ impl VertexId for OntologyTypeVertexId {
     }
 }
 
-impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
+impl VertexIndex<DataTypeWithMetadata> for OntologyTypeVertexId {
+    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a DataTypeWithMetadata> {
+        vertices.data_types.get(self)
+    }
+
+    fn vertices_entry_mut<'a>(
         &self,
-        subgraph: &'a mut Subgraph,
+        vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
-        subgraph.vertices.data_types.raw_entry_mut().from_key(self)
+        vertices.data_types.raw_entry_mut().from_key(self)
     }
 }
 
-impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
+impl VertexIndex<PropertyTypeWithMetadata> for OntologyTypeVertexId {
+    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a PropertyTypeWithMetadata> {
+        vertices.property_types.get(self)
+    }
+
+    fn vertices_entry_mut<'a>(
         &self,
-        subgraph: &'a mut Subgraph,
+        vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
-        subgraph
-            .vertices
-            .property_types
-            .raw_entry_mut()
-            .from_key(self)
+        vertices.property_types.raw_entry_mut().from_key(self)
     }
 }
 
-impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
+impl VertexIndex<EntityTypeWithMetadata> for OntologyTypeVertexId {
+    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a EntityTypeWithMetadata> {
+        vertices.entity_types.get(self)
+    }
+
+    fn vertices_entry_mut<'a>(
         &self,
-        subgraph: &'a mut Subgraph,
+        vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
-        subgraph
-            .vertices
-            .entity_types
-            .raw_entry_mut()
-            .from_key(self)
+        vertices.entity_types.raw_entry_mut().from_key(self)
     }
 }
 
@@ -107,12 +111,16 @@ impl VertexId for EntityVertexId {
     }
 }
 
-impl SubgraphIndex<Entity> for EntityVertexId {
-    fn subgraph_vertex_entry<'a>(
+impl VertexIndex<Entity> for EntityVertexId {
+    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {
+        vertices.entities.get(self)
+    }
+
+    fn vertices_entry_mut<'a>(
         &self,
-        subgraph: &'a mut Subgraph,
+        vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {
-        subgraph.vertices.entities.raw_entry_mut().from_key(self)
+        vertices.entities.raw_entry_mut().from_key(self)
     }
 }
 

@@ -10,10 +10,7 @@ use crate::{
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::Record,
-    subgraph::{
-        identifier::{EntityVertexId, GraphElementVertexId, OntologyTypeVertexId},
-        Subgraph,
-    },
+    subgraph::identifier::{EntityVertexId, GraphElementVertexId, OntologyTypeVertexId},
 };
 
 #[derive(Default, Debug)]
@@ -24,14 +21,19 @@ pub struct Vertices {
     pub entities: HashMap<EntityVertexId, Entity>,
 }
 
-/// Used for index operations on a mutable [`Subgraph`].
+/// Used for index operations on the [`Vertices`] on a [`Subgraph`].
 ///
 /// Depending on `R`, the index operation will be performed on the respective collection of the
 /// subgraph.
-pub trait SubgraphIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementVertexId> {
+///
+/// [`Subgraph`]: crate::subgraph::Subgraph
+pub trait VertexIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementVertexId> {
+    /// Returns a shared reference to the [`Record`] vertex in the subgraph.
+    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a R>;
+
     /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
-    fn subgraph_vertex_entry<'a>(
+    fn vertices_entry_mut<'a>(
         &self,
-        subgraph: &'a mut Subgraph,
+        vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, R::VertexId, R, RandomState>;
 }

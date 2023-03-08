@@ -14,7 +14,7 @@ use crate::{
         edges::{Edges, GraphResolveDepths},
         identifier::GraphElementVertexId,
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
-        vertices::{SubgraphIndex, Vertices},
+        vertices::{VertexIndex, Vertices},
     },
 };
 
@@ -46,15 +46,19 @@ impl Subgraph {
         }
     }
 
-    fn entry<R: Record>(
+    fn vertex_entry_mut<R: Record>(
         &mut self,
-        vertex_id: &impl SubgraphIndex<R>,
+        vertex_id: &R::VertexId,
     ) -> RawEntryMut<R::VertexId, R, RandomState> {
-        vertex_id.subgraph_vertex_entry(self)
+        vertex_id.vertices_entry_mut(&mut self.vertices)
+    }
+
+    pub fn get_vertex<R: Record>(&self, vertex_id: &R::VertexId) -> Option<&R> {
+        vertex_id.vertices_entry(&self.vertices)
     }
 
     pub fn insert<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R> {
-        match self.entry(vertex_id) {
+        match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
             RawEntryMut::Vacant(entry) => {
                 entry.insert(vertex_id.clone(), record);
@@ -77,7 +81,7 @@ impl Subgraph {
         vertex_id: &R::VertexId,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<&'r R, QueryError> {
-        Ok(match self.entry(vertex_id) {
+        Ok(match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),
             RawEntryMut::Vacant(entry) => {
                 entry
