@@ -1,7 +1,6 @@
 import { Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
-import { ArrowUpIcon } from "../../icons/arrow-up";
 import { TextIcon } from "../../icons/text";
 
 export const TextPreview = ({

@@ -119,7 +119,6 @@ export const ModelSelector = ({
       onClose={() => setOpen(false)}
       value={model}
       onChange={(event) => {
-        console.log(event.target.value);
         onModelChange(event.target.value);
       }}
       ref={(ref: HTMLSelectElement | null) => {

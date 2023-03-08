@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
