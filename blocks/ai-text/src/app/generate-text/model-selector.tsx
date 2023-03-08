@@ -5,12 +5,14 @@ import {
   ListSubheader,
   menuItemClasses,
   outlinedInputClasses,
+  selectClasses,
   SelectProps,
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
 
 import { AbstractAiIcon } from "../../icons/abstract-ai";
+import { CaretDownIcon } from "../../icons/caret-down";
 import { CheckIcon } from "../../icons/check";
 
 export const DEFAULT_MODEL_ID = "gpt-3.5-turbo";
@@ -188,9 +190,14 @@ export const ModelSelector = ({
           },
         },
       }}
+      IconComponent={CaretDownIcon}
       sx={{
         [`.${inputBaseClasses.root}`]: {
           boxShadow: "none !important",
+          [`& .${selectClasses.icon}`]: {
+            fontSize: 13,
+            color: ({ palette }) => palette.gray[40],
+          },
         },
         ...(open
           ? {
