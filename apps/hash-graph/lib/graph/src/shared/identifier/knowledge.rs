@@ -1,7 +1,4 @@
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -16,9 +13,8 @@ use crate::{
             VariableAxis,
         },
     },
-    knowledge::{Entity, EntityUuid},
+    knowledge::EntityUuid,
     provenance::OwnedById,
-    subgraph::{identifier::EntityVertexId, vertices::SubgraphIndex, Subgraph},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -118,13 +114,4 @@ impl EntityEditionId {
 pub struct EntityRecordId {
     pub entity_id: EntityId,
     pub edition_id: EntityEditionId,
-}
-
-impl SubgraphIndex<Entity> for EntityVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
-        subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
 }

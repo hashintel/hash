@@ -1,19 +1,9 @@
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    error::Error,
-    fmt,
-    fmt::Display,
-};
+use std::{error::Error, fmt, fmt::Display};
 
 use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
-
-use crate::{
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{identifier::OntologyTypeVertexId, vertices::SubgraphIndex, Subgraph},
-};
 
 #[derive(
     Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
@@ -84,40 +74,5 @@ impl From<OntologyTypeRecordId> for VersionedUrl {
             base_url: record_id.base_url,
             version: record_id.version.inner(),
         }
-    }
-}
-
-impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
-        subgraph.vertices.data_types.raw_entry_mut().from_key(self)
-    }
-}
-
-impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
-        subgraph
-            .vertices
-            .property_types
-            .raw_entry_mut()
-            .from_key(self)
-    }
-}
-
-impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
-        subgraph
-            .vertices
-            .entity_types
-            .raw_entry_mut()
-            .from_key(self)
     }
 }

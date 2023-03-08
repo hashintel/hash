@@ -1,11 +1,18 @@
+use std::collections::hash_map::{RandomState, RawEntryMut};
+
 use serde::Serialize;
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
-use crate::identifier::{
-    knowledge::EntityId,
-    ontology::OntologyTypeVersion,
-    time::{Timestamp, VariableAxis},
+use crate::{
+    identifier::{
+        knowledge::EntityId,
+        ontology::OntologyTypeVersion,
+        time::{Timestamp, VariableAxis},
+    },
+    knowledge::Entity,
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    subgraph::{vertices::SubgraphIndex, Subgraph},
 };
 
 pub trait VertexId {
@@ -36,6 +43,41 @@ impl VertexId for OntologyTypeVertexId {
     }
 }
 
+impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeVertexId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
+        subgraph.vertices.data_types.raw_entry_mut().from_key(self)
+    }
+}
+
+impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeVertexId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
+        subgraph
+            .vertices
+            .property_types
+            .raw_entry_mut()
+            .from_key(self)
+    }
+}
+
+impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeVertexId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
+        subgraph
+            .vertices
+            .entity_types
+            .raw_entry_mut()
+            .from_key(self)
+    }
+}
+
 impl From<VersionedUrl> for OntologyTypeVertexId {
     fn from(url: VersionedUrl) -> Self {
         Self {
@@ -62,6 +104,15 @@ impl VertexId for EntityVertexId {
 
     fn revision_id(&self) -> Self::RevisionId {
         self.revision_id
+    }
+}
+
+impl SubgraphIndex<Entity> for EntityVertexId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
+        subgraph.vertices.entities.raw_entry_mut().from_key(self)
     }
 }
 
