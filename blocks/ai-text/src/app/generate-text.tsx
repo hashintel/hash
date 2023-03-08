@@ -4,10 +4,12 @@ import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
+  buttonBaseClasses,
   Collapse,
   Fade,
   inputBaseClasses,
   Link,
+  outlinedInputClasses,
   TextField,
   Typography,
 } from "@mui/material";
@@ -17,6 +19,7 @@ import { contentKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
+import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import { TextPreview } from "./generate-text/text-preview";
 
 export const promptKey: keyof RootEntity["properties"] =
@@ -193,7 +196,8 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
             placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={inputRef}
-            sx={{
+            disabled={loading}
+            sx={({ palette }) => ({
               maxWidth: 580,
               width: 1,
               [`& .${inputBaseClasses.input}`]: {
@@ -204,30 +208,43 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
                 paddingLeft: 2.75,
                 paddingRight: 0,
               },
-            }}
+              [`& .${inputBaseClasses.disabled}`]: {
+                background: palette.gray[10],
+                color: palette.gray[70],
+              },
+              [`& .${outlinedInputClasses.notchedOutline}`]: {
+                border: `1px solid ${palette.gray[20]}`,
+              },
+            })}
             InputProps={{
               endAdornment: (
                 <Button
                   type="submit"
                   variant="tertiary_quiet"
-                  disabled={loading || !promptText.trim().length}
-                  sx={{
+                  disabled={loading}
+                  sx={({ palette }) => ({
                     alignSelf: "flex-end",
                     fontSize: 13,
                     fontWeight: 700,
                     letterSpacing: "-0.02em",
                     lineHeight: 1,
-                    color: ({ palette }) => palette.blue[70],
+                    color: palette.blue[70],
                     textTransform: "uppercase",
-                    height: 1,
+                    height: 55,
                     width: 1,
+                    maxHeight: 55,
                     maxWidth: 168,
-                    mr: 0.25,
                     minHeight: 51,
-                  }}
+                    [`&.${buttonBaseClasses.disabled}`]: {
+                      color: palette.common.black,
+                      background: "none",
+                    },
+                  })}
                 >
                   {loading ? (
-                    "GENERATING ..."
+                    <>
+                      GENERATING <BouncingDotsLoader />
+                    </>
                   ) : (
                     <>
                       Submit Prompt{" "}
