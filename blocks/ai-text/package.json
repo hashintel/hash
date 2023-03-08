@@ -37,7 +37,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.1.0",
+    "block-scripts": "0.1.1",
     "eslint": "8.33.0",
     "mock-block-dock": "0.1.0",
     "react": "^18.2.0",

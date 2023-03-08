@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.1.0",
+    "block-scripts": "0.1.1",
     "mock-block-dock": "0.1.0",
     "prettier": "2.8.2",
     "react": "^18.2.0",
