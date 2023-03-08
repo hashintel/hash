@@ -9,11 +9,11 @@ use std::{
 };
 
 use crate::{
-    identifier::{
-        knowledge::EntityId,
-        time::{LeftClosedTemporalInterval, VariableAxis},
+    identifier::{knowledge::EntityId, time::LeftClosedTemporalInterval},
+    subgraph::{
+        identifier::{EdgeEndpoint, EntityIdWithInterval, OntologyTypeVertexId},
+        temporal_axes::VariableAxis,
     },
-    subgraph::identifier::{EdgeEndpoint, EntityIdWithInterval, OntologyTypeVertexId},
 };
 
 pub trait EdgeEndpointSet: IntoIterator<Item = Self::EdgeEndpoint> {

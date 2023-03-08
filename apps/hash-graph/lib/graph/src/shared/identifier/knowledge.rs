@@ -10,11 +10,11 @@ use crate::{
         account::AccountId,
         time::{
             DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
-            VariableAxis,
         },
     },
     knowledge::EntityUuid,
     provenance::OwnedById,
+    subgraph::temporal_axes::VariableAxis,
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

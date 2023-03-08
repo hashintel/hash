@@ -5,14 +5,13 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
 use crate::{
-    identifier::{
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{Timestamp, VariableAxis},
-    },
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::vertices::{VertexIndex, Vertices},
+    subgraph::{
+        temporal_axes::VariableAxis,
+        vertices::{VertexIndex, Vertices},
+    },
 };
 
 pub trait VertexId {

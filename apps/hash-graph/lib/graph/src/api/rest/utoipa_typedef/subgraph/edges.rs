@@ -8,14 +8,11 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{Timestamp, VariableAxis},
-    },
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     subgraph::{
         edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
         identifier::{EntityIdWithInterval, OntologyTypeVertexId},
+        temporal_axes::VariableAxis,
     },
 };
 

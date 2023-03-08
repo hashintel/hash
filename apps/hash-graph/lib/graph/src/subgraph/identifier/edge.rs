@@ -4,11 +4,9 @@ use utoipa::ToSchema;
 
 use crate::{
     identifier::{
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{LeftClosedTemporalInterval, VariableAxis},
+        knowledge::EntityId, ontology::OntologyTypeVersion, time::LeftClosedTemporalInterval,
     },
-    subgraph::identifier::OntologyTypeVertexId,
+    subgraph::{identifier::OntologyTypeVertexId, temporal_axes::VariableAxis},
 };
 
 pub trait EdgeEndpoint {
