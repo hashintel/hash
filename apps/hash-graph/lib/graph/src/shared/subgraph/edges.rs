@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{
-    identifier::{EdgeEndpointSet, EntityIdWithIntervalSet, VertexId},
-    subgraph::identifier::{EntityVertexId, OntologyTypeVertexId},
+    identifier::{EdgeEndpointSet, EntityIdWithIntervalSet},
+    subgraph::identifier::{EntityVertexId, OntologyTypeVertexId, VertexId},
 };
 
 mod edge;

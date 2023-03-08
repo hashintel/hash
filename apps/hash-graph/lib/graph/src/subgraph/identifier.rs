@@ -1,3 +1,3 @@
 mod vertex;
 
-pub use self::vertex::{EntityVertexId, OntologyTypeVertexId};
+pub use self::vertex::{EntityVertexId, OntologyTypeVertexId, VertexId};
