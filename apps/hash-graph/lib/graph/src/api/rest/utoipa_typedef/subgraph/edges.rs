@@ -12,11 +12,10 @@ use crate::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
         time::{Timestamp, VariableAxis},
-        EntityIdWithInterval,
     },
     subgraph::{
         edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
-        identifier::OntologyTypeVertexId,
+        identifier::{EntityIdWithInterval, OntologyTypeVertexId},
     },
 };
 

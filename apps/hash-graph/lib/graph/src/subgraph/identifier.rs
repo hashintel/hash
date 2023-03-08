@@ -1,3 +1,7 @@
+mod edge;
 mod vertex;
 
-pub use self::vertex::{EntityVertexId, OntologyTypeVertexId, VertexId};
+pub use self::{
+    edge::EntityIdWithInterval,
+    vertex::{EntityVertexId, OntologyTypeVertexId, VertexId},
+};

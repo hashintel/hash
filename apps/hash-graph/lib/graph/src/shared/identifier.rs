@@ -8,7 +8,7 @@ use std::{
     hash::BuildHasher,
 };
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
@@ -18,15 +18,8 @@ use crate::{
         ontology::OntologyTypeVersion,
         time::{LeftClosedTemporalInterval, VariableAxis},
     },
-    subgraph::identifier::{EntityVertexId, OntologyTypeVertexId},
+    subgraph::identifier::{EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId},
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityIdWithInterval {
-    pub entity_id: EntityId,
-    pub interval: LeftClosedTemporalInterval<VariableAxis>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(untagged)]
