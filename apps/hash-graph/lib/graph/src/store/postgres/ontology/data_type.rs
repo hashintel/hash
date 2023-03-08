@@ -89,7 +89,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         );
         subgraph.vertices.data_types = data_types;
 
-        for vertex_id in subgraph.vertices.entity_types.keys() {
+        for vertex_id in subgraph.vertices.data_types.keys() {
             subgraph.roots.insert(vertex_id.clone().into());
         }
 
