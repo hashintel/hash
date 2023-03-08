@@ -1,16 +1,12 @@
+mod edge;
+mod endpoint;
+mod kind;
+
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fmt::Debug,
     hash::Hash,
 };
-
-use crate::{
-    identifier::{EdgeEndpointSet, EntityIdWithIntervalSet},
-    subgraph::identifier::{EntityVertexId, OntologyTypeVertexId, VertexId},
-};
-
-mod edge;
-mod kind;
 
 pub use self::{
     edge::{KnowledgeGraphOutwardEdge, OntologyOutwardEdge, OutwardEdge},
@@ -18,6 +14,10 @@ pub use self::{
         EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
+};
+use crate::subgraph::{
+    edges::endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
+    identifier::{EntityVertexId, OntologyTypeVertexId, VertexId},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
