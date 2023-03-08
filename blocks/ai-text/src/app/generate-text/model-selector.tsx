@@ -174,6 +174,7 @@ export const ModelSelector = ({
             boxShadow: "none !important",
             background: "none !important",
           },
+          ...(open ? { background: "none !important" } : {}),
         },
       }}
       MenuProps={{
