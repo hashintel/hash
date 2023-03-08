@@ -10,9 +10,8 @@ use crate::{
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
-        crud::Read,
-        postgres::{TraversalContext, TraversalStatus},
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, EntityTypeStore, InsertionError,
+        PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{
@@ -35,32 +34,13 @@ impl<C: AsClient> PostgresStore<C> {
         entity_type_id: &'a OntologyTypeVertexId,
         traversal_context: &'a mut TraversalContext,
         subgraph: &'a mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: QueryTemporalAxes,
+        current_resolve_depths: GraphResolveDepths,
+        temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let traversal_status = traversal_context.ontology_traversal_map.update(
-                entity_type_id,
-                current_resolve_depths,
-                temporal_axes.variable_interval().convert(),
-            );
-
-            let entity_type = match traversal_status {
-                TraversalStatus::Unresolved(depths, interval) => {
-                    // Depending on previous traversals, we may have to resolve with parameters
-                    // different to those provided, so we update the resolve depths and the temporal
-                    // axes.
-                    //
-                    // `TraversalMap::update` may return a higher resolve depth than the one
-                    // requested, so we update the `resolve_depths` to the returned value.
-                    current_resolve_depths = depths;
-                    temporal_axes.set_variable_interval(interval.convert());
-                    subgraph
-                        .get_or_read::<EntityTypeWithMetadata>(self, entity_type_id, &temporal_axes)
-                        .await?
-                }
-                TraversalStatus::Resolved => return Ok(()),
-            };
+            let entity_type = subgraph
+                .get_or_read::<EntityTypeWithMetadata>(self, entity_type_id, &temporal_axes)
+                .await?;
 
             // Collecting references before traversing further to avoid having a shared
             // reference to the subgraph when borrowing it mutably
