@@ -77,14 +77,16 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       const { data, errors } = await (isTurbo
         ? serviceModule.openaiCompleteChat({
             data: {
-              max_tokens: 1000,
+              max_tokens: 4000 - promptText.length,
               messages: [{ role: "user", content: promptText }],
               model: "gpt-3.5-turbo",
             },
           })
         : serviceModule.openaiCompleteText({
             data: {
-              max_tokens: 1000,
+              max_tokens:
+                (model === "text-davinci-003" ? 4000 : 2000) -
+                promptText.length,
               model,
               prompt: promptText,
             },
