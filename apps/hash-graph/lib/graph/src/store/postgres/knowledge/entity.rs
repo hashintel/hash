@@ -55,6 +55,8 @@ impl<C: AsClient> PostgresStore<C> {
             .collect::<Vec<_>>();
 
         while !queue.is_empty() {
+            // TODO: We could re-use the memory here but we expect to batch the processing of this
+            //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
             for (entity_vertex_id, graph_resolve_depths, temporal_axes) in mem::take(&mut queue) {
                 let entity: &Entity = match entity_vertex_id.subgraph_vertex_entry(subgraph) {
                     RawEntryMut::Occupied(entry) => entry.into_mut(),

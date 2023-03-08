@@ -42,6 +42,8 @@ impl<C: AsClient> PostgresStore<C> {
             .collect::<Vec<_>>();
 
         while !queue.is_empty() {
+            // TODO: We could re-use the memory here but we expect to batch the processing of this
+            //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
             for (entity_type_id, current_resolve_depths, temporal_axes) in mem::take(&mut queue) {
                 let entity_type = subgraph
                     .get_or_read::<EntityTypeWithMetadata>(self, &entity_type_id, &temporal_axes)
