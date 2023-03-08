@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{identifier::OntologyTypeVertexId, Subgraph, SubgraphIndex},
+    subgraph::{identifier::OntologyTypeVertexId, vertices::SubgraphIndex, Subgraph},
 };
 
 #[derive(

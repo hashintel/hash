@@ -1,7 +1,7 @@
 use crate::{
     identifier::time::TimeAxis,
     store::query::{Filter, QueryPath},
-    subgraph::SubgraphIndex,
+    subgraph::vertices::SubgraphIndex,
 };
 
 /// A record stored in the [`store`].

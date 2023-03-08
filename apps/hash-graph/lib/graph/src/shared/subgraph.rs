@@ -4,7 +4,6 @@ use std::{
         HashSet,
     },
     fmt::Debug,
-    hash::Hash,
 };
 
 use error_stack::Result;
@@ -15,7 +14,7 @@ use crate::{
         edges::{Edges, GraphResolveDepths},
         identifier::GraphElementVertexId,
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
-        vertices::Vertices,
+        vertices::{SubgraphIndex, Vertices},
     },
 };
 
@@ -92,16 +91,4 @@ impl Subgraph {
             }
         })
     }
-}
-
-/// Used for index operations on a mutable [`Subgraph`].
-///
-/// Depending on `R`, the index operation will be performed on the respective collection of the
-/// subgraph.
-pub trait SubgraphIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementVertexId> {
-    /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, R::VertexId, R, RandomState>;
 }

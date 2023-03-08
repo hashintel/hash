@@ -18,7 +18,7 @@ use crate::{
     },
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
-    subgraph::{identifier::EntityVertexId, Subgraph, SubgraphIndex},
+    subgraph::{identifier::EntityVertexId, vertices::SubgraphIndex, Subgraph},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

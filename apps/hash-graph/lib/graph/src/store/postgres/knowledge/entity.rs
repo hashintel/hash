@@ -30,7 +30,8 @@ use crate::{
         identifier::{EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
-        Subgraph, SubgraphIndex,
+        vertices::SubgraphIndex,
+        Subgraph,
     },
 };
 
