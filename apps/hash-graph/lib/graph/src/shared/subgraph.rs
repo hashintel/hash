@@ -23,7 +23,6 @@ use crate::{
 };
 
 pub mod edges;
-pub mod query;
 pub mod temporal_axes;
 
 #[derive(Debug, Serialize, ToSchema)]
