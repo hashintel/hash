@@ -254,7 +254,7 @@ export const ImagePreview = ({
                 (imageSize + IMAGE_LIST_GAP) *
                   Math.ceil(images.length / imageListCols) -
                 IMAGE_LIST_GAP,
-              ...(selectedImageEntity
+              ...(selectedImageEntity && !animatingImageOut
                 ? {
                     height: selectedImageTransition?.imageSize,
                   }
