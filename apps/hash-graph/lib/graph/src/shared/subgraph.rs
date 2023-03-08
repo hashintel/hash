@@ -25,7 +25,6 @@ use crate::{
 pub mod edges;
 pub mod query;
 pub mod temporal_axes;
-pub mod vertices;
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SubgraphTemporalAxes {
