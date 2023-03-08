@@ -111,7 +111,8 @@ pub enum OntologyTypeReference<'a> {
 }
 
 impl OntologyTypeReference<'_> {
-    pub fn url(&self) -> &VersionedUrl {
+    #[must_use]
+    pub const fn url(&self) -> &VersionedUrl {
         match self {
             Self::EntityTypeReference(entity_type_ref) => entity_type_ref.url(),
             Self::PropertyTypeReference(property_type_ref) => property_type_ref.url(),
