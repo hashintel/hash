@@ -1,9 +1,9 @@
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createEntityType,
@@ -85,7 +85,7 @@ export const queryEntityTypesResolver: ResolverFn<
     },
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -136,7 +136,7 @@ export const getEntityTypeResolver: ResolverFn<
     },
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const updateEntityTypeResolver: ResolverFn<

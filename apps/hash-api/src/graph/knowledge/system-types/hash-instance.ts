@@ -6,7 +6,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -103,7 +102,7 @@ export const getHashInstance: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
+      getRoots(subgraph as Subgraph<EntityRootType>),
     );
 
   if (entities.length > 1) {

@@ -31,7 +31,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -218,7 +217,7 @@ describe("Entity CRU", () => {
         },
       })
       .then(({ data }) =>
-        getRoots(mapSubgraph(data) as Subgraph<EntityRootType>).filter(
+        getRoots(data as Subgraph<EntityRootType>).filter(
           (entity) =>
             extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,

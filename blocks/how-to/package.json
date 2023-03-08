@@ -1,6 +1,6 @@
 {
   "name": "@blocks/how-to",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Describe a task or process via a list of steps ",
   "keywords": [
     "blockprotocol",
@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.1.0",
+    "block-scripts": "0.1.1",
     "mock-block-dock": "0.1.0",
     "prettier": "2.8.2",
     "react": "^18.2.0",
@@ -55,8 +55,8 @@
     "displayName": "How To",
     "examples": [
       {
-        "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/": "Boil water",
-        "https://blockprotocol-87igvkbkw.stage.hash.ai/@alfie/types/property-type/description/": "Bring the clear water to a rolling boil for 1 minute"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Boil water",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "Bring the clear water to a rolling boil for 1 minute"
       }
     ],
     "icon": "public/book-arrow-right.svg",
