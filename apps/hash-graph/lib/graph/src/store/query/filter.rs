@@ -431,6 +431,7 @@ mod tests {
         knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
+        subgraph::identifier::DataTypeVertexId,
     };
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
@@ -474,7 +475,7 @@ mod tests {
 
     #[test]
     fn for_ontology_type_version_id() {
-        let url = OntologyTypeVertexId {
+        let url = DataTypeVertexId {
             base_id: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )

@@ -778,7 +778,7 @@ mod tests {
             identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
             knowledge::EntityUuid,
             provenance::OwnedById,
-            subgraph::identifier::OntologyTypeVertexId,
+            subgraph::identifier::{DataTypeVertexId},
         };
 
         #[test]
@@ -816,7 +816,7 @@ mod tests {
 
         #[test]
         fn for_ontology_type_record_id() {
-            let url = OntologyTypeVertexId {
+            let url = DataTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )

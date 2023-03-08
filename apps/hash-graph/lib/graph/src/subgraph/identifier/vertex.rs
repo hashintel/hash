@@ -162,17 +162,17 @@ impl VertexId for OntologyTypeVertexId {
 
     fn base_id(&self) -> &Self::BaseId {
         match self {
-            OntologyTypeVertexId::DataType(id) => id.base_id(),
-            OntologyTypeVertexId::PropertyType(id) => id.base_id(),
-            OntologyTypeVertexId::EntityType(id) => id.base_id(),
+            Self::DataType(id) => id.base_id(),
+            Self::PropertyType(id) => id.base_id(),
+            Self::EntityType(id) => id.base_id(),
         }
     }
 
     fn revision_id(&self) -> Self::RevisionId {
         match self {
-            OntologyTypeVertexId::DataType(id) => id.revision_id(),
-            OntologyTypeVertexId::PropertyType(id) => id.revision_id(),
-            OntologyTypeVertexId::EntityType(id) => id.revision_id(),
+            Self::DataType(id) => id.revision_id(),
+            Self::PropertyType(id) => id.revision_id(),
+            Self::EntityType(id) => id.revision_id(),
         }
     }
 }
