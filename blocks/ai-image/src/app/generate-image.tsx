@@ -1,11 +1,20 @@
 import { RemoteFileEntity } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { Button, TextField } from "@hashintel/design-system";
-import { Box, Collapse, inputBaseClasses, Typography } from "@mui/material";
+import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
+import { Button, FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import {
+  Box,
+  Collapse,
+  Fade,
+  inputBaseClasses,
+  Link,
+  Typography,
+} from "@mui/material";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { generatedLinkKey } from "../app";
+import { AbstractAiIcon } from "../icons/abstract-ai-icon";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
 import { ImagePreview } from "./generate-image/image-preview";
@@ -34,6 +43,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
     inputRef.current?.focus();
   }, []);
 
+  const [inputFocused, setInputFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [promptText, setPromptText] = useState(initialPromptText ?? "");
@@ -138,7 +149,72 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
     <Box
       ref={blockRootRef}
       style={{ fontFamily: "colfax-web", fontWeight: 400 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
+      <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
+        <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
+          <Link
+            href="https://blockprotocol.org/@hash/blocks/ai-image"
+            target="_blank"
+            variant="regularTextLabels"
+            sx={({ palette }) => ({
+              display: "inline-flex",
+              alignItems: "center",
+              textDecoration: "none",
+              fontSize: 15,
+              lineHeight: 1,
+              letterSpacing: -0.02,
+              marginBottom: 1.5,
+              whiteSpace: "nowrap",
+              color: palette.gray[50],
+              fill: palette.gray[40],
+              ":hover": {
+                color: palette.gray[60],
+                fill: palette.gray[50],
+              },
+            })}
+          >
+            Get help{" "}
+            <FontAwesomeIcon
+              icon={faQuestionCircle}
+              sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
+            />
+          </Link>
+
+          <Typography
+            variant="regularTextLabels"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              textDecoration: "none",
+              fontSize: 15,
+              lineHeight: 1,
+              letterSpacing: -0.02,
+              marginBottom: 1.5,
+              flexWrap: "wrap",
+              color: ({ palette }) => palette.gray[50],
+            }}
+          >
+            <Box component="span" sx={{ mr: 1 }}>
+              Using
+            </Box>
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                color: ({ palette }) => palette.gray[60],
+                mr: 1,
+              }}
+            >
+              <AbstractAiIcon sx={{ fontSize: 16, mr: 0.375 }} />
+              OpenAI DALL-E
+            </Box>
+          </Typography>
+        </Box>
+      </Fade>
+
       <Collapse
         in={!images?.length && !animatingIn}
         onEntered={() => setAnimatingOut(false)}
@@ -146,6 +222,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       >
         <form onSubmit={generateAndUploadImages}>
           <TextField
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             onChange={(event) => setPromptText(event.target.value)}
             placeholder="Enter a prompt to generate image, and hit enter"
             required
