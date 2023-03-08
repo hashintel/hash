@@ -16,7 +16,7 @@ use crate::{
             Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdge,
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
-        identifier::OntologyTypeVertexId,
+        identifier::{DataTypeVertexId, OntologyTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -30,7 +30,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_property_type(
         &self,
-        property_type_ids: Vec<OntologyTypeVertexId>,
+        property_type_ids: Vec<PropertyTypeVertexId>,
         temporal_axes: QueryTemporalAxes,
         graph_resolve_depths: GraphResolveDepths,
         traversal_context: &mut TraversalContext,
@@ -79,14 +79,16 @@ impl<C: AsClient> PostgresStore<C> {
 
                 if let Some(data_type_ref_urls) = data_type_ref_urls {
                     for data_type_ref in data_type_ref_urls {
-                        let data_type_vertex_id = OntologyTypeVertexId::from(data_type_ref);
+                        let data_type_vertex_id = DataTypeVertexId::from(data_type_ref);
 
                         subgraph.edges.insert(Edge::Ontology {
-                            vertex_id: property_type_id.clone(),
+                            vertex_id: OntologyTypeVertexId::PropertyType(property_type_id.clone()),
                             outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsValuesOn,
                                 reversed: false,
-                                right_endpoint: data_type_vertex_id.clone(),
+                                right_endpoint: OntologyTypeVertexId::DataType(
+                                    data_type_vertex_id.clone(),
+                                ),
                             }),
                         });
 
@@ -111,14 +113,16 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(property_type_ref_urls) = property_type_ref_urls {
                     for property_type_ref_url in property_type_ref_urls {
                         let property_type_vertex_id =
-                            OntologyTypeVertexId::from(property_type_ref_url);
+                            PropertyTypeVertexId::from(property_type_ref_url);
 
                         subgraph.edges.insert(Edge::Ontology {
-                            vertex_id: property_type_id.clone(),
+                            vertex_id: OntologyTypeVertexId::PropertyType(property_type_id.clone()),
                             outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                                 reversed: false,
-                                right_endpoint: property_type_vertex_id.clone(),
+                                right_endpoint: OntologyTypeVertexId::PropertyType(
+                                    property_type_vertex_id.clone(),
+                                ),
                             }),
                         });
 

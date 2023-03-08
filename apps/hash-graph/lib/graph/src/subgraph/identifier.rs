@@ -3,5 +3,5 @@ mod vertex;
 
 pub use self::{
     edge::{EdgeEndpoint, EntityIdWithInterval},
-    vertex::{EntityVertexId, GraphElementVertexId, OntologyTypeVertexId, VertexId},
+    vertex::{EntityVertexId, GraphElementVertexId, DataTypeVertexId, PropertyTypeVertexId, EntityTypeVertexId, OntologyTypeVertexId, VertexId},
 };
