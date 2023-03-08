@@ -2,8 +2,9 @@ import { MenuItem, Select } from "@hashintel/design-system";
 import {
   Box,
   inputBaseClasses,
+  ListSubheader,
+  menuItemClasses,
   outlinedInputClasses,
-  Stack,
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
@@ -78,7 +79,7 @@ export const ModelSelector = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [selectRef, setSelectRef] = useState<HTMLSelectElement | null>(null);
-  const [menuRef, setMenuRef] = useState<HTMLDivElement | null>(null);
+  const [menuRef, setMenuRef] = useState<HTMLUListElement | null>(null);
 
   const [selectedModel, selectedGroup] = useMemo(() => {
     const groups = Object.values(MODELS_BY_GROUP);
@@ -175,8 +176,14 @@ export const ModelSelector = ({
       MenuProps={{
         PaperProps: paperProps,
         MenuListProps: {
+          ref: (ref: HTMLUListElement | null) => {
+            if (ref) {
+              setMenuRef(ref);
+            }
+          },
           sx: {
             padding: 0,
+            pb: 1,
           },
         },
       }}
@@ -192,131 +199,117 @@ export const ModelSelector = ({
           : {}),
       }}
     >
-      <Box
-        ref={(ref: HTMLDivElement | null) => {
-          if (ref) {
-            setMenuRef(ref);
-          }
-        }}
-      >
-        {Object.values(MODELS_BY_GROUP).map(
-          ({ name: groupName, icon, models }) => (
-            <Box key={groupName}>
-              <Typography
+      {Object.values(MODELS_BY_GROUP)
+        .map(({ name: groupName, icon, models }) => [
+          <ListSubheader key={groupName}>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                fontSize: 12,
+                lineHeight: 1.3,
+                letterSpacing: "0.03em",
+                textTransform: "uppercase",
+                color: ({ palette }) => palette.gray[50],
+                mb: 1,
+                pt: 2,
+                paddingBottom: 0,
+              }}
+            >
+              {groupName}
+            </Typography>
+          </ListSubheader>,
+          ...models.map(({ id, name, description }) => {
+            const active = id === model;
+            return (
+              <MenuItem
+                key={id}
+                value={id}
                 sx={{
-                  fontWeight: 500,
-                  fontSize: 12,
-                  lineHeight: 1.3,
-                  letterSpacing: "0.03em",
-                  textTransform: "uppercase",
-                  color: ({ palette }) => palette.gray[50],
+                  display: "flex",
                   mb: 1,
-                  padding: 2,
-                  paddingBottom: 0,
+                  gap: 1.5,
+                  [`&.${menuItemClasses.selected}`]: {
+                    background: "none",
+                  },
+                  [`&.${menuItemClasses.selected}:hover`]: {
+                    background: "rgba(7, 117, 227, 0.08)",
+                  },
                 }}
               >
-                {groupName}
-              </Typography>
+                <Box
+                  className="menu-item-icon"
+                  sx={({ palette }) => ({
+                    paddingX: 1.125,
+                    fontSize: 22,
+                    color: active ? palette.blue[70] : palette.gray[50],
+                    [`.${menuItemClasses.root}:hover &`]: {
+                      color: palette.blue[50],
+                    },
+                  })}
+                >
+                  {active ? <CheckIcon /> : icon}
+                </Box>
 
-              <Stack>
-                {models.map(({ id, name, description }) => {
-                  const active = id === model;
-                  return (
-                    <MenuItem
-                      key={id}
-                      onClick={() => {
-                        onModelChange(id);
-                        setOpen(false);
-                      }}
+                <Box>
+                  <Box display="flex" gap={1} alignItems="center">
+                    <Typography
+                      className="menu-item-name"
                       sx={({ palette }) => ({
-                        display: "flex",
-                        mb: 1,
-                        gap: 1.5,
-                        ":hover": {
-                          ".menu-item-icon": {
-                            color: palette.blue[50],
-                          },
-                          ".menu-item-name": {
-                            color: palette.blue[50],
-                          },
-                          ".menu-item-id": {
-                            color: palette.gray[70],
-                          },
-                          ".menu-item-description": {
-                            color: palette.common.black,
-                          },
+                        fontWeight: 500,
+                        fontSize: 14,
+                        lineHeight: "18px",
+                        color: active ? palette.blue[70] : palette.gray[90],
+                        [`.${menuItemClasses.root}:hover &`]: {
+                          color: palette.blue[50],
                         },
                       })}
                     >
-                      <Box
-                        className="menu-item-icon"
-                        sx={{
-                          paddingX: 1.125,
-                          fontSize: 22,
-                          color: ({ palette }) =>
-                            active ? palette.blue[70] : palette.gray[50],
-                        }}
-                      >
-                        {active ? <CheckIcon /> : icon}
-                      </Box>
-
-                      <Box>
-                        <Box display="flex" gap={1} alignItems="center">
-                          <Typography
-                            className="menu-item-name"
-                            sx={{
-                              fontWeight: 500,
-                              fontSize: 14,
-                              lineHeight: "18px",
-                              color: ({ palette }) =>
-                                active ? palette.blue[70] : palette.gray[90],
-                            }}
-                          >
-                            {name}
-                          </Typography>
-                          <Box
-                            sx={{
-                              width: "4px",
-                              height: "4px",
-                              background: ({ palette }) => palette.gray[30],
-                              borderRadius: "50%",
-                            }}
-                          />
-                          <Typography
-                            className="menu-item-id"
-                            sx={{
-                              fontWeight: 500,
-                              fontSize: 13,
-                              lineHeight: "18px",
-                              color: ({ palette }) =>
-                                active ? palette.gray[70] : palette.gray[50],
-                            }}
-                          >
-                            {id}
-                          </Typography>
-                        </Box>
-                        <Typography
-                          className="menu-item-description"
-                          sx={{
-                            fontWeight: 500,
-                            fontSize: 13,
-                            lineHeight: "18px",
-                            color: ({ palette }) =>
-                              active ? palette.common.black : palette.gray[70],
-                            whiteSpace: "break-spaces",
-                          }}
-                        >
-                          {description}
-                        </Typography>
-                      </Box>
-                    </MenuItem>
-                  );
-                })}
-              </Stack>
-            </Box>
-          ),
-        )}
-      </Box>
+                      {name}
+                    </Typography>
+                    <Box
+                      sx={{
+                        width: "4px",
+                        height: "4px",
+                        background: ({ palette }) => palette.gray[30],
+                        borderRadius: "50%",
+                      }}
+                    />
+                    <Typography
+                      className="menu-item-id"
+                      sx={({ palette }) => ({
+                        fontWeight: 500,
+                        fontSize: 13,
+                        lineHeight: "18px",
+                        color: active ? palette.gray[70] : palette.gray[50],
+                        [`.${menuItemClasses.root}:hover &`]: {
+                          color: palette.gray[70],
+                        },
+                      })}
+                    >
+                      {id}
+                    </Typography>
+                  </Box>
+                  <Typography
+                    className="menu-item-description"
+                    sx={({ palette }) => ({
+                      fontWeight: 500,
+                      fontSize: 13,
+                      lineHeight: "18px",
+                      color: active ? palette.common.black : palette.gray[70],
+                      whiteSpace: "break-spaces",
+                      [`.${menuItemClasses.root}:hover &`]: {
+                        color: palette.common.black,
+                      },
+                    })}
+                  >
+                    {description}
+                  </Typography>
+                </Box>
+              </MenuItem>
+            );
+          }),
+        ])
+        .flat()}
     </Select>
   );
 };
