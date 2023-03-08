@@ -8,26 +8,16 @@ use std::{
 };
 
 use error_stack::Result;
-use serde::Serialize;
-use utoipa::ToSchema;
 
 use crate::{
     store::{crud::Read, QueryError, Record},
     subgraph::{
         edges::{Edges, GraphResolveDepths},
         identifier::GraphElementVertexId,
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
         vertices::Vertices,
     },
 };
-
-pub mod temporal_axes;
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct SubgraphTemporalAxes {
-    pub initial: QueryTemporalAxesUnresolved,
-    pub resolved: QueryTemporalAxes,
-}
 
 #[derive(Debug)]
 pub struct Subgraph {

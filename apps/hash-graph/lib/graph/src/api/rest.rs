@@ -11,7 +11,6 @@ mod entity;
 mod entity_type;
 mod property_type;
 mod utoipa_typedef;
-
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
@@ -64,8 +63,7 @@ use crate::{
         identifier::{
             EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
-        SubgraphTemporalAxes,
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
 

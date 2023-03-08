@@ -12,7 +12,8 @@ pub use self::{
     },
 };
 use crate::subgraph::{
-    edges::GraphResolveDepths, identifier::GraphElementVertexId, SubgraphTemporalAxes,
+    edges::GraphResolveDepths, identifier::GraphElementVertexId,
+    temporal_axes::SubgraphTemporalAxes,
 };
 
 #[derive(Serialize, ToSchema)]
