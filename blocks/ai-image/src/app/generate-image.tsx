@@ -42,10 +42,6 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   const [inputFocused, setInputFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -225,6 +221,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       >
         <form onSubmit={generateAndUploadImages}>
           <TextField
+            autoFocus
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             onChange={(event) => setPromptText(event.target.value)}
