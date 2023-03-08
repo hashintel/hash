@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftIcon } from "../../icons/arrow-left";
 import { ArrowUpIcon } from "../../icons/arrow-up";
 import { ImageIcon } from "../../icons/image";
+import { SquareDashedCirclePlusIcon } from "../../icons/square-dashed-circle-plus";
 import { ImageObject } from "../generate-image";
 
 const fileUrlKey =
@@ -450,7 +451,7 @@ export const ImagePreview = ({
                     }}
                   >
                     Insert this image
-                    <ImageIcon
+                    <SquareDashedCirclePlusIcon
                       sx={{
                         fontSize: 16,
                       }}
