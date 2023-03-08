@@ -13,7 +13,7 @@ import {
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 
 import { generatedLinkKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
