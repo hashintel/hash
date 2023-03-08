@@ -13,12 +13,13 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, OntologyTypeVertexId},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
     },
+    subgraph::identifier::OntologyTypeVertexId,
 };
 
 /// A set of conditions used for queries.
