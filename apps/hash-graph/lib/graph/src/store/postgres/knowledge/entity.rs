@@ -1,6 +1,6 @@
 mod read;
 
-use std::{collections::hash_map::RawEntryMut, mem};
+use std::mem;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -12,7 +12,6 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
         time::{DecisionTime, Timestamp},
-        EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -28,9 +27,10 @@ use crate::{
             Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
             KnowledgeGraphOutwardEdge, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
+        identifier::{EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
-        Subgraph, SubgraphIndex,
+        Subgraph,
     },
 };
 
@@ -58,14 +58,11 @@ impl<C: AsClient> PostgresStore<C> {
             // TODO: We could re-use the memory here but we expect to batch the processing of this
             //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
             for (entity_vertex_id, graph_resolve_depths, temporal_axes) in mem::take(&mut queue) {
-                let entity: &Entity = match entity_vertex_id.subgraph_vertex_entry(subgraph) {
-                    RawEntryMut::Occupied(entry) => entry.into_mut(),
-                    RawEntryMut::Vacant(_) => {
-                        // Entities are always inserted into the subgraph before they are resolved,
-                        // so this should never happen. If it does, it is a bug.
-                        unreachable!("entity should already be in the subgraph")
-                    }
-                };
+                let entity: &Entity = subgraph.get_vertex(&entity_vertex_id).unwrap_or_else(|| {
+                    // Entities are always inserted into the subgraph before they are resolved,
+                    // so this should never happen. If it does, it is a bug.
+                    unreachable!("entity should already be in the subgraph");
+                });
 
                 let entity_interval = entity
                     .metadata

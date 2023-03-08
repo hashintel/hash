@@ -1,6 +1,5 @@
-use std::fmt;
+use std::{error::Error, fmt};
 
-use error_stack::Context;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{repr, url::VersionedUrl};
@@ -11,52 +10,34 @@ use type_system::{repr, url::VersionedUrl};
 pub enum FetcherError {
     NetworkError(String),
     SerializationError(String),
-    TypeParsingError(String),
 }
-impl Context for FetcherError {}
+
+impl Error for FetcherError {}
 
 impl fmt::Display for FetcherError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("the type fetcher encountered an error durlng execution: ")?;
 
         match self {
-            Self::NetworkError(message)
-            | Self::SerializationError(message)
-            | Self::TypeParsingError(message) => fmt.write_str(message),
+            Self::NetworkError(message) | Self::SerializationError(message) => {
+                fmt.write_str(message)
+            }
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub enum OntologyType {
-    EntityType(repr::EntityType),
-    PropertyType(repr::PropertyType),
-    DataType(repr::DataType),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct FetchedOntologyType {
-    pub ontology_type: OntologyType,
-    pub fetched_at: OffsetDateTime,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TypeFetchResponse {
-    pub results: Vec<FetchedOntologyType>,
-}
-
-impl TypeFetchResponse {
-    #[must_use]
-    pub fn new(results: Vec<FetchedOntologyType>) -> Self {
-        Self { results }
-    }
+#[serde(untagged)]
+pub enum OntologyTypeRepr {
+    DataType(repr::DataType),
+    PropertyType(repr::PropertyType),
+    EntityType(repr::EntityType),
 }
 
 #[tarpc::service]
 pub trait Fetcher {
-    /// Fetch an ontology type by its URL and return all types that are reachable from it.
-    async fn fetch_ontology_type_exhaustive(
-        ontology_type_url: VersionedUrl,
-    ) -> Result<TypeFetchResponse, FetcherError>;
+    /// Fetch a list of ontology types identified by their [`VersionedUrl]` and returns them.
+    async fn fetch_ontology_types(
+        ontology_type_urls: Vec<VersionedUrl>,
+    ) -> Result<Vec<(OntologyTypeRepr, OffsetDateTime)>, FetcherError>;
 }

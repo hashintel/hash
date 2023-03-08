@@ -8,10 +8,9 @@ use utoipa::{
 };
 
 pub use self::vertex::*;
-use crate::identifier::{
-    knowledge::EntityId,
-    ontology::OntologyTypeVersion,
-    time::{Timestamp, VariableAxis},
+use crate::{
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
+    subgraph::temporal_axes::VariableAxis,
 };
 
 pub mod vertex;

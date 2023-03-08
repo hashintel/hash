@@ -5,7 +5,6 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::OntologyTypeVertexId,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
@@ -13,8 +12,8 @@ use crate::{
         PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::QueryTemporalAxes,
-        Subgraph,
+        edges::GraphResolveDepths, identifier::OntologyTypeVertexId, query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes, Subgraph,
     },
 };
 

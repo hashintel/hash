@@ -2,10 +2,28 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
-    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, PinnedAxis,
-    RightBoundedTemporalInterval, RightBoundedTemporalIntervalUnresolved, TemporalBound,
-    TemporalInterval, TemporalTagged, TimeAxis, Timestamp, TransactionTime, VariableAxis,
+    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
+    RightBoundedTemporalIntervalUnresolved, TemporalBound, TemporalInterval, TemporalTagged,
+    TimeAxis, Timestamp, TransactionTime,
 };
+
+/// Time axis for the variable temporal axis used in [`QueryTemporalAxes`]s.
+///
+/// This is used as the generic argument to time-related structs. Please refer to the documentation
+/// of [`QueryTemporalAxes`] for more information.
+///
+/// [`QueryTemporalAxes`]: crate::subgraph::temporal_axes::QueryTemporalAxes
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct VariableAxis;
+
+/// Time axis for the pinned temporal axis used in [`QueryTemporalAxes`]s.
+///
+/// This is used as the generic argument to time-related structs. Please refer to the documentation
+/// of [`QueryTemporalAxes`] for more information.
+///
+/// [`QueryTemporalAxes`]: crate::subgraph::temporal_axes::QueryTemporalAxes
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct PinnedAxis;
 
 /// A representation of a "pinned" temporal axis, used to project another temporal axis along the
 /// given [`Timestamp`].
@@ -339,4 +357,10 @@ impl QueryTemporalAxes {
             Self::TransactionTime { variable, .. } => variable.interval = interval.cast(),
         }
     }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SubgraphTemporalAxes {
+    pub initial: QueryTemporalAxesUnresolved,
+    pub resolved: QueryTemporalAxes,
 }

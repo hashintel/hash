@@ -162,7 +162,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_types(
         &mut self,
-        property_types: impl IntoIterator<
+        entity_types: impl IntoIterator<
             Item = (
                 EntityType,
                 impl Borrow<OntologyElementMetadata> + Send + Sync,
