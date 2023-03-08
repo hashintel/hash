@@ -16,7 +16,7 @@ import {
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { generatedLinkKey } from "../app";
-import { AbstractAiIcon } from "../icons/abstract-ai-icon";
+import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
