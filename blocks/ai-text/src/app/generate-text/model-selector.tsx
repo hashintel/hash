@@ -14,7 +14,7 @@ import { CheckIcon } from "../../icons/check";
 export const DEFAULT_MODEL_ID = "gpt-3.5-turbo";
 
 enum ModelGroupName {
-  OpenAi = "OpenAi",
+  OpenAi = "OpenAI",
 }
 
 interface ModelGroup {
