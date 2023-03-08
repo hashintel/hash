@@ -2,10 +2,13 @@ use serde::Serialize;
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
-use crate::identifier::{
-    knowledge::EntityId,
-    ontology::OntologyTypeVersion,
-    time::{Timestamp, VariableAxis},
+use crate::{
+    identifier::{
+        knowledge::EntityId,
+        ontology::OntologyTypeVersion,
+        time::{Timestamp, VariableAxis},
+    },
+    subgraph::identifier::EdgeEndpoint,
 };
 
 pub trait VertexId {
@@ -61,6 +64,19 @@ impl VertexId for EntityVertexId {
     }
 
     fn revision_id(&self) -> Self::RevisionId {
+        self.revision_id
+    }
+}
+
+impl EdgeEndpoint for OntologyTypeVertexId {
+    type BaseId = BaseUrl;
+    type RightEndpoint = OntologyTypeVersion;
+
+    fn base_id(&self) -> &Self::BaseId {
+        &self.base_id
+    }
+
+    fn revision_id(&self) -> Self::RightEndpoint {
         self.revision_id
     }
 }

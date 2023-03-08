@@ -9,16 +9,16 @@ use std::{
 };
 
 use serde::Serialize;
-use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
 use crate::{
     identifier::{
         knowledge::EntityId,
-        ontology::OntologyTypeVersion,
         time::{LeftClosedTemporalInterval, VariableAxis},
     },
-    subgraph::identifier::{EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId},
+    subgraph::identifier::{
+        EdgeEndpoint, EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
@@ -37,40 +37,6 @@ impl From<OntologyTypeVertexId> for GraphElementVertexId {
 impl From<EntityVertexId> for GraphElementVertexId {
     fn from(id: EntityVertexId) -> Self {
         Self::KnowledgeGraph(id)
-    }
-}
-
-pub trait EdgeEndpoint {
-    type BaseId;
-    type RightEndpoint;
-
-    fn base_id(&self) -> &Self::BaseId;
-    fn revision_id(&self) -> Self::RightEndpoint;
-}
-
-impl EdgeEndpoint for OntologyTypeVertexId {
-    type BaseId = BaseUrl;
-    type RightEndpoint = OntologyTypeVersion;
-
-    fn base_id(&self) -> &Self::BaseId {
-        &self.base_id
-    }
-
-    fn revision_id(&self) -> Self::RightEndpoint {
-        self.revision_id
-    }
-}
-
-impl EdgeEndpoint for EntityIdWithInterval {
-    type BaseId = EntityId;
-    type RightEndpoint = LeftClosedTemporalInterval<VariableAxis>;
-
-    fn base_id(&self) -> &Self::BaseId {
-        &self.entity_id
-    }
-
-    fn revision_id(&self) -> Self::RightEndpoint {
-        self.interval
     }
 }
 

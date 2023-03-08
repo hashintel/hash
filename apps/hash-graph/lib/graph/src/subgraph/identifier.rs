@@ -2,6 +2,6 @@ mod edge;
 mod vertex;
 
 pub use self::{
-    edge::EntityIdWithInterval,
+    edge::{EdgeEndpoint, EntityIdWithInterval},
     vertex::{EntityVertexId, OntologyTypeVertexId, VertexId},
 };
