@@ -25,11 +25,11 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
-        data_type_id: &OntologyTypeVertexId,
+        data_type_ids: Vec<OntologyTypeVertexId>,
+        temporal_axes: QueryTemporalAxes,
+        graph_resolve_depths: GraphResolveDepths,
         _traversal_context: &mut TraversalContext,
         _subgraph: &mut Subgraph,
-        current_resolve_depths: GraphResolveDepths,
-        temporal_axes: QueryTemporalAxes,
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
@@ -76,29 +76,33 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
+        let data_types = Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes)
+            .await?
+            .into_iter()
+            .map(|entity| (entity.vertex_id(time_axis), entity))
+            .collect();
+
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut traversal_context = TraversalContext::default();
+        subgraph.vertices.data_types = data_types;
 
-        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes).await? {
-            let vertex_id = data_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, data_type);
-
-            self.traverse_data_type(
-                &vertex_id,
-                &mut traversal_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                temporal_axes.clone(),
-            )
-            .await?;
-
-            subgraph.roots.insert(vertex_id.into());
+        for vertex_id in subgraph.vertices.data_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
         }
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_data_type(
+            subgraph.vertices.data_types.keys().cloned().collect(),
+            subgraph.temporal_axes.resolved.clone(),
+            subgraph.depths,
+            &mut TraversalContext,
+            &mut subgraph,
+        )
+        .await?;
 
         Ok(subgraph)
     }
