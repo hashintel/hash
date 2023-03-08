@@ -13,10 +13,10 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 use crate::{
-    shared::identifier::GraphElementVertexId,
     store::{crud::Read, QueryError, Record},
     subgraph::{
         edges::GraphResolveDepths,
+        identifier::GraphElementVertexId,
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
         vertices::Vertices,
     },

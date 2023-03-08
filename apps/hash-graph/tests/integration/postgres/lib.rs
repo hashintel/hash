@@ -21,7 +21,6 @@ use graph::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
         time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
-        GraphElementVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -41,7 +40,7 @@ use graph::{
     },
     subgraph::{
         edges::GraphResolveDepths,
-        identifier::OntologyTypeVertexId,
+        identifier::{GraphElementVertexId, OntologyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,

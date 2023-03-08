@@ -8,37 +8,13 @@ use std::{
     hash::BuildHasher,
 };
 
-use serde::Serialize;
-use utoipa::ToSchema;
-
 use crate::{
     identifier::{
         knowledge::EntityId,
         time::{LeftClosedTemporalInterval, VariableAxis},
     },
-    subgraph::identifier::{
-        EdgeEndpoint, EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId,
-    },
+    subgraph::identifier::{EdgeEndpoint, EntityIdWithInterval, OntologyTypeVertexId},
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
-#[serde(untagged)]
-pub enum GraphElementVertexId {
-    Ontology(OntologyTypeVertexId),
-    KnowledgeGraph(EntityVertexId),
-}
-
-impl From<OntologyTypeVertexId> for GraphElementVertexId {
-    fn from(id: OntologyTypeVertexId) -> Self {
-        Self::Ontology(id)
-    }
-}
-
-impl From<EntityVertexId> for GraphElementVertexId {
-    fn from(id: EntityVertexId) -> Self {
-        Self::KnowledgeGraph(id)
-    }
-}
 
 pub trait EdgeEndpointSet: IntoIterator<Item = Self::EdgeEndpoint> {
     type EdgeEndpoint: EdgeEndpoint;

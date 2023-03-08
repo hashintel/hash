@@ -2,13 +2,10 @@ use serde::Serialize;
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
-use crate::{
-    identifier::{
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{Timestamp, VariableAxis},
-    },
-    subgraph::identifier::EdgeEndpoint,
+use crate::identifier::{
+    knowledge::EntityId,
+    ontology::OntologyTypeVersion,
+    time::{Timestamp, VariableAxis},
 };
 
 pub trait VertexId {
@@ -68,15 +65,21 @@ impl VertexId for EntityVertexId {
     }
 }
 
-impl EdgeEndpoint for OntologyTypeVertexId {
-    type BaseId = BaseUrl;
-    type RightEndpoint = OntologyTypeVersion;
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[serde(untagged)]
+pub enum GraphElementVertexId {
+    Ontology(OntologyTypeVertexId),
+    KnowledgeGraph(EntityVertexId),
+}
 
-    fn base_id(&self) -> &Self::BaseId {
-        &self.base_id
+impl From<OntologyTypeVertexId> for GraphElementVertexId {
+    fn from(id: OntologyTypeVertexId) -> Self {
+        Self::Ontology(id)
     }
+}
 
-    fn revision_id(&self) -> Self::RightEndpoint {
-        self.revision_id
+impl From<EntityVertexId> for GraphElementVertexId {
+    fn from(id: EntityVertexId) -> Self {
+        Self::KnowledgeGraph(id)
     }
 }
