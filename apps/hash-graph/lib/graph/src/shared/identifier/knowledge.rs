@@ -15,11 +15,10 @@ use crate::{
             DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
             VariableAxis,
         },
-        EntityVertexId,
     },
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
-    subgraph::{Subgraph, SubgraphIndex},
+    subgraph::{identifier::EntityVertexId, Subgraph, SubgraphIndex},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

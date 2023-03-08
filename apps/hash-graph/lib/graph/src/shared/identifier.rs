@@ -18,15 +18,8 @@ use crate::{
         ontology::OntologyTypeVersion,
         time::{LeftClosedTemporalInterval, Timestamp, VariableAxis},
     },
-    subgraph::identifier::OntologyTypeVertexId,
+    subgraph::identifier::{EntityVertexId, OntologyTypeVertexId},
 };
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityVertexId {
-    pub base_id: EntityId,
-    pub revision_id: Timestamp<VariableAxis>,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
