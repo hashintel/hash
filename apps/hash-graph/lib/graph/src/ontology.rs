@@ -25,9 +25,10 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis, OntologyTypeVertexId},
+    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
     provenance::{OwnedById, ProvenanceMetadata},
     store::{query::Filter, Record},
+    subgraph::identifier::OntologyTypeVertexId,
 };
 
 #[derive(Deserialize, ToSchema)]
