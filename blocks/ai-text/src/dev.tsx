@@ -3,8 +3,24 @@ import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
+
+const testEntity: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "test-entity",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "https://blockprotocol.org/@hash/types/entity-type/ai-text-block/v/2",
+  },
+  properties: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-prompt/":
+      "Draft a press release for a new AI chat API",
+  },
+} as const;
 
 /**
  * This is an embedding application for local development and debugging.
@@ -22,8 +38,14 @@ const DevApp = () => {
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
       blockInfo={packageJSON.blockprotocol}
+      initialData={{
+        initialEntities: [
+          testEntity,
+          // ...imageEntities
+        ],
+      }}
       // @todo add dot-env support
-      blockProtocolApiKey={undefined} // Set this to an API key when testing
+      blockProtocolApiKey="b10ck5.43430b0bbd608928f03b8fe5aff452c8.fe03fe6b-e8ed-4725-8eae-adcb890af804" // Set this to an API key when testing
       blockProtocolSiteHost="https://blockprotocol.org" // update this to a recent staging deployment when testing
       debug
     />

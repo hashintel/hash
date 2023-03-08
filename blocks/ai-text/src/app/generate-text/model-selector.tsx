@@ -9,6 +9,7 @@ import {
 import { ReactNode, useMemo, useState } from "react";
 
 import { AbstractAiIcon } from "../../icons/abstract-ai";
+import { CheckIcon } from "../../icons/check";
 
 export const DEFAULT_MODEL_ID = "gpt-3.5-turbo";
 
@@ -256,7 +257,7 @@ export const ModelSelector = ({
                             active ? palette.blue[70] : palette.gray[50],
                         }}
                       >
-                        {icon}
+                        {active ? <CheckIcon /> : icon}
                       </Box>
 
                       <Box>
