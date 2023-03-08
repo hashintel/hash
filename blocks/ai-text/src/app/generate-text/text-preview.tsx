@@ -133,7 +133,7 @@ export const TextPreview = ({
           </Button>
         </Box>
 
-        <Box display="flex" gap={1}>
+        {/* <Box display="flex" gap={1}>
           <Typography
             sx={{
               color: ({ palette }) => palette.gray[80],
@@ -148,7 +148,7 @@ export const TextPreview = ({
           <ArrowUpIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
-        </Box>
+        </Box> */}
       </Box>
     </Box>
   );
