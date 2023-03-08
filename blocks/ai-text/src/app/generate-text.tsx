@@ -48,7 +48,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   // @see https://app.asana.com/0/1203358502199087/1203701786066059/f
   const [model, _setModel] = useState("text-davinci-003");
   const [promptText, setPromptText] = useState(initialPromptText ?? "");
-  const [generatedText, setGeneratedText] = useState("HI THIS IS A TEST");
+  const [generatedText, setGeneratedText] = useState("");
 
   const [animatingIn, setAnimatingIn] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
