@@ -778,7 +778,7 @@ mod tests {
             identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
             knowledge::EntityUuid,
             provenance::OwnedById,
-            subgraph::identifier::{DataTypeVertexId},
+            subgraph::identifier::DataTypeVertexId,
         };
 
         #[test]
