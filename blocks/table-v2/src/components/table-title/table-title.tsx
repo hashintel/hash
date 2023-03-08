@@ -1,6 +1,6 @@
+import clsx from "clsx";
 import { useState } from "react";
 import styles from "./styles.module.scss";
-import clsx from "clsx";
 
 interface TableTitleProps {
   title: string;

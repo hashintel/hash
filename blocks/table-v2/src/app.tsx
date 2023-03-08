@@ -1,36 +1,45 @@
 import {
   useEntitySubgraph,
-  useGraphBlockService,
+  useGraphBlockModule,
   type BlockComponent,
 } from "@blockprotocol/graph/react";
-import { useRef } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useLayer } from "react-laag";
 
 import {
+  CompactSelection,
   DataEditorProps,
   GridCellKind,
   GridColumn,
+  GridSelection,
+  Rectangle,
 } from "@glideapps/glide-data-grid";
+import produce from "immer";
 import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
+import { HeaderMenu } from "./components/header-menu/header-menu";
 import { TableTitle } from "./components/table-title/table-title";
 import {
-  LocalColumns,
+  LocalColumnsPropertyValue,
   RootEntity,
   RootEntityLinkedEntities,
 } from "./types.gen";
 
 const titleKey: keyof RootEntity["properties"] =
-  "https://alpha.hash.ai/@yusuf/types/property-type/table-title/";
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 const localColumnsKey: keyof RootEntity["properties"] =
-  "https://alpha.hash.ai/@yusuf/types/property-type/local-columns/";
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-columns/";
 const localRowsKey: keyof RootEntity["properties"] =
-  "https://alpha.hash.ai/@yusuf/types/property-type/local-rows/";
-const columnTitleKey: keyof LocalColumns =
-  "https://alpha.hash.ai/@yusuf/types/property-type/column-title/";
-const columnIdKey: keyof LocalColumns =
-  "https://alpha.hash.ai/@yusuf/types/property-type/column-id/";
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-rows/";
+const columnTitleKey: keyof LocalColumnsPropertyValue =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-title/";
+const columnIdKey: keyof LocalColumnsPropertyValue =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-id/";
 
-const minRowCount = 13;
+const emptySelection = {
+  columns: CompactSelection.empty(),
+  rows: CompactSelection.empty(),
+};
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -40,7 +49,7 @@ export const App: BlockComponent<RootEntity> = ({
   }
 
   const blockRootRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRootRef);
+  const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const { rootEntity: blockEntity } = useEntitySubgraph<
     RootEntity,
@@ -49,7 +58,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const {
     metadata: {
-      editionId: { baseId: blockEntityId },
+      recordId: { entityId: blockEntityId },
       entityTypeId: blockEntityTypeId,
     },
     properties: {
@@ -58,6 +67,14 @@ export const App: BlockComponent<RootEntity> = ({
       [localRowsKey]: localRows = [],
     },
   } = blockEntity;
+
+  const rows = localRows;
+  const [selection, setSelection] = useState<GridSelection>(emptySelection);
+
+  const [headerMenu, setHeaderMenu] = useState<{
+    col: number;
+    bounds: Rectangle;
+  }>();
 
   const addNewColumn = () => {
     return updateEntity({
@@ -72,39 +89,29 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const addNewRow = async () => {
-    const newLocalRows = [...localRows];
+    const newRows = [...rows, {}];
 
-    if (localRows.length < minRowCount) {
-      /**
-       * instead of pushing into array, set the item to the index
-       * otherwise row count does not increase, since rows with items are already visible
-       * because of `minRowCount`
-       */
-      newLocalRows[minRowCount] = {};
-    } else {
-      newLocalRows.push({});
-    }
-
-    return updateEntity({ [localRowsKey]: newLocalRows });
+    return updateEntity({ [localRowsKey]: newRows });
   };
 
-  const handleCellEdited: DataEditorProps["onCellEdited"] = (
-    [colIndex, rowIndex],
-    newValue,
-  ) => {
-    const columnId = columns[colIndex]?.id;
+  // this should definitely be a sync function
+  const handleCellsEdited: DataEditorProps["onCellsEdited"] = (newValues) => {
+    const newRows = produce(rows, (draftRows) => {
+      for (const { value, location } of newValues) {
+        const [colIndex, rowIndex] = location;
 
-    if (!columnId) {
-      throw new Error("columnId not found");
-    }
+        const columnId = columns[colIndex]?.id;
 
-    const editedRow = rows[rowIndex];
-
-    const newRows = [...rows];
-
-    newRows[rowIndex] = { ...editedRow, [columnId]: newValue.data! };
+        if (columnId) {
+          // @ts-ignore
+          draftRows[rowIndex][columnId] = value.data!;
+        }
+      }
+    });
 
     updateEntity({ [localRowsKey]: newRows });
+
+    return true;
   };
 
   const setTitle = async (val: string) => {
@@ -114,7 +121,7 @@ export const App: BlockComponent<RootEntity> = ({
   const updateEntity = async (
     newProperties: Partial<RootEntity["properties"]>,
   ) => {
-    await graphService?.updateEntity({
+    await graphModule?.updateEntity({
       data: {
         entityId: blockEntityId,
         entityTypeId: blockEntityTypeId,
@@ -125,16 +132,75 @@ export const App: BlockComponent<RootEntity> = ({
 
   const columns: GridColumn[] = localColumns.map((col) => ({
     id: col[columnIdKey],
-    title: col[columnTitleKey],
+    title: col[columnTitleKey] ?? "",
     width: 200,
+    hasMenu: true,
   }));
-  const rows = localRows;
+
+  const justClickedHeaderRef = useRef(false);
+  const handleHeaderMenuClick = useCallback<
+    NonNullable<DataEditorProps["onHeaderMenuClick"]>
+  >((col, bounds) => {
+    justClickedHeaderRef.current = true;
+    setHeaderMenu({ col, bounds });
+  }, []);
+
+  const { layerProps, renderLayer } = useLayer({
+    isOpen: !!headerMenu,
+    auto: true,
+    placement: "bottom-end",
+    triggerOffset: 2,
+    onOutsideClick: () => {
+      if (justClickedHeaderRef.current) {
+        return (justClickedHeaderRef.current = false);
+      }
+      setHeaderMenu(undefined);
+    },
+    trigger: {
+      getBounds: () => ({
+        left: headerMenu?.bounds.x ?? 0,
+        top: headerMenu?.bounds.y ?? 0,
+        width: headerMenu?.bounds.width ?? 0,
+        height: headerMenu?.bounds.height ?? 0,
+        right: (headerMenu?.bounds.x ?? 0) + (headerMenu?.bounds.width ?? 0),
+        bottom: (headerMenu?.bounds.y ?? 0) + (headerMenu?.bounds.height ?? 0),
+      }),
+    },
+  });
+
+  const selectedRowCount = selection.rows.length;
 
   return (
     <div className={styles.block} ref={blockRootRef}>
       <TableTitle onChange={setTitle} title={title} readonly={readonly} />
+      {!!selectedRowCount && (
+        <div className={styles.rowActions}>
+          <>
+            <div>{`${selectedRowCount} ${
+              selectedRowCount > 1 ? "rows" : "row"
+            } selected`}</div>
+            <div
+              onClick={() => {
+                const selectedRows = selection.rows.toArray();
+
+                updateEntity({
+                  [localRowsKey]: rows.filter(
+                    (_, index) => !selectedRows.includes(index),
+                  ),
+                });
+
+                setSelection(emptySelection);
+              }}
+              className={styles.danger}
+            >
+              Delete
+            </div>
+          </>
+        </div>
+      )}
       <Grid
-        rows={Math.max(rows.length, minRowCount)}
+        rowMarkerWidth={32}
+        rows={rows.length}
         columns={columns}
         rightElement={
           readonly ? null : (
@@ -143,7 +209,9 @@ export const App: BlockComponent<RootEntity> = ({
             </div>
           )
         }
-        onCellEdited={handleCellEdited}
+        onPaste
+        onHeaderMenuClick={handleHeaderMenuClick}
+        onCellsEdited={handleCellsEdited}
         rightElementProps={{ fill: true }}
         trailingRowOptions={{
           hint: "New row...",
@@ -166,7 +234,12 @@ export const App: BlockComponent<RootEntity> = ({
           const key = columns[colIndex]?.id;
 
           if (!key) {
-            throw new Error("key not found");
+            return {
+              kind: GridCellKind.Text,
+              displayData: "",
+              data: "",
+              allowOverlay: false,
+            };
           }
 
           const value = rows[rowIndex]?.[key] ?? "";
@@ -178,7 +251,38 @@ export const App: BlockComponent<RootEntity> = ({
             allowOverlay: !readonly,
           };
         }}
+        gridSelection={selection}
+        onGridSelectionChange={(newSelection) => setSelection(newSelection)}
       />
+
+      {!!headerMenu &&
+        renderLayer(
+          <HeaderMenu
+            key={headerMenu.col}
+            layerProps={layerProps}
+            title={columns[headerMenu.col]?.title ?? ""}
+            onDelete={() => {
+              updateEntity({
+                [localColumnsKey]: localColumns.filter(
+                  (_, index) => index !== headerMenu.col,
+                ),
+              });
+              // delete column here
+              setHeaderMenu(undefined);
+            }}
+            onClose={() => setHeaderMenu(undefined)}
+            updateTitle={(title) => {
+              updateEntity({
+                [localColumnsKey]: localColumns.map((col, index) =>
+                  index === headerMenu.col
+                    ? { ...col, [columnTitleKey]: title }
+                    : col,
+                ),
+              });
+              // update column title here
+            }}
+          />,
+        )}
     </div>
   );
 };

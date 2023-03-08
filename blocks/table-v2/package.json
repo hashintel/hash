@@ -6,14 +6,19 @@
     "blockprotocol",
     "blocks"
   ],
-  "license": "MIT",
-  "author": "Yusuf Kinatas",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/table-v2"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
-    "codegen": "block-scripts codegen",
     "dev": "block-scripts dev",
     "format": "prettier --write --ignore-unknown .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
@@ -21,15 +26,17 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230130231944",
-    "@blockprotocol/type-system": "0.0.4-canary-20230130231944",
+    "@blockprotocol/graph": "0.1.0",
     "@glideapps/glide-data-grid": "5.2.1",
-    "clsx": "1.2.1"
+    "clsx": "1.2.1",
+    "immer": "9.0.6",
+    "react-laag": "2.0.5",
+    "rooks": "7.4.3"
   },
   "devDependencies": {
-    "@types/react-dom": "^18.0.9",
-    "block-scripts": "0.1.0-canary-20230130231944",
-    "mock-block-dock": "0.1.0-canary-20230130231944",
+    "@types/react-dom": "18.0.9",
+    "block-scripts": "0.1.0",
+    "mock-block-dock": "0.1.0",
     "prettier": "2.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -45,12 +52,12 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "displayName": "table-v2",
+    "displayName": "Table v2",
     "examples": [],
     "icon": "public/omega.svg",
     "image": "public/block-preview.png",
-    "name": "table-v2",
+    "name": "@hash/table-v2",
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@yusuf/types/entity-type/table-block/v/3"
+    "schema": "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/new-type/v/7"
   }
 }

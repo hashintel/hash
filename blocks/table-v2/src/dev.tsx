@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
@@ -11,45 +11,46 @@ const node = document.getElementById("app");
 // @todo make type blockprotocol.org/[etc]/ExampleEntity when we can host new types there
 const testEntity: RootEntity = {
   metadata: {
-    editionId: {
-      baseId: "test-entity",
-      versionId: new Date().toISOString(),
-    },
-    entityTypeId: packageJson.blockprotocol.schema as VersionedUri,
+    recordId: { entityId: "test-entity", editionId: new Date().toISOString() },
+    entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
   },
   properties: {
-    "https://alpha.hash.ai/@yusuf/types/property-type/table-title/": "My Table",
-    "https://alpha.hash.ai/@yusuf/types/property-type/local-columns/": [
-      {
-        "https://alpha.hash.ai/@yusuf/types/property-type/column-title/":
-          "Full Name",
-        "https://alpha.hash.ai/@yusuf/types/property-type/column-id/":
-          "fullName",
-      },
-      {
-        "https://alpha.hash.ai/@yusuf/types/property-type/column-title/":
-          "Role",
-        "https://alpha.hash.ai/@yusuf/types/property-type/column-id/": "role",
-      },
-    ],
-    "https://alpha.hash.ai/@yusuf/types/property-type/local-rows/": [
-      {
-        fullName: "David Davidson",
-        role: "CEO",
-      },
-      {
-        fullName: "John Johnson",
-        role: "Head of Engineering",
-      },
-      {
-        fullName: "React Reactson",
-        role: "Frontend Developer",
-      },
-      {
-        fullName: "Node Nodeson",
-        role: "Backend Developer",
-      },
-    ],
+    "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
+      "My Table",
+    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-columns/":
+      [
+        {
+          "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-title/":
+            "Full Name",
+          "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-id/":
+            "fullName",
+        },
+        {
+          "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-title/":
+            "Role",
+          "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-id/":
+            "role",
+        },
+      ],
+    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-rows/":
+      [
+        {
+          fullName: "David Davidson",
+          role: "CEO",
+        },
+        {
+          fullName: "John Johnson",
+          role: "Head of Engineering",
+        },
+        {
+          fullName: "React Reactson",
+          role: "Frontend Developer",
+        },
+        {
+          fullName: "Node Nodeson",
+          role: "Backend Developer",
+        },
+      ],
   },
 };
 
@@ -68,10 +69,11 @@ const DevApp = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockEntityEditionId={testEntity.metadata.editionId}
+      blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJson.blockprotocol}
       debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
-      initialEntities={[testEntity]}
+      initialData={{ initialEntities: [testEntity] }}
+
       // hideDebugToggle <- uncomment this to disable the debug UI entirely
       // initialEntities={[]} <- customise the entities in the datastore (blockEntity is always added, if you provide it)
       // initialEntityTypes={[]} <- customise the entity types in the datastore
