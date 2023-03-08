@@ -290,7 +290,7 @@ export const ImagePreview = ({
                     onExited={() => setAnimatingImageIn(false)}
                   >
                     <Box
-                      ref={(ref) => {
+                      ref={(ref: HTMLDivElement | undefined) => {
                         if (selectedImage && ref) {
                           setSelectedImageContainer(ref);
                         }
