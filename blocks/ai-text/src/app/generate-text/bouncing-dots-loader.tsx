@@ -17,10 +17,10 @@ export const BouncingDotsLoader = () => {
           animation: "bouncing-loader 0.6s infinite alternate",
         },
 
-        "& > div:nth-child(2)": {
+        "& > div:nth-of-type(2)": {
           animationDelay: "0.2s",
         },
-        "& > div:nth-child(3)": {
+        "& > div:nth-of-type(3)": {
           animationDelay: "0.4s",
         },
 
