@@ -49,7 +49,7 @@ use crate::{
             OpenTemporalBound, RightBoundedTemporalInterval,
             RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
-        EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
+        EntityIdWithInterval, EntityVertexId, GraphElementVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -62,6 +62,7 @@ use crate::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
             OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
+        identifier::OntologyTypeVertexId,
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
         SubgraphTemporalAxes,
     },

@@ -12,9 +12,12 @@ use crate::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
         time::{Timestamp, VariableAxis},
-        EntityIdWithInterval, OntologyTypeVertexId,
+        EntityIdWithInterval,
     },
-    subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
+    subgraph::{
+        edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
+        identifier::OntologyTypeVertexId,
+    },
 };
 
 #[derive(Debug, Serialize)]

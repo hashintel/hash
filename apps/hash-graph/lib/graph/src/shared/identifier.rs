@@ -9,13 +9,16 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
-use crate::identifier::{
-    knowledge::EntityId,
-    ontology::OntologyTypeVersion,
-    time::{LeftClosedTemporalInterval, Timestamp, VariableAxis},
+use crate::{
+    identifier::{
+        knowledge::EntityId,
+        ontology::OntologyTypeVersion,
+        time::{LeftClosedTemporalInterval, Timestamp, VariableAxis},
+    },
+    subgraph::identifier::OntologyTypeVertexId,
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
@@ -30,22 +33,6 @@ pub struct EntityVertexId {
 pub struct EntityIdWithInterval {
     pub entity_id: EntityId,
     pub interval: LeftClosedTemporalInterval<VariableAxis>,
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OntologyTypeVertexId {
-    pub base_id: BaseUrl,
-    pub revision_id: OntologyTypeVersion,
-}
-
-impl From<VersionedUrl> for OntologyTypeVertexId {
-    fn from(url: VersionedUrl) -> Self {
-        Self {
-            base_id: url.base_url,
-            revision_id: OntologyTypeVersion::new(url.version),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]

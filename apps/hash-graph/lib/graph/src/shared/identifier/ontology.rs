@@ -11,9 +11,8 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
 use crate::{
-    identifier::OntologyTypeVertexId,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{Subgraph, SubgraphIndex},
+    subgraph::{identifier::OntologyTypeVertexId, Subgraph, SubgraphIndex},
 };
 
 #[derive(

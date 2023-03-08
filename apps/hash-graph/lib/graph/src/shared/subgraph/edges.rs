@@ -4,8 +4,9 @@ use std::{
     hash::Hash,
 };
 
-use crate::identifier::{
-    EdgeEndpointSet, EntityIdWithIntervalSet, EntityVertexId, OntologyTypeVertexId, VertexId,
+use crate::{
+    identifier::{EdgeEndpointSet, EntityIdWithIntervalSet, EntityVertexId, VertexId},
+    subgraph::identifier::OntologyTypeVertexId,
 };
 
 mod edge;

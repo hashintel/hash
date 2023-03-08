@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
         time::{DecisionTime, Timestamp},
-        EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId,
+        EntityIdWithInterval, EntityVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -28,6 +28,7 @@ use crate::{
             Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
             KnowledgeGraphOutwardEdge, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
+        identifier::OntologyTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph, SubgraphIndex,

@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-    identifier::{EntityVertexId, OntologyTypeVertexId},
+    identifier::EntityVertexId,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    subgraph::identifier::OntologyTypeVertexId,
 };
 
 #[derive(Default, Debug)]
