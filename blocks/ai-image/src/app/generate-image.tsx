@@ -1,8 +1,7 @@
 import { RemoteFileEntity } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { Button, FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { Button, TextField } from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
@@ -18,6 +17,7 @@ import { FormEvent, useCallback, useRef, useState } from "react";
 import { generatedLinkKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
+import { QuestionCircleIcon } from "../icons/question-circle";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
 import { ImagePreview } from "./generate-image/image-preview";
@@ -175,10 +175,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
             })}
           >
             Get help{" "}
-            <FontAwesomeIcon
-              icon={faQuestionCircle}
-              sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-            />
+            <QuestionCircleIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
           </Link>
 
           <Typography
