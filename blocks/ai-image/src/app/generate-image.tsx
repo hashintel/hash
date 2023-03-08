@@ -5,10 +5,12 @@ import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { Button, FontAwesomeIcon, TextField } from "@hashintel/design-system";
 import {
   Box,
+  buttonBaseClasses,
   Collapse,
   Fade,
   inputBaseClasses,
   Link,
+  outlinedInputClasses,
   Typography,
 } from "@mui/material";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +19,7 @@ import { generatedLinkKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai-icon";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
+import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
 import { ImagePreview } from "./generate-image/image-preview";
 
 export type ImageObject = {
@@ -228,7 +231,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
             placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={inputRef}
-            sx={{
+            disabled={loading || uploadInProgress}
+            sx={({ palette }) => ({
               maxWidth: 580,
               width: 1,
               [`& .${inputBaseClasses.input}`]: {
@@ -239,31 +243,46 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
                 paddingLeft: 2.75,
                 paddingRight: 0,
               },
-            }}
+              [`& .${inputBaseClasses.disabled}`]: {
+                background: palette.gray[10],
+                color: palette.gray[70],
+              },
+              [`& .${outlinedInputClasses.notchedOutline}`]: {
+                border: `1px solid ${palette.gray[20]}`,
+              },
+            })}
             InputProps={{
               endAdornment: (
                 <Button
                   type="submit"
                   variant="tertiary_quiet"
                   disabled={loading || uploadInProgress}
-                  sx={{
+                  sx={({ palette }) => ({
                     fontSize: 13,
                     fontWeight: 700,
                     letterSpacing: "-0.02em",
                     lineHeight: 1,
-                    color: ({ palette }) => palette.blue[70],
+                    color: palette.blue[70],
                     textTransform: "uppercase",
-                    height: 1,
+                    height: 55,
                     width: 1,
+                    maxHeight: 55,
                     maxWidth: 168,
-                    mr: 0.25,
                     minHeight: 51,
-                  }}
+                    [`&.${buttonBaseClasses.disabled}`]: {
+                      color: palette.common.black,
+                      background: "none",
+                    },
+                  })}
                 >
                   {loading ? (
-                    "GENERATING ..."
+                    <>
+                      GENERATING <BouncingDotsLoader />
+                    </>
                   ) : uploadInProgress ? (
-                    "UPLOADING ..."
+                    <>
+                      UPLOADING <BouncingDotsLoader />
+                    </>
                   ) : (
                     <>
                       Submit Prompt{" "}
