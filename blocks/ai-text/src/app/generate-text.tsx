@@ -116,10 +116,6 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     [loading, model, promptText, serviceModule],
   );
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   const confirm = () =>
     graphModule.updateEntity({
       data: {
@@ -183,6 +179,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       >
         <form onSubmit={onSubmit}>
           <TextField
+            autoFocus
             multiline
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
