@@ -73,18 +73,19 @@ impl<C: AsClient> PostgresStore<C> {
                 // Intersects the version interval of the entity with the variable axis's time
                 // interval. We only want to resolve the entity further for the overlap of these two
                 // intervals.
-                let Some(temporal_axes) = temporal_axes
+                let temporal_axes = temporal_axes
                     .clone()
-                    .intersect_variable_interval(entity_interval) else {
-                    // `traverse_entity` is called with the returned entities from `read` with
-                    // `temporal_axes`. This implies, that the version interval of `entity` overlaps
-                    // with `temporal_axes`. `variable_interval` returns `None` if there are
-                    // no overlapping points, so this should never happen.
+                    .intersect_variable_interval(entity_interval)
+                    .unwrap_or_else(|| {
+                        // `traverse_entity` is called with the returned entities from `read` with
+                        // `temporal_axes`. This implies, that the version interval of `entity`
+                        // overlaps with `temporal_axes`. `variable_interval` returns `None` if
+                        // there are no overlapping points, so this should never happen.
                         unreachable!(
-                            "the version interval of the entity does not overlap with the variable \
-                            axis's time interval"
+                            "the version interval of the entity does not overlap with the \
+                             variable axis's time interval"
                         );
-                    };
+                    });
 
                 if graph_resolve_depths.is_of_type.outgoing > 0 {
                     let entity_type_id =
