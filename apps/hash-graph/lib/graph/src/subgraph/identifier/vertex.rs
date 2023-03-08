@@ -22,131 +22,59 @@ pub trait VertexId {
     fn revision_id(&self) -> Self::RevisionId;
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct DataTypeVertexId {
-    pub base_id: BaseUrl,
-    pub revision_id: OntologyTypeVersion,
-}
-
-impl VertexId for DataTypeVertexId {
-    type BaseId = BaseUrl;
-    type RevisionId = OntologyTypeVersion;
-
-    fn base_id(&self) -> &Self::BaseId {
-        &self.base_id
-    }
-
-    fn revision_id(&self) -> Self::RevisionId {
-        self.revision_id
-    }
-}
-
-impl VertexIndex<DataTypeWithMetadata> for DataTypeVertexId {
-    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a DataTypeWithMetadata> {
-        vertices.data_types.get(self)
-    }
-
-    fn vertices_entry_mut<'a>(
-        &self,
-        vertices: &'a mut Vertices,
-    ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
-        vertices.data_types.raw_entry_mut().from_key(self)
-    }
-}
-
-impl From<VersionedUrl> for DataTypeVertexId {
-    fn from(url: VersionedUrl) -> Self {
-        Self {
-            base_id: url.base_url,
-            revision_id: OntologyTypeVersion::new(url.version),
+macro_rules! define_ontology_type_vertex_id {
+    ($name:ident, $ontology_type:ty, $vertex_set:ident) => {
+        #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+        #[serde(rename_all = "camelCase")]
+        pub struct $name {
+            pub base_id: BaseUrl,
+            pub revision_id: OntologyTypeVersion,
         }
-    }
-}
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyTypeVertexId {
-    pub base_id: BaseUrl,
-    pub revision_id: OntologyTypeVersion,
-}
+        impl VertexId for $name {
+            type BaseId = BaseUrl;
+            type RevisionId = OntologyTypeVersion;
 
-impl VertexId for PropertyTypeVertexId {
-    type BaseId = BaseUrl;
-    type RevisionId = OntologyTypeVersion;
+            fn base_id(&self) -> &Self::BaseId {
+                &self.base_id
+            }
 
-    fn base_id(&self) -> &Self::BaseId {
-        &self.base_id
-    }
-
-    fn revision_id(&self) -> Self::RevisionId {
-        self.revision_id
-    }
-}
-
-impl VertexIndex<PropertyTypeWithMetadata> for PropertyTypeVertexId {
-    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a PropertyTypeWithMetadata> {
-        vertices.property_types.get(self)
-    }
-
-    fn vertices_entry_mut<'a>(
-        &self,
-        vertices: &'a mut Vertices,
-    ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
-        vertices.property_types.raw_entry_mut().from_key(self)
-    }
-}
-
-impl From<VersionedUrl> for PropertyTypeVertexId {
-    fn from(url: VersionedUrl) -> Self {
-        Self {
-            base_id: url.base_url,
-            revision_id: OntologyTypeVersion::new(url.version),
+            fn revision_id(&self) -> Self::RevisionId {
+                self.revision_id
+            }
         }
-    }
-}
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityTypeVertexId {
-    pub base_id: BaseUrl,
-    pub revision_id: OntologyTypeVersion,
-}
+        impl VertexIndex<$ontology_type> for $name {
+            fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
+                vertices.$vertex_set.get(self)
+            }
 
-impl VertexId for EntityTypeVertexId {
-    type BaseId = BaseUrl;
-    type RevisionId = OntologyTypeVersion;
-
-    fn base_id(&self) -> &Self::BaseId {
-        &self.base_id
-    }
-
-    fn revision_id(&self) -> Self::RevisionId {
-        self.revision_id
-    }
-}
-
-impl VertexIndex<EntityTypeWithMetadata> for EntityTypeVertexId {
-    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a EntityTypeWithMetadata> {
-        vertices.entity_types.get(self)
-    }
-
-    fn vertices_entry_mut<'a>(
-        &self,
-        vertices: &'a mut Vertices,
-    ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
-        vertices.entity_types.raw_entry_mut().from_key(self)
-    }
-}
-
-impl From<VersionedUrl> for EntityTypeVertexId {
-    fn from(url: VersionedUrl) -> Self {
-        Self {
-            base_id: url.base_url,
-            revision_id: OntologyTypeVersion::new(url.version),
+            fn vertices_entry_mut<'a>(
+                &self,
+                vertices: &'a mut Vertices,
+            ) -> RawEntryMut<'a, Self, $ontology_type, RandomState> {
+                vertices.$vertex_set.raw_entry_mut().from_key(self)
+            }
         }
-    }
+
+        impl From<VersionedUrl> for $name {
+            fn from(url: VersionedUrl) -> Self {
+                Self {
+                    base_id: url.base_url,
+                    revision_id: OntologyTypeVersion::new(url.version),
+                }
+            }
+        }
+    };
 }
+
+define_ontology_type_vertex_id!(DataTypeVertexId, DataTypeWithMetadata, data_types);
+define_ontology_type_vertex_id!(
+    PropertyTypeVertexId,
+    PropertyTypeWithMetadata,
+    property_types
+);
+define_ontology_type_vertex_id!(EntityTypeVertexId, EntityTypeWithMetadata, entity_types);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(untagged)]
