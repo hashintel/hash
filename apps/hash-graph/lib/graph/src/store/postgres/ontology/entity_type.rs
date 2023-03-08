@@ -5,7 +5,6 @@ use error_stack::{Result, ResultExt};
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
-    identifier::OntologyTypeVertexId,
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
@@ -17,6 +16,7 @@ use crate::{
             Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdge,
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
+        identifier::OntologyTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,

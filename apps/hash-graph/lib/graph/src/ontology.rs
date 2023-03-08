@@ -6,19 +6,16 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
+use std::iter::once;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use time::OffsetDateTime;
-#[cfg(feature = "type-fetcher")]
-use type_fetcher::fetcher_server::{
-    traverse_data_type_references, traverse_entity_type_references,
-    traverse_property_type_references, OntologyTypeReference,
-};
 use type_system::{
-    repr, url::VersionedUrl, DataType, EntityType, ParseDataTypeError, ParseEntityTypeError,
-    ParsePropertyTypeError, PropertyType,
+    repr, url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference,
+    ParseDataTypeError, ParseEntityTypeError, ParsePropertyTypeError, PropertyType,
+    PropertyTypeReference,
 };
 use utoipa::ToSchema;
 
@@ -28,9 +25,10 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis, OntologyTypeVertexId},
+    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
     provenance::{OwnedById, ProvenanceMetadata},
     store::{query::Filter, Record},
+    subgraph::identifier::OntologyTypeVertexId,
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -105,6 +103,25 @@ where
     T::Representation::from(ontology_type.clone()).serialize(serializer)
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(clippy::enum_variant_names)]
+pub enum OntologyTypeReference<'a> {
+    EntityTypeReference(&'a EntityTypeReference),
+    PropertyTypeReference(&'a PropertyTypeReference),
+    DataTypeReference(&'a DataTypeReference),
+}
+
+impl OntologyTypeReference<'_> {
+    #[must_use]
+    pub const fn url(&self) -> &VersionedUrl {
+        match self {
+            Self::EntityTypeReference(entity_type_ref) => entity_type_ref.url(),
+            Self::PropertyTypeReference(property_type_ref) => property_type_ref.url(),
+            Self::DataTypeReference(data_type_ref) => data_type_ref.url(),
+        }
+    }
+}
+
 pub trait OntologyType:
     Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
 {
@@ -114,7 +131,6 @@ pub trait OntologyType:
 
     fn id(&self) -> &VersionedUrl;
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference>;
 }
 
@@ -127,9 +143,8 @@ impl OntologyType for DataType {
         self.id()
     }
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        traverse_data_type_references(self).collect()
+        vec![]
     }
 }
 
@@ -142,9 +157,16 @@ impl OntologyType for PropertyType {
         self.id()
     }
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        traverse_property_type_references(self).collect()
+        self.property_type_references()
+            .into_iter()
+            .map(OntologyTypeReference::PropertyTypeReference)
+            .chain(
+                self.data_type_references()
+                    .into_iter()
+                    .map(OntologyTypeReference::DataTypeReference),
+            )
+            .collect()
     }
 }
 
@@ -157,9 +179,26 @@ impl OntologyType for EntityType {
         self.id()
     }
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        traverse_entity_type_references(self).collect()
+        self.property_type_references()
+            .into_iter()
+            .map(OntologyTypeReference::PropertyTypeReference)
+            .chain(
+                self.inherits_from()
+                    .all_of()
+                    .iter()
+                    .map(OntologyTypeReference::EntityTypeReference),
+            )
+            .chain(self.link_mappings().into_iter().flat_map(
+                |(link_entity_type, destination_entity_type_constraint)| {
+                    {
+                        once(link_entity_type)
+                            .chain(destination_entity_type_constraint.unwrap_or_default())
+                    }
+                    .map(OntologyTypeReference::EntityTypeReference)
+                },
+            ))
+            .collect()
     }
 }
 

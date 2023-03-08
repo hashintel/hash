@@ -775,12 +775,10 @@ mod tests {
 
         use super::*;
         use crate::{
-            identifier::{
-                account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion,
-                OntologyTypeVertexId,
-            },
+            identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
             knowledge::EntityUuid,
             provenance::OwnedById,
+            subgraph::identifier::OntologyTypeVertexId,
         };
 
         #[test]

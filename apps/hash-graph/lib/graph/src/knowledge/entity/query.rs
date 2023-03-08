@@ -64,7 +64,7 @@ pub enum EntityQueryPath<'p> {
     /// `temporalAxes` parameter on [`StructuralQuery`]. The decision time is returned as part of
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
-    /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
     /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
@@ -75,7 +75,7 @@ pub enum EntityQueryPath<'p> {
     /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is returned as part
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
-    /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
     /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity

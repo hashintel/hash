@@ -1,9 +1,9 @@
 use serde::Serialize;
 use utoipa::{openapi, ToSchema};
 
-use crate::{
+use crate::subgraph::{
+    edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
     identifier::{EntityIdWithInterval, OntologyTypeVertexId},
-    subgraph::edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
