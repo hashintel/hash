@@ -1,7 +1,6 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import { Button } from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
@@ -13,13 +12,17 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
-import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
+import { QuestionCircleIcon } from "../icons/question-circle";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
+import {
+  DEFAULT_MODEL_ID,
+  ModelSelector,
+} from "./generate-text/model-selector";
 import { TextPreview } from "./generate-text/text-preview";
 
 export const promptKey: keyof RootEntity["properties"] =
@@ -32,6 +35,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
 
   const initialPromptText = blockEntity.properties[promptKey];
+  const initialModel = blockEntity.properties[modelKey];
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,12 +45,11 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [selectorOpen, setSelectorOpen] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  // @todo implement model selection UI
-  // @see https://app.asana.com/0/1203358502199087/1203701786066059/f
-  const [model, _setModel] = useState("text-davinci-003");
+  const [model, setModel] = useState(initialModel ?? DEFAULT_MODEL_ID);
   const [promptText, setPromptText] = useState(initialPromptText ?? "");
   const [generatedText, setGeneratedText] = useState("");
 
@@ -71,15 +74,35 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       setErrorMessage("");
       setLoading(true);
 
-      const { data, errors } = await serviceModule.openaiCompleteText({
-        data: {
-          max_tokens: 1000,
-          model,
-          prompt: promptText,
-        },
-      });
+      const isTurbo = model === "gpt-3.5-turbo";
+      const { data, errors } = await (isTurbo
+        ? serviceModule.openaiCompleteChat({
+            data: {
+              max_tokens: 4000 - promptText.length,
+              messages: [{ role: "user", content: promptText }],
+              model: "gpt-3.5-turbo",
+            },
+          })
+        : serviceModule.openaiCompleteText({
+            data: {
+              max_tokens:
+                (model === "text-davinci-003" ? 4000 : 2000) -
+                promptText.length,
+              model,
+              prompt: promptText,
+            },
+          }));
 
-      const textResponse = data?.choices[0]?.text;
+      const choice = data?.choices[0];
+
+      let textResponse: string | undefined;
+      if (choice) {
+        if ("message" in choice) {
+          textResponse = choice.message?.content;
+        } else if ("text" in choice) {
+          textResponse = choice.text;
+        }
+      }
 
       if (errors || !textResponse) {
         setErrorMessage("An error occurred");
@@ -95,10 +118,6 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     },
     [loading, model, promptText, serviceModule],
   );
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   const confirm = () =>
     graphModule.updateEntity({
@@ -119,8 +138,12 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
-        <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
+      <Fade
+        in={
+          hovered || inputFocused || animatingIn || animatingOut || selectorOpen
+        }
+      >
+        <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
           <Link
             href="https://blockprotocol.org/@hash/blocks/ai-text"
             target="_blank"
@@ -132,7 +155,6 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
               fontSize: 15,
               lineHeight: 1,
               letterSpacing: -0.02,
-              marginBottom: 1.5,
               whiteSpace: "nowrap",
               color: palette.gray[50],
               fill: palette.gray[40],
@@ -143,42 +165,20 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
             })}
           >
             Get help{" "}
-            <FontAwesomeIcon
-              icon={faQuestionCircle}
-              sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-            />
+            <QuestionCircleIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
           </Link>
 
-          <Typography
-            variant="regularTextLabels"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              textDecoration: "none",
-              fontSize: 15,
-              lineHeight: 1,
-              letterSpacing: -0.02,
-              marginBottom: 1.5,
-              flexWrap: "wrap",
-              color: ({ palette }) => palette.gray[50],
-            }}
-          >
-            <Box component="span" sx={{ mr: 1 }}>
-              Using
+          <Fade in={!generatedText}>
+            <Box display="flex" gap={1} alignItems="center">
+              <ModelSelector
+                open={selectorOpen}
+                onOpen={() => setSelectorOpen(true)}
+                onClose={() => setSelectorOpen(false)}
+                model={model}
+                onModelChange={setModel}
+              />
             </Box>
-            <Box
-              component="span"
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                color: ({ palette }) => palette.gray[60],
-                mr: 1,
-              }}
-            >
-              <AbstractAiIcon sx={{ fontSize: 16, mr: 0.375 }} />
-              OpenAI GPT-3 Davinci
-            </Box>
-          </Typography>
+          </Fade>
         </Box>
       </Fade>
 
@@ -189,6 +189,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       >
         <form onSubmit={onSubmit}>
           <TextField
+            autoFocus
             multiline
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
