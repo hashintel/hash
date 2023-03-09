@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
-import { isStripedKey, hideHeaderRowKey, hideRowNumbersKey } from "../../types";
 import { RootEntity } from "../../types.gen";
 import styles from "./styles.module.scss";
+import { RootKey } from "../../types";
+
+const isStripedKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
+const hideHeaderRowKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
+const hideRowNumbersKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/";
 
 interface SettingsProps {
   blockEntity: RootEntity;

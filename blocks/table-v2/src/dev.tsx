@@ -5,13 +5,6 @@ import { createRoot } from "react-dom/client";
 import packageJson from "../package.json";
 import Component from "./index";
 import { RootEntity } from "./types.gen";
-import {
-  titleKey,
-  localColumnsKey,
-  localRowsKey,
-  columnIdKey,
-  columnTitleKey,
-} from "./types";
 
 const node = document.getElementById("app");
 
@@ -22,35 +15,42 @@ const testEntity: RootEntity = {
     entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
   },
   properties: {
-    [titleKey]: "My Table",
-    [localColumnsKey]: [
-      {
-        [columnIdKey]: "fullName",
-        [columnTitleKey]: "Full Name",
-      },
-      {
-        [columnIdKey]: "role",
-        [columnTitleKey]: "Role",
-      },
-    ],
-    [localRowsKey]: [
-      {
-        fullName: "David Davidson",
-        role: "CEO",
-      },
-      {
-        fullName: "John Johnson",
-        role: "Head of Engineering",
-      },
-      {
-        fullName: "React Reactson",
-        role: "Frontend Developer",
-      },
-      {
-        fullName: "Node Nodeson",
-        role: "Backend Developer",
-      },
-    ],
+    "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
+      "My Table",
+    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/":
+      [
+        {
+          "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
+            "Full Name",
+          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
+            "fullName",
+        },
+        {
+          "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
+            "Role",
+          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
+            "role",
+        },
+      ],
+    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/":
+      [
+        {
+          fullName: "David Davidson",
+          role: "CEO",
+        },
+        {
+          fullName: "John Johnson",
+          role: "Head of Engineering",
+        },
+        {
+          fullName: "React Reactson",
+          role: "Frontend Developer",
+        },
+        {
+          fullName: "Node Nodeson",
+          role: "Backend Developer",
+        },
+      ],
   },
 };
 

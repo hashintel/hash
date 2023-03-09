@@ -20,17 +20,26 @@ import { Grid } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
 import { Settings } from "./components/settings/settings";
 import { TableTitle } from "./components/table-title/table-title";
-import {
-  columnIdKey,
-  columnTitleKey,
-  hideHeaderRowKey,
-  hideRowNumbersKey,
-  isStripedKey,
-  localColumnsKey,
-  localRowsKey,
-  titleKey,
-} from "./types";
 import { RootEntity, RootEntityLinkedEntities } from "./types.gen";
+import { ColumnKey, RootKey } from "./types";
+
+const titleKey: RootKey =
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+const localColumnsKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/";
+const localRowsKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/";
+export const isStripedKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
+const hideHeaderRowKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
+const hideRowNumbersKey: RootKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/";
+
+const columnTitleKey: ColumnKey =
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+const columnIdKey: ColumnKey =
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/";
 
 const emptySelection = {
   columns: CompactSelection.empty(),
