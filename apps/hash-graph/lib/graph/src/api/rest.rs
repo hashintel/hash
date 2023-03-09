@@ -11,7 +11,6 @@ mod entity;
 mod entity_type;
 mod property_type;
 mod utoipa_typedef;
-
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
@@ -49,7 +48,6 @@ use crate::{
             OpenTemporalBound, RightBoundedTemporalInterval,
             RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
-        EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -62,8 +60,10 @@ use crate::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
             OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
-        SubgraphTemporalAxes,
+        identifier::{
+            EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
+        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
 

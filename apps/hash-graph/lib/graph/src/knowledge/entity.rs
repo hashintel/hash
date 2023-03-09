@@ -13,10 +13,10 @@ use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
         time::{ClosedTemporalBound, TemporalTagged, TimeAxis},
-        EntityVertexId,
     },
     provenance::ProvenanceMetadata,
     store::{query::Filter, Record},
+    subgraph::identifier::EntityVertexId,
 };
 
 #[derive(

@@ -1,37 +1,23 @@
-use std::{
-    collections::{
-        hash_map::{RandomState, RawEntryMut},
-        HashSet,
-    },
-    fmt::Debug,
-    hash::Hash,
-};
-
-use edges::Edges;
-use error_stack::Result;
-use serde::Serialize;
-use utoipa::ToSchema;
-
-use crate::{
-    shared::identifier::GraphElementVertexId,
-    store::{crud::Read, QueryError, Record},
-    subgraph::{
-        edges::GraphResolveDepths,
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
-        vertices::Vertices,
-    },
-};
-
 pub mod edges;
+pub mod identifier;
 pub mod query;
 pub mod temporal_axes;
 pub mod vertices;
 
-#[derive(Debug, Serialize, ToSchema)]
-pub struct SubgraphTemporalAxes {
-    pub initial: QueryTemporalAxesUnresolved,
-    pub resolved: QueryTemporalAxes,
-}
+use std::collections::{
+    hash_map::{RandomState, RawEntryMut},
+    HashSet,
+};
+
+use error_stack::Result;
+
+use self::{
+    edges::{Edges, GraphResolveDepths},
+    identifier::GraphElementVertexId,
+    temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
+    vertices::{VertexIndex, Vertices},
+};
+use crate::store::{crud::Read, QueryError, Record};
 
 #[derive(Debug)]
 pub struct Subgraph {
@@ -61,15 +47,19 @@ impl Subgraph {
         }
     }
 
-    fn entry<R: Record>(
+    fn vertex_entry_mut<R: Record>(
         &mut self,
-        vertex_id: &impl SubgraphIndex<R>,
+        vertex_id: &R::VertexId,
     ) -> RawEntryMut<R::VertexId, R, RandomState> {
-        vertex_id.subgraph_vertex_entry(self)
+        vertex_id.vertices_entry_mut(&mut self.vertices)
+    }
+
+    pub fn get_vertex<R: Record>(&self, vertex_id: &R::VertexId) -> Option<&R> {
+        vertex_id.vertices_entry(&self.vertices)
     }
 
     pub fn insert<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R> {
-        match self.entry(vertex_id) {
+        match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
             RawEntryMut::Vacant(entry) => {
                 entry.insert(vertex_id.clone(), record);
@@ -92,7 +82,7 @@ impl Subgraph {
         vertex_id: &R::VertexId,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<&'r R, QueryError> {
-        Ok(match self.entry(vertex_id) {
+        Ok(match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),
             RawEntryMut::Vacant(entry) => {
                 entry
@@ -106,16 +96,4 @@ impl Subgraph {
             }
         })
     }
-}
-
-/// Used for index operations on a mutable [`Subgraph`].
-///
-/// Depending on `R`, the index operation will be performed on the respective collection of the
-/// subgraph.
-pub trait SubgraphIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementVertexId> {
-    /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, R::VertexId, R, RandomState>;
 }
