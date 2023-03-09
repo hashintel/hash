@@ -3241,6 +3241,13 @@
   dependencies:
     "@blockprotocol/core" "0.1.0"
 
+"@blockprotocol/service@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/service/-/service-0.1.1.tgz#8513255b94af747e52cde70288d75cbfa2a53ffd"
+  integrity sha512-9N5A0adwLTKNDwy29/xnWzmWTyig5YyVBgBw9ydHazJZAlfZZWQfgsWGgOw3J8dSIaqTfv5U/LvvaUa4wxeL3g==
+  dependencies:
+    "@blockprotocol/core" "0.1.0"
+
 "@blockprotocol/type-system@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0.tgz#951e3d4aa996440762a5207329e8e151176cd24f"
@@ -16310,7 +16317,7 @@ mock-block-dock@0.0.38:
     use-local-storage-state "^18.1.1"
     uuid "^8.3.2"
 
-mock-block-dock@0.1.0, mock-block-dock@^0.1.0:
+mock-block-dock@0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.0.tgz#8a097b51867a91c914501424379324e17071d9e9"
   integrity sha512-YqXn42yBFj8dImV0aGYmWjP4MCupScrThG5MozMH2ikBk4UEZAbSSrJ8pzaTNYLTh+R+Y5QOT8vHf9DjxC+RIw==
@@ -16319,6 +16326,32 @@ mock-block-dock@0.1.0, mock-block-dock@^0.1.0:
     "@blockprotocol/graph" "0.1.0"
     "@blockprotocol/hook" "0.1.0"
     "@blockprotocol/service" "0.1.0"
+    "@emotion/react" "^11.10.0"
+    "@emotion/styled" "^11.10.0"
+    "@lit-labs/react" "^1.0.4"
+    "@mui/material" "5.11.8"
+    ajv "^8.11.2"
+    axios "^1.3.2"
+    dotenv-webpack "^8.0.1"
+    echarts "5.4.1"
+    mime "^3.0.0"
+    react-json-view "^1.21.3"
+    react-resizable "^3.0.4"
+    slate "^0.82.1"
+    slate-react "^0.83.1"
+    styled-jsx "^5.1.0"
+    use-local-storage-state "^18.1.1"
+    uuid "^8.3.2"
+
+mock-block-dock@0.1.1, mock-block-dock@^0.1.0:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.1.tgz#b4dcbbd63ea027b88c1508a40e18f17914066f8e"
+  integrity sha512-j3qeNdRS4xfOkseI8uv+3iVG62IiLv/bizN842Ombxpcq52GkoaHgwQqWdzES6U9KBUCFViBLMKD7+VxtQecEg==
+  dependencies:
+    "@blockprotocol/core" "0.1.0"
+    "@blockprotocol/graph" "0.1.0"
+    "@blockprotocol/hook" "0.1.0"
+    "@blockprotocol/service" "0.1.1"
     "@emotion/react" "^11.10.0"
     "@emotion/styled" "^11.10.0"
     "@lit-labs/react" "^1.0.4"
