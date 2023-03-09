@@ -16,7 +16,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import produce from "immer";
 import styles from "./base.module.scss";
-import { Grid } from "./components/grid/grid";
+import { Grid, ROW_HEIGHT } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
 import { Settings } from "./components/settings/settings";
 import { TableTitle } from "./components/table-title/table-title";
@@ -244,8 +244,9 @@ export const App: BlockComponent<RootEntity> = ({
                 addNewRow();
               }
         }
-        headerHeight={hideHeaderRow ? 0 : 40}
+        headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
         rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
+        rowSelectionMode="multi"
         getCellContent={([colIndex, rowIndex]) => {
           const key = columns[colIndex]?.id;
 
