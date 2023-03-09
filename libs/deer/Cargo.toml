@@ -26,7 +26,7 @@ serde_json = { version = "1.0.93", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.4.2", features = ['serde'] }
 deer-desert = { path = "./desert", features = ['pretty'] }
 proptest = "1.1.0"
-paste = "1.0.11"
+paste = "1.0.12"
 
 [build-dependencies]
 rustc_version = "0.4.0"
