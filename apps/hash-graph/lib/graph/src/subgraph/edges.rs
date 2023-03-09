@@ -9,7 +9,7 @@ use std::{
 };
 
 pub use self::{
-    edge::{KnowledgeGraphOutwardEdge, OntologyOutwardEdge, OutwardEdge},
+    edge::OutwardEdge,
     kind::{
         EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,

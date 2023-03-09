@@ -37,8 +37,8 @@ use crate::{
         middleware::log_request_and_response,
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, Vertex, Vertices,
+            KnowledgeGraphVertices, OntologyOutwardEdge, OntologyRootedEdges, OntologyVertex,
+            OntologyVertices, Subgraph, Vertex, Vertices,
         },
     },
     identifier::{
@@ -58,7 +58,7 @@ use crate::{
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         identifier::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
