@@ -106,6 +106,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       );
 
       setImages(generatedImages);
+      setAnimatingIn(true);
 
       try {
         const uploadedImages = await Promise.all(
@@ -126,7 +127,6 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
         );
 
         setImages(uploadedImages);
-        setAnimatingIn(true);
       } catch (err) {
         setErrorMessage(
           `Could not upload images: ${
