@@ -54,7 +54,7 @@
     },
     "displayName": "Table v2",
     "examples": [],
-    "icon": "public/omega.svg",
+    "icon": "public/table.svg",
     "image": "public/block-preview.png",
     "name": "@hash/table-v2",
     "protocol": "0.3",
