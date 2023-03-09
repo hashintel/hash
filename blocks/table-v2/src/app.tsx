@@ -29,7 +29,7 @@ const localColumnsKey: RootKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/";
 const localRowsKey: RootKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/";
-export const isStripedKey: RootKey =
+const isStripedKey: RootKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
 const hideHeaderRowKey: RootKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
