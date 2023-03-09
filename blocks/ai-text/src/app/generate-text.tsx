@@ -242,6 +242,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
                     maxHeight: 55,
                     maxWidth: 168,
                     minHeight: 51,
+                    whiteSpace: "nowrap",
                     [`&.${buttonBaseClasses.disabled}`]: {
                       color: palette.common.black,
                       background: "none",
