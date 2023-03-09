@@ -151,15 +151,15 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
             sx={({ palette }) => ({
               display: "inline-flex",
               alignItems: "center",
-              textDecoration: "none",
               fontSize: 15,
               lineHeight: 1,
               letterSpacing: -0.02,
               whiteSpace: "nowrap",
-              color: palette.gray[50],
+              textDecoration: "none !important",
+              color: `${palette.gray[50]} !important`,
               fill: palette.gray[40],
               ":hover": {
-                color: palette.gray[60],
+                color: `${palette.gray[60]} !important`,
                 fill: palette.gray[50],
               },
             })}
