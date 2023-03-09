@@ -4,9 +4,12 @@ pub mod query;
 pub mod temporal_axes;
 pub mod vertices;
 
-use std::collections::{
-    hash_map::{RandomState, RawEntryMut},
-    HashSet,
+use std::{
+    collections::{
+        hash_map::{RandomState, RawEntryMut},
+        HashSet,
+    },
+    hash::Hash,
 };
 
 use error_stack::Result;
@@ -17,7 +20,13 @@ use self::{
     temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     vertices::{VertexIndex, Vertices},
 };
-use crate::store::{crud::Read, QueryError, Record};
+use crate::{
+    store::{crud::Read, QueryError, Record},
+    subgraph::{
+        edges::EdgeKind,
+        identifier::{EdgeEndpoint, VertexId},
+    },
+};
 
 #[derive(Debug)]
 pub struct Subgraph {
@@ -58,7 +67,7 @@ impl Subgraph {
         vertex_id.vertices_entry(&self.vertices)
     }
 
-    pub fn insert<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R> {
+    pub fn insert_vertex<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R> {
         match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
             RawEntryMut::Vacant(entry) => {
@@ -66,6 +75,38 @@ impl Subgraph {
                 None
             }
         }
+    }
+
+    pub fn insert_edge<L, E, R>(&mut self, left_endpoint: &L, edge_kind: E, right_endpoint: R)
+    where
+        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
+        R: EdgeEndpoint,
+        E: EdgeKind<L, R, false, EdgeSet: Default> + Eq + Hash,
+    {
+        edge_kind.edge_entry_mut(&mut self.edges).insert(
+            left_endpoint,
+            edge_kind,
+            false,
+            right_endpoint,
+        );
+    }
+
+    pub fn insert_reversed_edge<L, E, R>(
+        &mut self,
+        left_endpoint: &L,
+        edge_kind: E,
+        right_endpoint: R,
+    ) where
+        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
+        R: EdgeEndpoint,
+        E: EdgeKind<L, R, true, EdgeSet: Default> + Eq + Hash,
+    {
+        edge_kind.edge_entry_mut(&mut self.edges).insert(
+            left_endpoint,
+            edge_kind,
+            true,
+            right_endpoint,
+        );
     }
 
     /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it

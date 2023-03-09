@@ -1,5 +1,26 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use crate::subgraph::{
+    edges::{
+        endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
+        AdjacencyList, Edges,
+    },
+    identifier::{
+        EdgeEndpoint, EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId, VertexId,
+    },
+};
+
+pub trait EdgeKind<L: VertexId, R: EdgeEndpoint, const REVERSED: bool>: Sized {
+    type EdgeSet: EdgeEndpointSet<EdgeEndpoint = R>;
+
+    fn edge_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<L, Self, Self::EdgeSet>;
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -29,6 +50,19 @@ pub enum OntologyEdgeKind {
     ConstrainsLinkDestinationsOn,
 }
 
+impl<const REVERSED: bool> EdgeKind<OntologyTypeVertexId, OntologyTypeVertexId, REVERSED>
+    for OntologyEdgeKind
+{
+    type EdgeSet = HashSet<OntologyTypeVertexId>;
+
+    fn edge_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<OntologyTypeVertexId, Self, Self::EdgeSet> {
+        &mut edges.ontology_to_ontology
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
@@ -45,6 +79,19 @@ pub enum KnowledgeGraphEdgeKind {
     HasRightEntity,
 }
 
+impl<const REVERSED: bool> EdgeKind<EntityVertexId, EntityIdWithInterval, REVERSED>
+    for KnowledgeGraphEdgeKind
+{
+    type EdgeSet = EntityIdWithIntervalSet;
+
+    fn edge_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<EntityVertexId, Self, Self::EdgeSet> {
+        &mut edges.knowledge_to_knowledge
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SharedEdgeKind {
@@ -53,6 +100,28 @@ pub enum SharedEdgeKind {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`EntityType`]: type_system::EntityType
     IsOfType,
+}
+
+impl EdgeKind<EntityVertexId, OntologyTypeVertexId, false> for SharedEdgeKind {
+    type EdgeSet = HashSet<OntologyTypeVertexId>;
+
+    fn edge_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<EntityVertexId, Self, Self::EdgeSet> {
+        &mut edges.knowledge_to_ontology
+    }
+}
+
+impl EdgeKind<OntologyTypeVertexId, EntityIdWithInterval, true> for SharedEdgeKind {
+    type EdgeSet = EntityIdWithIntervalSet;
+
+    fn edge_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<OntologyTypeVertexId, Self, Self::EdgeSet> {
+        &mut edges.ontology_to_knowledge
+    }
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]

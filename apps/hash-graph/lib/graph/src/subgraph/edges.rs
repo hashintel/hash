@@ -11,7 +11,7 @@ use std::{
 pub use self::{
     edge::{KnowledgeGraphOutwardEdge, OntologyOutwardEdge, OutwardEdge},
     kind::{
-        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+        EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
 };
@@ -21,7 +21,7 @@ use crate::subgraph::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct EdgeKind<K> {
+struct EdgeData<K> {
     kind: K,
     reversed: bool,
 }
@@ -32,7 +32,7 @@ where
     E: EdgeEndpointSet,
 {
     #[expect(clippy::type_complexity)]
-    edges: HashMap<V::BaseId, BTreeMap<V::RevisionId, HashMap<EdgeKind<K>, E>>>,
+    edges: HashMap<V::BaseId, BTreeMap<V::RevisionId, HashMap<EdgeData<K>, E>>>,
 }
 
 impl<V, K, E> AdjacencyList<V, K, E>
@@ -61,7 +61,7 @@ where
             .1
             .entry(vertex_id.revision_id())
             .or_default()
-            .entry(EdgeKind {
+            .entry(EdgeData {
                 kind: edge_kind,
                 reversed,
             })
