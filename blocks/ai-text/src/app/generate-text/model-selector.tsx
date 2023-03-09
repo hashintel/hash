@@ -71,7 +71,6 @@ const MODELS_BY_GROUP: { [key in ModelGroupName]: ModelGroup } = {
 
 const INPUT_HEIGHT = 23;
 const INPUT_PADDING_TOP = 16;
-const INPUT_PADDING_BOTTOM = 12;
 
 export const ModelSelector = ({
   model,
@@ -83,7 +82,6 @@ export const ModelSelector = ({
   onModelChange: (model: string) => void;
 } & Pick<SelectProps, "open" | "onOpen" | "onClose">) => {
   const [selectRef, setSelectRef] = useState<HTMLSelectElement | null>(null);
-  const [menuRef, setMenuRef] = useState<HTMLUListElement | null>(null);
 
   const [selectedModel, selectedGroup] = useMemo(() => {
     const groups = Object.values(MODELS_BY_GROUP);
@@ -101,22 +99,19 @@ export const ModelSelector = ({
   const paperProps = useMemo(() => {
     const inputWidth = selectRef?.offsetWidth ?? 0;
     const paperOffset = INPUT_HEIGHT + INPUT_PADDING_TOP;
-    const inputHeight = paperOffset + INPUT_PADDING_BOTTOM;
     const paperWidth = Math.max(inputWidth, 340);
-    const paperHeight = (menuRef?.offsetHeight ?? 0) + inputHeight;
 
     return {
       sx: {
         borderRadius: 1.5,
+        boxSizing: "border-box",
         overflow: "hidden",
         width: paperWidth,
-        height: paperHeight,
         marginTop: `${-paperOffset}px`,
-        paddingTop: `${inputHeight}px`,
         marginLeft: `${(paperWidth - inputWidth) / 2}px`,
       },
     };
-  }, [menuRef?.offsetHeight, selectRef?.offsetWidth]);
+  }, [selectRef?.offsetWidth]);
 
   return (
     <Select
@@ -180,11 +175,6 @@ export const ModelSelector = ({
       MenuProps={{
         PaperProps: paperProps,
         MenuListProps: {
-          ref: (ref: HTMLUListElement | null) => {
-            if (ref) {
-              setMenuRef(ref);
-            }
-          },
           sx: {
             padding: 0,
             pb: 1,
@@ -200,12 +190,6 @@ export const ModelSelector = ({
             color: ({ palette }) => palette.gray[40],
           },
         },
-        ...(open
-          ? {
-              position: "relative",
-              zIndex: 9999,
-            }
-          : {}),
       }}
     >
       {Object.values(MODELS_BY_GROUP)
