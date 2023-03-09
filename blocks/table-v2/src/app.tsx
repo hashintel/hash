@@ -20,8 +20,8 @@ import { Grid } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
 import { Settings } from "./components/settings/settings";
 import { TableTitle } from "./components/table-title/table-title";
-import { RootEntity, RootEntityLinkedEntities } from "./types.gen";
-import { ColumnKey, RootKey } from "./types";
+import { RootEntity, RootEntityLinkedEntities } from "./types";
+import { ColumnKey, RootKey } from "./additional-types";
 
 const titleKey: RootKey =
   "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";

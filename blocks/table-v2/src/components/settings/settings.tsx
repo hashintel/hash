@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
-import { RootEntity } from "../../types.gen";
+import { RootEntity } from "../../types";
 import styles from "./styles.module.scss";
-import { RootKey } from "../../types";
+import { RootKey } from "../../additional-types";
 
 const isStripedKey: RootKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
