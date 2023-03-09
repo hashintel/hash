@@ -11,7 +11,7 @@ pub use self::vertex::*;
 use crate::{
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     subgraph::{
-        identifier::{EdgeEndpoint, OntologyTypeVertexId},
+        identifier::{OntologyTypeVertexId, VertexId},
         temporal_axes::VariableAxis,
     },
 };

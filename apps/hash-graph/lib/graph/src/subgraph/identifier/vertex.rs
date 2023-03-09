@@ -11,6 +11,7 @@ use crate::{
     subgraph::{
         temporal_axes::VariableAxis,
         vertices::{VertexIndex, Vertices},
+        EdgeEndpoint,
     },
 };
 
@@ -57,6 +58,19 @@ macro_rules! define_ontology_type_vertex_id {
             }
         }
 
+        impl EdgeEndpoint for $name {
+            type BaseId = BaseUrl;
+            type RightEndpoint = OntologyTypeVersion;
+
+            fn base_id(&self) -> &Self::BaseId {
+                &self.base_id
+            }
+
+            fn revision_id(&self) -> Self::RightEndpoint {
+                self.revision_id
+            }
+        }
+
         impl From<VersionedUrl> for $name {
             fn from(url: VersionedUrl) -> Self {
                 Self {
@@ -90,17 +104,17 @@ impl VertexId for OntologyTypeVertexId {
 
     fn base_id(&self) -> &Self::BaseId {
         match self {
-            Self::DataType(id) => id.base_id(),
-            Self::PropertyType(id) => id.base_id(),
-            Self::EntityType(id) => id.base_id(),
+            Self::DataType(id) => &id.base_id,
+            Self::PropertyType(id) => &id.base_id,
+            Self::EntityType(id) => &id.base_id,
         }
     }
 
     fn revision_id(&self) -> Self::RevisionId {
         match self {
-            Self::DataType(id) => id.revision_id(),
-            Self::PropertyType(id) => id.revision_id(),
-            Self::EntityType(id) => id.revision_id(),
+            Self::DataType(id) => id.revision_id,
+            Self::PropertyType(id) => id.revision_id,
+            Self::EntityType(id) => id.revision_id,
         }
     }
 }

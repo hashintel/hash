@@ -1,15 +1,9 @@
 use serde::{Deserialize, Serialize};
-use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
 use crate::{
-    identifier::{
-        knowledge::EntityId, ontology::OntologyTypeVersion, time::LeftClosedTemporalInterval,
-    },
-    subgraph::{
-        identifier::{OntologyTypeVertexId, VertexId},
-        temporal_axes::VariableAxis,
-    },
+    identifier::{knowledge::EntityId, time::LeftClosedTemporalInterval},
+    subgraph::{identifier::VertexId, temporal_axes::VariableAxis},
 };
 
 pub trait EdgeEndpoint {
@@ -18,19 +12,6 @@ pub trait EdgeEndpoint {
 
     fn base_id(&self) -> &Self::BaseId;
     fn revision_id(&self) -> Self::RightEndpoint;
-}
-
-impl EdgeEndpoint for OntologyTypeVertexId {
-    type BaseId = BaseUrl;
-    type RightEndpoint = OntologyTypeVersion;
-
-    fn base_id(&self) -> &Self::BaseId {
-        VertexId::base_id(self)
-    }
-
-    fn revision_id(&self) -> Self::RightEndpoint {
-        VertexId::revision_id(self)
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
