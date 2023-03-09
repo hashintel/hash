@@ -8,10 +8,10 @@ use crate::{
 
 pub trait EdgeEndpoint {
     type BaseId;
-    type RightEndpoint;
+    type RevisionId;
 
     fn base_id(&self) -> &Self::BaseId;
-    fn revision_id(&self) -> Self::RightEndpoint;
+    fn revision_id(&self) -> Self::RevisionId;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
@@ -23,13 +23,13 @@ pub struct EntityIdWithInterval {
 
 impl EdgeEndpoint for EntityIdWithInterval {
     type BaseId = EntityId;
-    type RightEndpoint = LeftClosedTemporalInterval<VariableAxis>;
+    type RevisionId = LeftClosedTemporalInterval<VariableAxis>;
 
     fn base_id(&self) -> &Self::BaseId {
         &self.entity_id
     }
 
-    fn revision_id(&self) -> Self::RightEndpoint {
+    fn revision_id(&self) -> Self::RevisionId {
         self.interval
     }
 }

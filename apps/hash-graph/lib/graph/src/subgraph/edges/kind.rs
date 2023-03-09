@@ -17,7 +17,7 @@ use crate::subgraph::{
 pub trait EdgeKind<L: VertexId, R: EdgeEndpoint, const REVERSED: bool>: Sized {
     type EdgeSet: EdgeEndpointSet<EdgeEndpoint = R>;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<L, Self, Self::EdgeSet>;
@@ -56,7 +56,7 @@ impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, EntityTypeVertexId, REVE
 {
     type EdgeSet = HashSet<EntityTypeVertexId>;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<EntityTypeVertexId, Self, Self::EdgeSet> {
@@ -69,7 +69,7 @@ impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, PropertyTypeVertexId, RE
 {
     type EdgeSet = HashSet<PropertyTypeVertexId>;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<EntityTypeVertexId, Self, Self::EdgeSet> {
@@ -82,7 +82,7 @@ impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId, 
 {
     type EdgeSet = HashSet<PropertyTypeVertexId>;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<PropertyTypeVertexId, Self, Self::EdgeSet> {
@@ -95,7 +95,7 @@ impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, DataTypeVertexId, REVE
 {
     type EdgeSet = HashSet<DataTypeVertexId>;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<PropertyTypeVertexId, Self, Self::EdgeSet> {
@@ -124,7 +124,7 @@ impl<const REVERSED: bool> EdgeKind<EntityVertexId, EntityIdWithInterval, REVERS
 {
     type EdgeSet = EntityIdWithIntervalSet;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<EntityVertexId, Self, Self::EdgeSet> {
@@ -145,7 +145,7 @@ pub enum SharedEdgeKind {
 impl EdgeKind<EntityVertexId, EntityTypeVertexId, false> for SharedEdgeKind {
     type EdgeSet = HashSet<EntityTypeVertexId>;
 
-    fn edge_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         edges: &'a mut Edges,
     ) -> &'a mut AdjacencyList<EntityVertexId, Self, Self::EdgeSet> {

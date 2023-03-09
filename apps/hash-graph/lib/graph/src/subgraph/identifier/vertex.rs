@@ -20,10 +20,10 @@ pub trait VertexId: Sized {
     fn revision_id(&self) -> Self::RevisionId;
 
     /// Returns a shared reference to the [`Record`] vertex in the subgraph.
-    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Self::Record>;
+    fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Self::Record>;
 
     /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
-    fn vertices_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, Self::Record, RandomState>;
@@ -51,11 +51,11 @@ macro_rules! define_ontology_type_vertex_id {
                 self.revision_id
             }
 
-            fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
+            fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
                 vertices.$vertex_set.get(self)
             }
 
-            fn vertices_entry_mut<'a>(
+            fn subgraph_entry_mut<'a>(
                 &self,
                 vertices: &'a mut Vertices,
             ) -> RawEntryMut<'a, Self, $ontology_type, RandomState> {
@@ -65,13 +65,13 @@ macro_rules! define_ontology_type_vertex_id {
 
         impl EdgeEndpoint for $name {
             type BaseId = BaseUrl;
-            type RightEndpoint = OntologyTypeVersion;
+            type RevisionId = OntologyTypeVersion;
 
             fn base_id(&self) -> &Self::BaseId {
                 &self.base_id
             }
 
-            fn revision_id(&self) -> Self::RightEndpoint {
+            fn revision_id(&self) -> Self::RevisionId {
                 self.revision_id
             }
         }
@@ -115,11 +115,11 @@ impl VertexId for EntityVertexId {
         self.revision_id
     }
 
-    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {
+    fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {
         vertices.entities.get(self)
     }
 
-    fn vertices_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {

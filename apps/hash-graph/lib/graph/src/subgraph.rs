@@ -60,11 +60,11 @@ impl Subgraph {
         &mut self,
         vertex_id: &R::VertexId,
     ) -> RawEntryMut<R::VertexId, R, RandomState> {
-        vertex_id.vertices_entry_mut(&mut self.vertices)
+        vertex_id.subgraph_entry_mut(&mut self.vertices)
     }
 
     pub fn get_vertex<R: Record>(&self, vertex_id: &R::VertexId) -> Option<&R> {
-        vertex_id.vertices_entry(&self.vertices)
+        vertex_id.subgraph_entry(&self.vertices)
     }
 
     pub fn insert_vertex<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R>
@@ -86,7 +86,7 @@ impl Subgraph {
         R: EdgeEndpoint,
         E: EdgeKind<L, R, false, EdgeSet: Default> + Eq + Hash,
     {
-        edge_kind.edge_entry_mut(&mut self.edges).insert(
+        edge_kind.subgraph_entry_mut(&mut self.edges).insert(
             left_endpoint,
             edge_kind,
             false,
@@ -104,7 +104,7 @@ impl Subgraph {
         R: EdgeEndpoint,
         E: EdgeKind<L, R, true, EdgeSet: Default> + Eq + Hash,
     {
-        edge_kind.edge_entry_mut(&mut self.edges).insert(
+        edge_kind.subgraph_entry_mut(&mut self.edges).insert(
             left_endpoint,
             edge_kind,
             true,
