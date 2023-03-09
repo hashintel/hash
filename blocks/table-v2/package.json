@@ -1,5 +1,5 @@
 {
-  "name": "@blocks/table",
+  "name": "@blocks/table-v2",
   "version": "0.0.0",
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
