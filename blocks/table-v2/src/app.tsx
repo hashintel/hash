@@ -145,7 +145,7 @@ export const App: BlockComponent<RootEntity> = ({
     id: col[columnIdKey],
     title: col[columnTitleKey] ?? "",
     width: 200,
-    hasMenu: true,
+    hasMenu: !readonly,
   }));
 
   const justClickedHeaderRef = useRef(false);
@@ -188,9 +188,11 @@ export const App: BlockComponent<RootEntity> = ({
     <div className={styles.block} ref={blockRootRef}>
       <div className={styles.titleWrapper}>
         <TableTitle onChange={setTitle} title={title} readonly={readonly} />
-        <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
+        {!readonly && (
+          <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
+        )}
       </div>
-      {!!selectedRowCount && (
+      {!!selectedRowCount && !readonly && (
         <div className={styles.rowActions}>
           <>
             <div>{`${selectedRowCount} ${
@@ -248,7 +250,7 @@ export const App: BlockComponent<RootEntity> = ({
               }
         }
         headerHeight={hideHeaderRow ? 0 : 40}
-        rowMarkers={hideRowNumbers ? "none" : "both"}
+        rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
         getCellContent={([colIndex, rowIndex]) => {
           const key = columns[colIndex]?.id;
 
