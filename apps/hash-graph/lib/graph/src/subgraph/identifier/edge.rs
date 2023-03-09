@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 use crate::{
     identifier::{knowledge::EntityId, time::LeftClosedTemporalInterval},
-    subgraph::{identifier::VertexId, temporal_axes::VariableAxis},
+    subgraph::temporal_axes::VariableAxis,
 };
 
 pub trait EdgeEndpoint {

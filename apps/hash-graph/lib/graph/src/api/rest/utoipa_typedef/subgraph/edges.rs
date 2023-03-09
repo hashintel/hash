@@ -8,12 +8,12 @@ use utoipa::{
 };
 
 use crate::{
+    api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     subgraph::{
         edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
         identifier::{
-            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, OntologyTypeVertexId,
-            PropertyTypeVertexId,
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
         },
         temporal_axes::VariableAxis,
     },

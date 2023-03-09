@@ -90,35 +90,6 @@ define_ontology_type_vertex_id!(
 );
 define_ontology_type_vertex_id!(EntityTypeVertexId, EntityTypeWithMetadata, entity_types);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(untagged)]
-pub enum OntologyTypeVertexId {
-    DataType(DataTypeVertexId),
-    PropertyType(PropertyTypeVertexId),
-    EntityType(EntityTypeVertexId),
-}
-
-impl VertexId for OntologyTypeVertexId {
-    type BaseId = BaseUrl;
-    type RevisionId = OntologyTypeVersion;
-
-    fn base_id(&self) -> &Self::BaseId {
-        match self {
-            Self::DataType(id) => &id.base_id,
-            Self::PropertyType(id) => &id.base_id,
-            Self::EntityType(id) => &id.base_id,
-        }
-    }
-
-    fn revision_id(&self) -> Self::RevisionId {
-        match self {
-            Self::DataType(id) => id.revision_id,
-            Self::PropertyType(id) => id.revision_id,
-            Self::EntityType(id) => id.revision_id,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
