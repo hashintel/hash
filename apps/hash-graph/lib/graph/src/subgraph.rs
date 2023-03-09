@@ -18,7 +18,7 @@ use self::{
     edges::{Edges, GraphResolveDepths},
     identifier::GraphElementVertexId,
     temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
-    vertices::{VertexIndex, Vertices},
+    vertices::Vertices,
 };
 use crate::{
     store::{crud::Read, QueryError, Record},
@@ -67,7 +67,10 @@ impl Subgraph {
         vertex_id.vertices_entry(&self.vertices)
     }
 
-    pub fn insert_vertex<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R> {
+    pub fn insert_vertex<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R>
+    where
+        R::VertexId: Eq + Clone + Hash,
+    {
         match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
             RawEntryMut::Vacant(entry) => {
@@ -117,12 +120,16 @@ impl Subgraph {
     /// - Returns an error if the [`Record`] could not be read from the [`Store`].
     ///
     /// [`Store`]: crate::store::Store
-    pub async fn get_or_read<'r, R: Record + Sync + 'r>(
+    pub async fn get_or_read<'r, R>(
         &'r mut self,
         store: &impl Read<R>,
         vertex_id: &R::VertexId,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<&'r R, QueryError> {
+    ) -> Result<&'r R, QueryError>
+    where
+        R: Record + 'r,
+        R::VertexId: Eq + Clone + Hash,
+    {
         Ok(match self.vertex_entry_mut(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),
             RawEntryMut::Vacant(entry) => {

@@ -8,19 +8,25 @@ use crate::{
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{
-        temporal_axes::VariableAxis,
-        vertices::{VertexIndex, Vertices},
-        EdgeEndpoint,
-    },
+    subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint},
 };
 
-pub trait VertexId {
+pub trait VertexId: Sized {
     type BaseId;
     type RevisionId;
+    type Record;
 
     fn base_id(&self) -> &Self::BaseId;
     fn revision_id(&self) -> Self::RevisionId;
+
+    /// Returns a shared reference to the [`Record`] vertex in the subgraph.
+    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Self::Record>;
+
+    /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
+    fn vertices_entry_mut<'a>(
+        &self,
+        vertices: &'a mut Vertices,
+    ) -> RawEntryMut<'a, Self, Self::Record, RandomState>;
 }
 
 macro_rules! define_ontology_type_vertex_id {
@@ -34,6 +40,7 @@ macro_rules! define_ontology_type_vertex_id {
 
         impl VertexId for $name {
             type BaseId = BaseUrl;
+            type Record = $ontology_type;
             type RevisionId = OntologyTypeVersion;
 
             fn base_id(&self) -> &Self::BaseId {
@@ -43,9 +50,7 @@ macro_rules! define_ontology_type_vertex_id {
             fn revision_id(&self) -> Self::RevisionId {
                 self.revision_id
             }
-        }
 
-        impl VertexIndex<$ontology_type> for $name {
             fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
                 vertices.$vertex_set.get(self)
             }
@@ -99,6 +104,7 @@ pub struct EntityVertexId {
 
 impl VertexId for EntityVertexId {
     type BaseId = EntityId;
+    type Record = Entity;
     type RevisionId = Timestamp<VariableAxis>;
 
     fn base_id(&self) -> &Self::BaseId {
@@ -108,9 +114,7 @@ impl VertexId for EntityVertexId {
     fn revision_id(&self) -> Self::RevisionId {
         self.revision_id
     }
-}
 
-impl VertexIndex<Entity> for EntityVertexId {
     fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {
         vertices.entities.get(self)
     }
