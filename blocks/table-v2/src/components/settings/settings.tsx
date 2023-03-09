@@ -1,22 +1,13 @@
 import { useState } from "react";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
-import { RootPropertyKey } from "../../types";
-import { NewType, RootEntity } from "../../types.gen";
+import { isStripedKey, hideHeaderRowKey, hideRowNumbersKey } from "../../types";
+import { RootEntity } from "../../types.gen";
 import styles from "./styles.module.scss";
 
-const isStripedKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
-const hideHeaderRowKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
-const hideRowNumbersKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/";
-
 interface SettingsProps {
-  blockEntity: NewType;
-  updateEntity: (
-    newProperties: Partial<RootEntity["properties"]>,
-  ) => Promise<void>;
+  blockEntity: RootEntity;
+  updateEntity: (newProperties: RootEntity["properties"]) => Promise<void>;
 }
 
 export const Settings = ({ blockEntity, updateEntity }: SettingsProps) => {

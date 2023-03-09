@@ -18,31 +18,19 @@ import produce from "immer";
 import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
+import { Settings } from "./components/settings/settings";
 import { TableTitle } from "./components/table-title/table-title";
 import {
-  LocalColumnsPropertyValue,
-  RootEntity,
-  RootEntityLinkedEntities,
-} from "./types.gen";
-import { Settings } from "./components/settings/settings";
-import { LocalColumnPropertyKey, RootPropertyKey } from "./types";
-
-const titleKey: RootPropertyKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
-const localColumnsKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-columns/";
-const localRowsKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-rows/";
-const columnTitleKey: LocalColumnPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-title/";
-const columnIdKey: LocalColumnPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-id/";
-const isStripedKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
-const hideHeaderRowKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
-const hideRowNumbersKey: RootPropertyKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/";
+  columnIdKey,
+  columnTitleKey,
+  hideHeaderRowKey,
+  hideRowNumbersKey,
+  isStripedKey,
+  localColumnsKey,
+  localRowsKey,
+  titleKey,
+} from "./types";
+import { RootEntity, RootEntityLinkedEntities } from "./types.gen";
 
 const emptySelection = {
   columns: CompactSelection.empty(),
@@ -129,9 +117,7 @@ export const App: BlockComponent<RootEntity> = ({
     await updateEntity({ [titleKey]: val });
   };
 
-  const updateEntity = async (
-    newProperties: Partial<RootEntity["properties"]>,
-  ) => {
+  const updateEntity = async (newProperties: RootEntity["properties"]) => {
     await graphModule?.updateEntity({
       data: {
         entityId: blockEntityId,
