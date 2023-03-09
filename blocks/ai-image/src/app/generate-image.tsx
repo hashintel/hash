@@ -169,7 +169,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
               textDecoration: "none !important",
               color: `${palette.gray[50]} !important`,
               ":hover": {
-                color: palette.gray[60],
+                color: `${palette.gray[60]} !important`,
                 fill: palette.gray[50],
               },
             })}
