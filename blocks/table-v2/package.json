@@ -1,7 +1,7 @@
 {
-  "name": "table-v2",
+  "name": "@blocks/table",
   "version": "0.0.0",
-  "description": "table-v2 block",
+  "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
-    "directory": "blocks/table-v2"
+    "directory": "blocks/table"
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
@@ -52,11 +52,11 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "displayName": "Table v2",
+    "displayName": "Table",
     "examples": [],
     "icon": "public/table.svg",
     "image": "public/block-preview.png",
-    "name": "@hash/table-v2",
+    "name": "@hash/table",
     "protocol": "0.3",
     "schema": "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/table-block/v/5"
   }
