@@ -305,3 +305,11 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
     }
   }
 }
+
+.titleWrapper {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+}

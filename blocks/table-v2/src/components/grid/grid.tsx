@@ -9,7 +9,6 @@ export const Grid = (props: GridProps) => {
 
   return (
     <DataEditor
-      {...props}
       width="100%"
       headerHeight={40}
       rowHeight={40}
@@ -17,6 +16,7 @@ export const Grid = (props: GridProps) => {
       smoothScrollY
       getCellsForSelection
       keybindings={{ search: true }}
+      {...props}
     />
   );
 };

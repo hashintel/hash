@@ -24,17 +24,25 @@ import {
   RootEntity,
   RootEntityLinkedEntities,
 } from "./types.gen";
+import { Settings } from "./components/settings/settings";
+import { LocalColumnPropertyKey, RootPropertyKey } from "./types";
 
-const titleKey: keyof RootEntity["properties"] =
+const titleKey: RootPropertyKey =
   "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
-const localColumnsKey: keyof RootEntity["properties"] =
+const localColumnsKey: RootPropertyKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-columns/";
-const localRowsKey: keyof RootEntity["properties"] =
+const localRowsKey: RootPropertyKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-rows/";
-const columnTitleKey: keyof LocalColumnsPropertyValue =
+const columnTitleKey: LocalColumnPropertyKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-title/";
-const columnIdKey: keyof LocalColumnsPropertyValue =
+const columnIdKey: LocalColumnPropertyKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/local-column-id/";
+const isStripedKey: RootPropertyKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
+const hideHeaderRowKey: RootPropertyKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
+const hideRowNumbersKey: RootPropertyKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/";
 
 const emptySelection = {
   columns: CompactSelection.empty(),
@@ -65,6 +73,9 @@ export const App: BlockComponent<RootEntity> = ({
       [titleKey]: title = "",
       [localColumnsKey]: localColumns = [],
       [localRowsKey]: localRows = [],
+      [isStripedKey]: isStriped = false,
+      [hideHeaderRowKey]: hideHeaderRow = false,
+      [hideRowNumbersKey]: hideRowNumbers = false,
     },
   } = blockEntity;
 
@@ -170,9 +181,15 @@ export const App: BlockComponent<RootEntity> = ({
 
   const selectedRowCount = selection.rows.length;
 
+  const getRowThemeOverride: DataEditorProps["getRowThemeOverride"] = (row) =>
+    row % 2 ? { bgCell: "#f9f9f9" } : undefined;
+
   return (
     <div className={styles.block} ref={blockRootRef}>
-      <TableTitle onChange={setTitle} title={title} readonly={readonly} />
+      <div className={styles.titleWrapper}>
+        <TableTitle onChange={setTitle} title={title} readonly={readonly} />
+        <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
+      </div>
       {!!selectedRowCount && (
         <div className={styles.rowActions}>
           <>
@@ -203,12 +220,13 @@ export const App: BlockComponent<RootEntity> = ({
         rows={rows.length}
         columns={columns}
         rightElement={
-          readonly ? null : (
+          readonly || hideHeaderRow ? null : (
             <div className={styles.addColumnButton} onClick={addNewColumn}>
               Add a Column +
             </div>
           )
         }
+        getRowThemeOverride={isStriped ? getRowThemeOverride : undefined}
         onPaste
         onHeaderMenuClick={handleHeaderMenuClick}
         onCellsEdited={handleCellsEdited}
@@ -229,7 +247,8 @@ export const App: BlockComponent<RootEntity> = ({
                 addNewRow();
               }
         }
-        rowMarkers="both"
+        headerHeight={hideHeaderRow ? 0 : 40}
+        rowMarkers={hideRowNumbers ? "none" : "both"}
         getCellContent={([colIndex, rowIndex]) => {
           const key = columns[colIndex]?.id;
 
