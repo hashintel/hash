@@ -540,7 +540,9 @@ export const ImagePreview = ({
                 fontWeight: 500,
               }}
             >
-              Click an image to preview or insert it
+              {uploadInProgress
+                ? "Uploading images..."
+                : "Click an image to preview or insert it"}
             </Typography>
           </Box>
 
