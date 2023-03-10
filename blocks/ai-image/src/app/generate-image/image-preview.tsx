@@ -206,6 +206,7 @@ export const ImagePreview = ({
       <Stack
         gap={1.25}
         sx={{
+          boxSizing: "border-box",
           width: 1,
           position: "relative",
           display: "flex",
@@ -515,6 +516,7 @@ export const ImagePreview = ({
       <Collapse in={!selectedImageEntity}>
         <Box
           sx={({ palette }) => ({
+            boxSizing: "border-box",
             width: 1,
             display: "flex",
             alignItems: "center",
@@ -540,7 +542,9 @@ export const ImagePreview = ({
                 fontWeight: 500,
               }}
             >
-              Click an image to preview or insert it
+              {uploadInProgress
+                ? "Uploading images..."
+                : "Click an image to preview or insert it"}
             </Typography>
           </Box>
 
