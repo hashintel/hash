@@ -23,9 +23,9 @@ import { GoogleIcon } from "./icons/google-icon";
 import { MapButton } from "./map-button";
 
 type AddressCardProps = {
-  title?: string;
+  title: string;
   description?: string;
-  fullAddress?: string;
+  fullAddress: string;
   mapUrl?: string;
   mapError?: boolean;
   hovered: boolean;

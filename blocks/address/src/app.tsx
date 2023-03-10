@@ -387,7 +387,9 @@ export const App: BlockComponent<RootEntity> = ({
       : null;
   }, [addressEntity]);
 
-  const displayCard = !!(selectedAddress ?? addressEntity);
+  const displayTitle = title ?? selectedAddress?.featureName;
+  const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
+  const displayCard = !!(displayTitle && displayFullAddress);
 
   return (
     <>
@@ -679,33 +681,33 @@ export const App: BlockComponent<RootEntity> = ({
                   onEntered={() => setAnimatingIn(null)}
                   onExited={() => resetBlock()}
                 >
-                  <AddressCard
-                    isMobile={isMobile}
-                    title={title ?? selectedAddress?.featureName}
-                    description={description}
-                    fullAddress={
-                      selectedAddress?.fullAddress ?? remoteFullAddress
-                    }
-                    mapUrl={mapUrl}
-                    mapError={mapError}
-                    hovered={hovered}
-                    readonly={readonly}
-                    onClose={() => {
-                      setAnimatingOut(true);
-                    }}
-                    updateTitle={updateTitle}
-                    updateDescription={updateDescription}
-                    incrementZoomLevel={
-                      zoomLevel >= MAX_ZOOM_LEVEL
-                        ? undefined
-                        : incrementZoomLevel
-                    }
-                    decrementZoomLevel={
-                      zoomLevel <= MIN_ZOOM_LEVEL
-                        ? undefined
-                        : decrementZoomLevel
-                    }
-                  />
+                  {displayCard ? (
+                    <AddressCard
+                      isMobile={isMobile}
+                      title={displayTitle}
+                      description={description}
+                      fullAddress={displayFullAddress}
+                      mapUrl={mapUrl}
+                      mapError={mapError}
+                      hovered={hovered}
+                      readonly={readonly}
+                      onClose={() => {
+                        setAnimatingOut(true);
+                      }}
+                      updateTitle={updateTitle}
+                      updateDescription={updateDescription}
+                      incrementZoomLevel={
+                        zoomLevel >= MAX_ZOOM_LEVEL
+                          ? undefined
+                          : incrementZoomLevel
+                      }
+                      decrementZoomLevel={
+                        zoomLevel <= MIN_ZOOM_LEVEL
+                          ? undefined
+                          : decrementZoomLevel
+                      }
+                    />
+                  ) : null}
                 </Collapse>
               </Box>
             );
