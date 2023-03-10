@@ -27,9 +27,7 @@ use crate::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
             OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
-        identifier::{
-            EntityIdWithInterval, EntityTypeVertexId, EntityVertexId, OntologyTypeVertexId,
-        },
+        identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -94,7 +92,7 @@ impl<C: AsClient> PostgresStore<C> {
                     subgraph.insert_edge(
                         &entity_vertex_id,
                         SharedEdgeKind::IsOfType,
-                        OntologyTypeVertexId::EntityType(entity_type_id.clone()),
+                        entity_type_id.clone(),
                     );
 
                     self.traverse_entity_type(

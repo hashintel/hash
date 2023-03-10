@@ -10,10 +10,7 @@ use utoipa::{
 pub use self::vertex::*;
 use crate::{
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
-    subgraph::{
-        identifier::{EdgeEndpoint, OntologyTypeVertexId},
-        temporal_axes::VariableAxis,
-    },
+    subgraph::temporal_axes::VariableAxis,
 };
 
 pub mod vertex;

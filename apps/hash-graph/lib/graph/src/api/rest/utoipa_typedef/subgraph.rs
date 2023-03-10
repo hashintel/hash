@@ -10,8 +10,8 @@ pub use self::{
         OntologyRootedEdges,
     },
     vertices::{
-        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices, Vertex,
-        Vertices,
+        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyTypeVertexId, OntologyVertex,
+        OntologyVertices, Vertex, Vertices,
     },
 };
 use crate::subgraph::{

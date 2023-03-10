@@ -13,7 +13,7 @@ use crate::{
     },
     subgraph::{
         edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
-        identifier::{DataTypeVertexId, OntologyTypeVertexId, PropertyTypeVertexId},
+        identifier::{DataTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -79,9 +79,9 @@ impl<C: AsClient> PostgresStore<C> {
                         let data_type_vertex_id = DataTypeVertexId::from(data_type_ref);
 
                         subgraph.insert_edge(
-                            &OntologyTypeVertexId::PropertyType(property_type_id.clone()),
+                            &property_type_id,
                             OntologyEdgeKind::ConstrainsValuesOn,
-                            OntologyTypeVertexId::DataType(data_type_vertex_id.clone()),
+                            data_type_vertex_id.clone(),
                         );
 
                         self.traverse_data_type(
@@ -108,9 +108,9 @@ impl<C: AsClient> PostgresStore<C> {
                             PropertyTypeVertexId::from(property_type_ref_url);
 
                         subgraph.insert_edge(
-                            &OntologyTypeVertexId::PropertyType(property_type_id.clone()),
+                            &property_type_id,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
-                            OntologyTypeVertexId::PropertyType(property_type_vertex_id.clone()),
+                            property_type_vertex_id.clone(),
                         );
 
                         queue.push((

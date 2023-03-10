@@ -17,7 +17,9 @@ pub use self::{
 };
 use crate::subgraph::{
     edges::endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
-    identifier::{EntityVertexId, OntologyTypeVertexId, VertexId},
+    identifier::{
+        DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -135,12 +137,16 @@ where
 
 #[derive(Default, Debug)]
 pub struct Edges {
-    pub ontology_to_ontology:
-        AdjacencyList<OntologyTypeVertexId, OntologyEdgeKind, HashSet<OntologyTypeVertexId>>,
-    pub ontology_to_knowledge:
-        AdjacencyList<OntologyTypeVertexId, SharedEdgeKind, EntityIdWithIntervalSet>,
-    pub knowledge_to_ontology:
-        AdjacencyList<EntityVertexId, SharedEdgeKind, HashSet<OntologyTypeVertexId>>,
-    pub knowledge_to_knowledge:
+    pub entity_to_entity:
         AdjacencyList<EntityVertexId, KnowledgeGraphEdgeKind, EntityIdWithIntervalSet>,
+    pub entity_to_entity_type:
+        AdjacencyList<EntityVertexId, SharedEdgeKind, HashSet<EntityTypeVertexId>>,
+    pub entity_type_to_entity_type:
+        AdjacencyList<EntityTypeVertexId, OntologyEdgeKind, HashSet<EntityTypeVertexId>>,
+    pub entity_type_to_property_type:
+        AdjacencyList<EntityTypeVertexId, OntologyEdgeKind, HashSet<PropertyTypeVertexId>>,
+    pub property_type_to_property_type:
+        AdjacencyList<PropertyTypeVertexId, OntologyEdgeKind, HashSet<PropertyTypeVertexId>>,
+    pub property_type_to_data_type:
+        AdjacencyList<PropertyTypeVertexId, OntologyEdgeKind, HashSet<DataTypeVertexId>>,
 }
