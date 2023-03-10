@@ -1,16 +1,13 @@
-import debounce from "lodash.debounce";
-import { RefObject, useEffect, useMemo, useState } from "react";
-import { useSessionstorageState } from "rooks";
-import { useServiceBlockModule } from "@blockprotocol/service/react";
+import { MapboxRetrieveStaticMapData } from "@blockprotocol/service/.";
 import {
   AutofillFeatureSuggestion,
   AutofillSuggestion,
 } from "@blockprotocol/service/dist/mapbox-types";
+import { useServiceBlockModule } from "@blockprotocol/service/react";
+import debounce from "lodash.debounce";
+import { RefObject, useCallback, useEffect, useState } from "react";
+import { useSessionstorageState } from "rooks";
 import { v4 as uuid } from "uuid";
-import {
-  MapboxRetrieveAddressData,
-  MapboxRetrieveStaticMapData,
-} from "@blockprotocol/service/.";
 
 const toArrayBuffer = (buffer: Uint8Array) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
@@ -53,7 +50,7 @@ export const useMapbox = (
   const [
     selectedMapboxSuggestionActionId,
     setSelectedMapboxSuggestionActionId,
-  ] = useState<string | null>(addressId ? addressId : null);
+  ] = useState<string | null>(addressId ?? null);
   const [address, setAddress] = useState<Address | null>(null);
 
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -65,7 +62,7 @@ export const useMapbox = (
       const token = uuid();
       setSessionToken(token);
     }
-  }, []);
+  }, [sessionToken, setSessionToken]);
 
   const fetchSuggestions = debounce((query: string) => {
     setSuggestionsLoading(true);
@@ -95,69 +92,74 @@ export const useMapbox = (
       });
   }, 300);
 
-  const selectAddress = (suggestion?: AutofillSuggestion | string) => {
-    if (suggestion) {
-      const addressId =
-        typeof suggestion === "string" ? suggestion : suggestion?.action.id;
-      serviceModule
-        .mapboxRetrieveAddress({
-          data: {
-            suggestion: {
-              action: {
-                id: addressId,
+  const selectAddress = useCallback(
+    (suggestion?: AutofillSuggestion | string) => {
+      if (suggestion) {
+        const selectedAddressId =
+          typeof suggestion === "string" ? suggestion : suggestion.action.id;
+
+        void serviceModule
+          .mapboxRetrieveAddress({
+            data: {
+              suggestion: {
+                action: {
+                  id: selectedAddressId,
+                },
+              } as AutofillSuggestion,
+              optionsArg: {
+                sessionToken: sessionToken ?? uuid(),
               },
-            } as AutofillSuggestion,
-            optionsArg: {
-              sessionToken: sessionToken ?? uuid(),
             },
-          },
-        })
-        .then(({ data, errors }) => {
-          if (errors) {
-            setSuggestionsError(true);
-            return;
-          }
-
-          setSuggestionsError(false);
-          setMapError(false);
-          if (data) {
-            const address = data.features[0];
-            if (address) {
-              setSelectedMapboxSuggestionActionId(addressId);
-              setSelectedMapboxSuggestion(address);
-
-              const addr = {
-                featureName: address.properties.feature_name,
-                postalCode: address.properties.postcode ?? "",
-                streetAddress: address.properties.address_line1 ?? "",
-                addressRegion: address.properties.address_level1 ?? "",
-                addressCountry:
-                  address.properties.metadata.iso_3166_1.toUpperCase() ?? "",
-                fullAddress: address.properties.full_address ?? "",
-                addressId,
-              };
-
-              setAddress(addr);
-              onSelectAddress(addr);
+          })
+          .then(({ data, errors }) => {
+            if (errors) {
+              setSuggestionsError(true);
+              return;
             }
-          }
-        });
-    } else {
-      setSuggestionsError(false);
-      setMapError(false);
-      setSelectedMapboxSuggestionActionId(null);
-      setSelectedMapboxSuggestion(null);
-      setAddress(null);
-    }
-  };
+
+            setSuggestionsError(false);
+            setMapError(false);
+            if (data) {
+              const selectedAddress = data.features[0];
+              if (selectedAddress) {
+                setSelectedMapboxSuggestionActionId(selectedAddressId);
+                setSelectedMapboxSuggestion(selectedAddress);
+
+                const addr = {
+                  featureName: selectedAddress.properties.feature_name,
+                  postalCode: selectedAddress.properties.postcode ?? "",
+                  streetAddress: selectedAddress.properties.address_line1 ?? "",
+                  addressRegion:
+                    selectedAddress.properties.address_level1 ?? "",
+                  addressCountry:
+                    selectedAddress.properties.metadata.iso_3166_1.toUpperCase(),
+                  fullAddress: selectedAddress.properties.full_address ?? "",
+                  addressId: selectedAddressId,
+                };
+
+                setAddress(addr);
+                onSelectAddress(addr);
+              }
+            }
+          });
+      } else {
+        setSuggestionsError(false);
+        setMapError(false);
+        setSelectedMapboxSuggestionActionId(null);
+        setSelectedMapboxSuggestion(null);
+        setAddress(null);
+      }
+    },
+    [onSelectAddress, serviceModule, sessionToken],
+  );
 
   useEffect(() => {
     if (shouldFetchImage && selectedMapboxSuggestionActionId) {
       if (selectedMapboxSuggestion) {
-        const coords = selectedMapboxSuggestion?.geometry.coordinates;
+        const coords = selectedMapboxSuggestion.geometry.coordinates;
 
-        if (coords?.[0] && coords?.[1]) {
-          serviceModule
+        if (coords[0] && coords[1]) {
+          void serviceModule
             .mapboxRetrieveStaticMap({
               data: {
                 username: "mapbox",
@@ -180,7 +182,7 @@ export const useMapbox = (
 
               setMapError(false);
               if (data) {
-                let blob = new Blob(
+                const blob = new Blob(
                   [toArrayBuffer(new Uint8Array(data.data))],
                   {
                     type: "arraybuffer",
@@ -192,7 +194,7 @@ export const useMapbox = (
                   `${selectedMapboxSuggestionActionId}_${zoomLevel}x.png`,
                 );
 
-                await uploadMap(file, selectedMapboxSuggestionActionId);
+                void uploadMap(file, selectedMapboxSuggestionActionId);
               }
             });
         }
@@ -205,6 +207,9 @@ export const useMapbox = (
     selectedMapboxSuggestion,
     selectedMapboxSuggestionActionId,
     zoomLevel,
+    selectAddress,
+    serviceModule,
+    uploadMap,
   ]);
 
   return {

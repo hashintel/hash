@@ -4,10 +4,9 @@ import {
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
-  Button,
   Card,
   CircularProgress,
   Fade,
@@ -17,6 +16,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { EditableField } from "./editable-field";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
@@ -60,13 +60,13 @@ export const AddressCard = ({
     if (title !== titleValue) {
       setTitleValue(title);
     }
-  }, [title]);
+  }, [title, titleValue]);
 
   useEffect(() => {
     if (description !== descriptionValue) {
       setDescriptionValue(description);
     }
-  }, [description]);
+  }, [description, descriptionValue]);
 
   const [googleMapsUrl, appleMapsUrl] = useMemo(
     () =>
@@ -81,7 +81,7 @@ export const AddressCard = ({
 
   const copyToClipboard = useCallback(() => {
     if (fullAddress) {
-      navigator.clipboard.writeText(fullAddress);
+      void navigator.clipboard.writeText(fullAddress);
     }
   }, [fullAddress]);
 

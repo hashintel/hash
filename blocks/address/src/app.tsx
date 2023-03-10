@@ -1,7 +1,7 @@
 import {
+  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
-  type BlockComponent,
 } from "@blockprotocol/graph/react";
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
@@ -12,8 +12,6 @@ import {
   Collapse,
   Fade,
   Link,
-  outlinedInputClasses,
-  PopperProps,
   ThemeProvider,
   Typography,
   useMediaQuery,
@@ -22,22 +20,23 @@ import { autocompleteClasses } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useContainerQuery } from "react-container-query";
+import { useMergeRefs } from "rooks";
+
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
+  AddressBlockHasAddressLinks,
+  AddressBlockHasMapImageLinks,
+  AddressBlockLinksByLinkTypeId,
   HasAddress,
   HasMapImage,
-  RootEntity,
   RemoteFile,
-  AddressBlockHasMapImageLinks,
-  AddressBlockHasAddressLinks,
-  AddressBlockLinksByLinkTypeId,
+  RootEntity,
 } from "./types";
-import { Address, useMapbox } from "./useMapbox";
-import { useContainerQuery } from "react-container-query";
-import { useMergeRefs } from "rooks";
+import { Address, useMapbox } from "./use-mapbox";
 
 const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
@@ -92,10 +91,6 @@ const getOptionLabel = (option: AutofillSuggestion | string) =>
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("No blockEntitySubgraph provided");
-  }
-
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } =
@@ -135,7 +130,7 @@ export const App: BlockComponent<RootEntity> = ({
   const addressLinkEntity: HasAddress | undefined =
     addressLinkedEntity?.linkEntity;
 
-  const fullAddress = addressEntity?.properties[fullAddressKey];
+  const remoteFullAddress = addressEntity?.properties[fullAddressKey];
 
   const mapLinkedEntity = useMemo(
     () =>
@@ -163,7 +158,7 @@ export const App: BlockComponent<RootEntity> = ({
         );
       })
       .map(({ linkEntity }) => linkEntity.properties[zoomLevelKey]);
-  }, [linkedEntities]);
+  }, [linkedEntities, addressId]);
 
   const updateBlockAddress = async (address?: Address) => {
     if (readonly) {
@@ -186,7 +181,7 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const updateTitle = async (title: string) => {
+  const updateTitle = async (nweTitle: string) => {
     if (readonly) {
       return;
     }
@@ -197,13 +192,13 @@ export const App: BlockComponent<RootEntity> = ({
         entityTypeId,
         properties: {
           ...properties,
-          [titleKey]: title,
+          [titleKey]: nweTitle,
         },
       },
     });
   };
 
-  const updateDescription = async (description: string) => {
+  const updateDescription = async (newDescription: string) => {
     if (readonly) {
       return;
     }
@@ -214,64 +209,67 @@ export const App: BlockComponent<RootEntity> = ({
         entityTypeId,
         properties: {
           ...properties,
-          [descriptionKey]: description,
+          [descriptionKey]: newDescription,
         },
       },
     });
   };
 
-  const updateZoomLevel = async (zoomLevel: number) => {
-    if (readonly) {
-      return;
-    }
+  const updateZoomLevel = useCallback(
+    async (newZoomLevel: number) => {
+      if (readonly) {
+        return;
+      }
 
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {
-          ...properties,
-          [zoomLevelKey]: zoomLevel,
+      await graphModule.updateEntity({
+        data: {
+          entityId,
+          entityTypeId,
+          properties: {
+            ...properties,
+            [zoomLevelKey]: newZoomLevel,
+          },
         },
-      },
-    });
-  };
+      });
+    },
+    [entityId, entityTypeId, graphModule, properties, readonly],
+  );
 
-  const incrementZoomLevel = useCallback(() => {
+  const incrementZoomLevel = useCallback(async () => {
     if (zoomLevel <= MAX_ZOOM_LEVEL - ZOOM_LEVEL_STEP_SIZE) {
-      updateZoomLevel(zoomLevel + ZOOM_LEVEL_STEP_SIZE);
+      await updateZoomLevel(zoomLevel + ZOOM_LEVEL_STEP_SIZE);
     }
-  }, [zoomLevel, properties]);
+  }, [zoomLevel, updateZoomLevel]);
 
-  const decrementZoomLevel = useCallback(() => {
+  const decrementZoomLevel = useCallback(async () => {
     if (zoomLevel >= MIN_ZOOM_LEVEL + ZOOM_LEVEL_STEP_SIZE) {
-      updateZoomLevel(zoomLevel - ZOOM_LEVEL_STEP_SIZE);
+      await updateZoomLevel(zoomLevel - ZOOM_LEVEL_STEP_SIZE);
     }
-  }, [zoomLevel, properties]);
+  }, [zoomLevel, updateZoomLevel]);
 
-  const uploadMap = async (mapFile: File, addressId: string) => {
-    if (readonly || !mapFile) {
+  const uploadMap = async (mapFile: File, mapAddressId: string) => {
+    if (readonly) {
       return;
     }
 
-    graphModule
+    await graphModule
       .uploadFile({
         data: {
           file: mapFile,
-          description: selectedAddress?.fullAddress,
+          description: remoteFullAddress,
         },
       })
       .then(async (uploadFileResponse) => {
         const fileEntityId =
           uploadFileResponse.data?.metadata.recordId.entityId;
 
-        if (!mapLinkEntity && addressId && fileEntityId) {
+        if (!mapLinkEntity && mapAddressId && fileEntityId) {
           await graphModule.createEntity({
             data: {
               entityTypeId: hasAddressMapLink,
               properties: {
                 [zoomLevelKey]: zoomLevel,
-                [addressIdKey]: addressId,
+                [addressIdKey]: mapAddressId,
               },
               linkData: {
                 leftEntityId: entityId,
@@ -320,7 +318,7 @@ export const App: BlockComponent<RootEntity> = ({
         }));
 
     const addressEntityId =
-      createAddressEntityResponse?.data?.metadata.recordId.entityId;
+      createAddressEntityResponse.data?.metadata.recordId.entityId;
 
     if (addressEntityId) {
       if (!addressLinkEntity) {
@@ -339,8 +337,8 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const onSelectAddress = (address: Address) => {
-    updateAddress(address);
-    updateBlockAddress(address);
+    void updateAddress(address);
+    void updateBlockAddress(address);
   };
 
   const {
@@ -366,17 +364,15 @@ export const App: BlockComponent<RootEntity> = ({
     }
 
     selectAddress();
-    updateBlockAddress();
+    void updateBlockAddress();
 
     // Remove the address link and all map links
     for (const { linkEntity } of linkedEntities) {
-      if (linkEntity) {
-        await graphModule.deleteEntity({
-          data: {
-            entityId: linkEntity.metadata.recordId.entityId,
-          },
-        });
-      }
+      await graphModule.deleteEntity({
+        data: {
+          entityId: linkEntity.metadata.recordId.entityId,
+        },
+      });
     }
   };
 
@@ -406,13 +402,14 @@ export const App: BlockComponent<RootEntity> = ({
 
   const blockRef = useMergeRefs(blockRootRef, containerRef);
 
-  const displayCard = !!(selectedAddress || addressEntity);
+  const displayCard = !!(selectedAddress ?? addressEntity);
 
   return (
     <>
       {schema ? (
         <script
           type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: schema }}
         />
       ) : null}
@@ -541,7 +538,7 @@ export const App: BlockComponent<RootEntity> = ({
                       }
                     }}
                     onChange={(_event, option) => {
-                      if (option && typeof option === "object") {
+                      if (typeof option === "object") {
                         setAnimatingIn(option);
                       }
                     }}
@@ -694,7 +691,7 @@ export const App: BlockComponent<RootEntity> = ({
             <AddressCard
               title={title ?? selectedAddress?.featureName}
               description={description}
-              fullAddress={selectedAddress?.fullAddress ?? fullAddress}
+              fullAddress={selectedAddress?.fullAddress ?? remoteFullAddress}
               mapUrl={mapUrl}
               mapError={mapError}
               hovered={hovered}
