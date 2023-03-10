@@ -152,7 +152,11 @@ export const ModelSelector = ({
                   color: ({ palette }) => palette.gray[60],
                 }}
               >
-                <Box sx={{ fontSize: 16 }}>{icon}</Box>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", fontSize: 16 }}
+                >
+                  {icon}
+                </Box>
                 {groupName} {name}
               </Box>
             </Typography>

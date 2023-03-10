@@ -28,7 +28,7 @@ use crate::{
     identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
     provenance::{OwnedById, ProvenanceMetadata},
     store::{query::Filter, Record},
-    subgraph::identifier::OntologyTypeVertexId,
+    subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -330,11 +330,11 @@ pub struct DataTypeWithMetadata {
 
 impl Record for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
-    type VertexId = OntologyTypeVertexId;
+    type VertexId = DataTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId {
+        DataTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
@@ -374,11 +374,11 @@ pub struct PropertyTypeWithMetadata {
 
 impl Record for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-    type VertexId = OntologyTypeVertexId;
+    type VertexId = PropertyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId {
+        PropertyTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
@@ -418,11 +418,11 @@ pub struct EntityTypeWithMetadata {
 
 impl Record for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
-    type VertexId = OntologyTypeVertexId;
+    type VertexId = EntityTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId {
+        EntityTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }

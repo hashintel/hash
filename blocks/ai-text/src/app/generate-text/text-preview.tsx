@@ -58,6 +58,7 @@ export const TextPreview = ({
       <Stack
         gap={1.25}
         sx={{
+          boxSizing: "border-box",
           width: 1,
           position: "relative",
           display: "flex",
@@ -94,6 +95,7 @@ export const TextPreview = ({
 
       <Box
         sx={({ palette }) => ({
+          boxSizing: "border-box",
           width: 1,
           display: "flex",
           alignItems: "center",

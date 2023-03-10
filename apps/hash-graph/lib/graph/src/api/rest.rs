@@ -37,8 +37,8 @@ use crate::{
         middleware::log_request_and_response,
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, Vertex, Vertices,
+            KnowledgeGraphVertices, OntologyOutwardEdge, OntologyRootedEdges, OntologyTypeVertexId,
+            OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
         },
     },
     identifier::{
@@ -58,10 +58,11 @@ use crate::{
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         identifier::{
-            EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
+            GraphElementVertexId, PropertyTypeVertexId,
         },
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
@@ -182,6 +183,9 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ExternalOntologyElementMetadata,
             EntityVertexId,
             EntityIdWithInterval,
+            DataTypeVertexId,
+            PropertyTypeVertexId,
+            EntityTypeVertexId,
             OntologyTypeVertexId,
             OntologyTypeVersion,
             Selector,

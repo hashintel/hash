@@ -12,11 +12,8 @@ use crate::{
         PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{
-            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdge,
-            OutgoingEdgeResolveDepth, OutwardEdge,
-        },
-        identifier::OntologyTypeVertexId,
+        edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        identifier::{EntityTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -30,7 +27,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_entity_type(
         &self,
-        entity_type_ids: Vec<OntologyTypeVertexId>,
+        entity_type_ids: Vec<EntityTypeVertexId>,
         temporal_axes: QueryTemporalAxes,
         graph_resolve_depths: GraphResolveDepths,
         traversal_context: &mut TraversalContext,
@@ -101,16 +98,13 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(property_type_ref_urls) = property_type_ref_urls {
                     for property_type_ref_url in property_type_ref_urls {
                         let property_type_vertex_id =
-                            OntologyTypeVertexId::from(property_type_ref_url);
+                            PropertyTypeVertexId::from(property_type_ref_url);
 
-                        subgraph.edges.insert(Edge::Ontology {
-                            vertex_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                                reversed: false,
-                                right_endpoint: property_type_vertex_id.clone(),
-                            }),
-                        });
+                        subgraph.insert_edge(
+                            &entity_type_id,
+                            OntologyEdgeKind::ConstrainsPropertiesOn,
+                            property_type_vertex_id.clone(),
+                        );
 
                         self.traverse_property_type(
                             vec![property_type_vertex_id],
@@ -135,16 +129,13 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(inherits_from_type_ref_urls) = inherits_from_type_ref_urls {
                     for inherits_from_type_ref_url in inherits_from_type_ref_urls {
                         let inherits_from_type_vertex_id =
-                            OntologyTypeVertexId::from(inherits_from_type_ref_url);
+                            EntityTypeVertexId::from(inherits_from_type_ref_url);
 
-                        subgraph.edges.insert(Edge::Ontology {
-                            vertex_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::InheritsFrom,
-                                reversed: false,
-                                right_endpoint: inherits_from_type_vertex_id.clone(),
-                            }),
-                        });
+                        subgraph.insert_edge(
+                            &entity_type_id,
+                            OntologyEdgeKind::InheritsFrom,
+                            inherits_from_type_vertex_id.clone(),
+                        );
 
                         queue.push((
                             inherits_from_type_vertex_id,
@@ -163,16 +154,13 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(link_mappings) = link_mappings {
                     for (link_type_url, destination_type_urls) in link_mappings {
                         if current_resolve_depths.constrains_links_on.outgoing > 0 {
-                            let link_type_vertex_id = OntologyTypeVertexId::from(link_type_url);
+                            let link_type_vertex_id = EntityTypeVertexId::from(link_type_url);
 
-                            subgraph.edges.insert(Edge::Ontology {
-                                vertex_id: entity_type_id.clone(),
-                                outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                    kind: OntologyEdgeKind::ConstrainsLinksOn,
-                                    reversed: false,
-                                    right_endpoint: link_type_vertex_id.clone(),
-                                }),
-                            });
+                            subgraph.insert_edge(
+                                &entity_type_id,
+                                OntologyEdgeKind::ConstrainsLinksOn,
+                                link_type_vertex_id.clone(),
+                            );
 
                             queue.push((
                                 link_type_vertex_id,
@@ -196,19 +184,13 @@ impl<C: AsClient> PostgresStore<C> {
                             {
                                 for destination_type_url in destination_type_urls {
                                     let destination_type_vertex_id =
-                                        OntologyTypeVertexId::from(destination_type_url);
+                                        EntityTypeVertexId::from(destination_type_url);
 
-                                    subgraph.edges.insert(Edge::Ontology {
-                                        vertex_id: entity_type_id.clone(),
-                                        outward_edge: OntologyOutwardEdge::ToOntology(
-                                            OutwardEdge {
-                                                kind:
-                                                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                                                reversed: false,
-                                                right_endpoint: destination_type_vertex_id.clone(),
-                                            },
-                                        ),
-                                    });
+                                    subgraph.insert_edge(
+                                        &entity_type_id,
+                                        OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                                        destination_type_vertex_id.clone(),
+                                    );
 
                                     queue.push((
                                         destination_type_vertex_id,
