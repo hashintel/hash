@@ -41,10 +41,10 @@
     },
     "displayName": "Minesweeper",
     "examples": [],
-    "icon": "public/omega.svg",
+    "icon": "public/minesweeper-icon.svg",
     "image": "public/block-preview.png",
     "name": "@hash/minesweeper",
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/2"
+    "schema": "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/entity-type/minesweeper-block/v/2"
   }
 }
