@@ -19,7 +19,7 @@ from pygit2 import Repository, Commit
 CWD = Path.cwd()
 
 # All jobs for all crates will run if any of these paths change
-ALWAYS_RUN_PATTERNS = [".github/**"]
+ALWAYS_RUN_PATTERNS = [".github/**", ".config/**"]
 
 # Toolchains used for the specified crates in addition to the toolchain which is defined in
 # rust-toolchain.toml
