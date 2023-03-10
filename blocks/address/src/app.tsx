@@ -255,7 +255,7 @@ export const App: BlockComponent<RootEntity> = ({
     }
 
     graphModule
-      ?.uploadFile({
+      .uploadFile({
         data: {
           file: mapFile,
           description: selectedAddress?.fullAddress,
