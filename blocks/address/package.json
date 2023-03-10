@@ -34,7 +34,7 @@
     "@hashintel/design-system": "0.0.4",
     "@mui/material": "5.11.8",
     "lodash.debounce": "4.0.8",
-    "react-container-query": "0.12.1",
+    "react-sizeme": "3.0.2",
     "rooks": "7.4.3",
     "uuid": "8.3.2"
   },

@@ -30,6 +30,7 @@ type AddressCardProps = {
   mapError?: boolean;
   hovered: boolean;
   readonly?: boolean;
+  isMobile?: boolean;
   onClose: () => void;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
@@ -45,6 +46,7 @@ export const AddressCard = ({
   mapError,
   hovered,
   readonly,
+  isMobile,
   onClose,
   updateTitle,
   updateDescription,
@@ -93,10 +95,12 @@ export const AddressCard = ({
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: 2.5,
         boxShadow: "none",
-        ".isMobile &": {
-          flexDirection: "column",
-          width: 1,
-        },
+        ...(isMobile
+          ? {
+              flexDirection: "column",
+              width: 1,
+            }
+          : {}),
       }}
     >
       <Stack
@@ -108,9 +112,11 @@ export const AddressCard = ({
           paddingX: 3.75,
           gap: 4,
           width: 300,
-          ".isMobile &": {
-            width: 1,
-          },
+          ...(isMobile
+            ? {
+                width: 1,
+              }
+            : {}),
         }}
       >
         <Stack gap={1.5}>
@@ -236,10 +242,12 @@ export const AddressCard = ({
           width: 500,
           minHeight: 300,
 
-          ".isMobile &": {
-            width: 1,
-            height: 300,
-          },
+          ...(isMobile
+            ? {
+                width: 1,
+                height: 300,
+              }
+            : {}),
         })}
       >
         {mapUrl ? (
