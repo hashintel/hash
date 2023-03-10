@@ -1,7 +1,6 @@
 import { Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
-import { ArrowUpIcon } from "../../icons/arrow-up";
 import { TextIcon } from "../../icons/text";
 
 export const TextPreview = ({
@@ -59,6 +58,7 @@ export const TextPreview = ({
       <Stack
         gap={1.25}
         sx={{
+          boxSizing: "border-box",
           width: 1,
           position: "relative",
           display: "flex",
@@ -95,6 +95,7 @@ export const TextPreview = ({
 
       <Box
         sx={({ palette }) => ({
+          boxSizing: "border-box",
           width: 1,
           display: "flex",
           alignItems: "center",
@@ -133,7 +134,7 @@ export const TextPreview = ({
           </Button>
         </Box>
 
-        <Box display="flex" gap={1}>
+        {/* <Box display="flex" gap={1}>
           <Typography
             sx={{
               color: ({ palette }) => palette.gray[80],
@@ -148,7 +149,7 @@ export const TextPreview = ({
           <ArrowUpIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
-        </Box>
+        </Box> */}
       </Box>
     </Box>
   );

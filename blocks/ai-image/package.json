@@ -1,6 +1,6 @@
 {
   "name": "@blocks/ai-image",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Generate any image you can put into words, in just a few seconds",
   "keywords": [
@@ -29,7 +29,9 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "^0.1.0",
-    "@blockprotocol/service": "0.1.0"
+    "@blockprotocol/service": "0.1.1",
+    "@hashintel/design-system": "0.0.4",
+    "@mui/material": "5.11.8"
   },
   "devDependencies": {
     "@types/react-dom": "18.0.9",
