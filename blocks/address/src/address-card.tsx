@@ -171,7 +171,7 @@ export const AddressCard = ({
           </Box>
         </Stack>
 
-        <Stack gap={1.5}>
+        <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 }}>
           {googleMapsUrl ? (
             <Box>
               <MapButton href={googleMapsUrl}>
