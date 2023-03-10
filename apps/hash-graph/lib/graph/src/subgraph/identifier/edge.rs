@@ -6,7 +6,10 @@ use crate::{
     identifier::{
         knowledge::EntityId, ontology::OntologyTypeVersion, time::LeftClosedTemporalInterval,
     },
-    subgraph::{identifier::OntologyTypeVertexId, temporal_axes::VariableAxis},
+    subgraph::{
+        identifier::{OntologyTypeVertexId, VertexId},
+        temporal_axes::VariableAxis,
+    },
 };
 
 pub trait EdgeEndpoint {
@@ -22,11 +25,11 @@ impl EdgeEndpoint for OntologyTypeVertexId {
     type RightEndpoint = OntologyTypeVersion;
 
     fn base_id(&self) -> &Self::BaseId {
-        &self.base_id
+        VertexId::base_id(self)
     }
 
     fn revision_id(&self) -> Self::RightEndpoint {
-        self.revision_id
+        VertexId::revision_id(self)
     }
 }
 

@@ -1,12 +1,12 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
-    hash::BuildHasher,
+    hash::{BuildHasher, Hash},
 };
 
 use crate::{
     identifier::{knowledge::EntityId, time::LeftClosedTemporalInterval},
     subgraph::{
-        identifier::{EdgeEndpoint, EntityIdWithInterval, OntologyTypeVertexId},
+        identifier::{EdgeEndpoint, EntityIdWithInterval},
         temporal_axes::VariableAxis,
     },
 };
@@ -17,11 +17,11 @@ pub trait EdgeEndpointSet: IntoIterator<Item = Self::EdgeEndpoint> {
     fn insert(&mut self, target_id: Self::EdgeEndpoint);
 }
 
-impl<S: BuildHasher> EdgeEndpointSet for HashSet<OntologyTypeVertexId, S> {
-    type EdgeEndpoint = OntologyTypeVertexId;
+impl<S: BuildHasher, E: EdgeEndpoint + Eq + Hash> EdgeEndpointSet for HashSet<E, S> {
+    type EdgeEndpoint = E;
 
     fn insert(&mut self, edge_target_id: Self::EdgeEndpoint) {
-        self.insert(edge_target_id);
+        Self::insert(self, edge_target_id);
     }
 }
 

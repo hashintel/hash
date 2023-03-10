@@ -12,7 +12,7 @@ use crate::{
         PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, identifier::OntologyTypeVertexId, query::StructuralQuery,
+        edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
         temporal_axes::QueryTemporalAxes, Subgraph,
     },
 };
@@ -24,7 +24,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
-        data_type_ids: Vec<OntologyTypeVertexId>,
+        data_type_ids: Vec<DataTypeVertexId>,
         temporal_axes: QueryTemporalAxes,
         graph_resolve_depths: GraphResolveDepths,
         _traversal_context: &mut TraversalContext,

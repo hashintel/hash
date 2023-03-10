@@ -27,7 +27,9 @@ use crate::{
             Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
             KnowledgeGraphOutwardEdge, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
-        identifier::{EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId},
+        identifier::{
+            EntityIdWithInterval, EntityTypeVertexId, EntityVertexId, OntologyTypeVertexId,
+        },
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -88,13 +90,15 @@ impl<C: AsClient> PostgresStore<C> {
 
                 if graph_resolve_depths.is_of_type.outgoing > 0 {
                     let entity_type_id =
-                        OntologyTypeVertexId::from(entity.metadata.entity_type_id().clone());
+                        EntityTypeVertexId::from(entity.metadata.entity_type_id().clone());
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdge::ToOntology(OutwardEdge {
                             kind: SharedEdgeKind::IsOfType,
                             reversed: false,
-                            right_endpoint: entity_type_id.clone(),
+                            right_endpoint: OntologyTypeVertexId::EntityType(
+                                entity_type_id.clone(),
+                            ),
                         }),
                     });
 
