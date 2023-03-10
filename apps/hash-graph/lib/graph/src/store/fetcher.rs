@@ -11,12 +11,16 @@ use tarpc::context;
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::MessagePack;
 use type_fetcher::fetcher::{FetcherClient, OntologyTypeRepr};
-use type_system::{url::VersionedUrl, DataType, EntityType, EntityTypeReference, PropertyType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, EntityTypeReference, PropertyType,
+};
 
 use crate::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
+        ontology::OntologyTypeVersion,
         time::{DecisionTime, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -34,6 +38,7 @@ use crate::{
     },
     subgraph::{
         edges::GraphResolveDepths,
+        identifier::VertexId,
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -144,6 +149,7 @@ where
         fn create_query<'u, T>(versioned_url: &'u VersionedUrl) -> StructuralQuery<'u, T>
         where
             T: Record<QueryPath<'u>: OntologyQueryPath>,
+            T::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
         {
             StructuralQuery {
                 filter: Filter::for_versioned_url(versioned_url),

@@ -8,13 +8,82 @@ use utoipa::{
 };
 
 use crate::{
+    api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     subgraph::{
-        edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
-        identifier::{EntityIdWithInterval, OntologyTypeVertexId},
+        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+        identifier::{
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
+        },
         temporal_axes::VariableAxis,
     },
 };
+
+#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum OntologyOutwardEdge {
+    ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>),
+    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityIdWithInterval>),
+}
+
+impl From<OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            reversed: edge.reversed,
+            right_endpoint: OntologyTypeVertexId::EntityType(edge.right_endpoint),
+        })
+    }
+}
+
+impl From<OutwardEdge<OntologyEdgeKind, PropertyTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, PropertyTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            reversed: edge.reversed,
+            right_endpoint: OntologyTypeVertexId::PropertyType(edge.right_endpoint),
+        })
+    }
+}
+
+impl From<OutwardEdge<OntologyEdgeKind, DataTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, DataTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            reversed: edge.reversed,
+            right_endpoint: OntologyTypeVertexId::DataType(edge.right_endpoint),
+        })
+    }
+}
+
+impl From<OutwardEdge<SharedEdgeKind, EntityIdWithInterval>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, EntityIdWithInterval>) -> Self {
+        Self::ToKnowledgeGraph(edge)
+    }
+}
+
+// WARNING: This MUST be kept up to date with the enum variants.
+//   We have to do this because utoipa doesn't understand serde untagged:
+//   https://github.com/juhaku/utoipa/issues/320
+impl ToSchema<'_> for OntologyOutwardEdge {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "OntologyOutwardEdge",
+            OneOfBuilder::new()
+                .item(
+                    <OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>>::generate_schema(
+                        "OntologyToOntologyOutwardEdge",
+                    ),
+                )
+                .item(
+                    <OutwardEdge<SharedEdgeKind, EntityIdWithInterval>>::generate_schema(
+                        "OntologyToKnowledgeGraphOutwardEdge",
+                    ),
+                )
+                .into(),
+        )
+    }
+}
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
@@ -29,9 +98,13 @@ impl From<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>> for Knowled
     }
 }
 
-impl From<OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>> for KnowledgeGraphOutwardEdge {
-    fn from(edge: OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>) -> Self {
-        Self::ToOntology(edge)
+impl From<OutwardEdge<SharedEdgeKind, EntityTypeVertexId>> for KnowledgeGraphOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, EntityTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            reversed: edge.reversed,
+            right_endpoint: OntologyTypeVertexId::EntityType(edge.right_endpoint),
+        })
     }
 }
 
@@ -83,22 +156,32 @@ impl From<crate::subgraph::edges::Edges> for Edges {
         Self {
             ontology: OntologyRootedEdges(
                 edges
-                    .ontology_to_ontology
+                    .entity_type_to_entity_type
                     .into_flattened::<OntologyOutwardEdge>()
                     .chain(
                         edges
-                            .ontology_to_knowledge
+                            .entity_type_to_property_type
+                            .into_flattened::<OntologyOutwardEdge>(),
+                    )
+                    .chain(
+                        edges
+                            .property_type_to_property_type
+                            .into_flattened::<OntologyOutwardEdge>(),
+                    )
+                    .chain(
+                        edges
+                            .property_type_to_data_type
                             .into_flattened::<OntologyOutwardEdge>(),
                     )
                     .collect(),
             ),
             knowledge_graph: KnowledgeGraphRootedEdges(
                 edges
-                    .knowledge_to_ontology
+                    .entity_to_entity
                     .into_flattened::<KnowledgeGraphOutwardEdge>()
                     .chain(
                         edges
-                            .knowledge_to_knowledge
+                            .entity_to_entity_type
                             .into_flattened::<KnowledgeGraphOutwardEdge>(),
                     )
                     .collect(),

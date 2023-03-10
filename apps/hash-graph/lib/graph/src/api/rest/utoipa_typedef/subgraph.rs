@@ -5,10 +5,13 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 pub use self::{
-    edges::{Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, OntologyRootedEdges},
+    edges::{
+        Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, OntologyOutwardEdge,
+        OntologyRootedEdges,
+    },
     vertices::{
-        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices, Vertex,
-        Vertices,
+        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyTypeVertexId, OntologyVertex,
+        OntologyVertices, Vertex, Vertices,
     },
 };
 use crate::subgraph::{

@@ -1,10 +1,42 @@
 use serde::Serialize;
+use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
 use crate::{
+    identifier::ontology::OntologyTypeVersion,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(untagged)]
+#[expect(clippy::enum_variant_names)]
+pub enum OntologyTypeVertexId {
+    DataType(DataTypeVertexId),
+    PropertyType(PropertyTypeVertexId),
+    EntityType(EntityTypeVertexId),
+}
+
+impl OntologyTypeVertexId {
+    #[must_use]
+    pub const fn base_id(&self) -> &BaseUrl {
+        match self {
+            Self::DataType(id) => &id.base_id,
+            Self::PropertyType(id) => &id.base_id,
+            Self::EntityType(id) => &id.base_id,
+        }
+    }
+
+    #[must_use]
+    pub const fn revision_id(&self) -> OntologyTypeVersion {
+        match self {
+            Self::DataType(id) => id.revision_id,
+            Self::PropertyType(id) => id.revision_id,
+            Self::EntityType(id) => id.revision_id,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(tag = "kind", content = "inner")]
