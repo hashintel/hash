@@ -62,13 +62,19 @@ export const AddressCard = ({
     if (title !== titleValue) {
       setTitleValue(title);
     }
-  }, [title, titleValue]);
+    // We want to override titleValue with value only when title changes
+    // otherwise we would lose the changes made to titleValue whenever it is set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title]);
 
   useEffect(() => {
     if (description !== descriptionValue) {
       setDescriptionValue(description);
     }
-  }, [description, descriptionValue]);
+    // We want to override descriptionValue with value only when description changes
+    // otherwise we would lose the changes made to descriptionValue whenever it is set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [description]);
 
   const [googleMapsUrl, appleMapsUrl] = useMemo(
     () =>
