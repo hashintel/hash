@@ -24,8 +24,8 @@ use crate::{
     },
     subgraph::{
         edges::{
-            Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            KnowledgeGraphOutwardEdge, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         identifier::{
             EntityIdWithInterval, EntityTypeVertexId, EntityVertexId, OntologyTypeVertexId,
@@ -91,16 +91,11 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.is_of_type.outgoing > 0 {
                     let entity_type_id =
                         EntityTypeVertexId::from(entity.metadata.entity_type_id().clone());
-                    subgraph.edges.insert(Edge::KnowledgeGraph {
-                        vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdge::ToOntology(OutwardEdge {
-                            kind: SharedEdgeKind::IsOfType,
-                            reversed: false,
-                            right_endpoint: OntologyTypeVertexId::EntityType(
-                                entity_type_id.clone(),
-                            ),
-                        }),
-                    });
+                    subgraph.insert_edge(
+                        &entity_vertex_id,
+                        SharedEdgeKind::IsOfType,
+                        OntologyTypeVertexId::EntityType(entity_type_id.clone()),
+                    );
 
                     self.traverse_entity_type(
                         vec![entity_type_id],
@@ -131,28 +126,20 @@ impl<C: AsClient> PostgresStore<C> {
                             .temporal_versioning()
                             .variable_time_interval(time_axis);
 
-                        subgraph.edges.insert(Edge::KnowledgeGraph {
-                            vertex_id: entity_vertex_id,
-                            outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
-                                OutwardEdge {
-                                    // (HasLeftEntity, reversed=true) is equivalent to an
-                                    // outgoing link `Entity`
-                                    kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                                    reversed: true,
-                                    right_endpoint: EntityIdWithInterval {
-                                        entity_id: outgoing_link_entity
-                                            .metadata
-                                            .record_id()
-                                            .entity_id,
-                                        interval: link_entity_interval,
-                                    },
-                                },
-                            ),
-                        });
+                        // reversed `HasLeftEntity` is equivalent to an outgoing link `Entity`
+                        subgraph.insert_reversed_edge(
+                            &entity_vertex_id,
+                            KnowledgeGraphEdgeKind::HasLeftEntity,
+                            EntityIdWithInterval {
+                                entity_id: outgoing_link_entity.metadata.record_id().entity_id,
+                                interval: link_entity_interval,
+                            },
+                        );
 
                         let outgoing_link_entity_vertex_id =
                             outgoing_link_entity.vertex_id(time_axis);
-                        subgraph.insert(&outgoing_link_entity_vertex_id, outgoing_link_entity);
+                        subgraph
+                            .insert_vertex(&outgoing_link_entity_vertex_id, outgoing_link_entity);
 
                         queue.push((
                             outgoing_link_entity_vertex_id,
@@ -181,28 +168,20 @@ impl<C: AsClient> PostgresStore<C> {
                             .temporal_versioning()
                             .variable_time_interval(time_axis);
 
-                        subgraph.edges.insert(Edge::KnowledgeGraph {
-                            vertex_id: entity_vertex_id,
-                            outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
-                                OutwardEdge {
-                                    // (HasRightEntity, reversed=true) is equivalent to an
-                                    // incoming link `Entity`
-                                    kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                                    reversed: true,
-                                    right_endpoint: EntityIdWithInterval {
-                                        entity_id: incoming_link_entity
-                                            .metadata
-                                            .record_id()
-                                            .entity_id,
-                                        interval: link_entity_interval,
-                                    },
-                                },
-                            ),
-                        });
+                        // reversed `HasRightEntity` is equivalent to an incoming link `Entity`
+                        subgraph.insert_reversed_edge(
+                            &entity_vertex_id,
+                            KnowledgeGraphEdgeKind::HasRightEntity,
+                            EntityIdWithInterval {
+                                entity_id: incoming_link_entity.metadata.record_id().entity_id,
+                                interval: link_entity_interval,
+                            },
+                        );
 
                         let incoming_link_entity_vertex_id =
                             incoming_link_entity.vertex_id(time_axis);
-                        subgraph.insert(&incoming_link_entity_vertex_id, incoming_link_entity);
+                        subgraph
+                            .insert_vertex(&incoming_link_entity_vertex_id, incoming_link_entity);
 
                         queue.push((
                             incoming_link_entity_vertex_id,
@@ -226,24 +205,17 @@ impl<C: AsClient> PostgresStore<C> {
                     )
                     .await?
                     {
-                        subgraph.edges.insert(Edge::KnowledgeGraph {
-                            vertex_id: entity_vertex_id,
-                            outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
-                                OutwardEdge {
-                                    // (HasLeftEndpoint, reversed=true) is equivalent to an
-                                    // outgoing `Link` `Entity`
-                                    kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                                    reversed: false,
-                                    right_endpoint: EntityIdWithInterval {
-                                        entity_id: left_entity.metadata.record_id().entity_id,
-                                        interval: entity_interval,
-                                    },
-                                },
-                            ),
-                        });
+                        subgraph.insert_edge(
+                            &entity_vertex_id,
+                            KnowledgeGraphEdgeKind::HasLeftEntity,
+                            EntityIdWithInterval {
+                                entity_id: left_entity.metadata.record_id().entity_id,
+                                interval: entity_interval,
+                            },
+                        );
 
                         let left_entity_vertex_id = left_entity.vertex_id(time_axis);
-                        subgraph.insert(&left_entity_vertex_id, left_entity);
+                        subgraph.insert_vertex(&left_entity_vertex_id, left_entity);
 
                         queue.push((
                             left_entity_vertex_id,
@@ -267,24 +239,17 @@ impl<C: AsClient> PostgresStore<C> {
                     )
                     .await?
                     {
-                        subgraph.edges.insert(Edge::KnowledgeGraph {
-                            vertex_id: entity_vertex_id,
-                            outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
-                                OutwardEdge {
-                                    // (HasLeftEndpoint, reversed=true) is equivalent to an
-                                    // outgoing `Link` `Entity`
-                                    kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                                    reversed: false,
-                                    right_endpoint: EntityIdWithInterval {
-                                        entity_id: right_entity.metadata.record_id().entity_id,
-                                        interval: entity_interval,
-                                    },
-                                },
-                            ),
-                        });
+                        subgraph.insert_edge(
+                            &entity_vertex_id,
+                            KnowledgeGraphEdgeKind::HasRightEntity,
+                            EntityIdWithInterval {
+                                entity_id: right_entity.metadata.record_id().entity_id,
+                                interval: entity_interval,
+                            },
+                        );
 
                         let right_entity_vertex_id = right_entity.vertex_id(time_axis);
-                        subgraph.insert(&right_entity_vertex_id, right_entity);
+                        subgraph.insert_vertex(&right_entity_vertex_id, right_entity);
 
                         queue.push((
                             right_entity_vertex_id,
