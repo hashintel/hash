@@ -30,7 +30,12 @@ $colorGrayLight: #dde7f0;
     font-family: $fontFamily;
   }
 
-  > div {
+  > button {
+    font-weight: 600;
+    background: none !important;
+    border: none;
+    display: flex;
+
     padding: 6px 8px;
     color: rgba(0, 0, 0, 0.7);
     &:hover {
@@ -38,6 +43,5 @@ $colorGrayLight: #dde7f0;
       color: rgba(0, 0, 0, 0.9);
     }
     transition: background-color 100ms;
-    cursor: pointer;
   }
 }

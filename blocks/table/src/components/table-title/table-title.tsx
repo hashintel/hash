@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { useState } from "react";
+
 import styles from "./styles.module.scss";
 
 interface TableTitleProps {
@@ -60,7 +61,9 @@ export const TableTitle = ({ title, onChange, readonly }: TableTitleProps) => {
       )}
 
       {!editing && !readonly && (
-        <div
+        <button
+          type="button"
+          aria-label="edit"
           onClick={editTitle}
           className={clsx(styles.iconButton, styles.edit)}
         />
@@ -68,11 +71,15 @@ export const TableTitle = ({ title, onChange, readonly }: TableTitleProps) => {
 
       {editing && (
         <>
-          <div
+          <button
+            type="button"
+            aria-label="discard"
             className={clsx(styles.iconButton, styles.cancel)}
             onClick={discardTitle}
           />
-          <div
+          <button
+            type="button"
+            aria-label="save"
             className={clsx(styles.iconButton, styles.save)}
             onClick={saveTitle}
           />

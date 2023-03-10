@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
+
+import { RootKey } from "../../additional-types";
 import { RootEntity } from "../../types";
 import styles from "./styles.module.scss";
-import { RootKey } from "../../additional-types";
 
 const isStripedKey: RootKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
@@ -18,9 +19,8 @@ interface SettingsProps {
 }
 
 export const Settings = ({ blockEntity, updateEntity }: SettingsProps) => {
-  useKey(["Escape"], () => isOpen && setOpen(false));
-
   const [isOpen, setOpen] = useState(false);
+  useKey(["Escape"], () => isOpen && setOpen(false));
 
   const { renderLayer, triggerProps, layerProps } = useLayer({
     isOpen,
@@ -41,8 +41,10 @@ export const Settings = ({ blockEntity, updateEntity }: SettingsProps) => {
 
   return (
     <>
-      <div
+      <button
         {...triggerProps}
+        type="button"
+        aria-label="edit"
         className={styles.settingsButton}
         onClick={() => setOpen(!isOpen)}
       />

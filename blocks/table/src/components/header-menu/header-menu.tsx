@@ -1,5 +1,6 @@
 import { LayerProps } from "react-laag";
 import { useKey } from "rooks";
+
 import styles from "./styles.module.scss";
 
 interface HeaderMenuProps {
@@ -26,9 +27,9 @@ export const HeaderMenu = ({
         defaultValue={title}
         onChange={(event) => updateTitle(event.target.value)}
       />
-      <div className={styles.danger} onClick={onDelete}>
+      <button type="button" className={styles.danger} onClick={onDelete}>
         Delete
-      </div>
+      </button>
     </div>
   );
 };

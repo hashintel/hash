@@ -229,18 +229,13 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
   /* Buttons */
 
   button {
-    background-color: var(--brand-primary-base);
     color: var(--neutral-0);
     border: none;
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--border-radius-1);
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-base);
     transition: 250ms ease-in-out;
+    background-color: transparent;
   }
 
   button:hover {
-    background-color: var(--brand-primary-hover);
     cursor: pointer;
   }
 
@@ -255,16 +250,13 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
 }
 
 .addColumnButton {
-  width: fit-content;
   padding: 0 10px;
   height: 40px;
   display: flex;
   align-items: center;
   font-weight: 600;
-  cursor: pointer;
-  font-size: 14px;
+  color: #0f172a !important;
 
-  transition: 250ms ease-in-out;
   &:hover {
     background-color: #ddd;
   }
@@ -296,9 +288,9 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
     height: 100%;
     display: flex;
     align-items: center;
-    transition: background-color 100ms;
+
     color: rgba(255, 40, 40, 0.8);
-    cursor: pointer;
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
       color: rgba(255, 40, 40, 1);

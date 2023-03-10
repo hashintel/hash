@@ -1,11 +1,8 @@
 import {
+  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
-  type BlockComponent,
 } from "@blockprotocol/graph/react";
-import { useCallback, useRef, useState } from "react";
-import { useLayer } from "react-laag";
-
 import {
   CompactSelection,
   DataEditorProps,
@@ -15,13 +12,16 @@ import {
   Rectangle,
 } from "@glideapps/glide-data-grid";
 import produce from "immer";
+import { useCallback, useRef, useState } from "react";
+import { useLayer } from "react-laag";
+
+import { ColumnKey, RootKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { Grid, ROW_HEIGHT } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
 import { Settings } from "./components/settings/settings";
 import { TableTitle } from "./components/table-title/table-title";
 import { RootEntity, RootEntityLinkedEntities } from "./types";
-import { ColumnKey, RootKey } from "./additional-types";
 
 const titleKey: RootKey =
   "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
@@ -49,10 +49,6 @@ const emptySelection = {
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("No blockEntitySubgraph provided");
-  }
-
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
@@ -77,12 +73,28 @@ export const App: BlockComponent<RootEntity> = ({
   } = blockEntity;
 
   const rows = localRows;
-  const [selection, setSelection] = useState<GridSelection>(emptySelection);
+  const columns: GridColumn[] = localColumns.map((col) => ({
+    id: col[columnIdKey],
+    title: col[columnTitleKey] ?? "",
+    width: 200,
+    hasMenu: !readonly,
+  }));
 
+  const [selection, setSelection] = useState<GridSelection>(emptySelection);
   const [headerMenu, setHeaderMenu] = useState<{
     col: number;
     bounds: Rectangle;
   }>();
+
+  const updateEntity = async (newProperties: RootEntity["properties"]) => {
+    await graphModule.updateEntity({
+      data: {
+        entityId: blockEntityId,
+        entityTypeId: blockEntityTypeId,
+        properties: { ...blockEntity.properties, ...newProperties },
+      },
+    });
+  };
 
   const addNewColumn = () => {
     return updateEntity({
@@ -111,13 +123,13 @@ export const App: BlockComponent<RootEntity> = ({
         const columnId = columns[colIndex]?.id;
 
         if (columnId) {
-          // @ts-ignore
+          // @ts-expect-error -- type instantiation is deep and possibly infinite
           draftRows[rowIndex][columnId] = value.data!;
         }
       }
     });
 
-    updateEntity({ [localRowsKey]: newRows });
+    void updateEntity({ [localRowsKey]: newRows });
 
     return true;
   };
@@ -125,23 +137,6 @@ export const App: BlockComponent<RootEntity> = ({
   const setTitle = async (val: string) => {
     await updateEntity({ [titleKey]: val });
   };
-
-  const updateEntity = async (newProperties: RootEntity["properties"]) => {
-    await graphModule?.updateEntity({
-      data: {
-        entityId: blockEntityId,
-        entityTypeId: blockEntityTypeId,
-        properties: { ...blockEntity.properties, ...newProperties },
-      },
-    });
-  };
-
-  const columns: GridColumn[] = localColumns.map((col) => ({
-    id: col[columnIdKey],
-    title: col[columnTitleKey] ?? "",
-    width: 200,
-    hasMenu: !readonly,
-  }));
 
   const justClickedHeaderRef = useRef(false);
   const handleHeaderMenuClick = useCallback<
@@ -158,7 +153,8 @@ export const App: BlockComponent<RootEntity> = ({
     triggerOffset: 2,
     onOutsideClick: () => {
       if (justClickedHeaderRef.current) {
-        return (justClickedHeaderRef.current = false);
+        justClickedHeaderRef.current = false;
+        return;
       }
       setHeaderMenu(undefined);
     },
@@ -189,27 +185,26 @@ export const App: BlockComponent<RootEntity> = ({
       </div>
       {!!selectedRowCount && !readonly && (
         <div className={styles.rowActions}>
-          <>
-            <div>{`${selectedRowCount} ${
-              selectedRowCount > 1 ? "rows" : "row"
-            } selected`}</div>
-            <div
-              onClick={() => {
-                const selectedRows = selection.rows.toArray();
+          <div>{`${selectedRowCount} ${
+            selectedRowCount > 1 ? "rows" : "row"
+          } selected`}</div>
+          <button
+            type="button"
+            onClick={() => {
+              const selectedRows = selection.rows.toArray();
 
-                updateEntity({
-                  [localRowsKey]: rows.filter(
-                    (_, index) => !selectedRows.includes(index),
-                  ),
-                });
+              void updateEntity({
+                [localRowsKey]: rows.filter(
+                  (_, index) => !selectedRows.includes(index),
+                ),
+              });
 
-                setSelection(emptySelection);
-              }}
-              className={styles.danger}
-            >
-              Delete
-            </div>
-          </>
+              setSelection(emptySelection);
+            }}
+            className={styles.danger}
+          >
+            Delete
+          </button>
         </div>
       )}
       <Grid
@@ -218,9 +213,13 @@ export const App: BlockComponent<RootEntity> = ({
         columns={columns}
         rightElement={
           readonly || hideHeaderRow ? null : (
-            <div className={styles.addColumnButton} onClick={addNewColumn}>
+            <button
+              type="button"
+              className={styles.addColumnButton}
+              onClick={addNewColumn}
+            >
               Add a Column +
-            </div>
+            </button>
           )
         }
         getRowThemeOverride={isStriped ? getRowThemeOverride : undefined}
@@ -241,7 +240,7 @@ export const App: BlockComponent<RootEntity> = ({
                  * @todo this should be async, but making it async makes grid place the overlay with a weird offset
                  * needs debugging
                  */
-                addNewRow();
+                void addNewRow();
               }
         }
         headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
@@ -279,7 +278,7 @@ export const App: BlockComponent<RootEntity> = ({
             layerProps={layerProps}
             title={columns[headerMenu.col]?.title ?? ""}
             onDelete={() => {
-              updateEntity({
+              void updateEntity({
                 [localColumnsKey]: localColumns.filter(
                   (_, index) => index !== headerMenu.col,
                 ),
@@ -288,11 +287,11 @@ export const App: BlockComponent<RootEntity> = ({
               setHeaderMenu(undefined);
             }}
             onClose={() => setHeaderMenu(undefined)}
-            updateTitle={(title) => {
-              updateEntity({
+            updateTitle={(newTitle) => {
+              void updateEntity({
                 [localColumnsKey]: localColumns.map((col, index) =>
                   index === headerMenu.col
-                    ? { ...col, [columnTitleKey]: title }
+                    ? { ...col, [columnTitleKey]: newTitle }
                     : col,
                 ),
               });

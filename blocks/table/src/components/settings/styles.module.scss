@@ -9,10 +9,8 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
   height: 20px;
   background-image: url("../../../public/gear.svg");
   background-size: 100% 100%;
-  cursor: pointer;
 
   filter: $grayFilter;
-  transition: 250ms ease-in-out;
 
   &:hover {
     filter: none;
