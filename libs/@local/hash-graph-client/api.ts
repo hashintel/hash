@@ -355,6 +355,25 @@ export type DataTypeVertexKindEnum =
 /**
  *
  * @export
+ * @interface DataTypeVertexId
+ */
+export interface DataTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof DataTypeVertexId
+   */
+  baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof DataTypeVertexId
+   */
+  revisionId: number;
+}
+/**
+ *
+ * @export
  * @interface DataTypeWithMetadata
  */
 export interface DataTypeWithMetadata {
@@ -773,6 +792,25 @@ export type EntityTypeVertexKindEnum =
 /**
  *
  * @export
+ * @interface EntityTypeVertexId
+ */
+export interface EntityTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityTypeVertexId
+   */
+  baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityTypeVertexId
+   */
+  revisionId: number;
+}
+/**
+ *
+ * @export
  * @interface EntityTypeWithMetadata
  */
 export interface EntityTypeWithMetadata {
@@ -921,7 +959,11 @@ export type FilterExpression = ParameterExpression | PathExpression;
  * @type GraphElementVertexId
  * @export
  */
-export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
+export type GraphElementVertexId =
+  | DataTypeVertexId
+  | EntityTypeVertexId
+  | EntityVertexId
+  | PropertyTypeVertexId;
 
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
@@ -1311,24 +1353,14 @@ export interface OntologyTypeRecordId {
   version: number;
 }
 /**
- *
+ * @type OntologyTypeVertexId
  * @export
- * @interface OntologyTypeVertexId
  */
-export interface OntologyTypeVertexId {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyTypeVertexId
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof OntologyTypeVertexId
-   */
-  revisionId: number;
-}
+export type OntologyTypeVertexId =
+  | DataTypeVertexId
+  | EntityTypeVertexId
+  | PropertyTypeVertexId;
+
 /**
  * @type OntologyVertex
  * @export
@@ -1706,6 +1738,25 @@ export const PropertyTypeVertexKindEnum = {
 export type PropertyTypeVertexKindEnum =
   (typeof PropertyTypeVertexKindEnum)[keyof typeof PropertyTypeVertexKindEnum];
 
+/**
+ *
+ * @export
+ * @interface PropertyTypeVertexId
+ */
+export interface PropertyTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyTypeVertexId
+   */
+  baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyTypeVertexId
+   */
+  revisionId: number;
+}
 /**
  *
  * @export

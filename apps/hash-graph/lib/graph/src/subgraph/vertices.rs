@@ -10,14 +10,17 @@ use crate::{
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::Record,
-    subgraph::identifier::{EntityVertexId, GraphElementVertexId, OntologyTypeVertexId},
+    subgraph::identifier::{
+        DataTypeVertexId, EntityTypeVertexId, EntityVertexId, GraphElementVertexId,
+        PropertyTypeVertexId, VertexId,
+    },
 };
 
 #[derive(Default, Debug)]
 pub struct Vertices {
-    pub data_types: HashMap<OntologyTypeVertexId, DataTypeWithMetadata>,
-    pub property_types: HashMap<OntologyTypeVertexId, PropertyTypeWithMetadata>,
-    pub entity_types: HashMap<OntologyTypeVertexId, EntityTypeWithMetadata>,
+    pub data_types: HashMap<DataTypeVertexId, DataTypeWithMetadata>,
+    pub property_types: HashMap<PropertyTypeVertexId, PropertyTypeWithMetadata>,
+    pub entity_types: HashMap<EntityTypeVertexId, EntityTypeWithMetadata>,
     pub entities: HashMap<EntityVertexId, Entity>,
 }
 
@@ -27,7 +30,9 @@ pub struct Vertices {
 /// subgraph.
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
-pub trait VertexIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementVertexId> {
+pub trait VertexIndex<R: Record>:
+    VertexId + Clone + Eq + Hash + Into<GraphElementVertexId>
+{
     /// Returns a shared reference to the [`Record`] vertex in the subgraph.
     fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a R>;
 
