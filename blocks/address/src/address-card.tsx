@@ -27,6 +27,7 @@ type AddressCardProps = {
   description?: string;
   fullAddress?: string;
   mapUrl?: string;
+  mapError?: boolean;
   hovered: boolean;
   readonly?: boolean;
   onClose: () => void;
@@ -41,6 +42,7 @@ export const AddressCard = ({
   fullAddress,
   description,
   mapUrl,
+  mapError,
   hovered,
   readonly,
   onClose,
@@ -327,6 +329,17 @@ export const AddressCard = ({
               </Link>
             </Typography>
           </Box>
+        ) : mapError ? (
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.common.black,
+              opacity: 0.5,
+              fontSize: 12,
+              lineHeight: 1,
+            }}
+          >
+            There was a problem loading the map
+          </Typography>
         ) : (
           <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
         )}

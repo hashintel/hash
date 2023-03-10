@@ -347,6 +347,7 @@ export const App: BlockComponent<RootEntity> = ({
     suggestions,
     suggestionsLoading,
     suggestionsError,
+    mapError,
     fetchSuggestions,
     selectAddress,
     selectedAddress,
@@ -527,9 +528,7 @@ export const App: BlockComponent<RootEntity> = ({
                   }
                 }}
               >
-                <Box
-                  sx={{ display: "flex", gap: 1.5, maxWidth: INPUT_MAX_WIDTH }}
-                >
+                <Box sx={{ display: "flex", gap: 1.5 }}>
                   <Autocomplete
                     onFocus={() => setAutocompleteFocused(true)}
                     onBlur={() => setAutocompleteFocused(false)}
@@ -627,6 +626,7 @@ export const App: BlockComponent<RootEntity> = ({
                     }}
                     sx={{
                       width: 1,
+                      maxWidth: INPUT_MAX_WIDTH,
                       [`.${autocompleteClasses.input}`]: {
                         paddingLeft: "0 !important",
                         // Override WP Input styles
@@ -696,6 +696,7 @@ export const App: BlockComponent<RootEntity> = ({
               description={description}
               fullAddress={selectedAddress?.fullAddress ?? fullAddress}
               mapUrl={mapUrl}
+              mapError={mapError}
               hovered={hovered}
               readonly={readonly}
               onClose={() => {

@@ -58,6 +58,7 @@ export const useMapbox = (
 
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState(false);
+  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
     if (!sessionToken) {
@@ -78,14 +79,16 @@ export const useMapbox = (
           },
         },
       })
-      .then(({ data }) => {
+      .then(({ data, errors }) => {
+        if (errors) {
+          setSuggestionsError(true);
+          return;
+        }
+
         setSuggestionsError(false);
         if (data) {
           setSuggestions(data.suggestions);
         }
-      })
-      .catch(() => {
-        setSuggestionsError(true);
       })
       .finally(() => {
         setSuggestionsLoading(false);
@@ -109,7 +112,14 @@ export const useMapbox = (
             },
           },
         })
-        .then(async ({ data }) => {
+        .then(({ data, errors }) => {
+          if (errors) {
+            setSuggestionsError(true);
+            return;
+          }
+
+          setSuggestionsError(false);
+          setMapError(false);
           if (data) {
             const address = data.features[0];
             if (address) {
@@ -133,6 +143,8 @@ export const useMapbox = (
           }
         });
     } else {
+      setSuggestionsError(false);
+      setMapError(false);
       setSelectedMapboxSuggestionActionId(null);
       setSelectedMapboxSuggestion(null);
       setAddress(null);
@@ -160,10 +172,16 @@ export const useMapbox = (
                 attribution: false,
               } as MapboxRetrieveStaticMapData,
             })
-            .then(async (res) => {
-              if (res.data) {
+            .then(async ({ data, errors }) => {
+              if (errors) {
+                setMapError(true);
+                return;
+              }
+
+              setMapError(false);
+              if (data) {
                 let blob = new Blob(
-                  [toArrayBuffer(new Uint8Array(res.data.data))],
+                  [toArrayBuffer(new Uint8Array(data.data))],
                   {
                     type: "arraybuffer",
                   },
@@ -194,6 +212,7 @@ export const useMapbox = (
     fetchSuggestions,
     suggestionsLoading,
     suggestionsError,
+    mapError,
     selectAddress,
     selectedAddress: address,
   };
