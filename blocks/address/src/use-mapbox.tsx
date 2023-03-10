@@ -174,7 +174,7 @@ export const useMapbox = (
                 attribution: false,
               } as MapboxRetrieveStaticMapData,
             })
-            .then(async ({ data, errors }) => {
+            .then(({ data, errors }) => {
               if (errors) {
                 setMapError(true);
                 return;
