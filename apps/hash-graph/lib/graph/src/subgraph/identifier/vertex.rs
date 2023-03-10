@@ -20,9 +20,13 @@ pub trait VertexId: Sized {
     fn revision_id(&self) -> Self::RevisionId;
 
     /// Returns a shared reference to the [`Record`] vertex in the subgraph.
+    ///
+    /// [`Record`]: Self::Record
     fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Self::Record>;
 
     /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
+    ///
+    /// [`Record`]: Self::Record
     fn subgraph_entry_mut<'a>(
         &self,
         vertices: &'a mut Vertices,
