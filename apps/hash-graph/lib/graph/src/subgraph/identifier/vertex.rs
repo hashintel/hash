@@ -8,18 +8,29 @@ use crate::{
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{
-        temporal_axes::VariableAxis,
-        vertices::{VertexIndex, Vertices},
-    },
+    subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint},
 };
 
-pub trait VertexId {
+pub trait VertexId: Sized {
     type BaseId;
     type RevisionId;
+    type Record;
 
     fn base_id(&self) -> &Self::BaseId;
     fn revision_id(&self) -> Self::RevisionId;
+
+    /// Returns a shared reference to the [`Record`] vertex in the subgraph.
+    ///
+    /// [`Record`]: Self::Record
+    fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Self::Record>;
+
+    /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
+    ///
+    /// [`Record`]: Self::Record
+    fn subgraph_entry_mut<'a>(
+        &self,
+        vertices: &'a mut Vertices,
+    ) -> RawEntryMut<'a, Self, Self::Record, RandomState>;
 }
 
 macro_rules! define_ontology_type_vertex_id {
@@ -33,6 +44,7 @@ macro_rules! define_ontology_type_vertex_id {
 
         impl VertexId for $name {
             type BaseId = BaseUrl;
+            type Record = $ontology_type;
             type RevisionId = OntologyTypeVersion;
 
             fn base_id(&self) -> &Self::BaseId {
@@ -42,18 +54,29 @@ macro_rules! define_ontology_type_vertex_id {
             fn revision_id(&self) -> Self::RevisionId {
                 self.revision_id
             }
-        }
 
-        impl VertexIndex<$ontology_type> for $name {
-            fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
+            fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a $ontology_type> {
                 vertices.$vertex_set.get(self)
             }
 
-            fn vertices_entry_mut<'a>(
+            fn subgraph_entry_mut<'a>(
                 &self,
                 vertices: &'a mut Vertices,
             ) -> RawEntryMut<'a, Self, $ontology_type, RandomState> {
                 vertices.$vertex_set.raw_entry_mut().from_key(self)
+            }
+        }
+
+        impl EdgeEndpoint for $name {
+            type BaseId = BaseUrl;
+            type RevisionId = OntologyTypeVersion;
+
+            fn base_id(&self) -> &Self::BaseId {
+                &self.base_id
+            }
+
+            fn revision_id(&self) -> Self::RevisionId {
+                self.revision_id
             }
         }
 
@@ -76,35 +99,6 @@ define_ontology_type_vertex_id!(
 );
 define_ontology_type_vertex_id!(EntityTypeVertexId, EntityTypeWithMetadata, entity_types);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(untagged)]
-pub enum OntologyTypeVertexId {
-    DataType(DataTypeVertexId),
-    PropertyType(PropertyTypeVertexId),
-    EntityType(EntityTypeVertexId),
-}
-
-impl VertexId for OntologyTypeVertexId {
-    type BaseId = BaseUrl;
-    type RevisionId = OntologyTypeVersion;
-
-    fn base_id(&self) -> &Self::BaseId {
-        match self {
-            Self::DataType(id) => id.base_id(),
-            Self::PropertyType(id) => id.base_id(),
-            Self::EntityType(id) => id.base_id(),
-        }
-    }
-
-    fn revision_id(&self) -> Self::RevisionId {
-        match self {
-            Self::DataType(id) => id.revision_id(),
-            Self::PropertyType(id) => id.revision_id(),
-            Self::EntityType(id) => id.revision_id(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
@@ -114,6 +108,7 @@ pub struct EntityVertexId {
 
 impl VertexId for EntityVertexId {
     type BaseId = EntityId;
+    type Record = Entity;
     type RevisionId = Timestamp<VariableAxis>;
 
     fn base_id(&self) -> &Self::BaseId {
@@ -123,14 +118,12 @@ impl VertexId for EntityVertexId {
     fn revision_id(&self) -> Self::RevisionId {
         self.revision_id
     }
-}
 
-impl VertexIndex<Entity> for EntityVertexId {
-    fn vertices_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {
+    fn subgraph_entry<'a>(&self, vertices: &'a Vertices) -> Option<&'a Entity> {
         vertices.entities.get(self)
     }
 
-    fn vertices_entry_mut<'a>(
+    fn subgraph_entry_mut<'a>(
         &self,
         vertices: &'a mut Vertices,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {

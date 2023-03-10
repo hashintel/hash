@@ -12,11 +12,8 @@ use crate::{
         PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{
-            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdge,
-            OutgoingEdgeResolveDepth, OutwardEdge,
-        },
-        identifier::{DataTypeVertexId, OntologyTypeVertexId, PropertyTypeVertexId},
+        edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        identifier::{DataTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -81,16 +78,11 @@ impl<C: AsClient> PostgresStore<C> {
                     for data_type_ref in data_type_ref_urls {
                         let data_type_vertex_id = DataTypeVertexId::from(data_type_ref);
 
-                        subgraph.edges.insert(Edge::Ontology {
-                            vertex_id: OntologyTypeVertexId::PropertyType(property_type_id.clone()),
-                            outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsValuesOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeVertexId::DataType(
-                                    data_type_vertex_id.clone(),
-                                ),
-                            }),
-                        });
+                        subgraph.insert_edge(
+                            &property_type_id,
+                            OntologyEdgeKind::ConstrainsValuesOn,
+                            data_type_vertex_id.clone(),
+                        );
 
                         self.traverse_data_type(
                             vec![data_type_vertex_id],
@@ -115,16 +107,11 @@ impl<C: AsClient> PostgresStore<C> {
                         let property_type_vertex_id =
                             PropertyTypeVertexId::from(property_type_ref_url);
 
-                        subgraph.edges.insert(Edge::Ontology {
-                            vertex_id: OntologyTypeVertexId::PropertyType(property_type_id.clone()),
-                            outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeVertexId::PropertyType(
-                                    property_type_vertex_id.clone(),
-                                ),
-                            }),
-                        });
+                        subgraph.insert_edge(
+                            &property_type_id,
+                            OntologyEdgeKind::ConstrainsPropertiesOn,
+                            property_type_vertex_id.clone(),
+                        );
 
                         queue.push((
                             property_type_vertex_id,
