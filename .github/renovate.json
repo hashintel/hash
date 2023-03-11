@@ -46,6 +46,10 @@
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`"
+    },
+    {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
