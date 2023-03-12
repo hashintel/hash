@@ -256,6 +256,47 @@ export const AddressCard = ({
             : {}),
         })}
       >
+        <Fade in={hovered}>
+          <Stack
+            sx={{
+              display: "inline-flex",
+              position: "absolute",
+              top: 13,
+              left: 13,
+            }}
+          >
+            <Button
+              onClick={incrementZoomLevel}
+              disabled={!incrementZoomLevel}
+              variant="tertiary"
+              sx={{
+                minWidth: "unset",
+                minHeight: "unset",
+                padding: 0.5,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottomWidth: 0,
+              }}
+            >
+              <FontAwesomeIcon icon={faPlus} />
+            </Button>
+            <Button
+              onClick={decrementZoomLevel}
+              disabled={!decrementZoomLevel}
+              variant="tertiary"
+              sx={{
+                minWidth: "unset",
+                minHeight: "unset",
+                padding: 0.5,
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
+              }}
+            >
+              <FontAwesomeIcon icon={faMinus} />
+            </Button>
+          </Stack>
+        </Fade>
+
         {mapUrl ? (
           <Box
             sx={{
@@ -265,49 +306,6 @@ export const AddressCard = ({
               backgroundSize: "cover",
             }}
           >
-            {!readonly ? (
-              <Fade in={hovered}>
-                <Stack
-                  sx={{
-                    display: "inline-flex",
-                    position: "absolute",
-                    top: 13,
-                    left: 13,
-                  }}
-                >
-                  <Button
-                    onClick={incrementZoomLevel}
-                    disabled={!incrementZoomLevel}
-                    variant="tertiary"
-                    sx={{
-                      minWidth: "unset",
-                      minHeight: "unset",
-                      padding: 0.5,
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                      borderBottomWidth: 0,
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faPlus} />
-                  </Button>
-                  <Button
-                    onClick={decrementZoomLevel}
-                    disabled={!decrementZoomLevel}
-                    variant="tertiary"
-                    sx={{
-                      minWidth: "unset",
-                      minHeight: "unset",
-                      padding: 0.5,
-                      borderTopLeftRadius: 0,
-                      borderTopRightRadius: 0,
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faMinus} />
-                  </Button>
-                </Stack>
-              </Fade>
-            ) : null}
-
             <Typography
               sx={{
                 position: "absolute",
