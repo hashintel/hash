@@ -509,7 +509,7 @@ export const App: BlockComponent<RootEntity> = ({
                     </Fade>
 
                     <Collapse
-                      in={!displayCard && !animatingIn}
+                      in={(!displayCard && !animatingIn) || suggestionsError}
                       onEntered={() => setAnimatingOut(false)}
                       onExited={() => {
                         if (animatingIn) {
@@ -677,7 +677,7 @@ export const App: BlockComponent<RootEntity> = ({
                 ) : null}
 
                 <Collapse
-                  in={displayCard && !animatingOut}
+                  in={displayCard && !animatingOut && !suggestionsError}
                   onEntered={() => setAnimatingIn(null)}
                   onExited={() => resetBlock()}
                 >
