@@ -327,7 +327,10 @@ export const App: BlockComponent<RootEntity> = ({
                     paddingY: 3,
                     paddingX: 3.75,
                   }
-                : {}),
+                : {
+                    background: "none",
+                    boxShadow: "none",
+                  }),
             }}
           >
             {title || description || !readonly ? (
