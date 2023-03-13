@@ -410,6 +410,7 @@ export const App: BlockComponent<RootEntity> = ({
                 sx={{
                   display: "inline-block",
                   width: 1,
+                  overflowX: "hidden",
                 }}
                 onMouseEnter={() => setHovered(true)}
                 onMouseLeave={() => setHovered(false)}
