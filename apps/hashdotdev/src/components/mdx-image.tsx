@@ -9,7 +9,7 @@ export const mdxImageClasses = { root: "MdxImage" };
 
 export const MdxImage: FunctionComponent<
   Omit<ImageProps, "src"> & { src: string; style: HTMLProps<HTMLDivElement> }
-> = ({ src, width, height, style, ...props }) => {
+> = ({ src, width, height, style, blurDataURL, ...props }) => {
   const { body } = useBlogPostPhotos();
   const details = body[src];
 
@@ -47,6 +47,7 @@ export const MdxImage: FunctionComponent<
         width={width ?? details?.width}
         height={height ?? details?.height}
         layout={inline ? "intrinsic" : "responsive"}
+        {...(blurDataURL ? { blurDataURL, placeholder: "blur" } : {})}
       />
     </Box>
   );
