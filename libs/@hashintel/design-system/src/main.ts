@@ -1,3 +1,4 @@
+export * from "./autocomplete";
 export * from "./autocomplete-dropdown";
 export * from "./avatar";
 export * from "./button";
