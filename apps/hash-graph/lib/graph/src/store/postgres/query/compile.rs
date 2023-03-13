@@ -509,33 +509,35 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         for relation in path.relations() {
             let current_alias = current_table.alias;
             for (current_column, join_column) in relation.joins() {
-                let mut current_column = current_column.aliased(current_table.alias);
+                let current_column = current_column.aliased(current_table.alias);
                 let mut join_column = join_column.aliased(Alias {
                     condition_index: self.artifacts.condition_index,
                     chain_depth: current_table.alias.chain_depth + 1,
                     number: 0,
                 });
 
-                // If we join on the same column as the previous join, we can reuse the that join.
-                // For example, if we join on `entities.entity_type_ontology_id =
-                // entity_type.ontology_id` and then on `entity_type.ontology_id =
-                // ontology_ids.ontology_id`, we can merge the two joins into `entities.
-                // entity_type_ontology_id = ontology_ids.ontology_id`. We, however, need to
-                // make sure, that we only alter a join statement with a table we don't require
-                // anymore.
-                if let Some(last_join) = self.statement.joins.pop() {
-                    // Check if we are joining on the same column as the previous join
-                    if last_join.join == current_column
-                        && !self
-                            .artifacts
-                            .required_tables
-                            .contains(&last_join.join.table())
-                    {
-                        current_column = last_join.on;
-                    } else {
-                        self.statement.joins.push(last_join);
-                    }
-                }
+                // TODO: If we join on the same column as the previous join, we can reuse the that
+                //       join. For example, if we join on
+                //       `entities.entity_type_ontology_id = entity_type.ontology_id` and then on
+                //       `entity_type.ontology_id = ontology_ids.ontology_id`, we can merge the two
+                //       joins into `entities. entity_type_ontology_id = ontology_ids.ontology_id`.
+                //       We, however, need to make sure, that we only alter a join statement with a
+                //       table we don't require anymore.
+                //       The following code is a first attempt at this, but it is not working yet.
+                //  see: https://app.asana.com/0/0/1204165137291093/f
+                // if let Some(last_join) = self.statement.joins.pop() {
+                //     // Check if we are joining on the same column as the previous join
+                //     if last_join.join == current_column
+                //         && !self
+                //             .artifacts
+                //             .required_tables
+                //             .contains(&last_join.join.table())
+                //     {
+                //         current_column = last_join.on;
+                //     } else {
+                //         self.statement.joins.push(last_join);
+                //     }
+                // }
 
                 let mut found = false;
                 for existing in &self.statement.joins {

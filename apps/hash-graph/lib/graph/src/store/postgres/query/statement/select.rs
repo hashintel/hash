@@ -296,8 +296,10 @@ mod tests {
               ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
             INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_1_0"
               ON "property_type_data_type_references_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "data_types" AS "data_types_1_2_0"
+              ON "data_types_1_2_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_1_3_0"
-              ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
+              ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "data_types_1_2_0"."ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
               AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2) AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
             "#,
@@ -752,9 +754,11 @@ mod tests {
              SELECT *
              FROM "entities" AS "entities_0_0_0"
              RIGHT OUTER JOIN "entities" AS "entities_0_1_0" ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0" ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
+             INNER JOIN "entity_types" AS "entity_types_0_2_0" ON "entity_types_0_2_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
+             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0" ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
              RIGHT OUTER JOIN "entities" AS "entities_0_1_1" ON "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1" ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
+             INNER JOIN "entity_types" AS "entity_types_0_2_1" ON "entity_types_0_2_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
+             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1" ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entity_types_0_2_1"."ontology_id"
              WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
                AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
                AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
