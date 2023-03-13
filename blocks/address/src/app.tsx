@@ -1,51 +1,40 @@
 import {
+  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
-  type BlockComponent,
 } from "@blockprotocol/graph/react";
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  addPopperPositionClassPopperModifier,
-  AutocompleteDropdown,
-  FontAwesomeIcon,
-  popperPlacementInputNoBorder,
-  popperPlacementInputNoRadius,
-  theme,
-  TYPE_SELECTOR_HEIGHT,
-} from "@hashintel/design-system";
+import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,
   Fade,
   Link,
-  outlinedInputClasses,
-  PopperProps,
   ThemeProvider,
   Typography,
-  useMediaQuery,
 } from "@mui/material";
-import Autocomplete, { autocompleteClasses } from "@mui/material/Autocomplete";
+import { autocompleteClasses } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { SizeMe } from "react-sizeme";
+
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
+  AddressBlockHasAddressLinks,
+  AddressBlockHasMapImageLinks,
+  AddressBlockLinksByLinkTypeId,
   HasAddress,
   HasMapImage,
-  RootEntity,
   RemoteFile,
-  AddressBlockHasMapImageLinks,
-  AddressBlockHasAddressLinks,
-  AddressBlockLinksByLinkTypeId,
+  RootEntity,
 } from "./types";
-import { Address, useMapbox } from "./useMapbox";
+import { Address, useMapbox } from "./use-mapbox";
 
 const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
@@ -100,10 +89,6 @@ const getOptionLabel = (option: AutofillSuggestion | string) =>
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("No blockEntitySubgraph provided");
-  }
-
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } =
@@ -143,7 +128,7 @@ export const App: BlockComponent<RootEntity> = ({
   const addressLinkEntity: HasAddress | undefined =
     addressLinkedEntity?.linkEntity;
 
-  const fullAddress = addressEntity?.properties[fullAddressKey];
+  const remoteFullAddress = addressEntity?.properties[fullAddressKey];
 
   const mapLinkedEntity = useMemo(
     () =>
@@ -171,108 +156,118 @@ export const App: BlockComponent<RootEntity> = ({
         );
       })
       .map(({ linkEntity }) => linkEntity.properties[zoomLevelKey]);
-  }, [linkedEntities]);
+  }, [linkedEntities, addressId]);
 
-  const {
-    suggestions,
-    suggestionsLoading,
-    suggestionsError,
-    fetchSuggestions,
-    selectAddress,
-    selectedAddress,
-    mapFile,
-  } = useMapbox(
-    blockRootRef,
-    zoomLevel,
-    !availableZoomLevels.includes(zoomLevel),
-  );
-
-  const updateBlockAddress = async (address: Address) => {
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {
-          [addressIdKey]: address.addressId,
-          [titleKey]: address.featureName,
-          [descriptionKey]: "",
-          [zoomLevelKey]: 16,
-        },
-      },
-    });
-  };
-
-  const updateTitle = async (title: string) => {
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {
-          ...properties,
-          [titleKey]: title,
-        },
-      },
-    });
-  };
-
-  const updateDescription = async (description: string) => {
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {
-          ...properties,
-          [descriptionKey]: description,
-        },
-      },
-    });
-  };
-
-  const updateZoomLevel = async (zoomLevel: number) => {
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {
-          ...properties,
-          [zoomLevelKey]: zoomLevel,
-        },
-      },
-    });
-  };
-
-  const incrementZoomLevel = useCallback(() => {
-    if (zoomLevel <= MAX_ZOOM_LEVEL - ZOOM_LEVEL_STEP_SIZE) {
-      updateZoomLevel(zoomLevel + ZOOM_LEVEL_STEP_SIZE);
-    }
-  }, [zoomLevel, properties]);
-
-  const decrementZoomLevel = useCallback(() => {
-    if (zoomLevel >= MIN_ZOOM_LEVEL + ZOOM_LEVEL_STEP_SIZE) {
-      updateZoomLevel(zoomLevel - ZOOM_LEVEL_STEP_SIZE);
-    }
-  }, [zoomLevel, properties]);
-
-  const uploadMap = async (mapFile: File) => {
-    if (readonly || !mapFile) {
+  const updateBlockAddress = async (address?: Address) => {
+    if (readonly) {
       return;
     }
 
-    graphModule
-      ?.uploadFile({
-        data: { file: mapFile },
+    await graphModule.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: address
+          ? {
+              [addressIdKey]: address.addressId,
+              [titleKey]: address.featureName,
+              [descriptionKey]: "",
+              [zoomLevelKey]: DEFAULT_ZOOM_LEVEL,
+            }
+          : {},
+      },
+    });
+  };
+
+  const updateTitle = async (nweTitle: string) => {
+    if (readonly) {
+      return;
+    }
+
+    await graphModule.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          ...properties,
+          [titleKey]: nweTitle,
+        },
+      },
+    });
+  };
+
+  const updateDescription = async (newDescription: string) => {
+    if (readonly) {
+      return;
+    }
+
+    await graphModule.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          ...properties,
+          [descriptionKey]: newDescription,
+        },
+      },
+    });
+  };
+
+  const updateZoomLevel = useCallback(
+    async (newZoomLevel: number) => {
+      if (readonly) {
+        return;
+      }
+
+      await graphModule.updateEntity({
+        data: {
+          entityId,
+          entityTypeId,
+          properties: {
+            ...properties,
+            [zoomLevelKey]: newZoomLevel,
+          },
+        },
+      });
+    },
+    [entityId, entityTypeId, graphModule, properties, readonly],
+  );
+
+  const incrementZoomLevel = useCallback(async () => {
+    if (zoomLevel <= MAX_ZOOM_LEVEL - ZOOM_LEVEL_STEP_SIZE) {
+      await updateZoomLevel(zoomLevel + ZOOM_LEVEL_STEP_SIZE);
+    }
+  }, [zoomLevel, updateZoomLevel]);
+
+  const decrementZoomLevel = useCallback(async () => {
+    if (zoomLevel >= MIN_ZOOM_LEVEL + ZOOM_LEVEL_STEP_SIZE) {
+      await updateZoomLevel(zoomLevel - ZOOM_LEVEL_STEP_SIZE);
+    }
+  }, [zoomLevel, updateZoomLevel]);
+
+  const uploadMap = async (mapFile: File, mapAddressId: string) => {
+    if (readonly) {
+      return;
+    }
+
+    await graphModule
+      .uploadFile({
+        data: {
+          file: mapFile,
+          description: remoteFullAddress,
+        },
       })
       .then(async (uploadFileResponse) => {
         const fileEntityId =
           uploadFileResponse.data?.metadata.recordId.entityId;
 
-        if (!mapLinkEntity && addressId && fileEntityId) {
+        if (!mapLinkEntity && mapAddressId && fileEntityId) {
           await graphModule.createEntity({
             data: {
               entityTypeId: hasAddressMapLink,
               properties: {
                 [zoomLevelKey]: zoomLevel,
-                [addressIdKey]: addressId,
+                [addressIdKey]: mapAddressId,
               },
               linkData: {
                 leftEntityId: entityId,
@@ -321,7 +316,7 @@ export const App: BlockComponent<RootEntity> = ({
         }));
 
     const addressEntityId =
-      createAddressEntityResponse?.data?.metadata.recordId.entityId;
+      createAddressEntityResponse.data?.metadata.recordId.entityId;
 
     if (addressEntityId) {
       if (!addressLinkEntity) {
@@ -339,46 +334,45 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
+  const onSelectAddress = (address: Address) => {
+    void updateAddress(address);
+    void updateBlockAddress(address);
+  };
+
+  const {
+    suggestions,
+    suggestionsLoading,
+    suggestionsError,
+    mapError,
+    fetchSuggestions,
+    selectAddress,
+    selectedAddress,
+  } = useMapbox(
+    blockRootRef,
+    zoomLevel,
+    !availableZoomLevels.includes(zoomLevel),
+    onSelectAddress,
+    uploadMap,
+    addressId,
+  );
+
   const resetBlock = async () => {
+    if (readonly) {
+      return;
+    }
+
     selectAddress();
-    await graphModule.updateEntity({
-      data: {
-        entityId,
-        entityTypeId,
-        properties: {},
-      },
-    });
+    void updateBlockAddress();
 
     // Remove the address link and all map links
     for (const { linkEntity } of linkedEntities) {
-      if (linkEntity) {
-        await graphModule.deleteEntity({
-          data: {
-            entityId: linkEntity.metadata.recordId.entityId,
-          },
-        });
-      }
+      await graphModule.deleteEntity({
+        data: {
+          entityId: linkEntity.metadata.recordId.entityId,
+        },
+      });
     }
   };
-
-  useEffect(() => {
-    if (selectedAddress) {
-      if (addressId !== selectedAddress.addressId) {
-        updateAddress(selectedAddress);
-        updateBlockAddress(selectedAddress);
-      }
-    } else {
-      resetBlock();
-    }
-  }, [selectedAddress]);
-
-  useEffect(() => {
-    if (mapFile) {
-      uploadMap(mapFile);
-    }
-  }, [mapFile]);
-
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const schema = useMemo(() => {
     return addressEntity
@@ -393,181 +387,161 @@ export const App: BlockComponent<RootEntity> = ({
       : null;
   }, [addressEntity]);
 
-  const allModifiers = useMemo(
-    (): PopperProps["modifiers"] => [
-      addPopperPositionClassPopperModifier,
-      // We don't want the popup shifting position as that will break styles
-      { name: "preventOverflow", enabled: false },
-    ],
-    [],
-  );
-  const [open, setOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+  const displayTitle = title ?? selectedAddress?.featureName;
+  const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
+  const displayCard = !!(displayTitle && displayFullAddress);
 
   return (
     <>
       {schema ? (
         <script
           type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: schema }}
         />
       ) : null}
       <ThemeProvider theme={theme}>
-        <Box
-          ref={blockRootRef}
-          sx={{ display: "inline-block", width: { xs: "100%", md: "auto" } }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          {!readonly ? (
-            <>
-              <Fade
-                in={
-                  hovered ||
-                  autocompleteFocused ||
-                  !!animatingIn ||
-                  animatingOut
-                }
+        <SizeMe>
+          {({ size }) => {
+            const isMobile = (size.width ?? 0) < 800;
+            return (
+              <Box
+                ref={blockRootRef}
+                sx={{
+                  display: "inline-block",
+                  width: 1,
+                  overflowX: "hidden",
+                }}
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
               >
-                <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
-                  <Link
-                    href="https://blockprotocol.org/@hash/blocks/address"
-                    target="_blank"
-                    variant="regularTextLabels"
-                    sx={({ palette }) => ({
-                      display: "inline-flex",
-                      alignItems: "center",
-                      textDecoration: "none",
-                      fontSize: 15,
-                      lineHeight: 1,
-                      letterSpacing: -0.02,
-                      marginBottom: 1.5,
-                      whiteSpace: "nowrap",
-                      color: palette.gray[50],
-                      fill: palette.gray[40],
-                      ":hover": {
-                        color: palette.gray[60],
-                        fill: palette.gray[50],
-                      },
-                    })}
-                  >
-                    Get help{" "}
-                    <FontAwesomeIcon
-                      icon={faQuestionCircle}
-                      sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-                    />
-                  </Link>
+                {!readonly ? (
+                  <>
+                    <Fade
+                      in={
+                        hovered ||
+                        autocompleteFocused ||
+                        !!animatingIn ||
+                        animatingOut
+                      }
+                    >
+                      <Box
+                        sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}
+                      >
+                        <Link
+                          href="https://blockprotocol.org/@hash/blocks/address"
+                          target="_blank"
+                          variant="regularTextLabels"
+                          sx={({ palette }) => ({
+                            display: "inline-flex",
+                            alignItems: "center",
+                            fontSize: 15,
+                            lineHeight: 1,
+                            letterSpacing: -0.02,
+                            marginBottom: 1.5,
+                            whiteSpace: "nowrap",
+                            textDecoration: "none !important",
+                            color: `${palette.gray[50]} !important`,
+                            fill: palette.gray[40],
+                            ":hover": {
+                              color: palette.gray[60],
+                              fill: palette.gray[50],
+                            },
+                          })}
+                        >
+                          Get help{" "}
+                          <FontAwesomeIcon
+                            icon={faQuestionCircle}
+                            sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
+                          />
+                        </Link>
 
-                  <Typography
-                    variant="regularTextLabels"
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      textDecoration: "none",
-                      fontSize: 15,
-                      lineHeight: 1,
-                      letterSpacing: -0.02,
-                      marginBottom: 1.5,
-                      flexWrap: "wrap",
-                      color: ({ palette }) => palette.gray[50],
-                    }}
-                  >
-                    <Box component="span" sx={{ mr: 1 }}>
-                      Using
-                    </Box>
-                    {!selectedAddress ? (
-                      <>
-                        <Box
-                          component="span"
+                        <Typography
+                          variant="regularTextLabels"
                           sx={{
                             display: "inline-flex",
                             alignItems: "center",
-                            color: ({ palette }) => palette.gray[60],
-                            mr: 1,
+                            textDecoration: "none",
+                            fontSize: 15,
+                            lineHeight: 1,
+                            letterSpacing: -0.02,
+                            marginBottom: 1.5,
+                            flexWrap: "wrap",
+                            color: ({ palette }) => palette.gray[50],
                           }}
                         >
-                          <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                          Mapbox Address Autofill
-                        </Box>
-                        <Box component="span" sx={{ mr: 1 }}>
-                          and
-                        </Box>
-                      </>
-                    ) : null}
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        color: ({ palette }) => palette.gray[60],
-                        mr: 1,
+                          <Box component="span" sx={{ mr: 1 }}>
+                            Using
+                          </Box>
+                          {!displayCard ? (
+                            <>
+                              <Box
+                                component="span"
+                                sx={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  color: ({ palette }) => palette.gray[60],
+                                  mr: 1,
+                                }}
+                              >
+                                <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                                Mapbox Address Autofill
+                              </Box>
+                              <Box component="span" sx={{ mr: 1 }}>
+                                and
+                              </Box>
+                            </>
+                          ) : null}
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              color: ({ palette }) => palette.gray[60],
+                              mr: 1,
+                            }}
+                          >
+                            <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                            Mapbox Static Images
+                          </Box>
+                          to render a fixed map
+                        </Typography>
+                      </Box>
+                    </Fade>
+
+                    <Collapse
+                      in={(!displayCard && !animatingIn) || suggestionsError}
+                      onEntered={() => setAnimatingOut(false)}
+                      onExited={() => {
+                        if (animatingIn) {
+                          selectAddress(animatingIn);
+                        }
                       }}
                     >
-                      <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                      Mapbox Static Images
-                    </Box>
-                    to render a fixed map
-                  </Typography>
-                </Box>
-              </Fade>
-
-              <Collapse
-                in={!selectedAddress && !animatingIn}
-                onEntered={() => setAnimatingOut(false)}
-                onExited={() => {
-                  if (animatingIn) {
-                    selectAddress(animatingIn);
-                  }
-                }}
-              >
-                <Box
-                  sx={{ display: "flex", gap: 1.5, maxWidth: INPUT_MAX_WIDTH }}
-                >
-                  <Autocomplete
-                    open={open}
-                    onOpen={() => setOpen(true)}
-                    onClose={(_, reason) => {
-                      if (reason !== "toggleInput") {
-                        setOpen(false);
-                      }
-                    }}
-                    onFocus={() => setAutocompleteFocused(true)}
-                    onBlur={() => setAutocompleteFocused(false)}
-                    getOptionLabel={getOptionLabel}
-                    options={suggestions}
-                    popupIcon={null}
-                    freeSolo
-                    onInputChange={(_event, newInputValue) => {
-                      fetchSuggestions(newInputValue);
-                    }}
-                    onChange={(_event, option) => {
-                      if (option && typeof option === "object") {
-                        setAnimatingIn(option);
-                      }
-                    }}
-                    filterOptions={(options) => options}
-                    /**
-                     * By default, the anchor element for an autocomplete dropdown is the
-                     * input base, but we some uses of this component depend on resizing the
-                     * autocomplete root in order to attach the popup in a slightly different
-                     * place, so we make the autocomplete root the anchor element for the
-                     * popup.
-                     *
-                     * @see LinkEntityTypeSelector
-                     */
-                    ref={setAnchorEl}
-                    renderInput={({ InputProps, ...params }) => {
-                      return (
-                        <TextField
-                          {...params}
-                          autoFocus
-                          placeholder={
+                      <Box sx={{ display: "flex", gap: 1.5 }}>
+                        <Autocomplete
+                          onFocus={() => setAutocompleteFocused(true)}
+                          onBlur={() => setAutocompleteFocused(false)}
+                          getOptionLabel={getOptionLabel}
+                          options={suggestions}
+                          popupIcon={null}
+                          onInputChange={(_event, newInputValue) => {
+                            if (newInputValue.trim() !== "") {
+                              fetchSuggestions(newInputValue);
+                            }
+                          }}
+                          onChange={(_event, option) => {
+                            if (typeof option === "object") {
+                              setAnimatingIn(option);
+                            }
+                          }}
+                          filterOptions={(options) => options}
+                          inputPlaceholder={
                             isMobile
                               ? "Enter an address"
                               : "Start typing to enter an address or location"
                           }
-                          InputProps={{
-                            ...InputProps,
+                          inputProps={{
                             endAdornment: suggestionsError ? (
                               <TriangleExclamationIcon
                                 sx={{
@@ -586,181 +560,160 @@ export const App: BlockComponent<RootEntity> = ({
                                 }}
                               />
                             ),
-                            sx: [
-                              (theme) => ({
-                                // The popover needs to know how tall this is to draw
-                                // a shadow around it
-                                height: TYPE_SELECTOR_HEIGHT,
+                          }}
+                          renderOption={(props, option) => {
+                            const label = getOptionLabel(option);
+                            return (
+                              <Stack component="li" {...props}>
+                                <Typography
+                                  variant="microText"
+                                  sx={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    lineHeight: "18px",
+                                    color: ({ palette }) =>
+                                      palette.common.black,
+                                    marginBottom: 0.5,
+                                  }}
+                                >
+                                  {label}
+                                </Typography>
 
-                                // Focus is handled by the options popover
-                                "&.Mui-focused": {
-                                  boxShadow: "none",
+                                <Typography
+                                  variant="microText"
+                                  sx={{
+                                    fontSize: 13,
+                                    lineHeight: "18px",
+                                    color: ({ palette }) => palette.gray[50],
+                                  }}
+                                >
+                                  {option.country}
+                                </Typography>
+                              </Stack>
+                            );
+                          }}
+                          componentsProps={{
+                            paper: {
+                              sx: {
+                                padding: "0 !important",
+                                filter:
+                                  "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
+                                border: ({ palette }) =>
+                                  `1px solid ${palette.gray[20]}`,
+                                boxShadow: "none",
+                                [`.${autocompleteClasses.listbox}`]: {
+                                  padding: "0px",
+                                  maxHeight: "unset",
+                                  [`.${autocompleteClasses.option}`]: {
+                                    alignItems: "flex-start",
+                                    paddingX: ({ spacing }) =>
+                                      `${spacing(2.5)} !important`,
+                                    paddingY: 1.25,
+                                    marginY: 0,
+                                  },
                                 },
-
-                                [`.${outlinedInputClasses.notchedOutline}`]: {
-                                  border: `1px solid ${theme.palette.gray[30]} !important`,
-                                },
-                              }),
-                              ...(open && suggestions.length
-                                ? [
-                                    popperPlacementInputNoRadius,
-                                    popperPlacementInputNoBorder,
-                                    {
-                                      borderRadiusBottomLeft: "0 !important",
-                                      borderRadiusBottomRight: "0 !important",
-                                    },
-                                  ]
-                                : []),
-                            ],
+                              },
+                            },
+                          }}
+                          sx={{
+                            width: 1,
+                            maxWidth: INPUT_MAX_WIDTH,
+                            [`.${autocompleteClasses.input}`]: {
+                              paddingLeft: "0 !important",
+                              // Override WP Input styles
+                              lineHeight: "24px",
+                              minHeight: "unset",
+                              border: "none",
+                              boxShadow: "none !important",
+                            },
+                            [`.${autocompleteClasses.inputRoot}`]: {
+                              paddingX: ({ spacing }) =>
+                                `${spacing(2.75)} !important`,
+                            },
                           }}
                         />
-                      );
-                    }}
-                    renderOption={(props, option) => {
-                      const label = getOptionLabel(option);
-                      return (
-                        <Stack component="li" {...props}>
-                          <Typography
-                            variant="microText"
-                            sx={{
-                              fontSize: 14,
-                              fontWeight: 500,
-                              lineHeight: "18px",
-                              color: ({ palette }) => palette.common.black,
-                              marginBottom: 0.5,
-                            }}
-                          >
-                            {label}
-                          </Typography>
 
-                          <Typography
-                            variant="microText"
-                            sx={{
-                              fontSize: 13,
-                              lineHeight: "18px",
-                              color: ({ palette }) => palette.gray[50],
-                            }}
+                        {suggestionsError ? (
+                          <Box
+                            display="flex"
+                            flexDirection="column"
+                            justifyContent="center"
+                            gap={1}
                           >
-                            {option.country}
-                          </Typography>
-                        </Stack>
-                      );
-                    }}
-                    PaperComponent={({ children, ...props }) => (
-                      <AutocompleteDropdown
-                        inputHeight={TYPE_SELECTOR_HEIGHT}
-                        {...props}
-                        sx={{
-                          padding: "0 !important",
-                          filter:
-                            "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
-                          border: ({ palette }) =>
-                            `1px solid ${palette.gray[20]}`,
-                          boxShadow: "none",
-                          [`.${autocompleteClasses.listbox}`]: {
-                            padding: "0px",
-                            maxHeight: "unset",
-                            [`.${autocompleteClasses.option}`]: {
-                              alignItems: "flex-start",
-                              paddingX: ({ spacing }) =>
-                                `${spacing(2.5)} !important`,
-                              paddingY: 1.25,
-                              marginY: 0,
-                            },
-                          },
-                        }}
-                      >
-                        {children}
-                      </AutocompleteDropdown>
-                    )}
-                    componentsProps={{
-                      popper: { modifiers: allModifiers, anchorEl },
-                    }}
-                    sx={{
-                      width: 1,
-                      [`.${autocompleteClasses.input}`]: {
-                        paddingLeft: "0 !important",
-                        outline: "none",
-                      },
-                      [`.${autocompleteClasses.inputRoot}`]: {
-                        paddingX: ({ spacing }) =>
-                          `${spacing(2.75)} !important`,
-                      },
-                    }}
-                  />
+                            <Typography
+                              variant="smallTextLabels"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: 13,
+                                lineHeight: 1,
+                                letterSpacing: "-0.02em",
+                                color: ({ palette }) => palette.black,
+                              }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{ color: ({ palette }) => palette.red[60] }}
+                              >
+                                Error connecting
+                              </Box>{" "}
+                              to the Mapbox API
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: 15,
+                                lineHeight: 1,
+                                letterSpacing: "-0.02em",
+                                color: ({ palette }) => palette.gray[50],
+                              }}
+                            >
+                              Check your network connection or contact support
+                              if this issue persists.
+                            </Typography>
+                          </Box>
+                        ) : null}
+                      </Box>
+                    </Collapse>
+                  </>
+                ) : null}
 
-                  {suggestionsError ? (
-                    <Box
-                      display="flex"
-                      flexDirection="column"
-                      justifyContent="center"
-                      gap={1}
-                    >
-                      <Typography
-                        variant="smallTextLabels"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 13,
-                          lineHeight: 1,
-                          letterSpacing: "-0.02em",
-                          color: ({ palette }) => palette.black,
-                        }}
-                      >
-                        <Box
-                          component="span"
-                          sx={{ color: ({ palette }) => palette.red[60] }}
-                        >
-                          Error connecting
-                        </Box>{" "}
-                        to the Mapbox API
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontWeight: 500,
-                          fontSize: 15,
-                          lineHeight: 1,
-                          letterSpacing: "-0.02em",
-                          color: ({ palette }) => palette.gray[50],
-                        }}
-                      >
-                        Check your network connection or contact support if this
-                        issue persists.
-                      </Typography>
-                    </Box>
+                <Collapse
+                  in={displayCard && !animatingOut && !suggestionsError}
+                  onEntered={() => setAnimatingIn(null)}
+                  onExited={() => resetBlock()}
+                >
+                  {displayCard ? (
+                    <AddressCard
+                      isMobile={isMobile}
+                      title={displayTitle}
+                      description={description}
+                      fullAddress={displayFullAddress}
+                      mapUrl={mapUrl}
+                      mapError={mapError}
+                      hovered={hovered}
+                      readonly={readonly}
+                      onClose={() => {
+                        setAnimatingOut(true);
+                      }}
+                      updateTitle={updateTitle}
+                      updateDescription={updateDescription}
+                      incrementZoomLevel={
+                        zoomLevel >= MAX_ZOOM_LEVEL
+                          ? undefined
+                          : incrementZoomLevel
+                      }
+                      decrementZoomLevel={
+                        zoomLevel <= MIN_ZOOM_LEVEL
+                          ? undefined
+                          : decrementZoomLevel
+                      }
+                    />
                   ) : null}
-                </Box>
-              </Collapse>
-            </>
-          ) : null}
-
-          <Collapse
-            in={!!selectedAddress && !animatingOut}
-            onEntered={() => setAnimatingIn(null)}
-            onExited={() => selectAddress()}
-          >
-            {selectedAddress ? (
-              <AddressCard
-                title={selectedAddress.featureName ?? title}
-                description={description}
-                fullAddress={selectedAddress.fullAddress ?? fullAddress}
-                mapUrl={mapUrl}
-                hovered={hovered}
-                readonly={readonly}
-                onClose={() => {
-                  setAnimatingOut(true);
-                }}
-                updateTitle={updateTitle}
-                updateDescription={updateDescription}
-                incrementZoomLevel={
-                  zoomLevel >= MAX_ZOOM_LEVEL ? undefined : incrementZoomLevel
-                }
-                decrementZoomLevel={
-                  zoomLevel <= MIN_ZOOM_LEVEL ? undefined : decrementZoomLevel
-                }
-              />
-            ) : null}
-          </Collapse>
-        </Box>
+                </Collapse>
+              </Box>
+            );
+          }}
+        </SizeMe>
       </ThemeProvider>
     </>
   );
