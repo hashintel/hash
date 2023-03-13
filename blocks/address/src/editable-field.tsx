@@ -19,11 +19,14 @@ export const EditableField = ({
   sx,
   onBlur,
   ...props
-}: { iconSize: string; readonly?: boolean } & TextFieldProps) => {
+}: {
+  iconSize: string;
+  readonly?: boolean;
+} & TextFieldProps) => {
   const { transitions } = useTheme();
 
   const [hovered, setHovered] = useState(false);
-  const [editing, setEditing] = useState(!readonly && !value ? true : false);
+  const [editing, setEditing] = useState(!readonly && !value);
   const inputRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -42,8 +45,8 @@ export const EditableField = ({
           setEditing(false);
           onBlur?.(event);
         }}
-        onKeyDown={({ code }) => {
-          if (code === "Enter") {
+        onKeyDown={({ code, shiftKey }) => {
+          if (!shiftKey && code === "Enter") {
             inputRef.current?.blur();
           }
         }}
@@ -61,6 +64,10 @@ export const EditableField = ({
             paddingTop: 0,
             transition: transitions.create("padding"),
             ...(!editing ? { p: 0 } : {}),
+          },
+          [`.${inputBaseClasses.input}`]: {
+            background: "none !important",
+            boxShadow: "none !important",
           },
           ...(!editing
             ? {
