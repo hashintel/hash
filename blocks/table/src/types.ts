@@ -2,28 +2,12 @@ import { Entity, JsonObject } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/table-block/v/4 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/table-block/v/3 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * Whether the header row is hidden
- */
-export type HideHeaderRowPropertyValue = BooleanDataValue;
-/**
- * A True or False value
- */
-export type BooleanDataValue = boolean;
-/**
- * Whether the row numbers are hidden
- */
-export type HideRowNumbersPropertyValue = BooleanDataValue;
-/**
- * Whether the alternating rows are zebra striped
- */
-export type IsStripedPropertyValue = BooleanDataValue;
-/**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 export type TitlePropertyValue = TextDataValue;
 /**
@@ -31,39 +15,57 @@ export type TitlePropertyValue = TextDataValue;
  */
 export type TextDataValue = string;
 /**
- * 123
+ * Whether the alternating table rows are zebra striped.
  */
-export type TableLocalRowPropertyValue = ObjectDataValue;
+export type TableRowsAreStripedPropertyValue = BooleanDataValue;
 /**
- * 123
+ * A True or False value
+ */
+export type BooleanDataValue = boolean;
+/**
+ * Whether the table row numbers are hidden.
+ */
+export type TableRowNumbersAreHiddenPropertyValue = BooleanDataValue;
+/**
+ * Whether the table header row is hidden.
+ */
+export type TableHeaderRowIsHiddenPropertyValue = BooleanDataValue;
+/**
+ * Local column stored on "Table" block.
  */
 export type TableLocalColumnPropertyValue = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": TableLocalColumnIDPropertyValue;
 };
 /**
- * An arbitrary ID
+ * A unique identifier for a local column stored on the "Table" block.
  */
-export type IDPropertyValue = TextDataValue;
+export type TableLocalColumnIDPropertyValue = TextDataValue;
+/**
+ * An object representing a local row stored on the "Table" block. The keys of this object must be one of the local column IDs.
+ *
+ * See: https://blockprotocol.org/@hash/types/property-type/table-local-column/
+ */
+export type TableLocalRowPropertyValue = ObjectDataValue;
 
 /**
- * The block entity of the “Table” block.
+ * The block entity of the "Table" block.
  *
  * See: https://blockprotocol.org/@hash/blocks/table
  */
 export type TableBlockProperties = {
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/"?: HideHeaderRowPropertyValue;
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/"?: HideRowNumbersPropertyValue;
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/"?: IsStripedPropertyValue;
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
   /**
    * @minItems 0
    */
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
   /**
    * @minItems 0
    */
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
+  "https://blockprotocol.org/@hash/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
 };
 /**
  * An opaque, untyped JSON object

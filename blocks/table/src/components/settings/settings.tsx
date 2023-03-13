@@ -7,11 +7,11 @@ import { RootEntity } from "../../types";
 import styles from "./styles.module.scss";
 
 const isStripedKey: RootKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/is-striped/";
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-header-row/";
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/";
 const hideRowNumbersKey: RootKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/hide-row-numbers/";
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
 interface SettingsProps {
   blockEntity: RootEntity;

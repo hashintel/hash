@@ -15,42 +15,40 @@ const testEntity: RootEntity = {
     entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
   },
   properties: {
-    "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
+    "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
       "My Table",
-    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/":
-      [
-        {
-          "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
-            "Full Name",
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
-            "fullName",
-        },
-        {
-          "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
-            "Role",
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
-            "role",
-        },
-      ],
-    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/":
-      [
-        {
-          fullName: "David Davidson",
-          role: "CEO",
-        },
-        {
-          fullName: "John Johnson",
-          role: "Head of Engineering",
-        },
-        {
-          fullName: "React Reactson",
-          role: "Frontend Developer",
-        },
-        {
-          fullName: "Node Nodeson",
-          role: "Backend Developer",
-        },
-      ],
+    "https://blockprotocol.org/@hash/types/property-type/table-local-column/": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
+          "Full Name",
+        "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/":
+          "fullName",
+      },
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
+          "Role",
+        "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/":
+          "role",
+      },
+    ],
+    "https://blockprotocol.org/@hash/types/property-type/table-local-row/": [
+      {
+        fullName: "David Davidson",
+        role: "CEO",
+      },
+      {
+        fullName: "John Johnson",
+        role: "Head of Engineering",
+      },
+      {
+        fullName: "React Reactson",
+        role: "Frontend Developer",
+      },
+      {
+        fullName: "Node Nodeson",
+        role: "Backend Developer",
+      },
+    ],
   },
 };
 
