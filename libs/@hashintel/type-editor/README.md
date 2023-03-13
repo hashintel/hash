@@ -8,4 +8,4 @@ The type editor is used in the HASH application, and can be tested by running th
 
 ## Publishing
 
-See [`libs/README.md`](../README.md#publishing)
+See [`libs/README.md`](../../README.md#publishing)
