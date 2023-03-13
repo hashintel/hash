@@ -283,7 +283,6 @@ export const App: BlockComponent<RootEntity> = ({
                   (_, index) => index !== headerMenu.col,
                 ),
               });
-              // delete column here
               setHeaderMenu(undefined);
             }}
             onClose={() => setHeaderMenu(undefined)}
@@ -295,7 +294,6 @@ export const App: BlockComponent<RootEntity> = ({
                     : col,
                 ),
               });
-              // update column title here
             }}
           />,
         )}
