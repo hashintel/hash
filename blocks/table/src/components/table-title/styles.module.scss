@@ -1,0 +1,75 @@
+$fontFamily: Inter, Helvetica, Arial, sans-serif;
+$grayFilter: invert(90%) sepia(11%) saturate(377%) hue-rotate(175deg)
+  brightness(90%) contrast(92%);
+
+$colorGray: #91a5ba;
+$colorGrayLight: #dde7f0;
+
+.wrapper {
+  flex: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.title {
+  font-family: $fontFamily;
+  font-weight: 700;
+  font-size: 21px;
+  line-height: 21px;
+  color: black;
+  background: none;
+  padding-left: 10px;
+
+  &.empty {
+    color: $colorGray;
+  }
+
+  &.titleInput {
+    border: 1px solid $colorGrayLight;
+    border-radius: 6px;
+    outline: none;
+
+    &::placeholder {
+      color: $colorGray;
+      opacity: 1;
+    }
+  }
+}
+
+.iconButton {
+  width: 20px;
+  height: 20px;
+  filter: $grayFilter;
+  background-size: 100% 100%;
+
+  &:hover {
+    filter: none;
+  }
+
+  &.edit {
+    background-image: url("../../../public/pen-to-square.svg");
+  }
+  &.cancel {
+    background-image: url("../../../public/xmark.svg");
+  }
+  &.save {
+    background-image: url("../../../public/check.svg");
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .edit {
+    display: none;
+  }
+
+  .wrapper {
+    &:hover {
+      .edit {
+        display: block;
+      }
+    }
+  }
+}
