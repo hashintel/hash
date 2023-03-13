@@ -4,10 +4,9 @@ import {
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
-  Button,
   Card,
   CircularProgress,
   Fade,
@@ -17,18 +16,21 @@ import {
   useTheme,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { EditableField } from "./editable-field";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
 import { MapButton } from "./map-button";
 
 type AddressCardProps = {
-  title?: string;
+  title: string;
   description?: string;
   fullAddress: string;
   mapUrl?: string;
+  mapError?: boolean;
   hovered: boolean;
   readonly?: boolean;
+  isMobile?: boolean;
   onClose: () => void;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
@@ -41,8 +43,10 @@ export const AddressCard = ({
   fullAddress,
   description,
   mapUrl,
+  mapError,
   hovered,
   readonly,
+  isMobile,
   onClose,
   updateTitle,
   updateDescription,
@@ -58,49 +62,67 @@ export const AddressCard = ({
     if (title !== titleValue) {
       setTitleValue(title);
     }
+    // We want to override titleValue with value only when title changes
+    // otherwise we would lose the changes made to titleValue whenever it is set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title]);
 
   useEffect(() => {
     if (description !== descriptionValue) {
       setDescriptionValue(description);
     }
+    // We want to override descriptionValue with value only when description changes
+    // otherwise we would lose the changes made to descriptionValue whenever it is set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [description]);
 
   const [googleMapsUrl, appleMapsUrl] = useMemo(
-    () => [
-      `https://www.google.com/maps?q=${encodeURI(fullAddress)}`,
-      `http://maps.apple.com/?q=${encodeURI(fullAddress)}`,
-    ],
+    () =>
+      fullAddress
+        ? [
+            `https://www.google.com/maps?q=${encodeURI(fullAddress)}`,
+            `http://maps.apple.com/?q=${encodeURI(fullAddress)}`,
+          ]
+        : ["", ""],
     [fullAddress],
   );
 
   const copyToClipboard = useCallback(() => {
-    navigator.clipboard.writeText(fullAddress);
+    if (fullAddress) {
+      void navigator.clipboard.writeText(fullAddress);
+    }
   }, [fullAddress]);
 
   return (
     <Card
       sx={{
         display: "flex",
+        width: "min-content",
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: 2.5,
         boxShadow: "none",
-        [theme.breakpoints.down("md")]: {
-          flexDirection: "column",
-        },
+        ...(isMobile
+          ? {
+              flexDirection: "column",
+              width: 1,
+            }
+          : {}),
       }}
     >
       <Stack
         sx={{
+          boxSizing: "border-box",
           display: "flex",
           justifyContent: "space-between",
           paddingY: 3,
           paddingX: 3.75,
           gap: 4,
           width: 300,
-          [theme.breakpoints.down("md")]: {
-            width: 1,
-          },
+          ...(isMobile
+            ? {
+                width: 1,
+              }
+            : {}),
         }}
       >
         <Stack gap={1.5}>
@@ -121,18 +143,20 @@ export const AddressCard = ({
             readonly={readonly}
           />
 
-          <Box display="flex">
-            <Typography
-              variant="regularTextLabels"
-              sx={{
-                fontWeight: 500,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: ({ palette }) => palette.gray[90],
-              }}
-            >
-              {fullAddress}
-            </Typography>
+          <Box display="flex" gap={1} alignItems="center">
+            {fullAddress ? (
+              <Typography
+                variant="regularTextLabels"
+                sx={{
+                  fontWeight: 500,
+                  lineHeight: 1.3,
+                  letterSpacing: "-0.02em",
+                  color: ({ palette }) => palette.gray[90],
+                }}
+              >
+                {fullAddress}
+              </Typography>
+            ) : null}
             {readonly ? (
               <Button
                 onClick={copyToClipboard}
@@ -153,18 +177,26 @@ export const AddressCard = ({
           </Box>
         </Stack>
 
-        <Stack gap={1.5}>
-          <MapButton href={googleMapsUrl}>
-            <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
-            Open in Google Maps
-          </MapButton>
-          <MapButton href={appleMapsUrl}>
-            <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
-            Open in Apple Maps
-          </MapButton>
+        <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 }}>
+          {googleMapsUrl ? (
+            <Box>
+              <MapButton href={googleMapsUrl}>
+                <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
+                Open in Google Maps
+              </MapButton>
+            </Box>
+          ) : null}
+          {appleMapsUrl ? (
+            <Box>
+              <MapButton href={appleMapsUrl}>
+                <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
+                Open in Apple Maps
+              </MapButton>
+            </Box>
+          ) : null}
         </Stack>
 
-        {description || editingDescription || readonly ? (
+        {description || editingDescription ? (
           <EditableField
             value={descriptionValue}
             onChange={(event) => setDescriptionValue(event.target.value)}
@@ -185,12 +217,13 @@ export const AddressCard = ({
             }}
             readonly={readonly}
           />
-        ) : (
+        ) : !readonly ? (
           <Typography
             onClick={() => {
               setEditingDescription(true);
             }}
             sx={{
+              display: "flex",
               fontWeight: 500,
               fontSize: 14,
               lineHeight: 1.3,
@@ -201,7 +234,7 @@ export const AddressCard = ({
             Click here to add a description or more detailed information
             <FontAwesomeIcon icon={faPenToSquare} sx={{ ml: 1 }} />
           </Typography>
-        )}
+        ) : null}
       </Stack>
 
       <Box
@@ -213,12 +246,57 @@ export const AddressCard = ({
           background: palette.gray[10],
           borderLeft: `1px solid ${palette.gray[20]}`,
           width: 500,
-          [theme.breakpoints.down("md")]: {
-            width: 1,
-            height: 300,
-          },
+          minHeight: 300,
+
+          ...(isMobile
+            ? {
+                width: 1,
+                height: 300,
+              }
+            : {}),
         })}
       >
+        <Fade in={hovered}>
+          <Stack
+            sx={{
+              display: "inline-flex",
+              position: "absolute",
+              top: 13,
+              left: 13,
+            }}
+          >
+            <Button
+              onClick={incrementZoomLevel}
+              disabled={!incrementZoomLevel}
+              variant="tertiary"
+              sx={{
+                minWidth: "unset",
+                minHeight: "unset",
+                padding: 0.5,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottomWidth: 0,
+              }}
+            >
+              <FontAwesomeIcon icon={faPlus} />
+            </Button>
+            <Button
+              onClick={decrementZoomLevel}
+              disabled={!decrementZoomLevel}
+              variant="tertiary"
+              sx={{
+                minWidth: "unset",
+                minHeight: "unset",
+                padding: 0.5,
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
+              }}
+            >
+              <FontAwesomeIcon icon={faMinus} />
+            </Button>
+          </Stack>
+        </Fade>
+
         {mapUrl ? (
           <Box
             sx={{
@@ -228,49 +306,6 @@ export const AddressCard = ({
               backgroundSize: "cover",
             }}
           >
-            {!readonly ? (
-              <Fade in={hovered}>
-                <Stack
-                  sx={{
-                    display: "inline-flex",
-                    position: "absolute",
-                    top: 13,
-                    left: 13,
-                  }}
-                >
-                  <Button
-                    onClick={incrementZoomLevel}
-                    disabled={!incrementZoomLevel}
-                    variant="tertiary"
-                    sx={{
-                      minWidth: "unset",
-                      minHeight: "unset",
-                      padding: 0.5,
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                      borderBottomWidth: 0,
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faPlus} />
-                  </Button>
-                  <Button
-                    onClick={decrementZoomLevel}
-                    disabled={!decrementZoomLevel}
-                    variant="tertiary"
-                    sx={{
-                      minWidth: "unset",
-                      minHeight: "unset",
-                      padding: 0.5,
-                      borderTopLeftRadius: 0,
-                      borderTopRightRadius: 0,
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faMinus} />
-                  </Button>
-                </Stack>
-              </Fade>
-            ) : null}
-
             <Typography
               sx={{
                 position: "absolute",
@@ -286,7 +321,10 @@ export const AddressCard = ({
               <Link
                 href="https://www.mapbox.com/about/maps/"
                 target="_blank"
-                sx={{ color: "inherit", textDecoration: "none" }}
+                sx={{
+                  color: "inherit !important",
+                  textDecoration: "none !important",
+                }}
               >
                 Mapbox
               </Link>{" "}
@@ -294,12 +332,26 @@ export const AddressCard = ({
               <Link
                 href="https://www.openstreetmap.org/copyright"
                 target="_blank"
-                sx={{ color: "inherit", textDecoration: "none" }}
+                sx={{
+                  color: "inherit !important",
+                  textDecoration: "none !important",
+                }}
               >
                 OpenStreetMap
               </Link>
             </Typography>
           </Box>
+        ) : mapError ? (
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.common.black,
+              opacity: 0.5,
+              fontSize: 12,
+              lineHeight: 1,
+            }}
+          >
+            There was a problem loading the map
+          </Typography>
         ) : (
           <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
         )}
