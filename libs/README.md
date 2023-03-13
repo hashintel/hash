@@ -41,13 +41,13 @@ Publishing of TypeScript libraries is handled via [Changesets](https://github.co
 To record a change for publication:
 
 1.  From the root of the repository, run `yarn changeset`
-2.  Select the package(s) affected by this change (space to select, enter to move to the next step)
+1.  Select the package(s) affected by this change (space to select, enter to move to the next step)
 
 - Do not worry about selecting packages which depend on changed packages – Changesets will handle bumping them
 
-3.  Select the semver increment
-4.  Describe the change
-5.  Commit the created changeset file
+1.  Select the semver increment
+1.  Describe the change
+1.  Commit the created changeset file
 
 When a PR with a changeset file is merged, the change is added to a PR entitled 'Version Packages',
 which has a diff showing the version increments which will be applied to affected packages, including dependents.
