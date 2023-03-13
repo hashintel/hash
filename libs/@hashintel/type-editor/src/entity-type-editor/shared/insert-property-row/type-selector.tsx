@@ -40,8 +40,10 @@ export const TypeSelector = <T extends TypeSelectorType>({
       dropdownProps={dropdownProps}
       inputPlaceholder={`Search for a ${variant} type`}
       inputRef={inputRef}
+      isOptionEqualToValue={(option, value) => option.$id === value.$id}
       optionToRenderData={({ $id, title, description }) => ({
-        $id,
+        typeId: $id,
+        uniqueId: $id,
         title,
         description,
       })}

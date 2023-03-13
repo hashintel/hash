@@ -75,7 +75,9 @@ export const LinkEntityTypeSelector = ({
 
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    typesToExclude: chosenEntityTypes,
+    // we pass the selected values to MUI, and can let it identify which are already selected
+    // the isOptionEqualToValue function checks equality
+    typesToExclude: [],
   });
 
   /**
@@ -269,9 +271,11 @@ export const LinkEntityTypeSelector = ({
 
               return false;
             }}
+            isOptionEqualToValue={(option, value) => option.$id === value.$id}
             options={entityTypeOptions}
             optionToRenderData={({ $id, title, description }) => ({
-              $id,
+              uniqueId: $id,
+              typeId: $id,
               title,
               description,
             })}
