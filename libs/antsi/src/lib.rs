@@ -26,6 +26,7 @@
 
 pub use color::{
     BasicColor, BrightColor, CmyColor, CmykColor, Color, IndexedColor, RgbColor, RgbaColor,
+    TransparentColor,
 };
 pub use decorations::{Decorations, Frame};
 pub use font::{Blinking, Font, FontFamily, FontScript, FontWeight, Underline};

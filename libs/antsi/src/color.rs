@@ -1,4 +1,4 @@
-use crate::{macros::impl_const, Style};
+use crate::macros::impl_const;
 
 /// Basic colors variants
 ///
@@ -128,7 +128,7 @@ pub struct BrightColor(BasicColor);
 /// [ISO 8613-6] and [ECMA-48] specified the separator between elements to be `03/10` (`:`), until
 /// [ISO 8613-6] was rediscovered in the early 2010s implementations used the format initially used
 /// by `xterm`, which used `;` as a separator instead of `:`. Most actively maintained open-source
-/// terminal emulators like [`xterm`], [`kitty`] or [`wezterm`] support both delimiter and recommend
+/// terminal emulators like [xterm], [kitty] or [wezterm] support both delimiter and recommend
 /// the use of `:`. Note that most built-in terminal emulators like [`Terminal.app`] do **not**
 /// support `;` as a delimiter.
 /// A detailed explanation as to why this discrepancy between standard and implementation
@@ -137,6 +137,9 @@ pub struct BrightColor(BasicColor);
 /// The escape sequence for these colors is `ESC[38:5:{ID}m` for the foreground and `ESC[38:5:{ID}m`
 /// for the background.
 ///
+/// [wezterm]: https://wezfurlong.org/wezterm/
+/// [kitty]: https://sw.kovidgoyal.net/kitty/
+/// [xterm]: https://invisible-island.net/xterm/
 /// [ISO 8613-6]: https://www.iso.org/standard/22943.html
 /// [ECMA-48]: https://www.ecma-international.org/publications-and-standards/standards/ecma-48/
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -233,12 +236,17 @@ impl From<BrightColor> for IndexedColor {
 /// optional fields. This format is known through `antsi` as legacy format. If built-in terminals
 /// (like [Terminal.app]) support [`RgbColor`], they often do through the legacy format (e.g.
 /// `ESC[38;2;{r};{g};{b}m`), modern terminal emulator like [kitty], [wezterm], [mintty] support the
-/// legacy format, but advice the use of the official format instead. To switch `antsi` to the
-/// legacy format use [`Style::set_compliance`] and [`Style::set_delimiter`].
+/// legacy format, but advice the use of the official format instead.
+// TODO: To switch `antsi` to the
+// legacy format use [`Style::set_compliance`] and [`Style::set_delimiter`].
 ///
 /// For a detailed explanation as to why the alternative format was introduced please refer to the
 /// reasoning in the [xterm repository].
 ///
+/// [wezterm]: https://wezfurlong.org/wezterm/
+/// [kitty]: https://sw.kovidgoyal.net/kitty/
+/// [mintty]: https://mintty.github.io/
+/// [xterm]: https://invisible-island.net/xterm/
 /// [xterm repository]: https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028
 /// [ISO 8613-6]: https://www.iso.org/standard/22943.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -399,6 +407,8 @@ pub enum Color {
     /// 32-bit color support
     ///
     /// Supported by [wezterm] since August 2022, for more information see [`RgbaColor`]
+    ///
+    /// [wezterm]: https://wezfurlong.org/wezterm/
     Rgba(RgbaColor),
 
     /// 24-bit CMY color support
