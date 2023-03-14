@@ -135,10 +135,16 @@
 //!
 //! ## Implementation Details
 //!
-//! Nothing here explained is under any semver guarantees and just outlines how internally the
-//! formatting works.
+//! Nothing explained here is under any semver guarantee. This section explains the algorithm used
+//! to produce the [`Debug`] output of a [`Report`].
 //!
-//! In all our examples during explanation we will refer to two different trees
+//! During the explanation we will make use of two different [`Report`]s, the overview tree (shown
+//! first) only visualizes contexts, while the second, more detailed tree shows attachments and
+//! contexts.
+//!
+//! In the detailed tree the type of [`Frame`] is distinguished using a superscript letter, `ᵃ` is
+//! used to indicate attachments and `ᶜ` is used to indicate contexts. For clarity the overview tree
+//! uses digits, while the detailed tree uses letters for different [`Frame`]s.
 //!
 //! Overview (Context only) Tree:
 //!
@@ -171,23 +177,45 @@
 //!    Hᶜ
 //! ```
 //!
-//! The differentiation between is indicated by their corresponding superscript letter, e.g. `Bᵃ` is
-//! an attachment, while `Dᶜ` is a context. For clarity the detailed uses alphabetic characters for
-//! identification instead of numerical characters.
+//! During formatting we distinguish between two cases (for contexts):
 //!
-//! During formatting we distinct between two cases of formatting (1) `List`, (2) `Group`. A list
-//! always happens whenever there are context nodes that follow one after the other without a split
-//! in the tree, this means `[6, 7, 8]` and `[4, 5]` are considered lists, while `[2, 6]` is
-//! **not**. A group happens whenever there is a split in the tree, this means that `(2, 6)` is a
-//! group. These groups travel across boundaries, that means that even though there's no context
-//! between `Bᵃ` and `Fᵃ`, `(Dᶜ, Hᶜ, Cᶜ)` is considered a group. Groups always contain lists. Groups
-//! are ordered from left-to-right, while lists are ordered by depth. A group can never exist
-//! without a leading `List`, lists are never empty. If a group is at the top level the resulting
-//! groups are output separately.
+//! * Lists
+//! * Groups
 //!
-//! Attachments that are between contexts are ordered not by insertion order, but by depth in the
-//! tree and are attached to the context following them, if there is a split they are duplicated and
-//! represented in each following context.
+//! in this explanation lists are delimited by `[` and `]`, while groups are delimited by `(` and
+//! `)`.
+//!
+//! While formatting we view the [`Report`]s as a tree of [`Frame`]s, therefore the following
+//! explanation will use terminology associated with trees, every [`Frame`] is a node and can have
+//! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Context`].
+//!
+//! A list is a list of nodes where each node in the list if the parent of the following element and
+//! has only a single child, the last element of a list, can have `0..n` children. In the examples
+//! above, `[6, 7, 8]` is considered a list, while `[1, 6]` is not, because while `1` is a parent of
+//! `6`, `1` has more than 1 child.
+//!
+//! A group is a list of nodes where each node shares a common immediate context parent that has
+//! more than `1` child, this means that `(2, 6)` is a group (they share `1` as an immediate context
+//! parent), while `(3, 4, 6)` is not. `(3, 4, 6)` share the same parent with more than 1 child
+//! (`1`), but `1` is not the immediate context parent of `3` and `4` (`2`) is. In the more detailed
+//! example `(Dᶜ, Hᶜ, Cᶜ)` is considered a group because they share the same *immediate* context
+//! parent `Aᶜ`, important to note is that we only refer to immediate context parents, `Fᵃ` is the
+//! immediate parent of `Iᶜ`, but is not a [`Context`], therefore to find the immediate context
+//! parent, we travel up the tree until we encounter our first [`Context`] node. Groups always
+//! contain lists, for the sake of clarity this explanation only shows the first element.
+//!
+//! Additional rules that apply:
+//! * lists are never empty
+//! * lists are nested in groups
+//! * groups are always preceded by lists
+//!
+//! Using the aforementioned delimiters for lists and groups the end result would be:
+//!
+//! Overview Tree: `[0, 1] ([2] ([3], [4, 5]), [6, 7, 8])`
+//!
+//! Attachments are not ordered by insertion order but by depth in the tree. Each context uses the
+//! attachments that are it's parents until the next context node. If attachments are shared between
+//! multiple contexts, they are duplicated and output twice.
 //!
 //! ### Output Formatting
 //!
