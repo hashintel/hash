@@ -57,7 +57,35 @@
       "entryPoint": "react"
     },
     "displayName": "Table",
-    "examples": [],
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "My Table",
+        "https://blockprotocol.org/@hash/types/property-type/table-local-column/": [
+          {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Full Name",
+            "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": "fullName"
+          },
+          {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Role",
+            "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": "role"
+          }
+        ],
+        "https://blockprotocol.org/@hash/types/property-type/table-local-row/": [
+          {
+            "fullName": "John Johnson",
+            "role": "Role 1"
+          },
+          {
+            "fullName": "Bob Bobson",
+            "role": "Role 2"
+          },
+          {
+            "fullName": "Alice Aliceson",
+            "role": "Role 3"
+          }
+        ]
+      }
+    ],
     "icon": "public/table.svg",
     "image": "public/block-preview.png",
     "name": "@hash/table",
