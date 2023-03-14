@@ -125,18 +125,21 @@ pub struct BrightColor(BasicColor);
 /// > specifying the index into the colour table given by the attribute
 /// > "content colour table" applying to the object with which the content is associated.
 ///
-/// [ISO 8613-6] and [ECMA-48] specified the separator between elements to be `03/10` (`:`), while
-/// newer implementations followed the initial implementation of `xterm`, which used the separator
-/// `03/11` (`;`).
+/// [ISO 8613-6] and [ECMA-48] specified the separator between elements to be `03/10` (`:`), until
+/// [ISO 8613-6] was rediscovered in the early 2010s implementations used the format initially used
+/// by `xterm`, which used `;` as a separator instead of `:`. Most actively maintained open-source
+/// terminal emulators like [xterm], [kitty] or [wezterm] support both delimiter and recommend
+/// the use of `:`. Note that most built-in terminal emulators like [`Terminal.app`] do **not**
+/// support `;` as a delimiter.
+/// A detailed explanation as to why this discrepancy between standard and implementation
+/// happened can be read in the [xterm repository](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028).
 ///
-/// The only difference to all common implementations is, that the separator used in the
-/// specification is `:`, while most implementations only support `;` as a separator. An explanation
-/// as to why can be seen in the source code of the initial support in `xterm`,
-/// which all other terminal emulators adopted: [GitHub repo](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028)
-///
-/// The escape sequence for these colors is `ESC[38;5;{ID}m` for the foreground and `ESC[38;5;{ID}m`
+/// The escape sequence for these colors is `ESC[38:5:{ID}m` for the foreground and `ESC[38:5:{ID}m`
 /// for the background.
 ///
+/// [wezterm]: https://wezfurlong.org/wezterm/
+/// [kitty]: https://sw.kovidgoyal.net/kitty/
+/// [xterm]: https://invisible-island.net/xterm/
 /// [ISO 8613-6]: https://www.iso.org/standard/22943.html
 /// [ECMA-48]: https://www.ecma-international.org/publications-and-standards/standards/ecma-48/
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -194,34 +197,185 @@ impl From<BrightColor> for IndexedColor {
 ///
 /// ## Specification
 ///
-/// This mode was initially specified in 1994, together with [`IndexedColor`], but most terminals do
-/// not support the format outlined in [ISO 8613-6], The standard is a lot more complete than the
-/// now used format of `ESC[38;2;{r};{g};{b}m` and featured optional color space id, tolerance and
-/// color space associated with the tolerance parameters.
+/// [ISO 8613-6] standardized the additional escape codes `38` (foreground) and `48` (background) in
+/// 1994 for extended color support. These escape codes follow a specific format, where one can
+/// specify additional parameters to influence the color used. These parameters are separated by
+/// `:` and trailing optional parameters can be omitted.
 ///
-/// Only `xterm` supports this scheme, where the color space id and tolerance parameters are
-/// ignored. The specification also uses `:` as a separator instead of `;`. `xterm` was the first
-/// terminal with wide-spread adoption that implemented RGB support in 2012, and all other terminals
-/// copied their implementation. For the reason why there's a discrepancy between the standard and
-/// implementation a detailed reasoning is provided in the [xterm repo](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028)
+/// The first parameter is always the color mode, which can either be:
 ///
-/// [ISO 8613-6] also specified multiple additional modes, like transparent, CMK, and CMYK support.
+/// * 0: implementation defined
+/// * 1: [`TransparentColor`]
+/// * 2: [`RgbColor`]
+/// * 3: [`CmyColor`]
+/// * 4: [`CmykColor`]
+/// * 5: [`IndexedColor`]
 ///
+/// The parameters required afterwards are dependent on the color mode specified, [`IndexedColor`]
+/// only allows a single parameter (the index), for more information visit the related
+/// documentation. [`TransparentColor`] does not support any additional parameters while
+/// [`RgbColor`], [`CmyColor`], [`CmykColor`] support 7 (8 in the case of [`CmykColor`]) additional
+/// parameters.
+///
+/// The format for these true-colors can be distilled into:
+///
+/// `{color space id}:{color components}:{tolerance value}:{color space of the tolerance value}`
+///
+/// Where `color space id`, `tolerance value` and `color space of tolerance value` are considered
+/// optional and are left unspecified by the standard. Most terminal emulators that support these
+/// either ignore any value set or do only support a legacy format.
+///
+/// The color components are separated by `:`, for [`RgbColor`] they are `{r}:{g}:{b}`, for
+/// [`CmyColor`] they are `{c},{m},{y}`, for [`CmykColor`] they are `{c},{m},{y},{k}`, e.g.
+/// `ESC[38:2::{r}:{g}:{b}m`.
+///
+/// ### Legacy Format
+///
+/// true-color support was first introduced in [xterm], which supported a reduced set using `;`
+/// instead of `:` as a parameter separator, only supporting [`RgbColor`] and **not** supporting any
+/// optional fields. This format is known through `antsi` as legacy format. If built-in terminals
+/// (like [Terminal.app]) support [`RgbColor`], they often do through the legacy format (e.g.
+/// `ESC[38;2;{r};{g};{b}m`), modern terminal emulator like [kitty], [wezterm], [mintty] support the
+/// legacy format, but advice the use of the official format instead.
+// TODO: To switch `antsi` to the
+// legacy format use [`Style::set_compliance`] and [`Style::set_delimiter`].
+///
+/// For a detailed explanation as to why the alternative format was introduced please refer to the
+/// reasoning in the [xterm repository].
+///
+/// [wezterm]: https://wezfurlong.org/wezterm/
+/// [kitty]: https://sw.kovidgoyal.net/kitty/
+/// [mintty]: https://mintty.github.io/
+/// [xterm]: https://invisible-island.net/xterm/
+/// [xterm repository]: https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028
 /// [ISO 8613-6]: https://www.iso.org/standard/22943.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct RgbColor {
-    r: u8,
-    g: u8,
-    b: u8,
+    red: u8,
+    green: u8,
+    blue: u8,
 }
 
 impl RgbColor {
     /// Create a new RGB color
     #[must_use]
-    pub const fn new(r: u8, g: u8, b: u8) -> Self {
-        Self { r, g, b }
+    pub const fn new(red: u8, green: u8, blue: u8) -> Self {
+        Self { red, green, blue }
     }
 }
+
+/// Truecolor 32-bit RGBA support
+///
+/// Allows to set the background and foreground color to any arbitrary color (with alpha level)
+/// selected.
+///
+/// ## Support
+///
+/// This is a [wezterm terminal] extension and therefore only supported by very few terminals
+/// (namely `wezterm`). Support has been added in August of 2022.
+///
+/// ## Specification
+///
+/// There is no formal specification, only the out format outlined in the [documentation]. This
+/// extends the respective escape code `38` and `48` first outlined [ISO 8613-6 13.1.8] and adds a
+/// new color mode: `6`, the fields are the same as the ones outlined in [`RgbColor`], except that
+/// the format is: `ESC[38:6::{r}:{g}:{b}:{a}m`, this also means that the trailing optional (and
+/// unused) parameters `tolerance value` and `color space of the tolerance value` are *after* the
+/// `a` parameter.
+///
+/// [wezterm terminal]: https://wezfurlong.org/wezterm/index.html
+/// [documentation]: https://wezfurlong.org/wezterm/escape-sequences.html#csi-386---foreground-color-rgba
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct RgbaColor {
+    red: u8,
+    green: u8,
+    blue: u8,
+    alpha: u8,
+}
+
+impl RgbaColor {
+    #[must_use]
+    pub const fn new(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+        Self {
+            red,
+            green,
+            blue,
+            alpha,
+        }
+    }
+}
+
+/// Truecolor, 24-bit CMY colors
+///
+/// CMY is usually used for printers and stands for **C**yan, **M**agenta, **Y**ellow.
+///
+/// ## Support
+///
+/// While specified in [ISO 8613-6] no widely used terminal currently supports `CMY` colors.
+///
+/// ## History
+///
+/// [`CmyColor`] was standardized alongside [`RgbColor`] in [ISO 8613-6] but uses the color mode
+/// `2`, it has the same parameters as [`RgbColor`], but instead of `{r}`, `{g}`, `{b}` uses `{c}`,
+/// `{m}`, `{y}`, e.g.: `ESC[38:3::{c}:{m}:{y}m`.
+///
+/// For more information on the format please refer to the documentation in [`RgbColor`].
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct CmyColor {
+    cyan: u8,
+    magenta: u8,
+    yellow: u8,
+}
+
+impl CmyColor {
+    #[must_use]
+    pub const fn new(cyan: u8, magenta: u8, yellow: u8) -> Self {
+        Self {
+            cyan,
+            magenta,
+            yellow,
+        }
+    }
+}
+
+/// Truecolor, 32-bit CMYK colors
+///
+/// CMYK is usually used for printers and stands for **C**yan, **M**agenta, **Y**ellow, **K**ey. Key
+/// is a bit misleading, but is the amount of black color used.
+///
+/// ## Support
+///
+/// While specified in [ISO 8613-6] no widely used terminal currently supports `CMYK` colors.
+///
+/// ## History
+///
+/// [`CmyColor`] was standardized alongside [`RgbColor`] in [ISO 8613-6] but uses the color mode
+/// `3`, it has the same parameters as [`RgbColor`], but instead of `{r}`, `{g}`, `{b}` uses `{c}`,
+/// `{m}`, `{y}`, `{k}`, e.g.: `ESC[38:3::{c}:{m}:{y}:{k}m`.
+///
+/// For more information on the format please refer to the documentation in [`RgbColor`].
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct CmykColor {
+    cyan: u8,
+    magenta: u8,
+    yellow: u8,
+    black: u8,
+}
+
+impl CmykColor {
+    #[must_use]
+    pub const fn new(cyan: u8, magenta: u8, yellow: u8, black: u8) -> Self {
+        Self {
+            cyan,
+            magenta,
+            yellow,
+            black,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct TransparentColor;
 
 /// Collection of every possible terminal color supported by `antsi`
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -243,10 +397,29 @@ pub enum Color {
     /// [`IndexedColor`]
     Indexed(IndexedColor),
 
+    Transparent(TransparentColor),
+
     /// 24bit color support, more commonly known as truecolor
     ///
     /// Supported by some modern terminals since 2015+, for more information see [`RgbColor`]
     Rgb(RgbColor),
+
+    /// 32-bit color support
+    ///
+    /// Supported by [wezterm] since August 2022, for more information see [`RgbaColor`]
+    ///
+    /// [wezterm]: https://wezfurlong.org/wezterm/
+    Rgba(RgbaColor),
+
+    /// 24-bit CMY color support
+    ///
+    /// Not supported by any major terminal emulator, for more information see [`CmyColor`]
+    Cmy(CmyColor),
+
+    /// 32-bit CMYK color support
+    ///
+    /// Not supported by any major terminal emulator, for more information see [`CmykColor`]
+    Cmyk(CmykColor),
 }
 
 impl_const! {
@@ -277,6 +450,38 @@ impl_const! {
     impl const? From<RgbColor> for Color {
         fn from(value: RgbColor) -> Self {
             Self::Rgb(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<RgbaColor> for Color {
+        fn from(value: RgbaColor) -> Self {
+            Self::Rgba(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<CmyColor> for Color {
+        fn from(value: CmyColor) -> Self {
+            Self::Cmy(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<CmykColor> for Color {
+        fn from(value: CmykColor) -> Self {
+            Self::Cmyk(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<TransparentColor> for Color {
+        fn from(value: TransparentColor) -> Self {
+            Self::Transparent(value)
         }
     }
 }
