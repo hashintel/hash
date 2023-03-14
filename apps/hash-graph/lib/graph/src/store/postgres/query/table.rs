@@ -776,7 +776,6 @@ impl ForeignKeyReference {
 enum ForeignKeyJoin {
     Plain(Once<ForeignKeyReference>),
     Reference(Chain<Once<ForeignKeyReference>, Once<ForeignKeyReference>>),
-    ReversedReference(Chain<Once<ForeignKeyReference>, Once<ForeignKeyReference>>),
 }
 
 impl ForeignKeyJoin {
@@ -786,7 +785,7 @@ impl ForeignKeyJoin {
 
     fn from_reference_table(table: ReferenceTable, reversed: bool) -> Self {
         if reversed {
-            Self::ReversedReference(
+            Self::Reference(
                 once(table.target_relation().reverse())
                     .chain(once(table.source_relation().reverse())),
             )
@@ -802,7 +801,7 @@ impl Iterator for ForeignKeyJoin {
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::Plain(value) => value.next(),
-            Self::Reference(values) | Self::ReversedReference(values) => values.next(),
+            Self::Reference(values) => values.next(),
         }
     }
 }
