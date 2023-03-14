@@ -25,12 +25,12 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 vec![Relation::PropertyTypeIds]
             }
             Self::DataTypes(path) => once(Relation::Reference(
-                ReferenceTable::PropertyTypeDataTypeReferences,
+                ReferenceTable::PropertyTypeConstrainsValuesOn,
             ))
             .chain(path.relations())
             .collect(),
             Self::PropertyTypes(path) => once(Relation::Reference(
-                ReferenceTable::PropertyTypePropertyTypeReferences,
+                ReferenceTable::PropertyTypeConstrainsPropertiesOn,
             ))
             .chain(path.relations())
             .collect(),
