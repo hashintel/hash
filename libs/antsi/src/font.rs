@@ -66,8 +66,6 @@ impl AlternativeFontFamily {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum FontFamily {
-    /// The primary (default) font family
-    Primary,
     /// Fraktur
     ///
     /// ## What is Fraktur?
@@ -91,6 +89,13 @@ pub enum FontFamily {
 pub enum Underline {
     Single,
     Double,
+
+    // kitty + vte extension
+    Curly,
+    // kitty + vte extension
+    Dotted,
+    // kitty + vte extension
+    Dashed,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -100,17 +105,29 @@ pub enum Blinking {
     Fast,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum FontScript {
+    Sub,
+    Super,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Font {
     weight: Option<FontWeight>,
     family: Option<FontFamily>,
+    // mintty extension
+    script: Option<FontScript>,
 
-    // Value layout: `XXXX_IRHS`
+    // Value layout: `XXÖO_IRHS`
     //
     // * `I`: `italic`
     // * `R`: `inverse/reverse`
     // * `H`: `hidden/invisible`
     // * `S`: `strikethrough`
+    // * `O`: `overstrike` - mintty extension
+    // * `Ö`: `overline`
+    // * `X`: unused
     style: u8,
 
     underline: Option<Underline>,
@@ -121,6 +138,7 @@ impl Font {
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            script: None,
             weight: None,
             family: None,
             style: 0x00,
@@ -257,4 +275,6 @@ impl Font {
     pub const fn blinking(&self) -> Option<Blinking> {
         self.blinking
     }
+
+    // TODO: getter for hidden, italic, strikethrough, overstrike, script
 }
