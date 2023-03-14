@@ -189,10 +189,10 @@
 //! explanation will use terminology associated with trees, every [`Frame`] is a node and can have
 //! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Context`].
 //!
-//! A list is a list of nodes where each node in the list if the parent of the following element and
-//! has only a single child, the last element of a list, can have `0..n` children. In the examples
-//! above, `[6, 7, 8]` is considered a list, while `[1, 6]` is not, because while `1` is a parent of
-//! `6`, `1` has more than 1 child.
+//! A list is a list of nodes where each node in the list is the parent of the next node in the list
+//! and only has a single child. The last node in the list is exempt of that rule of that rule and
+//! can have `0..n` children. In the examples above, `[6, 7, 8]` is considered a list, while `[1,
+//! 6]` is not, because while `1` is a parent of `6`, `1` has more than 1 child.
 //!
 //! A group is a list of nodes where each node shares a common immediate context parent that has
 //! more than `1` child, this means that `(2, 6)` is a group (they share `1` as an immediate context
