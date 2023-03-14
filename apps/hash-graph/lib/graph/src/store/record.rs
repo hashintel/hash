@@ -1,18 +1,15 @@
 use crate::{
     identifier::time::TimeAxis,
     store::query::{Filter, QueryPath},
-    subgraph::SubgraphIndex,
+    subgraph::identifier::VertexId,
 };
 
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
 pub trait Record: Sized + Send {
-    type EditionId;
-    type VertexId: SubgraphIndex<Self> + Send + Sync;
+    type VertexId: VertexId<Record = Self> + Send + Sync;
     type QueryPath<'p>: QueryPath + Send + Sync;
-
-    fn edition_id(&self) -> &Self::EditionId;
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId;
 

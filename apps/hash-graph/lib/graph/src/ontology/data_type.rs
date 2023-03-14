@@ -19,20 +19,20 @@ use crate::store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken,
 //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
 #[derive(Debug, PartialEq, Eq)]
 pub enum DataTypeQueryPath<'p> {
-    /// The [`BaseUri`] of the [`DataType`].
+    /// The [`BaseUrl`] of the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["baseUri"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::BaseUri);
+    /// let path = DataTypeQueryPath::deserialize(json!(["baseUrl"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::BaseUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    BaseUri,
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    BaseUrl,
     /// The version of the [`DataType`].
     ///
     /// ```rust
@@ -65,20 +65,20 @@ pub enum DataTypeQueryPath<'p> {
     ///
     /// [`DataType`]: type_system::DataType
     Version,
-    /// The [`VersionedUri`] of the [`DataType`].
+    /// The [`VersionedUrl`] of the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["versionedUri"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::VersionedUri);
+    /// let path = DataTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::VersionedUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
+    /// [`VersionedUrl`]: type_system::url::VersionedUrl
     /// [`DataType`]: type_system::DataType
-    VersionedUri,
+    VersionedUrl,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
@@ -157,12 +157,12 @@ pub enum DataTypeQueryPath<'p> {
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
-    fn base_uri() -> Self {
-        Self::BaseUri
+    fn base_url() -> Self {
+        Self::BaseUrl
     }
 
-    fn versioned_uri() -> Self {
-        Self::VersionedUri
+    fn versioned_url() -> Self {
+        Self::VersionedUrl
     }
 
     fn version() -> Self {
@@ -187,9 +187,9 @@ impl QueryPath for DataTypeQueryPath<'_> {
         match self {
             Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
-            Self::BaseUri => ParameterType::BaseUri,
-            Self::VersionedUri => ParameterType::VersionedUri,
-            Self::Version => ParameterType::UnsignedInteger,
+            Self::BaseUrl => ParameterType::BaseUrl,
+            Self::VersionedUrl => ParameterType::VersionedUrl,
+            Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
         }
     }
@@ -199,9 +199,9 @@ impl fmt::Display for DataTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OntologyId => fmt.write_str("ontologyId"),
-            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
@@ -219,9 +219,9 @@ impl fmt::Display for DataTypeQueryPath<'_> {
 #[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum DataTypeQueryToken {
-    BaseUri,
+    BaseUrl,
     Version,
-    VersionedUri,
+    VersionedUrl,
     OwnedById,
     UpdatedById,
     Title,
@@ -238,7 +238,7 @@ pub struct DataTypeQueryPathVisitor {
 }
 
 impl DataTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
+    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
                                          `ownedById`, `updatedById`, `title`, `description`, \
                                          `type`";
 
@@ -267,8 +267,8 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
             DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
-            DataTypeQueryToken::BaseUri => DataTypeQueryPath::BaseUri,
-            DataTypeQueryToken::VersionedUri => DataTypeQueryPath::VersionedUri,
+            DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
+            DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,
             DataTypeQueryToken::Title => DataTypeQueryPath::Title,
             DataTypeQueryToken::Description => DataTypeQueryPath::Description,
@@ -314,11 +314,11 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["baseUri"]), DataTypeQueryPath::BaseUri);
+        assert_eq!(deserialize(["baseUrl"]), DataTypeQueryPath::BaseUrl);
         assert_eq!(deserialize(["version"]), DataTypeQueryPath::Version);
         assert_eq!(
-            deserialize(["versionedUri"]),
-            DataTypeQueryPath::VersionedUri
+            deserialize(["versionedUrl"]),
+            DataTypeQueryPath::VersionedUrl
         );
         assert_eq!(deserialize(["ownedById"]), DataTypeQueryPath::OwnedById);
         assert_eq!(deserialize(["type"]), DataTypeQueryPath::Type);
@@ -357,7 +357,7 @@ mod tests {
 
         assert_eq!(
             DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                ["baseUri", "test"].into_iter()
+                ["baseUrl", "test"].into_iter()
             ))
             .expect_err(
                 "managed to convert data type query path with multiple tokens when it should have \

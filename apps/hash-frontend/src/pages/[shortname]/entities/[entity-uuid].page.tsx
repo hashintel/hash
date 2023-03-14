@@ -1,12 +1,13 @@
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
   EntityUuid,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-graphql-shared/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -22,7 +23,7 @@ import {
 } from "../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[entity-type-id].page/shared/edit-bar";
+import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -40,9 +41,9 @@ const Page: NextPageWithLayout = () => {
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
   const [entitySubgraphFromDb, setEntitySubgraphFromDb] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const entityFromDb =
     entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];

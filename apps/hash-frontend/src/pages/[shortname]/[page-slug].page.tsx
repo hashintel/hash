@@ -8,21 +8,23 @@ import {
   getPageQuery,
 } from "@local/hash-graphql-shared/queries/page.queries";
 import {
-  EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
-import {
   defaultBlockComponentIds,
   fetchBlock,
   HashBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import {
+  EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -55,11 +57,11 @@ import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
-  GetAllLatestEntitiesQuery,
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
+  QueryEntitiesQuery,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import {
@@ -128,9 +130,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const { cookie } = req.headers ?? {};
 
-  const workspacesSubgraph = await apolloClient
-    .query<GetAllLatestEntitiesQuery>({
-      query: getAllLatestEntitiesQuery,
+  const workspacesSubgraph = (await apolloClient
+    .query<QueryEntitiesQuery>({
+      query: queryEntitiesQuery,
       variables: {
         rootEntityTypeIds: [
           types.entityType.user.entityTypeId,
@@ -146,9 +148,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
       },
       context: { headers: { cookie } },
     })
-    .then(({ data }) => data.getAllLatestEntities);
+    .then(({ data }) => data.queryEntities)) as Subgraph<EntityRootType>;
 
-  const workspaces = getRootsAsEntities(workspacesSubgraph).map((entity) =>
+  const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
           userEntity: entity,
@@ -411,7 +413,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.recordId.entityId as EntityId,
+              pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}

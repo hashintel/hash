@@ -10,7 +10,8 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 
-import { Button, isHrefExternal } from "./button";
+import { isHrefExternal } from "../is-href-external";
+import { Button } from "./button";
 
 /**
  * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js

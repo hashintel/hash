@@ -4,7 +4,7 @@ import * as envalid from "envalid";
 import fs from "fs-extra";
 
 import { UserFriendlyError } from "./errors";
-import { monorepoRoot } from "./monorepo-root";
+import { monorepoRootDirPath } from "./monorepo";
 
 export interface PackageInfo {
   name: string;
@@ -13,8 +13,8 @@ export interface PackageInfo {
 }
 
 const packageParentFolders = [
-  path.resolve(monorepoRoot, "libs"),
-  path.resolve(monorepoRoot, "libs/@hashintel"),
+  path.resolve(monorepoRootDirPath, "libs"),
+  path.resolve(monorepoRootDirPath, "libs/@hashintel"),
 ];
 
 export const listPublishablePackages = async (): Promise<PackageInfo[]> => {

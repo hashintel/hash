@@ -924,7 +924,9 @@ fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Line
 
     // take the first Context, this is our "root", all others are indented
     // this unwrap always succeeds due to the call before <3
-    let head = contexts.pop_front().unwrap();
+    let head = contexts
+        .pop_front()
+        .expect("should always have single context");
 
     // combine everything into a single group
     vec![debug_render(head, contexts, sources)]

@@ -1,23 +1,26 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  EntityId,
+  EntityRevisionId,
+  EntityRootType,
   EntityVertexId,
   Subgraph,
-  SubgraphRootTypes,
+  Timestamp,
 } from "@local/hash-subgraph";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 
 export const useDraftEntitySubgraph = (
-  entityTypeId: VersionedUri,
+  entityTypeId: VersionedUrl,
 ): [
-  Subgraph<SubgraphRootTypes["entity"]> | undefined,
-  Dispatch<SetStateAction<Subgraph<SubgraphRootTypes["entity"]> | undefined>>,
+  Subgraph<EntityRootType> | undefined,
+  Dispatch<SetStateAction<Subgraph<EntityRootType> | undefined>>,
   boolean,
 ] => {
   const [loading, setLoading] = useState(false);
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const { getEntityType } = useBlockProtocolGetEntityType();
 
@@ -42,9 +45,11 @@ export const useDraftEntitySubgraph = (
           throw new Error("subgraph not found");
         }
 
+        const now = new Date().toISOString() as Timestamp;
+
         const draftEntityVertexId: EntityVertexId = {
-          baseId: "draft%draft",
-          version: new Date().toISOString(),
+          baseId: "draft%draft" as EntityId,
+          revisionId: now as EntityRevisionId,
         };
 
         setDraftEntitySubgraph({
@@ -53,28 +58,44 @@ export const useDraftEntitySubgraph = (
           vertices: {
             ...subgraph.vertices,
             [draftEntityVertexId.baseId]: {
-              [draftEntityVertexId.version]: {
+              [draftEntityVertexId.revisionId]: {
                 kind: "entity",
                 inner: {
                   properties: {},
                   metadata: {
                     recordId: {
                       entityId: draftEntityVertexId.baseId,
-                      version: draftEntityVertexId.version,
+                      editionId: now,
                     },
                     entityTypeId,
                     provenance: { updatedById: "" },
                     archived: false,
-                    version: {
-                      decisionTime: { start: draftEntityVertexId.version },
-                      transactionTime: { start: draftEntityVertexId.version },
+                    temporalVersioning: {
+                      decisionTime: {
+                        start: {
+                          kind: "inclusive",
+                          limit: now,
+                        },
+                        end: {
+                          kind: "unbounded",
+                        },
+                      },
+                      transactionTime: {
+                        start: {
+                          kind: "inclusive",
+                          limit: now,
+                        },
+                        end: {
+                          kind: "unbounded",
+                        },
+                      },
                     },
                   },
                 },
               },
             },
           },
-        } as Subgraph<SubgraphRootTypes["entity"]>);
+        } as Subgraph<EntityRootType>);
       } finally {
         setLoading(false);
       }

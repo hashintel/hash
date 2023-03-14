@@ -1,14 +1,14 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
-  scalar EntityTypeWithoutId
+  scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
 
   extend type Query {
     """
-    Get a subgraph rooted at all entity types at their latest version.
+    Get a subgraph rooted at all entity types that match a given filter.
     """
-    getAllLatestEntityTypes(
+    queryEntityTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -16,10 +16,10 @@ export const entityTypeTypedef = gql`
     ): Subgraph!
 
     """
-    Get a subgraph rooted at an entity type resolved by its versioned URI.
+    Get a subgraph rooted at an entity type resolved by its versioned URL.
     """
     getEntityType(
-      entityTypeId: VersionedUri!
+      entityTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -36,7 +36,7 @@ export const entityTypeTypedef = gql`
       The id of the account who owns the entity type. Defaults to the user calling the mutation.
       """
       ownedById: OwnedById
-      entityType: EntityTypeWithoutId!
+      entityType: ConstructEntityTypeParams!
     ): EntityTypeWithMetadata!
 
     """
@@ -46,11 +46,11 @@ export const entityTypeTypedef = gql`
       """
       The entity type versioned $id to update.
       """
-      entityTypeId: VersionedUri!
+      entityTypeId: VersionedUrl!
       """
       New entity type schema contents to be used.
       """
-      updatedEntityType: EntityTypeWithoutId!
+      updatedEntityType: ConstructEntityTypeParams!
     ): EntityTypeWithMetadata!
   }
 `;

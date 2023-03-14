@@ -1,13 +1,19 @@
 {
   "name": "@blocks/toggle-item",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Toggle list item block",
   "keywords": [
     "blockprotocol",
-    "blocks"
+    "blocks",
+    "block"
   ],
-  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "blocks/toggle-item"
+  },
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",

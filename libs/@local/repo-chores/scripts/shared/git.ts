@@ -1,12 +1,12 @@
 import execa from "execa";
 
-import { monorepoRoot } from "./monorepo-root";
+import { monorepoRootDirPath } from "./monorepo";
 
 export const checkIfDirHasUncommittedChanges = async (
   dirPath: string,
 ): Promise<boolean> => {
   const gitDiffResult = await execa("git", ["diff", "--exit-code", dirPath], {
-    cwd: monorepoRoot,
+    cwd: monorepoRootDirPath,
     reject: false,
   });
 

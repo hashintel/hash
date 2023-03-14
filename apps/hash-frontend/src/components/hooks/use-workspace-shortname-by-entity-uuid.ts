@@ -1,12 +1,12 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@local/hash-graphql-shared/types";
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";
@@ -53,11 +53,11 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
           );
         }
 
-        const entity = getRootsAsEntities(subgraph)[0]!;
+        const entity = getRoots(subgraph)[0]!;
 
         const shortname =
           entity.properties[
-            extractBaseUri(types.propertyType.shortName.propertyTypeId)
+            extractBaseUrl(types.propertyType.shortName.propertyTypeId)
           ];
 
         if (!shortname) {

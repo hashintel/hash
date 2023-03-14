@@ -1,10 +1,7 @@
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use tokio_postgres::types::ToSql;
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
@@ -12,41 +9,18 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{
-            DecisionTime, IncludedTimeIntervalBound, ProjectedTime, TemporalTagged, TimeAxis,
-            Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+            DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
         },
-        EntityVertexId,
     },
-    interval::Interval,
-    knowledge::{Entity, EntityUuid},
+    knowledge::EntityUuid,
     provenance::OwnedById,
-    subgraph::{Subgraph, SubgraphIndex},
+    subgraph::temporal_axes::VariableAxis,
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityId {
-    owned_by_id: OwnedById,
-    entity_uuid: EntityUuid,
-}
-
-impl EntityId {
-    #[must_use]
-    pub const fn new(owned_by_id: OwnedById, entity_uuid: EntityUuid) -> Self {
-        Self {
-            owned_by_id,
-            entity_uuid,
-        }
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-
-    #[must_use]
-    pub const fn entity_uuid(&self) -> EntityUuid {
-        self.entity_uuid
-    }
+    pub owned_by_id: OwnedById,
+    pub entity_uuid: EntityUuid,
 }
 
 impl Serialize for EntityId {
@@ -98,31 +72,17 @@ impl ToSchema<'_> for EntityId {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntityVersion {
-    #[schema(inline)]
-    pub decision_time: Interval<
-        Timestamp<DecisionTime>,
-        IncludedTimeIntervalBound<DecisionTime>,
-        UnboundedOrExcludedTimeIntervalBound<DecisionTime>,
-    >,
-    #[schema(inline)]
-    pub transaction_time: Interval<
-        Timestamp<TransactionTime>,
-        IncludedTimeIntervalBound<TransactionTime>,
-        UnboundedOrExcludedTimeIntervalBound<TransactionTime>,
-    >,
+pub struct EntityTemporalMetadata {
+    pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-impl EntityVersion {
+impl EntityTemporalMetadata {
     #[must_use]
-    pub fn projected_time(
+    pub fn variable_time_interval(
         &self,
         time_axis: TimeAxis,
-    ) -> Interval<
-        Timestamp<ProjectedTime>,
-        IncludedTimeIntervalBound<ProjectedTime>,
-        UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
-    > {
+    ) -> LeftClosedTemporalInterval<VariableAxis> {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),
@@ -130,12 +90,14 @@ impl EntityVersion {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityRecordId(Uuid);
+pub struct EntityEditionId(Uuid);
 
-impl EntityRecordId {
+impl EntityEditionId {
     #[must_use]
     pub const fn new(id: Uuid) -> Self {
         Self(id)
@@ -149,36 +111,7 @@ impl EntityRecordId {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct EntityEditionId {
-    base_id: EntityId,
-    record_id: EntityRecordId,
-}
-
-impl SubgraphIndex<Entity> for EntityVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
-        subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
-}
-
-impl EntityEditionId {
-    #[must_use]
-    pub const fn new(entity_id: EntityId, record_id: EntityRecordId) -> Self {
-        Self {
-            base_id: entity_id,
-            record_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> EntityRecordId {
-        self.record_id
-    }
+pub struct EntityRecordId {
+    pub entity_id: EntityId,
+    pub edition_id: EntityEditionId,
 }

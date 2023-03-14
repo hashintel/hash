@@ -18,6 +18,8 @@ macro_rules! generate_proptest {
         paste::paste! {
             #[test]
             #[cfg(not(miri))]
+            // we're dealing with the same float, therefore should be the same!
+            #[allow(clippy::float_cmp)]
             fn [< $ty _ok >]() {
                 let context = Context::new();
 
@@ -31,6 +33,8 @@ macro_rules! generate_proptest {
 
             #[test]
             #[cfg(not(miri))]
+            // we're dealing with the same float, therefore should be the same!
+            #[allow(clippy::float_cmp)]
             fn [< $ty _into_deserializer_ok >]() {
                 let context = Context::new();
 
@@ -84,8 +88,8 @@ pub enum Choice {
 impl Choice {
     const fn into_str(self) -> &'static str {
         match self {
-            Choice::Yes => "yes",
-            Choice::No => "no",
+            Self::Yes => "yes",
+            Self::No => "no",
         }
     }
 }
@@ -268,7 +272,7 @@ fn null_ok() {
     let context = Context::new();
 
     let de = NullDeserializer::new(&context);
-    let _ = Null::deserialize(de).expect("able to deserializer");
+    _ = Null::deserialize(de).expect("able to deserializer");
 }
 
 #[test]

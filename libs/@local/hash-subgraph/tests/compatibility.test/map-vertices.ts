@@ -4,36 +4,48 @@ import {
   OneOf,
   PropertyType,
   PropertyValues,
-  validateBaseUri,
-  validateVersionedUri,
-  VersionedUri,
+  validateBaseUrl,
+  validateVersionedUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   DataType as DataTypeGraphApi,
+  EntityMetadata as EntityMetadataGraphApi,
+  EntityRecordId as EntityRecordIdGraphApi,
+  EntityTemporalMetadata as EntityTemporalMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
+  ProvenanceMetadata as ProvenanceMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-
 import {
+  BaseUrl,
   EntityId,
-  EntityVersion,
+  EntityMetadata,
+  EntityPropertiesObject,
+  EntityRecordId,
+  EntityTemporalVersioningMetadata,
   isEntityId,
   KnowledgeGraphVertex,
+  LinkData,
   OntologyElementMetadata,
+  OntologyTypeRecordId,
   OntologyVertex,
-  PropertyObject,
+  ProvenanceMetadata,
+  Timestamp,
+  UpdatedById,
   Vertices,
-} from "../../src";
+} from "@local/hash-subgraph";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
-  const idResult = validateVersionedUri(dataType.$id);
+  const idResult = validateVersionedUrl(dataType.$id);
   if (idResult.type === "Err") {
     throw new Error(
-      `Expected type ID to be a Versioned URI:\n${JSON.stringify(
+      `Expected type ID to be a Versioned URL:\n${JSON.stringify(
         idResult.inner,
       )}`,
     );
@@ -53,10 +65,10 @@ const mapPropertyType = (propertyType: PropertyTypeGraphApi): PropertyType => {
     );
   }
 
-  const idResult = validateVersionedUri(propertyType.$id);
+  const idResult = validateVersionedUrl(propertyType.$id);
   if (idResult.type === "Err") {
     throw new Error(
-      `Expected type ID to be a Versioned URI:\n${JSON.stringify(
+      `Expected type ID to be a Versioned URL:\n${JSON.stringify(
         idResult.inner,
       )}`,
     );
@@ -76,15 +88,34 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
   return entityType as EntityType;
 };
 
+const mapOntologyTypeRecordId = (
+  recordId: OntologyElementMetadataGraphApi["recordId"],
+): OntologyTypeRecordId => {
+  return {
+    baseUrl: recordId.baseUrl as BaseUrl,
+    version: recordId.version,
+  };
+};
+
+const mapProvenanceMetadata = (
+  metadata: ProvenanceMetadataGraphApi,
+): ProvenanceMetadata => {
+  return {
+    updatedById: metadata.updatedById as UpdatedById,
+  };
+};
+
 const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
   return {
-    ...metadata,
-    recordId: {
-      baseUri: metadata.editionId.baseId,
-      version: metadata.editionId.version,
-    },
+    recordId: mapOntologyTypeRecordId(metadata.recordId),
+    provenance: mapProvenanceMetadata(metadata.provenance),
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
   };
 };
 
@@ -94,7 +125,6 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
       return {
         kind: vertex.kind,
         inner: {
-          ...vertex.inner,
           metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapDataType(vertex.inner.schema),
         },
@@ -104,7 +134,6 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
       return {
         kind: vertex.kind,
         inner: {
-          ...vertex.inner,
           metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapPropertyType(vertex.inner.schema),
         },
@@ -114,7 +143,6 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
       return {
         kind: vertex.kind,
         inner: {
-          ...vertex.inner,
           metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapEntityType(vertex.inner.schema),
         },
@@ -123,28 +151,86 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   }
 };
 
+const mapEntityRecordId = (
+  recordId: EntityRecordIdGraphApi,
+): EntityRecordId => {
+  return {
+    entityId: recordId.entityId as EntityId,
+    editionId: recordId.editionId,
+  };
+};
+
+const mapLinkData = (linkData: LinkDataGraphApi): LinkData => {
+  return {
+    leftEntityId: linkData.leftEntityId as EntityId,
+    rightEntityId: linkData.rightEntityId as EntityId,
+    leftToRightOrder: linkData.leftToRightOrder,
+    rightToLeftOrder: linkData.rightToLeftOrder,
+  };
+};
+
+const mapEntityTemporalVersioningMetadata = (
+  temporalVersioning: EntityTemporalMetadataGraphApi,
+): EntityTemporalVersioningMetadata => {
+  return {
+    transactionTime: {
+      start: {
+        kind: temporalVersioning.transactionTime.start.kind,
+        limit: temporalVersioning.transactionTime.start.limit as Timestamp,
+      },
+      end:
+        temporalVersioning.transactionTime.end.kind === "unbounded"
+          ? {
+              kind: temporalVersioning.transactionTime.end.kind,
+            }
+          : {
+              kind: temporalVersioning.transactionTime.end.kind,
+              limit: temporalVersioning.transactionTime.end.limit as Timestamp,
+            },
+    },
+    decisionTime: {
+      start: {
+        kind: "inclusive",
+        limit: temporalVersioning.decisionTime.start.limit as Timestamp,
+      },
+      end:
+        temporalVersioning.transactionTime.end.kind === "unbounded"
+          ? { kind: temporalVersioning.transactionTime.end.kind }
+          : {
+              kind: temporalVersioning.transactionTime.end.kind,
+              limit: temporalVersioning.transactionTime.end.limit as Timestamp,
+            },
+    },
+  };
+};
+
+const mapEntityMetadata = (
+  metadata: EntityMetadataGraphApi,
+): EntityMetadata => {
+  return {
+    recordId: mapEntityRecordId(metadata.recordId),
+    entityTypeId: metadata.entityTypeId as VersionedUrl,
+    temporalVersioning: mapEntityTemporalVersioningMetadata(
+      metadata.temporalVersioning,
+    ),
+    provenance: mapProvenanceMetadata(metadata.provenance),
+    archived: metadata.archived,
+  };
+};
+
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
 ): KnowledgeGraphVertex => {
   return {
-    ...vertex,
+    kind: vertex.kind,
     inner: {
-      ...vertex.inner,
-      properties: vertex.inner.properties as PropertyObject,
-      linkData: {
-        ...vertex.inner.linkData,
-        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
-        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
-      },
-      metadata: {
-        ...vertex.inner.metadata,
-        recordId: {
-          entityId: vertex.inner.metadata.editionId.baseId as EntityId,
-          editionId: vertex.inner.metadata.editionId.recordId,
-        },
-        version: vertex.inner.metadata.version as EntityVersion,
-        entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
-      },
+      properties: vertex.inner.properties as EntityPropertiesObject,
+      ...(vertex.inner.linkData
+        ? {
+            linkData: mapLinkData(vertex.inner.linkData),
+          }
+        : ({} as { linkData: never })),
+      metadata: mapEntityMetadata(vertex.inner.metadata),
     },
   };
 };
@@ -154,12 +240,12 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
 
   // Trying to build this with `Object.fromEntries` breaks tsc and leads to `any` typed values
   for (const [baseId, inner] of Object.entries(vertices)) {
-    const result = validateBaseUri(baseId);
+    const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUrl = result.inner as BaseUrl;
 
-      mappedVertices[baseUri] = Object.fromEntries(
+      mappedVertices[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {
           const versionNumber = Number(version);
 

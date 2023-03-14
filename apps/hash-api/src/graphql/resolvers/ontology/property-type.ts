@@ -1,6 +1,9 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import {
+  OwnedById,
+  PropertyTypeRootType,
+  PropertyTypeWithMetadata,
+  Subgraph,
+} from "@local/hash-subgraph";
 
 import {
   createPropertyType,
@@ -9,8 +12,8 @@ import {
 import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
+  QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -27,8 +30,7 @@ export const createPropertyTypeResolver: ResolverFn<
   const { ownedById, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(context, {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    ownedById: (ownedById ?? user.accountId) as OwnedById,
     schema: propertyType,
     actorId: user.accountId,
   });
@@ -36,11 +38,11 @@ export const createPropertyTypeResolver: ResolverFn<
   return createdPropertyType;
 };
 
-export const getAllLatestPropertyTypesResolver: ResolverFn<
+export const queryPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPropertyTypesArgs
+  QueryQueryPropertyTypesArgs
 > = async (
   _,
   { constrainsValuesOn, constrainsPropertiesOn },
@@ -70,20 +72,23 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },
   );
-  return mapSubgraph(propertyTypeSubgraph);
+
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -102,7 +107,7 @@ export const getPropertyTypeResolver: ResolverFn<
   const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
     {
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
         inheritsFrom: { outgoing: 0 },
@@ -114,21 +119,23 @@ export const getPropertyTypeResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },
   );
 
-  return mapSubgraph(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

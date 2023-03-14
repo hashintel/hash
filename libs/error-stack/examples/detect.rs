@@ -1,3 +1,12 @@
+#![allow(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    unreachable_pub,
+    clippy::use_debug,
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core
+)]
 // This example shows how you can use the `supports-color` and `supports-unicode` crates to
 // automatically enable or disable the color mode and set the appropriate charset.
 // Your default terminal should automatically show colored unicode output, to emulate a terminal
@@ -21,7 +30,7 @@ type Config = String;
 struct ParseConfigError;
 
 impl Display for ParseConfigError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("unable to parse config")
     }
 }
@@ -29,7 +38,7 @@ impl Display for ParseConfigError {
 impl std::error::Error for ParseConfigError {}
 
 fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
-    let _ = path.as_ref();
+    _ = path.as_ref();
 
     /*
        usually you would actually do something here, we just error out, for a more complete example

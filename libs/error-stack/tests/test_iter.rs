@@ -4,8 +4,7 @@
 extern crate alloc;
 extern crate core;
 
-use core::fmt::Write;
-use std::fmt::{Display, Formatter};
+use core::fmt::{Display, Formatter, Write};
 
 mod common;
 use error_stack::{report, Context, Report};
@@ -14,7 +13,7 @@ use error_stack::{report, Context, Report};
 struct Char(char);
 
 impl Display for Char {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_char(self.0)
     }
 }

@@ -5,51 +5,31 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
-        crud::Read,
-        postgres::{DependencyContext, DependencyStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
-        Transaction, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
+        PostgresStore, QueryError, Record, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
+    subgraph::{
+        edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes, Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
+    /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
-        data_type_id: &OntologyTypeEditionId,
-        dependency_context: &mut DependencyContext,
-        subgraph: &mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut time_projection: TimeProjection,
+        data_type_ids: Vec<DataTypeVertexId>,
+        temporal_axes: QueryTemporalAxes,
+        graph_resolve_depths: GraphResolveDepths,
+        _traversal_context: &mut TraversalContext,
+        _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let dependency_status = dependency_context.ontology_dependency_map.update(
-            data_type_id,
-            current_resolve_depths,
-            time_projection.image(),
-        );
-
-        #[expect(unused_assignments, unused_variables)]
-        let data_type = match dependency_status {
-            DependencyStatus::Unresolved(depths, interval) => {
-                // The dependency may have to be resolved more than anticipated, so we update
-                // the resolve depth and time projection.
-                current_resolve_depths = depths;
-                time_projection.set_image(interval);
-                subgraph
-                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
-                    .await?
-            }
-            DependencyStatus::Resolved => return Ok(()),
-        };
-
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
         //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
@@ -89,35 +69,39 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            time_projection: ref unresolved_time_projection,
+            temporal_axes: ref unresolved_temporal_axes,
         } = *query;
 
-        let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.image_time_axis();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let data_types = Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes)
+            .await?
+            .into_iter()
+            .map(|entity| (entity.vertex_id(time_axis), entity))
+            .collect();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
-            unresolved_time_projection.clone(),
-            time_projection.clone(),
+            unresolved_temporal_axes.clone(),
+            temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        subgraph.vertices.data_types = data_types;
 
-        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &time_projection).await? {
-            let vertex_id = data_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, data_type);
-
-            self.traverse_data_type(
-                &vertex_id,
-                &mut dependency_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                time_projection.clone(),
-            )
-            .await?;
-
-            subgraph.roots.insert(vertex_id.into());
+        for vertex_id in subgraph.vertices.data_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
         }
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_data_type(
+            subgraph.vertices.data_types.keys().cloned().collect(),
+            subgraph.temporal_axes.resolved.clone(),
+            subgraph.depths,
+            &mut TraversalContext,
+            &mut subgraph,
+        )
+        .await?;
 
         Ok(subgraph)
     }

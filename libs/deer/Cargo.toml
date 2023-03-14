@@ -1,7 +1,15 @@
 [package]
 name = "deer"
-version = "0.0.0"
+version = "0.0.0-reserved"
+authors = ["HASH"]
 edition = "2021"
+rust-version = "1.65"
+license = "MIT OR Apache-2.0"
+description = "A backend-agnostic fail-slow deserialization framework"
+documentation = "https://docs.rs/deer"
+repository = "https://github.com/hashintel/hash/tree/main/libs/deer"
+keywords = ["deserialize", "serde", "no_std"]
+categories = ["no-std", "rust-patterns"]
 exclude = ["package.json"]
 publish = false
 
@@ -11,14 +19,14 @@ error-stack = { version = "0.3.1", default_features = false }
 num-traits = { version = "0.2.15", default_features = false }
 
 serde = { version = "1.0.152", default_features = false, features = ['alloc', 'derive'] }
-erased-serde = { version = "0.3.24", default_features = false, features = ['alloc'] }
+erased-serde = { version = "0.3.25", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = { version = "1.0.91", features = ['arbitrary_precision'] }
+serde_json = { version = "1.0.93", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.4.2", features = ['serde'] }
 deer-desert = { path = "./desert", features = ['pretty'] }
 proptest = "1.1.0"
-paste = "1.0.11"
+paste = "1.0.12"
 
 [build-dependencies]
 rustc_version = "0.4.0"

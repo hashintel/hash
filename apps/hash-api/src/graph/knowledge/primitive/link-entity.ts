@@ -1,12 +1,13 @@
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import {
+  AccountId,
   Entity,
   EntityId,
+  EntityMetadata,
+  EntityPropertiesObject,
   EntityTypeWithMetadata,
   LinkData,
-  PropertyObject,
+  OwnedById,
 } from "@local/hash-subgraph";
-import { mapEntityMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
@@ -14,7 +15,7 @@ import { getLatestEntityById } from "./entity";
 
 export type CreateLinkEntityParams = {
   ownedById: OwnedById;
-  properties?: PropertyObject;
+  properties?: EntityPropertiesObject;
   linkEntityType: EntityTypeWithMetadata;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
@@ -69,7 +70,7 @@ export const createLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   };
 
-  const { data: linkEntityMetadata } = await graphApi.createEntity({
+  const { data: metadata } = await graphApi.createEntity({
     ownedById,
     linkData,
     actorId,
@@ -78,7 +79,7 @@ export const createLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: mapEntityMetadata(linkEntityMetadata),
+    metadata: metadata as EntityMetadata,
     properties,
     linkData,
   };
@@ -96,7 +97,7 @@ export const createLinkEntity: ImpureGraphFunction<
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
-    properties?: PropertyObject;
+    properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
     actorId: AccountId;
@@ -107,7 +108,7 @@ export const updateLinkEntity: ImpureGraphFunction<
 
   const properties = params.properties ?? linkEntity.properties;
 
-  const { data: linkEntityMetadata } = await graphApi.updateEntity({
+  const { data: metadata } = await graphApi.updateEntity({
     actorId,
     entityId: linkEntity.metadata.recordId.entityId,
     entityTypeId: linkEntity.metadata.entityTypeId,
@@ -118,7 +119,7 @@ export const updateLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: mapEntityMetadata(linkEntityMetadata),
+    metadata: metadata as EntityMetadata,
     properties,
     linkData: {
       ...linkEntity.linkData,

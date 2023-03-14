@@ -64,7 +64,7 @@ pub enum JsonField<'p> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OntologyIds<'p> {
     OntologyId,
-    BaseUri,
+    BaseUrl,
     Version,
     UpdatedById,
     LatestVersion,
@@ -106,7 +106,7 @@ impl OntologyIds<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
-            Self::BaseUri => "base_uri",
+            Self::BaseUrl => "base_url",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
             Self::UpdatedById => "record_created_by_id",
@@ -127,7 +127,7 @@ pub enum OwnedOntologyMetadata {
 }
 
 impl OwnedOntologyMetadata {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::OwnedById => "owned_by_id",
@@ -179,7 +179,7 @@ impl_ontology_column!(EntityTypes);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Entities<'p> {
     EntityUuid,
-    RecordId,
+    EditionId,
     DecisionTime,
     TransactionTime,
     // TODO: Remove when correctly resolving time intervals in subgraphs.
@@ -202,7 +202,7 @@ impl Entities<'_> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EntityUuid
-            | Self::RecordId
+            | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::ProjectedTime
@@ -220,7 +220,7 @@ impl Entities<'_> {
         }
     }
 
-    pub fn from_time_axis(time_axis: TimeAxis) -> Self {
+    pub const fn from_time_axis(time_axis: TimeAxis) -> Self {
         match time_axis {
             TimeAxis::DecisionTime => Self::DecisionTime,
             TimeAxis::TransactionTime => Self::TransactionTime,
@@ -232,7 +232,7 @@ impl Entities<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
-            Self::RecordId => "entity_edition_id",
+            Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
             Self::ProjectedTime => unreachable!("projected time is not a column"),
@@ -263,7 +263,7 @@ pub enum PropertyTypeDataTypeReferences {
 }
 
 impl PropertyTypeDataTypeReferences {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
@@ -279,7 +279,7 @@ pub enum PropertyTypePropertyTypeReferences {
 }
 
 impl PropertyTypePropertyTypeReferences {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
@@ -295,7 +295,7 @@ pub enum EntityTypePropertyTypeReferences {
 }
 
 impl EntityTypePropertyTypeReferences {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
@@ -311,7 +311,7 @@ pub enum EntityTypeEntityTypeReferences {
 }
 
 impl EntityTypeEntityTypeReferences {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",

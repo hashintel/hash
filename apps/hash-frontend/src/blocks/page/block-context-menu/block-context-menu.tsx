@@ -1,4 +1,8 @@
 import {
+  EntityRootType as EntityRootTypeBp,
+  Subgraph as SubgraphBp,
+} from "@blockprotocol/graph/temporal";
+import {
   faCopy,
   faMessage,
   faPenToSquare,
@@ -13,16 +17,16 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import {
   areComponentsCompatible,
   isHashTextBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
-  PropertyObject,
+  EntityPropertiesObject,
+  EntityRootType,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
@@ -48,7 +52,7 @@ import { BlockLoaderInput } from "./block-loader-input";
 import { LoadEntityMenuContent } from "./load-entity-menu-content";
 
 type BlockContextMenuProps = {
-  blockEntity: BlockEntity | null;
+  blockEntity: DraftEntity | BlockEntity | null;
   deleteBlock: () => void;
   openConfigMenu: () => void;
   popupState: PopupState;
@@ -71,9 +75,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
   const { value: userBlocks } = useUserBlocks();
-  const currentComponentId = blockEntity?.properties.componentId as
-    | string
-    | null;
+  const currentComponentId = blockEntity?.componentId as string | null;
   const compatibleBlocks = useMemo(() => {
     return Object.values(userBlocks).filter((block) =>
       areComponentsCompatible(currentComponentId, block.meta.componentId),
@@ -85,11 +87,13 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const menuItems = useMemo(() => {
     /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
     const hasChildEntity =
-      !!blockEntity?.properties.entity &&
+      !!(blockEntity?.properties as DraftEntity["properties"]).entity &&
       Object.keys(
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        (blockEntity.properties.entity as { properties: PropertyObject })
-          .properties ?? {},
+        (
+          (blockEntity!.properties as DraftEntity["properties"]).entity as {
+            properties: EntityPropertiesObject;
+          }
+        ).properties,
       ).length > 0;
     const items = [
       ...(currentComponentId && !isHashTextBlock(currentComponentId)
@@ -198,17 +202,19 @@ const BlockContextMenu: ForwardRefRenderFunction<
   });
 
   const handleEntityModalSubmit = async () => {
-    if (!blockEntity) {
+    if (!blockEntity || !blockEntity.blockChildEntity) {
       return;
     }
 
     const { recordId, entityTypeId } = blockEntity.blockChildEntity.metadata;
     const newBlockSubgraph = await fetchBlockSubgraph(
       entityTypeId,
-      recordId.entityId as EntityId,
+      recordId.entityId,
     );
 
-    setBlockSubgraph(newBlockSubgraph);
+    setBlockSubgraph(
+      newBlockSubgraph as unknown as SubgraphBp<EntityRootTypeBp>,
+    );
     setEntityEditorOpen(false);
   };
 
@@ -220,7 +226,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
           onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={
             /** @todo add timeProjection & resolvedTimeProjection properly */
-            blockSubgraph as unknown as Subgraph<SubgraphRootTypes["entity"]>
+            blockSubgraph as unknown as Subgraph<EntityRootType>
           }
           onSubmit={handleEntityModalSubmit}
         />

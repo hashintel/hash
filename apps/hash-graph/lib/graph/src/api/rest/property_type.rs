@@ -6,7 +6,7 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri, PropertyType};
+use type_system::{repr, url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -18,7 +18,7 @@ use crate::{
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
+    store::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
@@ -116,7 +116,7 @@ async fn create_property_type<P: StorePool + Send>(
     })?;
 
     let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        property_type.id().into(),
+        property_type.id().clone().into(),
         ProvenanceMetadata::new(actor_id),
         owned_by_id,
     ));
@@ -127,7 +127,7 @@ async fn create_property_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
 
-            if report.contains::<BaseUriAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -187,7 +187,7 @@ struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = String)]
-    type_to_update: VersionedUri,
+    type_to_update: VersionedUrl,
     actor_id: UpdatedById,
 }
 
@@ -211,16 +211,13 @@ async fn update_property_type<P: StorePool + Send>(
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,
-        type_to_update,
+        mut type_to_update,
         actor_id,
     }) = body;
 
-    let new_type_id = VersionedUri::new(
-        type_to_update.base_uri().clone(),
-        type_to_update.version() + 1,
-    );
+    type_to_update.version += 1;
 
-    let property_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
+    let property_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Property Type");
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
@@ -238,7 +235,7 @@ async fn update_property_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
 
-            if report.contains::<BaseUriDoesNotExist>() {
+            if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 

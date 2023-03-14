@@ -1,3 +1,8 @@
+#![expect(
+    clippy::let_underscore_untyped,
+    reason = "Upstream issue of `derivative`"
+)]
+
 use std::{error::Error, fmt, ops::Bound};
 
 use derivative::Derivative;
@@ -7,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    identifier::time::{axis::TemporalTagged, TimeIntervalBound, Timestamp},
+    identifier::time::{axis::TemporalTagged, LimitedTemporalBound, TemporalBound, Timestamp},
     interval::{Interval, IntervalBound},
 };
 
@@ -20,46 +25,9 @@ use crate::{
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct UnresolvedTimeInterval<A> {
-    pub start: Option<TimeIntervalBound<A>>,
-    pub end: Option<TimeIntervalBound<A>>,
-}
-
-// Utoipa is able to generate this schema automatically, but instead of using `.nullable(true)` it
-// left the `start` and `end` properties out of the `required` list.
-impl<A> ToSchema<'_> for UnresolvedTimeInterval<A> {
-    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        (
-            "UnresolvedTimeInterval",
-            openapi::ObjectBuilder::new()
-                .property(
-                    "start",
-                    openapi::Schema::OneOf(
-                        openapi::OneOfBuilder::new()
-                            .item(openapi::Ref::from_schema_name(
-                                TimeIntervalBound::<A>::schema().0,
-                            ))
-                            .nullable(true)
-                            .build(),
-                    ),
-                )
-                .required("start")
-                .property(
-                    "end",
-                    openapi::Schema::OneOf(
-                        openapi::OneOfBuilder::new()
-                            .item(openapi::Ref::from_schema_name(
-                                TimeIntervalBound::<A>::schema().0,
-                            ))
-                            .nullable(true)
-                            .build(),
-                    ),
-                )
-                .required("end")
-                .build()
-                .into(),
-        )
-    }
+pub struct RightBoundedTemporalIntervalUnresolved<A> {
+    pub start: Option<TemporalBound<A>>,
+    pub end: Option<LimitedTemporalBound<A>>,
 }
 
 impl<A, S, E> TemporalTagged for Interval<Timestamp<A>, S, E>
@@ -166,5 +134,42 @@ where
 
     fn accepts(ty: &Type) -> bool {
         matches!(ty, &Type::TSTZ_RANGE)
+    }
+}
+
+impl<'s, A> ToSchema<'s> for RightBoundedTemporalIntervalUnresolved<A>
+where
+    A: ToSchema<'s>,
+{
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "UnresolvedRightBoundedTemporalInterval",
+            openapi::ObjectBuilder::new()
+                .property(
+                    "start",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("start")
+                .property(
+                    "end",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                LimitedTemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("end")
+                .into(),
+        )
     }
 }

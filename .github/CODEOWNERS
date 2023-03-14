@@ -1,8 +1,15 @@
-# Libs teams
+# Libraries
 /libs/deer/ @hashintel/deer
+/libs/antsi/ @hashintel/antsi
 /libs/error-stack/ @hashintel/error-stack
 
-# Legal team
+# Legal
 LICENSE @hashintel/legal
 LICENSE.txt @hashintel/legal
 LICENSE.md @hashintel/legal
+
+# Database/migrations
+/apps/hash-graph/postgres_migrations/ @hashintel/hash-database
+
+# Apps
+/apps/intellij-plugin/ @hashintel/intellij-plugin

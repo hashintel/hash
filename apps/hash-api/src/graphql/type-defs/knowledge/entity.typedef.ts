@@ -4,13 +4,13 @@ export const entityTypedef = gql`
   scalar EntityId
   scalar EntityRecordId
   scalar Entity
-  scalar PropertyObject
+  scalar EntityPropertiesObject
   scalar EntityMetadata
   scalar LinkData
 
   input LinkedEntityDefinition {
     destinationAccountId: AccountId!
-    linkEntityTypeId: VersionedUri!
+    linkEntityTypeId: VersionedUrl!
     """
     The index of the link (if any)
     """
@@ -27,11 +27,11 @@ export const entityTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityTypeId: VersionedUri
+    entityTypeId: VersionedUrl
     """
     The properties of new entity.
     """
-    entityProperties: PropertyObject
+    entityProperties: EntityPropertiesObject
     """
     Associated Entities to either create/get and link to this entity.
     """
@@ -41,13 +41,13 @@ export const entityTypedef = gql`
   # TODO: rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f
   extend type Query {
     """
-    Get a subgraph rooted at all entities at their latest version.
+    Get a subgraph rooted at all entities that match a given filter.
     """
-    getAllLatestEntities(
+    queryEntities(
       """
       Filter root entities by their entity type ID (optional)
       """
-      rootEntityTypeIds: [VersionedUri!]
+      rootEntityTypeIds: [VersionedUrl!]
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -91,11 +91,11 @@ export const entityTypedef = gql`
       """
       The type of which to instantiate the new entity.
       """
-      entityTypeId: VersionedUri!
+      entityTypeId: VersionedUrl!
       """
       The properties of new entity.
       """
-      properties: PropertyObject!
+      properties: EntityPropertiesObject!
       """
       Associated Entities to either create/get and link to this entity.
       """
@@ -117,7 +117,7 @@ export const entityTypedef = gql`
       """
       The updated properties of the entity.
       """
-      updatedProperties: PropertyObject!
+      updatedProperties: EntityPropertiesObject!
       """
       The updated left to right order of the link entity (if updating a link entity).
       """
@@ -129,7 +129,7 @@ export const entityTypedef = gql`
       """
       The new type of the updated entity
       """
-      entityTypeId: VersionedUri
+      entityTypeId: VersionedUrl
     ): Entity!
 
     """

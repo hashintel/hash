@@ -45,18 +45,18 @@ mod tests {
 
     use super::*;
     use crate::{
-        identifier::time::UnresolvedTimeProjection,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     #[test]
     fn transpile_where_expression() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(&time_projection);
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(&temporal_axes);
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
@@ -75,14 +75,14 @@ mod tests {
 
         let filter_b = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 )))),
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_b));
@@ -92,7 +92,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
             )
         );
 
@@ -107,7 +107,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL"#
             )
         );
@@ -133,7 +133,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL
                   AND (("data_types_0_0_0"."schema"->>'title' = $3) OR ("data_types_0_0_0"."schema"->>'description' = $4))"#
             )
@@ -147,7 +147,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(parameters, &[
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-            "1.0",
+            "1",
             "\"some title\"",
             "\"some description\""
         ]);

@@ -15,5 +15,5 @@ export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLConte
     });
     const textEntity = await getCommentText(context, { comment });
 
-    return textEntity.metadata.version;
+    return textEntity.metadata.temporalVersioning;
   };

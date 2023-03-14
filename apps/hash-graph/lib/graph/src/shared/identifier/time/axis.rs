@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 #[serde(rename_all = "camelCase")]
 pub enum DecisionTime {
     #[default]
-    Decision,
+    DecisionTime,
 }
 
 /// Time axis for the transaction time.
@@ -18,7 +18,7 @@ pub enum DecisionTime {
 #[serde(rename_all = "camelCase")]
 pub enum TransactionTime {
     #[default]
-    Transaction,
+    TransactionTime,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -26,16 +26,6 @@ pub enum TimeAxis {
     DecisionTime,
     TransactionTime,
 }
-
-/// Time axis for the [`Image`] used in [`TimeProjection`]s.
-///
-/// This is used as the generic argument to time-related structs. Please refer to the documentation
-/// of [`TimeProjection`] for more information.
-///
-/// [`Image`]: crate::identifier::time::Image
-/// [`TimeProjection`]: crate::identifier::time::TimeProjection
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ProjectedTime;
 
 pub trait TemporalTagged {
     type Axis;

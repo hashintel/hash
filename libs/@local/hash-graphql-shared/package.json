@@ -22,14 +22,14 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
-    "@blockprotocol/core": "0.0.12",
+    "@blockprotocol/core": "0.1.0",
+    "@blockprotocol/type-system": "0.1.0-canary-20230227152050",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.30.0",
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
-    "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
     "@graphql-codegen/cli": "2.16.4",
     "@graphql-codegen/fragment-matcher": "3.3.3",
     "@graphql-codegen/typescript": "2.8.7",

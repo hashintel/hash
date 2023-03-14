@@ -1,151 +1,138 @@
-use std::{borrow::Borrow, future::Future, pin::Pin};
+use std::{borrow::Borrow, mem};
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
-use futures::FutureExt;
 use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
-        crud::Read,
-        postgres::{DependencyContext, DependencyStatus},
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record, Store,
-        Transaction, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, InsertionError, PostgresStore,
+        PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{
-            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdges,
-            OutgoingEdgeResolveDepth, OutwardEdge,
-        },
+        edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        identifier::{DataTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes,
         Subgraph,
     },
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
+    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
-    pub(crate) fn traverse_property_type<'a>(
-        &'a self,
-        property_type_id: &'a OntologyTypeEditionId,
-        dependency_context: &'a mut DependencyContext,
-        subgraph: &'a mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut time_projection: TimeProjection,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        async move {
-            let dependency_status = dependency_context.ontology_dependency_map.update(
-                property_type_id,
-                current_resolve_depths,
-                time_projection.image(),
-            );
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
+    pub(crate) async fn traverse_property_type(
+        &self,
+        property_type_ids: Vec<PropertyTypeVertexId>,
+        temporal_axes: QueryTemporalAxes,
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_context: &mut TraversalContext,
+        subgraph: &mut Subgraph,
+    ) -> Result<(), QueryError> {
+        let mut queue = property_type_ids
+            .into_iter()
+            .map(|id| (id, graph_resolve_depths, temporal_axes.clone()))
+            .collect::<Vec<_>>();
 
-            let property_type = match dependency_status {
-                DependencyStatus::Unresolved(depths, interval) => {
-                    // The dependency may have to be resolved more than anticipated, so we update
-                    // the resolve depth and time projection.
-                    current_resolve_depths = depths;
-                    time_projection.set_image(interval);
-                    subgraph
-                        .get_or_read::<PropertyTypeWithMetadata>(
-                            self,
-                            property_type_id,
-                            &time_projection,
+        while !queue.is_empty() {
+            // TODO: We could re-use the memory here but we expect to batch the processing of this
+            //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
+            for (property_type_id, current_resolve_depths, temporal_axes) in mem::take(&mut queue) {
+                let property_type = subgraph
+                    .get_or_read::<PropertyTypeWithMetadata>(
+                        self,
+                        &property_type_id,
+                        &temporal_axes,
+                    )
+                    .await?;
+
+                // Collecting references before traversing further to avoid having a shared
+                // reference to the subgraph when borrowing it mutably
+                let data_type_ref_urls = (current_resolve_depths.constrains_values_on.outgoing > 0)
+                    .then(|| {
+                        property_type
+                            .inner()
+                            .data_type_references()
+                            .into_iter()
+                            .map(DataTypeReference::url)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    });
+
+                let property_type_ref_urls =
+                    (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
+                        property_type
+                            .inner()
+                            .property_type_references()
+                            .into_iter()
+                            .map(PropertyTypeReference::url)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    });
+
+                if let Some(data_type_ref_urls) = data_type_ref_urls {
+                    for data_type_ref in data_type_ref_urls {
+                        let data_type_vertex_id = DataTypeVertexId::from(data_type_ref);
+
+                        subgraph.insert_edge(
+                            &property_type_id,
+                            OntologyEdgeKind::ConstrainsValuesOn,
+                            data_type_vertex_id.clone(),
+                        );
+
+                        self.traverse_data_type(
+                            vec![data_type_vertex_id],
+                            temporal_axes.clone(),
+                            GraphResolveDepths {
+                                constrains_values_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depths.constrains_values_on.outgoing
+                                        - 1,
+                                    ..current_resolve_depths.constrains_values_on
+                                },
+                                ..current_resolve_depths
+                            },
+                            traversal_context,
+                            subgraph,
                         )
-                        .await?
+                        .await?;
+                    }
                 }
-                DependencyStatus::Resolved => return Ok(()),
-            };
 
-            // Collecting references before traversing further to avoid having a shared
-            // reference to the subgraph when borrowing it mutably
-            let data_type_ref_uris = (current_resolve_depths.constrains_values_on.outgoing > 0)
-                .then(|| {
-                    property_type
-                        .inner()
-                        .data_type_references()
-                        .into_iter()
-                        .map(DataTypeReference::uri)
-                        .cloned()
-                        .collect::<Vec<_>>()
-                });
+                if let Some(property_type_ref_urls) = property_type_ref_urls {
+                    for property_type_ref_url in property_type_ref_urls {
+                        let property_type_vertex_id =
+                            PropertyTypeVertexId::from(property_type_ref_url);
 
-            let property_type_ref_uris =
-                (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
-                    property_type
-                        .inner()
-                        .property_type_references()
-                        .into_iter()
-                        .map(PropertyTypeReference::uri)
-                        .cloned()
-                        .collect::<Vec<_>>()
-                });
+                        subgraph.insert_edge(
+                            &property_type_id,
+                            OntologyEdgeKind::ConstrainsPropertiesOn,
+                            property_type_vertex_id.clone(),
+                        );
 
-            if let Some(data_type_ref_uris) = data_type_ref_uris {
-                for data_type_ref in data_type_ref_uris {
-                    subgraph.edges.insert(Edge::Ontology {
-                        vertex_id: property_type_id.clone(),
-                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                            kind: OntologyEdgeKind::ConstrainsValuesOn,
-                            reversed: false,
-                            right_endpoint: OntologyTypeEditionId::from(&data_type_ref),
-                        }),
-                    });
-
-                    self.traverse_data_type(
-                        &OntologyTypeEditionId::from(&data_type_ref),
-                        dependency_context,
-                        subgraph,
-                        GraphResolveDepths {
-                            constrains_values_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.constrains_values_on.outgoing - 1,
-                                ..current_resolve_depths.constrains_values_on
+                        queue.push((
+                            property_type_vertex_id,
+                            GraphResolveDepths {
+                                constrains_properties_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depths
+                                        .constrains_properties_on
+                                        .outgoing
+                                        - 1,
+                                    ..current_resolve_depths.constrains_properties_on
+                                },
+                                ..current_resolve_depths
                             },
-                            ..current_resolve_depths
-                        },
-                        time_projection.clone(),
-                    )
-                    .await?;
+                            temporal_axes.clone(),
+                        ));
+                    }
                 }
             }
-
-            if let Some(property_type_ref_uris) = property_type_ref_uris {
-                for property_type_ref_uri in property_type_ref_uris {
-                    subgraph.edges.insert(Edge::Ontology {
-                        vertex_id: property_type_id.clone(),
-                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                            kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                            reversed: false,
-                            right_endpoint: OntologyTypeEditionId::from(&property_type_ref_uri),
-                        }),
-                    });
-
-                    self.traverse_property_type(
-                        &OntologyTypeEditionId::from(&property_type_ref_uri),
-                        dependency_context,
-                        subgraph,
-                        GraphResolveDepths {
-                            constrains_properties_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.constrains_properties_on.outgoing
-                                    - 1,
-                                ..current_resolve_depths.constrains_properties_on
-                            },
-                            ..current_resolve_depths
-                        },
-                        time_projection.clone(),
-                    )
-                    .await?;
-                }
-            }
-
-            Ok(())
         }
-        .boxed()
+
+        Ok(())
     }
 }
 
@@ -200,37 +187,39 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            time_projection: ref unresolved_time_projection,
+            temporal_axes: ref unresolved_temporal_axes,
         } = *query;
 
-        let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.image_time_axis();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let property_types = Read::<PropertyTypeWithMetadata>::read(self, filter, &temporal_axes)
+            .await?
+            .into_iter()
+            .map(|entity| (entity.vertex_id(time_axis), entity))
+            .collect();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
-            unresolved_time_projection.clone(),
-            time_projection.clone(),
+            unresolved_temporal_axes.clone(),
+            temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        subgraph.vertices.property_types = property_types;
 
-        for property_type in
-            Read::<PropertyTypeWithMetadata>::read(self, filter, &time_projection).await?
-        {
-            let vertex_id = property_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, property_type);
-
-            self.traverse_property_type(
-                &vertex_id,
-                &mut dependency_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                time_projection.clone(),
-            )
-            .await?;
-
-            subgraph.roots.insert(vertex_id.into());
+        for vertex_id in subgraph.vertices.property_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
         }
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_property_type(
+            subgraph.vertices.property_types.keys().cloned().collect(),
+            subgraph.temporal_axes.resolved.clone(),
+            subgraph.depths,
+            &mut TraversalContext,
+            &mut subgraph,
+        )
+        .await?;
 
         Ok(subgraph)
     }

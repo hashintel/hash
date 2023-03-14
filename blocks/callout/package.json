@@ -1,14 +1,19 @@
 {
   "name": "@blocks/callout",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Draw attention to an important point or message with framed text and a custom icon",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/callout"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
@@ -16,18 +21,19 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
-    "@blockprotocol/hook": "0.0.8"
+    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/hook": "0.1.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.1.1",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -50,10 +56,11 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "icon": "📢",
-        "text": "Hello World!"
+        "https://blockprotocol.org/@hash/types/property-type/callout-block-emoji/": "📢",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Hello World!"
       }
     ],
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/callout-block/v/2"
   }
 }

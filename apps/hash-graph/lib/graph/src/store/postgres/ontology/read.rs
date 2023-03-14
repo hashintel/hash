@@ -7,13 +7,10 @@ use postgres_types::{FromSql, Type};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
-use type_system::uri::BaseUri;
+use type_system::url::BaseUrl;
 
 use crate::{
-    identifier::{
-        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-        time::TimeProjection,
-    },
+    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
@@ -25,13 +22,19 @@ use crate::{
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum AdditionalOntologyMetadata {
-    Owned { owned_by_id: OwnedById },
-    External { fetched_at: OffsetDateTime },
+    Owned {
+        owned_by_id: OwnedById,
+    },
+    External {
+        #[serde(with = "time::serde::iso8601")]
+        fetched_at: OffsetDateTime,
+    },
 }
 
 impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
@@ -58,19 +61,19 @@ where
     async fn read(
         &self,
         filter: &Filter<T>,
-        time_projection: &TimeProjection,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<T>, QueryError> {
-        let base_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::base_uri();
+        let base_url_path = <T::QueryPath<'static> as OntologyQueryPath>::base_url();
         let version_path = <T::QueryPath<'static> as OntologyQueryPath>::version();
         let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
         let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
         let additional_metadata_path =
             <T::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
 
-        let mut compiler = SelectCompiler::new(time_projection);
+        let mut compiler = SelectCompiler::new(temporal_axes);
 
-        let base_uri_index = compiler.add_distinct_selection_with_ordering(
-            &base_uri_path,
+        let base_url_index = compiler.add_distinct_selection_with_ordering(
+            &base_url_path,
             Distinctness::Distinct,
             None,
         );
@@ -93,11 +96,10 @@ where
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let base_uri = BaseUri::new(row.get(base_uri_index))
+                let base_url = BaseUrl::new(row.get(base_url_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let version: i64 = row.get(version_index);
-                let version = OntologyTypeVersion::new(version as u32);
+                let version: OntologyTypeVersion = row.get(version_index);
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
                 let metadata: AdditionalOntologyMetadata = row.get(additional_metadata_index);
 
@@ -109,20 +111,20 @@ where
                     .into_report()
                     .change_context(QueryError)?;
 
-                let edition_id = OntologyTypeEditionId::new(base_uri, version);
+                let record_id = OntologyTypeRecordId { base_url, version };
                 let provenance = ProvenanceMetadata::new(updated_by_id);
 
                 Ok(T::new(record, match metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                            edition_id,
+                            record_id,
                             provenance,
                             owned_by_id,
                         ))
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                            edition_id, provenance, fetched_at,
+                            record_id, provenance, fetched_at,
                         ))
                     }
                 }))

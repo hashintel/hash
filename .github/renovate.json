@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "automerge": false,
+  "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
@@ -46,6 +46,10 @@
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`"
+    },
+    {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
@@ -68,6 +72,14 @@
       "matchPaths": ["**/deer/**"],
       "groupName": "deer",
       "commitMessageTopic": "Rust toolchain for `deer`"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "matchPaths": ["**/antsi/**"],
+      "groupName": "antsi",
+      "commitMessageTopic": "Rust toolchain for `antsi`"
     },
     {
       "matchManagers": ["regex"],

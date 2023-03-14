@@ -14,17 +14,14 @@
 #![feature(bound_map)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
-#![expect(
-    clippy::cast_possible_truncation,
-    reason = "Postgres doesn't support unsigned values, so we cast from i64 to u32. We don't use \
-              the negative part, though"
-)]
+
+mod shared;
 
 pub mod api;
 
 pub mod knowledge;
 pub mod ontology;
-mod shared;
+pub mod subgraph;
 
 pub mod store;
 

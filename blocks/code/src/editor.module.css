@@ -10,6 +10,11 @@
   background-color: transparent;
 }
 
+.editor pre[class*="language-"]::-webkit-scrollbar,
+.editor :not(pre) > code[class*="language-"]::-webkit-scrollbar {
+  display: none;
+}
+
 .editor code[class*="language-"],
 .editor pre[class*="language-"],
 .editor textarea {

@@ -1,7 +1,11 @@
-import { EntityTypeWithMetadata, VersionedUri } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+  intervalCompareWithInterval,
+} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
@@ -21,13 +25,14 @@ export const useRows = () => {
       entity.metadata.entityTypeId,
     );
 
-    const outgoingLinkAndTargetEntitiesAtMoment =
-      getOutgoingLinkAndTargetEntitiesAtMoment(
-        entitySubgraph,
-        entity.metadata.recordId.entityId,
-        /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
-        new Date(),
-      );
+    const variableAxis = entitySubgraph.temporalAxes.resolved.variable.axis;
+    const entityInterval = entity.metadata.temporalVersioning[variableAxis];
+
+    const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
+      entitySubgraph,
+      entity.metadata.recordId.entityId,
+      entityInterval,
+    );
 
     const linkSchemas = entityType?.schema.links;
 
@@ -36,7 +41,7 @@ export const useRows = () => {
     }
 
     return Object.entries(linkSchemas).map<LinkRow>(([key, linkSchema]) => {
-      const linkEntityTypeId = key as VersionedUri;
+      const linkEntityTypeId = key as VersionedUrl;
 
       const linkEntityType = getEntityTypeById(
         entitySubgraph,
@@ -62,17 +67,55 @@ export const useRows = () => {
           draftToCreate.linkEntity.metadata.entityTypeId === linkEntityTypeId,
       );
 
-      const linkAndTargetEntities =
-        outgoingLinkAndTargetEntitiesAtMoment.filter((entities) => {
-          const { entityTypeId, recordId } = entities.linkEntity.metadata;
+      const linkAndTargetEntities = [];
 
-          const isMatching = entityTypeId === linkEntityTypeId;
-          const isMarkedToArchive = draftLinksToArchive.some(
-            (markedLinkId) => markedLinkId === recordId.entityId,
+      for (const entities of outgoingLinkAndTargetEntities) {
+        const linkEntityRevisions = [...entities.linkEntity];
+        linkEntityRevisions.sort((entityA, entityB) =>
+          intervalCompareWithInterval(
+            entityA.metadata.temporalVersioning[variableAxis],
+            entityB.metadata.temporalVersioning[variableAxis],
+          ),
+        );
+
+        const latestLinkEntityRevision = linkEntityRevisions.at(-1);
+
+        if (!latestLinkEntityRevision) {
+          throw new Error(
+            `Couldn't find a latest link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
           );
+        }
 
-          return isMatching && !isMarkedToArchive;
-        });
+        const targetEntityRevisions = [...entities.rightEntity];
+        targetEntityRevisions.sort((entityA, entityB) =>
+          intervalCompareWithInterval(
+            entityA.metadata.temporalVersioning[variableAxis],
+            entityB.metadata.temporalVersioning[variableAxis],
+          ),
+        );
+
+        const latestTargetEntityRevision = targetEntityRevisions.at(-1);
+
+        if (!latestTargetEntityRevision) {
+          throw new Error(
+            `Couldn't find a target link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
+          );
+        }
+
+        const { entityTypeId, recordId } = latestLinkEntityRevision.metadata;
+
+        const isMatching = entityTypeId === linkEntityTypeId;
+        const isMarkedToArchive = draftLinksToArchive.some(
+          (markedLinkId) => markedLinkId === recordId.entityId,
+        );
+
+        if (isMatching && !isMarkedToArchive) {
+          linkAndTargetEntities.push({
+            linkEntity: latestLinkEntityRevision,
+            rightEntity: latestTargetEntityRevision,
+          });
+        }
+      }
 
       linkAndTargetEntities.push(...additions);
 

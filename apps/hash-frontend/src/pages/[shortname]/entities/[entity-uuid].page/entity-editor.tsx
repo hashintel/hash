@@ -1,4 +1,4 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
@@ -8,7 +8,7 @@ import { TypesSection } from "./entity-editor/types-section";
 import { DraftLinkState } from "./shared/use-draft-link-state";
 
 export interface EntityEditorProps extends DraftLinkState {
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
   setEntity: (entity: Entity) => void;
   refetch: () => Promise<void>;
   readonly: boolean;

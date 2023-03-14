@@ -91,7 +91,7 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_uri") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")"#
+                WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")"#
             )
         );
 
@@ -113,7 +113,7 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_uri") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0"),
+                WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0"),
                      "data_types" AS (SELECT * FROM "data_types" AS "data_types_3_4_5")"#
             )
         );

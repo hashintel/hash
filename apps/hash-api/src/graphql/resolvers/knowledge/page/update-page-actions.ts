@@ -1,10 +1,6 @@
-import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  AccountId,
-  EntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
-import { Entity } from "@local/hash-subgraph";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { AccountId, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
@@ -44,7 +40,7 @@ export const createEntityWithPlaceholdersFn =
       if (draft.entityTypeId) {
         draft.entityTypeId = placeholderResults.get(
           draft.entityTypeId,
-        ) as VersionedUri;
+        ) as VersionedUrl;
       }
     });
 
@@ -155,7 +151,7 @@ export const handleCreateNewEntity = async (params: {
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
         await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
-      ).metadata.recordId.entityId as EntityId,
+      ).metadata.recordId.entityId,
     });
   } catch (error) {
     if (error instanceof UserInputError) {
@@ -206,7 +202,7 @@ export const handleInsertNewBlock = async (
     );
 
     placeholderResults.set(entityPlaceholderId, {
-      entityId: blockData.metadata.recordId.entityId as EntityId,
+      entityId: blockData.metadata.recordId.entityId,
     });
 
     let block: Block;
@@ -241,7 +237,7 @@ export const handleInsertNewBlock = async (
     }
 
     placeholderResults.set(blockPlaceholderId, {
-      entityId: block.entity.metadata.recordId.entityId as EntityId,
+      entityId: block.entity.metadata.recordId.entityId,
     });
 
     return block;
@@ -321,12 +317,10 @@ export const handleUpdateEntity = async (
 
   await updateEntityProperties(context, {
     entity,
-    updatedProperties: Object.entries(action.properties).map(
-      ([key, value]) => ({
-        propertyTypeBaseUri: key,
-        value: (value ?? undefined) as PropertyValue,
-      }),
-    ),
+    updatedProperties: typedEntries(action.properties).map(([key, value]) => ({
+      propertyTypeBaseUrl: key,
+      value: (value ?? undefined) as PropertyValue,
+    })),
     actorId: user.accountId,
   });
 };

@@ -1,10 +1,10 @@
 import { ApolloClient } from "@apollo/client";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   getPageQuery,
   updatePageContents,
 } from "@local/hash-graphql-shared/queries/page.queries";
-import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
-import { VersionedUri } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -32,7 +32,7 @@ const generatePlaceholderId = () => `placeholder-${uuid()}`;
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
+type EntityTypeForComponentResult = [VersionedUrl, UpdatePageAction[]];
 
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
@@ -41,7 +41,7 @@ type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
 const calculateSaveActions = async (
   store: EntityStore,
   ownedById: OwnedById,
-  textEntityTypeId: VersionedUri,
+  textEntityTypeId: VersionedUrl,
   blocks: BlockEntity[],
   doc: Node,
   getEntityTypeForComponent: (
@@ -92,7 +92,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.recordId.entityId as EntityId,
+          entityId: draftEntity.metadata.recordId.entityId,
           properties: nextProperties,
         },
       });
@@ -118,7 +118,7 @@ const calculateSaveActions = async (
         draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
       }
 
-      let entityTypeId: VersionedUri | null = null;
+      let entityTypeId: VersionedUrl | null = null;
 
       if (isDraftTextEntity(draftEntity)) {
         /**
@@ -280,9 +280,9 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.recordId.entityId as EntityId,
-            newEntityEntityId: newChildEntityForBlock.metadata.recordId
-              .entityId as EntityId,
+            entityId: savedEntity.metadata.recordId.entityId,
+            newEntityEntityId:
+              newChildEntityForBlock.metadata.recordId.entityId,
           },
         });
       }
@@ -333,8 +333,7 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.recordId.entityId
             ? {
-                existingBlockEntityId: draftEntity.metadata.recordId
-                  .entityId as EntityId,
+                existingBlockEntityId: draftEntity.metadata.recordId.entityId,
               }
             : {
                 blockPlaceholderId,

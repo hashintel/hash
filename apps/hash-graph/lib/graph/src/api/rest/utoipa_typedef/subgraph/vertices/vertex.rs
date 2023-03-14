@@ -1,18 +1,53 @@
 use serde::Serialize;
+use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
 use crate::{
+    identifier::ontology::OntologyTypeVersion,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(untagged)]
+#[expect(clippy::enum_variant_names)]
+pub enum OntologyTypeVertexId {
+    DataType(DataTypeVertexId),
+    PropertyType(PropertyTypeVertexId),
+    EntityType(EntityTypeVertexId),
+}
+
+impl OntologyTypeVertexId {
+    #[must_use]
+    pub const fn base_id(&self) -> &BaseUrl {
+        match self {
+            Self::DataType(id) => &id.base_id,
+            Self::PropertyType(id) => &id.base_id,
+            Self::EntityType(id) => &id.base_id,
+        }
+    }
+
+    #[must_use]
+    pub const fn revision_id(&self) -> OntologyTypeVersion {
+        match self {
+            Self::DataType(id) => id.revision_id,
+            Self::PropertyType(id) => id.revision_id,
+            Self::EntityType(id) => id.revision_id,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::enum_variant_names)]
 pub enum OntologyVertex {
+    #[schema(title = "DataTypeVertex")]
     DataType(Box<DataTypeWithMetadata>),
+    #[schema(title = "PropertyTypeVertex")]
     PropertyType(Box<PropertyTypeWithMetadata>),
+    #[schema(title = "EntityTypeVertex")]
     EntityType(Box<EntityTypeWithMetadata>),
 }
 
@@ -38,6 +73,7 @@ impl From<EntityTypeWithMetadata> for OntologyVertex {
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub enum KnowledgeGraphVertex {
+    #[schema(title = "EntityVertex")]
     Entity(Entity),
 }
 
@@ -46,6 +82,8 @@ pub enum KnowledgeGraphVertex {
 #[serde(untagged)]
 #[expect(dead_code, reason = "This is used in the generated OpenAPI spec")]
 pub enum Vertex {
+    #[schema(title = "OntologyVertex")]
     Ontology(Box<OntologyVertex>),
+    #[schema(title = "KnowledgeGraphVertex")]
     KnowledgeGraph(Box<KnowledgeGraphVertex>),
 }

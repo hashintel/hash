@@ -6,7 +6,7 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri, EntityType};
+use type_system::{repr, url::VersionedUrl, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+        error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist},
         EntityTypeStore, StorePool,
     },
     subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
@@ -119,7 +119,7 @@ async fn create_entity_type<P: StorePool + Send>(
     })?;
 
     let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        entity_type.id().into(),
+        entity_type.id().clone().into(),
         ProvenanceMetadata::new(actor_id),
         owned_by_id,
     ));
@@ -130,7 +130,7 @@ async fn create_entity_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
 
-            if report.contains::<BaseUriAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -189,7 +189,7 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = String)]
-    type_to_update: VersionedUri,
+    type_to_update: VersionedUrl,
     actor_id: UpdatedById,
 }
 
@@ -213,16 +213,13 @@ async fn update_entity_type<P: StorePool + Send>(
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,
-        type_to_update,
+        mut type_to_update,
         actor_id,
     }) = body;
 
-    let new_type_id = VersionedUri::new(
-        type_to_update.base_uri().clone(),
-        type_to_update.version() + 1,
-    );
+    type_to_update.version += 1;
 
-    let entity_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
+    let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
         // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
         StatusCode::UNPROCESSABLE_ENTITY
@@ -241,7 +238,7 @@ async fn update_entity_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
 
-            if report.contains::<BaseUriDoesNotExist>() {
+            if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 

@@ -1,6 +1,6 @@
 use core::{cmp::Ordering, ops::Bound};
 
-use super::{invalid_bounds, Interval};
+use super::Interval;
 
 pub trait IntervalBound<T> {
     fn as_bound(&self) -> Bound<&T>;
@@ -35,7 +35,7 @@ pub trait IntervalBoundHelper<T>: IntervalBound<T> {
     }
 }
 
-impl<B: IntervalBound<T>, T> IntervalBoundHelper<T> for B where B: IntervalBound<T> {}
+impl<B, T> IntervalBoundHelper<T> for B where B: IntervalBound<T> {}
 
 impl<T, S, E> Interval<T, S, E>
 where
@@ -47,13 +47,14 @@ where
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> Ordering
     where
-        T: PartialOrd,
+        T: Ord,
     {
         compare_bounds(
             self.start().as_bound(),
             other.start().as_bound(),
             BoundType::Start,
             BoundType::Start,
+            Ord::cmp,
         )
     }
 
@@ -62,13 +63,14 @@ where
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> Ordering
     where
-        T: PartialOrd,
+        T: Ord,
     {
         compare_bounds(
             self.start().as_bound(),
             other.end().as_bound(),
             BoundType::Start,
             BoundType::End,
+            Ord::cmp,
         )
     }
 
@@ -77,13 +79,14 @@ where
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> Ordering
     where
-        T: PartialOrd,
+        T: Ord,
     {
         compare_bounds(
             self.end().as_bound(),
             other.start().as_bound(),
             BoundType::End,
             BoundType::Start,
+            Ord::cmp,
         )
     }
 
@@ -92,13 +95,14 @@ where
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> Ordering
     where
-        T: PartialOrd,
+        T: Ord,
     {
         compare_bounds(
             self.end().as_bound(),
             other.end().as_bound(),
             BoundType::End,
             BoundType::End,
+            Ord::cmp,
         )
     }
 }
@@ -109,12 +113,13 @@ pub enum BoundType {
     End,
 }
 
-pub fn compare_bounds<T: PartialOrd>(
+pub fn compare_bounds<T: PartialEq, O: From<Ordering>>(
     lhs: Bound<&T>,
     rhs: Bound<&T>,
     lhs_type: BoundType,
     rhs_type: BoundType,
-) -> Ordering {
+    cmp: impl FnOnce(&T, &T) -> O,
+) -> O {
     match (lhs, rhs, lhs_type, rhs_type) {
         // If the bound values are not equal, then the bound with the start value is less than the
         // bound with the higher value.
@@ -122,25 +127,25 @@ pub fn compare_bounds<T: PartialOrd>(
             Bound::Included(lhs) | Bound::Excluded(lhs),
             Bound::Included(rhs) | Bound::Excluded(rhs),
             ..,
-        ) if lhs != rhs => lhs.partial_cmp(rhs).unwrap_or_else(|| invalid_bounds()),
+        ) if lhs != rhs => cmp(lhs, rhs),
 
         // From here onwards, the bound values are equal
         (Bound::Unbounded, Bound::Unbounded, BoundType::Start, BoundType::Start)
         | (Bound::Unbounded, Bound::Unbounded, BoundType::End, BoundType::End)
         | (Bound::Excluded(_), Bound::Excluded(_), BoundType::Start, BoundType::Start)
         | (Bound::Excluded(_), Bound::Excluded(_), BoundType::End, BoundType::End)
-        | (Bound::Included(_), Bound::Included(_), ..) => Ordering::Equal,
+        | (Bound::Included(_), Bound::Included(_), ..) => Ordering::Equal.into(),
 
         (Bound::Unbounded, _, BoundType::Start, _)
         | (_, Bound::Unbounded, _, BoundType::End)
         | (Bound::Excluded(_), Bound::Excluded(_), BoundType::End, BoundType::Start)
         | (Bound::Excluded(_), Bound::Included(_), BoundType::End, _)
-        | (Bound::Included(_), Bound::Excluded(_), _, BoundType::Start) => Ordering::Less,
+        | (Bound::Included(_), Bound::Excluded(_), _, BoundType::Start) => Ordering::Less.into(),
 
         (Bound::Unbounded, _, BoundType::End, _)
         | (_, Bound::Unbounded, _, BoundType::Start)
         | (Bound::Excluded(_), Bound::Excluded(_), BoundType::Start, BoundType::End)
         | (Bound::Excluded(_), Bound::Included(_), BoundType::Start, _)
-        | (Bound::Included(_), Bound::Excluded(_), _, BoundType::End) => Ordering::Greater,
+        | (Bound::Included(_), Bound::Excluded(_), _, BoundType::End) => Ordering::Greater.into(),
     }
 }

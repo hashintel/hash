@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 deer = { path = ".." }
 error-stack = { version = "0.3.1", default_features = false }
-serde_json = { version = "1.0.91", default_features = false, features = ['alloc'] }
+serde_json = { version = "1.0.93", default_features = false, features = ['alloc'] }
 serde = { version = "1.0.152", default_features = false, features = ['alloc'] }
 bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }
 

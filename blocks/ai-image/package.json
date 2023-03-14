@@ -1,0 +1,65 @@
+{
+  "name": "@blocks/ai-image",
+  "version": "0.1.2",
+  "private": true,
+  "description": "Generate any image you can put into words, in just a few seconds",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/ai-image"
+  },
+  "license": "see LICENSE.md",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "format": "prettier --write --ignore-unknown .",
+    "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
+    "serve": "block-scripts serve"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "trailingComma": "all"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "^0.1.0",
+    "@blockprotocol/service": "0.1.1",
+    "@hashintel/design-system": "0.0.4",
+    "@mui/material": "5.11.8"
+  },
+  "devDependencies": {
+    "@types/react-dom": "18.0.9",
+    "block-scripts": "^0.1.0",
+    "mock-block-dock": "^0.1.0",
+    "prettier": "2.8.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "block-scripts": {
+    "port": 63212
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "AI Image",
+    "examples": [
+      {}
+    ],
+    "icon": "public/ai-image.svg",
+    "image": "public/block-preview.png",
+    "name": "@hash/ai-image",
+    "protocol": "0.3",
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/ai-image-block/v/2"
+  }
+}

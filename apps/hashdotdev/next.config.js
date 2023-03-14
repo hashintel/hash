@@ -9,6 +9,9 @@ const nextConfig = {
   // PRs.
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  images: {
+    domains: ["hash.ai"],
+  },
 };
 
 module.exports = nextConfig;

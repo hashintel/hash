@@ -1,7 +1,11 @@
 import { useQuery } from "@apollo/client";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { EntityId } from "@local/hash-graphql-shared/types";
-import { Entity, EntityMetadata, EntityVersion } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  EntityMetadata,
+  EntityTemporalVersioningMetadata,
+} from "@local/hash-subgraph";
 
 import {
   GetPageCommentsQuery,
@@ -15,7 +19,7 @@ export type PageThread = PageComment & {
 
 export type PageComment = {
   hasText: Array<TextToken>;
-  textUpdatedAt: EntityVersion;
+  textUpdatedAt: EntityTemporalVersioningMetadata;
   author: Entity;
   parent: Entity;
   metadata: EntityMetadata;

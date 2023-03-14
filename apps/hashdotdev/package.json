@@ -2,6 +2,12 @@
   "name": "@apps/hashdotdev",
   "version": "0.0.0-private",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "apps/hashdotdev"
+  },
+  "license": "(MIT OR Apache-2.0)",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -16,8 +22,8 @@
     "@emotion/server": "11.4.0",
     "@emotion/styled": "11.8.1",
     "@fortawesome/free-solid-svg-icons": "6.0.0",
-    "@mui/material": "5.10.6",
-    "@mui/system": "5.10.6",
+    "@mui/material": "5.11.8",
+    "@mui/system": "5.11.8",
     "axios": "0.27.2",
     "calculation-block": "0.2.2",
     "clsx": "1.2.1",
@@ -31,13 +37,16 @@
     "next-mdx-remote": "4.0.3",
     "next-seo": "5.14.1",
     "nextjs-progressbar": "0.0.16",
+    "plaiceholder": "2.5.0",
     "prismjs": "1.29.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "remark-mdx": "2.1.2",
     "remark-mdx-disable-explicit-jsx": "0.1.0",
     "remark-parse": "10.0.1",
-    "unified": "10.1.2"
+    "sharp": "0.31.3",
+    "unified": "10.1.2",
+    "unist-util-visit": "4.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.2",
@@ -48,6 +57,7 @@
     "@types/md5": "2.3.2",
     "@types/node": "18.11.9",
     "@types/react": "18.0.25",
+    "@types/unist": "2.0.6",
     "babel-loader": "^9.1.0",
     "eslint": "8.33.0",
     "typescript": "4.9.4"

@@ -1,19 +1,16 @@
 import {
   AccountId,
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
-} from "@local/hash-graphql-shared/types";
-import {
-  Entity,
-  EntityId,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
+  Uuid,
 } from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
@@ -70,11 +67,11 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   }
 
   const orgName = entity.properties[
-    SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl
   ] as string;
 
   const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
   ] as string;
 
   return {
@@ -124,14 +121,14 @@ export const createOrg: ImpureGraphFunction<
   const orgAccountId =
     params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri]: shortname,
-    [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri]: name,
+  const properties: EntityPropertiesObject = {
+    [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl]: shortname,
+    [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl]: name,
     ...(providedInfo
       ? {
-          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.recordId.baseUri]:
+          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.recordId.baseUrl]:
             {
-              [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUri]:
+              [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUrl]:
                 providedInfo.orgSize,
             },
         }
@@ -180,7 +177,7 @@ export const getOrgByShortname: ImpureGraphFunction<
         all: [
           {
             equal: [
-              { path: ["type", "versionedUri"] },
+              { path: ["type", "versionedUrl"] },
               { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
             ],
           },
@@ -189,7 +186,7 @@ export const getOrgByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
+                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
                 ],
               },
               { parameter: params.shortname },
@@ -198,24 +195,22 @@ export const getOrgByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -255,8 +250,8 @@ export const updateOrgShortname: ImpureGraphFunction<
 
   const updatedOrg = await updateEntityProperty(ctx, {
     entity: org.entity,
-    propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
+    propertyTypeBaseUrl:
+      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
     value: updatedShortname,
     actorId,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
@@ -295,8 +290,8 @@ export const updateOrgName: ImpureGraphFunction<
 
   const updatedEntity = await updateEntityProperty(ctx, {
     entity: org.entity,
-    propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri,
+    propertyTypeBaseUrl:
+      SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl,
     value: updatedOrgName,
     actorId,
   });
