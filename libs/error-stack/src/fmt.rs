@@ -208,10 +208,12 @@
 //! * lists are never empty
 //! * lists are nested in groups
 //! * groups are always preceded by lists
+//! * groups are ordered left to right
 //!
 //! Using the aforementioned delimiters for lists and groups the end result would be:
 //!
 //! Overview Tree: `[0, 1] ([2] ([3], [4, 5]), [6, 7, 8])`
+//! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`
 //!
 //! Attachments are not ordered by insertion order but by depth in the tree. Each context uses the
 //! attachments that are it's parents until the next context node. If attachments are shared between
