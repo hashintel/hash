@@ -19,6 +19,7 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
 
 .popover {
   font-size: 13px;
+  font-family: $fontFamily;
 
   border-radius: 6px;
   box-shadow: 0px 0px 1px rgba(62, 65, 86, 0.7),
