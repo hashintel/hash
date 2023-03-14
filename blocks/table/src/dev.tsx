@@ -33,20 +33,16 @@ const testEntity: RootEntity = {
     ],
     "https://blockprotocol.org/@hash/types/property-type/table-local-row/": [
       {
-        fullName: "David Davidson",
-        role: "CEO",
-      },
-      {
         fullName: "John Johnson",
-        role: "Head of Engineering",
+        role: "Role 1",
       },
       {
-        fullName: "React Reactson",
-        role: "Frontend Developer",
+        fullName: "Bob Bobson",
+        role: "Role 2",
       },
       {
-        fullName: "Node Nodeson",
-        role: "Backend Developer",
+        fullName: "Alice Aliceson",
+        role: "Role 3",
       },
     ],
   },
