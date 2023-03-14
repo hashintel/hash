@@ -215,7 +215,9 @@
 //! Overview Tree: `[0, 1] ([2] ([3], [4, 5]), [6, 7, 8])`
 //! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`
 //!
-//! Attachments are not ordered by insertion order but by depth in the tree. Each context uses the
+//! Attachments are not ordered by insertion order but by depth in the tree. The depth in the tree
+//! is the inverse of the insertion order, this means that the [`Debug`] output of all
+//! attachments is reversed from the calling order of [`Report::attach`]. Each context uses the
 //! attachments that are it's parents until the next context node. If attachments are shared between
 //! multiple contexts, they are duplicated and output twice.
 //!
@@ -269,11 +271,13 @@
 //!     ╰─▶ 8
 //! ```
 //!
-//! Attachments have been added to various places to simulate a real usecase with attachment and
-//! visualise their placement.
+//! Attachments have been added to various places to simulate a real use-case with attachments and
+//! to visualise their placement.
 //!
-//! The spacing and characters used are chosen carefully, as even when you have a context vs. group
-//! of contexts (as seen above) alignment is still ensured.
+//! The spacing and characters used are chosen carefully, to reduce indentation and increase visual
+//! legibility in large trees. The indentation of the group following the last entry in the
+//! preceding list is the same. To indicate that the last entry in the preceding list is the parent
+//! a new indentation of the connecting line is used.
 //!
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
