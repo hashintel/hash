@@ -182,9 +182,6 @@ pub enum Entities<'p> {
     EditionId,
     DecisionTime,
     TransactionTime,
-    // TODO: Remove when correctly resolving time intervals in subgraphs.
-    //   see https://app.asana.com/0/0/1203701389454316/f
-    ProjectedTime,
     Archived,
     OwnedById,
     UpdatedById,
@@ -205,7 +202,6 @@ impl Entities<'_> {
             | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime
-            | Self::ProjectedTime
             | Self::Archived
             | Self::OwnedById
             | Self::UpdatedById
@@ -235,7 +231,6 @@ impl Entities<'_> {
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
-            Self::ProjectedTime => unreachable!("projected time is not a column"),
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
             Self::UpdatedById => "record_created_by_id",
