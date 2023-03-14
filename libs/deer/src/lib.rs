@@ -16,7 +16,7 @@
 use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 
-use error_stack::{FutureExt, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
@@ -55,6 +55,9 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for Generic
     }
 }
 
+type FieldKeyValue<'de, F> = (<F as FieldAccess<'de>>::Key, <F as FieldAccess<'de>>::Value);
+type FieldResult<'de, F> = Option<Result<FieldKeyValue<'de, F>, ObjectAccessError>>;
+
 pub trait ObjectAccess<'de> {
     /// This enables bound-checking for [`ObjectAccess`].
     ///
@@ -88,7 +91,7 @@ pub trait ObjectAccess<'de> {
         self.field(GenericFieldAccess(PhantomData))
     }
 
-    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> FieldResult<'de, F>
     where
         F: FieldAccess<'de>;
 
