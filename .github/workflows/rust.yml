@@ -73,11 +73,9 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install tools
-        shell: bash
-        run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
-          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -138,12 +136,9 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install tools
-        shell: bash
-        run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
-          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
-          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -215,12 +210,9 @@ jobs:
           override: true
 
       - name: Install tools
-        shell: bash
-        run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
-          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
-          cargo quickinstall cargo-llvm-cov --version 0.5.9 || cargo install --version 0.5.9 cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make@0.36.3,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -266,9 +258,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install tools
-        run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make@0.36.3
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -298,13 +290,9 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        shell: bash
-        run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
-          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
-          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
-          cargo quickinstall cargo-semver-checks --version 0.17.0 || cargo install --version 0.17.0 cargo-semver-checks
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
