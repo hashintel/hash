@@ -198,7 +198,7 @@
 //! more than `1` child, this means that `(2, 6)` is a group (they share `1` as an immediate context
 //! parent), while `(3, 4, 6)` is not. `(3, 4, 6)` share the same parent with more than 1 child
 //! (`1`), but `1` is not the immediate context parent of `3` and `4` (`2`) is. In the more detailed
-//! example `(Dᶜ, Hᶜ, Cᶜ)` is considered a group because they share the same *immediate* context
+//! example `(Dᶜ, Hᶜ, Iᶜ)` is considered a group because they share the same *immediate* context
 //! parent `Aᶜ`, important to note is that we only refer to immediate context parents, `Fᵃ` is the
 //! immediate parent of `Iᶜ`, but is not a [`Context`], therefore to find the immediate context
 //! parent, we travel up the tree until we encounter our first [`Context`] node. Groups always
