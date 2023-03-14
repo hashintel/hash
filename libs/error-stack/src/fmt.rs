@@ -204,10 +204,10 @@
 //! parent, we travel up the tree until we encounter our first [`Context`] node. Groups always
 //! contain lists, for the sake of clarity this explanation only shows the first element.
 //!
-//! Additional rules that apply:
+//! The rules stated above also derive some additional rules:
 //! * lists are never empty
 //! * lists are nested in groups
-//! * groups are always preceded by lists
+//! * groups are always preceded by a single list
 //! * groups are ordered left to right
 //!
 //! Using the aforementioned delimiters for lists and groups the end result would be:
