@@ -33,7 +33,6 @@ pub use font::{Blinking, Font, FontFamily, FontScript, FontWeight, Underline};
 use crate::macros::impl_const;
 
 mod color;
-pub mod config;
 mod decorations;
 mod font;
 mod macros;
