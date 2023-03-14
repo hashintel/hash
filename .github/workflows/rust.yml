@@ -74,8 +74,6 @@ jobs:
 
       - name: Install tools
         uses: taiki-e/install-action@v2
-        env:
-          BINSTALL_LOG_LEVEL: debug
         with:
           tool: cargo-make@0.36.3,cargo-hack@0.5.26
 
@@ -139,8 +137,6 @@ jobs:
 
       - name: Install tools
         uses: taiki-e/install-action@v2
-        env:
-          BINSTALL_LOG_LEVEL: debug
         with:
           tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
@@ -215,8 +211,6 @@ jobs:
 
       - name: Install tools
         uses: taiki-e/install-action@v2
-        env:
-          BINSTALL_LOG_LEVEL: debug
         with:
           tool: cargo-make@0.36.3,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -265,8 +259,6 @@ jobs:
 
       - name: Install tools
         uses: taiki-e/install-action@v2
-        env:
-          BINSTALL_LOG_LEVEL: debug
         with:
           tool: cargo-make@0.36.3
 
@@ -299,8 +291,6 @@ jobs:
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@v2
-        env:
-          BINSTALL_LOG_LEVEL: debug
         with:
           tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
 
