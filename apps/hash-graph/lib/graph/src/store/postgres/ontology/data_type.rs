@@ -5,17 +5,15 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::OntologyTypeVertexId,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
-        crud::Read,
-        postgres::{TraversalContext, TraversalStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
+        PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::QueryTemporalAxes,
-        Subgraph,
+        edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes, Subgraph,
     },
 };
 
@@ -23,39 +21,15 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
-        data_type_id: &OntologyTypeVertexId,
-        traversal_context: &mut TraversalContext,
-        subgraph: &mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: QueryTemporalAxes,
+        data_type_ids: Vec<DataTypeVertexId>,
+        temporal_axes: QueryTemporalAxes,
+        graph_resolve_depths: GraphResolveDepths,
+        _traversal_context: &mut TraversalContext,
+        _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let traversal_status = traversal_context.ontology_traversal_map.update(
-            data_type_id,
-            current_resolve_depths,
-            temporal_axes.variable_interval().convert(),
-        );
-
-        #[expect(unused_assignments, unused_variables)]
-        let data_type = match traversal_status {
-            TraversalStatus::Unresolved(depths, interval) => {
-                // Depending on previous traversals, we may have to resolve with parameters
-                // different to those provided, so we update the resolve depths and the temporal
-                // axes.
-                //
-                // `TraversalMap::update` may return a higher resolve depth than the one
-                // requested, so we update the `resolve_depths` to the returned value.
-                current_resolve_depths = depths;
-                temporal_axes.set_variable_interval(interval.convert());
-                subgraph
-                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &temporal_axes)
-                    .await?
-            }
-            TraversalStatus::Resolved => return Ok(()),
-        };
-
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
         //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
@@ -101,29 +75,33 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
+        let data_types = Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes)
+            .await?
+            .into_iter()
+            .map(|entity| (entity.vertex_id(time_axis), entity))
+            .collect();
+
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut traversal_context = TraversalContext::default();
+        subgraph.vertices.data_types = data_types;
 
-        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes).await? {
-            let vertex_id = data_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, data_type);
-
-            self.traverse_data_type(
-                &vertex_id,
-                &mut traversal_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                temporal_axes.clone(),
-            )
-            .await?;
-
-            subgraph.roots.insert(vertex_id.into());
+        for vertex_id in subgraph.vertices.data_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
         }
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_data_type(
+            subgraph.vertices.data_types.keys().cloned().collect(),
+            subgraph.temporal_axes.resolved.clone(),
+            subgraph.depths,
+            &mut TraversalContext,
+            &mut subgraph,
+        )
+        .await?;
 
         Ok(subgraph)
     }

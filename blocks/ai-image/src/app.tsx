@@ -3,6 +3,8 @@ import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
+import { theme } from "@hashintel/design-system";
+import { ThemeProvider } from "@mui/material";
 
 import { GenerateImage } from "./app/generate-image";
 import { Image } from "./app/image";
@@ -36,18 +38,20 @@ export const App: BlockComponent<RootEntity> = ({
     return null;
   }
 
-  if (fileEntity) {
-    return (
-      <div style={{ position: "relative", width: "100%" }}>
-        <Image
-          description={
-            fileEntity.properties[descriptionKey] ?? "An AI-generated image"
-          }
-          url={fileEntity.properties[urlKey]}
-        />
-      </div>
-    );
-  }
-
-  return <GenerateImage blockEntity={blockEntity} />;
+  return (
+    <ThemeProvider theme={theme}>
+      {fileEntity ? (
+        <div style={{ position: "relative", width: "100%" }}>
+          <Image
+            description={
+              fileEntity.properties[descriptionKey] ?? "An AI-generated image"
+            }
+            url={fileEntity.properties[urlKey]}
+          />
+        </div>
+      ) : (
+        <GenerateImage blockEntity={blockEntity} />
+      )}
+    </ThemeProvider>
+  );
 };

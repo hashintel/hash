@@ -21,7 +21,6 @@ use graph::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
         time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
-        GraphElementVertexId, OntologyTypeVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -41,6 +40,9 @@ use graph::{
     },
     subgraph::{
         edges::GraphResolveDepths,
+        identifier::{
+            DataTypeVertexId, EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId,
+        },
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -238,7 +240,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeVertexId::from(url.clone()))
+            .remove(&DataTypeVertexId::from(url.clone()))
             .expect("no data type found"))
     }
 
@@ -288,7 +290,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeVertexId::from(url.clone()))
+            .remove(&PropertyTypeVertexId::from(url.clone()))
             .expect("no property type found"))
     }
 
@@ -338,7 +340,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeVertexId::from(url.clone()))
+            .remove(&EntityTypeVertexId::from(url.clone()))
             .expect("no entity type found"))
     }
 
@@ -547,10 +549,10 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
-                GraphElementVertexId::Ontology(_) => None,
                 GraphElementVertexId::KnowledgeGraph(vertex_id) => {
                     subgraph.vertices.entities.remove(&vertex_id)
                 }
+                _ => None,
             })
             .collect::<Vec<_>>();
 
@@ -603,10 +605,10 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
-                GraphElementVertexId::Ontology(_) => None,
                 GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
                 }
+                _ => None,
             })
             .collect())
     }

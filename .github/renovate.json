@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "automerge": false,
+  "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
@@ -44,6 +44,10 @@
       "groupName": "Sentry",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`"
     },
     {
       "matchManagers": ["regex"],

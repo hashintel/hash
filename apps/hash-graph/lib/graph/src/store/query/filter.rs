@@ -13,12 +13,13 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, OntologyTypeVertexId},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
     },
+    subgraph::identifier::VertexId,
 };
 
 /// A set of conditions used for queries.
@@ -48,6 +49,7 @@ pub enum Filter<'p, R: Record + ?Sized> {
 impl<'p, R> Filter<'p, R>
 where
     R: Record<QueryPath<'p>: OntologyQueryPath>,
+    R::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
 {
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`BaseUrl`].
@@ -98,12 +100,12 @@ where
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`OntologyTypeVertexId`].
+    /// [`VertexId`].
     #[must_use]
-    pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
+    pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p R::VertexId) -> Self {
         Self::All(vec![
-            Self::for_base_url(&ontology_type_vertex_id.base_id),
-            Self::for_version(ontology_type_vertex_id.revision_id),
+            Self::for_base_url(ontology_type_vertex_id.base_id()),
+            Self::for_version(ontology_type_vertex_id.revision_id()),
         ])
     }
 }
@@ -429,6 +431,7 @@ mod tests {
         knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
+        subgraph::identifier::DataTypeVertexId,
     };
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
@@ -472,7 +475,7 @@ mod tests {
 
     #[test]
     fn for_ontology_type_version_id() {
-        let url = OntologyTypeVertexId {
+        let url = DataTypeVertexId {
             base_id: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
