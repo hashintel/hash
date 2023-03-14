@@ -221,6 +221,9 @@
 //! attachments that are it's parents until the next context node. If attachments are shared between
 //! multiple contexts, they are duplicated and output twice.
 //!
+//! Groups are always preceded by a single list, the only case where this is not true is at the top
+//! level, in that case we opt to output separate trees for each member in the group.
+//!
 //! ### Output Formatting
 //!
 //! Lists are guaranteed to be non-empty and have at least a single context. The context is the
