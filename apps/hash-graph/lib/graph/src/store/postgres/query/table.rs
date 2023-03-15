@@ -79,24 +79,24 @@ impl ReferenceTable {
                 join: Column::EntityIsOfType(EntityIsOfType::EntityEditionId),
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::EntityUuid),
-                ),
+                ],
             },
             Self::EntityHasRightEntity => ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),
                     Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
-                ),
+                ],
             },
         }
     }
@@ -144,24 +144,24 @@ impl ReferenceTable {
                 join: Column::EntityTypes(EntityTypes::OntologyId),
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById),
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
+                ],
             },
             Self::EntityHasRightEntity => ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById),
                     Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
+                ],
             },
         }
     }
@@ -765,10 +765,7 @@ impl ForeignKeyReference {
     pub const fn reverse(self) -> Self {
         match self {
             Self::Single { on, join } => Self::Single { on: join, join: on },
-            Self::Double { on, join } => Self::Double {
-                on: (join.0, join.1),
-                join: (on.0, on.1),
-            },
+            Self::Double { on, join } => Self::Double { on: join, join: on },
         }
     }
 }
@@ -826,7 +823,7 @@ impl Relation {
                 join: Column::EntityEditions(EntityEditions::EditionId),
             }),
             Self::LeftEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
                 ],
