@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::Hash,
+};
 
 use serde::Serialize;
 use type_system::url::BaseUrl;
@@ -151,6 +154,16 @@ pub struct Edges {
     pub knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
+fn collect_merge<T: Hash + Eq, U: Ord, V>(
+    mut accumulator: HashMap<T, BTreeMap<U, V>>,
+    (key, mut value): (T, BTreeMap<U, V>),
+) -> HashMap<T, BTreeMap<U, V>> {
+    let entry = accumulator.entry(key).or_default();
+    entry.append(&mut value);
+
+    accumulator
+}
+
 impl From<crate::subgraph::edges::Edges> for Edges {
     fn from(edges: crate::subgraph::edges::Edges) -> Self {
         Self {
@@ -173,7 +186,7 @@ impl From<crate::subgraph::edges::Edges> for Edges {
                             .property_type_to_data_type
                             .into_flattened::<OntologyOutwardEdge>(),
                     )
-                    .collect(),
+                    .fold(HashMap::new(), collect_merge),
             ),
             knowledge_graph: KnowledgeGraphRootedEdges(
                 edges
@@ -184,7 +197,7 @@ impl From<crate::subgraph::edges::Edges> for Edges {
                             .entity_to_entity_type
                             .into_flattened::<KnowledgeGraphOutwardEdge>(),
                     )
-                    .collect(),
+                    .fold(HashMap::new(), collect_merge),
             ),
         }
     }
