@@ -11,6 +11,7 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 
 import { parseNameFromFileName } from "./client-mdx-util";
+import { imageMetadata } from "./image-metadata";
 
 type Node = {
   type: string;
@@ -102,7 +103,7 @@ export const getSerializedPage = async (params: {
     // Optionally pass remark/rehype plugins
     mdxOptions: {
       remarkPlugins: [remarkMdxDisableExplicitJsx],
-      rehypePlugins: [],
+      rehypePlugins: [imageMetadata],
     },
     scope: data,
   });
