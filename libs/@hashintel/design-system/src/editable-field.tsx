@@ -162,6 +162,11 @@ export const EditableField = ({
                     opacity: 1,
                     ...placeholderSx,
                   },
+                  // Override WP Input styles
+                  lineHeight: `${lineHeight ?? 1} !important`,
+                  minHeight: "unset",
+                  border: "none",
+                  boxShadow: "none !important",
                 },
               ],
             }}
@@ -169,11 +174,6 @@ export const EditableField = ({
               {
                 width: 1,
                 p: 0,
-                // Override WP Input styles
-                lineHeight: `${lineHeight ?? 1} !important`,
-                minHeight: "unset",
-                border: "none",
-                boxShadow: "none !important",
               },
               ...(Array.isArray(sx) ? sx : [sx]),
             ]}
