@@ -1,0 +1,42 @@
+.wrapper {
+  min-width: var(--columm-width);
+  width: var(--columm-width);
+  background: #fafbfc;
+  border-radius: 8px;
+
+  .title {
+    padding: 12px 20px;
+    font-weight: 600;
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .addCardButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    gap: 8px;
+
+    height: 40px;
+    background: #f7fafc;
+    border: 1px solid #ebf2f7;
+    border-radius: 6px;
+
+    text-align: center;
+    color: #758aa1;
+
+    svg {
+      width: 13px;
+    }
+
+    &:hover {
+      background: #eff2f4;
+    }
+  }
+}
