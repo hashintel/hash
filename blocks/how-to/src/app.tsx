@@ -1,8 +1,10 @@
+import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
+  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
-  type BlockComponent,
 } from "@blockprotocol/graph/react";
+import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import {
   Button,
   faPlus,
@@ -19,18 +21,17 @@ import {
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SizeMe } from "react-sizeme";
+
 import { EditableField } from "./editable-field";
 import { Step } from "./step";
 import {
-  HowToBlockIntroduction,
-  HowToBlockStep,
   HasHowToBlockIntroduction,
-  RootEntity,
+  HowToBlockIntroduction,
   HowToBlockLinksByLinkTypeId,
+  HowToBlockStep,
+  RootEntity,
 } from "./types";
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { SizeMe } from "react-sizeme";
 
 type RootEntityKey = keyof RootEntity["properties"];
 type LinkType = keyof HowToBlockLinksByLinkTypeId;
@@ -61,9 +62,6 @@ export type EntityType =
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!blockEntitySubgraph) {
-    throw new Error("No blockEntitySubgraph provided");
-  }
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } =
@@ -83,7 +81,7 @@ export const App: BlockComponent<RootEntity> = ({
     () =>
       linkedEntities.find(
         ({ linkEntity }) =>
-          linkEntity?.metadata.entityTypeId === hasHowToBlockIntroduction,
+          linkEntity.metadata.entityTypeId === hasHowToBlockIntroduction,
       ),
     [linkedEntities],
   );
@@ -98,7 +96,7 @@ export const App: BlockComponent<RootEntity> = ({
       linkedEntities
         .filter(
           ({ linkEntity }) =>
-            linkEntity?.metadata.entityTypeId === hasHowToBlockStep,
+            linkEntity.metadata.entityTypeId === hasHowToBlockStep,
         )
         .sort(
           (a, b) =>
@@ -108,7 +106,7 @@ export const App: BlockComponent<RootEntity> = ({
     [linkedEntities],
   );
 
-  const stepEntities: HowToBlockStep[] | undefined = stepLinkedEntities?.map(
+  const stepEntities: HowToBlockStep[] | undefined = stepLinkedEntities.map(
     (linkEntity) => linkEntity.rightEntity,
   );
 
@@ -146,7 +144,7 @@ export const App: BlockComponent<RootEntity> = ({
       });
 
       const createdEntityId =
-        createEntityResponse?.data?.metadata.recordId.entityId;
+        createEntityResponse.data?.metadata.recordId.entityId;
 
       if (createdEntityId) {
         await graphModule.createEntity({
@@ -157,14 +155,14 @@ export const App: BlockComponent<RootEntity> = ({
               leftEntityId: entityId,
               rightEntityId: createdEntityId,
               leftToRightOrder:
-                (stepLinkedEntities?.[stepLinkedEntities.length - 1]?.linkEntity
+                (stepLinkedEntities[stepLinkedEntities.length - 1]?.linkEntity
                   .linkData?.leftToRightOrder ?? 0) + 1,
             },
           },
         });
       }
     },
-    [graphModule, stepLinkedEntities],
+    [graphModule, stepLinkedEntities, entityId, readonly],
   );
 
   const createIntroduction = async () => {
@@ -205,8 +203,10 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
-  const addStep = () =>
-    createHowToEntity(howToBlockStepType, hasHowToBlockStep);
+  const addStep = useCallback(
+    () => createHowToEntity(howToBlockStepType, hasHowToBlockStep),
+    [createHowToEntity],
+  );
 
   const updateStepField = async (
     index: number,
@@ -237,13 +237,13 @@ export const App: BlockComponent<RootEntity> = ({
 
   useEffect(() => {
     if (!stepEntities.length) {
-      addStep();
+      void addStep();
     }
-  }, []);
+  }, [addStep, stepEntities.length]);
 
   const schema = useMemo(() => {
     const stepsWithTitle = stepEntities.filter(
-      ({ properties }) => !!properties[titleKey],
+      ({ properties: { [titleKey]: schemaTitle } }) => !!schemaTitle,
     );
 
     return JSON.stringify({
@@ -253,16 +253,18 @@ export const App: BlockComponent<RootEntity> = ({
       // Must have at least 2 steps for it to be valid
       ...(stepsWithTitle.length > 1
         ? {
-            step: stepsWithTitle.map(({ properties }) => {
-              const title = properties[titleKey];
-              const description = properties[descriptionKey];
-
-              return {
+            step: stepsWithTitle.map(
+              ({
+                properties: {
+                  [titleKey]: schemaTitle,
+                  [descriptionKey]: schemaDescription,
+                },
+              }) => ({
                 "@type": "HowToStep",
-                name: title,
-                text: description ? description : title,
-              };
-            }),
+                name: schemaTitle,
+                text: schemaDescription ?? schemaTitle,
+              }),
+            ),
           }
         : {}),
     });
@@ -272,6 +274,7 @@ export const App: BlockComponent<RootEntity> = ({
     <>
       <script
         type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <ThemeProvider theme={theme}>
@@ -373,7 +376,7 @@ export const App: BlockComponent<RootEntity> = ({
                           setDescriptionValue(event.target.value)
                         }
                         onBlur={(event) => {
-                          updateField(event.target.value, descriptionKey);
+                          void updateField(event.target.value, descriptionKey);
                         }}
                         sx={{
                           fontWeight: 500,

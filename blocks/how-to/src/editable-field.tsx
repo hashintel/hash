@@ -82,51 +82,49 @@ export const EditableField = ({
         }}
       >
         {!editing ? (
-          <>
-            <Typography
-              component="span"
-              ref={inputRef}
-              onClick={() => {
-                if (!editing && !value && !readonly) {
-                  setEditing(true);
-                }
-              }}
-              sx={[
-                ...(Array.isArray(sx) ? sx : [sx]),
-                {
-                  width: 1,
-                  wordBreak: "break-word",
-                  whiteSpace: "break-spaces",
-                  ...(!value
-                    ? {
-                        color: palette.gray[50],
-                        opacity: 1,
-                        ...placeholderSx,
-                      }
-                    : {}),
-                  ...(!editing && !value
-                    ? {
-                        cursor: "pointer",
-                      }
-                    : null),
-                },
-              ]}
-            >
-              {value && typeof value === "string" ? (
-                value
-              ) : (
-                <>
-                  {placeholder}{" "}
-                  <FontAwesomeIcon
-                    icon={{ icon: faPen }}
-                    sx={{
-                      fontSize: `inherit !important`,
-                    }}
-                  />
-                </>
-              )}
-            </Typography>
-          </>
+          <Typography
+            component="span"
+            ref={inputRef}
+            onClick={() => {
+              if (!value && !readonly) {
+                setEditing(true);
+              }
+            }}
+            sx={[
+              {
+                width: 1,
+                wordBreak: "break-word",
+                whiteSpace: "break-spaces",
+                ...(!value
+                  ? {
+                      color: palette.gray[50],
+                      opacity: 1,
+                      ...placeholderSx,
+                    }
+                  : {}),
+                ...(!value
+                  ? {
+                      cursor: "pointer",
+                    }
+                  : null),
+              },
+              ...(Array.isArray(sx) ? sx : [sx]),
+            ]}
+          >
+            {value && typeof value === "string" ? (
+              value
+            ) : (
+              <>
+                {placeholder}{" "}
+                <FontAwesomeIcon
+                  icon={{ icon: faPen }}
+                  sx={{
+                    fontSize: `inherit !important`,
+                  }}
+                />
+              </>
+            )}
+          </Typography>
         ) : (
           <InputBase
             {...props}
@@ -140,11 +138,6 @@ export const EditableField = ({
             onKeyDown={({ shiftKey, code }) => {
               if (!shiftKey && code === "Enter") {
                 inputRef.current?.blur();
-              }
-            }}
-            onClick={() => {
-              if (!editing && !value) {
-                setEditing(true);
               }
             }}
             onFocus={(event) =>
