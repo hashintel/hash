@@ -143,7 +143,7 @@ pub struct Edges {
     pub knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
-fn collect_merge<T: Hash + Eq + Debug, U: Ord + Debug, V: Debug>(
+fn collect_merge<T: Hash + Eq, U: Ord, V>(
     mut accumulator: HashMap<T, BTreeMap<U, Vec<V>>>,
     (key, value): (T, BTreeMap<U, Vec<V>>),
 ) -> HashMap<T, BTreeMap<U, Vec<V>>> {
