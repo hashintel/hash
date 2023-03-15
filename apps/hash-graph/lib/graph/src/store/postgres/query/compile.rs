@@ -8,7 +8,8 @@ use crate::{
         postgres::query::{
             expression::Constant,
             table::{
-                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes, Relation,
+                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes,
+                ReferenceTable, Relation,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
@@ -387,7 +388,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         joined_table: AliasedTable,
     ) {
         match relation {
-            Relation::EntityTypeLinks => {
+            Relation::Reference(ReferenceTable::EntityTypeLinks) => {
                 self.artifacts.required_tables.insert(joined_table);
                 self.statement
                     .where_expression
@@ -407,7 +408,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                         None,
                     ));
             }
-            Relation::EntityTypeInheritance => {
+            Relation::Reference(ReferenceTable::EntityTypeInheritance) => {
                 self.artifacts.required_tables.insert(joined_table);
                 self.statement
                     .where_expression
@@ -455,7 +456,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
             let current_alias = current_table.alias;
             for foreign_key_reference in relation.joins() {
                 let mut join_expression = JoinExpression::from_foreign_key(
-                    *foreign_key_reference,
+                    foreign_key_reference,
                     current_table.alias,
                     Alias {
                         condition_index: self.artifacts.condition_index,
