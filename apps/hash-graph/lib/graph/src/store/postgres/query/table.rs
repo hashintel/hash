@@ -481,8 +481,8 @@ pub enum ForeignKeyReference {
         join: Column<'static>,
     },
     Double {
-        on: (Column<'static>, Column<'static>),
-        join: (Column<'static>, Column<'static>),
+        on: [Column<'static>; 2],
+        join: [Column<'static>; 2],
     },
 }
 
@@ -563,44 +563,44 @@ impl Relation {
                 join: Column::EntityTypes(EntityTypes::OntologyId),
             }],
             Self::LeftEndpoint => &[ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::LeftEntityOwnedById),
                     Column::Entities(Entities::LeftEntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
+                ],
             }],
             Self::RightEndpoint => &[ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::RightEntityOwnedById),
                     Column::Entities(Entities::RightEntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
+                ],
             }],
             Self::OutgoingLink => &[ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::Entities(Entities::LeftEntityOwnedById),
                     Column::Entities(Entities::LeftEntityUuid),
-                ),
+                ],
             }],
             Self::IncomingLink => &[ForeignKeyReference::Double {
-                on: (
+                on: [
                     Column::Entities(Entities::OwnedById),
                     Column::Entities(Entities::EntityUuid),
-                ),
-                join: (
+                ],
+                join: [
                     Column::Entities(Entities::RightEntityOwnedById),
                     Column::Entities(Entities::RightEntityUuid),
-                ),
+                ],
             }],
         }
     }

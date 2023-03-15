@@ -44,8 +44,8 @@ impl JoinType {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct JoinOn<'p> {
-    pub left: Column<'p>,
-    pub right: Column<'p>,
+    pub join: Column<'p>,
+    pub on: Column<'p>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -67,14 +67,11 @@ impl<'p> JoinExpression<'p> {
                 join: JoinType::from_nullability(join.nullable(), on.nullable()),
                 table: join.table().aliased(join_alias),
                 on_alias,
-                on: vec![JoinOn {
-                    left: join,
-                    right: on,
-                }],
+                on: vec![JoinOn { join, on }],
             },
             ForeignKeyReference::Double {
-                join: (join1, join2),
-                on: (on1, on2),
+                join: [join1, join2],
+                on: [on1, on2],
             } => Self {
                 join: JoinType::from_nullability(
                     join1.nullable() || join2.nullable(),
@@ -84,12 +81,12 @@ impl<'p> JoinExpression<'p> {
                 on_alias,
                 on: vec![
                     JoinOn {
-                        left: join1,
-                        right: on1,
+                        join: join1,
+                        on: on1,
                     },
                     JoinOn {
-                        left: join2,
-                        right: on2,
+                        join: join2,
+                        on: on2,
                     },
                 ],
             },
@@ -109,9 +106,9 @@ impl Transpile for JoinExpression<'_> {
             if i > 0 {
                 fmt.write_str(" AND ")?;
             }
-            condition.left.aliased(self.table.alias).transpile(fmt)?;
+            condition.join.aliased(self.table.alias).transpile(fmt)?;
             fmt.write_str(" = ")?;
-            condition.right.aliased(self.on_alias).transpile(fmt)?;
+            condition.on.aliased(self.on_alias).transpile(fmt)?;
         }
         Ok(())
     }
