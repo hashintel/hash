@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
@@ -9,7 +9,8 @@ use crate::{
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+// WARNING: will always deserialize as `DataType`
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 #[expect(clippy::enum_variant_names)]
 pub enum OntologyTypeVertexId {
@@ -38,7 +39,7 @@ impl OntologyTypeVertexId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::enum_variant_names)]
@@ -69,7 +70,7 @@ impl From<EntityTypeWithMetadata> for OntologyVertex {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub enum KnowledgeGraphVertex {

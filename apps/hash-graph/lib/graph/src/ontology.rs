@@ -6,10 +6,10 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
-use std::iter::once;
+use std::{error::Error, iter::once};
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json;
 use time::OffsetDateTime;
 use type_system::{
@@ -101,6 +101,17 @@ where
     // This clone is necessary because `Serialize` requires us to take the param by reference here
     //  even though we only use it in places where we could move
     T::Representation::from(ontology_type.clone()).serialize(serializer)
+}
+
+fn deserialize_ontology_type<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
+where
+    T: OntologyType + TryFrom<T::Representation>,
+    <T as TryFrom<T::Representation>>::Error: Error,
+    D: Deserializer<'de>,
+{
+    let repr = T::Representation::deserialize(deserializer)?;
+
+    T::try_from(repr).map_err(|error| D::Error::custom(error.to_string()))
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -320,10 +331,14 @@ impl ExternalOntologyElementMetadata {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
+    #[serde(
+        rename = "schema",
+        serialize_with = "serialize_ontology_type",
+        deserialize_with = "deserialize_ontology_type"
+    )]
     inner: DataType,
     metadata: OntologyElementMetadata,
 }
@@ -364,10 +379,14 @@ impl OntologyTypeWithMetadata for DataTypeWithMetadata {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
+    #[serde(
+        rename = "schema",
+        serialize_with = "serialize_ontology_type",
+        deserialize_with = "deserialize_ontology_type"
+    )]
     inner: PropertyType,
     metadata: OntologyElementMetadata,
 }
@@ -408,10 +427,14 @@ impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
+    #[serde(
+        rename = "schema",
+        serialize_with = "serialize_ontology_type",
+        deserialize_with = "deserialize_ontology_type"
+    )]
     inner: EntityType,
     metadata: OntologyElementMetadata,
 }

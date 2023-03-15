@@ -119,7 +119,7 @@ pub struct LinkData {
 }
 
 /// The metadata of an [`Entity`] record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
 // TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
@@ -180,7 +180,7 @@ impl EntityMetadata {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     pub properties: EntityProperties,

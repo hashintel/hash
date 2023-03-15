@@ -99,7 +99,7 @@ define_ontology_type_vertex_id!(
 );
 define_ontology_type_vertex_id!(EntityTypeVertexId, EntityTypeWithMetadata, entity_types);
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     pub base_id: EntityId,

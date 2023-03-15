@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 use utoipa::{
     openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
@@ -15,17 +15,17 @@ use crate::{
 
 pub mod vertex;
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(transparent)]
 pub struct OntologyVertices(pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
     HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, KnowledgeGraphVertex>>,
 );
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]

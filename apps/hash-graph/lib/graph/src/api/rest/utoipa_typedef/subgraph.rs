@@ -1,7 +1,7 @@
 mod edges;
 mod vertices;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 pub use self::{
@@ -19,7 +19,7 @@ use crate::subgraph::{
     temporal_axes::SubgraphTemporalAxes,
 };
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
     roots: Vec<GraphElementVertexId>,

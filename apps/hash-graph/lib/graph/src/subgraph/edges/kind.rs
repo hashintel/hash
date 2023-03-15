@@ -23,7 +23,7 @@ pub trait EdgeKind<L: VertexId, R: EdgeEndpoint, const REVERSED: bool>: Sized {
     ) -> &'a mut AdjacencyList<L, Self, Self::EdgeSet>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OntologyEdgeKind {
     /// An ontology type can inherit from another ontology type.
@@ -103,7 +103,7 @@ impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, DataTypeVertexId, REVE
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
     /// This link [`Entity`] has another [`Entity`] on its 'left' endpoint.
@@ -132,7 +132,7 @@ impl<const REVERSED: bool> EdgeKind<EntityVertexId, EntityIdWithInterval, REVERS
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`].
