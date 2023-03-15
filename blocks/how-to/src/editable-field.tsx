@@ -4,18 +4,17 @@ import {
   Box,
   Fade,
   IconButton,
-  inputBaseClasses,
+  InputBase,
+  InputBaseProps,
   SxProps,
-  TextField,
-  TextFieldProps,
   Theme,
   Typography,
   useTheme,
 } from "@mui/material";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const EditableField = ({
-  height,
+  fontSize,
   readonly,
   placeholderSx = {},
   value,
@@ -24,16 +23,44 @@ export const EditableField = ({
   onBlur,
   ...props
 }: {
-  height: string;
+  fontSize: string;
   readonly?: boolean;
   placeholderSx?: SxProps<Theme>;
-} & TextFieldProps) => {
+} & InputBaseProps) => {
   const { palette } = useTheme();
 
   const [hovered, setHovered] = useState(false);
-  const [buttonFocused, setButtonFocused] = useState(false);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLDivElement | null>(null);
+  const [inputHeight, setInputHeight] = useState(0);
+
+  useEffect(() => {
+    if (!inputRef.current) return;
+
+    const resize = () => {
+      const newInputHeight = inputRef.current?.offsetHeight;
+
+      if (newInputHeight) {
+        setInputHeight(newInputHeight);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+    });
+
+    if (editing) {
+      inputRef.current.focus();
+    }
+
+    window.addEventListener("resize", resize);
+    resizeObserver.observe(inputRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", resize);
+    };
+  }, [editing]);
 
   return readonly && !value ? null : (
     <Box
@@ -41,114 +68,137 @@ export const EditableField = ({
       onMouseLeave={() => setHovered(false)}
       sx={{
         display: "flex",
+        alignItems: "center",
+        gap: 1,
       }}
     >
-      {!editing ? (
-        <Typography
-          onClick={() => {
-            if (!editing && !value && !readonly) {
-              setEditing(true);
+      <Box
+        sx={{
+          ...(editing ? { flex: 1 } : {}),
+          position: "relative",
+          transition: ({ transitions }) =>
+            inputHeight ? transitions.create("height") : "none",
+          ...(inputHeight ? { height: inputHeight } : {}),
+        }}
+      >
+        {!editing ? (
+          <>
+            <Typography
+              component="span"
+              ref={inputRef}
+              onClick={() => {
+                if (!editing && !value && !readonly) {
+                  setEditing(true);
+                }
+              }}
+              sx={[
+                ...(Array.isArray(sx) ? sx : [sx]),
+                {
+                  width: 1,
+                  wordBreak: "break-word",
+                  whiteSpace: "break-spaces",
+                  ...(!value
+                    ? {
+                        color: palette.gray[50],
+                        opacity: 1,
+                        ...placeholderSx,
+                      }
+                    : {}),
+                  ...(!editing && !value
+                    ? {
+                        cursor: "pointer",
+                      }
+                    : null),
+                },
+              ]}
+            >
+              {value && typeof value === "string" ? (
+                value
+              ) : (
+                <>
+                  {placeholder}{" "}
+                  <FontAwesomeIcon
+                    icon={{ icon: faPen }}
+                    sx={{
+                      fontSize: `inherit !important`,
+                    }}
+                  />
+                </>
+              )}
+            </Typography>
+          </>
+        ) : (
+          <InputBase
+            {...props}
+            multiline
+            value={value}
+            autoFocus
+            onBlur={(event) => {
+              setEditing(false);
+              onBlur?.(event);
+            }}
+            onKeyDown={({ shiftKey, code }) => {
+              if (!shiftKey && code === "Enter") {
+                inputRef.current?.blur();
+              }
+            }}
+            onClick={() => {
+              if (!editing && !value) {
+                setEditing(true);
+              }
+            }}
+            onFocus={(event) =>
+              event.currentTarget.setSelectionRange(
+                event.currentTarget.value.length,
+                event.currentTarget.value.length,
+              )
             }
-          }}
-          sx={[
-            ...(Array.isArray(sx) ? sx : [sx]),
-            {
-              ...(!value
-                ? {
+            inputRef={inputRef}
+            placeholder={!readonly ? placeholder : undefined}
+            inputProps={{
+              sx: [
+                {
+                  "&::placeholder": {
                     color: palette.gray[50],
                     opacity: 1,
                     ...placeholderSx,
-                  }
-                : {}),
-              ...(!editing && !value
-                ? {
-                    cursor: "pointer",
-                  }
-                : null),
-            },
-          ]}
-        >
-          {value && typeof value === "string" ? value : placeholder}
-        </Typography>
-      ) : (
-        <TextField
-          {...props}
-          value={value}
-          autoFocus
-          onBlur={(event) => {
-            setEditing(false);
-            onBlur?.(event);
-          }}
-          onKeyDown={({ code }) => {
-            if (code === "Enter") {
-              inputRef.current?.blur();
-            }
-          }}
-          onClick={() => {
-            if (!editing && !value) {
-              setEditing(true);
-            }
-          }}
-          inputRef={inputRef}
-          inputProps={{
-            sx: [
-              {
-                height: "auto",
-                p: 0,
-                "&::placeholder": {
-                  color: palette.gray[50],
-                  opacity: 1,
-                  ...placeholderSx,
+                  },
                 },
+              ],
+            }}
+            sx={[
+              {
+                width: 1,
+                p: 0,
               },
               ...(Array.isArray(sx) ? sx : [sx]),
-            ],
-          }}
-          variant="standard"
-          placeholder={!readonly ? placeholder : undefined}
-          sx={{
-            width: "100%",
-            [`.${inputBaseClasses.root}`]: {
-              paddingTop: 0,
-              height,
-              p: 0,
-            },
-            "& ::before, & ::after": {
-              display: "none",
-              borderWidth: "0 !important",
-            },
-          }}
-        />
-      )}
+            ]}
+          />
+        )}
+      </Box>
 
-      {!readonly ? (
-        <Fade in={(hovered || buttonFocused) && !editing}>
-          <Box sx={{ position: "relative", visibility: "visible !important" }}>
-            <IconButton
-              tabIndex={0}
-              onClick={() => {
-                setEditing(true);
-                inputRef.current?.focus();
-              }}
-              sx={{
-                position: "absolute",
-                top: -4,
-                left: 12,
-                padding: 0.5,
-              }}
-              onFocus={() => setButtonFocused(true)}
-              onBlur={() => setButtonFocused(false)}
-            >
-              <FontAwesomeIcon
-                icon={{ icon: !value ? faPen : faPenToSquare.icon }}
-                sx={{
-                  fontSize: `${height} !important`,
-                }}
-              />
-            </IconButton>
-          </Box>
-        </Fade>
-      ) : null}
+      <Fade in={!!value && hovered && !editing} timeout={editing ? 0 : 300}>
+        <IconButton
+          tabIndex={0}
+          onClick={() => {
+            setEditing(true);
+            inputRef.current?.focus();
+          }}
+          sx={{
+            display: "inline-flex",
+            fontSize: "inherit",
+            padding: 0.5,
+            marginTop: -0.25,
+          }}
+        >
+          <FontAwesomeIcon
+            icon={{ icon: faPenToSquare.icon }}
+            sx={{
+              fontSize: `${fontSize} !important`,
+            }}
+          />
+        </IconButton>
+      </Fade>
     </Box>
   );
 };

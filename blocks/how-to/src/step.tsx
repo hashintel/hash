@@ -8,7 +8,9 @@ interface StepProps {
   header: string;
   headerSx?: SxProps<Theme>;
   title?: string;
+  titlePlaceholder?: string;
   description?: string;
+  descriptionPlaceholder?: string;
   deletable?: boolean;
   readonly?: boolean;
   updateField: (value: string, field: TitleOrDescription) => void;
@@ -20,7 +22,9 @@ export const Step: FunctionComponent<StepProps> = ({
   header,
   headerSx = {},
   title,
+  titlePlaceholder,
   description,
+  descriptionPlaceholder,
   deletable = true,
   readonly,
   updateField,
@@ -94,10 +98,10 @@ export const Step: FunctionComponent<StepProps> = ({
         }}
       >
         <EditableField
+          fontSize="15px"
           value={titleValue}
           onChange={(event) => setTitleValue(event.target.value)}
           onBlur={(event) => updateField(event.target.value, titleKey)}
-          height="15px"
           sx={{
             fontWeight: 700,
             fontSize: 15,
@@ -105,7 +109,7 @@ export const Step: FunctionComponent<StepProps> = ({
             color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
-          placeholder="Step name goes here"
+          placeholder={titlePlaceholder}
           readonly={readonly}
         />
       </Box>
@@ -126,10 +130,10 @@ export const Step: FunctionComponent<StepProps> = ({
         }}
       >
         <EditableField
+          fontSize="14px"
           value={descriptionValue}
           onChange={(event) => setDescriptionValue(event.target.value)}
           onBlur={(event) => updateField(event.target.value, descriptionKey)}
-          height="18px"
           sx={{
             fontWeight: 400,
             fontSize: 14,
@@ -137,7 +141,7 @@ export const Step: FunctionComponent<StepProps> = ({
             color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
-          placeholder="Detailed instructions associated with the step can be added here. Click to start typing."
+          placeholder={descriptionPlaceholder}
           readonly={readonly}
         />
       </Box>

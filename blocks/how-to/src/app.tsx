@@ -30,6 +30,7 @@ import {
 } from "./types";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
+import { SizeMe } from "react-sizeme";
 
 type RootEntityKey = keyof RootEntity["properties"];
 type LinkType = keyof HowToBlockLinksByLinkTypeId;
@@ -274,217 +275,243 @@ export const App: BlockComponent<RootEntity> = ({
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <ThemeProvider theme={theme}>
-        <Box
-          ref={blockRootRef}
-          sx={{ display: "inline-block", width: 1 }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          {!readonly ? (
-            <Fade in={hovered}>
-              <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
-                <Link
-                  href="https://blockprotocol.org/@hash/blocks/how-to"
-                  target="_blank"
-                  variant="regularTextLabels"
-                  sx={({ palette }) => ({
-                    display: "inline-flex",
-                    alignItems: "center",
-                    textDecoration: "none",
-                    fontSize: 15,
-                    lineHeight: 1,
-                    letterSpacing: -0.02,
-                    marginBottom: 1.5,
-                    whiteSpace: "nowrap",
-                    color: palette.gray[50],
-                    fill: palette.gray[40],
-                    ":hover": {
-                      color: palette.gray[60],
-                      fill: palette.gray[50],
-                    },
-                  })}
-                >
-                  Get help{" "}
-                  <FontAwesomeIcon
-                    icon={faQuestionCircle}
-                    sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-                  />
-                </Link>
-              </Box>
-            </Fade>
-          ) : null}
+        <SizeMe>
+          {({ size }) => {
+            const isMobile = (size.width ?? 0) < 800;
 
-          <Card
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-              ...(!readonly
-                ? {
-                    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                    borderRadius: 2.5,
-                    boxShadow: "none",
-                    paddingY: 3,
-                    paddingX: 3.75,
-                  }
-                : {
-                    background: "none",
-                    boxShadow: "none",
-                  }),
-            }}
-          >
-            {title || description || !readonly ? (
-              <Stack
-                sx={{
-                  gap: 1.5,
-                }}
+            return (
+              <Box
+                ref={blockRootRef}
+                sx={{ display: "inline-block", width: 1 }}
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
               >
-                <EditableField
-                  value={titleValue}
-                  onChange={(event) => setTitleValue(event.target.value)}
-                  onBlur={(event) => updateField(event.target.value, titleKey)}
-                  height="21px"
+                {!readonly ? (
+                  <Fade in={hovered}>
+                    <Box
+                      sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}
+                    >
+                      <Link
+                        href="https://blockprotocol.org/@hash/blocks/how-to"
+                        target="_blank"
+                        variant="regularTextLabels"
+                        sx={({ palette }) => ({
+                          display: "inline-flex",
+                          alignItems: "center",
+                          textDecoration: "none",
+                          fontSize: 15,
+                          lineHeight: 1,
+                          letterSpacing: -0.02,
+                          marginBottom: 1.5,
+                          whiteSpace: "nowrap",
+                          color: palette.gray[50],
+                          fill: palette.gray[40],
+                          ":hover": {
+                            color: palette.gray[60],
+                            fill: palette.gray[50],
+                          },
+                        })}
+                      >
+                        Get help{" "}
+                        <FontAwesomeIcon
+                          icon={faQuestionCircle}
+                          sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
+                        />
+                      </Link>
+                    </Box>
+                  </Fade>
+                ) : null}
+
+                <Card
                   sx={{
-                    fontWeight: 700,
-                    fontSize: 21,
-                    lineHeight: 1,
-                    letterSpacing: "-0.02em",
-                    color: theme.palette.common.black,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                    ...(!readonly
+                      ? {
+                          border: ({ palette }) =>
+                            `1px solid ${palette.gray[20]}`,
+                          borderRadius: 2.5,
+                          boxShadow: "none",
+                          paddingY: 3,
+                          paddingX: 3.75,
+                        }
+                      : {
+                          background: "none",
+                          boxShadow: "none",
+                        }),
                   }}
-                  placeholder="Enter a how-to guide name"
-                  readonly={readonly}
-                />
-
-                <EditableField
-                  value={descriptionValue}
-                  onChange={(event) => setDescriptionValue(event.target.value)}
-                  onBlur={(event) =>
-                    updateField(event.target.value, descriptionKey)
-                  }
-                  height="18px"
-                  sx={{
-                    fontWeight: 500,
-                    fontSize: 14,
-                    lineHeight: 1.3,
-                    letterSpacing: "-0.02em",
-                    color: theme.palette.gray[90],
-                  }}
-                  placeholder="Click here to add a description of the how-to process"
-                  placeholderSx={{
-                    fontStyle: "italic",
-                  }}
-                  readonly={readonly}
-                />
-              </Stack>
-            ) : null}
-
-            {introEntity || !readonly ? (
-              <Box>
-                <Collapse
-                  in={!readonly && !introEntity && !introAnimatingOut}
-                  onExited={() => setIntroButtonAnimatingOut(false)}
                 >
-                  <Button
-                    variant="tertiary"
-                    size="small"
-                    sx={{ fontSize: 14 }}
-                    onClick={() => createIntroduction()}
-                    disabled={introButtonAnimatingOut}
-                  >
-                    <FontAwesomeIcon
-                      icon={{ icon: faPlus }}
-                      sx={{ mr: 1, fontSize: 13 }}
-                    />
-                    Add Introduction
-                  </Button>
-                </Collapse>
-
-                <Collapse
-                  in={!!introEntity && !introButtonAnimatingOut}
-                  onExited={() => setIntroAnimatingOut(false)}
-                  appear
-                >
-                  <Step
-                    header="Introduction"
-                    title={introEntity?.properties[titleKey] ?? ""}
-                    description={introEntity?.properties[descriptionKey] ?? ""}
-                    updateField={updateIntroductionField}
-                    onRemove={() => removeIntroduction()}
-                    readonly={readonly}
-                    deleteButtonText="Remove intro"
-                  />
-                </Collapse>
-              </Box>
-            ) : null}
-
-            <Box>
-              {stepEntities.map((stepEntity, index) => (
-                <Collapse
-                  key={stepEntity.metadata.recordId.entityId}
-                  in={stepAnimatingOut !== index}
-                  onExited={async () => {
-                    setStepAnimatingOut(-1);
-
-                    const stepLink = stepLinkedEntities[index]?.linkEntity;
-
-                    if (!stepLink) {
-                      return;
-                    }
-
-                    await graphModule.deleteEntity({
-                      data: {
-                        entityId: stepLink.metadata.recordId.entityId,
-                      },
-                    });
-                  }}
-                  appear
-                >
-                  <Box
-                    sx={{
-                      mb: index === stepEntities.length - 1 ? 0 : 3,
-                      transition: ({ transitions }) =>
-                        transitions.create("margin-bottom"),
-                    }}
-                  >
-                    <Step
-                      header={`Step ${index + 1}`}
-                      headerSx={{
-                        fontSize: 12,
-                        textTransform: "uppercase",
+                  {title || description || !readonly ? (
+                    <Stack
+                      sx={{
+                        gap: 1.5,
                       }}
-                      title={stepEntity.properties[titleKey]}
-                      description={stepEntity.properties[descriptionKey]}
-                      updateField={(value, field) =>
-                        updateStepField(index, value, field)
-                      }
-                      onRemove={() => removeStep(index)}
-                      readonly={readonly}
-                      deletable={stepEntities.length > 1}
-                      deleteButtonText="Remove step"
-                    />
-                  </Box>
-                </Collapse>
-              ))}
-            </Box>
+                    >
+                      <EditableField
+                        fontSize="21px"
+                        value={titleValue}
+                        onChange={(event) => setTitleValue(event.target.value)}
+                        onBlur={(event) =>
+                          updateField(event.target.value, titleKey)
+                        }
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: 21,
+                          lineHeight: 1,
+                          letterSpacing: "-0.02em",
+                          color: theme.palette.common.black,
+                        }}
+                        placeholder="Enter a how-to guide name"
+                        readonly={readonly}
+                      />
 
-            {!readonly ? (
-              <Box>
-                <Button
-                  variant="tertiary"
-                  size="small"
-                  sx={{ fontSize: 14 }}
-                  onClick={addStep}
-                >
-                  <FontAwesomeIcon
-                    icon={{ icon: faPlus }}
-                    sx={{ mr: 1, fontSize: 13 }}
-                  />
-                  Add a step
-                </Button>
+                      <EditableField
+                        fontSize="14px"
+                        value={descriptionValue}
+                        onChange={(event) =>
+                          setDescriptionValue(event.target.value)
+                        }
+                        onBlur={(event) => {
+                          updateField(event.target.value, descriptionKey);
+                        }}
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: 14,
+                          lineHeight: 1.3,
+                          letterSpacing: "-0.02em",
+                          color: theme.palette.gray[90],
+                        }}
+                        placeholder="Click here to add a description of the how-to process"
+                        placeholderSx={{
+                          fontStyle: "italic",
+                        }}
+                        readonly={readonly}
+                      />
+                    </Stack>
+                  ) : null}
+
+                  {introEntity || !readonly ? (
+                    <Box>
+                      <Collapse
+                        in={!readonly && !introEntity && !introAnimatingOut}
+                        onExited={() => setIntroButtonAnimatingOut(false)}
+                      >
+                        <Button
+                          variant="tertiary"
+                          size="small"
+                          sx={{ fontSize: 14 }}
+                          onClick={() => createIntroduction()}
+                          disabled={introButtonAnimatingOut}
+                        >
+                          <FontAwesomeIcon
+                            icon={{ icon: faPlus }}
+                            sx={{ mr: 1, fontSize: 13 }}
+                          />
+                          Add Introduction
+                        </Button>
+                      </Collapse>
+
+                      <Collapse
+                        in={!!introEntity && !introButtonAnimatingOut}
+                        onExited={() => setIntroAnimatingOut(false)}
+                        appear
+                      >
+                        <Step
+                          header="Introduction"
+                          title={introEntity?.properties[titleKey] ?? ""}
+                          titlePlaceholder="Requirements, Ingredients, Pre-requisites, etc."
+                          description={
+                            introEntity?.properties[descriptionKey] ?? ""
+                          }
+                          descriptionPlaceholder="Enter a list of things that might be helpful for people to know before they begin."
+                          updateField={updateIntroductionField}
+                          onRemove={() => removeIntroduction()}
+                          readonly={readonly}
+                          deleteButtonText="Remove intro"
+                        />
+                      </Collapse>
+                    </Box>
+                  ) : null}
+
+                  <Box>
+                    {stepEntities.map((stepEntity, index) => (
+                      <Collapse
+                        key={stepEntity.metadata.recordId.entityId}
+                        in={stepAnimatingOut !== index}
+                        onExited={async () => {
+                          setStepAnimatingOut(-1);
+
+                          const stepLink =
+                            stepLinkedEntities[index]?.linkEntity;
+
+                          if (!stepLink) {
+                            return;
+                          }
+
+                          await graphModule.deleteEntity({
+                            data: {
+                              entityId: stepLink.metadata.recordId.entityId,
+                            },
+                          });
+                        }}
+                        appear
+                      >
+                        <Box
+                          sx={{
+                            mb: index === stepEntities.length - 1 ? 0 : 3,
+                            transition: ({ transitions }) =>
+                              transitions.create("margin-bottom"),
+                          }}
+                        >
+                          <Step
+                            header={`Step ${index + 1}`}
+                            headerSx={{
+                              fontSize: 12,
+                              textTransform: "uppercase",
+                            }}
+                            title={stepEntity.properties[titleKey]}
+                            titlePlaceholder="Step name goes here"
+                            description={stepEntity.properties[descriptionKey]}
+                            descriptionPlaceholder={
+                              isMobile
+                                ? "Additional instructions here"
+                                : "Detailed instructions associated with the step can be added here. Click to start typing."
+                            }
+                            updateField={(value, field) =>
+                              updateStepField(index, value, field)
+                            }
+                            onRemove={() => removeStep(index)}
+                            readonly={readonly}
+                            deletable={stepEntities.length > 1}
+                            deleteButtonText="Remove step"
+                          />
+                        </Box>
+                      </Collapse>
+                    ))}
+                  </Box>
+
+                  {!readonly ? (
+                    <Box>
+                      <Button
+                        variant="tertiary"
+                        size="small"
+                        sx={{ fontSize: 14 }}
+                        onClick={addStep}
+                      >
+                        <FontAwesomeIcon
+                          icon={{ icon: faPlus }}
+                          sx={{ mr: 1, fontSize: 13 }}
+                        />
+                        Add a step
+                      </Button>
+                    </Box>
+                  ) : null}
+                </Card>
               </Box>
-            ) : null}
-          </Card>
-        </Box>
+            );
+          }}
+        </SizeMe>
       </ThemeProvider>
     </>
   );
