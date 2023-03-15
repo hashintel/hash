@@ -352,7 +352,6 @@ export const App: BlockComponent<RootEntity> = ({
                       }}
                     >
                       <EditableField
-                        fontSize="21px"
                         value={titleValue}
                         onChange={(event) => setTitleValue(event.target.value)}
                         onBlur={(event) =>
@@ -370,7 +369,6 @@ export const App: BlockComponent<RootEntity> = ({
                       />
 
                       <EditableField
-                        fontSize="14px"
                         value={descriptionValue}
                         onChange={(event) =>
                           setDescriptionValue(event.target.value)

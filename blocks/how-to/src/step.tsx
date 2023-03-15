@@ -103,7 +103,6 @@ export const Step: FunctionComponent<StepProps> = ({
         }}
       >
         <EditableField
-          fontSize="15px"
           value={titleValue}
           onChange={(event) => setTitleValue(event.target.value)}
           onBlur={(event) => updateField(event.target.value, titleKey)}
@@ -135,7 +134,6 @@ export const Step: FunctionComponent<StepProps> = ({
         }}
       >
         <EditableField
-          fontSize="14px"
           value={descriptionValue}
           onChange={(event) => setDescriptionValue(event.target.value)}
           onBlur={(event) => updateField(event.target.value, descriptionKey)}

@@ -16,7 +16,6 @@ import { faPen } from "./fa-icons/fa-pen";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export const EditableField = ({
-  fontSize,
   readonly,
   placeholderSx = {},
   value,
@@ -25,7 +24,6 @@ export const EditableField = ({
   onBlur,
   ...props
 }: {
-  fontSize: string;
   readonly?: boolean;
   placeholderSx?: SxProps<Theme>;
 } & InputBaseProps) => {
@@ -65,6 +63,10 @@ export const EditableField = ({
       window.removeEventListener("resize", resize);
     };
   }, [editing]);
+
+  const fontSize = sx && "fontSize" in sx ? sx.fontSize?.toString() : null;
+  const lineHeight =
+    sx && "lineHeight" in sx ? sx.lineHeight?.toString() : null;
 
   return readonly && !value ? null : (
     <Box
@@ -167,6 +169,11 @@ export const EditableField = ({
               {
                 width: 1,
                 p: 0,
+                // Override WP Input styles
+                lineHeight: `${lineHeight ?? 1} !important`,
+                minHeight: "unset",
+                border: "none",
+                boxShadow: "none !important",
               },
               ...(Array.isArray(sx) ? sx : [sx]),
             ]}
@@ -191,7 +198,7 @@ export const EditableField = ({
           <FontAwesomeIcon
             icon={{ icon: faPenToSquare.icon }}
             sx={{
-              fontSize: `${fontSize} !important`,
+              fontSize: `${fontSize ?? "16"} !important`,
             }}
           />
         </IconButton>
