@@ -278,17 +278,26 @@ mod tests {
             SharedEdgeKind::IsOfType,
             false,
             EntityTypeVertexId {
-                base_id: BaseUrl::new("https://example.com/".to_owned()).unwrap(),
+                base_id: BaseUrl::new("https://example.com/".to_owned())
+                    .expect("should be valid URL"),
                 revision_id: OntologyTypeVersion::new(0),
             },
         );
 
         let edges = Edges::from(edges);
         assert_eq!(edges.knowledge_graph.0.len(), 1);
-        let (_, values) = edges.knowledge_graph.0.iter().next().unwrap();
+
+        let (_, values) = edges
+            .knowledge_graph
+            .0
+            .iter()
+            .next()
+            .expect("should have at least a single entry");
         assert_eq!(values.len(), 1);
 
-        let (_, edges) = values.first_key_value().unwrap();
+        let (_, edges) = values
+            .first_key_value()
+            .expect("should have at least a single entry");
         assert_eq!(edges.len(), 2);
     }
 }
