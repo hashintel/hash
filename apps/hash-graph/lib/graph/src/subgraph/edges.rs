@@ -8,6 +8,8 @@ use std::{
     hash::Hash,
 };
 
+use serde::Deserialize;
+
 pub use self::{
     edge::OutwardEdge,
     kind::{
@@ -135,6 +137,8 @@ where
     }
 }
 
+// TODO: this is a bit more complicated, because we need to inspect the incoming value from `Edges`
+// into proper versions!
 #[derive(Default, Debug)]
 pub struct Edges {
     pub entity_to_entity:

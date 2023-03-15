@@ -359,7 +359,7 @@ impl QueryTemporalAxes {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SubgraphTemporalAxes {
     pub initial: QueryTemporalAxesUnresolved,
     pub resolved: QueryTemporalAxes,

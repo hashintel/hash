@@ -13,6 +13,7 @@ use std::{
 };
 
 use error_stack::Result;
+use serde::Deserialize;
 
 use self::{
     edges::{Edges, GraphResolveDepths},
@@ -28,7 +29,7 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Subgraph {
     pub roots: HashSet<GraphElementVertexId>,
     pub vertices: Vertices,

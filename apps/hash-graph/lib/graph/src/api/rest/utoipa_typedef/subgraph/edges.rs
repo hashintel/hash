@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 use utoipa::{
     openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
@@ -11,9 +11,12 @@ use crate::{
     api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     subgraph::{
-        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+        edges::{
+            AdjacencyList, KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind,
+        },
         identifier::{
-            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
+            PropertyTypeVertexId,
         },
         temporal_axes::VariableAxis,
     },
@@ -143,7 +146,7 @@ pub struct OntologyRootedEdges(
     pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Edges {
     #[serde(flatten)]
     pub ontology: OntologyRootedEdges,
@@ -186,6 +189,89 @@ impl From<crate::subgraph::edges::Edges> for Edges {
                     )
                     .collect(),
             ),
+        }
+    }
+}
+
+impl From<Edges> for crate::subgraph::edges::Edges {
+    fn from(value: Edges) -> Self {
+        let Edges {
+            ontology,
+            knowledge_graph,
+        } = value;
+
+        let entity_type_to_entity_type = AdjacencyList::default();
+        let entity_type_to_property_type = AdjacencyList::default();
+        let property_type_to_property_type = AdjacencyList::default();
+        let property_type_to_data_type = AdjacencyList::default();
+
+        let mut entity_to_entity = AdjacencyList::default();
+        let mut entity_to_entity_type = AdjacencyList::default();
+
+        for (base_url, versions) in ontology.0 {
+            for (version, edges) in versions {
+                for edge in edges {
+                    match edge {
+                        OntologyOutwardEdge::ToOntology(OutwardEdge {
+                            kind,
+                            reversed,
+                            right_endpoint,
+                        }) => {
+                            // todo, we're unable to determine what type it is exactly, e.g. an
+                            //  entity-type of a property-type
+                        }
+                        OntologyOutwardEdge::ToKnowledgeGraph(OutwardEdge {
+                            kind,
+                            reversed,
+                            right_endpoint,
+                        }) => {
+                            // todo
+                        }
+                    }
+                }
+            }
+        }
+
+        for (base_id, revisions) in knowledge_graph.0 {
+            for (revision_id, edges) in revisions {
+                let vertex_id = EntityVertexId {
+                    base_id,
+                    revision_id,
+                };
+
+                for edge in edges {
+                    match edge {
+                        KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
+                            kind,
+                            reversed,
+                            right_endpoint,
+                        }) => {
+                            entity_to_entity.insert(&vertex_id, kind, reversed, right_endpoint);
+                        }
+                        KnowledgeGraphOutwardEdge::ToOntology(OutwardEdge {
+                            kind,
+                            reversed,
+                            right_endpoint,
+                        }) => {
+                            entity_to_entity_type.insert(
+                                &vertex_id,
+                                kind,
+                                reversed,
+                                right_endpoint,
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        Self {
+            entity_to_entity,
+            entity_to_entity_type,
+            entity_type_to_entity_type,
+            entity_type_to_property_type,
+            property_type_to_property_type,
+            property_type_to_data_type,
         }
     }
 }
