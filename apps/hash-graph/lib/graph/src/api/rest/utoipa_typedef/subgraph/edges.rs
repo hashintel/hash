@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{hash_map::Entry, BTreeMap, HashMap},
+    hash::Hash,
+};
 
 use serde::Serialize;
 use type_system::url::BaseUrl;
@@ -151,6 +154,28 @@ pub struct Edges {
     pub knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
+fn collect_merge<T: Hash + Eq, U: Ord, V>(
+    mut accumulator: HashMap<T, BTreeMap<U, Vec<V>>>,
+    (key, value): (T, BTreeMap<U, Vec<V>>),
+) -> HashMap<T, BTreeMap<U, Vec<V>>> {
+    match accumulator.entry(key) {
+        Entry::Occupied(mut occupied) => {
+            let entry = occupied.get_mut();
+
+            for (revision, mut edges) in value {
+                let buffer = entry.entry(revision).or_default();
+                buffer.append(&mut edges);
+            }
+        }
+        Entry::Vacant(vacant) => {
+            // hot path, instead of merging one by one, just replace
+            vacant.insert(value);
+        }
+    }
+
+    accumulator
+}
+
 impl From<crate::subgraph::edges::Edges> for Edges {
     fn from(edges: crate::subgraph::edges::Edges) -> Self {
         Self {
@@ -173,7 +198,7 @@ impl From<crate::subgraph::edges::Edges> for Edges {
                             .property_type_to_data_type
                             .into_flattened::<OntologyOutwardEdge>(),
                     )
-                    .collect(),
+                    .fold(HashMap::new(), collect_merge),
             ),
             knowledge_graph: KnowledgeGraphRootedEdges(
                 edges
@@ -184,7 +209,7 @@ impl From<crate::subgraph::edges::Edges> for Edges {
                             .entity_to_entity_type
                             .into_flattened::<KnowledgeGraphOutwardEdge>(),
                     )
-                    .collect(),
+                    .fold(HashMap::new(), collect_merge),
             ),
         }
     }
@@ -206,5 +231,84 @@ impl ToSchema<'_> for Edges {
                 )))
                 .into(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use type_system::url::BaseUrl;
+    use uuid::Uuid;
+
+    use crate::{
+        api::rest::utoipa_typedef::subgraph::Edges,
+        identifier::{
+            account::AccountId,
+            knowledge::EntityId,
+            ontology::OntologyTypeVersion,
+            time::{ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp},
+        },
+        knowledge::EntityUuid,
+        provenance::OwnedById,
+        subgraph::{
+            edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+            identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
+        },
+    };
+
+    #[test]
+    fn merge_ontology() {
+        let vertex_id = EntityVertexId {
+            base_id: EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            },
+            revision_id: Timestamp::now(),
+        };
+
+        let mut edges = crate::subgraph::edges::Edges::default();
+
+        // the data used does not matter, what only matters is that we actually merged the data
+        edges.entity_to_entity.insert(
+            &vertex_id,
+            KnowledgeGraphEdgeKind::HasRightEntity,
+            false,
+            EntityIdWithInterval {
+                entity_id: EntityId {
+                    owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                    entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                },
+                interval: LeftClosedTemporalInterval::new(
+                    ClosedTemporalBound::Inclusive(Timestamp::now()),
+                    OpenTemporalBound::Unbounded,
+                ),
+            },
+        );
+
+        edges.entity_to_entity_type.insert(
+            &vertex_id,
+            SharedEdgeKind::IsOfType,
+            false,
+            EntityTypeVertexId {
+                base_id: BaseUrl::new("https://example.com/".to_owned())
+                    .expect("should be valid URL"),
+                revision_id: OntologyTypeVersion::new(0),
+            },
+        );
+
+        let edges = Edges::from(edges);
+        assert_eq!(edges.knowledge_graph.0.len(), 1);
+
+        let (_, values) = edges
+            .knowledge_graph
+            .0
+            .iter()
+            .next()
+            .expect("should have at least a single entry");
+        assert_eq!(values.len(), 1);
+
+        let (_, edges) = values
+            .first_key_value()
+            .expect("should have at least a single entry");
+        assert_eq!(edges.len(), 2);
     }
 }
