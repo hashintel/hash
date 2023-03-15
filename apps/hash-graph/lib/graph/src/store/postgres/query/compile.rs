@@ -283,31 +283,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    fn compile_latest_entity_version_filter(
-        &mut self,
-        path: &R::QueryPath<'_>,
-        operator: EqualityOperator,
-    ) -> Condition<'c> {
-        let alias = self.add_join_statements(path);
-        self.pin_entity_table(alias);
-        // Adds the variable interval condition, so we use the same time axis as specified in the
-        // temporal axes.
-        let condition = Condition::TimeIntervalContainsTimestamp(
-            Expression::Column(
-                Column::Entities(Entities::from_time_axis(
-                    self.temporal_axes.variable_time_axis(),
-                ))
-                .aliased(alias),
-            ),
-            Expression::Function(Function::Now),
-        );
-
-        match operator {
-            EqualityOperator::Equal => condition,
-            EqualityOperator::NotEqual => Condition::Not(Box::new(condition)),
-        }
-    }
-
     /// Searches for [`Filter`]s, which requires special treatment and returns the corresponding
     /// condition if any.
     ///
@@ -337,22 +312,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             path,
                             EqualityOperator::NotEqual,
                         ))
-                    }
-                    (Column::Entities(Entities::ProjectedTime), Filter::Equal(..), "latest") => {
-                        Some(
-                            self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::Equal,
-                            ),
-                        )
-                    }
-                    (Column::Entities(Entities::ProjectedTime), Filter::NotEqual(..), "latest") => {
-                        Some(
-                            self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::NotEqual,
-                            ),
-                        )
                     }
                     _ => None,
                 },
@@ -404,21 +363,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         expression: &'p FilterExpression<'f, R>,
     ) -> Expression<'c> {
         match expression {
-            FilterExpression::Path(path) => {
-                let column = self.compile_path_column(path);
-                // TODO: Remove special casing when correctly resolving time intervals in subgraphs.
-                //   see https://app.asana.com/0/0/1203701389454316/f
-                if column.column == Column::Entities(Entities::ProjectedTime) {
-                    Expression::Function(Function::Lower(Box::new(Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
-                            self.temporal_axes.variable_time_axis(),
-                        ))
-                        .aliased(column.alias),
-                    ))))
-                } else {
-                    Expression::Column(column)
-                }
-            }
+            FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
             FilterExpression::Parameter(parameter) => {
                 match parameter {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),
@@ -508,13 +453,16 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
 
         for relation in path.relations() {
             let current_alias = current_table.alias;
-            for (current_column, join_column) in relation.joins() {
-                let current_column = current_column.aliased(current_table.alias);
-                let mut join_column = join_column.aliased(Alias {
-                    condition_index: self.artifacts.condition_index,
-                    chain_depth: current_table.alias.chain_depth + 1,
-                    number: 0,
-                });
+            for foreign_key_reference in relation.joins() {
+                let mut join_expression = JoinExpression::from_foreign_key(
+                    *foreign_key_reference,
+                    current_table.alias,
+                    Alias {
+                        condition_index: self.artifacts.condition_index,
+                        chain_depth: current_table.alias.chain_depth + 1,
+                        number: 0,
+                    },
+                );
 
                 // TODO: If we join on the same column as the previous join, we can reuse the that
                 //       join. For example, if we join on
@@ -541,27 +489,26 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
 
                 let mut found = false;
                 for existing in &self.statement.joins {
-                    if existing.join.table() == join_column.table() {
-                        if existing.on == current_column && existing.join == join_column {
+                    if existing.table == join_expression.table {
+                        if *existing == join_expression {
                             // We already have a join statement for this column, so we can reuse it.
-                            current_table = existing.join.table();
+                            current_table = existing.table;
                             found = true;
                             break;
                         }
                         // We already have a join statement for this table, but it's on a different
                         // column. We need to create a new join statement later on with a new,
                         // unique alias.
-                        join_column.alias.number += 1;
+                        join_expression.table.alias.number += 1;
                     }
                 }
 
                 if !found {
-                    let join_expression = JoinExpression::new(join_column, current_column);
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = join_expression.join.table();
+                    current_table = join_expression.table;
                     self.statement.joins.push(join_expression);
 
-                    if matches!(join_column.column, Column::Entities(_)) {
+                    if current_table.table == Table::Entities {
                         self.pin_entity_table(current_table.alias);
                     }
                 }
