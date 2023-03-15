@@ -7,6 +7,7 @@ import {
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import {
   Button,
+  EditableField,
   faPlus,
   FontAwesomeIcon,
   theme,
@@ -23,7 +24,6 @@ import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
 
-import { EditableField } from "./editable-field";
 import { Step } from "./step";
 import {
   HasHowToBlockIntroduction,

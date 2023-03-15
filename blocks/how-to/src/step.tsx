@@ -1,9 +1,13 @@
-import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Button,
+  EditableField,
+  faTrash,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import { Box, Fade, SxProps, Theme, Typography } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 
 import { descriptionKey, titleKey, TitleOrDescription } from "./app";
-import { EditableField } from "./editable-field";
 
 interface StepProps {
   header: string;

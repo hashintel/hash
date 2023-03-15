@@ -1,5 +1,4 @@
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
-import { faPen, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   Fade,
@@ -12,6 +11,9 @@ import {
   useTheme,
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
+
+import { faPen } from "./fa-icons/fa-pen";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export const EditableField = ({
   fontSize,
@@ -35,7 +37,9 @@ export const EditableField = ({
   const [inputHeight, setInputHeight] = useState(0);
 
   useEffect(() => {
-    if (!inputRef.current) return;
+    if (!inputRef.current) {
+      return;
+    }
 
     const resize = () => {
       const newInputHeight = inputRef.current?.offsetHeight;
@@ -91,6 +95,7 @@ export const EditableField = ({
               }
             }}
             sx={[
+              ...(Array.isArray(sx) ? sx : [sx]),
               {
                 width: 1,
                 wordBreak: "break-word",
@@ -108,7 +113,6 @@ export const EditableField = ({
                     }
                   : null),
               },
-              ...(Array.isArray(sx) ? sx : [sx]),
             ]}
           >
             {value && typeof value === "string" ? (
