@@ -27,6 +27,7 @@ use crate::{
 #[serde(untagged)]
 pub enum OntologyOutwardEdge {
     ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>),
+    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityIdWithInterval>),
 }
 
 impl From<OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>> for OntologyOutwardEdge {
@@ -59,6 +60,12 @@ impl From<OutwardEdge<OntologyEdgeKind, DataTypeVertexId>> for OntologyOutwardEd
     }
 }
 
+impl From<OutwardEdge<SharedEdgeKind, EntityIdWithInterval>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, EntityIdWithInterval>) -> Self {
+        Self::ToKnowledgeGraph(edge)
+    }
+}
+
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
@@ -70,6 +77,11 @@ impl ToSchema<'_> for OntologyOutwardEdge {
                 .item(
                     <OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>>::generate_schema(
                         "OntologyToOntologyOutwardEdge",
+                    ),
+                )
+                .item(
+                    <OutwardEdge<SharedEdgeKind, EntityIdWithInterval>>::generate_schema(
+                        "OntologyToKnowledgeGraphOutwardEdge",
                     ),
                 )
                 .into(),
