@@ -32,7 +32,11 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ### Rust
 
-TODO
+Publishable Rust crates are automatically published on merge to `main` if their version has been modified.
+
+A crate can be marked as _publishable_ by adding it to the list of `PUBLISH_PATTERNS` in [.github/scripts/rust/setup.py](/.github/scripts/rust/setup.py)
+
+The publishing process is tested automatically, and therefore can be verified through, a dry-run within CI on pull requests.
 
 ### TypeScript
 
