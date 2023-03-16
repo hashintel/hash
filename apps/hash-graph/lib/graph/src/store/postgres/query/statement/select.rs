@@ -993,7 +993,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                false,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -1029,7 +1033,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                false,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -1065,7 +1073,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_left_entity_by_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                true,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -1106,7 +1118,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_right_entity_by_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                true,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
