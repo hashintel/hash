@@ -75,8 +75,10 @@ export const LinkEntityTypeSelector = ({
 
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    // we pass the selected values to MUI, and can let it identify which are already selected
-    // the isOptionEqualToValue function checks equality
+    /**
+     * we pass the selected values to MUI, and can let it identify which are already selected
+     * – it matches values to options by the provided 'isOptionEqualToValue' function
+     */
     typesToExclude: [],
   });
 
