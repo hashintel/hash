@@ -19,7 +19,7 @@ use crate::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
     },
-    subgraph::identifier::VertexId,
+    subgraph::{edges::KnowledgeGraphEdgeKind, identifier::VertexId},
 };
 
 /// A set of conditions used for queries.
@@ -136,17 +136,21 @@ impl<'p> Filter<'p, Entity> {
     pub fn for_outgoing_link_by_source_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    reversed: false,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    reversed: false,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
                 ))),
@@ -160,17 +164,21 @@ impl<'p> Filter<'p, Entity> {
     pub fn for_incoming_link_by_source_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    reversed: false,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    reversed: false,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
                 ))),
@@ -184,17 +192,21 @@ impl<'p> Filter<'p, Entity> {
     pub fn for_left_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    reversed: true,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    reversed: true,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
                 ))),
@@ -208,17 +220,21 @@ impl<'p> Filter<'p, Entity> {
     pub fn for_right_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    reversed: true,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    reversed: true,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
                 ))),
@@ -546,6 +562,32 @@ mod tests {
         }};
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+    }
+
+    #[test]
+    fn for_incoming_link_by_source_entity_id() {
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["rightEntity", "ownedById"] },
+              { "parameter": entity_id.owned_by_id }
+            ]},
+            { "equal": [
+              { "path": ["rightEntity", "uuid"] },
+              { "parameter": entity_id.entity_uuid }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_incoming_link_by_source_entity_id(entity_id),
+            &expected,
+        );
     }
 
     #[test]
