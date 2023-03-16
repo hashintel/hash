@@ -3,32 +3,12 @@ import { useState } from "react";
 import { PlusIcon } from "../icons/plus-icon";
 import { Column } from "./column/column";
 import styles from "./styles.module.scss";
-import { ColumnData } from "./types";
+import { ColumnData, defaultColumns } from "./types";
 
 const generateId = () => Date.now().toString();
 
 export const Board = () => {
-  const [columns, setColumns] = useState<ColumnData[]>([
-    {
-      id: "1",
-      title: "Column with a title",
-      cards: [
-        { id: "1", content: "Card with some content" },
-        {
-          id: "2",
-          content: "Card with an slightly longer content goes here :)",
-        },
-      ],
-    },
-    {
-      id: "2",
-      title: "Column with a title",
-      cards: [
-        { id: "3", content: "Card with some content" },
-        { id: "4", content: "Another card" },
-      ],
-    },
-  ]);
+  const [columns, setColumns] = useState<ColumnData[]>(defaultColumns);
 
   const deleteColumn = (columnId: string) => {
     setColumns((cols) => cols.filter((col) => col.id !== columnId));
