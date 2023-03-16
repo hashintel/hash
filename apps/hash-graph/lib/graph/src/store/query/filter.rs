@@ -666,6 +666,169 @@ mod tests {
     }
 
     #[test]
+    fn for_property_type_constrains_values_on() {
+        let url = DataTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["dataTypes", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["dataTypes", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_data_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsValuesOn,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_property_type_constrains_properties_on() {
+        let url = PropertyTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["propertyTypes", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["propertyTypes", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsPropertiesOn,
+                false,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_type_constrains_properties_on() {
+        let url = PropertyTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["properties", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["properties", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsPropertiesOn,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_type_inherits_from() {
+        let url = EntityTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/person/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["inheritsFrom", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["inheritsFrom", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                &url,
+                OntologyEdgeKind::InheritsFrom,
+                false,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_type_constrains_links_on() {
+        let url = EntityTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/person/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["links", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["links", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsLinksOn,
+                false,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
     fn for_entity_by_entity_id() {
         let entity_id = EntityId {
             owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
