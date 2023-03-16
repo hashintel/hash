@@ -5,8 +5,7 @@
 
 import { StatusCode } from "./status-code";
 
-export * from "./payload";
-export { type StatusCode } from "./status-code";
+export { StatusCode } from "./status-code";
 
 /**
  * The canonical shape of a response object describing the status of a request between services.
