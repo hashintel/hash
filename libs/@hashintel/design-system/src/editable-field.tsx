@@ -75,7 +75,7 @@ export const EditableField = ({
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 1,
+        gap: 1.5,
       }}
     >
       <Box
@@ -120,13 +120,17 @@ export const EditableField = ({
               value
             ) : (
               <>
-                {placeholder}{" "}
-                <FontAwesomeIcon
-                  icon={{ icon: faPen }}
-                  sx={{
-                    fontSize: `inherit !important`,
-                  }}
-                />
+                <Box component="span" sx={{ mr: 1 }}>
+                  {placeholder}
+                </Box>
+                <Box component="span" sx={{ verticalAlign: "middle" }}>
+                  <FontAwesomeIcon
+                    icon={{ icon: faPen }}
+                    sx={{
+                      fontSize: `inherit !important`,
+                    }}
+                  />
+                </Box>
               </>
             )}
           </Typography>
