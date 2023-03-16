@@ -8,10 +8,15 @@
     padding: 12px 20px;
     display: flex;
     align-items: flex-start;
+    gap: 8px;
 
     .title {
       font-weight: 600;
       flex: 1;
+
+      overflow-x: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
   }
 
