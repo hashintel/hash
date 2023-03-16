@@ -340,6 +340,34 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
 }
 
 impl<'p> Filter<'p, Entity> {
+    #[must_use]
+    pub fn for_shared_edge_by_entity_type_vertex_id(vertex_id: &'p EntityTypeVertexId, edge_kind: SharedEdgeKind) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    EntityQueryPath::EntityTypeEdge {
+                        edge_kind,
+                        path: EntityTypeQueryPath::BaseUrl,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    EntityQueryPath::EntityTypeEdge {
+                        edge_kind,
+                        path: EntityTypeQueryPath::Version,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+    
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
