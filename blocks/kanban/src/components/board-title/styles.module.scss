@@ -1,7 +1,3 @@
-$colorGray: #91a5ba;
-$colorGrayLight: #c1cfde;
-$colorGrayLighter: #dde7f0;
-
 .wrapper {
   flex: 1;
   height: 40px;
@@ -9,43 +5,30 @@ $colorGrayLighter: #dde7f0;
   align-items: center;
   gap: 10px;
   padding-bottom: 4px;
-}
-
-.title {
-  font-family: var(--font-family);
-  font-weight: 700;
   font-size: 21px;
-  line-height: 21px;
-  color: black;
-  background: none;
-  padding-left: 10px;
 
-  &.empty {
-    color: $colorGray;
-  }
-
-  &.titleInput {
-    border: 1px solid $colorGrayLighter;
-    border-radius: 6px;
-    outline: none;
-
-    &::placeholder {
-      color: $colorGray;
-      opacity: 1;
-    }
-  }
-}
-
-.iconButton {
-  color: $colorGrayLight;
-
-  &:hover {
+  .title {
+    font-family: var(--font-family);
+    font-weight: 700;
+    line-height: 21px;
     color: black;
-  }
+    background: none;
+    padding-left: 10px;
 
-  svg {
-    width: 20px;
-    height: 20px;
+    &.empty {
+      color: #91a5ba;
+    }
+
+    &.titleInput {
+      border: 1px solid #dde7f0;
+      border-radius: 6px;
+      outline: none;
+
+      &::placeholder {
+        color: #91a5ba;
+        opacity: 1;
+      }
+    }
   }
 }
 

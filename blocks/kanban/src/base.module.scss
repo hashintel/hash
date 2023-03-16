@@ -229,13 +229,10 @@
   button {
     border: none;
     transition: 250ms ease-in-out;
-    background-color: transparent;
     font-family: var(--font-family);
     font-size: inherit;
     font-weight: 500;
-  }
-
-  button:hover {
+    padding: unset;
     cursor: pointer;
   }
 

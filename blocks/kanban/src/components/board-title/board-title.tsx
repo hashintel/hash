@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { useState } from "react";
 
+import { IconButton } from "../icon-button/icon-button";
 import { DiscardIcon } from "../icons/discard-icon";
 import { EditIcon } from "../icons/edit-icon";
 import { SaveIcon } from "../icons/save-icon";
@@ -64,34 +65,19 @@ export const BoardTitle = ({ title, onChange, readonly }: BoardTitleProps) => {
       )}
 
       {!editing && !readonly && (
-        <button
-          type="button"
-          aria-label="edit"
-          onClick={editTitle}
-          className={styles.iconButton}
-        >
+        <IconButton onClick={editTitle}>
           <EditIcon />
-        </button>
+        </IconButton>
       )}
 
       {editing && (
         <>
-          <button
-            type="button"
-            aria-label="discard"
-            onClick={discardTitle}
-            className={styles.iconButton}
-          >
+          <IconButton onClick={discardTitle}>
             <DiscardIcon />
-          </button>
-          <button
-            type="button"
-            aria-label="save"
-            onClick={saveTitle}
-            className={styles.iconButton}
-          >
+          </IconButton>
+          <IconButton onClick={saveTitle}>
             <SaveIcon />
-          </button>
+          </IconButton>
         </>
       )}
     </div>

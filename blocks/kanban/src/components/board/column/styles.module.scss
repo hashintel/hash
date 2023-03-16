@@ -4,9 +4,15 @@
   background: #fafbfc;
   border-radius: 8px;
 
-  .title {
+  .titleRow {
     padding: 12px 20px;
-    font-weight: 600;
+    display: flex;
+    align-items: flex-start;
+
+    .title {
+      font-weight: 600;
+      flex: 1;
+    }
   }
 
   .body {
