@@ -10,7 +10,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 [dependencies]
 type-fetcher = { path = "../../lib/type-fetcher", optional = true }
 
-axum = "0.6.10"
+axum = "0.6.11"
 clap = { version = "4.1.8", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.1.4"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
