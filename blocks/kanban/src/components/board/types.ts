@@ -1,5 +1,6 @@
 export type CardData = {
   id: string;
+  columnId: string;
   content: string;
 };
 
@@ -11,39 +12,35 @@ export type ColumnData = {
 
 export const defaultColumns: ColumnData[] = [
   {
-    id: "1",
-    title: "Column with a title",
+    id: "col-cats",
+    title: "Cats",
     cards: [
-      { id: "1", content: "Card with some content" },
-      {
-        id: "2",
-        content: "Card with an slightly longer content goes here :)",
-      },
-      { id: "3", content: "Another card" },
+      { id: "cat-1", columnId: "col-cats", content: "Cat 1" },
+      { id: "cat-2", columnId: "col-cats", content: "Cat 2" },
+      { id: "cat-3", columnId: "col-cats", content: "Cat 3" },
     ],
   },
   {
-    id: "2",
-    title: "Column with a title",
+    id: "col-dogs",
+    title: "Dogs",
     cards: [
-      { id: "4", content: "Card with some content" },
-      {
-        id: "5",
-        content: "Card with an slightly longer content goes here :)",
-      },
-      { id: "6", content: "Another card" },
+      { id: "dog-1", columnId: "col-dogs", content: "Dog 1" },
+      { id: "dog-2", columnId: "col-dogs", content: "Dog 2" },
+      { id: "dog-3", columnId: "col-dogs", content: "Dog 3" },
     ],
   },
   {
-    id: "3",
-    title: "Column with a title",
+    id: "col-empty",
+    title: "Empty",
+    cards: [],
+  },
+  {
+    id: "col-birds",
+    title: "Birds",
     cards: [
-      { id: "7", content: "Card with some content" },
-      {
-        id: "8",
-        content: "Card with an slightly longer content goes here :)",
-      },
-      { id: "9", content: "Another card" },
+      { id: "bird-1", columnId: "col-birds", content: "Bird 1" },
+      { id: "bird-2", columnId: "col-birds", content: "Bird 2" },
+      { id: "bird-3", columnId: "col-birds", content: "Bird 3" },
     ],
   },
 ];

@@ -10,6 +10,12 @@
     align-items: flex-start;
     gap: 8px;
 
+    cursor: pointer;
+
+    &.showHandCursor {
+      cursor: grabbing;
+    }
+
     .title {
       font-weight: 600;
       flex: 1;
