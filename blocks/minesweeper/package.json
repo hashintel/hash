@@ -10,15 +10,15 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/graph": "0.2.0",
     "lit": "^2.4.1",
     "mine-sweeper-tag": "1.0.6"
   },
@@ -26,8 +26,8 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "^18.0.9",
-    "block-scripts": "0.1.1",
-    "mock-block-dock": "0.1.1",
+    "block-scripts": "0.2.0",
+    "mock-block-dock": "0.1.2",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -45,6 +45,15 @@
     "image": "public/block-preview.png",
     "name": "@hash/minesweeper",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/entity-type/minesweeper-block/v/2"
+    "blockEntityType": "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/entity-type/minesweeper-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ],
+
   }
 }
