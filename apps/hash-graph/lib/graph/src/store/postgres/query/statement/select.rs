@@ -613,9 +613,11 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
+              ON "entities_0_1_0"."left_owned_by_id" = "entities_0_0_0"."owned_by_id"
+             AND "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
+              ON "entities_0_2_0"."owned_by_id" = "entities_0_1_0"."right_owned_by_id"
+             AND "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
@@ -650,9 +652,11 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
+              ON "entities_0_1_0"."right_owned_by_id" = "entities_0_0_0"."owned_by_id"
+             AND "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
+              ON "entities_0_2_0"."owned_by_id" = "entities_0_1_0"."left_owned_by_id"
+             AND "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
@@ -753,12 +757,20 @@ mod tests {
             r#"
              SELECT *
              FROM "entities" AS "entities_0_0_0"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_0" ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-             INNER JOIN "entity_types" AS "entity_types_0_2_0" ON "entity_types_0_2_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0" ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_1" ON "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
-             INNER JOIN "entity_types" AS "entity_types_0_2_1" ON "entity_types_0_2_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1" ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entity_types_0_2_1"."ontology_id"
+             RIGHT OUTER JOIN "entities" AS "entities_0_1_0"
+               ON "entities_0_1_0"."owned_by_id" = "entities_0_0_0"."left_owned_by_id"
+              AND "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
+             INNER JOIN "entity_types" AS "entity_types_0_2_0"
+               ON "entity_types_0_2_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
+             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+               ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+             RIGHT OUTER JOIN "entities" AS "entities_0_1_1"
+               ON "entities_0_1_1"."owned_by_id" = "entities_0_0_0"."right_owned_by_id"
+              AND "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
+             INNER JOIN "entity_types" AS "entity_types_0_2_1"
+               ON "entity_types_0_2_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
+             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1"
+               ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entity_types_0_2_1"."ontology_id"
              WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
                AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
                AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
@@ -967,7 +979,8 @@ mod tests {
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
+                  ON "entities_0_1_0"."left_owned_by_id" = "entities_0_0_0"."owned_by_id"
+                 AND "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                   AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
@@ -1004,7 +1017,8 @@ mod tests {
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
+                  ON "entities_0_1_0"."right_owned_by_id" = "entities_0_0_0"."owned_by_id"
+                 AND "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                   AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ

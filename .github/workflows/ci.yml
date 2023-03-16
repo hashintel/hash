@@ -19,29 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 ## Needed for Changesets to find `main` branch
-
-        ## https://github.com/changesets/changesets/issues/517
-      - name: Create git reference to main branch (for Changesets)
-        if: ${{ github.event.pull_request.title != 'Version Packages' }}
-        run: git pull --force --no-tags origin main:main
 
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
-
-      - name: Run yarn lint:changeset
-        if: ${{ (success() || failure()) && github.event.pull_request.title != 'Version Packages' }}
-        run: |
-          if ! yarn lint:changeset; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Please fix the above errors locally for the check to pass.'
-            echo 'If you don’t see them, try merging target branch into yours.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
