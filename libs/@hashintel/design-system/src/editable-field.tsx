@@ -89,7 +89,6 @@ export const EditableField = ({
       >
         {!editing ? (
           <Typography
-            component="span"
             ref={inputRef}
             onClick={() => {
               if (!value && !readonly) {
