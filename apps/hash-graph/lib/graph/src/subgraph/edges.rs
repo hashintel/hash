@@ -9,19 +9,21 @@ use std::{
 };
 
 pub use self::{
-    edge::{KnowledgeGraphOutwardEdge, OntologyOutwardEdge, OutwardEdge},
+    edge::OutwardEdge,
     kind::{
-        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+        EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
 };
 use crate::subgraph::{
     edges::endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
-    identifier::{EntityVertexId, OntologyTypeVertexId, VertexId},
+    identifier::{
+        DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct EdgeKind<K> {
+struct EdgeData<K> {
     kind: K,
     reversed: bool,
 }
@@ -32,7 +34,7 @@ where
     E: EdgeEndpointSet,
 {
     #[expect(clippy::type_complexity)]
-    edges: HashMap<V::BaseId, BTreeMap<V::RevisionId, HashMap<EdgeKind<K>, E>>>,
+    edges: HashMap<V::BaseId, BTreeMap<V::RevisionId, HashMap<EdgeData<K>, E>>>,
 }
 
 impl<V, K, E> AdjacencyList<V, K, E>
@@ -61,7 +63,7 @@ where
             .1
             .entry(vertex_id.revision_id())
             .or_default()
-            .entry(EdgeKind {
+            .entry(EdgeData {
                 kind: edge_kind,
                 reversed,
             })
@@ -135,80 +137,16 @@ where
 
 #[derive(Default, Debug)]
 pub struct Edges {
-    pub ontology_to_ontology:
-        AdjacencyList<OntologyTypeVertexId, OntologyEdgeKind, HashSet<OntologyTypeVertexId>>,
-    pub ontology_to_knowledge:
-        AdjacencyList<OntologyTypeVertexId, SharedEdgeKind, EntityIdWithIntervalSet>,
-    pub knowledge_to_ontology:
-        AdjacencyList<EntityVertexId, SharedEdgeKind, HashSet<OntologyTypeVertexId>>,
-    pub knowledge_to_knowledge:
+    pub entity_to_entity:
         AdjacencyList<EntityVertexId, KnowledgeGraphEdgeKind, EntityIdWithIntervalSet>,
-}
-
-pub enum Edge {
-    Ontology {
-        vertex_id: OntologyTypeVertexId,
-        outward_edge: OntologyOutwardEdge,
-    },
-    KnowledgeGraph {
-        vertex_id: EntityVertexId,
-        outward_edge: KnowledgeGraphOutwardEdge,
-    },
-}
-
-impl Edges {
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Inserts an edge to the edge set.
-    ///
-    /// Returns whether the value was newly inserted. That is:
-    ///
-    /// - If the set did not previously contain this value, `true` is returned.
-    /// - If the set already contained this value, `false` is returned.
-    pub fn insert(&mut self, edge: Edge) {
-        match edge {
-            Edge::Ontology {
-                vertex_id,
-                outward_edge,
-            } => match outward_edge {
-                OntologyOutwardEdge::ToOntology(OutwardEdge {
-                    kind,
-                    reversed,
-                    right_endpoint,
-                }) => self
-                    .ontology_to_ontology
-                    .insert(&vertex_id, kind, reversed, right_endpoint),
-                OntologyOutwardEdge::ToKnowledgeGraph(OutwardEdge {
-                    kind,
-                    reversed,
-                    right_endpoint,
-                }) => self
-                    .ontology_to_knowledge
-                    .insert(&vertex_id, kind, reversed, right_endpoint),
-            },
-            Edge::KnowledgeGraph {
-                vertex_id,
-                outward_edge,
-            } => match outward_edge {
-                KnowledgeGraphOutwardEdge::ToOntology(OutwardEdge {
-                    kind,
-                    reversed,
-                    right_endpoint,
-                }) => self
-                    .knowledge_to_ontology
-                    .insert(&vertex_id, kind, reversed, right_endpoint),
-                KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
-                    kind,
-                    reversed,
-                    right_endpoint,
-                }) => {
-                    self.knowledge_to_knowledge
-                        .insert(&vertex_id, kind, reversed, right_endpoint);
-                }
-            },
-        }
-    }
+    pub entity_to_entity_type:
+        AdjacencyList<EntityVertexId, SharedEdgeKind, HashSet<EntityTypeVertexId>>,
+    pub entity_type_to_entity_type:
+        AdjacencyList<EntityTypeVertexId, OntologyEdgeKind, HashSet<EntityTypeVertexId>>,
+    pub entity_type_to_property_type:
+        AdjacencyList<EntityTypeVertexId, OntologyEdgeKind, HashSet<PropertyTypeVertexId>>,
+    pub property_type_to_property_type:
+        AdjacencyList<PropertyTypeVertexId, OntologyEdgeKind, HashSet<PropertyTypeVertexId>>,
+    pub property_type_to_data_type:
+        AdjacencyList<PropertyTypeVertexId, OntologyEdgeKind, HashSet<DataTypeVertexId>>,
 }

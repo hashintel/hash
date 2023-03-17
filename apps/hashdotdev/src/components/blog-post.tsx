@@ -15,6 +15,7 @@ export type BlogPostPagePhoto = {
   src: string;
   width: number;
   height: number;
+  blurDataURL: string;
 };
 
 export type BlogPagePhotos = {
@@ -219,7 +220,11 @@ export const BlogPostHead: FunctionComponent<{
                 width={{ xs: 1, md: "auto" }}
                 mb={{ xs: 3, md: 0 }}
               >
-                <Image {...photos.post} layout="responsive" />
+                <Image
+                  {...photos.post}
+                  layout="responsive"
+                  placeholder="blur"
+                />
               </Box>
             ) : null}
           </Stack>
