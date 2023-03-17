@@ -2,6 +2,8 @@
 
 Play Minesweeper in your browser!
 
-Credit to [kurehajime](https://github.com/kurehajime) for the custom element (code [here](https://github.com/kurehajime/minesweeper_tag))
+Credit to [kurehajime](https://github.com/kurehajime) for the custom element –you can find the code [here](https://github.com/kurehajime/minesweeper_tag).
 
-Read more about Minesweeper, including rules and strategy, on [Wikipedia](<https://en.wikipedia.org/wiki/Minesweeper_(video_game)>)
+Read more about Minesweeper, including rules, strategy, and world rankings, check out [https://minesweepergame.com](https://minesweepergame.com/).
+
+The grid size (square only) and number of mines can be set via the block's properties. The default is a `16 x 16` grid with `40` mines, representing "Intermediate" difficulty.

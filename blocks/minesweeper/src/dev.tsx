@@ -4,21 +4,21 @@ import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
 import ElementClass from "./index";
-import { RootEntity } from "./types.gen";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const testEntity: RootEntity = {
+const testEntity: BlockEntity = {
   metadata: {
     recordId: {
-      entityId: "test-entity",
+      entityId: "minesweeper-block-1",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJson.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {
-    "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-columns/": 8,
-    "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-bombs/": 63,
+    "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-columns/": 12,
+    "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-mines/": 30,
   },
 } as const;
 

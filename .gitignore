@@ -59,6 +59,7 @@ typings/
 .yarn-integrity
 
 # local environment variable files
+blocks/**/.env
 .env.local
 .env.*.local
 
