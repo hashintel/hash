@@ -11,32 +11,32 @@ kratos_env_vars = [
   { name = "COOKIES_SAME_SITE", secret = false, value = "Lax" },
   { name = "SERVE_PUBLIC_BASE_URL", secret = false, value = "https://kratos.hash.ai" },
   { name = "SERVE_PUBLIC_CORS_ALLOWED_HEADERS", secret = false, value = "Authorization,Content-Type,X-Session-Token,X-CSRF-Token" },
-  { name = "SERVE_PUBLIC_CORS_ALLOWED_ORIGINS", secret = false, value = "https://alpha.hash.ai" },
-  { name = "SELFSERVICE_DEFAULT_BROWSER_RETURN_URL", secret = false, value = "https://alpha.hash.ai/" },
-  { name = "SELFSERVICE_ALLOWED_RETURN_URLS", secret = false, value = "https://alpha.hash.ai" },
-  { name = "SELFSERVICE_FLOWS_ERROR_UI_URL", secret = false, value = "https://alpha.hash.ai/error" },
-  { name = "SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL", secret = false, value = "https://alpha.hash.ai/login" },
-  { name = "SELFSERVICE_FLOWS_LOGIN_UI_URL", secret = false, value = "https://alpha.hash.ai/login" },
-  { name = "SELFSERVICE_FLOWS_REGISTRATION_UI_URL", secret = false, value = "https://alpha.hash.ai/signup" },
-  { name = "SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL", secret = false, value = "https://alpha.hash.ai/api/ory" },
-  { name = "SELFSERVICE_FLOWS_VERIFICATION_UI_URL", secret = false, value = "https://alpha.hash.ai/verification" },
-  { name = "SELFSERVICE_FLOWS_RECOVERY_UI_URL", secret = false, value = "https://alpha.hash.ai/recovery" },
-  { name = "SELFSERVICE_FLOWS_SETTINGS_UI_URL", secret = false, value = "https://alpha.hash.ai/settings" },
+  { name = "SERVE_PUBLIC_CORS_ALLOWED_ORIGINS", secret = false, value = "https://app.hash.ai" },
+  { name = "SELFSERVICE_DEFAULT_BROWSER_RETURN_URL", secret = false, value = "https://app.hash.ai/" },
+  { name = "SELFSERVICE_ALLOWED_RETURN_URLS", secret = false, value = "https://app.hash.ai" },
+  { name = "SELFSERVICE_FLOWS_ERROR_UI_URL", secret = false, value = "https://app.hash.ai/error" },
+  { name = "SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL", secret = false, value = "https://app.hash.ai/login" },
+  { name = "SELFSERVICE_FLOWS_LOGIN_UI_URL", secret = false, value = "https://app.hash.ai/login" },
+  { name = "SELFSERVICE_FLOWS_REGISTRATION_UI_URL", secret = false, value = "https://app.hash.ai/signup" },
+  { name = "SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL", secret = false, value = "https://app.hash.ai/api/ory" },
+  { name = "SELFSERVICE_FLOWS_VERIFICATION_UI_URL", secret = false, value = "https://app.hash.ai/verification" },
+  { name = "SELFSERVICE_FLOWS_RECOVERY_UI_URL", secret = false, value = "https://app.hash.ai/recovery" },
+  { name = "SELFSERVICE_FLOWS_SETTINGS_UI_URL", secret = false, value = "https://app.hash.ai/settings" },
   { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" },
   { name = "COURIER_SMTP_FROM_ADDRESS", secret = false, value = "noreply@hash.ai" },
   { name = "COURIER_SMTP_FROM_NAME", secret = false, value = "HASH" },
 ]
 
 hash_graph_env_vars = [
-  { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "https://alpha.hash.ai/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/" },
+  { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "https://app.hash.ai/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/" },
   { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "pretty" },
   { name = "RUST_LOG", secret = false, value = "graph=info,hash-graph=info,tokio_postgres=info,hash_type_fetcher=info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
 ]
 
 hash_api_env_vars = [
-  { name = "FRONTEND_URL", secret = false, value = "https://alpha.hash.ai" },
-  { name = "API_ORIGIN", secret = false, value = "https://alpha-api.hash.ai" },
+  { name = "FRONTEND_URL", secret = false, value = "https://app.hash.ai" },
+  { name = "API_ORIGIN", secret = false, value = "https://app-api.hash.ai" },
 
   { name = "SYSTEM_USER_SHORTNAME", secret = false, value = "hash" },
   { name = "SYSTEM_USER_PREFERRED_NAME", secret = false, value = "HASH" },
