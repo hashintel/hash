@@ -369,6 +369,7 @@ export const App: BlockComponent<RootEntity> = ({
                       />
 
                       <EditableField
+                        editIconFontSize={14}
                         value={descriptionValue}
                         onChange={(event) =>
                           setDescriptionValue(event.target.value)
