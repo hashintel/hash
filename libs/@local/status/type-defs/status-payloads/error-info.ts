@@ -24,7 +24,7 @@ export type ErrorInfo = {
    *
    * Keys should match /[a-zA-Z0-9-_]/ and be limited to 64 characters in length. When
    * identifying the current value of an exceeded limit, the units should be contained in the
-   * key, not the value.  For example, rather than {"instanceLimit": "100/request"}, should be
+   * key, not the value. For example, rather than {"instanceLimit": "100/request"}, should be
    * returned as, {"instanceLimitPerRequest": "100"}, if the client exceeds the number of
    * instances that can be created in a single (batch) request.
    */
