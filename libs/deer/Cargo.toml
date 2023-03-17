@@ -22,7 +22,7 @@ serde = { version = "1.0.156", default_features = false, features = ['alloc', 'd
 erased-serde = { version = "0.3.25", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = { version = "1.0.93", features = ['arbitrary_precision'] }
+serde_json = { version = "1.0.94", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.4.2", features = ['serde'] }
 deer-desert = { path = "./desert", features = ['pretty'] }
 proptest = "1.1.0"
