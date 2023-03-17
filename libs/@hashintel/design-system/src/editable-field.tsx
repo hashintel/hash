@@ -16,6 +16,7 @@ import { faPen } from "./fa-icons/fa-pen";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export const EditableField = ({
+  editIconFontSize,
   readonly,
   placeholderSx = {},
   value,
@@ -24,6 +25,7 @@ export const EditableField = ({
   onBlur,
   ...props
 }: {
+  editIconFontSize: number;
   readonly?: boolean;
   placeholderSx?: SxProps<Theme>;
 } & InputBaseProps) => {
@@ -63,10 +65,6 @@ export const EditableField = ({
       window.removeEventListener("resize", resize);
     };
   }, [editing]);
-
-  const fontSize = sx && "fontSize" in sx ? sx.fontSize?.toString() : null;
-  const lineHeight =
-    sx && "lineHeight" in sx ? sx.lineHeight?.toString() : null;
 
   return readonly && !value ? null : (
     <Box
@@ -123,7 +121,10 @@ export const EditableField = ({
                 <Box component="span" sx={{ mr: 1 }}>
                   {placeholder}
                 </Box>
-                <Box component="span" sx={{ verticalAlign: "middle" }}>
+                <Box
+                  component="span"
+                  sx={{ display: "inline-flex", verticalAlign: "middle" }}
+                >
                   <FontAwesomeIcon
                     icon={{ icon: faPen }}
                     sx={{
@@ -166,7 +167,6 @@ export const EditableField = ({
                     ...placeholderSx,
                   },
                   // Override WP Input styles
-                  lineHeight: `${lineHeight ?? 1} !important`,
                   minHeight: "unset",
                   border: "none",
                   boxShadow: "none !important",
@@ -177,6 +177,7 @@ export const EditableField = ({
               {
                 width: 1,
                 p: 0,
+                verticalAlign: "top",
               },
               ...(Array.isArray(sx) ? sx : [sx]),
             ]}
@@ -188,20 +189,21 @@ export const EditableField = ({
         <IconButton
           tabIndex={0}
           onClick={() => {
-            setEditing(true);
+            setEditing(!editing);
             inputRef.current?.focus();
           }}
           sx={{
-            display: "inline-flex",
-            fontSize: "inherit",
             padding: 0.5,
-            marginTop: -0.25,
           }}
         >
           <FontAwesomeIcon
             icon={{ icon: faPenToSquare.icon }}
             sx={{
-              fontSize: `${fontSize ?? "16"} !important`,
+              ...(editIconFontSize
+                ? {
+                    fontSize: `${editIconFontSize}px !important`,
+                  }
+                : {}),
             }}
           />
         </IconButton>
