@@ -1,5 +1,5 @@
 import { EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
-import { Draft, produce } from "immer";
+import { castDraft, Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
@@ -162,6 +162,9 @@ const updateEntitiesByDraftId = (
       // @ts-ignore
       const blockChildEntity = entity.blockChildEntity!;
       if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
+        // This type is very deep now, so traversal causes TS to complain.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         entities.push(blockChildEntity as DraftEntity);
       }
     }
@@ -209,7 +212,7 @@ const setBlockChildEntity = (
       // updatedAt: targetEntity.updatedAt,
     };
 
-    draftEntityStore[targetEntityDraftId] = targetDraftEntity;
+    draftEntityStore[targetEntityDraftId] = castDraft(targetDraftEntity);
   }
 
   const draftBlockEntity = draftEntityStore[blockEntityDraftId];
@@ -285,8 +288,9 @@ const entityStoreReducer = (
                   action.payload.properties,
                 );
               } else {
-                draftEntity.properties = action.payload
-                  .properties as EntityPropertiesObject;
+                draftEntity.properties = castDraft(
+                  action.payload.properties as EntityPropertiesObject,
+                );
               }
             }
           },
@@ -308,7 +312,10 @@ const entityStoreReducer = (
 
       return produce(state, (draftState) => {
         if (!action.received) {
-          draftState.trackedActions.push({ action, id: uuid() });
+          draftState.trackedActions.push({
+            action: castDraft(action),
+            id: uuid(),
+          });
         }
 
         setBlockChildEntity(
