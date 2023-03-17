@@ -118,6 +118,3 @@ seed-users.json
 
 # SARIF files
 *.sarif
-
-# HASH Graph
-/apps/hash-graph/lib/graph/src/api/gen

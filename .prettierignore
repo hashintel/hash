@@ -141,9 +141,6 @@ seed-users.json
 # Storybook
 **/storybook-static
 
-# HASH Graph
-/apps/hash-graph/lib/graph/src/api/gen
-
 #########################
 ## Shared between linters
 #########################
