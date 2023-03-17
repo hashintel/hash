@@ -120,4 +120,4 @@ seed-users.json
 *.sarif
 
 # Status
-/libs/status/crate/src/gen
+/libs/@local/status/crate/src/gen
