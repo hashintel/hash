@@ -394,7 +394,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const displayTitle = title ?? selectedAddress?.featureName;
   const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
-  const displayCard = !!(displayTitle && displayFullAddress);
+  const displayCard = !!displayFullAddress;
 
   return (
     <>
