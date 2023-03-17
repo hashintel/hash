@@ -3,7 +3,10 @@ use std::iter::once;
 use crate::{
     knowledge::{Entity, EntityQueryPath},
     store::postgres::query::{
-        table::{Column, Entities, JsonField, Relation},
+        table::{
+            Column, Entities, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity, JsonField,
+            ReferenceTable, Relation,
+        },
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -17,25 +20,49 @@ impl PostgresRecord for Entity {
 impl PostgresQueryPath for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::LeftEntity(path) | Self::RightEntity(path)
+            Self::Uuid
+            | Self::OwnedById
+            | Self::EditionId
+            | Self::DecisionTime
+            | Self::TransactionTime => vec![],
+            Self::Properties(_)
+            | Self::LeftToRightOrder
+            | Self::RightToLeftOrder
+            | Self::UpdatedById
+            | Self::Archived => vec![Relation::EntityEditions],
+            Self::Type(path) => once(Relation::Reference(ReferenceTable::EntityIsOfType))
+                .chain(path.relations())
+                .collect(),
+            Self::LeftEntity(path)
                 if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById =>
             {
-                vec![]
+                vec![Relation::LeftEntity]
             }
-            Self::Type(path) => once(Relation::EntityType).chain(path.relations()).collect(),
-            Self::LeftEntity(path) => once(Relation::LeftEndpoint)
-                .chain(path.relations())
-                .collect(),
-            Self::RightEntity(path) => once(Relation::RightEndpoint)
-                .chain(path.relations())
-                .collect(),
-            Self::OutgoingLinks(path) => once(Relation::OutgoingLink)
-                .chain(path.relations())
-                .collect(),
-            Self::IncomingLinks(path) => once(Relation::IncomingLink)
-                .chain(path.relations())
-                .collect(),
-            _ => vec![],
+            Self::RightEntity(path)
+                if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById =>
+            {
+                vec![Relation::RightEntity]
+            }
+            Self::LeftEntity(path) => {
+                once(Relation::Reference(ReferenceTable::EntityHasLeftEntity))
+                    .chain(path.relations())
+                    .collect()
+            }
+            Self::RightEntity(path) => {
+                once(Relation::Reference(ReferenceTable::EntityHasRightEntity))
+                    .chain(path.relations())
+                    .collect()
+            }
+            Self::IncomingLinks(path) => once(Relation::ReversedReference(
+                ReferenceTable::EntityHasRightEntity,
+            ))
+            .chain(path.relations())
+            .collect(),
+            Self::OutgoingLinks(path) => once(Relation::ReversedReference(
+                ReferenceTable::EntityHasLeftEntity,
+            ))
+            .chain(path.relations())
+            .collect(),
         }
     }
 
@@ -45,33 +72,36 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::EditionId => Column::Entities(Entities::EditionId),
             Self::DecisionTime => Column::Entities(Entities::DecisionTime),
             Self::TransactionTime => Column::Entities(Entities::TransactionTime),
-            Self::Archived => Column::Entities(Entities::Archived),
+            Self::Archived => Column::EntityEditions(EntityEditions::Archived),
             Self::Type(path) => path.terminating_column(),
             Self::OwnedById => Column::Entities(Entities::OwnedById),
-            Self::UpdatedById => Column::Entities(Entities::UpdatedById),
+            Self::UpdatedById => Column::EntityEditions(EntityEditions::UpdatedById),
             Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => {
-                Column::Entities(Entities::LeftEntityUuid)
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid)
             }
             Self::LeftEntity(path) if **path == EntityQueryPath::OwnedById => {
-                Column::Entities(Entities::LeftEntityOwnedById)
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById)
             }
             Self::RightEntity(path) if **path == EntityQueryPath::Uuid => {
-                Column::Entities(Entities::RightEntityUuid)
+                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid)
             }
             Self::RightEntity(path) if **path == EntityQueryPath::OwnedById => {
-                Column::Entities(Entities::RightEntityOwnedById)
+                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById)
             }
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.terminating_column(),
-            Self::LeftToRightOrder => Column::Entities(Entities::LeftToRightOrder),
-            Self::RightToLeftOrder => Column::Entities(Entities::RightToLeftOrder),
-            Self::Properties(path) => path
-                .as_ref()
-                .map_or(Column::Entities(Entities::Properties(None)), |path| {
-                    Column::Entities(Entities::Properties(Some(JsonField::JsonPath(path))))
-                }),
+            Self::LeftToRightOrder => Column::EntityEditions(EntityEditions::LeftToRightOrder),
+            Self::RightToLeftOrder => Column::EntityEditions(EntityEditions::RightToLeftOrder),
+            Self::Properties(path) => path.as_ref().map_or(
+                Column::EntityEditions(EntityEditions::Properties(None)),
+                |path| {
+                    Column::EntityEditions(EntityEditions::Properties(Some(JsonField::JsonPath(
+                        path,
+                    ))))
+                },
+            ),
         }
     }
 }

@@ -6,10 +6,9 @@ use tokio_postgres::row::RowIndex;
 use crate::{
     store::{
         postgres::query::{
-            expression::Constant,
             table::{
-                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes,
-                ReferenceTable, Relation,
+                DataTypes, Entities, EntityEditions, EntityTypes, JsonField, OntologyIds,
+                PropertyTypes,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
@@ -342,11 +341,13 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     self.artifacts.parameters.len(),
                 ))))
             }
-            Column::Entities(Entities::Properties(Some(JsonField::JsonPath(field)))) => {
+            Column::EntityEditions(EntityEditions::Properties(Some(JsonField::JsonPath(
+                field,
+            )))) => {
                 self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
+                Column::EntityEditions(EntityEditions::Properties(Some(
+                    JsonField::JsonPathParameter(self.artifacts.parameters.len()),
+                )))
             }
             column => column,
         };
@@ -381,64 +382,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    fn add_special_relation_conditions(
-        &mut self,
-        relation: Relation,
-        base_alias: Alias,
-        joined_table: AliasedTable,
-    ) {
-        match relation {
-            Relation::Reference(ReferenceTable::EntityTypeLinks) => {
-                self.artifacts.required_tables.insert(joined_table);
-                self.statement
-                    .where_expression
-                    .add_condition(Condition::NotEqual(
-                        Some(Expression::Function(Function::JsonExtractPath(vec![
-                            Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(None)).aliased(base_alias),
-                            ),
-                            Expression::Constant(Constant::String("links")),
-                            Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(Some(
-                                    JsonField::StaticText("$id"),
-                                )))
-                                .aliased(joined_table.alias),
-                            ),
-                        ]))),
-                        None,
-                    ));
-            }
-            Relation::Reference(ReferenceTable::EntityTypeInheritance) => {
-                self.artifacts.required_tables.insert(joined_table);
-                self.statement
-                    .where_expression
-                    .add_condition(Condition::NotEqual(
-                        Some(Expression::Function(Function::JsonContains(
-                            Box::new(Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(Some(
-                                    JsonField::StaticJson("allOf"),
-                                )))
-                                .aliased(base_alias),
-                            )),
-                            Box::new(Expression::Function(Function::JsonBuildArray(vec![
-                                Expression::Function(Function::JsonBuildObject(vec![(
-                                    Expression::Constant(Constant::String("$ref")),
-                                    Expression::Column(
-                                        Column::EntityTypes(EntityTypes::Schema(Some(
-                                            JsonField::StaticText("$id"),
-                                        )))
-                                        .aliased(joined_table.alias),
-                                    ),
-                                )])),
-                            ]))),
-                        ))),
-                        None,
-                    ));
-            }
-            _ => {}
-        }
-    }
-
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
@@ -453,7 +396,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
 
         for relation in path.relations() {
-            let current_alias = current_table.alias;
             for foreign_key_reference in relation.joins() {
                 let mut join_expression = JoinExpression::from_foreign_key(
                     foreign_key_reference,
@@ -514,7 +456,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     }
                 }
             }
-            self.add_special_relation_conditions(relation, current_alias, current_table);
         }
 
         self.artifacts.required_tables.insert(current_table);
