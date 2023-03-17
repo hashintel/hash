@@ -26,15 +26,17 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 vec![Relation::EntityTypeIds]
             }
             Self::Properties(path) => once(Relation::Reference(
-                ReferenceTable::EntityTypePropertyTypeReferences,
+                ReferenceTable::EntityTypeConstrainsPropertiesOn,
             ))
             .chain(path.relations())
             .collect(),
-            Self::Links(path) => once(Relation::Reference(ReferenceTable::EntityTypeLinks))
-                .chain(path.relations())
-                .collect(),
+            Self::Links(path) => once(Relation::Reference(
+                ReferenceTable::EntityTypeConstrainsLinksOn,
+            ))
+            .chain(path.relations())
+            .collect(),
             Self::InheritsFrom(path) => {
-                once(Relation::Reference(ReferenceTable::EntityTypeInheritance))
+                once(Relation::Reference(ReferenceTable::EntityTypeInheritsFrom))
                     .chain(path.relations())
                     .collect()
             }

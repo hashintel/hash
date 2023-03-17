@@ -34,6 +34,8 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
   flex-direction: column;
   gap: 8px;
 
+  z-index: 10;
+
   .title {
     margin-bottom: 8px;
     font-weight: 700;
@@ -41,6 +43,7 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
 
   .option {
     display: flex;
+    align-items: center;
     gap: 8px;
 
     label {
