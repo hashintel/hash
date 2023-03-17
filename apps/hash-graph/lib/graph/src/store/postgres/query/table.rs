@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     fmt::{self, Debug},
     hash::Hash,
+    iter::{once, Chain, Once},
 };
 
 use crate::{
@@ -17,10 +18,89 @@ pub enum Table {
     PropertyTypes,
     EntityTypes,
     Entities,
+    ReferenceTable(ReferenceTable),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ReferenceTable {
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
     EntityTypePropertyTypeReferences,
-    EntityTypeEntityTypeReferences,
+    EntityTypeLinks,
+    EntityTypeInheritance,
+}
+
+impl ReferenceTable {
+    pub const fn source_relation(self) -> ForeignKeyReference {
+        match self {
+            Self::PropertyTypeDataTypeReferences => ForeignKeyReference::Single {
+                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::PropertyTypeDataTypeReferences(
+                    PropertyTypeDataTypeReferences::SourcePropertyTypeOntologyId,
+                ),
+            },
+            Self::PropertyTypePropertyTypeReferences => ForeignKeyReference::Single {
+                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::PropertyTypePropertyTypeReferences(
+                    PropertyTypePropertyTypeReferences::SourcePropertyTypeOntologyId,
+                ),
+            },
+            Self::EntityTypePropertyTypeReferences => ForeignKeyReference::Single {
+                on: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::EntityTypePropertyTypeReferences(
+                    EntityTypePropertyTypeReferences::SourceEntityTypeOntologyId,
+                ),
+            },
+            Self::EntityTypeLinks | Self::EntityTypeInheritance => ForeignKeyReference::Single {
+                on: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::EntityTypeEntityTypeReferences(
+                    EntityTypeEntityTypeReferences::SourceEntityTypeOntologyId,
+                ),
+            },
+        }
+    }
+
+    pub const fn target_relation(self) -> ForeignKeyReference {
+        match self {
+            Self::PropertyTypeDataTypeReferences => ForeignKeyReference::Single {
+                on: Column::PropertyTypeDataTypeReferences(
+                    PropertyTypeDataTypeReferences::TargetDataTypeOntologyId,
+                ),
+                join: Column::DataTypes(DataTypes::OntologyId),
+            },
+            Self::PropertyTypePropertyTypeReferences => ForeignKeyReference::Single {
+                on: Column::PropertyTypePropertyTypeReferences(
+                    PropertyTypePropertyTypeReferences::TargetPropertyTypeOntologyId,
+                ),
+                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+            },
+            Self::EntityTypePropertyTypeReferences => ForeignKeyReference::Single {
+                on: Column::EntityTypePropertyTypeReferences(
+                    EntityTypePropertyTypeReferences::TargetPropertyTypeOntologyId,
+                ),
+                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+            },
+            Self::EntityTypeLinks | Self::EntityTypeInheritance => ForeignKeyReference::Single {
+                on: Column::EntityTypeEntityTypeReferences(
+                    EntityTypeEntityTypeReferences::TargetEntityTypeOntologyId,
+                ),
+                join: Column::EntityTypes(EntityTypes::OntologyId),
+            },
+        }
+    }
+}
+
+impl ReferenceTable {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::PropertyTypeDataTypeReferences => "property_type_data_type_references",
+            Self::PropertyTypePropertyTypeReferences => "property_type_property_type_references",
+            Self::EntityTypePropertyTypeReferences => "entity_type_property_type_references",
+            Self::EntityTypeLinks | Self::EntityTypeInheritance => {
+                "entity_type_entity_type_references"
+            }
+        }
+    }
 }
 
 impl Table {
@@ -35,10 +115,7 @@ impl Table {
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
             Self::Entities => "entities",
-            Self::PropertyTypeDataTypeReferences => "property_type_data_type_references",
-            Self::PropertyTypePropertyTypeReferences => "property_type_property_type_references",
-            Self::EntityTypePropertyTypeReferences => "entity_type_property_type_references",
-            Self::EntityTypeEntityTypeReferences => "entity_type_entity_type_references",
+            Self::ReferenceTable(table) => table.as_str(),
         }
     }
 }
@@ -182,9 +259,6 @@ pub enum Entities<'p> {
     EditionId,
     DecisionTime,
     TransactionTime,
-    // TODO: Remove when correctly resolving time intervals in subgraphs.
-    //   see https://app.asana.com/0/0/1203701389454316/f
-    ProjectedTime,
     Archived,
     OwnedById,
     UpdatedById,
@@ -205,7 +279,6 @@ impl Entities<'_> {
             | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime
-            | Self::ProjectedTime
             | Self::Archived
             | Self::OwnedById
             | Self::UpdatedById
@@ -235,7 +308,6 @@ impl Entities<'_> {
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
-            Self::ProjectedTime => unreachable!("projected time is not a column"),
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
             Self::UpdatedById => "record_created_by_id",
@@ -341,12 +413,18 @@ impl<'p> Column<'p> {
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::EntityTypes(_) => Table::EntityTypes,
             Self::Entities(_) => Table::Entities,
-            Self::PropertyTypeDataTypeReferences(_) => Table::PropertyTypeDataTypeReferences,
-            Self::PropertyTypePropertyTypeReferences(_) => {
-                Table::PropertyTypePropertyTypeReferences
+            Self::PropertyTypeDataTypeReferences(_) => {
+                Table::ReferenceTable(ReferenceTable::PropertyTypeDataTypeReferences)
             }
-            Self::EntityTypePropertyTypeReferences(_) => Table::EntityTypePropertyTypeReferences,
-            Self::EntityTypeEntityTypeReferences(_) => Table::EntityTypeEntityTypeReferences,
+            Self::PropertyTypePropertyTypeReferences(_) => {
+                Table::ReferenceTable(ReferenceTable::PropertyTypePropertyTypeReferences)
+            }
+            Self::EntityTypePropertyTypeReferences(_) => {
+                Table::ReferenceTable(ReferenceTable::EntityTypePropertyTypeReferences)
+            }
+            Self::EntityTypeEntityTypeReferences(_) => {
+                Table::ReferenceTable(ReferenceTable::EntityTypeInheritance)
+            }
         }
     }
 
@@ -467,109 +545,114 @@ pub enum Relation {
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
-    PropertyTypeDataTypeReferences,
-    PropertyTypePropertyTypeReferences,
-    EntityTypePropertyTypeReferences,
-    EntityTypeLinks,
-    EntityTypeInheritance,
     EntityType,
     LeftEndpoint,
     RightEndpoint,
     OutgoingLink,
     IncomingLink,
+    Reference(ReferenceTable),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ForeignKeyReference {
+    Single {
+        on: Column<'static>,
+        join: Column<'static>,
+    },
+    Double {
+        on: [Column<'static>; 2],
+        join: [Column<'static>; 2],
+    },
+}
+
+enum ForeignKeyJoin {
+    Plain(Once<ForeignKeyReference>),
+    Reference(Chain<Once<ForeignKeyReference>, Once<ForeignKeyReference>>),
+}
+
+impl From<ForeignKeyReference> for ForeignKeyJoin {
+    fn from(reference: ForeignKeyReference) -> Self {
+        Self::Plain(once(reference))
+    }
+}
+
+impl From<ReferenceTable> for ForeignKeyJoin {
+    fn from(table: ReferenceTable) -> Self {
+        Self::Reference(once(table.source_relation()).chain(once(table.target_relation())))
+    }
+}
+
+impl Iterator for ForeignKeyJoin {
+    type Item = ForeignKeyReference;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Plain(value) => value.next(),
+            Self::Reference(values) => values.next(),
+        }
+    }
 }
 
 impl Relation {
-    pub const fn joins(self) -> &'static [(Column<'static>, Column<'static>)] {
+    pub fn joins(self) -> impl Iterator<Item = ForeignKeyReference> {
         match self {
-            Self::DataTypeIds => &[(
-                Column::DataTypes(DataTypes::OntologyId),
-                Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::PropertyTypeIds => &[(
-                Column::PropertyTypes(PropertyTypes::OntologyId),
-                Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::EntityTypeIds => &[(
-                Column::EntityTypes(EntityTypes::OntologyId),
-                Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::PropertyTypeDataTypeReferences => &[
-                (
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                    Column::PropertyTypeDataTypeReferences(
-                        PropertyTypeDataTypeReferences::SourcePropertyTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::PropertyTypeDataTypeReferences(
-                        PropertyTypeDataTypeReferences::TargetDataTypeOntologyId,
-                    ),
-                    Column::DataTypes(DataTypes::OntologyId),
-                ),
-            ],
-            Self::PropertyTypePropertyTypeReferences => &[
-                (
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                    Column::PropertyTypePropertyTypeReferences(
-                        PropertyTypePropertyTypeReferences::SourcePropertyTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::PropertyTypePropertyTypeReferences(
-                        PropertyTypePropertyTypeReferences::TargetPropertyTypeOntologyId,
-                    ),
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                ),
-            ],
-            Self::EntityTypePropertyTypeReferences => &[
-                (
-                    Column::EntityTypes(EntityTypes::OntologyId),
-                    Column::EntityTypePropertyTypeReferences(
-                        EntityTypePropertyTypeReferences::SourceEntityTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::EntityTypePropertyTypeReferences(
-                        EntityTypePropertyTypeReferences::TargetPropertyTypeOntologyId,
-                    ),
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                ),
-            ],
-            Self::EntityTypeLinks | Self::EntityTypeInheritance => &[
-                (
-                    Column::EntityTypes(EntityTypes::OntologyId),
-                    Column::EntityTypeEntityTypeReferences(
-                        EntityTypeEntityTypeReferences::SourceEntityTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::EntityTypeEntityTypeReferences(
-                        EntityTypeEntityTypeReferences::TargetEntityTypeOntologyId,
-                    ),
-                    Column::EntityTypes(EntityTypes::OntologyId),
-                ),
-            ],
-            Self::EntityType => &[(
-                Column::Entities(Entities::EntityTypeOntologyId),
-                Column::EntityTypes(EntityTypes::OntologyId),
-            )],
-            Self::LeftEndpoint => &[(
-                Column::Entities(Entities::LeftEntityUuid),
-                Column::Entities(Entities::EntityUuid),
-            )],
-            Self::RightEndpoint => &[(
-                Column::Entities(Entities::RightEntityUuid),
-                Column::Entities(Entities::EntityUuid),
-            )],
-            Self::OutgoingLink => &[(
-                Column::Entities(Entities::EntityUuid),
-                Column::Entities(Entities::LeftEntityUuid),
-            )],
-            Self::IncomingLink => &[(
-                Column::Entities(Entities::EntityUuid),
-                Column::Entities(Entities::RightEntityUuid),
-            )],
+            Self::DataTypeIds => ForeignKeyJoin::from(ForeignKeyReference::Single {
+                on: Column::DataTypes(DataTypes::OntologyId),
+                join: Column::OntologyIds(OntologyIds::OntologyId),
+            }),
+            Self::PropertyTypeIds => ForeignKeyJoin::from(ForeignKeyReference::Single {
+                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::OntologyIds(OntologyIds::OntologyId),
+            }),
+            Self::EntityTypeIds => ForeignKeyJoin::from(ForeignKeyReference::Single {
+                on: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyIds(OntologyIds::OntologyId),
+            }),
+            Self::EntityType => ForeignKeyJoin::from(ForeignKeyReference::Single {
+                on: Column::Entities(Entities::EntityTypeOntologyId),
+                join: Column::EntityTypes(EntityTypes::OntologyId),
+            }),
+            Self::LeftEndpoint => ForeignKeyJoin::from(ForeignKeyReference::Double {
+                on: [
+                    Column::Entities(Entities::LeftEntityOwnedById),
+                    Column::Entities(Entities::LeftEntityUuid),
+                ],
+                join: [
+                    Column::Entities(Entities::OwnedById),
+                    Column::Entities(Entities::EntityUuid),
+                ],
+            }),
+            Self::RightEndpoint => ForeignKeyJoin::from(ForeignKeyReference::Double {
+                on: [
+                    Column::Entities(Entities::RightEntityOwnedById),
+                    Column::Entities(Entities::RightEntityUuid),
+                ],
+                join: [
+                    Column::Entities(Entities::OwnedById),
+                    Column::Entities(Entities::EntityUuid),
+                ],
+            }),
+            Self::OutgoingLink => ForeignKeyJoin::from(ForeignKeyReference::Double {
+                on: [
+                    Column::Entities(Entities::OwnedById),
+                    Column::Entities(Entities::EntityUuid),
+                ],
+                join: [
+                    Column::Entities(Entities::LeftEntityOwnedById),
+                    Column::Entities(Entities::LeftEntityUuid),
+                ],
+            }),
+            Self::IncomingLink => ForeignKeyJoin::from(ForeignKeyReference::Double {
+                on: [
+                    Column::Entities(Entities::OwnedById),
+                    Column::Entities(Entities::EntityUuid),
+                ],
+                join: [
+                    Column::Entities(Entities::RightEntityOwnedById),
+                    Column::Entities(Entities::RightEntityUuid),
+                ],
+            }),
+            Self::Reference(table) => ForeignKeyJoin::from(table),
         }
     }
 }
