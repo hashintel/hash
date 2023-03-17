@@ -33,6 +33,16 @@ pub enum EdgeDirection {
     Incoming,
 }
 
+impl EdgeDirection {
+    #[must_use]
+    pub const fn reversed(self) -> Self {
+        match self {
+            Self::Outgoing => Self::Incoming,
+            Self::Incoming => Self::Outgoing,
+        }
+    }
+}
+
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
 impl<'s, K, E> OutwardEdge<K, E>
