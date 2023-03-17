@@ -2,7 +2,7 @@
 
 **Play Minesweeper in your browser!**
 
-Read more about Minesweeper, including rules, strategy, and world rankings, check out [https://minesweepergame.com](https://minesweepergame.com/).
+Read more about Minesweeper, including rules, strategy, and world rankings, at [https://minesweepergame.com](https://minesweepergame.com/).
 
 ## Usage instructions
 
