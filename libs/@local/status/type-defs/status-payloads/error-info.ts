@@ -1,5 +1,7 @@
 /**
- * @todo
+ * Generalized information about an error.
+ *
+ * Including its cause, origin, and a collection of weakly-typed additional metadata.
  */
 export type ErrorInfo = {
   /**
