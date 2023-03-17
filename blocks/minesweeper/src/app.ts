@@ -8,9 +8,9 @@ import { mine_sweeper } from "mine-sweeper-tag";
 import { BlockEntity } from "./types/generated/block-entity";
 
 const colsKey: keyof BlockEntity["properties"] =
-  "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-columns/";
+  "https://blockprotocol.org/@hash/types/property-type/number-of-columns/";
 const minesKey: keyof BlockEntity["properties"] =
-  "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-mines/";
+  "https://blockprotocol.org/@hash/types/property-type/number-of-mines/";
 
 const takeNumberOrDefault = (value: unknown, defaultValue: number) => {
   if (

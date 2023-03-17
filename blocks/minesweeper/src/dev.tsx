@@ -17,8 +17,8 @@ const testEntity: BlockEntity = {
     entityTypeId: packageJson.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {
-    "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-columns/": 12,
-    "https://blockprotocol-molpob88k.stage.hash.ai/@ciaranm/types/property-type/number-of-mines/": 30,
+    "https://blockprotocol.org/@hash/types/property-type/number-of-columns/": 12,
+    "https://blockprotocol.org/@hash/types/property-type/number-of-mines/": 30,
   },
 } as const;
 

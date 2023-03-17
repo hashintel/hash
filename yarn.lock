@@ -9067,10 +9067,10 @@ block-scripts@0.1.1, block-scripts@^0.1.0:
     webpack-dev-server "^4.11.1"
     yargs-parser "21.1.1"
 
-block-scripts@0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.2.1.tgz#fb146fe5ee6da5096dc87c7d498e3f9dcee8b209"
-  integrity sha512-sJkt4Z/8NlREvHgJvzQXsXY+3IpK0dzgY5ZLtXwbP/8PwYsp4Hq56CTLuF822MTISJFmDpBlhWXCeZLzSSG0NA==
+block-scripts@0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.2.2.tgz#2de1875d5152213313bebeaae7db21f016e5b2e8"
+  integrity sha512-1pyrEm+Jq+0A2ZRz5jlWOQJX/JFtiuyczleovAyPZ7hZ0Pbuc3D/9pJB9vDhlAmqnH30HrCep96gDNPauqjlHw==
   dependencies:
     "@babel/core" "^7.21.0"
     "@babel/plugin-proposal-class-properties" "^7.18.6"
