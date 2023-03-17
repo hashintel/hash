@@ -4,7 +4,7 @@
 
 A consistent structure and pattern for producing API-agnostic definitions of statuses and errors.
 
-- Services should be able to understand and handle error conditions of other service’s responses
+- Services should be able to understand and handle error conditions of other services' responses
 - Developers should be able to write errors within a framework and re-use structures and code
 
 ## Guidelines
