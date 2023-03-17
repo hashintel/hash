@@ -17,8 +17,6 @@ const preventBoxShadowCss = `
 export const Grid = (props: GridProps) => {
   useRenderGridPortal();
 
-  const { rows } = props;
-
   return (
     <>
       <DataEditor
@@ -29,7 +27,6 @@ export const Grid = (props: GridProps) => {
         smoothScrollY
         getCellsForSelection
         keybindings={{ search: true }}
-        height={(rows + 2) * ROW_HEIGHT}
         {...props}
       />
       <style>{preventBoxShadowCss}</style>
