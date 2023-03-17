@@ -6,7 +6,7 @@ use crate::{
         table::{Column, JsonField, OntologyIds, PropertyTypes, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 impl PostgresRecord for PropertyTypeWithMetadata {
@@ -35,17 +35,17 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsValuesOn,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             })
             .chain(path.relations())
             .collect(),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsPropertiesOn,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
@@ -54,7 +54,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             })
             .chain(path.relations())
             .collect(),
