@@ -11,9 +11,9 @@ export type ErrorInfo = {
   reason: string;
 
   /**
-   *  The logical grouping to which the "reason" belongs.
-   *  The error domain is typically the registered service name of the tool or product that
-   *  generates the error.
+   * The logical grouping to which the "reason" belongs.
+   * The error domain is typically the registered service name of the tool or product that
+   * generates the error.
    */
   domain: string;
 
