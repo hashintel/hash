@@ -8,22 +8,31 @@ export const ROW_HEIGHT = 40;
 
 type GridProps = DataEditorProps;
 
+const preventBoxShadowCss = `
+    input.gdg-input, textarea.gdg-input {
+      box-shadow: none !important;
+    }
+`;
+
 export const Grid = (props: GridProps) => {
   useRenderGridPortal();
 
   const { rows } = props;
 
   return (
-    <DataEditor
-      width="100%"
-      headerHeight={ROW_HEIGHT}
-      rowHeight={ROW_HEIGHT}
-      smoothScrollX
-      smoothScrollY
-      getCellsForSelection
-      keybindings={{ search: true }}
-      height={(rows + 2) * ROW_HEIGHT}
-      {...props}
-    />
+    <>
+      <DataEditor
+        width="100%"
+        headerHeight={ROW_HEIGHT}
+        rowHeight={ROW_HEIGHT}
+        smoothScrollX
+        smoothScrollY
+        getCellsForSelection
+        keybindings={{ search: true }}
+        height={(rows + 2) * ROW_HEIGHT}
+        {...props}
+      />
+      <style>{preventBoxShadowCss}</style>
+    </>
   );
 };
