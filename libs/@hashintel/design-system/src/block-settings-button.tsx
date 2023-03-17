@@ -5,12 +5,12 @@ import { Button } from "./button";
 import { ChevronRightIcon } from "./icons/chevron-right";
 import { GearIcon } from "./icons/gear";
 
-export type ConfigureBlockButtonProps = {
+export type BlockSettingsButtonProps = {
   expanded?: boolean;
 } & ButtonProps;
 
-export const ConfigureBlockButton: FunctionComponent<
-  ConfigureBlockButtonProps
+export const BlockSettingsButton: FunctionComponent<
+  BlockSettingsButtonProps
 > = ({ expanded = false, sx, ...props }) => {
   return (
     <Button
@@ -49,7 +49,7 @@ export const ConfigureBlockButton: FunctionComponent<
         }),
       ]}
     >
-      Configure block
+      Block settings
     </Button>
   );
 };

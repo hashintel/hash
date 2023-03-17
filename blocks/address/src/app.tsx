@@ -7,7 +7,7 @@ import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
-  ConfigureBlockButton,
+  BlockSettingsButton,
   FontAwesomeIcon,
   GetHelpLink,
   theme,
@@ -443,7 +443,7 @@ export const App: BlockComponent<RootEntity> = ({
                         <GetHelpLink href="https://blockprotocol.org/@hash/blocks/address" />
 
                         {isMobile ? (
-                          <ConfigureBlockButton
+                          <BlockSettingsButton
                             expanded={mobileSettingsExpanded}
                             onClick={() =>
                               setMobileSettingsExpanded(!mobileSettingsExpanded)
