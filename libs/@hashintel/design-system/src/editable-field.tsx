@@ -25,7 +25,7 @@ export const EditableField = ({
   onBlur,
   ...props
 }: {
-  editIconFontSize: number;
+  editIconFontSize?: number;
   readonly?: boolean;
   placeholderSx?: SxProps<Theme>;
 } & InputBaseProps) => {
