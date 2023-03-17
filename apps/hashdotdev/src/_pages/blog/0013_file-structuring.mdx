@@ -1,37 +1,38 @@
 ---
 authors:
+  - name: David Wilkinson
+    jobTitle: CEO, HASH
+    photo: blog/authors/david-wilkinson.jpg
   - name: Alexander Kachkaev
     jobTitle: Contributor, Block Protocol
-    # photo: ""
+    # photo: blog/authors/alexander-kachkaev.webp
 postPhoto: blog/0013_file-structuring/tree-evolution-3.png
 title: "File structuring using fractal trees"
 subtitle: "Scalable code organizing for large projects and monorepos"
-date: "2023-03-15"
+date: "2023-03-21"
 ---
 
-## Scope
+This post is the first in a series from [HASH](https://hash.dev/) on **minimizing entropy** in large, actively growing codebases. It outlines an approach we use when structuring JavaScript source files, which employs the concept of fractal trees. The solutions can be applied to parts of a codebase, as well as projects as a whole, allowing for incremental adoption.
 
-This blog post describes an approach to structuring JavaScript source files using the concept of fractal trees.
-The solution can apply to parts of code repositories as well as cover projects as a whole.
-In the context of a monorepo, the scope of this document is the internals of yarn workspaces, while the locations of the workspaces are out of scope.
+## Context
 
-## Motivation
+At HASH, we maintain two (public) monorepos, [`hash`](https://github.com/hashintel/hash) and [`blockprotocol`](https://github.com/blockprotocol/blockprotocol). In the context of these monorepos, this post's scope is limited to the _internals_ of Yarn workspaces, while the locations of the workspaces themselves are out of scope. In a future post, we'll discuss competing approaches to structuring projects within multi-language monorepos and our recommendations here.
 
-Managing source code gets harder as the project grows.
-When there are hundreds or thousands of files, it becomes difficult to decide where to write new code because things start to look messy.
-Commonly emerging folders like `components`, `models` or `utils` occasionally end up collecting large quantities of unrelated code, some of which becomes obsolete.
-It is not always easy to evaluate possible side effects of each change because files found next to each other can have very different impact on the rest of the codebase.
+## Problem
 
-JavaScript is used in a broad range of software products.
-Structuring backend, frontend or library code is often approached on the case-by-case basis, thus turning new projects (including new monorepo workspaces) into bespoke craftwork.
-For the codebase to grow, collaborators need learn different folder layouts and agree on more or less unique rules in each case.
+Managing source code gets harder as codebases grow, the number of contributors increases, and time passes. When dealing with hundreds, thousands, or more files, it becomes difficult to decide where to _write new code_ because things start to look messy. Commonly observed folders like `components`, `models` or `utils` generally end up collecting large quantities of unrelated code, some of which become obsolete, but may not be cleaned up. It is not always easy to evaluate the possible side effects of a change because colocated files can have radically different impacts on the rest of the codebase.
 
-When some file structure is established in the early days of a project, it may erode over time and become obsolete.
-However, fixing this structure may be costly because refactoring needs a round of debates, planning, execution, testing, etc.
+JavaScript is used in a broad range of software products. Structuring backend, frontend or library code is often approached on the case-by-case basis, thus turning new projects (including new monorepo workspaces) into bespoke craftwork. For the codebase to grow, collaborators may need learn different folder layouts and agree on more or less unique rules in each case.
 
-The solution to these problems is a universal approach to source file structuring, which is based on the idea of fractal trees.
+While some file structure is established in the early days of a project, it may erode over time and become obsolete. However, fixing this structure may be costly. Refactoring work not only takes time, but may be subject to debate, planning, testing, and requires stakeholder education.
+
+## Solution
+
+Our solution is to adopt a universal approach to source file structuring, based on the principles underlying fractal trees.
+
 A new project is initiated with just one root source file and is then grown organically by following a small set of basic rules.
-Project complexity is distributed across the whole tree, which makes the resulting structure robust, flexible, self-explanatory and highly scaleable.
+
+Project complexity is distributed across the whole tree, which makes the resulting structure robust, flexible, self-explanatory and highly scalable.
 
 <img
   src="blog/0013_file-structuring/tree-evolution-1.png"
@@ -54,47 +55,29 @@ Project complexity is distributed across the whole tree, which makes the resulti
 
 <center>[source: Wikimedia](<https://commons.wikimedia.org/w/index.php?title=File%3AAnimated_self-resembling_Pythagoras_tree_(fractal).webm>)</center>
 
-## Background
-
-[https://www.npmjs.com/package/destiny](https://www.npmjs.com/package/destiny)
-
-<video
-  src="https://www.youtube.com/embed/rGYbrIf-y58"
-  title="‘Prettier for File Structures’ by Ben Awad"
-/>
+Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) npm package and [_Prettier for file structures_](https://www.youtube.com/watch?v=rGYbrIf-y58) talk from Ben Awad. The fractal tree approach to file structuring is underpinned by 6 principles. These in turn inform our rules.
 
 ## Principles
 
-### The structure of the whole project is the same as of any of its parts
+### 1. The structure of the whole project is the same as of any of its parts
 
-Fractal trees are incredibly scaleable.
-No matter what part of the project we open, we want to find familiar patterns and thus confidently make changes to what we see.
-A developer should not need to learn the entire project structure in order to be able to contribute to its part.
-Broadly speaking, the codebase can successfully evolve even if there is no single developer who has painted a detailed picture of all source files and folders.
+**No matter what part of the project we open, we want to find familiar patterns and thus confidently make changes to what we see.** A developer should not need to learn the entire project structure in order to be able to contribute to its part. Broadly speaking, the codebase can successfully evolve even if there is no single developer who has painted a detailed picture of all source files and folders.
 
-### Circular dependencies between files are not allowed
+### 2. Circular dependencies between files are disallowed
 
-Creating circular import chains would turn the fractal tree into a more generic graph structure.
-This would increase the complexity of the rules to follow and could also introduce runtime bugs.
+**Creating circular import chains would turn the fractal tree into a more generic graph structure.** This would increase the complexity of the rules to follow and could also introduce runtime bugs.
 
-### File tree grows organically, from one file to infinity
+### 3. File trees grow organically
 
 🌱 → 🌳
 
-There is no bolierplate file structure.
-A single-file project is still a fractal tree, just as a project consisting of tens of thousands of files.
-In theory, a tree of any size can be packed into one file, although doing so in practice would make this file very difficult to maintain.
+**There is no bolierplate file structure.** A single-file project is still a fractal tree, just as a project consisting of tens of thousands of files. In theory, a tree of any size can be packed into one file, although doing so in practice would make this file very difficult to maintain.
 
-Resources are grouped into files by their functional purpose rather than ‘shape’.
-This means that we don’t have project-wide folders like `components`, `hooks`, `services` or `types` as this would be similar to putting all CSS or HTML files next to each other.
-Instead, we name and distribute the files based on their added value.
-The resources that comprise a ‘feature’ (components, hooks, services, types, etc.) may remain an implementation detail of a sub-tree and do not need to be exposed outside this sub-tree.
+**Resources are grouped into files by their functional purpose rather than ‘shape’.** This means that we don’t have project-wide folders like `components`, `hooks`, `services` or `types` as this would be similar to putting all CSS or HTML files next to each other. Instead, we name and distribute the files based on their added value. The resources that comprise a ‘feature’ (components, hooks, services, types, etc.) may remain an implementation detail of a sub-tree and do not need to be exposed outside this sub-tree.
 
-### Resources of a sub-sub-tree are inaccessible
+### 4. Resources of a sub-sub-tree are inaccessible
 
-Each sub-tree exports resources which can be imported on the next level of the tree.
-Direct imports from a sub-sub-tree is not allowed because these resources are considered ‘private’, unless re-exported.
-As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
+**Each sub-tree exports resources which can be imported on the next level of the tree.** Direct imports from a sub-sub-tree is not allowed because these resources are considered ‘private’, unless re-exported. As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
 
 <img
   src="blog/0013_file-structuring/resources-of-subtrees.png"
@@ -103,12 +86,9 @@ As a result, internal modifications in a sub-tree cannot cause unexpected side-e
   alt="Resources of subtrees are inaccessible"
 />
 
-### Shared resources may be introduced in any part in the tree
+### 5. Shared resources may be introduced in any part in the tree
 
-If branches of a fractal tree need to share logic (such as helper functions, constants, etc.), a shared resource is placed at the closest available ‘fork’ in the tree.
-If the scope of the shared resource has changed over time, a file is moved accordingly.
-Each ‘fork’ in the tree can accommodate multiple shared resources.
-Each of the shared resources is a root of a fractal sub-tree by itself.
+**If branches of a fractal tree need to share logic (such as helper functions, constants, etc.), a shared resource is placed at the closest available ‘fork’ in the tree.** If the scope of the shared resource has changed over time, a file is moved accordingly. Each ‘fork’ in the tree can accommodate multiple shared resources. Each of the shared resources is a root of a fractal sub-tree by itself.
 
 <img
   src="blog/0013_file-structuring/shared-resources-1.png"
@@ -125,31 +105,26 @@ Each of the shared resources is a root of a fractal sub-tree by itself.
 
 <center>✅ – shared resource location 🟢 – shared resource usage</center>
 
-### File structure matches the _current_ state of the project
+### 6. File structure matches the _current_ state of the project
 
-We do not need to think about file future-proofing.
-It is enough to ensure that the current state of the _file_ tree represents the current state of the _logic_ tree.
-Moving files is cheap and we should not worry about occasional tree reshuffling.
-The structure is designed for change.
+**We do not need to think about file future-proofing.** It is enough to ensure that the current state of the _file_ tree represents the current state of the _logic_ tree. Moving files is cheap and we should not worry about occasional tree reshuffling. The structure is designed for change.
 
-By excluding future-proofing from the process, we save time on costly debates and also avoid over-engineering.
-We also allow ourselves to add formal linting checks to continuously verify file structure integrity.
+**By excluding future-proofing from the process, we save time on costly debates and also avoid over-engineering.** We also allow ourselves to add formal linting checks to continuously verify file structure integrity.
 
 ## Rules
 
-The rules are informed by the above principles, which establish the general thinking framework.
-The rules, in turn, provide practical guidance to developers to ensure coherent and smooth DX.
+**The rules are informed by the above principles, which establish the general thinking framework.** The rules, in turn, provide practical guidance to developers to ensure coherent and smooth DX.
 
 > ℹ️ Examples below mention `.js` extension for simplicity, but they apply to TypeScript and JSX files too.
 
-### All file and folder names are in kebab-case
+### Rule #1 - All file and folder names are in kebab-case
 
 Avoiding capital letters saves us from crashes on case-sensitive file systems.
 For example, `import "./Foo.js"` may not work on Linux if a file is named `foo.js`.
 Unlike `camelCase` and `PascalCase`, `kebab-case` also maps well into URLs and npm package names.
 We use [unicorn/filename-case](https://github.com/sindresorhus/eslint-plugin-unicorn/blob/main/docs/rules/filename-case.md) to maintain consistency in file names.
 
-### No index.js files
+### Rule #2 - No index.js files
 
 These ‘special’ files enable imports from folders in Node.js.
 For example, `require("./foo")` resolves `./foo` to `./foo/index.js` if the index file is present.
@@ -161,7 +136,7 @@ We also protect ourselves from confusing path synonyms like `"./foo"` mapping to
 
 The entry point to an npm package can be named `main.js` instead of `index.js` which is not uncommon.
 
-### Each file is a ‘mini-library’
+### Rule #3 - Each file is a ‘mini-library’
 
 A file in a fractal tree can expose one or more named exports, all of which should serve a common semantic purpose.
 The name of the file summarises its contents, e.g. `maths.ts` presumably contains various maths functions and symbols.
@@ -174,7 +149,7 @@ It may be the case of unrelated resources being unreasonably mixed up (e.g. `uti
 
 We [avoid default exports](https://basarat.gitbook.io/typescript/main-1/defaultisbad) unless it is an external requirement.
 
-### Outgrown files are converted into sub-trees of files
+### Rule #4 - Outgrown files are converted into sub-trees of files
 
 Because each file is a ‘mini-library’ on the conceptual level, all its logic except external imports can be defined in one place.
 Of course, this would make some files too crowded, so distributing a ‘mini-library’ on the disk often makes sense.
@@ -198,7 +173,7 @@ Premature file splitting makes the folder tree larger than it could be, which is
 For a consumer of a ‘mini-library’, the is no difference between it being a single library or a large sub-tree with thousands of files.
 Internal sub-tree restructuring does not affect the exposed resources.
 
-### All imports within a workspace use relative paths
+### Rule #5 - All imports within a workspace use relative paths
 
 Importing something from another workspace is straightforward: we just go for `package-name/optional/path/to/something`.
 When we need to import from the same workspace, there are two options:
@@ -212,7 +187,7 @@ If we are in `my-workspace/x/y.ts` and we want to import from `my-workspace/a
 Using `@/a/b` needs more setup, which is a source of tooling incompatibility, team debates and so on.
 It is easier to always use relative paths.
 
-### Shared resources are put into `shared` folders
+### Rule #6 - Shared resources are put into `shared` folders
 
 It is not allowed to import any resource from anywhere as this can break the integrity of the fractal tree.
 The location of any file unambiguously communicates the limits of its use.
@@ -235,7 +210,7 @@ This would be an equivalent of importing one npm package from another.
 The contents of the `shared` folders closer to the tree root are also accessible, but not the other way around.
 `import { a } from "../../../shared/a.js"` is allowed just as `import { a } from "./shared/a.js"`, but `import { a } from "./some/sub/tree/shared/a.js"` or `import { a } from "../../some/sub/tree/shared/a.js"` are not.
 
-### Multiple entry points are allowed
+### Rule #7 - Multiple entry points are allowed
 
 A simple project like an npm package or an SPA starts with a single file, e.g. `main.js`.
 This file works as the only entry point into the whole fractal tree, which can be of any size.
@@ -256,7 +231,7 @@ Just like the ‘mini-libraries’, tree entry points can share resources betwee
 When there are multiple entry points, it is a good practice to keep their naming distinct from the ‘mini-libraries’ of the fractal tree.
 This can be done with a file name suffix: `dashboard.page.jsx`, `login.handler.js`, `do-something.script.js`, `foo.test.js`.
 
-### Unit tests are placed next to files they cover
+### Rule #8 - Unit tests are placed next to files they cover
 
 If we want to cover `path/to/foo.js` with unit tests, we create `path/to/foo.test.js`.
 Putting unit tests into a subfolder (e.g. `path/to/__test__/foo.test.js`) would make it harder to sync tests or to see what files have test files.
@@ -266,7 +241,7 @@ This may simplify the logic in the original `foo.test.js` file.
 Integration (system) tests or end-to-end tests cover the project (i.e. a library or an app) as a whole.
 These high-level tests form their independent ‘fractal forest’, which is placed outside of the root of the source tree.
 
-### Exceptions are undesired but are not prohibited
+### Rule #9 - Exceptions are undesired but are not prohibited
 
 The above rules are there to organise complex projects, but they don’t require an exhaustive opt-in.
 It is possible to migrate to a fractal tree structure only in selected parts of a codebase and then grow or reduce the scope of the rules over time.
@@ -362,6 +337,3 @@ This ability is preserved with scale.
 
 - [Þ → libs/blockprotocol](https://github.com/blockprotocol/blockprotocol/tree/main/libs/blockprotocol)
 - [# → @hashintel/design-system](https://github.com/hashintel/hash/tree/main/libs/@hashintel/design-system)
-- [Alex → njt](https://github.com/kachkaev/njt)
-- [Alex → tooling-for-how-old-is-this-house](https://github.com/kachkaev/tooling-for-how-old-is-this-house)
-- [Alex → special-internet-archive](https://github.com/kachkaev/special-internet-archive)
