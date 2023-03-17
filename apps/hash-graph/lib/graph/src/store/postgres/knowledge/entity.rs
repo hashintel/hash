@@ -24,10 +24,7 @@ use crate::{
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{
-            EdgeDirection, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
-        },
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -84,7 +81,9 @@ impl<C: AsClient> PostgresStore<C> {
                         );
                     });
 
-                if graph_resolve_depths.is_of_type.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
+                {
                     for entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
                         self,
                         &Filter::for_shared_edge_by_entity_id(
@@ -108,19 +107,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_type_queue.push((
                             entity_type_vertex_id,
-                            GraphResolveDepths {
-                                is_of_type: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.is_of_type.outgoing - 1,
-                                    ..graph_resolve_depths.is_of_type
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
                 }
 
-                if graph_resolve_depths.has_left_entity.incoming > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        KnowledgeGraphEdgeKind::HasLeftEntity,
+                        EdgeDirection::Incoming,
+                    )
+                {
                     for outgoing_link_entity in <Self as Read<Entity>>::read(
                         self,
                         &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -155,19 +153,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_queue.push((
                             outgoing_link_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_left_entity: EdgeResolveDepths {
-                                    incoming: graph_resolve_depths.has_left_entity.incoming - 1,
-                                    ..graph_resolve_depths.has_left_entity
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
                 }
 
-                if graph_resolve_depths.has_right_entity.incoming > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        KnowledgeGraphEdgeKind::HasRightEntity,
+                        EdgeDirection::Incoming,
+                    )
+                {
                     for incoming_link_entity in <Self as Read<Entity>>::read(
                         self,
                         &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -202,19 +199,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_queue.push((
                             incoming_link_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_right_entity: EdgeResolveDepths {
-                                    incoming: graph_resolve_depths.has_right_entity.incoming - 1,
-                                    ..graph_resolve_depths.has_right_entity
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
                 }
 
-                if graph_resolve_depths.has_left_entity.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        KnowledgeGraphEdgeKind::HasLeftEntity,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for left_entity in <Self as Read<Entity>>::read(
                         self,
                         &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -241,19 +237,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_queue.push((
                             left_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_left_entity: EdgeResolveDepths {
-                                    outgoing: graph_resolve_depths.has_left_entity.outgoing - 1,
-                                    ..graph_resolve_depths.has_left_entity
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
                 }
 
-                if graph_resolve_depths.has_right_entity.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        KnowledgeGraphEdgeKind::HasRightEntity,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for right_entity in <Self as Read<Entity>>::read(
                         self,
                         &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -280,13 +275,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_queue.push((
                             right_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_right_entity: EdgeResolveDepths {
-                                    outgoing: graph_resolve_depths.has_right_entity.outgoing - 1,
-                                    ..graph_resolve_depths.has_right_entity
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
