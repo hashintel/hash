@@ -239,7 +239,9 @@ export const App: BlockComponent<RootEntity> = ({
     if (!stepEntities.length) {
       void addStep();
     }
-  }, [addStep, stepEntities.length]);
+    // We only want to run this once when the block is initiated
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const schema = useMemo(() => {
     const stepsWithTitle = stepEntities.filter(
