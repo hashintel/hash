@@ -9,6 +9,7 @@ export * from "./editable-field";
 export * from "./fa-icons/icons";
 export * from "./fontawesome-icon";
 export * from "./form-inline";
+export * from "./get-help-link";
 export * from "./icon-arrow-right";
 export * from "./icon-button";
 export * from "./icon-circle-plus";

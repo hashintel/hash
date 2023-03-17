@@ -4,14 +4,22 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
+import {
+  faChevronCircleRight,
+  faGear,
+  faSearch,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+  Autocomplete,
+  Button,
+  FontAwesomeIcon,
+  GetHelpLink,
+  theme,
+} from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,
   Fade,
-  Link,
   ThemeProvider,
   Typography,
 } from "@mui/material";
@@ -428,6 +436,8 @@ export const App: BlockComponent<RootEntity> = ({
                       <Box
                         sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}
                       >
+                        <GetHelpLink href="https://blockprotocol.org/@hash/blocks/address" />
+
                         <Link
                           href="https://blockprotocol.org/@hash/blocks/address"
                           target="_blank"
