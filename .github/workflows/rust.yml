@@ -99,7 +99,7 @@ jobs:
         run: cargo +${{ matrix.toolchain }} make clippy --message-format=json | clippy-sarif | jq '.runs[].results |= unique' | tee clippy.sarif | sarif-fmt
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v1
+        uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
 
