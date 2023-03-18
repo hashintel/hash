@@ -102,6 +102,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
+          checkout_path: ${{ matrix.directory }}
 
       - name: Check warnings in clippy SARIF file
         working-directory: ${{ matrix.directory }}
