@@ -1,3 +1,7 @@
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import clsx from "clsx";
+
 import { IconButton } from "../../icon-button/icon-button";
 import { DiscardIcon } from "../../icons/discard-icon";
 import { PlusIcon } from "../../icons/plus-icon";
@@ -16,22 +20,51 @@ export const Column = ({
   createCard: (columnId: string, content: string) => void;
   deleteCard: (columnId: string, cardId: string) => void;
 }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isSorting,
+  } = useSortable({ id: data.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.titleRow}>
+    <div
+      className={styles.wrapper}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+    >
+      <div
+        className={clsx(
+          styles.titleRow,
+          (isDragging || isSorting) && styles.showHandCursor,
+        )}
+        {...listeners}
+      >
         <div className={styles.title}>{data.title}</div>
         <IconButton onClick={() => deleteColumn(data.id)}>
           <DiscardIcon />
         </IconButton>
       </div>
       <div className={styles.body}>
-        {data.cards.map((card) => (
-          <Card
-            key={card.id}
-            data={card}
-            onDelete={() => deleteCard(data.id, card.id)}
-          />
-        ))}
+        <SortableContext items={data.cards.map((card) => card.id)} id={data.id}>
+          {data.cards.map((card) => (
+            <Card
+              key={card.id}
+              data={card}
+              onDelete={() => deleteCard(data.id, card.id)}
+            />
+          ))}
+        </SortableContext>
         <button
           className={styles.addCardButton}
           type="button"

@@ -10,8 +10,10 @@ export type ColumnData = {
   cards: CardData[];
 };
 
-export const defaultColumns: ColumnData[] = [
-  {
+export type ColumnsState = Record<string, ColumnData>;
+
+export const defaultColumns: ColumnsState = {
+  "col-cats": {
     id: "col-cats",
     title: "Cats",
     cards: [
@@ -20,7 +22,7 @@ export const defaultColumns: ColumnData[] = [
       { id: "cat-3", columnId: "col-cats", content: "Cat 3" },
     ],
   },
-  {
+  "col-dogs": {
     id: "col-dogs",
     title: "Dogs",
     cards: [
@@ -29,12 +31,8 @@ export const defaultColumns: ColumnData[] = [
       { id: "dog-3", columnId: "col-dogs", content: "Dog 3" },
     ],
   },
-  {
-    id: "col-empty",
-    title: "Empty",
-    cards: [],
-  },
-  {
+  "col-empty": { id: "col-empty", title: "Empty", cards: [] },
+  "col-birds": {
     id: "col-birds",
     title: "Birds",
     cards: [
@@ -43,4 +41,4 @@ export const defaultColumns: ColumnData[] = [
       { id: "bird-3", columnId: "col-birds", content: "Bird 3" },
     ],
   },
-];
+};
