@@ -11,7 +11,6 @@ use crate::{
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(untagged)]
-#[expect(clippy::enum_variant_names)]
 pub enum OntologyTypeVertexId {
     DataType(DataTypeVertexId),
     PropertyType(PropertyTypeVertexId),
