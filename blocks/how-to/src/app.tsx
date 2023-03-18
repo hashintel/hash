@@ -113,6 +113,12 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
+  const [steps, setSteps] = useState(
+    stepEntities.map((stepEntity) => ({
+      id: stepEntity.metadata.recordId.entityId,
+      properties: stepEntity.properties,
+    })),
+  );
   const [introButtonAnimatingOut, setIntroButtonAnimatingOut] = useState(false);
   const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
   const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
@@ -203,10 +209,10 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
-  const addStep = useCallback(
-    () => createHowToEntity(howToBlockStepType, hasHowToBlockStep),
-    [createHowToEntity],
-  );
+  const addStep = useCallback(async () => {
+    setSteps([...steps, { id: Math.random().toString(), properties: {} }]);
+    await createHowToEntity(howToBlockStepType, hasHowToBlockStep);
+  }, [steps, createHowToEntity]);
 
   const updateStepField = async (
     index: number,
@@ -439,11 +445,14 @@ export const App: BlockComponent<RootEntity> = ({
                   ) : null}
 
                   <Box>
-                    {stepEntities.map((stepEntity, index) => (
+                    {steps.map((step, index) => (
                       <Collapse
-                        key={stepEntity.metadata.recordId.entityId}
+                        key={step.id}
                         in={stepAnimatingOut !== index}
                         onExited={async () => {
+                          const newSteps = [...steps];
+                          newSteps.splice(index, 1);
+                          setSteps(newSteps);
                           setStepAnimatingOut(-1);
 
                           const stepLink =
@@ -474,9 +483,9 @@ export const App: BlockComponent<RootEntity> = ({
                               fontSize: 12,
                               textTransform: "uppercase",
                             }}
-                            title={stepEntity.properties[titleKey]}
+                            title={step.properties[titleKey]}
                             titlePlaceholder="Step name goes here"
-                            description={stepEntity.properties[descriptionKey]}
+                            description={step.properties[descriptionKey]}
                             descriptionPlaceholder={
                               isMobile
                                 ? "Additional instructions here"
