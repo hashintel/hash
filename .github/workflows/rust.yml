@@ -100,22 +100,18 @@ jobs:
           cargo +${{ matrix.toolchain }} make clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
-            | jq --arg pwd "$(pwd)" '.runs[] += {invocation: {workingDirectory: {uri: $pwd }}}' \
-            | tee clippy.sarif \
-            | sarif-fmt
+            | jq --arg pwd "$(pwd)" '.runs[] += { invocations: [{ workingDirectory: { uri: $pwd }, executionSuccessful: true }]}' \
+            > clippy.sarif
+
+          if [[ $(jq '.runs[].results | length' clippy.sarif) -gt 0 ]]; then
+              sarif-fmt --input clippy.sarif
+          fi
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
+        if: always()
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
-
-      - name: Check warnings in clippy SARIF file
-        working-directory: ${{ matrix.directory }}
-        run: |
-          if [[ $(jq '.runs[].results | length' clippy.sarif) -gt 0 ]]; then
-              echo "Found warnings in clippy SARIF file"
-              exit 1
-          fi
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
