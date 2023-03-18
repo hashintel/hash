@@ -2,12 +2,13 @@
   cursor: pointer;
   padding: 10px;
   gap: 10px;
+  font-size: 13px;
 
   background: white;
 
   border: 1px solid #dde7f0;
 
-  box-shadow: 0px 1px 5px rgba(27, 33, 40, 0.07);
+  box-shadow: var(--shadow-1);
   border-radius: 6px;
   position: relative;
   overflow: hidden;

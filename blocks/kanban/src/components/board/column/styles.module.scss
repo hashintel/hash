@@ -3,6 +3,9 @@
   width: var(--columm-width);
   background: #fafbfc;
   border-radius: 8px;
+  font-size: 13px;
+  min-height: 100%;
+  box-shadow: var(--shadow-1);
 
   .titleRow {
     padding: 12px 20px;
