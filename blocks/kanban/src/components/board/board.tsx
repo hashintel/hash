@@ -18,25 +18,40 @@ import {
 } from "@dnd-kit/sortable";
 import { useState } from "react";
 
+import { RootEntityKey } from "../../additional-types";
+import { RootEntity } from "../../types";
 import { PlusIcon } from "../icons/plus-icon";
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
 import { StaticColumn } from "./column/static-column";
 import styles from "./styles.module.scss";
-import { CardData, ColumnsState, defaultColumns } from "./types";
+import { ActiveItem, CardData, ColumnsState } from "./types";
 
 const generateId = () => Date.now().toString();
 
-export const Board = () => {
-  const [activeItem, setActiveItem] = useState<
-    | { type: "column"; id: UniqueIdentifier }
-    | { type: "card"; id: UniqueIdentifier; data: CardData }
-    | null
-  >(null);
-  const [columns, setColumns] = useState<ColumnsState>(defaultColumns);
-  const [columnOrder, setColumnOrder] = useState<string[]>(
-    Object.keys(defaultColumns),
+const columnOrderKey: RootEntityKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-column-order/";
+const columnsKey: RootEntityKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-columns/";
+
+interface BoardProps {
+  blockEntity: RootEntity;
+  updateEntity: (newProperties: RootEntity["properties"]) => Promise<void>;
+}
+
+export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
+  const {
+    properties: {
+      [columnOrderKey]: entityColumnOrder = [],
+      [columnsKey]: entityColumns = {},
+    },
+  } = blockEntity;
+
+  const [activeItem, setActiveItem] = useState<ActiveItem>(null);
+  const [columns, setColumns] = useState<ColumnsState>(
+    entityColumns as ColumnsState,
   );
+  const [columnOrder, setColumnOrder] = useState<string[]>(entityColumnOrder);
 
   const deleteColumn = (columnId: string) => {
     setColumns((cols) => {
@@ -71,7 +86,7 @@ export const Board = () => {
 
       const cloneCol = { ...targetCol };
 
-      cloneCol.cards.push({ id: generateId(), content, columnId });
+      cloneCol.cards.push({ id: generateId(), content });
 
       return {
         ...cols,

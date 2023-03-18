@@ -1,38 +1,56 @@
-import { type BlockComponent } from "@blockprotocol/graph/react";
-import { useState } from "react";
+import {
+  type BlockComponent,
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
+import { useRef } from "react";
 
+import { RootEntityKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { Board } from "./components/board/board";
 import { BoardTitle } from "./components/board-title/board-title";
-import { RootEntity } from "./types.gen";
+import { RootEntity, RootEntityLinkedEntities } from "./types";
 
-export const App: BlockComponent<RootEntity> = () =>
-  // {
-  //   graph: { blockEntitySubgraph },
-  // }
-  {
-    // const blockRootRef = useRef<HTMLDivElement>(null);
-    // const { graphModule } = useGraphBlockModule(blockRootRef);
+const titleKey: RootEntityKey =
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 
-    // const { rootEntity: blockEntity } = useEntitySubgraph<
-    //   RootEntity,
-    //   RootEntityLinkedEntities
-    // >(blockEntitySubgraph);
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
+}) => {
+  const blockRootRef = useRef<HTMLDivElement>(null);
+  const { graphModule } = useGraphBlockModule(blockRootRef);
 
-    // const entityId = blockEntity.metadata.recordId.entityId;
+  const { rootEntity: blockEntity } = useEntitySubgraph<
+    RootEntity,
+    RootEntityLinkedEntities
+  >(blockEntitySubgraph);
 
-    // const nameKey: keyof RootEntity["properties"] =
-    //   "https://blockprotocol.org/@blockprotocol/types/property-type/name/";
+  const {
+    metadata: {
+      recordId: { entityId: blockEntityId },
+      entityTypeId: blockEntityTypeId,
+    },
+    properties: { [titleKey]: title = "" },
+  } = blockEntity;
 
-    const [title, setTitle] = useState("");
-
-    return (
-      <div
-        className={styles.block}
-        // ref={blockRootRef}
-      >
-        <BoardTitle title={title} onChange={setTitle} />
-        <Board />
-      </div>
-    );
+  const updateEntity = async (newProperties: RootEntity["properties"]) => {
+    await graphModule.updateEntity({
+      data: {
+        entityId: blockEntityId,
+        entityTypeId: blockEntityTypeId,
+        properties: { ...blockEntity.properties, ...newProperties },
+      },
+    });
   };
+
+  const setTitle = async (val: string) => {
+    await updateEntity({ [titleKey]: val });
+  };
+
+  return (
+    <div className={styles.block} ref={blockRootRef}>
+      <BoardTitle title={title} onChange={setTitle} readonly={readonly} />
+      <Board updateEntity={updateEntity} blockEntity={blockEntity} />
+    </div>
+  );
+};
