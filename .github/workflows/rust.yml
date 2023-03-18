@@ -97,8 +97,8 @@ jobs:
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
-          cargo +${{ matrix.toolchain }} make clippy --message-format=json \ 
-            | clippy-sarif 
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
+            | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | jq --arg pwd "$(pwd)" '.runs[] += {invocation: {workingDirectory: {uri: $pwd }}}' \
             | tee clippy.sarif \
