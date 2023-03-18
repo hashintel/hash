@@ -96,13 +96,18 @@ jobs:
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make clippy --message-format=json | clippy-sarif | jq '.runs[].results |= unique' | tee clippy.sarif | sarif-fmt
+        run: |
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json \ 
+            | clippy-sarif 
+            | jq '.runs[].results |= unique' \
+            | jq --arg pwd "$(pwd)" '.runs[] += {invocation: {workingDirectory: {uri: $pwd }}}' \
+            | tee clippy.sarif \
+            | sarif-fmt
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
-          checkout_path: ${{ matrix.directory }}
 
       - name: Check warnings in clippy SARIF file
         working-directory: ${{ matrix.directory }}
