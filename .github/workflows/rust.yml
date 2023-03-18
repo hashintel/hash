@@ -100,7 +100,7 @@ jobs:
           cargo +${{ matrix.toolchain }} make clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
-            | jq --arg pwd "$(pwd)" '.runs[] += { invocations: [{ workingDirectory: { uri: $pwd }, executionSuccessful: true }]}' \
+            | jq --arg pwd "$(pwd)" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .'  \
             > clippy.sarif
 
           if [[ $(jq '.runs[].results | length' clippy.sarif) -gt 0 ]]; then
