@@ -70,8 +70,6 @@ impl<C: AsClient> PostgresStore<C> {
                     .temporal_versioning()
                     .variable_time_interval(time_axis);
 
-                drop(temporal_axes);
-
                 // Intersects the version interval of the entity with the variable axis's time
                 // interval. We only want to resolve the entity further for the overlap of these two
                 // intervals.
@@ -138,7 +136,7 @@ impl<C: AsClient> PostgresStore<C> {
                         );
 
                         let outgoing_link_entity_vertex_id =
-                            outgoing_link_entity.vertex_id(time_axis);
+                            outgoing_link_entity.vertex_id(&time_axis);
                         subgraph
                             .insert_vertex(&outgoing_link_entity_vertex_id, outgoing_link_entity);
 

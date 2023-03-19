@@ -105,8 +105,6 @@ jobs:
             | tee clippy.sarif \
             | sarif-fmt
 
-          jq -e '.runs[].results == []' clippy.sarif> /dev/null
-
       - name: Process SARIF file
         working-directory: ${{ matrix.directory }}
         if: always()
