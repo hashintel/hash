@@ -54,7 +54,6 @@ impl<C: AsClient> PostgresStore<C> {
             .map(|id| (id, graph_resolve_depths, temporal_axes.clone()))
             .collect::<Vec<_>>();
 
-        let x = 10;
         while !queue.is_empty() {
             // TODO: We could re-use the memory here but we expect to batch the processing of this
             //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
