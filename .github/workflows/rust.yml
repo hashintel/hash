@@ -97,16 +97,13 @@ jobs:
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
-          set +o pipefile
           cargo +${{ matrix.toolchain }} make clippy --message-format=json -- -D warnings || true \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
+            | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' \
+            | jq --arg clippy_version "$(cargo clippy --version | cut -f2 -d' ')" '.runs[].tool.driver.semanticVersion |= $clippy_version' \
             | tee clippy.sarif \
             | sarif-fmt
-
-          # Populate sarif file with more useful information for GitHub
-          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > clippy.sarif.tmp && mv clippy.sarif.tmp clippy.sarif
-          jq --arg clippy_version "$(cargo clippy --version | cut -f2 -d' ')" '.runs[].tool.driver.semanticVersion |= $clippy_version' clippy.sarif > clippy.sarif.tmp && mv clippy.sarif.tmp clippy.sarif
 
           jq -e '.runs[].results == []' clippy.sarif> /dev/null
 
