@@ -275,7 +275,7 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { tolerance: { x: 10, y: 10 }, delay: 100 },
+      activationConstraint: { distance: 10 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
