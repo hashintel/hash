@@ -23,6 +23,7 @@ import {
 import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
+import { v4 as uuid } from "uuid";
 
 import { Step } from "./step";
 import {
@@ -30,6 +31,7 @@ import {
   HowToBlockIntroduction,
   HowToBlockLinksByLinkTypeId,
   HowToBlockStep,
+  HowToBlockStepProperties,
   RootEntity,
 } from "./types";
 
@@ -113,7 +115,13 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
-  const [steps, setSteps] = useState(
+  const [steps, setSteps] = useState<
+    {
+      id: string;
+      properties: HowToBlockStepProperties;
+      animatingOut?: boolean;
+    }[]
+  >(
     stepEntities.map((stepEntity) => ({
       id: stepEntity.metadata.recordId.entityId,
       properties: stepEntity.properties,
@@ -121,7 +129,6 @@ export const App: BlockComponent<RootEntity> = ({
   );
   const [introButtonAnimatingOut, setIntroButtonAnimatingOut] = useState(false);
   const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
-  const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
   const updateField = async (value: string, field: TitleOrDescription) => {
     await graphModule.updateEntity({
@@ -210,7 +217,7 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const addStep = useCallback(async () => {
-    setSteps([...steps, { id: Math.random().toString(), properties: {} }]);
+    setSteps([...steps, { id: uuid(), properties: {} }]);
     await createHowToEntity(howToBlockStepType, hasHowToBlockStep);
   }, [steps, createHowToEntity]);
 
@@ -238,7 +245,14 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeStep = (index: number) => {
-    setStepAnimatingOut(index);
+    setSteps(
+      steps.map((step, stepIndex) => {
+        if (index === stepIndex) {
+          return { ...step, animatingOut: true };
+        }
+        return step;
+      }),
+    );
   };
 
   useEffect(() => {
@@ -448,12 +462,11 @@ export const App: BlockComponent<RootEntity> = ({
                     {steps.map((step, index) => (
                       <Collapse
                         key={step.id}
-                        in={stepAnimatingOut !== index}
+                        in={!step.animatingOut}
                         onExited={async () => {
                           const newSteps = [...steps];
                           newSteps.splice(index, 1);
                           setSteps(newSteps);
-                          setStepAnimatingOut(-1);
 
                           const stepLink =
                             stepLinkedEntities[index]?.linkEntity;
@@ -472,7 +485,7 @@ export const App: BlockComponent<RootEntity> = ({
                       >
                         <Box
                           sx={{
-                            mb: index === stepEntities.length - 1 ? 0 : 3,
+                            mb: index === steps.length - 1 ? 0 : 3,
                             transition: ({ transitions }) =>
                               transitions.create("margin-bottom"),
                           }}
