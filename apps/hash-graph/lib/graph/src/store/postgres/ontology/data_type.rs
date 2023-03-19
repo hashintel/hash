@@ -21,14 +21,14 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
         data_type_ids: Vec<DataTypeVertexId>,
         temporal_axes: QueryTemporalAxes,
         graph_resolve_depths: GraphResolveDepths,
-        _traversal_context: &mut TraversalContext,
-        _subgraph: &mut Subgraph,
+        traversal_context: &mut TraversalContext,
+        subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here

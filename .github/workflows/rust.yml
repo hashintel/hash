@@ -99,7 +99,7 @@ jobs:
         run: |
           cargo install clippy-sarif --git https://github.com/TimDiekmann/sarif-rs
 
-          cargo +${{ matrix.toolchain }} make clippy --message-format=json-diagnostic-rendered-ansi \
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | tee clippy.sarif \
@@ -111,7 +111,6 @@ jobs:
         run: |
           cat clippy.sarif \
            | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' \
-           | jq --arg clippy_version "$(cargo clippy --version | cut -f2 -d' ')" '.runs[].tool.driver.semanticVersion |= $clippy_version' \
            > clippy.sarif
 
       - name: Upload SARIF file
