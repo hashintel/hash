@@ -97,6 +97,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
+          set +o pipefail
           cargo +${{ matrix.toolchain }} make clippy --message-format=json -- -D warnings \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
