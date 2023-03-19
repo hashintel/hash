@@ -51,7 +51,7 @@ impl<C: AsClient> PostgresStore<C> {
 
         let mut queue = entity_vertex_ids
             .into_iter()
-            .map(|id| (id, graph_resolve_depths, temporal_axes.clone()))
+            .map(|id| (id, graph_resolve_depths, temporal_axes))
             .collect::<Vec<_>>();
 
         while !queue.is_empty() {
