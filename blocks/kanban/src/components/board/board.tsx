@@ -89,7 +89,10 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
     [updateEntity],
   );
 
-  if (entityColumnOrder !== prevEntityColumnOrder) {
+  if (
+    entityColumnOrder !== prevEntityColumnOrder &&
+    (entityColumnOrder.length || prevEntityColumnOrder.length)
+  ) {
     if (entityColumnOrder !== columnOrder) {
       setColumnOrder(entityColumnOrder);
     }
@@ -97,7 +100,10 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
     setPrevEntityColumnOrder(entityColumnOrder);
   }
 
-  if (entityColumns !== prevEntityColumns) {
+  if (
+    entityColumns !== prevEntityColumns &&
+    (Object.keys(entityColumns).length || Object.keys(prevEntityColumns).length)
+  ) {
     if (entityColumns !== columns) {
       setColumns(entityColumns as ColumnsState);
     }
@@ -129,6 +135,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
         },
       };
     });
+
+    setColumnOrder((cols) => [...cols, newColId]);
 
     syncLocalStateToEntity();
   };
