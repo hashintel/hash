@@ -161,10 +161,6 @@ pub struct EdgeResolveDepths {
 }
 
 impl EdgeResolveDepths {
-    #[expect(
-        clippy::useless_let_if_seq,
-        reason = "Using a mutable variable is more readable"
-    )]
     pub fn update(&mut self, other: Self) -> bool {
         let mut changed = false;
         if other.incoming > self.incoming {
