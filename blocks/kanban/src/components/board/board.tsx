@@ -17,6 +17,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import debounce from "lodash.debounce";
+import isEqual from "lodash.isequal";
 import { useMemo, useState } from "react";
 
 import { RootEntityKey } from "../../additional-types";
@@ -58,9 +59,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     },
   } = blockEntity;
 
-  const [prevEntityColumns, setPrevEntityColumns] = useState(entityColumns);
-  const [prevEntityColumnOrder, setPrevEntityColumnOrder] =
-    useState(entityColumnOrder);
+  const [prevBlockEntity, setPrevBlockEntity] = useState(blockEntity);
 
   const [activeItem, setActiveItem] = useState<ActiveItem>(null);
   const [columns, setColumns] = useState<ColumnsState>(
@@ -101,26 +100,18 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     [updateEntity],
   );
 
-  if (
-    entityColumnOrder !== prevEntityColumnOrder &&
-    (entityColumnOrder.length || prevEntityColumnOrder.length)
-  ) {
-    if (entityColumnOrder !== columnOrder) {
-      setColumnOrder(entityColumnOrder);
+  if (blockEntity !== prevBlockEntity) {
+    setPrevBlockEntity(blockEntity);
+
+    const columnsChanged = !isEqual(entityColumns, columns);
+    if (columnsChanged) {
+      setColumns((blockEntity.properties[columnsKey] ?? {}) as ColumnsState);
     }
 
-    setPrevEntityColumnOrder(entityColumnOrder);
-  }
-
-  if (
-    entityColumns !== prevEntityColumns &&
-    (Object.keys(entityColumns).length || Object.keys(prevEntityColumns).length)
-  ) {
-    if (entityColumns !== columns) {
-      setColumns(entityColumns as ColumnsState);
+    const columnOrderChanged = !isEqual(entityColumnOrder, columnOrder);
+    if (columnOrderChanged) {
+      setColumnOrder(blockEntity.properties[columnOrderKey] ?? []);
     }
-
-    setPrevEntityColumns(entityColumns as ColumnsState);
   }
 
   const isCardOrColumn = (id: UniqueIdentifier) => {
