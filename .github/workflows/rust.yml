@@ -99,7 +99,7 @@ jobs:
         run: |
           cargo install clippy-sarif --git https://github.com/TimDiekmann/sarif-rs
 
-          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json-diagnostic-rendered-ansi \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | tee clippy.sarif \

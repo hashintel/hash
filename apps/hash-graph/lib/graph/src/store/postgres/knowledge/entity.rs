@@ -59,7 +59,7 @@ impl<C: AsClient> PostgresStore<C> {
             // TODO: We could re-use the memory here but we expect to batch the processing of this
             //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
             for (entity_vertex_id, graph_resolve_depths, temporal_axes) in mem::take(&mut queue) {
-                let entity: &Entity = subgraph.get_vertex(&entity_vertex_id).unwrap_or_else(|| {
+                let entity: &Entity = subgraph.get_vertex(entity_vertex_id).unwrap_or_else(|| {
                     // Entities are always inserted into the subgraph before they are resolved,
                     // so this should never happen. If it does, it is a bug.
                     unreachable!("entity should already be in the subgraph");
@@ -136,7 +136,7 @@ impl<C: AsClient> PostgresStore<C> {
                         );
 
                         let outgoing_link_entity_vertex_id =
-                            outgoing_link_entity.vertex_id(&time_axis);
+                            outgoing_link_entity.vertex_id(time_axis);
                         subgraph
                             .insert_vertex(&outgoing_link_entity_vertex_id, outgoing_link_entity);
 
