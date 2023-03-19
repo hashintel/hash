@@ -101,7 +101,7 @@ jobs:
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .'  \
-            | tee clippy.sarif
+            | tee clippy.sarif \
             | sarif-fmt
 
           if [[ $(jq '.runs[].results | length' clippy.sarif) -gt 0 ]]; then
