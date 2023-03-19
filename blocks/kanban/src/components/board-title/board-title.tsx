@@ -65,7 +65,7 @@ export const BoardTitle = ({ title, onChange, readonly }: BoardTitleProps) => {
       )}
 
       {!editing && !readonly && (
-        <IconButton onClick={editTitle}>
+        <IconButton onClick={editTitle} className={styles.edit}>
           <EditIcon />
         </IconButton>
       )}
