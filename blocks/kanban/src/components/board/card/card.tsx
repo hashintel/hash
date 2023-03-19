@@ -12,10 +12,12 @@ export const Card = ({
   data,
   onDelete,
   updateCardContent,
+  readonly,
 }: {
   data: CardData;
   onDelete: () => void;
   updateCardContent: UpdateCardContentCallback;
+  readonly?: boolean;
 }) => {
   const {
     attributes,
@@ -47,10 +49,13 @@ export const Card = ({
       <EditableCardContent
         content={data.content}
         onChange={(val) => updateCardContent(data.id, val)}
+        readonly={readonly}
       />
-      <IconButton onClick={onDelete}>
-        <DiscardIcon />
-      </IconButton>
+      {!readonly && (
+        <IconButton onClick={onDelete}>
+          <DiscardIcon />
+        </IconButton>
+      )}
     </div>
   );
 };

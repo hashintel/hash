@@ -47,9 +47,10 @@ const columnsKey: RootEntityKey =
 interface BoardProps {
   blockEntity: RootEntity;
   updateEntity: (newProperties: RootEntity["properties"]) => Promise<void>;
+  readonly?: boolean;
 }
 
-export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
+export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const {
     properties: {
       [columnOrderKey]: entityColumnOrder = [],
@@ -418,7 +419,7 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
       onDragCancel={handleDragEnd}
       onDragStart={handleDragStart}
     >
-      <SortableContext items={columnOrder}>
+      <SortableContext items={columnOrder} disabled={readonly}>
         <div className={styles.board}>
           {columnOrder.map((columnId) => (
             <Column
@@ -429,17 +430,20 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
               deleteCard={deleteCard}
               updateColumnTitle={updateColumnTitle}
               updateCardContent={updateCardContent}
+              readonly={readonly}
             />
           ))}
 
-          <button
-            className={styles.addColumnButton}
-            type="button"
-            onClick={createColumn}
-          >
-            Add another column
-            <PlusIcon />
-          </button>
+          {!readonly && (
+            <button
+              className={styles.addColumnButton}
+              type="button"
+              onClick={createColumn}
+            >
+              Add another column
+              <PlusIcon />
+            </button>
+          )}
         </div>
       </SortableContext>
       <DragOverlay

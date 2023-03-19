@@ -24,6 +24,7 @@ interface ColumnProps {
   deleteCard: DeleteCardCallback;
   updateColumnTitle: UpdateColumnTitleCallback;
   updateCardContent: UpdateCardContentCallback;
+  readonly?: boolean;
 }
 
 export const Column = ({
@@ -33,6 +34,7 @@ export const Column = ({
   deleteCard,
   updateCardContent,
   updateColumnTitle,
+  readonly,
 }: ColumnProps) => {
   const {
     attributes,
@@ -67,30 +69,40 @@ export const Column = ({
         <EditableColumnTitle
           title={data.title}
           onChange={(val) => updateColumnTitle(data.id, val)}
+          readonly={readonly}
         />
-        <IconButton onClick={() => deleteColumn(data.id)}>
-          <DiscardIcon />
-        </IconButton>
+        {!readonly && (
+          <IconButton onClick={() => deleteColumn(data.id)}>
+            <DiscardIcon />
+          </IconButton>
+        )}
       </div>
       <div className={styles.body}>
-        <SortableContext items={data.cards.map((card) => card.id)} id={data.id}>
+        <SortableContext
+          items={data.cards.map((card) => card.id)}
+          id={data.id}
+          disabled={readonly}
+        >
           {data.cards.map((card) => (
             <Card
               key={card.id}
               data={card}
               onDelete={() => deleteCard(data.id, card.id)}
               updateCardContent={updateCardContent}
+              readonly={readonly}
             />
           ))}
         </SortableContext>
-        <button
-          className={styles.addCardButton}
-          type="button"
-          onClick={() => createCard(data.id, "New card")}
-        >
-          Add a card
-          <PlusIcon />
-        </button>
+        {!readonly && (
+          <button
+            className={styles.addCardButton}
+            type="button"
+            onClick={() => createCard(data.id, "New card")}
+          >
+            Add a card
+            <PlusIcon />
+          </button>
+        )}
       </div>
     </div>
   );

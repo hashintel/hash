@@ -53,7 +53,11 @@ export const App: BlockComponent<RootEntity> = ({
   return (
     <div className={styles.block} ref={blockRootRef}>
       <BoardTitle title={title} onChange={setTitle} readonly={readonly} />
-      <Board updateEntity={updateEntity} blockEntity={blockEntity} />
+      <Board
+        updateEntity={updateEntity}
+        blockEntity={blockEntity}
+        readonly={readonly}
+      />
     </div>
   );
 };
