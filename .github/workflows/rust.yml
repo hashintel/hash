@@ -110,8 +110,9 @@ jobs:
         if: always()
         run: |
           cat clippy.sarif \
-           | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' \
-           > clippy.sarif
+            | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' \
+            > clippy.sarif.tmp
+          mv clippy.sarif.tmp clippy.sarif
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
