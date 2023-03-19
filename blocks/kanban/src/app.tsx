@@ -3,7 +3,7 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 
 import { RootEntityKey } from "./additional-types";
 import styles from "./base.module.scss";
@@ -33,15 +33,18 @@ export const App: BlockComponent<RootEntity> = ({
     properties: { [titleKey]: title = "" },
   } = blockEntity;
 
-  const updateEntity = async (newProperties: RootEntity["properties"]) => {
-    await graphModule.updateEntity({
-      data: {
-        entityId: blockEntityId,
-        entityTypeId: blockEntityTypeId,
-        properties: { ...blockEntity.properties, ...newProperties },
-      },
-    });
-  };
+  const updateEntity = useMemo(
+    () => async (newProperties: RootEntity["properties"]) => {
+      await graphModule.updateEntity({
+        data: {
+          entityId: blockEntityId,
+          entityTypeId: blockEntityTypeId,
+          properties: { ...blockEntity.properties, ...newProperties },
+        },
+      });
+    },
+    [blockEntityId, blockEntityTypeId, blockEntity.properties, graphModule],
+  );
 
   const setTitle = async (val: string) => {
     await updateEntity({ [titleKey]: val });

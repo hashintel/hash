@@ -16,7 +16,8 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
-import { useState } from "react";
+import debounce from "lodash.debounce";
+import { useMemo, useState } from "react";
 
 import { RootEntityKey } from "../../additional-types";
 import { RootEntity } from "../../types";
@@ -47,11 +48,62 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
     },
   } = blockEntity;
 
+  const [prevEntityColumns, setPrevEntityColumns] = useState(entityColumns);
+  const [prevEntityColumnOrder, setPrevEntityColumnOrder] =
+    useState(entityColumnOrder);
+
   const [activeItem, setActiveItem] = useState<ActiveItem>(null);
   const [columns, setColumns] = useState<ColumnsState>(
     entityColumns as ColumnsState,
   );
   const [columnOrder, setColumnOrder] = useState<string[]>(entityColumnOrder);
+
+  /**
+   * as a hacky way of keeping this debounced function memoized, but still use up-to-date values of
+   * local state, called setState functions below, and assigned the up-to-date values of local state
+   * to variables, then used those variables to use local state to update entity with a debounced function.
+   * If we don't do the hacky way (using setState functions to get current state values),
+   * and instead add state values to the dependency array, existing debounced calls get executed because
+   * memoization changes every time state is updated
+   * */
+  const syncLocalStateToEntity = useMemo(
+    () =>
+      debounce(() => {
+        let localColumns;
+        let localColumnOrder;
+
+        setColumns((cols) => {
+          localColumns = cols;
+          return cols;
+        });
+        setColumnOrder((colOrder) => {
+          localColumnOrder = colOrder;
+          return colOrder;
+        });
+
+        void updateEntity({
+          [columnOrderKey]: localColumnOrder,
+          [columnsKey]: localColumns,
+        });
+      }, 500),
+    [updateEntity],
+  );
+
+  if (entityColumnOrder !== prevEntityColumnOrder) {
+    if (entityColumnOrder !== columnOrder) {
+      setColumnOrder(entityColumnOrder);
+    }
+
+    setPrevEntityColumnOrder(entityColumnOrder);
+  }
+
+  if (entityColumns !== prevEntityColumns) {
+    if (entityColumns !== columns) {
+      setColumns(entityColumns as ColumnsState);
+    }
+
+    setPrevEntityColumns(entityColumns as ColumnsState);
+  }
 
   const deleteColumn = (columnId: string) => {
     setColumns((cols) => {
@@ -60,6 +112,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
       return newCols;
     });
     setColumnOrder((ids) => ids.filter((id) => id !== columnId));
+
+    syncLocalStateToEntity();
   };
 
   const createColumn = () => {
@@ -76,7 +130,7 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
       };
     });
 
-    setColumnOrder((cols) => [...cols, newColId]);
+    syncLocalStateToEntity();
   };
 
   const createCard = (columnId: string, content: string) => {
@@ -93,6 +147,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
         [columnId]: cloneCol,
       };
     });
+
+    syncLocalStateToEntity();
   };
 
   const deleteCard = (columnId: string, cardId: string) => {
@@ -109,6 +165,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
         [columnId]: cloneCol,
       };
     });
+
+    syncLocalStateToEntity();
   };
 
   const isCardOrColumn = (id: UniqueIdentifier) => {
@@ -161,6 +219,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
         return arrayMove(colIds, oldIndex, newIndex);
       });
 
+      syncLocalStateToEntity();
+
       return;
     }
 
@@ -206,6 +266,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
         };
       });
 
+      syncLocalStateToEntity();
+
       return;
     }
 
@@ -232,6 +294,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
 
         return { ...cols, [overColumn.id]: overColumn };
       });
+
+      syncLocalStateToEntity();
 
       return;
     }
@@ -267,6 +331,8 @@ export const Board = ({ blockEntity, updateEntity }: BoardProps) => {
         [overColumn.id]: overColumn,
       };
     });
+
+    syncLocalStateToEntity();
   };
 
   const handleDragEnd = () => {
