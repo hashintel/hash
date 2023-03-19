@@ -75,7 +75,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.6,sarif-fmt@0.3.6
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-script@0.2.8,sarif-fmt@0.3.7
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -97,7 +97,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
-          cargo install clippy-sarif --git https://github.com/TimDiekmann/sarif-rs --branch related-locations --force
+          cargo install clippy-sarif --git https://github.com/TimDiekmann/sarif-rs
 
           cargo +${{ matrix.toolchain }} make clippy --message-format=json \
             | clippy-sarif \
