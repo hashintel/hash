@@ -59,7 +59,7 @@
     },
     "displayName": "Kanban",
     "examples": [],
-    "icon": "public/omega.svg",
+    "icon": "public/kanban.svg",
     "image": "public/block-preview.png",
     "name": "@hash/kanban",
     "protocol": "0.3",
