@@ -97,6 +97,8 @@ jobs:
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
+          cargo install clippy-sarif --git https://github.com/TimDiekmann/sarif-rs --branch related-locations --force
+
           cargo +${{ matrix.toolchain }} make clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
