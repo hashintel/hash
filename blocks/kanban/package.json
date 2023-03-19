@@ -58,7 +58,54 @@
       "entryPoint": "react"
     },
     "displayName": "Kanban",
-    "examples": [],
+    "examples": [
+      {
+        "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-column-order/": [
+          "col-todo",
+          "col-in-progress",
+          "col-done"
+        ],
+        "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-columns/": {
+          "col-todo": {
+            "id": "col-todo",
+            "title": "Todo",
+            "cards": [
+              {
+                "id": "task-1",
+                "content": "First task"
+              },
+              {
+                "id": "task-2",
+                "content": "Second task with a very long description"
+              },
+              {
+                "id": "task-3",
+                "content": "Third task"
+              }
+            ]
+          },
+          "col-in-progress": {
+            "id": "col-in-progress",
+            "title": "In Progress",
+            "cards": [
+              {
+                "id": "task-4",
+                "content": "Fourth task"
+              },
+              {
+                "id": "task-5",
+                "content": "Fifth task"
+              }
+            ]
+          },
+          "col-done": {
+            "id": "col-done",
+            "title": "Done",
+            "cards": []
+          }
+        }
+      }
+    ],
     "icon": "public/kanban.svg",
     "image": "public/block-preview.png",
     "name": "@hash/kanban",
