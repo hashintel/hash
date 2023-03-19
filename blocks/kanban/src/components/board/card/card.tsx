@@ -4,15 +4,18 @@ import clsx from "clsx";
 
 import { IconButton } from "../../icon-button/icon-button";
 import { DiscardIcon } from "../../icons/discard-icon";
-import { CardData } from "../types";
+import { CardData, UpdateCardContentCallback } from "../types";
+import { EditableCardContent } from "./editable-card-content/editable-card-content";
 import styles from "./styles.module.scss";
 
 export const Card = ({
   data,
   onDelete,
+  updateCardContent,
 }: {
   data: CardData;
   onDelete: () => void;
+  updateCardContent: UpdateCardContentCallback;
 }) => {
   const {
     attributes,
@@ -41,7 +44,10 @@ export const Card = ({
       {...attributes}
       {...listeners}
     >
-      {data.content}
+      <EditableCardContent
+        content={data.content}
+        onChange={(val) => updateCardContent(data.id, val)}
+      />
       <IconButton onClick={onDelete}>
         <DiscardIcon />
       </IconButton>

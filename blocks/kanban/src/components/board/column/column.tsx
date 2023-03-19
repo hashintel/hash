@@ -6,20 +6,34 @@ import { IconButton } from "../../icon-button/icon-button";
 import { DiscardIcon } from "../../icons/discard-icon";
 import { PlusIcon } from "../../icons/plus-icon";
 import { Card } from "../card/card";
-import { ColumnData } from "../types";
+import {
+  ColumnData,
+  CreateCardCallback,
+  DeleteCardCallback,
+  DeleteColumnCallback,
+  UpdateCardContentCallback,
+  UpdateColumnTitleCallback,
+} from "../types";
+import { EditableColumnTitle } from "./editable-column-title/editable-column-title";
 import styles from "./styles.module.scss";
+
+interface ColumnProps {
+  data: ColumnData;
+  deleteColumn: DeleteColumnCallback;
+  createCard: CreateCardCallback;
+  deleteCard: DeleteCardCallback;
+  updateColumnTitle: UpdateColumnTitleCallback;
+  updateCardContent: UpdateCardContentCallback;
+}
 
 export const Column = ({
   data,
   deleteColumn,
   createCard,
   deleteCard,
-}: {
-  data: ColumnData;
-  deleteColumn: (columnId: string) => void;
-  createCard: (columnId: string, content: string) => void;
-  deleteCard: (columnId: string, cardId: string) => void;
-}) => {
+  updateCardContent,
+  updateColumnTitle,
+}: ColumnProps) => {
   const {
     attributes,
     listeners,
@@ -50,7 +64,10 @@ export const Column = ({
         )}
         {...listeners}
       >
-        <div className={styles.title}>{data.title}</div>
+        <EditableColumnTitle
+          title={data.title}
+          onChange={(val) => updateColumnTitle(data.id, val)}
+        />
         <IconButton onClick={() => deleteColumn(data.id)}>
           <DiscardIcon />
         </IconButton>
@@ -62,13 +79,14 @@ export const Column = ({
               key={card.id}
               data={card}
               onDelete={() => deleteCard(data.id, card.id)}
+              updateCardContent={updateCardContent}
             />
           ))}
         </SortableContext>
         <button
           className={styles.addCardButton}
           type="button"
-          onClick={() => createCard(data.id, "This is a new card!")}
+          onClick={() => createCard(data.id, "New card")}
         >
           Add a card
           <PlusIcon />

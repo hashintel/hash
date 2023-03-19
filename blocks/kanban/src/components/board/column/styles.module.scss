@@ -18,15 +18,6 @@
     &.showHandCursor {
       cursor: grabbing;
     }
-
-    .title {
-      font-weight: 600;
-      flex: 1;
-
-      overflow-x: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
   }
 
   .body {

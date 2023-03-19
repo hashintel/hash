@@ -17,3 +17,15 @@ export type ActiveItem =
   | { type: "column"; id: UniqueIdentifier }
   | { type: "card"; id: UniqueIdentifier; data: CardData }
   | null;
+
+export type DeleteColumnCallback = (columnId: string) => void;
+export type CreateCardCallback = (columnId: string, content: string) => void;
+export type DeleteCardCallback = (columnId: string, cardId: string) => void;
+export type UpdateColumnTitleCallback = (
+  columnId: string,
+  newTitle: string,
+) => void;
+export type UpdateCardContentCallback = (
+  cardId: string,
+  newContent: string,
+) => void;

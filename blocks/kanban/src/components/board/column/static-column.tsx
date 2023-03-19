@@ -6,13 +6,14 @@ import { DiscardIcon } from "../../icons/discard-icon";
 import { PlusIcon } from "../../icons/plus-icon";
 import { StaticCard } from "../card/static-card";
 import { ColumnData } from "../types";
+import { EditableColumnTitle } from "./editable-column-title/editable-column-title";
 import styles from "./styles.module.scss";
 
 export const StaticColumn = ({ data }: { data: ColumnData }) => {
   return (
     <div className={styles.wrapper}>
       <div className={clsx(styles.titleRow)}>
-        <div className={styles.title}>{data.title}</div>
+        <EditableColumnTitle readonly title={data.title} />
         <IconButton>
           <DiscardIcon />
         </IconButton>

@@ -2,7 +2,6 @@
   cursor: pointer;
   padding: 10px;
   gap: 10px;
-  font-size: 13px;
 
   background: white;
 
@@ -21,6 +20,7 @@
   }
 
   button {
+    font-size: 13px;
     position: absolute;
     right: 4px;
     top: 4px;
