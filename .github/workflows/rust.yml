@@ -101,10 +101,10 @@ jobs:
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .'  \
-            > clippy.sarif
+            | tee clippy.sarif
+            | sarif-fmt
 
           if [[ $(jq '.runs[].results | length' clippy.sarif) -gt 0 ]]; then
-            sarif-fmt --input clippy.sarif
             exit 1
           fi
 
@@ -113,6 +113,7 @@ jobs:
         if: always()
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
+          category: ${{ matrix.name }}
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
