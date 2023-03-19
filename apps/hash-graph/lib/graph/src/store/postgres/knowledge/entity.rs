@@ -70,6 +70,8 @@ impl<C: AsClient> PostgresStore<C> {
                     .temporal_versioning()
                     .variable_time_interval(time_axis);
 
+                drop(temporal_axes);
+
                 // Intersects the version interval of the entity with the variable axis's time
                 // interval. We only want to resolve the entity further for the overlap of these two
                 // intervals.
