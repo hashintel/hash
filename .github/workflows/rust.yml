@@ -97,7 +97,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
-          cargo +${{ matrix.toolchain }} make clippy --message-format=json -- -D warnings || true \
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json -- -D warnings \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' \
