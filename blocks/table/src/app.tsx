@@ -109,7 +109,7 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const addNewRow = async () => {
-    const newRows = [...rows, {}];
+    const newRows = [...rows, { rowId: `${rows.length}` }];
 
     return updateEntity({ [localRowsKey]: newRows });
   };

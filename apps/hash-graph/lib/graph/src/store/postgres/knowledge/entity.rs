@@ -418,7 +418,26 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction
-            .insert_entity_ids(entity_ids.iter().copied())
+            .insert_entity_ids(entity_ids.iter().copied().map(|(id, ..)| id))
+            .await?;
+
+        transaction
+            .insert_entity_links(
+                "left",
+                entity_ids
+                    .iter()
+                    .copied()
+                    .filter_map(|(id, left, _)| left.map(|left| (id, left))),
+            )
+            .await?;
+        transaction
+            .insert_entity_links(
+                "right",
+                entity_ids
+                    .iter()
+                    .copied()
+                    .filter_map(|(id, _, right)| right.map(|right| (id, right))),
+            )
             .await?;
 
         // Using one entity type per entity would result in more lookups, which results in a more
@@ -430,7 +449,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         let entity_edition_ids = transaction
-            .insert_entity_records(entity_editions, entity_type_ontology_id, actor_id)
+            .insert_entity_records(entity_editions, actor_id)
             .await?;
 
         let entity_versions = transaction
@@ -444,6 +463,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         (entity_id, entity_edition_id, decision_time)
                     }),
             )
+            .await?;
+
+        transaction
+            .insert_entity_is_of_type(entity_edition_ids.iter().copied(), entity_type_ontology_id)
             .await?;
 
         transaction.commit().await.change_context(InsertionError)?;

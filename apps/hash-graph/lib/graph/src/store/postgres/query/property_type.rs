@@ -3,7 +3,7 @@ use std::iter::once;
 use crate::{
     ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, JsonField, OntologyIds, PropertyTypes, Relation},
+        table::{Column, JsonField, OntologyIds, PropertyTypes, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -24,12 +24,16 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             | Self::AdditionalMetadata(_) => {
                 vec![Relation::PropertyTypeIds]
             }
-            Self::DataTypes(path) => once(Relation::PropertyTypeDataTypeReferences)
-                .chain(path.relations())
-                .collect(),
-            Self::PropertyTypes(path) => once(Relation::PropertyTypePropertyTypeReferences)
-                .chain(path.relations())
-                .collect(),
+            Self::DataTypes(path) => once(Relation::Reference(
+                ReferenceTable::PropertyTypeConstrainsValuesOn,
+            ))
+            .chain(path.relations())
+            .collect(),
+            Self::PropertyTypes(path) => once(Relation::Reference(
+                ReferenceTable::PropertyTypeConstrainsPropertiesOn,
+            ))
+            .chain(path.relations())
+            .collect(),
             _ => vec![],
         }
     }

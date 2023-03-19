@@ -17,7 +17,10 @@ use type_system::{
 
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{account::AccountId, ontology::OntologyTypeRecordId},
+    identifier::{
+        account::AccountId,
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
+    },
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },
@@ -323,40 +326,46 @@ where
         property_type: &PropertyType,
         ontology_id: OntologyId,
     ) -> Result<(), InsertionError> {
-        let property_type_ids = self
-            .property_type_reference_ids(property_type.property_type_references())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced property types")?;
-
-        for target_id in property_type_ids {
-            self.as_client().query_one(
+        for property_type in property_type.property_type_references() {
+            self.as_client()
+                .query_one(
                 r#"
-                        INSERT INTO property_type_property_type_references (source_property_type_ontology_id, target_property_type_ontology_id)
-                        VALUES ($1, $2)
-                        RETURNING source_property_type_ontology_id;
+                        INSERT INTO property_type_constrains_properties_on (
+                            source_property_type_ontology_id,
+                            target_property_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_property_type_ontology_id;
                     "#,
-                &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &property_type.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(property_type.url().version),
+                    ],
             )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
         }
 
-        let data_type_ids = self
-            .data_type_reference_ids(property_type.data_type_references())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced data types")?;
-
-        for target_id in data_type_ids {
-            self.as_client().query_one(
+        for data_type in property_type.data_type_references() {
+            self.as_client()
+                .query_one(
                 r#"
-                        INSERT INTO property_type_data_type_references (source_property_type_ontology_id, target_data_type_ontology_id)
-                        VALUES ($1, $2)
-                        RETURNING source_property_type_ontology_id;
+                        INSERT INTO property_type_constrains_values_on (
+                            source_property_type_ontology_id,
+                            target_data_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_data_type_ontology_id;
                     "#,
-                &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &data_type.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(data_type.url().version),
+                    ],
             )
                 .await
                 .into_report()
@@ -372,20 +381,46 @@ where
         entity_type: &EntityType,
         ontology_id: OntologyId,
     ) -> Result<(), InsertionError> {
-        let property_type_ids = self
-            .property_type_reference_ids(entity_type.property_type_references())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced property types")?;
-
-        for target_id in property_type_ids {
-            self.as_client().query_one(
-                r#"
-                        INSERT INTO entity_type_property_type_references (source_entity_type_ontology_id, target_property_type_ontology_id)
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_ontology_id;
+        for property_type in entity_type.property_type_references() {
+            self.as_client()
+                .query_one(
+                    r#"
+                        INSERT INTO entity_type_constrains_properties_on (
+                            source_entity_type_ontology_id,
+                            target_property_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING source_entity_type_ontology_id;
                     "#,
-                &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &property_type.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(property_type.url().version),
+                    ],
+                )
+            .await
+                .into_report()
+                .change_context(InsertionError)?;
+        }
+
+        for inherits_from in entity_type.inherits_from().all_of() {
+            self.as_client()
+                .query_one(
+                r#"
+                        INSERT INTO entity_type_inherits_from (
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_entity_type_ontology_id;
+                    "#,
+                    &[
+                        &ontology_id,
+                        &inherits_from.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(inherits_from.url().version),
+                    ],
             )
                 .await
                 .into_report()
@@ -393,44 +428,53 @@ where
         }
 
         // TODO: should we check that the `link_entity_type_ref` is a link entity type?
-        //   see https://app.asana.com/0/1202805690238892/1203277018227719/f
-        // TODO: `collect` is not needed but due to a higher-ranked lifetime error, this would fail
-        //       otherwise. This is expected to be solved in future Rust versions.
-        let entity_type_references = entity_type
-            .link_mappings()
-            .into_keys()
-            .chain(
-                entity_type
-                    .link_mappings()
-                    .into_values()
-                    .flatten()
-                    .flatten(),
-            )
-            .chain(entity_type.inherits_from().all_of())
-            .collect::<Vec<_>>();
-
-        let entity_type_reference_ids = self
-            .entity_type_reference_ids(entity_type_references)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced entity types")?;
-
-        for target_id in entity_type_reference_ids {
+        //   see https://app.asana.com/0/0/1203277018227719/f
+        for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(
                     r#"
-                        INSERT INTO entity_type_entity_type_references (
+                        INSERT INTO entity_type_constrains_links_on (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
-                        )
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_ontology_id;
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_entity_type_ontology_id;
                     "#,
-                    &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &link_reference.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(link_reference.url().version),
+                    ],
+            )
+            .await
+                .into_report()
+                .change_context(InsertionError)?;
+
+            if let Some(destinations) = destinations {
+                for destination in destinations {
+                    self.as_client()
+                .query_one(
+                    r#"
+                        INSERT INTO entity_type_constrains_link_destinations_on (
+                        source_entity_type_ontology_id,
+                        target_entity_type_ontology_id
+                            ) VALUES (
+                                $1,
+                                (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            ) RETURNING target_entity_type_ontology_id;
+                        "#,
+                        &[
+                            &ontology_id,
+                            &destination.url().base_url.as_str(),
+                            &OntologyTypeVersion::new(destination.url().version),
+                        ],
                 )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
+                }
+            }
         }
 
         Ok(())
@@ -557,54 +601,108 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<
-            Item = (EntityId, Option<EntityId>, Option<EntityId>),
-            IntoIter: Send,
-        > + Send,
+        entity_uuids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
     ) -> Result<u64, InsertionError> {
         let sink = self
             .client
             .copy_in(
                 "COPY entity_ids (
                     owned_by_id,
-                    entity_uuid,
-                    left_owned_by_id,
-                    left_entity_uuid,
-                    right_owned_by_id,
-                    right_entity_uuid
+                    entity_uuid
                 ) FROM STDIN BINARY",
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-        ]);
+        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
 
         futures::pin_mut!(writer);
-        for (entity_id, left_entity_id, right_entity_id) in entity_uuids {
+        for entity_id in entity_uuids {
+            writer
+                .as_mut()
+                .write(&[&entity_id.owned_by_id, &entity_id.entity_uuid])
+                .await
+                .into_report()
+                .change_context(InsertionError)
+                .attach_printable(entity_id.entity_uuid)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_is_of_type(
+        &self,
+        entity_edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
+        entity_type_ontology_id: OntologyId,
+    ) -> Result<u64, InsertionError> {
+        let sink = self
+            .client
+            .copy_in(
+                "COPY entity_is_of_type (
+                    entity_edition_id,
+                    entity_type_ontology_id
+                ) FROM STDIN BINARY",
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
+
+        futures::pin_mut!(writer);
+        for entity_edition_id in entity_edition_ids {
+            writer
+                .as_mut()
+                .write(&[&entity_edition_id, &entity_type_ontology_id])
+                .await
+                .into_report()
+                .change_context(InsertionError)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_links(
+        &self,
+        left_right: &'static str,
+        entity_ids: impl IntoIterator<Item = (EntityId, EntityId), IntoIter: Send> + Send,
+    ) -> Result<u64, InsertionError> {
+        let sink = self
+            .client
+            .copy_in(&format!(
+                "COPY entity_has_{left_right}_entity (
+                    owned_by_id,
+                    entity_uuid,
+                    {left_right}_owned_by_id,
+                    {left_right}_entity_uuid
+                ) FROM STDIN BINARY",
+            ))
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer =
+            BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::UUID, Type::UUID]);
+
+        futures::pin_mut!(writer);
+        for (entity_id, link_entity_id) in entity_ids {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id,
                     &entity_id.entity_uuid,
-                    &left_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.owned_by_id),
-                    &left_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.entity_uuid),
-                    &right_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.owned_by_id),
-                    &right_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.entity_uuid),
+                    &link_entity_id.owned_by_id,
+                    &link_entity_id.entity_uuid,
                 ])
                 .await
                 .into_report()
@@ -627,18 +725,16 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
             IntoIter: Send,
         > + Send,
-        entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
-                    record_created_by_id UUID NOT NULL,
-                    archived BOOLEAN NOT NULL,
-                    entity_type_ontology_id UUID NOT NULL,
                     properties JSONB NOT NULL,
                     left_to_right_order INT,
-                    right_to_left_order INT
+                    right_to_left_order INT,
+                    record_created_by_id UUID NOT NULL,
+                    archived BOOLEAN NOT NULL
                 );",
             )
             .await
@@ -649,24 +745,22 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(
                 "COPY entity_editions_temp (
-                    record_created_by_id,
-                    archived,
-                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
-                    right_to_left_order
+                    right_to_left_order,
+                    record_created_by_id,
+                    archived
                 ) FROM STDIN BINARY",
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[
-            Type::UUID,
-            Type::BOOL,
-            Type::UUID,
             Type::JSONB,
             Type::INT4,
             Type::INT4,
+            Type::UUID,
+            Type::BOOL,
         ]);
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
@@ -677,12 +771,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &actor_id,
-                    &false,
-                    &entity_type_ontology_id,
                     &properties,
                     &left_to_right_order,
                     &right_to_left_order,
+                    &actor_id,
+                    &false,
                 ])
                 .await
                 .into_report()
@@ -700,21 +793,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .query(
                 "INSERT INTO entity_editions (
                     entity_edition_id,
-                    record_created_by_id,
-                    archived,
-                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
-                    right_to_left_order
+                    right_to_left_order,
+                    record_created_by_id,
+                    archived
                 )
                 SELECT
                     gen_random_uuid(),
-                    record_created_by_id,
-                    archived,
-                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
-                    right_to_left_order
+                    right_to_left_order,
+                    record_created_by_id,
+                    archived
                 FROM entity_editions_temp
                 RETURNING entity_edition_id;",
                 &[],
