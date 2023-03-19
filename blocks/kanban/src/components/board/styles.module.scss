@@ -29,7 +29,8 @@
       width: 13px;
     }
 
-    &:hover {
+    &:hover,
+    &:focus {
       background: rgba(255, 255, 255, 0.1);
     }
   }

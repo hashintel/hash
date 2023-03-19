@@ -46,7 +46,8 @@
       width: 13px;
     }
 
-    &:hover {
+    &:hover,
+    &:focus {
       background: #eff2f4;
     }
   }
