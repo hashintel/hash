@@ -9,4 +9,4 @@ documentation = "https://docs.rs/sarif"
 readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
 keywords = ["sarif", "codeql", "serde", "static-analysis", "tools"]
-categories = ["data-structures", "development-tools", "parser-implementations", "parsing"]
+categories = ["data-structures", "development-tools", "parsing"]
