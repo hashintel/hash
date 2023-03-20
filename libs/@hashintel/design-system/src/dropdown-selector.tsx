@@ -229,6 +229,7 @@ export const DropdownSelector = ({
       IconComponent={CaretDownIcon}
       sx={{
         [`.${inputBaseClasses.root}`]: {
+          background: "none !important",
           boxShadow: "none !important",
           [`& .${selectClasses.icon}`]: {
             fontSize: 13,
