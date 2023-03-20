@@ -73,9 +73,12 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-script@0.2.8
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
+          cargo quickinstall cargo-script --version 0.2.8 || cargo install --version 0.2.8 cargo-script
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -136,9 +139,12 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
+          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -210,9 +216,12 @@ jobs:
           override: true
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make@0.36.3,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
+          cargo quickinstall cargo-llvm-cov --version 0.5.9 || cargo install --version 0.5.9 cargo-llvm-cov
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -258,9 +267,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make@0.36.3
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -290,9 +299,13 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
+          cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
+          cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
+          cargo quickinstall cargo-semver-checks --version 0.17.0 || cargo install --version 0.17.0 cargo-semver-checks
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
