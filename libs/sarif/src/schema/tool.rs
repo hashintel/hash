@@ -1,12 +1,12 @@
 use alloc::borrow::Cow;
 
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// The analysis tool that was run.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
-    feature = "serde-1",
+    feature = "serde",
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]
@@ -27,7 +27,7 @@ impl Tool {
 /// A component, such as a plug-in or the driver, of the analysis tool that was run.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
-    feature = "serde-1",
+    feature = "serde",
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]

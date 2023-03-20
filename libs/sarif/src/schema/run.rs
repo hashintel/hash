@@ -1,4 +1,4 @@
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::schema::Tool;
@@ -6,7 +6,7 @@ use crate::schema::Tool;
 /// Describes a single run of an analysis tool, and contains the reported output of that run.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
-    feature = "serde-1",
+    feature = "serde",
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]
@@ -29,7 +29,7 @@ impl Run {
 }
 
 #[cfg(test)]
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 pub(crate) mod tests {
     use core::iter::once;
 

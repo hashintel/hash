@@ -4,7 +4,7 @@ mod log;
 mod run;
 mod tool;
 
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub use self::{
@@ -18,15 +18,15 @@ pub const SCHEMA_ID: &str = "https://schemastore.azurewebsites.net/schemas/json/
 
 /// The schema version of the log file.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde-1", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SchemaVersion {
     /// The SARIF 2.1.0 schema.
-    #[cfg_attr(feature = "serde-1", serde(rename = "2.1.0"))]
+    #[cfg_attr(feature = "serde", serde(rename = "2.1.0"))]
     V2_1_0,
 }
 
 #[cfg(test)]
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 pub(crate) mod tests {
     use std::eprintln;
 
