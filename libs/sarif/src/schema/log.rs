@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, vec::Vec};
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde-1")]
 use serde::{Deserialize, Serialize};
 
 use crate::schema::{Run, SchemaVersion, SCHEMA_ID};
@@ -9,7 +9,7 @@ use crate::schema::{Run, SchemaVersion, SCHEMA_ID};
 /// output of static analysis tools.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
-    feature = "serde",
+    feature = "serde-1",
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]
@@ -18,7 +18,7 @@ pub struct Log {
     ///
     /// For example, `https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json`
     #[cfg_attr(
-        feature = "serde",
+        feature = "serde-1",
         serde(rename = "$schema", skip_serializing_if = "Option::is_none")
     )]
     pub schema: Option<Cow<'static, str>>,
@@ -53,7 +53,7 @@ impl FromIterator<Run> for Log {
 }
 
 #[cfg(test)]
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde-1")]
 pub(crate) mod tests {
     use crate::schema::{tests::validate_schema, Log};
 
