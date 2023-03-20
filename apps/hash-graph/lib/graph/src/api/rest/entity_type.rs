@@ -3,11 +3,14 @@
 use std::{collections::hash_map, sync::Arc};
 
 use axum::{http::StatusCode, response::Response, routing::post, Extension, Router};
-use error_stack::IntoReport;
 use futures::TryFutureExt;
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, url::VersionedUrl, EntityType};
+use type_system::{
+    repr,
+    url::{BaseUrl, VersionedUrl},
+    EntityType, ParseEntityTypeError,
+};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
@@ -87,10 +90,10 @@ struct CreateEntityTypeRequest {
     tag = "EntityType",
     responses(
         (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
-        (status = 400, content_type = "text/plain", description = "Provided request body is invalid", body = VAR_STATUS),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
 
-        (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
-        (status = 500, description = "Store error occurred", body = VAR_STATUS),
+        (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
+        (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
     request_body = CreateEntityTypeRequest,
 )]
@@ -108,15 +111,17 @@ async fn create_entity_type<P: StorePool + Send>(
         actor_id,
     }) = body;
 
-    let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
+    let entity_type: EntityType = schema.try_into().map_err(|err: ParseEntityTypeError| {
+        tracing::error!(error=?err, "Provided schema wasn't a valid entity type");
         status_to_response(Status::new(
             hash_status::StatusCode::InvalidArgument,
-            Some("Couldn't convert provided schema to Entity Type".to_owned()),
+            Some("Provided schema wasn't a valid entity type.".to_owned()),
             vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                // TODO: add information from the report here
-                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                HashMap::new(),
+                HashMap::from([(
+                    "validationError".to_owned(),
+                    serde_json::to_value(err)
+                        .expect("Could not serialize entity type validation error"),
+                )]),
                 // TODO: We should encapsulate these Reasons within the type system, perhaps
                 //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
                 //  or perhaps as a big enum, or as an attachment
@@ -129,11 +134,15 @@ async fn create_entity_type<P: StorePool + Send>(
         tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
         status_to_response(Status::new(
             hash_status::StatusCode::InvalidArgument,
-            Some("Entity Type ID failed to validate against the given domain regex.".to_owned()),
+            Some("Entity Type ID failed to validate against the given domain regex. Are you sure the service is able to host a type under the domain you supplied?".to_owned()),
             vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                // TODO: add information from the report here
-                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                HashMap::new(),
+                HashMap::from([
+                    (
+                        "entityTypeId".to_owned(),
+                        serde_json::to_value(entity_type.id().to_string())
+                            .expect("Could not serialize entity type id"),
+                    ),
+                ]),
                 // TODO: We should encapsulate these Reasons within the type system, perhaps
                 //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
                 //  or perhaps as a big enum
@@ -146,8 +155,15 @@ async fn create_entity_type<P: StorePool + Send>(
         tracing::error!(error=?report, "Could not acquire store");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
-            Some("Could not acquire store".to_owned()),
+            Some(
+                "Could not acquire store. This is an internal error, please report to the \
+                 developers of the HASH Graph with whatever information you can provide including \
+                 request details and logs."
+                    .to_owned(),
+            ),
             vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                // TODO: add information from the report here
+                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
                 HashMap::new(),
                 // TODO: We should encapsulate these Reasons within the type system, perhaps
                 //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
@@ -170,11 +186,28 @@ async fn create_entity_type<P: StorePool + Send>(
             tracing::error!(error=?report, "Could not create entity type");
 
             if report.contains::<BaseUrlAlreadyExists>() {
+                let metadata =
+                    report
+                        .request_ref::<BaseUrl>()
+                        .next()
+                        .map_or_else(HashMap::new, |base_url| {
+                            let base_url = base_url.to_string();
+                            HashMap::from([(
+                                "baseUrl".to_owned(),
+                                serde_json::to_value(base_url)
+                                    .expect("Could not serialize base url"),
+                            )])
+                        });
+
                 return status_to_response(Status::new(
                     hash_status::StatusCode::AlreadyExists,
-                    Some("Could not create entity type as the base URI already existed".to_owned()),
+                    Some(
+                        "Could not create entity type as the base URI already existed, perhaps \
+                         you intended to call `updateEntityType` instead?"
+                            .to_owned(),
+                    ),
                     vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                        HashMap::new(),
+                        metadata,
                         // TODO: We should encapsulate these Reasons within the type system,
                         //  perhaps requiring top level contexts to implement a trait
                         //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
@@ -184,15 +217,21 @@ async fn create_entity_type<P: StorePool + Send>(
             }
 
             // Insertion/update errors are considered internal server errors.
-            status_to_response(Status::new(hash_status::StatusCode::Internal, None, vec![
-                StatusPayloads::ErrorInfo(ErrorInfo::new(
+            status_to_response(Status::new(
+                hash_status::StatusCode::Internal,
+                Some(
+                    "Internal error, please report to the developers of the HASH Graph with \
+                     whatever information you can provide including request details and logs."
+                        .to_owned(),
+                ),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
                     HashMap::new(),
                     // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //  requiring top level contexts to implement a trait
                     //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                     "INTERNAL".to_owned(),
-                )),
-            ]))
+                ))],
+            ))
         })?;
 
     Ok(Json(metadata))
