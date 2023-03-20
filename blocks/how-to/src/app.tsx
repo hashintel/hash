@@ -16,6 +16,7 @@ import { Card, Collapse, Fade, Stack, ThemeProvider } from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
+import { v4 as uuid } from "uuid";
 
 import { Step } from "./step";
 import {
@@ -23,6 +24,7 @@ import {
   HowToBlockIntroduction,
   HowToBlockLinksByLinkTypeId,
   HowToBlockStep,
+  HowToBlockStepProperties,
   RootEntity,
 } from "./types";
 
@@ -106,9 +108,20 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
+  const [steps, setSteps] = useState<
+    {
+      id: string;
+      properties: HowToBlockStepProperties;
+      animatingOut?: boolean;
+    }[]
+  >(
+    stepEntities.map((stepEntity) => ({
+      id: stepEntity.metadata.recordId.entityId,
+      properties: stepEntity.properties,
+    })),
+  );
   const [introButtonAnimatingOut, setIntroButtonAnimatingOut] = useState(false);
   const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
-  const [stepAnimatingOut, setStepAnimatingOut] = useState(-1);
 
   const updateField = async (value: string, field: TitleOrDescription) => {
     await graphModule.updateEntity({
@@ -196,10 +209,10 @@ export const App: BlockComponent<RootEntity> = ({
     }
   };
 
-  const addStep = useCallback(
-    () => createHowToEntity(howToBlockStepType, hasHowToBlockStep),
-    [createHowToEntity],
-  );
+  const addStep = useCallback(async () => {
+    setSteps([...steps, { id: uuid(), properties: {} }]);
+    await createHowToEntity(howToBlockStepType, hasHowToBlockStep);
+  }, [steps, createHowToEntity]);
 
   const updateStepField = async (
     index: number,
@@ -225,7 +238,14 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeStep = (index: number) => {
-    setStepAnimatingOut(index);
+    setSteps(
+      steps.map((step, stepIndex) => {
+        if (index === stepIndex) {
+          return { ...step, animatingOut: true };
+        }
+        return step;
+      }),
+    );
   };
 
   useEffect(() => {
@@ -411,12 +431,14 @@ export const App: BlockComponent<RootEntity> = ({
                   ) : null}
 
                   <Box>
-                    {stepEntities.map((stepEntity, index) => (
+                    {steps.map((step, index) => (
                       <Collapse
-                        key={stepEntity.metadata.recordId.entityId}
-                        in={stepAnimatingOut !== index}
+                        key={step.id}
+                        in={!step.animatingOut}
                         onExited={async () => {
-                          setStepAnimatingOut(-1);
+                          const newSteps = [...steps];
+                          newSteps.splice(index, 1);
+                          setSteps(newSteps);
 
                           const stepLink =
                             stepLinkedEntities[index]?.linkEntity;
@@ -435,7 +457,7 @@ export const App: BlockComponent<RootEntity> = ({
                       >
                         <Box
                           sx={{
-                            mb: index === stepEntities.length - 1 ? 0 : 3,
+                            mb: index === steps.length - 1 ? 0 : 3,
                             transition: ({ transitions }) =>
                               transitions.create("margin-bottom"),
                           }}
@@ -446,9 +468,9 @@ export const App: BlockComponent<RootEntity> = ({
                               fontSize: 12,
                               textTransform: "uppercase",
                             }}
-                            title={stepEntity.properties[titleKey]}
+                            title={step.properties[titleKey]}
                             titlePlaceholder="Step name goes here"
-                            description={stepEntity.properties[descriptionKey]}
+                            description={step.properties[descriptionKey]}
                             descriptionPlaceholder={
                               isMobile
                                 ? "Additional instructions here"
