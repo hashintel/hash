@@ -5,6 +5,7 @@
 [antsi]: antsi
 [deer]: deer
 [error-stack]: error-stack
+[sarif]: sarif
 [@hashintel/type-editor]: @hashintel/type-editor
 [@hashintel/design-system]: @hashintel/design-system
 
