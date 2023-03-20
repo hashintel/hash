@@ -1,0 +1,12 @@
+[package]
+name = "sarif"
+version = "0.0.0-reserved"
+authors = ["HASH"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Representation of the SARIF specification in Rust"
+documentation = "https://docs.rs/sarif"
+readme = "README.md"
+repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
+keywords = ["sarif", "codeql", "serde", "static-analysis", "tools"]
+categories = ["data-structures", "development-tools", "parser-implementations", "parsing"]
