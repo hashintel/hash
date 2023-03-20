@@ -2,7 +2,7 @@
 #![no_std]
 #![feature(lint_reasons)]
 #![feature(doc_auto_cfg)]
-#![feature(no_coverage)]
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
 
 extern crate alloc;
 #[cfg(test)]

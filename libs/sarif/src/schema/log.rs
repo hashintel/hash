@@ -55,10 +55,11 @@ impl FromIterator<Run> for Log {
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
+    use coverage_helper::test;
+
     use crate::schema::{tests::validate_schema, Log};
 
     #[test]
-    #[no_coverage]
     fn default() {
         validate_schema(&Log::default());
     }

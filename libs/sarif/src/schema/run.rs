@@ -33,10 +33,11 @@ impl Run {
 pub(crate) mod tests {
     use core::iter::once;
 
+    use coverage_helper::test;
+
     use crate::schema::{tests::validate_schema, Run, Tool, ToolComponent};
 
     #[test]
-    #[no_coverage]
     fn empty() {
         let run = Run::new(Tool::new(ToolComponent::new("clippy")));
 

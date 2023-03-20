@@ -32,8 +32,8 @@ pub(crate) mod tests {
 
     use super::*;
 
-    #[no_coverage]
     #[expect(clippy::panic)]
+    #[cfg_attr(coverage_nightly, no_coverage)]
     pub(crate) fn validate_schema(log: &Log) {
         let log_value = serde_json::to_value(log).expect("serializing `Log` into JSON failed");
 
