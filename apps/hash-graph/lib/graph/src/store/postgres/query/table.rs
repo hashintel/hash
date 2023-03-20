@@ -19,7 +19,7 @@ pub enum Table {
     EntityTypes,
     EntityTemporalMetadata,
     EntityEditions,
-    ReferenceTable(ReferenceTable),
+    Reference(ReferenceTable),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -198,7 +198,7 @@ impl Table {
             Self::EntityTypes => "entity_types",
             Self::EntityTemporalMetadata => "entity_temporal_metadata",
             Self::EntityEditions => "entity_editions",
-            Self::ReferenceTable(table) => table.as_str(),
+            Self::Reference(table) => table.as_str(),
         }
     }
 }
@@ -589,30 +589,26 @@ impl<'p> Column<'p> {
             Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
             Self::PropertyTypeConstrainsValuesOn(_) => {
-                Table::ReferenceTable(ReferenceTable::PropertyTypeConstrainsValuesOn)
+                Table::Reference(ReferenceTable::PropertyTypeConstrainsValuesOn)
             }
             Self::PropertyTypeConstrainsPropertiesOn(_) => {
-                Table::ReferenceTable(ReferenceTable::PropertyTypeConstrainsPropertiesOn)
+                Table::Reference(ReferenceTable::PropertyTypeConstrainsPropertiesOn)
             }
             Self::EntityTypeConstrainsPropertiesOn(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeConstrainsPropertiesOn)
+                Table::Reference(ReferenceTable::EntityTypeConstrainsPropertiesOn)
             }
             Self::EntityTypeInheritsFrom(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeInheritsFrom)
+                Table::Reference(ReferenceTable::EntityTypeInheritsFrom)
             }
             Self::EntityTypeConstrainsLinksOn(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeConstrainsLinksOn)
+                Table::Reference(ReferenceTable::EntityTypeConstrainsLinksOn)
             }
             Self::EntityTypeConstrainsLinkDestinationsOn(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeConstrainsLinkDestinationsOn)
+                Table::Reference(ReferenceTable::EntityTypeConstrainsLinkDestinationsOn)
             }
-            Self::EntityIsOfType(_) => Table::ReferenceTable(ReferenceTable::EntityIsOfType),
-            Self::EntityHasLeftEntity(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityHasLeftEntity)
-            }
-            Self::EntityHasRightEntity(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityHasRightEntity)
-            }
+            Self::EntityIsOfType(_) => Table::Reference(ReferenceTable::EntityIsOfType),
+            Self::EntityHasLeftEntity(_) => Table::Reference(ReferenceTable::EntityHasLeftEntity),
+            Self::EntityHasRightEntity(_) => Table::Reference(ReferenceTable::EntityHasRightEntity),
         }
     }
 
