@@ -1,3 +1,7 @@
+/* Adapted from the Google Cloud Error Model
+    - https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+ */
+
 /**
  * Generalized information about an error.
  *

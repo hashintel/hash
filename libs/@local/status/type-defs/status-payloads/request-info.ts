@@ -1,3 +1,7 @@
+/* Adapted from the Google Cloud Error Model
+    - https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+ */
+
 /**
  * Contains metadata about the request that clients can attach when filing a bug or providing other
  * forms of feedback.
