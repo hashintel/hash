@@ -34,9 +34,9 @@ use graph::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         query::{Filter, FilterExpression, Parameter},
-        AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
+        PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     subgraph::{
         edges::{GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -137,7 +137,9 @@ impl DatabaseTestWrapper {
 
             (data_type, metadata)
         });
-        store.create_data_types(data_types_iter).await?;
+        store
+            .create_data_types(data_types_iter, ConflictBehavior::Skip)
+            .await?;
 
         let property_types_iter = property_types.into_iter().map(|property_type_str| {
             let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
@@ -153,7 +155,9 @@ impl DatabaseTestWrapper {
 
             (property_type, metadata)
         });
-        store.create_property_types(property_types_iter).await?;
+        store
+            .create_property_types(property_types_iter, ConflictBehavior::Skip)
+            .await?;
 
         let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
             let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
@@ -169,7 +173,9 @@ impl DatabaseTestWrapper {
 
             (entity_type, metadata)
         });
-        store.create_entity_types(entity_types_iter).await?;
+        store
+            .create_entity_types(entity_types_iter, ConflictBehavior::Skip)
+            .await?;
 
         Ok(DatabaseApi { store, account_id })
     }

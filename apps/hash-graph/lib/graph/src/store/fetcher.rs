@@ -33,8 +33,8 @@ use crate::{
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
-        AccountStore, DataTypeStore, EntityStore, EntityTypeStore, InsertionError,
-        PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
+        InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -354,13 +354,16 @@ where
                 .change_context(InsertionError)?;
 
             self.store
-                .create_data_types(fetched_ontology_types.data_types)
+                .create_data_types(fetched_ontology_types.data_types, ConflictBehavior::Skip)
                 .await?;
             self.store
-                .create_property_types(fetched_ontology_types.property_types)
+                .create_property_types(
+                    fetched_ontology_types.property_types,
+                    ConflictBehavior::Skip,
+                )
                 .await?;
             self.store
-                .create_entity_types(fetched_ontology_types.entity_types)
+                .create_entity_types(fetched_ontology_types.entity_types, ConflictBehavior::Skip)
                 .await?;
         }
 
@@ -383,13 +386,16 @@ where
                 .change_context(InsertionError)?;
 
             self.store
-                .create_data_types(fetched_ontology_types.data_types)
+                .create_data_types(fetched_ontology_types.data_types, ConflictBehavior::Skip)
                 .await?;
             self.store
-                .create_property_types(fetched_ontology_types.property_types)
+                .create_property_types(
+                    fetched_ontology_types.property_types,
+                    ConflictBehavior::Skip,
+                )
                 .await?;
             self.store
-                .create_entity_types(fetched_ontology_types.entity_types)
+                .create_entity_types(fetched_ontology_types.entity_types, ConflictBehavior::Skip)
                 .await?;
         }
 
@@ -435,6 +441,7 @@ where
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let data_types = data_types.into_iter().collect::<Vec<_>>();
 
@@ -446,7 +453,7 @@ where
         }))
         .await?;
 
-        self.store.create_data_types(data_types).await
+        self.store.create_data_types(data_types, on_conflict).await
     }
 
     async fn get_data_type(
@@ -484,6 +491,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
 
@@ -495,7 +503,9 @@ where
         }))
         .await?;
 
-        self.store.create_property_types(property_types).await
+        self.store
+            .create_property_types(property_types, on_conflict)
+            .await
     }
 
     async fn get_property_type(
@@ -535,6 +545,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let entity_types = entity_types.into_iter().collect::<Vec<_>>();
 
@@ -546,7 +557,9 @@ where
         }))
         .await?;
 
-        self.store.create_entity_types(entity_types).await
+        self.store
+            .create_entity_types(entity_types, on_conflict)
+            .await
     }
 
     async fn get_entity_type(

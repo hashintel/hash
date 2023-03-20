@@ -8,8 +8,8 @@ use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
-        crud::Read, postgres::TraversalContext, query::Filter, AsClient, InsertionError,
-        PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, query::Filter, AsClient, ConflictBehavior,
+        InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
@@ -138,6 +138,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
