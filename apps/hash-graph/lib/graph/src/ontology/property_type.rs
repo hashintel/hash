@@ -76,7 +76,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
     /// [`PropertyType`]: type_system::PropertyType
     ///
@@ -84,14 +84,14 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::UpdatedById);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["recordCreatedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::RecordCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    UpdatedById,
+    RecordCreatedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
     /// [`PropertyType::title()`]: type_system::PropertyType::title
@@ -185,8 +185,8 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn updated_by_id() -> Self {
-        Self::UpdatedById
+    fn record_created_by_id() -> Self {
+        Self::RecordCreatedById
     }
 
     fn schema() -> Self {
@@ -201,7 +201,7 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
 impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -221,7 +221,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -242,7 +242,7 @@ pub enum PropertyTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    UpdatedById,
+    RecordCreatedById,
     Title,
     Description,
     DataTypes,
@@ -259,8 +259,8 @@ pub struct PropertyTypeQueryPathVisitor {
 
 impl PropertyTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `updatedById`, `title`, `description`, \
-                                         `dataTypes`, `propertyTypes`";
+                                         `ownedById`, `recordCreatedById`, `title`, \
+                                         `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -286,7 +286,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
 
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryToken::UpdatedById => PropertyTypeQueryPath::UpdatedById,
+            PropertyTypeQueryToken::RecordCreatedById => PropertyTypeQueryPath::RecordCreatedById,
             PropertyTypeQueryToken::BaseUrl => PropertyTypeQueryPath::BaseUrl,
             PropertyTypeQueryToken::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,

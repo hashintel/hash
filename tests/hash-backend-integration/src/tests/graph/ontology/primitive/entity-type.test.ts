@@ -190,7 +190,7 @@ describe("Entity type CRU", () => {
   it("can update an entity type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
-        createdEntityType.metadata.provenance.updatedById,
+        createdEntityType.metadata.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
     const updatedEntityType = await updateEntityType(graphContext, {
@@ -201,7 +201,7 @@ describe("Entity type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
-        updatedEntityType.metadata.provenance.updatedById,
+        updatedEntityType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
   });
 });

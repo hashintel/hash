@@ -17,7 +17,7 @@ use crate::{
         LinkData,
     },
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
@@ -71,7 +71,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_to_left_order_index =
             compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
-        let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
+        let record_created_by_id_index =
+            compiler.add_selection_path(&EntityQueryPath::RecordCreatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
 
@@ -133,7 +134,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
+                let record_created_by_id =
+                    RecordCreatedById::new(row.get(record_created_by_id_index));
 
                 Ok(Entity {
                     properties,
@@ -151,7 +153,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        ProvenanceMetadata::new(updated_by_id),
+                        ProvenanceMetadata::new(record_created_by_id),
                         row.get(archived_index),
                     ),
                 })

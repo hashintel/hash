@@ -93,21 +93,21 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: crate::knowledge::Entity
     Archived,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, EntityQueryPath::UpdatedById);
+    /// let path = EntityQueryPath::deserialize(json!(["recordCreatedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::RecordCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     /// [`Entity`]: crate::knowledge::Entity
-    UpdatedById,
+    RecordCreatedById,
     /// The [`EntityType`] of the [`EntityMetadata`] belonging to the [`Entity`].
     ///
     /// Deserializes from `["type", ...]` where `...` is a path to a field of an [`EntityType`].
@@ -259,7 +259,7 @@ impl fmt::Display for EntityQueryPath<'_> {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
@@ -280,7 +280,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId | Self::Uuid | Self::OwnedById | Self::UpdatedById => {
+            Self::EditionId | Self::Uuid | Self::OwnedById | Self::RecordCreatedById => {
                 ParameterType::Uuid
             }
             Self::LeftEntity(path)
@@ -305,7 +305,7 @@ pub enum EntityQueryToken {
     EditionId,
     Archived,
     OwnedById,
-    UpdatedById,
+    RecordCreatedById,
     Type,
     Properties,
     IncomingLinks,
@@ -324,9 +324,9 @@ pub struct EntityQueryPathVisitor {
 
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `archived`, `ownedById`, \
-                                         `updatedById`, `type`, `properties`, `incomingLinks`, \
-                                         `outgoingLinks`, `leftEntity`, `rightEntity`, \
-                                         `leftToRightOrder`, `rightToLeftOrder`";
+                                         `recordCreatedById`, `type`, `properties`, \
+                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
+                                         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -354,7 +354,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
-            EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
+            EntityQueryToken::RecordCreatedById => EntityQueryPath::RecordCreatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,

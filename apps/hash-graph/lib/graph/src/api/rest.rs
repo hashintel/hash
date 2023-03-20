@@ -53,7 +53,7 @@ use crate::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
         OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{QueryError, StorePool},
     subgraph::{
         edges::{
@@ -175,7 +175,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     components(
         schemas(
             OwnedById,
-            UpdatedById,
+            RecordCreatedById,
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,

@@ -6,7 +6,7 @@ use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{
         crud::Read, postgres::TraversalContext, AsClient, InsertionError, PostgresStore,
         PropertyTypeStore, QueryError, Record, UpdateError,
@@ -228,7 +228,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        updated_by: UpdatedById,
+        updated_by: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 

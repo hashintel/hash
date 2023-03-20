@@ -28,7 +28,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Properties(_)
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
-            | Self::UpdatedById
+            | Self::RecordCreatedById
             | Self::Archived => vec![Relation::EntityEditions],
             Self::Type(path) => once(Relation::Reference(ReferenceTable::EntityIsOfType))
                 .chain(path.relations())
@@ -75,7 +75,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
             Self::Type(path) => path.terminating_column(),
             Self::OwnedById => Column::Entities(Entities::OwnedById),
-            Self::UpdatedById => Column::EntityEditions(EntityEditions::UpdatedById),
+            Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
             Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid)
             }

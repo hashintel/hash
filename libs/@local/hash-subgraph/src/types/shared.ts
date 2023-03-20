@@ -1,8 +1,8 @@
-import { UpdatedById } from "./shared/branded";
+import { RecordCreatedById } from "./shared/branded";
 
 export * from "./shared/branded";
 export * from "./shared/temporal-versioning";
 
 export type ProvenanceMetadata = {
-  updatedById: UpdatedById;
+  recordCreatedById: RecordCreatedById;
 };

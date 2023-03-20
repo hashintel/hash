@@ -29,7 +29,7 @@ use crate::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyTypeReference,
         PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
@@ -210,7 +210,7 @@ where
     async fn fetch_external_ontology_types(
         &self,
         ontology_type_references: Vec<VersionedUrl>,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<FetchedOntologyTypes, StoreError> {
         let provenance_metadata = ProvenanceMetadata::new(actor_id);
 
@@ -320,14 +320,14 @@ where
 
     async fn insert_external_types<'o, T: crate::ontology::OntologyType + Sync + 'o>(
         &mut self,
-        ontology_types: impl IntoIterator<Item = (&'o T, UpdatedById), IntoIter: Send> + Send,
+        ontology_types: impl IntoIterator<Item = (&'o T, RecordCreatedById), IntoIter: Send> + Send,
     ) -> Result<(), InsertionError> {
         // Without collecting it first, we get a "Higher-ranked lifetime error" because of the
         // limitations of Rust being able to look into a `Pin<Box<dyn Future>>`, which is returned
         // by `#[async_trait]` methods.
         let ontology_types = ontology_types.into_iter().collect::<Vec<_>>();
 
-        let mut partitioned_ontology_types = HashMap::<UpdatedById, Vec<VersionedUrl>>::new();
+        let mut partitioned_ontology_types = HashMap::<RecordCreatedById, Vec<VersionedUrl>>::new();
 
         for (ontology_type, actor_id) in ontology_types {
             let external_types = self
@@ -370,7 +370,7 @@ where
     async fn insert_external_types_by_reference(
         &mut self,
         reference: OntologyTypeReference<'_>,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<(), InsertionError> {
         if !self
             .contains_ontology_type(reference)
@@ -441,7 +441,10 @@ where
         self.insert_external_types(data_types.iter().map(|(data_type, metadata)| {
             (
                 data_type,
-                metadata.borrow().provenance_metadata().updated_by_id(),
+                metadata
+                    .borrow()
+                    .provenance_metadata()
+                    .record_created_by_id(),
             )
         }))
         .await?;
@@ -459,7 +462,7 @@ where
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(once((&data_type, actor_id)))
             .await
@@ -490,7 +493,10 @@ where
         self.insert_external_types(property_types.iter().map(|(property_type, metadata)| {
             (
                 property_type,
-                metadata.borrow().provenance_metadata().updated_by_id(),
+                metadata
+                    .borrow()
+                    .provenance_metadata()
+                    .record_created_by_id(),
             )
         }))
         .await?;
@@ -508,7 +514,7 @@ where
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(once((&property_type, actor_id)))
             .await
@@ -541,7 +547,10 @@ where
         self.insert_external_types(entity_types.iter().map(|(entity_type, metadata)| {
             (
                 entity_type,
-                metadata.borrow().provenance_metadata().updated_by_id(),
+                metadata
+                    .borrow()
+                    .provenance_metadata()
+                    .record_created_by_id(),
             )
         }))
         .await?;
@@ -559,7 +568,7 @@ where
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(once((&entity_type, actor_id)))
             .await
@@ -580,7 +589,7 @@ where
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -589,7 +598,7 @@ where
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            updated_by_id,
+            record_created_by_id,
         )
         .await?;
 
@@ -598,7 +607,7 @@ where
                 owned_by_id,
                 entity_uuid,
                 decision_time,
-                updated_by_id,
+                record_created_by_id,
                 archived,
                 entity_type_id,
                 properties,
@@ -620,7 +629,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
@@ -643,7 +652,7 @@ where
         &mut self,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -652,7 +661,7 @@ where
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            updated_by_id,
+            record_created_by_id,
         )
         .await
         .change_context(UpdateError)?;
@@ -661,7 +670,7 @@ where
             .update_entity(
                 entity_id,
                 decision_time,
-                updated_by_id,
+                record_created_by_id,
                 archived,
                 entity_type_id,
                 properties,
