@@ -338,7 +338,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           # Only run semver checks if this is not the initial release
-          grep '^version' Cargo.toml | grep -q 0.0.0-reserved && exit 0
+          grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
 
           cargo +${{ matrix.toolchain }} semver-checks check-release
 
