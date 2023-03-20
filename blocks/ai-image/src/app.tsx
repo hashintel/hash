@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/graph/react";
 import { theme } from "@hashintel/design-system";
 import { Box, ThemeProvider } from "@mui/material";
+import { SizeMe } from "react-sizeme";
 
 import { GenerateImage } from "./app/generate-image";
 import { ImageTile } from "./shared/image-tile";
@@ -40,26 +41,33 @@ export const App: BlockComponent<RootEntity> = ({
 
   return (
     <ThemeProvider theme={theme}>
-      {fileEntity ? (
-        <Box
-          sx={{
-            position: "relative",
-            display: "flex",
-            width: "100%",
-            justifyContent: "center",
-          }}
-        >
-          <ImageTile
-            url={fileEntity.properties[urlKey]}
-            description={
-              fileEntity.properties[descriptionKey] ?? "An AI-generated image"
-            }
-            maxWidth={400}
-          />
-        </Box>
-      ) : (
-        <GenerateImage blockEntity={blockEntity} />
-      )}
+      <SizeMe>
+        {({ size }) => {
+          const isMobile = (size.width ?? 0) < 520;
+
+          return fileEntity ? (
+            <Box
+              sx={{
+                position: "relative",
+                display: "flex",
+                width: "100%",
+                justifyContent: "center",
+              }}
+            >
+              <ImageTile
+                url={fileEntity.properties[urlKey]}
+                description={
+                  fileEntity.properties[descriptionKey] ??
+                  "An AI-generated image"
+                }
+                maxWidth={400}
+              />
+            </Box>
+          ) : (
+            <GenerateImage blockEntity={blockEntity} isMobile={isMobile} />
+          );
+        }}
+      </SizeMe>
     </ThemeProvider>
   );
 };

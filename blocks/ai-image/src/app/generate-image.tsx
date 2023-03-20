@@ -1,7 +1,12 @@
 import { RemoteFileEntity } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { Button, GetHelpLink, TextField } from "@hashintel/design-system";
+import {
+  BlockSettingsButton,
+  Button,
+  GetHelpLink,
+  TextField,
+} from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
@@ -35,7 +40,13 @@ const isFileEntity = (
   image: RemoteFileEntity | ImageObject,
 ): image is RemoteFileEntity => "properties" in image;
 
-export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
+export const GenerateImage = ({
+  blockEntity,
+  isMobile,
+}: {
+  blockEntity: RootEntity;
+  isMobile?: boolean;
+}) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { serviceModule } = useServiceBlockModule(blockRootRef);
@@ -46,6 +57,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
   const [inputFocused, setInputFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [mobileSettingsExpanded, setMobileSettingsExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [promptText, setPromptText] = useState(initialPromptText ?? "");
@@ -92,7 +104,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       const { data, errors } = await serviceModule.openaiCreateImage({
         data: {
           prompt: promptText,
-          n: 4,
+          n: parseInt(imageNumber, 10),
         },
       });
 
@@ -145,7 +157,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
       inputRef.current?.blur();
     },
-    [loading, promptText, serviceModule, graphModule],
+    [imageNumber, loading, promptText, serviceModule, graphModule],
   );
 
   return (
@@ -155,48 +167,69 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
+      <Fade
+        in={
+          hovered ||
+          inputFocused ||
+          animatingIn ||
+          animatingOut ||
+          (isMobile && mobileSettingsExpanded)
+        }
+      >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
           <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-image" />
 
-          <Typography
-            variant="regularTextLabels"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              textDecoration: "none",
-              fontSize: 15,
-              lineHeight: 1,
-              letterSpacing: -0.02,
+          {isMobile ? (
+            <BlockSettingsButton
+              expanded={mobileSettingsExpanded}
+              onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
+            />
+          ) : null}
 
-              flexWrap: "wrap",
-              color: ({ palette }) => palette.gray[50],
-            }}
-          >
-            <Box component="span" sx={{ mr: 1 }}>
-              Using
-            </Box>
-            <Box
-              component="span"
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                color: ({ palette }) => palette.gray[60],
-                mr: 1,
-              }}
-            >
-              <AbstractAiIcon sx={{ fontSize: 16, mr: 0.375 }} />
-              OpenAI DALL-E
-            </Box>
-          </Typography>
+          <Collapse in={!isMobile || mobileSettingsExpanded}>
+            <Box display="flex" gap={1} flexWrap="wrap" mt={isMobile ? 1 : 0}>
+              <Typography
+                variant="regularTextLabels"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  textDecoration: "none",
+                  fontSize: 15,
+                  lineHeight: 1,
+                  letterSpacing: -0.02,
 
-          <ImageNumberSelector
-            open={selectorOpen}
-            onOpen={() => setSelectorOpen(true)}
-            onClose={() => setSelectorOpen(false)}
-            value={imageNumber}
-            onChange={setImageNumber}
-          />
+                  flexWrap: "wrap",
+                  color: ({ palette }) => palette.gray[50],
+                }}
+              >
+                <Box component="span" sx={{ mr: 1 }}>
+                  Using
+                </Box>
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: ({ palette }) => palette.gray[60],
+                    mr: 1,
+                  }}
+                >
+                  <AbstractAiIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                  OpenAI DALL-E
+                </Box>
+              </Typography>
+
+              {!images?.length ? (
+                <ImageNumberSelector
+                  open={selectorOpen}
+                  onOpen={() => setSelectorOpen(true)}
+                  onClose={() => setSelectorOpen(false)}
+                  value={imageNumber}
+                  onChange={setImageNumber}
+                />
+              ) : null}
+            </Box>
+          </Collapse>
         </Box>
       </Fade>
 
