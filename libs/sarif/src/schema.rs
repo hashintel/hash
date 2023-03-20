@@ -28,6 +28,8 @@ pub enum SchemaVersion {
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
+    use std::eprintln;
+
     use super::*;
 
     #[expect(clippy::panic)]

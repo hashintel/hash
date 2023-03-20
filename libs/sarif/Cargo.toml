@@ -8,8 +8,8 @@ description = "Representation of the SARIF specification in Rust"
 documentation = "https://docs.rs/sarif"
 readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
-keywords = ["sarif", "codeql", "serde", "static-analysis", "tools"]
-categories = ["data-structures", "development-tools", "parsing"]
+keywords = ["no_std", "sarif", "codeql", "serde", "static-analysis", "tools"]
+categories = ["no-std", "data-structures", "development-tools", "parsing"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
