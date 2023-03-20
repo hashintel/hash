@@ -1,14 +1,13 @@
 import { RemoteFileEntity } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { Button, TextField } from "@hashintel/design-system";
+import { Button, GetHelpLink, TextField } from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
   Collapse,
   Fade,
   inputBaseClasses,
-  Link,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
@@ -17,7 +16,6 @@ import { FormEvent, useCallback, useRef, useState } from "react";
 import { generatedLinkKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { QuestionCircleIcon } from "../icons/question-circle";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
 import { ImagePreview } from "./generate-image/image-preview";
@@ -152,31 +150,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       onMouseLeave={() => setHovered(false)}
     >
       <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
-        <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
-          <Link
-            href="https://blockprotocol.org/@hash/blocks/ai-image"
-            target="_blank"
-            variant="regularTextLabels"
-            sx={({ palette }) => ({
-              display: "inline-flex",
-              alignItems: "center",
-              fontSize: 15,
-              lineHeight: 1,
-              letterSpacing: -0.02,
-              marginBottom: 1.5,
-              whiteSpace: "nowrap",
-              fill: palette.gray[40],
-              textDecoration: "none !important",
-              color: `${palette.gray[50]} !important`,
-              ":hover": {
-                color: `${palette.gray[60]} !important`,
-                fill: palette.gray[50],
-              },
-            })}
-          >
-            Get help{" "}
-            <QuestionCircleIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
-          </Link>
+        <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
+          <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-image" />
 
           <Typography
             variant="regularTextLabels"
@@ -187,7 +162,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
               fontSize: 15,
               lineHeight: 1,
               letterSpacing: -0.02,
-              marginBottom: 1.5,
+
               flexWrap: "wrap",
               color: ({ palette }) => palette.gray[50],
             }}
