@@ -20,8 +20,8 @@ pub const SCHEMA_ID: &str = "https://schemastore.azurewebsites.net/schemas/json/
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SchemaVersion {
-    #[cfg_attr(feature = "serde", serde(rename = "2.1.0"))]
     /// The SARIF 2.1.0 schema.
+    #[cfg_attr(feature = "serde", serde(rename = "2.1.0"))]
     V2_1_0,
 }
 
