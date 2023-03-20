@@ -225,10 +225,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
         for (schema, metadata) in entity_types {
-            let ontology_id = transaction
-                .create(schema.clone(), metadata.borrow())
-                .await?;
-            inserted_entity_types.push((ontology_id, schema));
+            if let Some(ontology_id) = transaction
+                .create(schema.clone(), metadata.borrow(), on_conflict)
+                .await?
+            {
+                inserted_entity_types.push((ontology_id, schema));
+            }
         }
 
         for (ontology_id, schema) in inserted_entity_types {

@@ -28,7 +28,8 @@ use crate::{
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
+        AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError,
+        StoreError, UpdateError,
     },
 };
 #[cfg(feature = "__internal_bench")]
@@ -221,23 +222,35 @@ where
         &self,
         database_type: T,
         metadata: &OntologyElementMetadata,
-    ) -> Result<OntologyId, InsertionError>
+        on_conflict: ConflictBehavior,
+    ) -> Result<Option<OntologyId>, InsertionError>
     where
         T: OntologyDatabaseType + Send,
         T::Representation: Send,
     {
-        let ontology_id = match metadata {
+        let creation_result = match metadata {
             OntologyElementMetadata::Owned(metadata) => {
-                self.create_owned_ontology_id(metadata).await?
+                self.create_owned_ontology_id(metadata).await
             }
             OntologyElementMetadata::External(metadata) => {
-                self.create_external_ontology_id(metadata).await?
+                self.create_external_ontology_id(metadata).await
             }
+        };
+
+        let ontology_id = match creation_result {
+            Ok(ontology_id) => ontology_id,
+            Err(report)
+                if report.contains::<BaseUrlAlreadyExists>()
+                    && on_conflict == ConflictBehavior::Skip =>
+            {
+                return Ok(None);
+            }
+            Err(err) => return Err(err),
         };
 
         self.insert_with_id(ontology_id, database_type).await?;
 
-        Ok(ontology_id)
+        Ok(Some(ontology_id))
     }
 
     /// Updates the specified [`OntologyDatabaseType`].

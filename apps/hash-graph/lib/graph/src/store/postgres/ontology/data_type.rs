@@ -51,7 +51,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         for (schema, metadata) in data_types {
             transaction
-                .create(schema.clone(), metadata.borrow())
+                .create(schema.clone(), metadata.borrow(), on_conflict)
                 .await?;
         }
 
