@@ -12,8 +12,8 @@ keywords = ["no_std", "sarif", "codeql", "serde", "static-analysis", "tools"]
 categories = ["no-std", "data-structures", "development-tools", "parsing"]
 
 [dependencies]
-serde = { version = "1", features = ["derive"], optional = true }
-semver = { version = "1", features = ["serde"] }
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+semver = { version = "1", default-features = false, features = ["serde"] }
 
 [features]
 serde = ["dep:serde"]
