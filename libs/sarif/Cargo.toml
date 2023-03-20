@@ -10,3 +10,14 @@ readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
 keywords = ["sarif", "codeql", "serde", "static-analysis", "tools"]
 categories = ["data-structures", "development-tools", "parsing"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+semver = { version = "1", features = ["serde"] }
+
+[features]
+serde = ["dep:serde"]
+
+[dev-dependencies]
+serde_json = "1"
+jsonschema = { version = "0.17.0", default-features = false }

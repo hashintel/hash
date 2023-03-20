@@ -18,10 +18,6 @@
 
 `sarif` is a crate to represent the [SARIF specification](https://sarifweb.azurewebsites.net) in Rust.
 
-## ⚠️ Disclaimer ⚠️
-
-This crate does not ship with any functionality and is only a name reservation to stop potential name squatting. In the future the actual crate will be published under this name, for the current (incomplete) implementation of the crate please visit the linked repository.
-
 ## Contributors
 
 `sarif` was created by [Tim Diekmann](https://github.com/TimDiekmann) and [Bilal Mahmoud](https://github.com/indietyp) to be used to improve DX around creating Pull Requests. It is being developed in conjunction with [HASH](https://hash.dev/) as an open-source project. We gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server][discord]. You can also report bugs [directly on the GitHub repo](https://github.com/hashintel/hash/issues/new?assignees=TimDiekmann%2Cindietyp&labels=A-sarif%2CC-bug&template=bug-report-sarif.yml).
