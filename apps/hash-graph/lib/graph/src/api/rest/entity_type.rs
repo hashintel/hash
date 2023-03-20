@@ -80,7 +80,6 @@ struct CreateEntityTypeRequest {
     actor_id: UpdatedById,
 }
 
-// TODO: update the response types here
 #[utoipa::path(
     post,
     path = "/entity-types",
@@ -88,10 +87,10 @@ struct CreateEntityTypeRequest {
     tag = "EntityType",
     responses(
         (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
-        (status = 400, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "text/plain", description = "Provided request body is invalid", body = VAR_STATUS),
 
-        (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
-        (status = 500, description = "Store error occurred"),
+        (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
+        (status = 500, description = "Store error occurred", body = VAR_STATUS),
     ),
     request_body = CreateEntityTypeRequest,
 )]
