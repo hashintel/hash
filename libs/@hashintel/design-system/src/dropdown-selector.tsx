@@ -5,7 +5,6 @@ import {
   menuItemClasses,
   outlinedInputClasses,
   selectClasses,
-  SelectProps,
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
@@ -127,24 +126,27 @@ const getSelectorItems = (options: Option[], value: string) =>
     );
   });
 
-type ModelSelectorProps = {
-  options: GroupedOptions | Option[];
+export type DropdownSelectorProps = {
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
+  options: GroupedOptions | Option[];
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
   renderValue?: (
     selectedOption: Option,
     selectedGroup: OptionGroup | null,
   ) => JSX.Element;
-} & Pick<SelectProps, "open" | "onOpen" | "onClose">;
+};
 
 export const DropdownSelector = ({
   options,
   value,
+  open,
   onChange,
   renderValue,
-  open,
   ...props
-}: ModelSelectorProps) => {
+}: DropdownSelectorProps) => {
   const [selectRef, setSelectRef] = useState<HTMLSelectElement | null>(null);
 
   const [selectedModel, selectedGroup] = useMemo(() => {
@@ -192,7 +194,7 @@ export const DropdownSelector = ({
       open={open}
       value={value}
       onChange={(event) => {
-        onChange(event.target.value);
+        onChange?.(event.target.value);
       }}
       ref={(ref: HTMLSelectElement | null) => {
         if (ref) {
@@ -220,7 +222,7 @@ export const DropdownSelector = ({
         MenuListProps: {
           sx: {
             padding: 0,
-            pb: 1,
+            py: 1,
           },
         },
       }}

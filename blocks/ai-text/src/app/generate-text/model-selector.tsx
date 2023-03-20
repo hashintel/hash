@@ -1,5 +1,9 @@
-import { DropdownSelector, GroupedOptions } from "@hashintel/design-system";
-import { Box, SelectProps, Typography } from "@mui/material";
+import {
+  DropdownSelector,
+  DropdownSelectorProps,
+  GroupedOptions,
+} from "@hashintel/design-system";
+import { Box, Typography } from "@mui/material";
 
 import { AbstractAiIcon } from "../../icons/abstract-ai";
 
@@ -54,19 +58,12 @@ const MODELS_BY_GROUP: GroupedOptions = {
   },
 };
 
-export const ModelSelector = ({
-  model,
-  onModelChange,
-  ...props
-}: {
-  model: string;
-  onModelChange: (model: string) => void;
-} & Pick<SelectProps, "open" | "onOpen" | "onClose">) => (
+export const ModelSelector = (
+  props: Omit<DropdownSelectorProps, "options" | "renderValue">,
+) => (
   <DropdownSelector
     {...props}
     options={MODELS_BY_GROUP}
-    value={model}
-    onChange={onModelChange}
     renderValue={(selectedOption, selectedGroup) => {
       const { title, icon } = selectedOption;
 

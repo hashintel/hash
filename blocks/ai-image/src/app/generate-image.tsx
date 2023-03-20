@@ -18,6 +18,10 @@ import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
+import {
+  DEFAULT_IMAGE_NUMBER,
+  ImageNumberSelector,
+} from "./generate-image/image-number-selector";
 import { ImagePreview } from "./generate-image/image-preview";
 
 export type ImageObject = {
@@ -48,6 +52,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const [images, setImages] = useState<
     ImageObject[] | RemoteFileEntity[] | null
   >(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [imageNumber, setImageNumber] = useState(DEFAULT_IMAGE_NUMBER);
 
   const [animatingIn, setAnimatingIn] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
@@ -183,6 +189,14 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
               OpenAI DALL-E
             </Box>
           </Typography>
+
+          <ImageNumberSelector
+            open={selectorOpen}
+            onOpen={() => setSelectorOpen(true)}
+            onClose={() => setSelectorOpen(false)}
+            value={imageNumber}
+            onChange={setImageNumber}
+          />
         </Box>
       </Fade>
 
