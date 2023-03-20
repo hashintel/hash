@@ -2,7 +2,7 @@
 
 use std::{collections::hash_map, sync::Arc};
 
-use axum::{http::StatusCode, response::Response, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, response::Response, routing::post, Extension, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use hash_map::HashMap;
@@ -15,8 +15,8 @@ use crate::{
         error::{Status, StatusPayloads},
         gen::status_payloads::ErrorInfo,
         rest::{
-            api_resource::RoutedResource, report_to_status_code, status::status_to_response,
-            utoipa_typedef::subgraph::Subgraph,
+            api_resource::RoutedResource, json::Json, report_to_status_code,
+            status::status_to_response, utoipa_typedef::subgraph::Subgraph,
         },
     },
     ontology::{

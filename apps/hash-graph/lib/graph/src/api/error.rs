@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use hash_status::Status as HashStatus;
 use serde::{Deserialize, Serialize};
 
-use crate::api::gen::status_payloads::{ErrorInfo, RequestInfo, ResourceInfo};
+pub(super) use crate::api::gen::status_payloads::{ErrorInfo, RequestInfo, ResourceInfo};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum StatusPayloads {
@@ -13,10 +13,10 @@ pub enum StatusPayloads {
 }
 
 impl ErrorInfo {
-    pub fn new(metadata: HashMap<String, Option<serde_json::Value>>, reason: String) -> Self {
+    pub fn new(metadata: HashMap<String, serde_json::Value>, reason: String) -> Self {
         ErrorInfo {
             domain: "HASH Graph".to_string(),
-            metadata,
+            metadata: metadata.into_iter().map(|(k, v)| (k, Some(v))).collect(),
             reason,
         }
     }
