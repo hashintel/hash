@@ -260,6 +260,7 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
                     lineHeight: 1,
                     color: palette.blue[70],
                     textTransform: "uppercase",
+                    whiteSpace: "nowrap",
                     height: 55,
                     width: 1,
                     maxHeight: 55,
