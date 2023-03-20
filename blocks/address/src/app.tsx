@@ -437,7 +437,6 @@ export const App: BlockComponent<RootEntity> = ({
                           flexWrap: "wrap",
                           mb: 1.5,
                           columnGap: 3,
-                          rowGap: 1,
                         }}
                       >
                         <GetHelpLink href="https://blockprotocol.org/@hash/blocks/address" />
@@ -455,6 +454,7 @@ export const App: BlockComponent<RootEntity> = ({
                           <Typography
                             variant="regularTextLabels"
                             sx={{
+                              mt: isMobile ? 1 : 0,
                               display: "inline-flex",
                               alignItems: "center",
                               textDecoration: "none",
