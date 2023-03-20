@@ -258,10 +258,10 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+              ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
+              ON "data_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -288,20 +288,20 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            SELECT *
-            FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            SELECT * FROM "property_types" AS "property_types_0_0_0"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+              ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_1_0"
-              ON "property_type_data_type_references_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+              ON "data_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_1_1_0"
+              ON "property_type_constrains_values_on_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_1_2_0"
-              ON "data_types_1_2_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
+              ON "data_types_1_2_0"."ontology_id" = "property_type_constrains_values_on_1_1_0"."target_data_type_ontology_id"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_1_3_0"
               ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "data_types_1_2_0"."ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
-              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2) AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
+              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2)
+              AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
             "#,
             &[
                 &"Text",
@@ -332,10 +332,10 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_1_0"
-              ON "property_type_property_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+              ON "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."ontology_id" = "property_type_property_type_references_0_1_0"."target_property_type_ontology_id"
+              ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
             WHERE "property_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -362,10 +362,10 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_1_0"
-              ON "entity_type_property_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+            INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+              ON "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."ontology_id" = "entity_type_property_type_references_0_1_0"."target_property_type_ontology_id"
+              ON "property_types_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
             WHERE "property_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Name"],
@@ -394,17 +394,15 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+              ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_3_0"
-              ON "entity_type_entity_type_references_0_3_0"."source_entity_type_ontology_id" = "entity_types_0_2_0"."ontology_id"
+              ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id"
+            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_3_0"
+              ON "entity_type_constrains_links_on_0_3_0"."source_entity_type_ontology_id" = "entity_types_0_2_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_4_0"
-              ON "entity_types_0_4_0"."ontology_id" = "entity_type_entity_type_references_0_3_0"."target_entity_type_ontology_id"
-            WHERE jsonb_extract_path("entity_types_0_0_0"."schema", 'links', "entity_types_0_2_0"."schema"->>'$id') IS NOT NULL
-              AND jsonb_extract_path("entity_types_0_2_0"."schema", 'links', "entity_types_0_4_0"."schema"->>'$id') IS NOT NULL
-              AND "entity_types_0_4_0"."schema"->>'title' = $1
+              ON "entity_types_0_4_0"."ontology_id" = "entity_type_constrains_links_on_0_3_0"."target_entity_type_ontology_id"
+            WHERE "entity_types_0_4_0"."schema"->>'title' = $1
             "#,
             &[&"Friend Of"],
         );
@@ -430,14 +428,13 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+            INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+              ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
+              ON "entity_types_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
               ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
-            WHERE jsonb_contains("entity_types_0_0_0"."schema"->'allOf', jsonb_build_array(jsonb_build_object('$ref', "entity_types_0_2_0"."schema"->>'$id'))) IS NOT NULL
-              AND "ontology_id_with_metadata_0_3_0"."base_url" = $1
+            WHERE "ontology_id_with_metadata_0_3_0"."base_url" = $1
             "#,
             &[&"https://blockprotocol.org/@blockprotocol/types/entity-type/link/"],
         );
@@ -461,10 +458,10 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."entity_uuid" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
             "#,
             &[
                 &pinned_timestamp,
@@ -501,16 +498,18 @@ mod tests {
             &compiler,
             r#"
             SELECT
-                DISTINCT ON("entities_0_0_0"."entity_uuid", "entities_0_0_0"."decision_time")
-                "entities_0_0_0"."entity_uuid",
-                "entities_0_0_0"."decision_time",
-                "entities_0_0_0"."properties"
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."record_created_by_id" = $3
-            ORDER BY "entities_0_0_0"."entity_uuid" ASC,
-                     "entities_0_0_0"."decision_time" DESC
+                DISTINCT ON("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time")
+                "entity_temporal_metadata_0_0_0"."entity_uuid",
+                "entity_temporal_metadata_0_0_0"."decision_time",
+                "entity_editions_0_1_0"."properties"
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_editions_0_1_0"."record_created_by_id" = $3
+            ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
+                     "entity_temporal_metadata_0_0_0"."decision_time" DESC
             "#,
             &[
                 &pinned_timestamp,
@@ -543,10 +542,12 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) = $4
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[
                 &json_path,
@@ -578,10 +579,12 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) IS NULL
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[
                 &json_path,
@@ -611,20 +614,26 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."left_owned_by_id" = "entities_0_0_0"."owned_by_id"
-             AND "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."owned_by_id" = "entities_0_1_0"."right_owned_by_id"
-             AND "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_1_0"."decision_time" && $2
-              AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_edition_id" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."left_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_3_0"
+              ON "entity_has_right_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+             AND "entity_has_right_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_right_entity_0_3_0"."right_owned_by_id"
+             AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_right_entity_0_3_0"."right_entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
@@ -650,20 +659,26 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."right_owned_by_id" = "entities_0_0_0"."owned_by_id"
-             AND "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."owned_by_id" = "entities_0_1_0"."left_owned_by_id"
-             AND "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_1_0"."decision_time" && $2
-              AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_edition_id" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."right_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_right_entity_0_1_0"."owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_3_0"
+              ON "entity_has_left_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+             AND "entity_has_left_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_left_entity_0_3_0"."left_owned_by_id"
+             AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_left_entity_0_3_0"."left_entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
@@ -707,13 +722,19 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND ("entities_0_0_0"."left_entity_uuid" = $3)
-              AND ("entities_0_0_0"."left_owned_by_id" = $4)
-              AND ("entities_0_0_0"."right_entity_uuid" = $5)
-              AND ("entities_0_0_0"."right_owned_by_id" = $6)
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3)
+              AND ("entity_has_left_entity_0_1_0"."left_owned_by_id" = $4)
+              AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $5)
+              AND ("entity_has_right_entity_0_1_0"."right_owned_by_id" = $6)
             "#,
             &[
                 &pinned_timestamp,
@@ -755,27 +776,40 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-             SELECT *
-             FROM "entities" AS "entities_0_0_0"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_0"
-               ON "entities_0_1_0"."owned_by_id" = "entities_0_0_0"."left_owned_by_id"
-              AND "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-               ON "entity_types_0_2_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
-               ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_1"
-               ON "entities_0_1_1"."owned_by_id" = "entities_0_0_0"."right_owned_by_id"
-              AND "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
-             INNER JOIN "entity_types" AS "entity_types_0_2_1"
-               ON "entity_types_0_2_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1"
-               ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entity_types_0_2_1"."ontology_id"
-             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
-               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
-               AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
-               AND ("ontology_id_with_metadata_0_3_0"."base_url" = $3)
-               AND ("ontology_id_with_metadata_0_3_1"."base_url" = $4)
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."left_owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."left_entity_uuid"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
+              ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
+            INNER JOIN "entity_types" AS "entity_types_0_4_0"
+              ON "entity_types_0_4_0"."ontology_id" = "entity_is_of_type_0_3_0"."entity_type_ontology_id"
+            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_5_0"
+              ON "ontology_id_with_metadata_0_5_0"."ontology_id" = "entity_types_0_4_0"."ontology_id"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
+              ON "entity_temporal_metadata_0_2_1"."owned_by_id" = "entity_has_right_entity_0_1_0"."right_owned_by_id"
+             AND "entity_temporal_metadata_0_2_1"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
+              ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
+            INNER JOIN "entity_types" AS "entity_types_0_4_1"
+              ON "entity_types_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
+            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_5_1"
+              ON "ontology_id_with_metadata_0_5_1"."ontology_id" = "entity_types_0_4_1"."ontology_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
+              AND ("ontology_id_with_metadata_0_5_0"."base_url" = $3)
+              AND ("ontology_id_with_metadata_0_5_1"."base_url" = $4)
             "#,
             &[
                 &pinned_timestamp,
@@ -878,11 +912,11 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."owned_by_id" = $3)
-                  AND ("entities_0_0_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_0_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -911,11 +945,14 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."right_owned_by_id" = $3)
-                  AND ("entities_0_0_0"."right_entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+                  ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_has_right_entity_0_1_0"."right_owned_by_id" = $3)
+                  AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -944,11 +981,14 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."left_owned_by_id" = $3)
-                  AND ("entities_0_0_0"."left_entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+                  ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_has_left_entity_0_1_0"."left_owned_by_id" = $3)
+                  AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -977,16 +1017,19 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."left_owned_by_id" = "entities_0_0_0"."owned_by_id"
-                 AND "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."decision_time" && $2
-                  AND ("entities_0_1_0"."owned_by_id" = $3)
-                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+                  ON "entity_has_left_entity_0_1_0"."left_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                  ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."owned_by_id"
+                 AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_2_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_2_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -1015,16 +1058,19 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."right_owned_by_id" = "entities_0_0_0"."owned_by_id"
-                 AND "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."decision_time" && $2
-                  AND ("entities_0_1_0"."owned_by_id" = $3)
-                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+                  ON "entity_has_right_entity_0_1_0"."right_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                  ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_right_entity_0_1_0"."owned_by_id"
+                 AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_2_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_2_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,

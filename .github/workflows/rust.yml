@@ -75,7 +75,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -96,7 +96,31 @@ jobs:
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
+        run: |
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
+            | clippy-sarif \
+            | jq '.runs[].results |= unique' \
+            | tee clippy.sarif \
+            | sarif-fmt
+
+          jq -e '.runs[].results == []' clippy.sarif> /dev/null
+
+      - name: Process SARIF file
+        working-directory: ${{ matrix.directory }}
+        if: always()
+        run: |
+          tmp=$(mktemp)
+
+          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
+
+          mv "$tmp" clippy.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: ${{ matrix.directory }}/clippy.sarif
+          category: ${{ matrix.name }}
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}

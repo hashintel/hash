@@ -116,3 +116,6 @@ seed-users.json
 
 # Storybook
 **/storybook-static
+
+# SARIF files
+*.sarif
