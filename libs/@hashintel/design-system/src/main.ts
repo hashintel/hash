@@ -6,6 +6,7 @@ export * from "./button";
 export * from "./chip";
 export * from "./chip-group";
 export * from "./constants";
+export * from "./dropdown-selector";
 export * from "./editable-field";
 export * from "./fa-icons/icons";
 export * from "./fontawesome-icon";
