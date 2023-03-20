@@ -36,6 +36,7 @@ pub(crate) mod tests {
     use crate::schema::{tests::validate_schema, Run, Tool, ToolComponent};
 
     #[test]
+    #[no_coverage]
     fn empty() {
         let run = Run::new(Tool::new(ToolComponent::new("clippy")));
 

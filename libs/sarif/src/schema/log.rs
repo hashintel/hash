@@ -58,6 +58,7 @@ pub(crate) mod tests {
     use crate::schema::{tests::validate_schema, Log};
 
     #[test]
+    #[no_coverage]
     fn default() {
         validate_schema(&Log::default());
     }
