@@ -338,7 +338,8 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           # Only run semver checks if this is not the initial release
-          cargo +${{ matrix.toolchain }} metadata --format-version 1 | jq -e '.packages[].version != "0.0.0-reserved"' > /dev/null || echo exit 0
+          grep '^version' Cargo.toml | grep -q 0.0.0-reserved && exit 0
+
           cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
