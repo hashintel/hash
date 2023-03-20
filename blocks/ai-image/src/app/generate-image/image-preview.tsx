@@ -15,8 +15,8 @@ import { ArrowLeftIcon } from "../../icons/arrow-left";
 import { ArrowUpIcon } from "../../icons/arrow-up";
 import { ImageIcon } from "../../icons/image";
 import { SquareDashedCirclePlusIcon } from "../../icons/square-dashed-circle-plus";
+import { ImageTile } from "../../shared/image-tile";
 import { ImageObject } from "../generate-image";
-
 // const fileUrlKey =
 //   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
 
@@ -317,10 +317,11 @@ export const ImagePreview = ({
                             : {}),
                         }}
                       >
-                        <img
-                          src={src}
-                          loading="lazy"
-                          alt={`Option ${index + 1}`}
+                        <ImageTile
+                          url={src}
+                          description={`Option ${index + 1}`}
+                          maxWidth={imageSize}
+                          objectFit="cover"
                         />
                       </ImageListItem>
                     </Box>
