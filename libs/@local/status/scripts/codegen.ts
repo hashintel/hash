@@ -1,4 +1,4 @@
-/** @todo - extract this into a shared @local/* package for generating things through quicktype */
+/** @todo - extract this into a generalised shared @local/* package for generating things through quicktype */
 
 import { existsSync, lstatSync, rmSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
@@ -9,6 +9,7 @@ import { argv } from "node:process";
 // execa 5.1.1. If we upgrade to 6.x it might work.
 import { sync as execaSync } from "execa";
 import snakeCase from "lodash/snakeCase";
+import yargs from "yargs";
 
 const removeOldGenDirs = (outDir: string) => {
   const outDirParent = path.dirname(outDir);
@@ -75,7 +76,15 @@ const postProcessRustDir = async (dir: string) => {
  *  @todo - Consider using `quicktype-core` and orchestrating ourselves from TS instead of calling
  *    the CLI (https://blog.quicktype.io/customizing-quicktype/)
  */
-const codegen = async (typeDefsDir: string, rustOutputDir: string) => {
+const codegen = async ({
+  typeDefsDir,
+  rustOutputDir,
+  jsonSchemaOutputDir,
+}: {
+  typeDefsDir: string;
+  rustOutputDir?: string;
+  jsonSchemaOutputDir?: string;
+}) => {
   for await (const filePath of getFiles(typeDefsDir)) {
     const fileParentStructure = path.relative(
       typeDefsDir,
@@ -85,50 +94,115 @@ const codegen = async (typeDefsDir: string, rustOutputDir: string) => {
     const fileExtension = path.extname(filePath);
 
     if (fileExtension === ".ts") {
-      const rustParentsPath = path.join(rustOutputDir, fileParentStructure);
-      await mkdir(rustParentsPath, { recursive: true });
+      if (rustOutputDir) {
+        const rustParentsPath = path.join(rustOutputDir, fileParentStructure);
+        await mkdir(rustParentsPath, { recursive: true });
 
-      const rustOutputPath = path.join(
-        rustParentsPath,
-        `${snakeCase(fileName)}.rs`,
-      );
+        const rustOutputPath = path.join(
+          rustParentsPath,
+          `${snakeCase(fileName)}.rs`,
+        );
 
-      execaSync("quicktype", [
-        filePath,
-        "-o",
-        rustOutputPath,
-        "--no-combine-classes",
-        "--visibility",
-        "crate",
-        "--derive-debug",
-        "--edition-2018",
-      ]);
+        execaSync("quicktype", [
+          filePath,
+          "-o",
+          rustOutputPath,
+          "--no-combine-classes",
+          "--visibility",
+          "crate",
+          "--derive-debug",
+          "--edition-2018",
+        ]);
+      }
+
+      if (jsonSchemaOutputDir) {
+        const jsonSchemaParentsPath = path.join(
+          jsonSchemaOutputDir,
+          fileParentStructure,
+        );
+        await mkdir(jsonSchemaParentsPath, { recursive: true });
+
+        const jsonSchemaOutputPath = path.join(
+          jsonSchemaParentsPath,
+          `${snakeCase(fileName)}.json`,
+        );
+
+        execaSync("quicktype", [
+          filePath,
+          "--lang",
+          "schema",
+          "-o",
+          jsonSchemaOutputPath,
+          "--no-combine-classes",
+        ]);
+      }
     } else {
       throw new Error(`Unsupported quicktype input format: ${fileExtension}`);
     }
   }
 
-  await postProcessRustDir(rustOutputDir);
+  if (rustOutputDir) {
+    await postProcessRustDir(rustOutputDir);
+  }
 };
 
 void (async () => {
-  const [entryPointDir, outDir] = argv.slice(2);
+  const args = yargs(argv.slice(2))
+    .usage(
+      "Usage: $0 <entry-point-dir> -r [rust-out-dir] -j [json-schema-out-dir]",
+    )
+    .positional("entry-point-dir", {
+      describe:
+        "The directory to recursively search for TypeScript type definitions to generate code from",
+      type: "string",
+      normalize: true,
+    })
+    .demandCommand(1)
+    .options({
+      r: {
+        alias: "rust-out-dir",
+        describe: "The directory to output the generated Rust files to",
+        type: "string",
+        nargs: 1,
+        normalize: true,
+      },
+      j: {
+        alias: "json-schema-out-dir",
+        describe: "The directory to output the generated JSON Schema files to",
+        type: "string",
+        nargs: 1,
+        normalize: true,
+      },
+    })
+    .help("h")
+    .alias("h", "help")
+    .check((argsToCheck) => {
+      if (!argsToCheck.r && !argsToCheck.j) {
+        throw new Error(
+          "At least one of `rust-out-dir` or `json-schema-out-dir` must be specified",
+        );
+      }
+      return true;
+    })
+    .parseSync();
 
-  if (!entryPointDir) {
-    throw new Error(
-      "Expected an entry point directory to be given as the first command-line argument",
-    );
+  const [entryPointDir] = args._;
+  const { r: rustOutDir, j: jsonSchemaOutDir } = args;
+
+  if (rustOutDir) {
+    console.log("Removing old directories for generated Rust files");
+    removeOldGenDirs(rustOutDir);
   }
 
-  if (!outDir) {
-    throw new Error(
-      "Expected an output directory to be given as the second command-line argument",
-    );
+  if (jsonSchemaOutDir) {
+    console.log("Removing old directories for generated JSON Schema files");
+    removeOldGenDirs(jsonSchemaOutDir);
   }
-
-  console.log("Removing old directories for generated files");
-  removeOldGenDirs(outDir);
 
   console.log("Running codegen");
-  await codegen(entryPointDir, outDir);
+  await codegen({
+    typeDefsDir: entryPointDir as string,
+    rustOutputDir: rustOutDir,
+    jsonSchemaOutputDir: jsonSchemaOutDir,
+  });
 })();

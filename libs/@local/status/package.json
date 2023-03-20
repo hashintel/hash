@@ -14,7 +14,7 @@
   "main": "./pkg/src/main.ts",
   "types": "./pkg/src/main.ts",
   "scripts": {
-    "codegen": "yarn exe ./scripts/codegen.ts ./type-defs/status-payloads ./crate/src/gen",
+    "codegen": "yarn exe ./scripts/codegen.ts ./type-defs/status-payloads -r ./crate/src/gen",
     "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -23,12 +23,14 @@
   "dependencies": {
     "execa": "5.1.1",
     "lodash": "4.17.21",
-    "typescript": "4.9.4"
+    "typescript": "4.9.4",
+    "yargs": "^17.7.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@types/yargs": "^17.0.22",
     "eslint": "8.33.0",
-    "quicktype": "^16.0.43"
+    "quicktype": "^23.0.17"
   }
 }
