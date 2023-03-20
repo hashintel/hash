@@ -31,6 +31,6 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/yargs": "^17.0.22",
     "eslint": "8.33.0",
-    "quicktype": "^23.0.17"
+    "quicktype": "^16.0.43"
   }
 }
