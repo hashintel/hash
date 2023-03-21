@@ -205,26 +205,6 @@ impl Font {
         self
     }
 
-    #[must_use]
-    pub const fn weight(&self) -> Option<FontWeight> {
-        self.weight
-    }
-
-    #[must_use]
-    pub const fn family(&self) -> Option<FontFamily> {
-        self.family
-    }
-
-    #[must_use]
-    pub const fn underline(&self) -> Option<Underline> {
-        self.underline
-    }
-
-    #[must_use]
-    pub const fn blinking(&self) -> Option<Blinking> {
-        self.blinking
-    }
-
     // TODO: set, get font-script
 
     pub fn set_strikethrough(&mut self) -> &mut Self {
@@ -308,6 +288,26 @@ impl Font {
         self.style |= 1 << 5;
 
         self
+    }
+
+    #[must_use]
+    pub const fn weight(&self) -> Option<FontWeight> {
+        self.weight
+    }
+
+    #[must_use]
+    pub const fn family(&self) -> Option<FontFamily> {
+        self.family
+    }
+
+    #[must_use]
+    pub const fn underline(&self) -> Option<Underline> {
+        self.underline
+    }
+
+    #[must_use]
+    pub const fn blinking(&self) -> Option<Blinking> {
+        self.blinking
     }
 
     // TODO: with_overline
