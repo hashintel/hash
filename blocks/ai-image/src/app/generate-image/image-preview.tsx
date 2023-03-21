@@ -19,8 +19,6 @@ import { SquareDashedCirclePlusIcon } from "../../icons/square-dashed-circle-plu
 import { SquarePlusIcon } from "../../icons/square-plus";
 import { ImageTile } from "../../shared/image-tile";
 import { ImageObject } from "../generate-image";
-// const fileUrlKey =
-//   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
 
 const IMAGE_SIZE = 182;
 const IMAGE_LIST_GAP = 30;
@@ -30,24 +28,6 @@ const ADDITIONAL_IMAGES_OPTIONS = [
   { number: 4, Icon: Grid2PlusIcon },
   { number: 9, Icon: RectangleHistoryCirclePlusIcon },
 ];
-
-// const getImageDimensionsAndSize = async (url: string) => {
-//   const response = await fetch(url);
-//   const contentLength = response.headers.get("content-length");
-//   const img = new Image();
-//   img.src = url;
-//   await img.decode();
-
-//   const size = parseInt(contentLength ?? "0", 10);
-//   const unitSize = size >= 1048576 ? 1048576 : 1024;
-//   const unitName = size >= 1048576 ? "MB" : "KB";
-//   const sizeString = `${Math.floor(size / unitSize)}${unitName}`;
-//   return {
-//     width: img.naturalWidth,
-//     height: img.naturalHeight,
-//     size: sizeString,
-//   };
-// };
 
 export const ImagePreview = ({
   onConfirm,
@@ -67,11 +47,6 @@ export const ImagePreview = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
     null,
   );
-  // const [selectedImageMetadata, setSelectedImageMetadata] = useState<{
-  //   size: string;
-  //   width: number;
-  //   height: number;
-  // } | null>(null);
   const [imageListCols, setImageListCols] = useState(0);
   const [imageSize, setImageSize] = useState(0);
 
@@ -140,16 +115,6 @@ export const ImagePreview = ({
   }, [calculateSelectedImageTransition]);
 
   useEffect(() => {
-    // const url = selectedImageEntity?.properties[fileUrlKey];
-
-    // if (url) {
-    //   void getImageDimensionsAndSize(url).then((imageMetadata) => {
-    //     setSelectedImageMetadata(imageMetadata);
-    //   });
-    // } else {
-    //   setSelectedImageMetadata(null);
-    // }
-
     calculateSelectedImageTransition();
   }, [selectedImageIndex, calculateSelectedImageTransition]);
 
@@ -395,34 +360,6 @@ export const ImagePreview = ({
               gap={isMobile ? 6 : 9.75}
             >
               <Stack gap={3}>
-                {/* <Stack gap={0.75}>
-                  <Typography
-                    sx={{
-                      color: ({ palette }) => palette.gray[60],
-                      fontWeight: 700,
-                      fontSize: 13,
-                      lineHeight: 1.3,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    File Size
-                  </Typography>
-
-                  {selectedImageMetadata ? (
-                    <Typography
-                      sx={{
-                        color: ({ palette }) => palette.gray[60],
-                        fontSize: 16,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {selectedImageMetadata.size}
-                    </Typography>
-                  ) : (
-                    <Skeleton height={19} />
-                  )}
-                </Stack> */}
-
                 <Stack gap={0.75}>
                   <Typography
                     sx={{
@@ -445,21 +382,6 @@ export const ImagePreview = ({
                   >
                     1024 x 1024 pixels
                   </Typography>
-
-                  {/* {selectedImageMetadata ? (
-                    <Typography
-                      sx={{
-                        color: ({ palette }) => palette.gray[60],
-                        fontSize: 16,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {selectedImageMetadata.width} x{" "}
-                      {selectedImageMetadata.height} pixels
-                    </Typography>
-                  ) : (
-                    <Skeleton height={19} />
-                  )} */}
                 </Stack>
 
                 <Stack gap={0.75}>
