@@ -256,13 +256,16 @@ export const ImagePreview = ({
                       >
                         <ImageListItem
                           onClick={() => {
-                            if (!loading) {
+                            if (!loading && selectedImageIndex === null) {
                               setAnimatingImageIn(true);
                               setSelectedImageIndex(index);
                             }
                           }}
                           sx={{
-                            cursor: loading ? "default" : "pointer",
+                            cursor:
+                              !loading && selectedImageIndex === null
+                                ? "pointer"
+                                : "default",
                             transition: ({ transitions }) =>
                               transitions.create("transform"),
                             transformOrigin: "0 0",
