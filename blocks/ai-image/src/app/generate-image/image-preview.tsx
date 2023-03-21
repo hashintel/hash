@@ -29,6 +29,14 @@ const ADDITIONAL_IMAGES_OPTIONS = [
   { number: 9, Icon: RectangleHistoryCirclePlusIcon },
 ];
 
+enum ANIMATION_STAGES {
+  IMAGES_FADE_OUT = "imagesFadeOut",
+  SELECTED_IMAGE_ZOOM_IN = "selectedImageZoomIn",
+  DETAILS_FADE_IN = "detailsFadeIn",
+  DETAILS_FADE_OUT = "detailsFadeOut",
+  SELECTED_IMAGE_ZOOM_OUT = "selectedImageZoomOut",
+}
+
 export const ImagePreview = ({
   onConfirm,
   onDiscard,
@@ -61,9 +69,9 @@ export const ImagePreview = ({
   const [selectedImageContainer, setSelectedImageContainer] =
     useState<HTMLDivElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [animatingImageIn, setAnimatingImageIn] = useState(false);
-  const [animatingImageOut, setAnimatingImageOut] = useState(false);
-  const [animatingInfoOut, setAnimatingInfoOut] = useState(false);
+  const [animationStage, setAnimationStage] = useState<
+    false | ANIMATION_STAGES
+  >(false);
 
   const calculateCols = () => {
     const containerWidth = imageListContainerRef.current?.offsetWidth;
@@ -130,6 +138,16 @@ export const ImagePreview = ({
 
     return "";
   }, [images, selectedImageIndex]);
+
+  const shouldImagesFadeOut = selectedImageIndex !== null;
+  const shouldSelectedImageZoomIn =
+    shouldImagesFadeOut &&
+    animationStage !== ANIMATION_STAGES.IMAGES_FADE_OUT &&
+    animationStage !== ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT;
+  const shouldDetailsFadeIn =
+    shouldSelectedImageZoomIn &&
+    animationStage !== ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_IN &&
+    animationStage !== ANIMATION_STAGES.DETAILS_FADE_OUT;
 
   return (
     <Box>
@@ -232,7 +250,7 @@ export const ImagePreview = ({
                         imageListCols,
                     ) -
                   IMAGE_LIST_GAP,
-                ...(selectedImageIndex !== null && !animatingImageOut
+                ...(selectedImageIndex !== null && shouldSelectedImageZoomIn
                   ? {
                       height: selectedImageTransition?.imageSize,
                     }
@@ -254,13 +272,7 @@ export const ImagePreview = ({
 
                   const selected = selectedImageIndex === index;
                   return (
-                    <Fade
-                      key={id}
-                      in={
-                        (selectedImageIndex === null && !animatingImageOut) ||
-                        selected
-                      }
-                    >
+                    <Fade key={id} in={!shouldImagesFadeOut || selected}>
                       <Box
                         ref={(ref: HTMLDivElement | undefined) => {
                           if (selected && ref) {
@@ -271,7 +283,9 @@ export const ImagePreview = ({
                         <ImageListItem
                           onClick={() => {
                             if (!loading && selectedImageIndex === null) {
-                              setAnimatingImageIn(true);
+                              setAnimationStage(
+                                ANIMATION_STAGES.IMAGES_FADE_OUT,
+                              );
                               setSelectedImageIndex(index);
                             }
                           }}
@@ -283,8 +297,7 @@ export const ImagePreview = ({
                             transition: ({ transitions }) =>
                               transitions.create("transform"),
                             transformOrigin: "0 0",
-                            ...(!animatingImageIn &&
-                            !animatingImageOut &&
+                            ...(shouldSelectedImageZoomIn &&
                             selectedImageTransition
                               ? {
                                   transform: `translate(${selectedImageTransition.translate[0]}px, ${selectedImageTransition.translate[1]}px) scale(${selectedImageTransition.scale})`,
@@ -307,8 +320,16 @@ export const ImagePreview = ({
                 {ADDITIONAL_IMAGES_OPTIONS.map(({ number, Icon }) => (
                   <Fade
                     key={number}
-                    in={selectedImageIndex === null && !animatingImageOut}
-                    onExited={() => setAnimatingImageIn(false)}
+                    in={!shouldImagesFadeOut}
+                    onExited={() => {
+                      setAnimationStage(
+                        ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_IN,
+                      );
+
+                      setTimeout(() => {
+                        setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_IN);
+                      }, 500);
+                    }}
                   >
                     <Button
                       variant="tertiary"
@@ -345,11 +366,15 @@ export const ImagePreview = ({
             </Box>
 
             <Fade
-              in={
-                selectedImageIndex !== null &&
-                !animatingImageIn &&
-                !animatingInfoOut
-              }
+              in={shouldDetailsFadeIn}
+              onEntered={() => setAnimationStage(false)}
+              onExited={() => {
+                setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
+                setTimeout(() => {
+                  setSelectedImageIndex(null);
+                  setAnimationStage(false);
+                }, 500);
+              }}
             >
               <Stack
                 sx={{
@@ -357,7 +382,9 @@ export const ImagePreview = ({
                   transition: ({ transitions }) =>
                     transitions.create("max-height"),
                   maxHeight:
-                    selectedImageIndex !== null && !animatingImageIn ? 9999 : 0,
+                    selectedImageIndex !== null && shouldSelectedImageZoomIn
+                      ? 9999
+                      : 0,
                   ...(!isMobile
                     ? {
                         width: (selectedImageTransition?.imageSize ?? 0) - 48,
@@ -454,16 +481,7 @@ export const ImagePreview = ({
                     variant="tertiary"
                     size="small"
                     onClick={() => {
-                      setAnimatingInfoOut(true);
-                      setTimeout(() => {
-                        setAnimatingImageOut(true);
-
-                        setTimeout(() => {
-                          setSelectedImageIndex(null);
-                          setAnimatingImageOut(false);
-                          setAnimatingInfoOut(false);
-                        }, 500);
-                      }, 300);
+                      setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
                     }}
                     sx={({ palette }) => ({
                       gap: 1,
@@ -501,11 +519,7 @@ export const ImagePreview = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              // border: `1px solid ${palette.gray[30]}`,
               background: palette.gray[10],
-              // borderBottomLeftRadius: 10,
-              // borderBottomRightRadius: 10,
-              // borderTopWidth: 0,
               paddingY: 2.125,
               paddingX: 3.75,
             })}
