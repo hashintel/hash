@@ -267,28 +267,14 @@ impl Font {
 
     // TODO: is_italic
 
-    #[cfg(feature = "overstrike")]
-    pub fn set_overstrike(&mut self) -> &mut Self {
-        self.style |= 1 << 4;
-
-        self
-    }
-
-    #[cfg(feature = "overstrike")]
-    #[must_use]
-    pub const fn with_overstrike(mut self) -> Self {
-        self.style |= 1 << 4;
-
-        self
-    }
-
+    // -> These need cfg guard
+    // TODO: set_overstrike
+    // TODO: with_overstrike
     // TODO: is_overstrike
 
-    pub fn set_overline(&mut self) -> &mut Self {
-        self.style |= 1 << 5;
-
-        self
-    }
+    // TODO: set_overline
+    // TODO: with_overline
+    // TODO: is_overline
 
     #[must_use]
     pub const fn weight(&self) -> Option<FontWeight> {
@@ -309,7 +295,4 @@ impl Font {
     pub const fn blinking(&self) -> Option<Blinking> {
         self.blinking
     }
-
-    // TODO: with_overline
-    // TODO: is_overline
 }
