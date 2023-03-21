@@ -7,7 +7,11 @@ import { Status } from "../../type-defs/status";
 import { StatusCode } from "./status-code";
 
 export { Status } from "../../type-defs/status";
-export { convertStatusCodeToHttpCode, StatusCode } from "./status-code";
+export {
+  convertHttpCodeToStatusCode,
+  convertStatusCodeToHttpCode,
+  StatusCode,
+} from "./status-code";
 
 export const isStatus = (value: unknown): value is Status<object> => {
   return (

@@ -5,6 +5,11 @@
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "exports": {
+    ".": {
+      "types": "./pkg/src/main.ts",
+      "default": "./pkg/src/main.ts",
+      "node": "./pkg/src/main.ts"
+    },
     "./type-defs/*": {
       "types": "./type-defs/*.ts",
       "default": "./type-defs/*.ts",
