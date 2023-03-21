@@ -3,3 +3,7 @@ extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 # This crate has no unsafe code
 [tasks.miri]
 disabled = true
+
+[tasks.coverage-task]
+extend = "cargo"
+args = ["llvm-cov", "test", "--workspace", "--all-features", "--doctests", "${@}"]

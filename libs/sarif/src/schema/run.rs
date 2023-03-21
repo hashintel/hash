@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::schema::Tool;
 
 /// Describes a single run of an analysis tool, and contains the reported output of that run.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -22,6 +22,16 @@ pub struct Run {
 
 impl Run {
     /// Create a new `Run` with the given tool.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sarif::schema::{Run, Tool, ToolComponent};
+    ///
+    /// let run = Run::new(Tool::new(ToolComponent::new("clippy")));
+    ///
+    /// assert_eq!(run.tool.driver.name, "clippy");
+    /// ```
     #[must_use]
     pub const fn new(tool: Tool) -> Self {
         Self { tool }
