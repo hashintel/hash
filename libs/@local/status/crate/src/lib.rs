@@ -27,6 +27,7 @@ impl<D> Status<D>
 where
     D: Send + Sync + Debug + Serialize + for<'de> Deserialize<'de>,
 {
+    #[must_use]
     pub fn new(code: StatusCode, message: Option<String>, contents: Vec<D>) -> Self {
         Self {
             code,
@@ -35,14 +36,17 @@ where
         }
     }
 
-    pub fn code(&self) -> StatusCode {
+    #[must_use]
+    pub const fn code(&self) -> StatusCode {
         self.code
     }
 
-    pub fn message(&self) -> &Option<String> {
+    #[must_use]
+    pub const fn message(&self) -> &Option<String> {
         &self.message
     }
 
+    #[must_use]
     pub fn contents(&self) -> &[D] {
         &self.contents
     }

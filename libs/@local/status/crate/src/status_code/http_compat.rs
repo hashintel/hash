@@ -1,25 +1,21 @@
 use crate::status_code::StatusCode;
 
 impl StatusCode {
-    pub fn to_http_code(&self) -> u16 {
+    #[must_use]
+    pub const fn to_http_code(&self) -> u16 {
         match self {
-            StatusCode::Ok => 200,
-            StatusCode::Cancelled => 499,
-            StatusCode::Unknown => 500,
-            StatusCode::InvalidArgument => 400,
-            StatusCode::DeadlineExceeded => 504,
-            StatusCode::NotFound => 404,
-            StatusCode::AlreadyExists => 409,
-            StatusCode::PermissionDenied => 403,
-            StatusCode::Unauthenticated => 401,
-            StatusCode::ResourceExhausted => 429,
-            StatusCode::FailedPrecondition => 400,
-            StatusCode::Aborted => 409,
-            StatusCode::OutOfRange => 400,
-            StatusCode::Unimplemented => 501,
-            StatusCode::Internal => 500,
-            StatusCode::Unavailable => 503,
-            StatusCode::DataLoss => 500,
+            Self::Ok => 200,
+            Self::FailedPrecondition | Self::InvalidArgument | Self::OutOfRange => 400,
+            Self::Unauthenticated => 401,
+            Self::PermissionDenied => 403,
+            Self::NotFound => 404,
+            Self::Aborted | Self::AlreadyExists => 409,
+            Self::ResourceExhausted => 429,
+            Self::Cancelled => 499,
+            Self::Unknown | Self::Internal | Self::DataLoss => 500,
+            Self::Unimplemented => 501,
+            Self::Unavailable => 503,
+            Self::DeadlineExceeded => 504,
         }
     }
 }
