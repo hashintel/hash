@@ -1,7 +1,7 @@
 {
-  "name": "@blocks/kanban",
+  "name": "@blocks/kanban-board",
   "version": "0.0.1",
-  "description": "Kanban block",
+  "description": "Capture information in cards, and drag cards flexibly between customizable columns",
   "keywords": [
     "blockprotocol",
     "blocks",
@@ -10,7 +10,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
-    "directory": "blocks/kanban"
+    "directory": "blocks/kanban-board"
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
@@ -58,7 +58,7 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "displayName": "Kanban",
+    "displayName": "Kanban Board",
     "examples": [
       {
         "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-column-order/": [
@@ -107,9 +107,9 @@
         }
       }
     ],
-    "icon": "public/kanban.svg",
+    "icon": "public/kanban-board.svg",
     "image": "public/block-preview.png",
-    "name": "@hash/kanban",
+    "name": "@hash/kanban-board",
     "protocol": "0.3",
     "schema": "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/4"
   }
