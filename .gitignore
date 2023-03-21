@@ -98,9 +98,6 @@ blocks/**/generated
 # Sentry
 .sentryclirc
 
-# Block Protocol
-.blockprotocolrc
-
 # Application data
 /var
 seed-users.json
@@ -121,3 +118,6 @@ seed-users.json
 
 # SARIF files
 *.sarif
+
+# Status
+/libs/@local/status/crate/src/gen
