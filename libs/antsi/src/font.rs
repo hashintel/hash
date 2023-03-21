@@ -131,13 +131,13 @@ impl FontStyle {
     #[must_use]
     const fn mask(self) -> u8 {
         match self {
-            Self::Strikethrough => 0b0000_0001,
-            Self::Hidden => 0b0000_0010,
-            Self::Inverse => 0b0000_0100,
-            Self::Italic => 0b0000_1000,
+            Self::Strikethrough => 1 << 0,
+            Self::Hidden => 1 << 1,
+            Self::Inverse => 1 << 2,
+            Self::Italic => 1 << 3,
             #[cfg(feature = "overstrike")]
-            Self::Overstrike => 0b0001_0000,
-            Self::Overline => 0b0010_0000,
+            Self::Overstrike => 1 << 4,
+            Self::Overline => 1 << 5,
         }
     }
 }
