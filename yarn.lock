@@ -3169,6 +3169,14 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
+"@blockprotocol/core@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.1.tgz#8f3c5903744a632cb7357e3075a7e2140af33d5f"
+  integrity sha512-Cnm07CTIAn3E+JBcquRIcUUFIenFukEUDqPDnouNy7qDwffaW8immCBve9ljQ8kNnhTf6zXN5DVxyRT3vSiebQ==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
 "@blockprotocol/graph@0.0.13":
   version "0.0.13"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.13.tgz#28557aa66a4f1262f8d10b0569ac16d283490b44"
@@ -3211,6 +3219,20 @@
     lit "^2.4.1"
     node-fetch "^3.3.0"
 
+"@blockprotocol/graph@0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.2.1.tgz#73893528d07f9500fdd9cdc7e62547e05774d92b"
+  integrity sha512-dG+2CK3qVpfizt6iltbnlaLcvmlrqQOR5nR+A/sZWjEBcPuOkM4tsf01Lb/wbkTQ9QQ/+eAK7KURVYVd5GoQ8w==
+  dependencies:
+    "@blockprotocol/core" "0.1.1"
+    "@blockprotocol/type-system" "0.1.1"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    node-fetch "^3.3.0"
+    typescript "4.9.4"
+
 "@blockprotocol/hook@0.0.8":
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.8.tgz#4e14843e0e589e8fd2c850605f0f93625afcfed5"
@@ -3234,6 +3256,14 @@
     "@blockprotocol/core" "0.1.0-canary-20230227152050"
     "@blockprotocol/graph" "0.1.0-canary-20230227152050"
 
+"@blockprotocol/hook@0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.2.tgz#0c09379e26ddf0c9b10d31382a115fc4ed3ab539"
+  integrity sha512-sTqy/3ArgldLf/WvpiAx32W3yCaA6EJFjWldugIbNXkj2ol81OdDPJGuNgkiXfudWT/6klu23Wqyo678qOhCZg==
+  dependencies:
+    "@blockprotocol/core" "0.1.1"
+    "@blockprotocol/graph" "0.2.1"
+
 "@blockprotocol/service@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@blockprotocol/service/-/service-0.1.0.tgz#d9aaa3b1694ee4a6184aa48b3a10e67042d89b52"
@@ -3248,6 +3278,13 @@
   dependencies:
     "@blockprotocol/core" "0.1.0"
 
+"@blockprotocol/service@0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/service/-/service-0.1.2.tgz#11fc1b15ec32b5cd50080e0fa1465f599ec1f27e"
+  integrity sha512-oMo1U+Mdb/xNmUL5hL9eTtVVkQaEWf5nbRDptOA6F27uIWsk8WnPo3errT9NFFvbHHTTVURwaLBjZgLr4qvFCw==
+  dependencies:
+    "@blockprotocol/core" "0.1.1"
+
 "@blockprotocol/type-system@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0.tgz#951e3d4aa996440762a5207329e8e151176cd24f"
@@ -3257,6 +3294,11 @@
   version "0.1.0-canary-20230227152050"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230227152050.tgz#9abba4130d632e83bbe05694907ae7777a8c341d"
   integrity sha512-fII/zPhwpxZateupdqda+vhK6FzFDAs/K76KAta0HBNBkyQRv6wMLCFJAerb06mt6uyvYj09ekwOpDXnzckt9g==
+
+"@blockprotocol/type-system@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.1.tgz#8c63fd642d25409e112e8660948825c07d83b672"
+  integrity sha512-ipG246HQh4qUfhSPGn4ydkLfrWV9yByi9SSPWOkxWMtZ19DlRd43+DkBXk+C6MC7CurdOTQbl+ftc/B32HaNAg==
 
 "@changesets/apply-release-plan@^6.1.3":
   version "6.1.3"
@@ -4751,10 +4793,15 @@
   resolved "https://registry.yarnpkg.com/@leichtgewicht/ip-codec/-/ip-codec-2.0.3.tgz#0300943770e04231041a51bd39f0439b5c7ab4f0"
   integrity "sha1-AwCUN3DgQjEEGlG9OfBDm1x6tPA= sha512-nkalE/f1RvRGChwBnEIoBfSEYOXnCRdleKuv6+lePbMDrMZXeDQnqak5XDOeBgrPPyPfAdcCu/B5z+v3VhplGg=="
 
-"@lit-labs/react@1.0.6", "@lit-labs/react@^1.0.4":
+"@lit-labs/react@1.0.6":
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/@lit-labs/react/-/react-1.0.6.tgz#4cd861cfac92c3f2e0ab78921d4d0e223949665a"
   integrity "sha1-TNhhz6ySw/Lgq3iSHU0OIjlJZlo= sha512-uDtfJv5XunmsydTNRST+MU8U6QyETCw8BKoeMw2Q4Te1r5paAD9sVJfxESP7Dbk0G4tqCRS0BsyNmYJSGCrJyQ=="
+
+"@lit-labs/react@1.1.1", "@lit-labs/react@^1.0.4":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@lit-labs/react/-/react-1.1.1.tgz#88a4320d357dcdfd7c7e276f809e3453a124cbbc"
+  integrity sha512-9TC+/ZWb6BJlWCyUr14FKFlaGnyKpeEDorufXozQgke/VoVrslUQNaL7nBmrAWdNrmzx5jWgi8lFmWwrxMjnlA==
 
 "@lit-labs/ssr-dom-shim@^1.0.0":
   version "1.0.0"
@@ -16341,7 +16388,7 @@ mock-block-dock@0.1.0:
     use-local-storage-state "^18.1.1"
     uuid "^8.3.2"
 
-mock-block-dock@0.1.1, mock-block-dock@^0.1.0:
+mock-block-dock@0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.1.tgz#b4dcbbd63ea027b88c1508a40e18f17914066f8e"
   integrity sha512-j3qeNdRS4xfOkseI8uv+3iVG62IiLv/bizN842Ombxpcq52GkoaHgwQqWdzES6U9KBUCFViBLMKD7+VxtQecEg==
@@ -16353,6 +16400,32 @@ mock-block-dock@0.1.1, mock-block-dock@^0.1.0:
     "@emotion/react" "^11.10.0"
     "@emotion/styled" "^11.10.0"
     "@lit-labs/react" "^1.0.4"
+    "@mui/material" "5.11.8"
+    ajv "^8.11.2"
+    axios "^1.3.2"
+    dotenv-webpack "^8.0.1"
+    echarts "5.4.1"
+    mime "^3.0.0"
+    react-json-view "^1.21.3"
+    react-resizable "^3.0.4"
+    slate "^0.82.1"
+    slate-react "^0.83.1"
+    styled-jsx "^5.1.0"
+    use-local-storage-state "^18.1.1"
+    uuid "^8.3.2"
+
+mock-block-dock@0.1.3, mock-block-dock@^0.1.0:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.3.tgz#1735f8bbb4456c5b9c02194b360fb5ac5d5f5980"
+  integrity sha512-SiKebJBFEYLhg4NC+3p7FFQJHG5/8+VbmkbWdlqiZ6Y8lMM1uyqSMDHaSWs7+0APeWrFlWV4YJUT3e6RVF6AjA==
+  dependencies:
+    "@blockprotocol/core" "0.1.1"
+    "@blockprotocol/graph" "0.2.1"
+    "@blockprotocol/hook" "0.1.2"
+    "@blockprotocol/service" "0.1.2"
+    "@emotion/react" "^11.10.0"
+    "@emotion/styled" "^11.10.0"
+    "@lit-labs/react" "1.1.1"
     "@mui/material" "5.11.8"
     ajv "^8.11.2"
     axios "^1.3.2"
