@@ -8,7 +8,7 @@ mod tool;
 use serde::{Deserialize, Serialize};
 
 pub use self::{
-    log::Log,
+    log::SarifLog,
     run::Run,
     tool::{Tool, ToolComponent},
 };
@@ -34,11 +34,11 @@ pub(crate) mod tests {
 
     #[expect(clippy::panic)]
     #[cfg_attr(coverage_nightly, no_coverage)]
-    pub(crate) fn validate_schema(log: &Log) {
+    pub(crate) fn validate_schema(log: &SarifLog) {
         let log_value = serde_json::to_value(log).expect("serializing `Log` into JSON failed");
 
         assert_eq!(
-            Log::deserialize(&log_value).expect("could not serialize into `Log`"),
+            SarifLog::deserialize(&log_value).expect("could not serialize into `Log`"),
             *log,
             "serialized `Log` is not equal to original"
         );

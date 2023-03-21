@@ -13,7 +13,7 @@ use crate::schema::{Run, SchemaVersion, SCHEMA_ID};
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]
-pub struct Log {
+pub struct SarifLog {
     /// The URI of the JSON schema corresponding to the version.
     ///
     /// For example, `https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json`
@@ -33,7 +33,7 @@ pub struct Log {
     pub runs: Vec<Run>,
 }
 
-impl Default for Log {
+impl Default for SarifLog {
     fn default() -> Self {
         Self {
             schema: Some(SCHEMA_ID.into()),
@@ -43,7 +43,7 @@ impl Default for Log {
     }
 }
 
-impl FromIterator<Run> for Log {
+impl FromIterator<Run> for SarifLog {
     fn from_iter<T: IntoIterator<Item = Run>>(runs: T) -> Self {
         Self {
             runs: runs.into_iter().collect(),
@@ -57,10 +57,10 @@ impl FromIterator<Run> for Log {
 pub(crate) mod tests {
     use coverage_helper::test;
 
-    use crate::schema::{tests::validate_schema, Log};
+    use crate::schema::{tests::validate_schema, SarifLog};
 
     #[test]
     fn default() {
-        validate_schema(&Log::default());
+        validate_schema(&SarifLog::default());
     }
 }
