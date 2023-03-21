@@ -1,4 +1,3 @@
-import { RemoteFileEntity } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import {
   Box,
@@ -13,8 +12,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowLeftIcon } from "../../icons/arrow-left";
 import { ArrowUpIcon } from "../../icons/arrow-up";
+import { Grid2PlusIcon } from "../../icons/grid-2-plus";
 import { ImageIcon } from "../../icons/image";
+import { RectangleHistoryCirclePlusIcon } from "../../icons/rectangle-history-circle-plus";
 import { SquareDashedCirclePlusIcon } from "../../icons/square-dashed-circle-plus";
+import { SquarePlusIcon } from "../../icons/square-plus";
 import { ImageTile } from "../../shared/image-tile";
 import { ImageObject } from "../generate-image";
 // const fileUrlKey =
@@ -22,6 +24,12 @@ import { ImageObject } from "../generate-image";
 
 const IMAGE_SIZE = 182;
 const IMAGE_LIST_GAP = 30;
+
+const ADDITIONAL_IMAGES_OPTIONS = [
+  { number: 1, Icon: SquarePlusIcon },
+  { number: 4, Icon: Grid2PlusIcon },
+  { number: 9, Icon: RectangleHistoryCirclePlusIcon },
+];
 
 // const getImageDimensionsAndSize = async (url: string) => {
 //   const response = await fetch(url);
@@ -46,16 +54,19 @@ export const ImagePreview = ({
   onDiscard,
   images,
   prompt,
-  uploadInProgress,
+  loading,
+  generateAdditionalImages,
 }: {
-  onConfirm: (imageEntity: RemoteFileEntity) => void;
+  onConfirm: (imageEntityId: string) => void;
   onDiscard: () => void;
-  images: RemoteFileEntity[] | ImageObject[];
+  images: ImageObject[];
   prompt: string;
-  uploadInProgress: boolean;
+  loading: boolean;
+  generateAdditionalImages: (numberOfImages: number) => void;
 }) => {
-  const [selectedImageEntity, setSelectedImageEntity] =
-    useState<RemoteFileEntity | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null,
+  );
   // const [selectedImageMetadata, setSelectedImageMetadata] = useState<{
   //   size: string;
   //   width: number;
@@ -91,7 +102,7 @@ export const ImagePreview = ({
   };
 
   const calculateSelectedImageTransition = useCallback(() => {
-    if (selectedImageContainer && selectedImageEntity) {
+    if (selectedImageContainer && selectedImageIndex !== null) {
       const parentRect = (
         selectedImageContainer.parentNode?.parentNode as HTMLDivElement
       ).getBoundingClientRect();
@@ -113,31 +124,20 @@ export const ImagePreview = ({
         imageSize: 0,
       });
     }
-  }, [isMobile, selectedImageContainer, selectedImageEntity]);
+  }, [isMobile, selectedImageContainer, selectedImageIndex]);
 
   useEffect(() => {
-    const resizeListener = () => {
+    const resizeObserver = new ResizeObserver(() => {
       calculateCols();
       calculateSelectedImageTransition();
-    };
+    });
 
-    resizeListener();
-    window.addEventListener("resize", resizeListener);
+    if (imageListContainerRef.current) {
+      resizeObserver.observe(imageListContainerRef.current);
+    }
 
-    return () => window.removeEventListener("resize", resizeListener);
+    return () => resizeObserver.disconnect();
   }, [calculateSelectedImageTransition]);
-
-  const selectedImageIndex = useMemo(
-    () =>
-      selectedImageEntity
-        ? (images as RemoteFileEntity[]).findIndex(
-            (value) =>
-              value.metadata.recordId.entityId ===
-              selectedImageEntity.metadata.recordId.entityId,
-          )
-        : -1,
-    [selectedImageEntity, images],
-  );
 
   useEffect(() => {
     // const url = selectedImageEntity?.properties[fileUrlKey];
@@ -151,16 +151,18 @@ export const ImagePreview = ({
     // }
 
     calculateSelectedImageTransition();
-  }, [selectedImageEntity, calculateSelectedImageTransition]);
+  }, [selectedImageIndex, calculateSelectedImageTransition]);
 
   const selectedImageGeneratedAt = useMemo(() => {
-    if (selectedImageEntity) {
-      const date = new Date(selectedImageEntity.metadata.recordId.editionId);
+    const selectedImageDate =
+      selectedImageIndex !== null && images[selectedImageIndex]?.date;
+    if (selectedImageDate) {
+      const date = new Date(selectedImageDate);
       return date.toString();
     }
 
     return "";
-  }, [selectedImageEntity]);
+  }, [images, selectedImageIndex]);
 
   return (
     <Box>
@@ -221,7 +223,7 @@ export const ImagePreview = ({
               "border-bottom-left-radius",
               "border-bottom-right-radius",
             ]),
-          ...(!selectedImageEntity
+          ...(selectedImageIndex === null
             ? { borderBottomWidth: 0 }
             : { borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }),
         }}
@@ -236,7 +238,7 @@ export const ImagePreview = ({
           }}
         >
           Outputs
-          {selectedImageEntity ? (
+          {selectedImageIndex !== null ? (
             <>
               {" > "}
               <Box component="span" sx={{ fontWeight: 400 }}>
@@ -252,9 +254,12 @@ export const ImagePreview = ({
               transition: ({ transitions }) => transitions.create("height"),
               height:
                 (imageSize + IMAGE_LIST_GAP) *
-                  Math.ceil(images.length / imageListCols) -
+                  Math.ceil(
+                    (images.length + ADDITIONAL_IMAGES_OPTIONS.length) /
+                      imageListCols,
+                  ) -
                 IMAGE_LIST_GAP,
-              ...(selectedImageEntity && !animatingImageOut
+              ...(selectedImageIndex !== null && !animatingImageOut
                 ? {
                     height: selectedImageTransition?.imageSize,
                   }
@@ -272,39 +277,34 @@ export const ImagePreview = ({
               ref={imageListContainerRef}
             >
               {images.map((image, index) => {
-                const src =
-                  "url" in image
-                    ? image.url
-                    : image.properties[
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-                      ];
+                const id = "id" in image ? image.id : "";
 
-                const selectedImage = selectedImageIndex === index;
+                const selected = selectedImageIndex === index;
                 return (
                   <Fade
-                    key={src}
+                    key={id}
                     in={
-                      (!selectedImageEntity && !animatingImageOut) ||
-                      selectedImage
+                      (selectedImageIndex === null && !animatingImageOut) ||
+                      selected
                     }
                     onExited={() => setAnimatingImageIn(false)}
                   >
                     <Box
                       ref={(ref: HTMLDivElement | undefined) => {
-                        if (selectedImage && ref) {
+                        if (selected && ref) {
                           setSelectedImageContainer(ref);
                         }
                       }}
                     >
                       <ImageListItem
                         onClick={() => {
-                          if (!uploadInProgress) {
+                          if (!loading) {
                             setAnimatingImageIn(true);
-                            setSelectedImageEntity(image as RemoteFileEntity);
+                            setSelectedImageIndex(index);
                           }
                         }}
                         sx={{
-                          cursor: uploadInProgress ? "default" : "pointer",
+                          cursor: loading ? "default" : "pointer",
                           transition: ({ transitions }) =>
                             transitions.create("transform"),
                           transformOrigin: "0 0",
@@ -318,7 +318,7 @@ export const ImagePreview = ({
                         }}
                       >
                         <ImageTile
-                          url={src}
+                          url={image.url}
                           description={`Option ${index + 1}`}
                           maxWidth={imageSize}
                           objectFit="cover"
@@ -328,18 +328,60 @@ export const ImagePreview = ({
                   </Fade>
                 );
               })}
+
+              {ADDITIONAL_IMAGES_OPTIONS.map(({ number, Icon }) => (
+                <Fade
+                  key={number}
+                  in={selectedImageIndex === null && !animatingImageOut}
+                >
+                  <Button
+                    variant="tertiary"
+                    disabled={loading}
+                    sx={({ palette }) => ({
+                      display: "flex",
+                      flexDirection: "column",
+                      height: imageSize,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      fontSize: 15,
+                      borderRadius: 0,
+                      border: "none",
+                      background: palette.gray[20],
+                      color: palette.gray[60],
+                      fill: palette.gray[50],
+                      "&:hover": {
+                        background: palette.gray[30],
+                        color: palette.gray[70],
+                        fill: palette.gray[60],
+                      },
+                    })}
+                    onClick={() => generateAdditionalImages(number)}
+                  >
+                    <Icon sx={{ fontSize: 28, mb: 1.5 }} />
+                    <Box>
+                      Generate <strong>{number}</strong>
+                    </Box>
+                    <Box> more option{number > 1 ? "s" : ""}</Box>
+                  </Button>
+                </Fade>
+              ))}
             </ImageList>
           </Box>
 
           <Fade
-            in={!!selectedImageEntity && !animatingImageIn && !animatingInfoOut}
+            in={
+              selectedImageIndex !== null &&
+              !animatingImageIn &&
+              !animatingInfoOut
+            }
           >
             <Stack
               sx={{
                 justifyContent: "space-around",
                 transition: ({ transitions }) =>
                   transitions.create("max-height"),
-                maxHeight: selectedImageEntity && !animatingImageIn ? 9999 : 0,
+                maxHeight:
+                  selectedImageIndex !== null && !animatingImageIn ? 9999 : 0,
                 ...(!isMobile
                   ? {
                       width: (selectedImageTransition?.imageSize ?? 0) - 48,
@@ -448,8 +490,12 @@ export const ImagePreview = ({
                   <Button
                     size="small"
                     onClick={() => {
-                      if (selectedImageEntity) {
-                        onConfirm(selectedImageEntity);
+                      const selectedImageEntityId =
+                        selectedImageIndex !== null &&
+                        images[selectedImageIndex]?.entityId;
+
+                      if (selectedImageEntityId) {
+                        onConfirm(selectedImageEntityId);
                       }
                     }}
                     sx={{
@@ -480,7 +526,7 @@ export const ImagePreview = ({
                       setAnimatingImageOut(true);
 
                       setTimeout(() => {
-                        setSelectedImageEntity(null);
+                        setSelectedImageIndex(null);
                         setAnimatingImageOut(false);
                         setAnimatingInfoOut(false);
                       }, 500);
@@ -514,7 +560,7 @@ export const ImagePreview = ({
         </Box>
       </Stack>
 
-      <Collapse in={!selectedImageEntity}>
+      <Collapse in={selectedImageIndex === null}>
         <Box
           sx={({ palette }) => ({
             boxSizing: "border-box",
@@ -543,7 +589,7 @@ export const ImagePreview = ({
                 fontWeight: 500,
               }}
             >
-              {uploadInProgress
+              {loading
                 ? "Uploading images..."
                 : "Click an image to preview or insert it"}
             </Typography>

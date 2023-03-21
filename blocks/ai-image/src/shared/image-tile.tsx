@@ -8,7 +8,7 @@ export const ImageTile = ({
   objectFit = "contain",
 }: {
   description: string;
-  url: string;
+  url?: string;
   maxWidth: number;
   objectFit?: "contain" | "cover";
 }) => {
