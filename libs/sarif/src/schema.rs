@@ -50,7 +50,7 @@ pub(crate) mod tests {
             "serialized `Log` is not equal to original"
         );
 
-        let json_schema_str = include_str!("../json_schema/sarif-2.1.0.json");
+        let json_schema_str = include_str!("../tests/schemas/sarif-2.1.0.json");
         let json_schema_value =
             serde_json::from_str(json_schema_str).expect("could not parse JSON schema");
         let json_schema = jsonschema::JSONSchema::options()
