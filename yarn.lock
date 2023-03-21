@@ -4484,6 +4484,22 @@
   dependencies:
     "@hapi/hoek" "^9.0.0"
 
+"@hashintel/type-editor@0.0.19":
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/@hashintel/type-editor/-/type-editor-0.0.19.tgz#61ae8fad432e1ff50366130b6c2adb7dd1f733fd"
+  integrity sha512-eozOKrrURuQyFQzsSKVhMb6kWVAb64YAzW2HpWL5IrC8ls9ZkDigqNuYbQvTwEuDJRGmI3D7Iq0O/jwF282mkg==
+  dependencies:
+    "@blockprotocol/graph" "0.1.0-canary-20230227152050"
+    "@blockprotocol/type-system" "0.1.0-canary-20230227152050"
+    "@fortawesome/free-regular-svg-icons" "6.0.0"
+    "@fortawesome/free-solid-svg-icons" "6.0.0"
+    "@hashintel/design-system" "0.0.5"
+    lodash.memoize "4.1.2"
+    lodash.uniqueid "4.0.1"
+    material-ui-popup-state "4.0.2"
+    rooks "7.4.3"
+    setimmediate "1.0.5"
+
 "@humanwhocodes/config-array@^0.11.8":
   version "0.11.8"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.8.tgz#03595ac2075a4dc0f191cc2131de14fbd7d410b9"
