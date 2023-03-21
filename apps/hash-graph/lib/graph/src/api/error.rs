@@ -14,8 +14,8 @@ pub enum StatusPayloads {
 
 impl ErrorInfo {
     pub fn new(metadata: HashMap<String, serde_json::Value>, reason: String) -> Self {
-        ErrorInfo {
-            domain: "HASH Graph".to_string(),
+        Self {
+            domain: "HASH Graph".to_owned(),
             metadata: metadata.into_iter().map(|(k, v)| (k, Some(v))).collect(),
             reason,
         }
