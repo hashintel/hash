@@ -25,9 +25,12 @@ where
     }
 }
 
+/// The direction of an edge in a graph.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeDirection {
+    /// Represents an edge that points from the left endpoint to the right endpoint.
     Outgoing,
+    /// Represents a reversed edge that points from the right endpoint to the left endpoint.
     Incoming,
 }
 
