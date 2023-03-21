@@ -59,6 +59,7 @@ typings/
 .yarn-integrity
 
 # local environment variable files
+blocks/**/.env
 .env.local
 .env.*.local
 
@@ -92,6 +93,7 @@ __pycache__
 # generated files
 *.gen.*
 *.tsbuildinfo
+blocks/**/generated
 
 # Sentry
 .sentryclirc
