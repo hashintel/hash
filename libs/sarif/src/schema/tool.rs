@@ -117,7 +117,10 @@ impl Tool {
     ///         .with_tag("static-analysis")
     /// });
     ///
-    /// assert_eq!(tool.properties.extra.get("precision"), Some(&"high".into()));
+    /// assert_eq!(
+    ///     tool.properties.additional.get("precision"),
+    ///     Some(&"high".into())
+    /// );
     /// assert!(
     ///     tool.properties
     ///         .tags

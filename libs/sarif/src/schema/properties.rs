@@ -21,7 +21,7 @@ pub struct PropertyBag {
     /// each of whose values provides the information.
     #[cfg(feature = "serde")]
     #[serde(flatten)]
-    pub extra: BTreeMap<Cow<'static, str>, serde_json::Value>,
+    pub additional: BTreeMap<Cow<'static, str>, serde_json::Value>,
 }
 
 impl PropertyBag {
@@ -35,14 +35,14 @@ impl PropertyBag {
     /// let properties = PropertyBag::new();
     ///
     /// assert!(properties.tags.is_empty());
-    /// assert!(properties.extra.is_empty());
+    /// assert!(properties.additional.is_empty());
     /// ```
     #[must_use]
     pub const fn new() -> Self {
         Self {
             tags: BTreeSet::new(),
             #[cfg(feature = "serde")]
-            extra: BTreeMap::new(),
+            additional: BTreeMap::new(),
         }
     }
 
@@ -106,8 +106,14 @@ impl PropertyBag {
     ///     .with_property("precision", "very-high")
     ///     .with_property("confidence", "high");
     ///
-    /// assert_eq!(properties.extra.get("precision"), Some(&"very-high".into()));
-    /// assert_eq!(properties.extra.get("confidence"), Some(&"high".into()));
+    /// assert_eq!(
+    ///     properties.additional.get("precision"),
+    ///     Some(&"very-high".into())
+    /// );
+    /// assert_eq!(
+    ///     properties.additional.get("confidence"),
+    ///     Some(&"high".into())
+    /// );
     /// ```
     #[must_use]
     #[cfg(feature = "serde")]
@@ -116,7 +122,7 @@ impl PropertyBag {
         key: impl Into<Cow<'static, str>>,
         value: impl Into<serde_json::Value>,
     ) -> Self {
-        self.extra.insert(key.into(), value.into());
+        self.additional.insert(key.into(), value.into());
         self
     }
 
@@ -133,8 +139,14 @@ impl PropertyBag {
     ///
     /// let properties = PropertyBag::default().with_properties(map);
     ///
-    /// assert_eq!(properties.extra.get("precision"), Some(&"very-high".into()));
-    /// assert_eq!(properties.extra.get("confidence"), Some(&"high".into()));
+    /// assert_eq!(
+    ///     properties.additional.get("precision"),
+    ///     Some(&"very-high".into())
+    /// );
+    /// assert_eq!(
+    ///     properties.additional.get("confidence"),
+    ///     Some(&"high".into())
+    /// );
     /// ```
     #[must_use]
     #[cfg(feature = "serde")]
@@ -144,7 +156,7 @@ impl PropertyBag {
             Item = (impl Into<Cow<'static, str>>, impl Into<serde_json::Value>),
         >,
     ) -> Self {
-        self.extra
+        self.additional
             .extend(properties.into_iter().map(|(k, v)| (k.into(), v.into())));
         self
     }
@@ -167,7 +179,7 @@ impl PropertyBag {
 
         #[cfg(feature = "serde")]
         {
-            is_empty &= self.extra.is_empty();
+            is_empty &= self.additional.is_empty();
         }
         is_empty
     }
