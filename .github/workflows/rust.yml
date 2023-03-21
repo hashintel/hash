@@ -79,6 +79,8 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
           cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
           cargo quickinstall cargo-script --version 0.2.8 || cargo install --version 0.2.8 cargo-script
+          cargo quickinstall clippy-sarif --version 0.3.7 || cargo install --version 0.3.7 clippy-sarif
+          cargo quickinstall sarif-fmt --version 0.3.7 || cargo install --version 0.3.7 sarif-fmt
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -99,7 +101,31 @@ jobs:
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
+        run: |
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
+            | clippy-sarif \
+            | jq '.runs[].results |= unique' \
+            | tee clippy.sarif \
+            | sarif-fmt
+
+          jq -e '.runs[].results == []' clippy.sarif> /dev/null
+
+      - name: Process SARIF file
+        working-directory: ${{ matrix.directory }}
+        if: always()
+        run: |
+          tmp=$(mktemp)
+
+          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
+
+          mv "$tmp" clippy.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: ${{ matrix.directory }}/clippy.sarif
+          category: ${{ matrix.name }}
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
@@ -305,6 +331,7 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3 || cargo install --version 0.36.3 cargo-make
           cargo quickinstall cargo-hack --version 0.5.26 || cargo install --version 0.5.26 cargo-hack
           cargo quickinstall cargo-nextest --version 0.9.37 || cargo install --version 0.9.37 cargo-nextest
+          cargo quickinstall cargo-script --version 0.2.8 || cargo install --version 0.2.8 cargo-script
           cargo quickinstall cargo-semver-checks --version 0.17.0 || cargo install --version 0.17.0 cargo-semver-checks
 
       - name: Run lints
@@ -325,7 +352,11 @@ jobs:
       - name: SemVer check
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} semver-checks check-release
+        run: |
+          # Only run semver checks if this is not the initial release
+          grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
+
+          cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}

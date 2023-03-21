@@ -31,6 +31,9 @@ A-deer:
 A-antsi:
   - "libs/antsi/**"
 
+A-sarif:
+  - "libs/sarif/**"
+
 A-backend:
   - "apps/hash-graph/**"
 

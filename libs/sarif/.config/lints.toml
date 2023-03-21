@@ -1,0 +1,5 @@
+# sarif specific lints
+
+forbid = [
+    "unsafe_code",
+]
