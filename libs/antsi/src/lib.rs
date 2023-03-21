@@ -49,6 +49,11 @@ impl Foreground {
     pub const fn new(color: Color) -> Self {
         Self(color)
     }
+
+    #[must_use]
+    pub const fn color(self) -> Color {
+        self.0
+    }
 }
 
 impl_const! {
@@ -69,6 +74,11 @@ impl Background {
     #[must_use]
     pub const fn new(color: Color) -> Self {
         Self(color)
+    }
+
+    #[must_use]
+    pub const fn color(self) -> Color {
+        self.0
     }
 }
 
@@ -93,6 +103,11 @@ impl UnderlineColor {
     #[must_use]
     pub const fn new(color: Color) -> Self {
         Self(color)
+    }
+
+    #[must_use]
+    pub const fn color(self) -> Color {
+        self.0
     }
 }
 
@@ -130,16 +145,17 @@ impl_const! {
 /// [kitty + vte extension]: https://sw.kovidgoyal.net/kitty/underlines/
 /// [mintty extension]: https://github.com/mintty/mintty/wiki/CtrlSeqs
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
+#[non_exhaustive]
 pub struct Style {
-    font: Font,
+    pub font: Font,
 
-    decorations: Decorations,
+    pub decorations: Decorations,
 
-    foreground: Option<Foreground>,
-    background: Option<Background>,
+    pub foreground: Option<Foreground>,
+    pub background: Option<Background>,
 
     #[cfg(feature = "underline-color")]
-    underline_color: Option<UnderlineColor>,
+    pub underline_color: Option<UnderlineColor>,
 }
 
 impl Style {
@@ -222,67 +238,5 @@ impl Style {
         self.font = font;
 
         self
-    }
-
-    pub fn set_font(&mut self, font: Font) -> &mut Self {
-        self.font = font;
-
-        self
-    }
-
-    pub fn set_foreground(&mut self, color: impl Into<Foreground>) -> &mut Self {
-        self.foreground = Some(color.into());
-
-        self
-    }
-
-    pub fn set_background(&mut self, color: impl Into<Background>) -> &mut Self {
-        self.background = Some(color.into());
-
-        self
-    }
-
-    #[cfg(feature = "underline-color")]
-    pub fn set_underline_color(&mut self, color: impl Into<UnderlineColor>) -> &mut Self {
-        self.underline_color = Some(color.into());
-
-        self
-    }
-
-    #[must_use]
-    pub const fn font(&self) -> Font {
-        self.font
-    }
-
-    pub fn font_mut(&mut self) -> &mut Font {
-        &mut self.font
-    }
-
-    #[must_use]
-    pub const fn foreground(&self) -> Option<Color> {
-        if let Some(Foreground(color)) = self.foreground {
-            Some(color)
-        } else {
-            None
-        }
-    }
-
-    #[must_use]
-    pub const fn background(&self) -> Option<Color> {
-        if let Some(Background(color)) = self.background {
-            Some(color)
-        } else {
-            None
-        }
-    }
-
-    #[cfg(feature = "underline-color")]
-    #[must_use]
-    pub const fn underline_color(&self) -> Option<Color> {
-        if let Some(UnderlineColor(color)) = self.underline_color {
-            Some(color)
-        } else {
-            None
-        }
     }
 }
