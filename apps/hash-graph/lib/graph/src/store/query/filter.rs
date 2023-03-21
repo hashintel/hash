@@ -644,7 +644,7 @@ mod tests {
             version: 1,
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["baseUrl"] },
@@ -655,7 +655,7 @@ mod tests {
               { "parameter": url.version }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<DataTypeWithMetadata>::for_versioned_url(&url),
@@ -673,7 +673,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["baseUrl"] },
@@ -684,7 +684,7 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&url),
@@ -702,7 +702,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["dataTypes", "*", "baseUrl"] },
@@ -713,7 +713,7 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_data_type_vertex_id(
@@ -734,7 +734,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["propertyTypes", "*", "baseUrl"] },
@@ -745,7 +745,7 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
@@ -767,7 +767,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["properties", "*", "baseUrl"] },
@@ -778,7 +778,7 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
@@ -799,7 +799,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["inheritsFrom", "*", "baseUrl"] },
@@ -810,7 +810,7 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
@@ -832,7 +832,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["links", "*", "baseUrl"] },
@@ -843,7 +843,7 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
@@ -862,7 +862,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
@@ -873,7 +873,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
@@ -885,7 +885,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
@@ -896,7 +896,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
@@ -908,7 +908,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["rightEntity", "ownedById"] },
@@ -919,7 +919,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -938,7 +938,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["leftEntity", "ownedById"] },
@@ -949,7 +949,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -968,7 +968,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["outgoingLinks", "ownedById"] },
@@ -979,7 +979,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -998,7 +998,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["incomingLinks", "ownedById"] },
@@ -1009,7 +1009,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::for_knowledge_graph_edge_by_entity_id(
@@ -1023,12 +1023,12 @@ mod tests {
 
     #[test]
     fn null_check() {
-        let expected = json! {{
+        let expected = json!({
           "notEqual": [
             { "path": ["description"] },
             null
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::NotEqual(
