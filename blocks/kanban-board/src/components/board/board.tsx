@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { RootEntityKey } from "../../additional-types";
 import { RootEntity } from "../../types";
@@ -51,6 +51,8 @@ interface BoardProps {
   readonly?: boolean;
 }
 
+let isDebounceInProgress = false;
+
 export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const {
     properties: {
@@ -75,9 +77,10 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
    * and instead add state values to the dependency array, existing debounced calls get executed because
    * memoization changes every time state is updated
    * */
-  const syncLocalStateToEntity = useMemo(
+  const debouncedSyncFunction = useMemo(
     () =>
       debounce(() => {
+        isDebounceInProgress = false;
         let localColumns: ColumnsState;
         let localColumnOrder: string[];
 
@@ -100,19 +103,10 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     [updateEntity],
   );
 
-  if (blockEntity !== prevBlockEntity) {
-    setPrevBlockEntity(blockEntity);
-
-    const columnsChanged = !isEqual(entityColumns, columns);
-    if (columnsChanged) {
-      setColumns((blockEntity.properties[columnsKey] ?? {}) as ColumnsState);
-    }
-
-    const columnOrderChanged = !isEqual(entityColumnOrder, columnOrder);
-    if (columnOrderChanged) {
-      setColumnOrder(blockEntity.properties[columnOrderKey] ?? []);
-    }
-  }
+  const syncLocalStateToEntity = useCallback(() => {
+    isDebounceInProgress = true;
+    debouncedSyncFunction();
+  }, [debouncedSyncFunction]);
 
   const isCardOrColumn = (id: UniqueIdentifier) => {
     if (id in columns) return "column";
@@ -400,6 +394,20 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  if (blockEntity !== prevBlockEntity && !isDebounceInProgress) {
+    setPrevBlockEntity(blockEntity);
+
+    const columnsChanged = !isEqual(entityColumns, columns);
+    if (columnsChanged) {
+      setColumns(entityColumns as ColumnsState);
+    }
+
+    const columnOrderChanged = !isEqual(entityColumnOrder, columnOrder);
+    if (columnOrderChanged) {
+      setColumnOrder(entityColumnOrder);
+    }
+  }
 
   return (
     <DndContext
