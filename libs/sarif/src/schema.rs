@@ -27,7 +27,7 @@ impl SchemaVersion {
     #[must_use]
     pub const fn schema_id(self) -> &'static str {
         match self {
-            Self::V2_1_0 => "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
+            Self::V2_1_0 => "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         }
     }
 }
