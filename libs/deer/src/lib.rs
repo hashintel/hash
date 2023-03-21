@@ -102,7 +102,7 @@ pub trait ObjectAccess<'de> {
 
 pub trait FieldAccess<'de> {
     type Key: Deserialize<'de>;
-    type Value: Deserialize<'de>;
+    type Value;
 
     fn key<D>(&self, deserializer: D) -> Result<Self::Key, FieldAccessError>
     where
