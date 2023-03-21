@@ -116,13 +116,40 @@ pub enum FontScript {
     Super,
 }
 
+#[derive(Copy, Clone)]
+enum FontStyle {
+    Strikethrough,
+    Hidden,
+    Inverse,
+    Italic,
+    #[cfg(feature = "overstrike")]
+    Overstrike,
+    Overline,
+}
+
+impl FontStyle {
+    #[must_use]
+    const fn mask(self) -> u8 {
+        match self {
+            Self::Strikethrough => 1 << 0,
+            Self::Hidden => 1 << 1,
+            Self::Inverse => 1 << 2,
+            Self::Italic => 1 << 3,
+            #[cfg(feature = "overstrike")]
+            Self::Overstrike => 1 << 4,
+            Self::Overline => 1 << 5,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
+#[non_exhaustive]
 pub struct Font {
-    weight: Option<FontWeight>,
-    family: Option<FontFamily>,
+    pub weight: Option<FontWeight>,
+    pub family: Option<FontFamily>,
     // mintty extension
     #[cfg(feature = "script")]
-    script: Option<FontScript>,
+    pub script: Option<FontScript>,
 
     // Value layout: `XXÖO_IRHS`
     //
@@ -135,8 +162,8 @@ pub struct Font {
     // * `X`: unused
     style: u8,
 
-    underline: Option<Underline>,
-    blinking: Option<Blinking>,
+    pub underline: Option<Underline>,
+    pub blinking: Option<Blinking>,
 }
 
 impl Font {
@@ -153,21 +180,9 @@ impl Font {
         }
     }
 
-    pub fn set_weight(&mut self, weight: FontWeight) -> &mut Self {
-        self.weight = Some(weight);
-
-        self
-    }
-
     #[must_use]
     pub const fn with_weight(mut self, weight: FontWeight) -> Self {
         self.weight = Some(weight);
-
-        self
-    }
-
-    pub fn set_family(&mut self, family: FontFamily) -> &mut Self {
-        self.family = Some(family);
 
         self
     }
@@ -179,21 +194,9 @@ impl Font {
         self
     }
 
-    pub fn set_underline(&mut self, underline: Underline) -> &mut Self {
-        self.underline = Some(underline);
-
-        self
-    }
-
     #[must_use]
     pub const fn with_underline(mut self, underline: Underline) -> Self {
         self.underline = Some(underline);
-
-        self
-    }
-
-    pub fn set_blinking(&mut self, blinking: Blinking) -> &mut Self {
-        self.blinking = Some(blinking);
 
         self
     }
@@ -205,94 +208,119 @@ impl Font {
         self
     }
 
-    // TODO: set, get font-script
-
-    pub fn set_strikethrough(&mut self) -> &mut Self {
-        self.style |= 1 << 0;
+    #[cfg(feature = "script")]
+    #[must_use]
+    pub const fn with_script(mut self, script: FontScript) -> Self {
+        self.script = Some(script);
 
         self
     }
 
-    #[must_use]
-    pub const fn with_strikethrough(mut self) -> Self {
-        self.style |= 1 << 0;
+    const fn with_style(mut self, style: FontStyle, enable: bool) -> Self {
+        let mask = style.mask();
 
+        self.style = if enable {
+            self.style | mask
+        } else {
+            self.style & !mask
+        };
         self
     }
 
-    // TODO: is_strikethrough
-
-    pub fn set_inverse(&mut self) -> &mut Self {
-        self.style |= 1 << 1;
-
-        self
+    const fn is_style(self, style: FontStyle) -> bool {
+        (self.style & style.mask()) > 0
     }
 
-    #[must_use]
-    pub const fn with_inverse(mut self) -> Self {
-        self.style |= 1 << 1;
-
-        self
-    }
-
-    // TODO: is_inverse
-
-    pub fn set_hidden(&mut self) -> &mut Self {
-        self.style |= 1 << 2;
-
+    pub fn set_strikethrough(&mut self, enable: bool) -> &mut Self {
+        *self = self.with_style(FontStyle::Strikethrough, enable);
         self
     }
 
     #[must_use]
-    pub const fn with_hidden(mut self) -> Self {
-        self.style |= 1 << 2;
+    pub const fn with_strikethrough(self) -> Self {
+        self.with_style(FontStyle::Strikethrough, true)
+    }
 
+    #[must_use]
+    pub const fn is_strikethrough(&self) -> bool {
+        self.is_style(FontStyle::Strikethrough)
+    }
+
+    pub fn set_inverse(&mut self, enable: bool) -> &mut Self {
+        *self = self.with_style(FontStyle::Inverse, enable);
         self
     }
 
-    // TODO: is_hidden
+    #[must_use]
+    pub const fn with_inverse(self) -> Self {
+        self.with_style(FontStyle::Inverse, true)
+    }
 
-    pub fn set_italic(&mut self) -> &mut Self {
-        self.style |= 1 << 3;
+    #[must_use]
+    pub const fn is_inverse(&self) -> bool {
+        self.is_style(FontStyle::Inverse)
+    }
 
+    pub fn set_hidden(&mut self, enable: bool) -> &mut Self {
+        *self = self.with_style(FontStyle::Hidden, enable);
         self
     }
 
     #[must_use]
-    pub const fn with_italic(mut self) -> Self {
-        self.style |= 1 << 3;
+    pub const fn with_hidden(self) -> Self {
+        self.with_style(FontStyle::Hidden, true)
+    }
 
+    #[must_use]
+    pub const fn is_hidden(&self) -> bool {
+        self.is_style(FontStyle::Hidden)
+    }
+
+    pub fn set_italic(&mut self, enable: bool) -> &mut Self {
+        *self = self.with_style(FontStyle::Italic, enable);
         self
     }
 
-    // TODO: is_italic
-
-    // -> These need cfg guard
-    // TODO: set_overstrike
-    // TODO: with_overstrike
-    // TODO: is_overstrike
-
-    // TODO: set_overline
-    // TODO: with_overline
-    // TODO: is_overline
-
     #[must_use]
-    pub const fn weight(&self) -> Option<FontWeight> {
-        self.weight
+    pub const fn with_italic(self) -> Self {
+        self.with_style(FontStyle::Italic, true)
     }
 
     #[must_use]
-    pub const fn family(&self) -> Option<FontFamily> {
-        self.family
+    pub const fn is_italic(&self) -> bool {
+        self.is_style(FontStyle::Italic)
+    }
+
+    #[cfg(feature = "overstrike")]
+    pub fn set_overstrike(&mut self, enable: bool) -> &mut Self {
+        *self = self.with_style(FontStyle::Overstrike, enable);
+        self
+    }
+
+    #[cfg(feature = "overstrike")]
+    #[must_use]
+    pub const fn with_overstrike(self) -> Self {
+        self.with_style(FontStyle::Overstrike, true)
+    }
+
+    #[cfg(feature = "overstrike")]
+    #[must_use]
+    pub const fn is_overstrike(&self) -> bool {
+        self.is_style(FontStyle::Overstrike)
+    }
+
+    pub fn set_overline(&mut self, enable: bool) -> &mut Self {
+        *self = self.with_style(FontStyle::Overline, enable);
+        self
     }
 
     #[must_use]
-    pub const fn underline(&self) -> Option<Underline> {
-        self.underline
+    pub const fn with_overline(self) -> Self {
+        self.with_style(FontStyle::Overline, true)
     }
 
     #[must_use]
-    pub const fn blinking(&self) -> Option<Blinking> {
-        self.blinking
+    pub const fn is_overline(&self) -> bool {
+        self.is_style(FontStyle::Overline)
     }
 }
