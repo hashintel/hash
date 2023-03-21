@@ -203,6 +203,15 @@ impl SarifLog {
     }
 }
 
+impl Extend<Run> for SarifLog {
+    fn extend<T: IntoIterator<Item = Run>>(&mut self, iter: T) {
+        match self.runs {
+            Some(ref mut runs) => runs.extend(iter),
+            None => self.runs = Some(iter.into_iter().collect()),
+        }
+    }
+}
+
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
