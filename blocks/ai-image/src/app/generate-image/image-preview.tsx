@@ -179,354 +179,349 @@ export const ImagePreview = ({
           display: "flex",
           justifyContent: "space-between",
           border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          paddingY: 2.75,
-          paddingX: 3.75,
           borderTopWidth: 0,
-          transition: ({ transitions }) =>
-            transitions.create([
-              "border-bottom-width",
-              "border-bottom-left-radius",
-              "border-bottom-right-radius",
-            ]),
-          ...(selectedImageIndex === null
-            ? { borderBottomWidth: 0 }
-            : { borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }),
+          borderBottomLeftRadius: 10,
+          borderBottomRightRadius: 10,
+          overflow: "hidden",
         }}
       >
-        <Typography
-          sx={{
-            color: ({ palette }) => palette.gray[70],
-            fontWeight: 700,
-            fontSize: 13,
-            lineHeight: 1.3,
-            textTransform: "uppercase",
-          }}
-        >
-          Outputs
-          {selectedImageIndex !== null ? (
-            <>
-              {" > "}
-              <Box component="span" sx={{ fontWeight: 400 }}>
-                Option {selectedImageIndex + 1}
-              </Box>
-            </>
-          ) : null}
-        </Typography>
-
-        <Box position="relative">
-          <Box
+        <Box sx={{ paddingY: 2.75, paddingX: 3.75 }}>
+          <Typography
             sx={{
-              transition: ({ transitions }) => transitions.create("height"),
-              height:
-                (imageSize + IMAGE_LIST_GAP) *
-                  Math.ceil(
-                    (images.length + ADDITIONAL_IMAGES_OPTIONS.length) /
-                      imageListCols,
-                  ) -
-                IMAGE_LIST_GAP,
-              ...(selectedImageIndex !== null && !animatingImageOut
-                ? {
-                    height: selectedImageTransition?.imageSize,
-                  }
-                : {}),
+              color: ({ palette }) => palette.gray[70],
+              fontWeight: 700,
+              fontSize: 13,
+              lineHeight: 1.3,
+              textTransform: "uppercase",
+              mb: 1.25,
             }}
           >
-            <ImageList
-              cols={imageListCols}
-              gap={IMAGE_LIST_GAP}
-              sx={{
-                width: 1,
-                margin: 0,
-                overflow: "visible",
-              }}
-              ref={imageListContainerRef}
-            >
-              {images.map((image, index) => {
-                const id = "id" in image ? image.id : "";
+            Outputs
+            {selectedImageIndex !== null ? (
+              <>
+                {" > "}
+                <Box component="span" sx={{ fontWeight: 400 }}>
+                  Option {selectedImageIndex + 1}
+                </Box>
+              </>
+            ) : null}
+          </Typography>
 
-                const selected = selectedImageIndex === index;
-                return (
-                  <Fade
-                    key={id}
-                    in={
-                      (selectedImageIndex === null && !animatingImageOut) ||
-                      selected
+          <Box position="relative">
+            <Box
+              sx={{
+                transition: ({ transitions }) => transitions.create("height"),
+                height:
+                  (imageSize + IMAGE_LIST_GAP) *
+                    Math.ceil(
+                      (images.length + ADDITIONAL_IMAGES_OPTIONS.length) /
+                        imageListCols,
+                    ) -
+                  IMAGE_LIST_GAP,
+                ...(selectedImageIndex !== null && !animatingImageOut
+                  ? {
+                      height: selectedImageTransition?.imageSize,
                     }
-                  >
-                    <Box
-                      ref={(ref: HTMLDivElement | undefined) => {
-                        if (selected && ref) {
-                          setSelectedImageContainer(ref);
-                        }
-                      }}
+                  : {}),
+              }}
+            >
+              <ImageList
+                cols={imageListCols}
+                gap={IMAGE_LIST_GAP}
+                sx={{
+                  width: 1,
+                  margin: 0,
+                  overflow: "visible",
+                }}
+                ref={imageListContainerRef}
+              >
+                {images.map((image, index) => {
+                  const id = "id" in image ? image.id : "";
+
+                  const selected = selectedImageIndex === index;
+                  return (
+                    <Fade
+                      key={id}
+                      in={
+                        (selectedImageIndex === null && !animatingImageOut) ||
+                        selected
+                      }
                     >
-                      <ImageListItem
-                        onClick={() => {
-                          if (!loading) {
-                            setAnimatingImageIn(true);
-                            setSelectedImageIndex(index);
+                      <Box
+                        ref={(ref: HTMLDivElement | undefined) => {
+                          if (selected && ref) {
+                            setSelectedImageContainer(ref);
                           }
                         }}
-                        sx={{
-                          cursor: loading ? "default" : "pointer",
-                          transition: ({ transitions }) =>
-                            transitions.create("transform"),
-                          transformOrigin: "0 0",
-                          ...(!animatingImageIn &&
-                          !animatingImageOut &&
-                          selectedImageTransition
-                            ? {
-                                transform: `translate(${selectedImageTransition.translate[0]}px, ${selectedImageTransition.translate[1]}px) scale(${selectedImageTransition.scale})`,
-                              }
-                            : {}),
-                        }}
                       >
-                        <ImageTile
-                          url={image.url}
-                          description={`Option ${index + 1}`}
-                          maxWidth={imageSize}
-                          objectFit="cover"
-                        />
-                      </ImageListItem>
-                    </Box>
-                  </Fade>
-                );
-              })}
+                        <ImageListItem
+                          onClick={() => {
+                            if (!loading) {
+                              setAnimatingImageIn(true);
+                              setSelectedImageIndex(index);
+                            }
+                          }}
+                          sx={{
+                            cursor: loading ? "default" : "pointer",
+                            transition: ({ transitions }) =>
+                              transitions.create("transform"),
+                            transformOrigin: "0 0",
+                            ...(!animatingImageIn &&
+                            !animatingImageOut &&
+                            selectedImageTransition
+                              ? {
+                                  transform: `translate(${selectedImageTransition.translate[0]}px, ${selectedImageTransition.translate[1]}px) scale(${selectedImageTransition.scale})`,
+                                }
+                              : {}),
+                          }}
+                        >
+                          <ImageTile
+                            url={image.url}
+                            description={`Option ${index + 1}`}
+                            maxWidth={imageSize}
+                            objectFit="cover"
+                          />
+                        </ImageListItem>
+                      </Box>
+                    </Fade>
+                  );
+                })}
 
-              {ADDITIONAL_IMAGES_OPTIONS.map(({ number, Icon }) => (
-                <Fade
-                  key={number}
-                  in={selectedImageIndex === null && !animatingImageOut}
-                  onExited={() => setAnimatingImageIn(false)}
-                >
+                {ADDITIONAL_IMAGES_OPTIONS.map(({ number, Icon }) => (
+                  <Fade
+                    key={number}
+                    in={selectedImageIndex === null && !animatingImageOut}
+                    onExited={() => setAnimatingImageIn(false)}
+                  >
+                    <Button
+                      variant="tertiary"
+                      disabled={loading}
+                      sx={({ palette }) => ({
+                        display: "flex",
+                        flexDirection: "column",
+                        height: imageSize,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        fontSize: 15,
+                        borderRadius: 0,
+                        border: "none",
+                        background: palette.gray[20],
+                        color: palette.gray[60],
+                        fill: palette.gray[50],
+                        "&:hover": {
+                          background: palette.gray[30],
+                          color: palette.gray[70],
+                          fill: palette.gray[60],
+                        },
+                      })}
+                      onClick={() => generateAdditionalImages(number)}
+                    >
+                      <Icon sx={{ fontSize: 28, mb: 1.5 }} />
+                      <Box>
+                        Generate <strong>{number}</strong>
+                      </Box>
+                      <Box> more option{number > 1 ? "s" : ""}</Box>
+                    </Button>
+                  </Fade>
+                ))}
+              </ImageList>
+            </Box>
+
+            <Fade
+              in={
+                selectedImageIndex !== null &&
+                !animatingImageIn &&
+                !animatingInfoOut
+              }
+            >
+              <Stack
+                sx={{
+                  justifyContent: "space-around",
+                  transition: ({ transitions }) =>
+                    transitions.create("max-height"),
+                  maxHeight:
+                    selectedImageIndex !== null && !animatingImageIn ? 9999 : 0,
+                  ...(!isMobile
+                    ? {
+                        width: (selectedImageTransition?.imageSize ?? 0) - 48,
+                        height: selectedImageTransition?.imageSize,
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                      }
+                    : { mt: 2 }),
+                }}
+                gap={isMobile ? 6 : 9.75}
+              >
+                <Stack gap={3}>
+                  <Stack gap={0.75}>
+                    <Typography
+                      sx={{
+                        color: ({ palette }) => palette.gray[60],
+                        fontWeight: 700,
+                        fontSize: 13,
+                        lineHeight: 1.3,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Image Dimensions
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        color: ({ palette }) => palette.gray[60],
+                        fontSize: 16,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      1024 x 1024 pixels
+                    </Typography>
+                  </Stack>
+
+                  <Stack gap={0.75}>
+                    <Typography
+                      sx={{
+                        color: ({ palette }) => palette.gray[60],
+                        fontWeight: 700,
+                        fontSize: 13,
+                        lineHeight: 1.3,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Generated At
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        color: ({ palette }) => palette.gray[60],
+                        fontSize: 16,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {selectedImageGeneratedAt}
+                    </Typography>
+                  </Stack>
+
+                  <Box mt={1.5}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const selectedImageEntityId =
+                          selectedImageIndex !== null &&
+                          images[selectedImageIndex]?.entityId;
+
+                        if (selectedImageEntityId) {
+                          onConfirm(selectedImageEntityId);
+                        }
+                      }}
+                      sx={{
+                        gap: 1,
+                        borderRadius: 1,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        lineHeight: "18px",
+                      }}
+                    >
+                      Insert this image
+                      <SquareDashedCirclePlusIcon
+                        sx={{
+                          fontSize: 16,
+                        }}
+                      />
+                    </Button>
+                  </Box>
+                </Stack>
+
+                <Box>
                   <Button
                     variant="tertiary"
-                    disabled={loading}
-                    sx={({ palette }) => ({
-                      display: "flex",
-                      flexDirection: "column",
-                      height: imageSize,
-                      justifyContent: "center",
-                      alignItems: "center",
-                      fontSize: 15,
-                      borderRadius: 0,
-                      border: "none",
-                      background: palette.gray[20],
-                      color: palette.gray[60],
-                      fill: palette.gray[50],
-                      "&:hover": {
-                        background: palette.gray[30],
-                        color: palette.gray[70],
-                        fill: palette.gray[60],
-                      },
-                    })}
-                    onClick={() => generateAdditionalImages(number)}
-                  >
-                    <Icon sx={{ fontSize: 28, mb: 1.5 }} />
-                    <Box>
-                      Generate <strong>{number}</strong>
-                    </Box>
-                    <Box> more option{number > 1 ? "s" : ""}</Box>
-                  </Button>
-                </Fade>
-              ))}
-            </ImageList>
-          </Box>
-
-          <Fade
-            in={
-              selectedImageIndex !== null &&
-              !animatingImageIn &&
-              !animatingInfoOut
-            }
-          >
-            <Stack
-              sx={{
-                justifyContent: "space-around",
-                transition: ({ transitions }) =>
-                  transitions.create("max-height"),
-                maxHeight:
-                  selectedImageIndex !== null && !animatingImageIn ? 9999 : 0,
-                ...(!isMobile
-                  ? {
-                      width: (selectedImageTransition?.imageSize ?? 0) - 48,
-                      height: selectedImageTransition?.imageSize,
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                    }
-                  : { mt: 2 }),
-              }}
-              gap={isMobile ? 6 : 9.75}
-            >
-              <Stack gap={3}>
-                <Stack gap={0.75}>
-                  <Typography
-                    sx={{
-                      color: ({ palette }) => palette.gray[60],
-                      fontWeight: 700,
-                      fontSize: 13,
-                      lineHeight: 1.3,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Image Dimensions
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      color: ({ palette }) => palette.gray[60],
-                      fontSize: 16,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    1024 x 1024 pixels
-                  </Typography>
-                </Stack>
-
-                <Stack gap={0.75}>
-                  <Typography
-                    sx={{
-                      color: ({ palette }) => palette.gray[60],
-                      fontWeight: 700,
-                      fontSize: 13,
-                      lineHeight: 1.3,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Generated At
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      color: ({ palette }) => palette.gray[60],
-                      fontSize: 16,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {selectedImageGeneratedAt}
-                  </Typography>
-                </Stack>
-
-                <Box mt={1.5}>
-                  <Button
                     size="small"
                     onClick={() => {
-                      const selectedImageEntityId =
-                        selectedImageIndex !== null &&
-                        images[selectedImageIndex]?.entityId;
+                      setAnimatingInfoOut(true);
+                      setTimeout(() => {
+                        setAnimatingImageOut(true);
 
-                      if (selectedImageEntityId) {
-                        onConfirm(selectedImageEntityId);
-                      }
+                        setTimeout(() => {
+                          setSelectedImageIndex(null);
+                          setAnimatingImageOut(false);
+                          setAnimatingInfoOut(false);
+                        }, 500);
+                      }, 300);
                     }}
-                    sx={{
+                    sx={({ palette }) => ({
                       gap: 1,
                       borderRadius: 1,
                       fontSize: 14,
                       fontWeight: 500,
                       lineHeight: "18px",
-                    }}
+                      color: palette.gray[70],
+                      fill: palette.gray[50],
+
+                      ":hover": {
+                        fill: palette.gray[80],
+                      },
+                    })}
                   >
-                    Insert this image
-                    <SquareDashedCirclePlusIcon
+                    <ArrowLeftIcon
                       sx={{
                         fontSize: 16,
+                        fill: "inherit",
                       }}
                     />
+                    Return to options
                   </Button>
                 </Box>
               </Stack>
-
-              <Box>
-                <Button
-                  variant="tertiary"
-                  size="small"
-                  onClick={() => {
-                    setAnimatingInfoOut(true);
-                    setTimeout(() => {
-                      setAnimatingImageOut(true);
-
-                      setTimeout(() => {
-                        setSelectedImageIndex(null);
-                        setAnimatingImageOut(false);
-                        setAnimatingInfoOut(false);
-                      }, 500);
-                    }, 300);
-                  }}
-                  sx={({ palette }) => ({
-                    gap: 1,
-                    borderRadius: 1,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    lineHeight: "18px",
-                    color: palette.gray[70],
-                    fill: palette.gray[50],
-
-                    ":hover": {
-                      fill: palette.gray[80],
-                    },
-                  })}
-                >
-                  <ArrowLeftIcon
-                    sx={{
-                      fontSize: 16,
-                      fill: "inherit",
-                    }}
-                  />
-                  Return to options
-                </Button>
-              </Box>
-            </Stack>
-          </Fade>
-        </Box>
-      </Stack>
-
-      <Collapse in={selectedImageIndex === null}>
-        <Box
-          sx={({ palette }) => ({
-            boxSizing: "border-box",
-            width: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            border: `1px solid ${palette.gray[30]}`,
-            background: palette.gray[10],
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 10,
-            borderTopWidth: 0,
-            paddingY: 2.125,
-            paddingX: 3.75,
-          })}
-        >
-          <Box display="flex" gap={1}>
-            <ArrowUpIcon
-              sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
-            />
-            <Typography
-              sx={{
-                color: ({ palette }) => palette.gray[80],
-                fontSize: 14,
-                lineHeight: "18px",
-                fontWeight: 500,
-              }}
-            >
-              {loading
-                ? "Uploading images..."
-                : "Click an image to preview or insert it"}
-            </Typography>
+            </Fade>
           </Box>
-
-          <Button
-            variant="tertiary"
-            size="small"
-            onClick={onDiscard}
-            sx={{ fontSize: 14 }}
-          >
-            Try another prompt
-          </Button>
         </Box>
-      </Collapse>
+
+        <Collapse in={selectedImageIndex === null}>
+          <Box
+            sx={({ palette }) => ({
+              boxSizing: "border-box",
+              width: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              // border: `1px solid ${palette.gray[30]}`,
+              background: palette.gray[10],
+              // borderBottomLeftRadius: 10,
+              // borderBottomRightRadius: 10,
+              // borderTopWidth: 0,
+              paddingY: 2.125,
+              paddingX: 3.75,
+            })}
+          >
+            <Box display="flex" gap={1}>
+              <ArrowUpIcon
+                sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
+              />
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[80],
+                  fontSize: 14,
+                  lineHeight: "18px",
+                  fontWeight: 500,
+                }}
+              >
+                {loading
+                  ? "Uploading images..."
+                  : "Click an image to preview or insert it"}
+              </Typography>
+            </Box>
+
+            <Button
+              variant="tertiary"
+              size="small"
+              onClick={onDiscard}
+              sx={{ fontSize: 14 }}
+            >
+              Try another prompt
+            </Button>
+          </Box>
+        </Collapse>
+      </Stack>
     </Box>
   );
 };
