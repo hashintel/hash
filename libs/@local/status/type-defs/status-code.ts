@@ -1,3 +1,7 @@
+/* Adapted from the Google Cloud Error Model
+    - https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto
+ */
+
 /**
  * The canonical status codes for software within the HASH ecosystem.
  * Sometimes multiple status codes may apply. Services should return the most specific status code
