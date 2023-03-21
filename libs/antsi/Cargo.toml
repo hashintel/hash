@@ -12,5 +12,12 @@ repository = "https://github.com/hashintel/hash/tree/main/libs/antsi"
 keywords = ["no_std", "ansi", "color", "term", "terminal"]
 categories = ["no-std", "command-line-interface", "no-std::no-alloc"]
 
+[features]
+rgba = []
+underline-color = []
+underline-variants = []
+overstrike = []
+script = []
+
 [build-dependencies]
 rustc_version = "0.4.0"

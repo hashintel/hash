@@ -93,6 +93,14 @@
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "matchPaths": ["**/status/crate/**"],
+      "groupName": "Rust libraries toolchains",
+      "commitMessageTopic": "Rust toolchain for `hash-status`"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/hash-graph/**"],
       "groupName": "Rust applications toolchains",
       "commitMessageTopic": "Rust toolchain for `graph`"

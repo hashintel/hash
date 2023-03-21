@@ -285,6 +285,7 @@ impl RgbColor {
 ///
 /// [wezterm terminal]: https://wezfurlong.org/wezterm/index.html
 /// [documentation]: https://wezfurlong.org/wezterm/escape-sequences.html#csi-386---foreground-color-rgba
+#[cfg(feature = "rgba")]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct RgbaColor {
     red: u8,
@@ -293,6 +294,7 @@ pub struct RgbaColor {
     alpha: u8,
 }
 
+#[cfg(feature = "rgba")]
 impl RgbaColor {
     #[must_use]
     pub const fn new(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
@@ -409,6 +411,7 @@ pub enum Color {
     /// Supported by [wezterm] since August 2022, for more information see [`RgbaColor`]
     ///
     /// [wezterm]: https://wezfurlong.org/wezterm/
+    #[cfg(feature = "rgba")]
     Rgba(RgbaColor),
 
     /// 24-bit CMY color support
@@ -454,6 +457,7 @@ impl_const! {
     }
 }
 
+#[cfg(feature = "rgba")]
 impl_const! {
     impl const? From<RgbaColor> for Color {
         fn from(value: RgbaColor) -> Self {
