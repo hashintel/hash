@@ -13,9 +13,6 @@ pub use self::{
     tool::{Tool, ToolComponent},
 };
 
-/// The URI of the JSON schema corresponding to this version.
-pub const SCHEMA_ID: &str = "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json";
-
 /// The schema version of the log file.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -23,6 +20,16 @@ pub enum SchemaVersion {
     /// The SARIF 2.1.0 schema.
     #[cfg_attr(feature = "serde", serde(rename = "2.1.0"))]
     V2_1_0,
+}
+
+impl SchemaVersion {
+    /// The URI of the JSON schema corresponding to this version.
+    #[must_use]
+    pub const fn schema_id(self) -> &'static str {
+        match self {
+            Self::V2_1_0 => "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
+        }
+    }
 }
 
 #[cfg(test)]

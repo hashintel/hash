@@ -31,16 +31,16 @@ impl Run {
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
-    use core::iter::once;
-
     use coverage_helper::test;
 
-    use crate::schema::{tests::validate_schema, Run, Tool, ToolComponent};
+    use crate::schema::{
+        tests::validate_schema, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+    };
 
     #[test]
     fn empty() {
         let run = Run::new(Tool::new(ToolComponent::new("clippy")));
 
-        validate_schema(&once(run).collect());
+        validate_schema(&SarifLog::new(SchemaVersion::V2_1_0).with_run(run));
     }
 }
