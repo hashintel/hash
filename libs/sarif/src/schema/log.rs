@@ -217,7 +217,9 @@ impl Extend<Run> for SarifLog {
 pub(crate) mod tests {
     use coverage_helper::test;
 
-    use crate::schema::{tests::validate_schema, SarifLog, SchemaVersion};
+    use crate::schema::{
+        tests::validate_schema, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+    };
 
     #[test]
     fn minimal() {
@@ -230,5 +232,57 @@ pub(crate) mod tests {
             &SarifLog::new(SchemaVersion::V2_1_0)
                 .with_schema_id("https://example.com/sarif-2.1.0.json"),
         );
+    }
+
+    #[test]
+    fn with_run() {
+        let log = SarifLog {
+            schema: SchemaVersion::V2_1_0.schema_id().into(),
+            version: SchemaVersion::V2_1_0,
+            runs: None,
+        }
+        .with_run(Run::new(Tool::new(ToolComponent::new("clippy"))))
+        .with_runs([Run::new(Tool::new(ToolComponent::new("rustfmt")))]);
+
+        validate_schema(&log);
+
+        assert_eq!(log.runs.as_ref().expect("no runs found").len(), 2);
+
+        let log_2 = SarifLog::new(SchemaVersion::V2_1_0)
+            .with_run(Run::new(Tool::new(ToolComponent::new("clippy"))))
+            .with_runs([Run::new(Tool::new(ToolComponent::new("rustfmt")))]);
+
+        validate_schema(&log_2);
+
+        assert_eq!(log, log_2);
+    }
+
+    #[test]
+    fn extend() {
+        let mut log = SarifLog {
+            schema: SchemaVersion::V2_1_0.schema_id().into(),
+            version: SchemaVersion::V2_1_0,
+            runs: None,
+        };
+        let mut log_2 = SarifLog::new(SchemaVersion::V2_1_0);
+        assert_ne!(log, log_2);
+
+        log.extend([
+            Run::new(Tool::new(ToolComponent::new("clippy"))),
+            Run::new(Tool::new(ToolComponent::new("rustfmt"))),
+        ]);
+
+        validate_schema(&log);
+
+        assert_eq!(log.runs.as_ref().expect("no runs found").len(), 2);
+
+        log_2.extend([
+            Run::new(Tool::new(ToolComponent::new("clippy"))),
+            Run::new(Tool::new(ToolComponent::new("rustfmt"))),
+        ]);
+
+        validate_schema(&log_2);
+
+        assert_eq!(log, log_2);
     }
 }
