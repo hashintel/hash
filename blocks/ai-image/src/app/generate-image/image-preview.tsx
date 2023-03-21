@@ -35,6 +35,7 @@ export const ImagePreview = ({
   images,
   prompt,
   loading,
+  errorMessage,
   generateAdditionalImages,
 }: {
   onConfirm: (imageEntityId: string) => void;
@@ -42,6 +43,7 @@ export const ImagePreview = ({
   images: ImageObject[];
   prompt: string;
   loading: boolean;
+  errorMessage: string;
   generateAdditionalImages: (numberOfImages: number) => void;
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
@@ -168,6 +170,18 @@ export const ImagePreview = ({
             {prompt}
           </Typography>
         </Stack>
+
+        <Collapse in={!!errorMessage}>
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.red[50],
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            {errorMessage}
+          </Typography>
+        </Collapse>
       </Stack>
 
       <Stack

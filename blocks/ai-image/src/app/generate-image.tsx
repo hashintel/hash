@@ -121,6 +121,7 @@ export const GenerateImage = ({
         setErrorMessage(
           errors?.[0]?.message ?? "Could not contact OpenAI's image service",
         );
+        setImages(oldImages);
         setLoading(false);
         return;
       }
@@ -183,6 +184,7 @@ export const GenerateImage = ({
             err instanceof Error ? err.message : "unknown error"
           }`,
         );
+        setImages(oldImages);
         setLoading(false);
       }
 
@@ -390,6 +392,7 @@ export const GenerateImage = ({
             generateAdditionalImages={(numberOfImages) =>
               generateAndUploadImages(numberOfImages)
             }
+            errorMessage={errorMessage}
           />
         )}
       </Collapse>
