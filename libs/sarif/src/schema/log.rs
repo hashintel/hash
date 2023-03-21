@@ -236,25 +236,45 @@ pub(crate) mod tests {
 
     #[test]
     fn with_run() {
-        let log = SarifLog {
+        let log_1 = SarifLog {
             schema: SchemaVersion::V2_1_0.schema_id().into(),
             version: SchemaVersion::V2_1_0,
             runs: None,
         }
         .with_run(Run::new(Tool::new(ToolComponent::new("clippy"))))
-        .with_runs([Run::new(Tool::new(ToolComponent::new("rustfmt")))]);
-
-        validate_schema(&log);
-
-        assert_eq!(log.runs.as_ref().expect("no runs found").len(), 2);
+        .with_run(Run::new(Tool::new(ToolComponent::new("rustfmt"))));
+        validate_schema(&log_1);
 
         let log_2 = SarifLog::new(SchemaVersion::V2_1_0)
             .with_run(Run::new(Tool::new(ToolComponent::new("clippy"))))
-            .with_runs([Run::new(Tool::new(ToolComponent::new("rustfmt")))]);
-
+            .with_run(Run::new(Tool::new(ToolComponent::new("rustfmt"))));
         validate_schema(&log_2);
 
-        assert_eq!(log, log_2);
+        assert_eq!(log_1, log_2);
+        assert_eq!(log_1.runs.expect("no runs found").len(), 2);
+    }
+
+    #[test]
+    fn with_runs() {
+        let log_1 = SarifLog {
+            schema: SchemaVersion::V2_1_0.schema_id().into(),
+            version: SchemaVersion::V2_1_0,
+            runs: None,
+        }
+        .with_runs([
+            Run::new(Tool::new(ToolComponent::new("clippy"))),
+            Run::new(Tool::new(ToolComponent::new("rustfmt"))),
+        ]);
+        validate_schema(&log_1);
+
+        let log_2 = SarifLog::new(SchemaVersion::V2_1_0).with_runs([
+            Run::new(Tool::new(ToolComponent::new("clippy"))),
+            Run::new(Tool::new(ToolComponent::new("rustfmt"))),
+        ]);
+        validate_schema(&log_2);
+
+        assert_eq!(log_1, log_2);
+        assert_eq!(log_1.runs.expect("no runs found").len(), 2);
     }
 
     #[test]
