@@ -36,8 +36,6 @@ PUBLISH_PATTERNS = [
     "libs/error-stack**",
     "libs/sarif**",
 ]
-# deer is disabled for now because we don't want to publish it just yet
-# "libs/deer**"
 
 # Build a docker container for these crates
 DOCKER_PATTERNS = ["apps/hash-graph"]
