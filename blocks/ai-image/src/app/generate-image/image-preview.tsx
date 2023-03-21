@@ -10,15 +10,14 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowLeftIcon } from "../../icons/arrow-left";
 import { ArrowUpIcon } from "../../icons/arrow-up";
 import { Grid2PlusIcon } from "../../icons/grid-2-plus";
 import { ImageIcon } from "../../icons/image";
 import { RectangleHistoryCirclePlusIcon } from "../../icons/rectangle-history-circle-plus";
-import { SquareDashedCirclePlusIcon } from "../../icons/square-dashed-circle-plus";
 import { SquarePlusIcon } from "../../icons/square-plus";
 import { ImageTile } from "../../shared/image-tile";
 import { ImageObject } from "../generate-image";
+import { ImageDetails } from "./image-preview/image-details";
 
 const IMAGE_SIZE = 182;
 const IMAGE_LIST_GAP = 30;
@@ -365,149 +364,80 @@ export const ImagePreview = ({
               </ImageList>
             </Box>
 
-            <Fade
-              in={shouldDetailsFadeIn}
-              onEntered={() => setAnimationStage(false)}
-              onExited={() => {
-                setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
-                setTimeout(() => {
-                  setSelectedImageIndex(null);
-                  setAnimationStage(false);
-                }, 500);
-              }}
-            >
-              <Stack
-                sx={{
-                  justifyContent: "space-around",
-                  transition: ({ transitions }) =>
-                    transitions.create("max-height"),
-                  maxHeight:
-                    selectedImageIndex !== null && shouldSelectedImageZoomIn
-                      ? 9999
-                      : 0,
-                  ...(!isMobile
-                    ? {
-                        width: (selectedImageTransition?.imageSize ?? 0) - 48,
-                        height: selectedImageTransition?.imageSize,
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                      }
-                    : { mt: 2 }),
+            {!isMobile ? (
+              <Fade
+                in={shouldDetailsFadeIn}
+                onEntered={() => setAnimationStage(false)}
+                onExited={() => {
+                  setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
+                  setTimeout(() => {
+                    setSelectedImageIndex(null);
+                    setAnimationStage(false);
+                  }, 500);
                 }}
-                gap={isMobile ? 6 : 9.75}
               >
-                <Stack gap={3}>
-                  <Stack gap={0.75}>
-                    <Typography
-                      sx={{
-                        color: ({ palette }) => palette.gray[60],
-                        fontWeight: 700,
-                        fontSize: 13,
-                        lineHeight: 1.3,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Image Dimensions
-                    </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-around",
+                    flexDirection: "column",
+                    width: (selectedImageTransition?.imageSize ?? 0) - 48,
+                    height: 1,
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                  }}
+                >
+                  <ImageDetails
+                    generatedAt={selectedImageGeneratedAt}
+                    isMobile={isMobile}
+                    onSubmit={() => {
+                      const selectedImageEntityId =
+                        selectedImageIndex !== null &&
+                        images[selectedImageIndex]?.entityId;
 
-                    <Typography
-                      sx={{
-                        color: ({ palette }) => palette.gray[60],
-                        fontSize: 16,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      1024 x 1024 pixels
-                    </Typography>
-                  </Stack>
-
-                  <Stack gap={0.75}>
-                    <Typography
-                      sx={{
-                        color: ({ palette }) => palette.gray[60],
-                        fontWeight: 700,
-                        fontSize: 13,
-                        lineHeight: 1.3,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Generated At
-                    </Typography>
-
-                    <Typography
-                      sx={{
-                        color: ({ palette }) => palette.gray[60],
-                        fontSize: 16,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {selectedImageGeneratedAt}
-                    </Typography>
-                  </Stack>
-
-                  <Box mt={1.5}>
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        const selectedImageEntityId =
-                          selectedImageIndex !== null &&
-                          images[selectedImageIndex]?.entityId;
-
-                        if (selectedImageEntityId) {
-                          onConfirm(selectedImageEntityId);
-                        }
-                      }}
-                      sx={{
-                        gap: 1,
-                        borderRadius: 1,
-                        fontSize: 14,
-                        fontWeight: 500,
-                        lineHeight: "18px",
-                      }}
-                    >
-                      Insert this image
-                      <SquareDashedCirclePlusIcon
-                        sx={{
-                          fontSize: 16,
-                        }}
-                      />
-                    </Button>
-                  </Box>
-                </Stack>
-
-                <Box>
-                  <Button
-                    variant="tertiary"
-                    size="small"
-                    onClick={() => {
+                      if (selectedImageEntityId) {
+                        onConfirm(selectedImageEntityId);
+                      }
+                    }}
+                    onCancel={() => {
                       setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
                     }}
-                    sx={({ palette }) => ({
-                      gap: 1,
-                      borderRadius: 1,
-                      fontSize: 14,
-                      fontWeight: 500,
-                      lineHeight: "18px",
-                      color: palette.gray[70],
-                      fill: palette.gray[50],
-
-                      ":hover": {
-                        fill: palette.gray[80],
-                      },
-                    })}
-                  >
-                    <ArrowLeftIcon
-                      sx={{
-                        fontSize: 16,
-                        fill: "inherit",
-                      }}
-                    />
-                    Return to options
-                  </Button>
+                  />
                 </Box>
-              </Stack>
-            </Fade>
+              </Fade>
+            ) : (
+              <Collapse
+                in={shouldDetailsFadeIn}
+                onEntered={() => setAnimationStage(false)}
+                onExited={() => {
+                  setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
+                  setTimeout(() => {
+                    setSelectedImageIndex(null);
+                    setAnimationStage(false);
+                  }, 500);
+                }}
+              >
+                <Box mt={2}>
+                  <ImageDetails
+                    generatedAt={selectedImageGeneratedAt}
+                    isMobile={isMobile}
+                    onSubmit={() => {
+                      const selectedImageEntityId =
+                        selectedImageIndex !== null &&
+                        images[selectedImageIndex]?.entityId;
+
+                      if (selectedImageEntityId) {
+                        onConfirm(selectedImageEntityId);
+                      }
+                    }}
+                    onCancel={() => {
+                      setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
+                    }}
+                  />
+                </Box>
+              </Collapse>
+            )}
           </Box>
         </Box>
 
