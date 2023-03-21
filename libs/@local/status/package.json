@@ -19,8 +19,6 @@
   "main": "./pkg/src/main.ts",
   "types": "./pkg/src/main.ts",
   "scripts": {
-    "codegen": "yarn exe ./scripts/codegen.ts ./type-defs/status-payloads -r ./crate/src/gen",
-    "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
