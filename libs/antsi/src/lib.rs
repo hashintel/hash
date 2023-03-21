@@ -82,8 +82,10 @@ impl_const! {
 
 // kitty + vte extension
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[cfg(feature = "underline-color")]
 pub struct UnderlineColor(Color);
 
+#[cfg(feature = "underline-color")]
 impl UnderlineColor {
     #[must_use]
     pub const fn new(color: Color) -> Self {
@@ -91,6 +93,7 @@ impl UnderlineColor {
     }
 }
 
+#[cfg(feature = "underline-color")]
 impl_const! {
     impl<T> const? From<T> for UnderlineColor
     where
@@ -132,6 +135,7 @@ pub struct Style {
     foreground: Option<Foreground>,
     background: Option<Background>,
 
+    #[cfg(feature = "underline-color")]
     underline_color: Option<UnderlineColor>,
 }
 
@@ -176,6 +180,7 @@ impl Style {
         }
     }
 
+    #[cfg(feature = "underline-color")]
     impl_const! {
         #[nightly]
         #[must_use]
@@ -186,6 +191,7 @@ impl Style {
         }
     }
 
+    #[cfg(feature = "underline-color")]
     impl_const! {
         #[stable]
         #[must_use]
@@ -203,6 +209,7 @@ impl Style {
             decorations: Decorations::new(),
             foreground: None,
             background: None,
+            #[cfg(feature = "underline-color")]
             underline_color: None,
         }
     }
@@ -232,6 +239,7 @@ impl Style {
         self
     }
 
+    #[cfg(feature = "underline-color")]
     pub fn set_underline_color(&mut self, color: impl Into<UnderlineColor>) -> &mut Self {
         self.underline_color = Some(color.into());
 
@@ -259,6 +267,16 @@ impl Style {
     #[must_use]
     pub const fn background(&self) -> Option<Color> {
         if let Some(Background(color)) = self.background {
+            Some(color)
+        } else {
+            None
+        }
+    }
+
+    #[cfg(feature = "underline-color")]
+    #[must_use]
+    pub const fn underline_color(&self) -> Option<Color> {
+        if let Some(UnderlineColor(color)) = self.underline_color {
             Some(color)
         } else {
             None

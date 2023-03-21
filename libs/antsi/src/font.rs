@@ -112,11 +112,42 @@ pub enum FontScript {
     Super,
 }
 
+macro_rules! impl_builder {
+    (
+        $(#[$meta_set:meta])*
+        $set:ident($set_var:ident : $set_ty:ty);
+        $(#[$meta_with:meta])*
+        $with:ident($with_var:ident : $with_ty:ty);
+        $(#[$meta_getter:meta])*
+        $get:ident() -> $ret:ty
+    ) => {
+        $(#[$meta_set])*
+        pub fn $set(&mut self, $set_var: $set_ty) -> &mut Self {
+            self.$set_var = Some($set_var);
+            self
+        }
+
+        $(#[$meta_with])*
+        #[must_use]
+        pub const fn $with(mut self, $with_var: $with_ty) -> Self {
+            self.$with_var = Some($with_var);
+            self
+        }
+
+        $(#[$meta_getter])*
+        #[must_use]
+        pub const fn $get(&self) -> $ret {
+            self.$with_var
+        }
+    };
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Font {
     weight: Option<FontWeight>,
     family: Option<FontFamily>,
     // mintty extension
+    #[cfg(feature = "script")]
     script: Option<FontScript>,
 
     // Value layout: `XXÖO_IRHS`
@@ -135,6 +166,30 @@ pub struct Font {
 }
 
 impl Font {
+    impl_builder!(
+        set_weight(weight: FontWeight);
+        with_weight(weight: FontWeight);
+        weight() -> Option<FontWeight>
+    );
+
+    impl_builder!(
+        set_family(family: FontFamily);
+        with_family(family: FontFamily);
+        family() -> Option<FontFamily>
+    );
+
+    impl_builder!(
+        set_underline(underline: Underline);
+        with_underline(underline: Underline);
+        underline() -> Option<Underline>
+    );
+
+    impl_builder!(
+        set_blinking(blinking: Blinking);
+        with_blinking(blinking: Blinking);
+        blinking() -> Option<Blinking>
+    );
+
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -145,58 +200,6 @@ impl Font {
             underline: None,
             blinking: None,
         }
-    }
-
-    pub fn set_weight(&mut self, weight: FontWeight) -> &mut Self {
-        self.weight = Some(weight);
-
-        self
-    }
-
-    #[must_use]
-    pub const fn with_weight(mut self, weight: FontWeight) -> Self {
-        self.weight = Some(weight);
-
-        self
-    }
-
-    pub fn set_family(&mut self, family: FontFamily) -> &mut Self {
-        self.family = Some(family);
-
-        self
-    }
-
-    #[must_use]
-    pub const fn with_family(mut self, family: FontFamily) -> Self {
-        self.family = Some(family);
-
-        self
-    }
-
-    pub fn set_underline(&mut self, underline: Underline) -> &mut Self {
-        self.underline = Some(underline);
-
-        self
-    }
-
-    #[must_use]
-    pub const fn with_underline(mut self, underline: Underline) -> Self {
-        self.underline = Some(underline);
-
-        self
-    }
-
-    pub fn set_blinking(&mut self, blinking: Blinking) -> &mut Self {
-        self.blinking = Some(blinking);
-
-        self
-    }
-
-    #[must_use]
-    pub const fn with_blinking(mut self, blinking: Blinking) -> Self {
-        self.blinking = Some(blinking);
-
-        self
     }
 
     pub fn set_strikethrough(&mut self) -> &mut Self {
@@ -251,29 +254,10 @@ impl Font {
         self
     }
 
-    #[must_use]
-    pub const fn weight(&self) -> Option<FontWeight> {
-        self.weight
-    }
-
-    #[must_use]
-    pub const fn family(&self) -> Option<FontFamily> {
-        self.family
-    }
-
+    // TODO: remove this, this is an implementation detail
     #[must_use]
     pub const fn style(&self) -> u8 {
         self.style
-    }
-
-    #[must_use]
-    pub const fn underline(&self) -> Option<Underline> {
-        self.underline
-    }
-
-    #[must_use]
-    pub const fn blinking(&self) -> Option<Blinking> {
-        self.blinking
     }
 
     // TODO: getter for hidden, italic, strikethrough, overstrike, script
