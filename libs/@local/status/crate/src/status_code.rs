@@ -10,8 +10,10 @@ mod http_compat;
 /// The canonical status codes for software within the HASH ecosystem.
 ///
 /// Sometimes multiple status codes may apply. Services should return the most specific status code
-/// that applies. For example, prefer [`OutOfRange`] over [`FailedPrecondition`] if both codes
-/// apply. Similarly prefer [`NotFound`] or [`AlreadyExists`] over [`FailedPrecondition`].
+/// that applies. For example, prefer [`StatusCode::OutOfRange`] over
+/// [`StatusCode::FailedPrecondition`] if both codes apply. Similarly prefer
+/// [`StatusCode::NotFound`] or [`StatusCode::AlreadyExists`] over
+/// [`StatusCode::FailedPrecondition`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StatusCode {
@@ -25,19 +27,20 @@ pub enum StatusCode {
     /// HTTP Mapping: 499 Client Closed Request
     Cancelled,
 
-    /// Unknown error. For example, this error may be returned when a [`Status`] value received
-    /// from another address space belongs to an error space that is not known in this address
-    /// space. Also errors raised by APIs that do not return enough error information may be
-    /// converted to this error.
+    /// Unknown error. For example, this error may be returned when a [`StatusCode::Status`] value
+    /// received from another address space belongs to an error space that is not known in this
+    /// address space. Also errors raised by APIs that do not return enough error information
+    /// may be converted to this error.
     ///
     /// HTTP Mapping: 500 Internal Server Error
     ///
-    /// [`Status`]: crate::Status
+    /// [`StatusCode::Status`]: crate::Status
     Unknown,
 
     /// The client specified an invalid argument. Note that this differs from
-    /// [`FailedPrecondition`]. [`InvalidArgument`] indicates arguments that are problematic
-    /// regardless of the state of the system (e.g., a malformed file name).
+    /// [`StatusCode::FailedPrecondition`]. [`StatusCode::InvalidArgument`] indicates arguments
+    /// that are problematic regardless of the state of the system (e.g., a malformed file
+    /// name).
     ///
     /// HTTP Mapping: 400 Bad Request
     InvalidArgument,
@@ -53,9 +56,9 @@ pub enum StatusCode {
     /// Some requested entity (e.g., file or directory) was not found.
     ///
     /// Note to server developers: if a request is denied for an entire class of users, such as
-    /// gradual feature rollout or undocumented allowlist, [`NotFound`] may be used. If a request
-    /// is denied for some users within a class of users, such as user-based access control,
-    /// [`PermissionDenied`] must be used.
+    /// gradual feature rollout or undocumented allowlist, [`StatusCode::NotFound`] may be used. If
+    /// a request is denied for some users within a class of users, such as user-based access
+    /// control, [`StatusCode::PermissionDenied`] must be used.
     ///
     /// HTTP Mapping: 404 Not Found
     NotFound,
@@ -66,11 +69,12 @@ pub enum StatusCode {
     AlreadyExists,
 
     /// The caller does not have permission to execute the specified operation.
-    /// [`PermissionDenied`] must not be used for rejections caused by exhausting some resource
-    /// (use [`ResourceExhausted`] instead for those errors). [`PermissionDenied`] must not be used
-    /// if the caller can not be identified (use [`Unauthenticated`] instead for those errors).
-    /// This error code does not imply the request is valid or the requested entity exists or
-    /// satisfies other pre-conditions.
+    /// [`StatusCode::PermissionDenied`] must not be used for rejections caused by exhausting some
+    /// resource (use [`StatusCode::ResourceExhausted`] instead for those errors).
+    /// [`StatusCode::PermissionDenied`] must not be used if the caller can not be identified
+    /// (use [`StatusCode::Unauthenticated`] instead for those errors). This error code does
+    /// not imply the request is valid or the requested entity exists or satisfies other
+    /// pre-conditions.
     ///
     /// HTTP Mapping: 403 Forbidden
     PermissionDenied,
@@ -91,16 +95,16 @@ pub enum StatusCode {
     /// operation is applied to a non-directory, etc.
     ///
     /// Service implementors can use the following guidelines to decide between
-    /// [`FailedPrecondition`], [`Aborted`], and [`Unavailable`]:
+    /// [`StatusCode::FailedPrecondition`], [`StatusCode::Aborted`], and [`StatusCode::Unavailable`]:
     ///
-    ///  (a) Use [`Unavailable`] if the client can retry just the failing call.
-    ///  (b) Use [`Aborted`] if the client should retry at a higher level. For example, when a
-    ///      client-specified test-and-set fails, indicating the client should restart a
+    ///  (a) Use [`StatusCode::Unavailable`] if the client can retry just the failing call.
+    ///  (b) Use [`StatusCode::Aborted`] if the client should retry at a higher level. For example,
+    /// when a      client-specified test-and-set fails, indicating the client should restart a
     ///      read-modify-write sequence.
-    ///  (c) Use [`FailedPrecondition`] if the client should not retry until the system state has
-    ///      been explicitly fixed. For example, if an "rmdir" fails because the directory is
-    ///      non-empty, [`FailedPrecondition`] should be returned since the client should not
-    ///      retry unless the files are deleted from the directory.
+    ///  (c) Use [`StatusCode::FailedPrecondition`] if the client should not retry until the system
+    /// state has      been explicitly fixed. For example, if an "rmdir" fails because the
+    /// directory is      non-empty, [`StatusCode::FailedPrecondition`] should be returned
+    /// since the client should not      retry unless the files are deleted from the directory.
     ///
     /// HTTP Mapping: 400 Bad Request
     FailedPrecondition,
@@ -108,8 +112,8 @@ pub enum StatusCode {
     /// The operation was aborted, typically due to a concurrency issue such as a sequencer check
     /// failure or transaction abort.
     ///
-    /// See the guidelines above for deciding between [`FailedPrecondition`], [`Aborted`], and
-    /// [`Unavailable`].
+    /// See the guidelines above for deciding between [`StatusCode::FailedPrecondition`],
+    /// [`StatusCode::Aborted`], and [`StatusCode::Unavailable`].
     ///
     /// HTTP Mapping: 409 Conflict
     Aborted,
@@ -117,15 +121,16 @@ pub enum StatusCode {
     /// The operation was attempted past the valid range. E.g., seeking or reading past
     /// end-of-file.
     ///
-    /// Unlike [`InvalidArgument`], this error indicates a problem that may be fixed if the system
-    /// state changes. For example, a 32-bit file system will generate [`InvalidArgument`] if
-    /// asked to read at an offset that is not in the range [0,2^32-1], but it will generate
-    /// [`OutOfRange`] if asked to read from an offset past the current file size.
+    /// Unlike [`StatusCode::InvalidArgument`], this error indicates a problem that may be fixed if
+    /// the system state changes. For example, a 32-bit file system will generate
+    /// [`StatusCode::InvalidArgument`] if asked to read at an offset that is not in the range
+    /// [0,2^32-1], but it will generate [`StatusCode::OutOfRange`] if asked to read from an
+    /// offset past the current file size.
     ///
-    /// There is a fair bit of overlap between [`FailedPrecondition`] and [`OutOfRange`]. We
-    /// recommend using [`OutOfRange`] (the more specific error) when it applies so that callers
-    /// who are iterating through a space can easily look for an [`OutOfRange`] error to detect
-    /// when they are done.
+    /// There is a fair bit of overlap between [`StatusCode::FailedPrecondition`] and
+    /// [`StatusCode::OutOfRange`]. We recommend using [`StatusCode::OutOfRange`] (the more
+    /// specific error) when it applies so that callers who are iterating through a space can
+    /// easily look for an [`StatusCode::OutOfRange`] error to detect when they are done.
     ///
     /// HTTP Mapping: 400 Bad Request
     OutOfRange,
@@ -145,8 +150,8 @@ pub enum StatusCode {
     /// be corrected by retrying with a backoff. Note that it is not always safe to retry
     /// non-idempotent operations.
     ///
-    /// See the guidelines above for deciding between [`FailedPrecondition`], [`Aborted`], and
-    /// [`Unavailable`].
+    /// See the guidelines above for deciding between [`StatusCode::FailedPrecondition`],
+    /// [`StatusCode::Aborted`], and [`StatusCode::Unavailable`].
     ///
     /// HTTP Mapping: 503 Service Unavailable
     Unavailable,
