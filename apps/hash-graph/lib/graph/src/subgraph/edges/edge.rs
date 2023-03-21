@@ -4,8 +4,6 @@ use utoipa::{openapi, ToSchema};
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct OutwardEdge<K, E> {
     pub kind: K,
-    /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
-    /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
     pub direction: EdgeDirection,
     pub right_endpoint: E,
 }
