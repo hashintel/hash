@@ -91,10 +91,13 @@ pub enum Underline {
     Double,
 
     // kitty + vte extension
+    #[cfg(feature = "underline-variants")]
     Curly,
     // kitty + vte extension
+    #[cfg(feature = "underline-variants")]
     Dotted,
     // kitty + vte extension
+    #[cfg(feature = "underline-variants")]
     Dashed,
 }
 
@@ -106,6 +109,7 @@ pub enum Blinking {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[cfg(feature = "script")]
 #[non_exhaustive]
 pub enum FontScript {
     Sub,
@@ -117,14 +121,15 @@ pub struct Font {
     weight: Option<FontWeight>,
     family: Option<FontFamily>,
     // mintty extension
+    #[cfg(feature = "script")]
     script: Option<FontScript>,
 
     // Value layout: `XXÖO_IRHS`
     //
-    // * `I`: `italic`
-    // * `R`: `inverse/reverse`
-    // * `H`: `hidden/invisible`
     // * `S`: `strikethrough`
+    // * `H`: `hidden/invisible`
+    // * `R`: `inverse/reverse`
+    // * `I`: `italic`
     // * `O`: `overstrike` - mintty extension
     // * `Ö`: `overline`
     // * `X`: unused
@@ -138,6 +143,7 @@ impl Font {
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            #[cfg(feature = "script")]
             script: None,
             weight: None,
             family: None,
@@ -199,6 +205,8 @@ impl Font {
         self
     }
 
+    // TODO: set, get font-script
+
     pub fn set_strikethrough(&mut self) -> &mut Self {
         self.style |= 1 << 0;
 
@@ -211,6 +219,8 @@ impl Font {
 
         self
     }
+
+    // TODO: is_strikethrough
 
     pub fn set_inverse(&mut self) -> &mut Self {
         self.style |= 1 << 1;
@@ -225,6 +235,8 @@ impl Font {
         self
     }
 
+    // TODO: is_inverse
+
     pub fn set_hidden(&mut self) -> &mut Self {
         self.style |= 1 << 2;
 
@@ -237,6 +249,8 @@ impl Font {
 
         self
     }
+
+    // TODO: is_hidden
 
     pub fn set_italic(&mut self) -> &mut Self {
         self.style |= 1 << 3;
@@ -251,6 +265,17 @@ impl Font {
         self
     }
 
+    // TODO: is_italic
+
+    // -> These need cfg guard
+    // TODO: set_overstrike
+    // TODO: with_overstrike
+    // TODO: is_overstrike
+
+    // TODO: set_overline
+    // TODO: with_overline
+    // TODO: is_overline
+
     #[must_use]
     pub const fn weight(&self) -> Option<FontWeight> {
         self.weight
@@ -262,11 +287,6 @@ impl Font {
     }
 
     #[must_use]
-    pub const fn style(&self) -> u8 {
-        self.style
-    }
-
-    #[must_use]
     pub const fn underline(&self) -> Option<Underline> {
         self.underline
     }
@@ -275,6 +295,4 @@ impl Font {
     pub const fn blinking(&self) -> Option<Blinking> {
         self.blinking
     }
-
-    // TODO: getter for hidden, italic, strikethrough, overstrike, script
 }
