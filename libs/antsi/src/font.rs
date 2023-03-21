@@ -91,10 +91,13 @@ pub enum Underline {
     Double,
 
     // kitty + vte extension
+    #[cfg(feature = "underline-variants")]
     Curly,
     // kitty + vte extension
+    #[cfg(feature = "underline-variants")]
     Dotted,
     // kitty + vte extension
+    #[cfg(feature = "underline-variants")]
     Dashed,
 }
 
@@ -106,6 +109,7 @@ pub enum Blinking {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[cfg(feature = "script")]
 #[non_exhaustive]
 pub enum FontScript {
     Sub,
@@ -152,10 +156,10 @@ pub struct Font {
 
     // Value layout: `XXÖO_IRHS`
     //
-    // * `I`: `italic`
-    // * `R`: `inverse/reverse`
-    // * `H`: `hidden/invisible`
     // * `S`: `strikethrough`
+    // * `H`: `hidden/invisible`
+    // * `R`: `inverse/reverse`
+    // * `I`: `italic`
     // * `O`: `overstrike` - mintty extension
     // * `Ö`: `overline`
     // * `X`: unused
@@ -190,9 +194,17 @@ impl Font {
         blinking() -> Option<Blinking>
     );
 
+    #[cfg(feature = "script")]
+    impl_builder!(
+        set_script(script: FontScript);
+        with_script(script: FontScript);
+        script() -> Option<FontScript>
+    );
+
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            #[cfg(feature = "script")]
             script: None,
             weight: None,
             family: None,
@@ -215,6 +227,11 @@ impl Font {
         self
     }
 
+    #[must_use]
+    pub const fn is_strikethrough(&self) -> bool {
+        (self.style & 0b0000_0001) > 0
+    }
+
     pub fn set_inverse(&mut self) -> &mut Self {
         self.style |= 1 << 1;
 
@@ -226,6 +243,11 @@ impl Font {
         self.style |= 1 << 1;
 
         self
+    }
+
+    #[must_use]
+    pub const fn is_inverse(&self) -> bool {
+        (self.style & 0b0000_0010) > 0
     }
 
     pub fn set_hidden(&mut self) -> &mut Self {
@@ -241,6 +263,11 @@ impl Font {
         self
     }
 
+    #[must_use]
+    pub const fn is_hidden(&self) -> bool {
+        (self.style & 0b0000_0100) > 0
+    }
+
     pub fn set_italic(&mut self) -> &mut Self {
         self.style |= 1 << 3;
 
@@ -254,11 +281,47 @@ impl Font {
         self
     }
 
-    // TODO: remove this, this is an implementation detail
     #[must_use]
-    pub const fn style(&self) -> u8 {
-        self.style
+    pub const fn is_italic(&self) -> bool {
+        (self.style & 0b0000_1000) > 0
     }
 
-    // TODO: getter for hidden, italic, strikethrough, overstrike, script
+    #[cfg(feature = "overstrike")]
+    pub fn set_overstrike(&mut self) -> &mut Self {
+        self.style |= 1 << 4;
+
+        self
+    }
+
+    #[cfg(feature = "overstrike")]
+    #[must_use]
+    pub const fn with_overstrike(mut self) -> Self {
+        self.style |= 1 << 4;
+
+        self
+    }
+
+    #[cfg(feature = "overstrike")]
+    #[must_use]
+    pub const fn is_overstrike(&self) -> bool {
+        (self.style & 0b0001_0000) > 0
+    }
+
+    pub fn set_overline(&mut self) -> &mut Self {
+        self.style |= 1 << 5;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_overline(mut self) -> Self {
+        self.style |= 1 << 5;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn is_overline(&self) -> bool {
+        (self.style & 0b0010_0000) > 0
+    }
 }

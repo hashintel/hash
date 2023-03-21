@@ -24,12 +24,15 @@
 // future PR will add remaining documentation
 #![allow(missing_docs)]
 
+#[cfg(feature = "rgba")]
+pub use color::RgbaColor;
 pub use color::{
-    BasicColor, BrightColor, CmyColor, CmykColor, Color, IndexedColor, RgbColor, RgbaColor,
-    TransparentColor,
+    BasicColor, BrightColor, CmyColor, CmykColor, Color, IndexedColor, RgbColor, TransparentColor,
 };
 pub use decorations::{Decorations, Frame};
-pub use font::{Blinking, Font, FontFamily, FontScript, FontWeight, Underline};
+#[cfg(feature = "script")]
+pub use font::FontScript;
+pub use font::{Blinking, Font, FontFamily, FontWeight, Underline};
 
 use crate::macros::impl_const;
 

@@ -15,6 +15,7 @@ categories = ["no-std", "command-line-interface", "no-std::no-alloc"]
 [features]
 rgba = []
 underline-color = []
+underline-variants = []
 overstrike = []
 script = []
 
