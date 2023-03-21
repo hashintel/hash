@@ -99,7 +99,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
             [columnsKey]: localColumns,
           });
         });
-      }, 500),
+      }, 1000),
     [updateEntity],
   );
 
