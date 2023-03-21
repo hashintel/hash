@@ -5,5 +5,5 @@ extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 disabled = true
 
 [tasks.coverage-task]
-extend = "cargo"
 args = ["llvm-cov", "test", "--workspace", "--all-features", "--doctests", "${@}"]
+dependencies = ["install-llvm-tools"]
