@@ -114,7 +114,11 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.has_left_entity.incoming > 0 {
                     for outgoing_link_entity in <Self as Read<Entity>>::read(
                         self,
-                        &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id),
+                        &Filter::for_knowledge_graph_edge_by_entity_id(
+                            entity_vertex_id.base_id,
+                            KnowledgeGraphEdgeKind::HasLeftEntity,
+                            true,
+                        ),
                         &temporal_axes,
                     )
                     .await?
@@ -156,7 +160,11 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.has_right_entity.incoming > 0 {
                     for incoming_link_entity in <Self as Read<Entity>>::read(
                         self,
-                        &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id),
+                        &Filter::for_knowledge_graph_edge_by_entity_id(
+                            entity_vertex_id.base_id,
+                            KnowledgeGraphEdgeKind::HasRightEntity,
+                            true,
+                        ),
                         &temporal_axes,
                     )
                     .await?
@@ -198,7 +206,11 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.has_left_entity.outgoing > 0 {
                     for left_entity in <Self as Read<Entity>>::read(
                         self,
-                        &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id),
+                        &Filter::for_knowledge_graph_edge_by_entity_id(
+                            entity_vertex_id.base_id,
+                            KnowledgeGraphEdgeKind::HasLeftEntity,
+                            false,
+                        ),
                         &temporal_axes,
                     )
                     .await?
@@ -232,7 +244,11 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.has_right_entity.outgoing > 0 {
                     for right_entity in <Self as Read<Entity>>::read(
                         self,
-                        &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id),
+                        &Filter::for_knowledge_graph_edge_by_entity_id(
+                            entity_vertex_id.base_id,
+                            KnowledgeGraphEdgeKind::HasRightEntity,
+                            false,
+                        ),
                         &temporal_axes,
                     )
                     .await?

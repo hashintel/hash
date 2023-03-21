@@ -15,11 +15,18 @@ use uuid::Uuid;
 use crate::{
     identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::{Entity, EntityQueryPath},
+    ontology::{
+        DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
+        PropertyTypeQueryPath, PropertyTypeWithMetadata,
+    },
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
     },
-    subgraph::{edges::KnowledgeGraphEdgeKind, identifier::VertexId},
+    subgraph::{
+        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId, VertexId},
+    },
 };
 
 /// A set of conditions used for queries.
@@ -110,7 +117,256 @@ where
     }
 }
 
+impl<'p> Filter<'p, DataTypeWithMetadata> {
+    #[must_use]
+    pub fn for_ontology_edge_by_property_type_vertex_id(
+        vertex_id: &'p PropertyTypeVertexId,
+        edge_kind: OntologyEdgeKind,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    DataTypeQueryPath::PropertyTypeEdge {
+                        edge_kind,
+                        path: Box::new(PropertyTypeQueryPath::BaseUrl),
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    DataTypeQueryPath::PropertyTypeEdge {
+                        edge_kind,
+                        path: Box::new(PropertyTypeQueryPath::Version),
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+}
+
+impl<'p> Filter<'p, PropertyTypeWithMetadata> {
+    #[must_use]
+    pub fn for_ontology_edge_by_data_type_vertex_id(
+        vertex_id: &'p DataTypeVertexId,
+        edge_kind: OntologyEdgeKind,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind,
+                        path: DataTypeQueryPath::BaseUrl,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind,
+                        path: DataTypeQueryPath::Version,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_ontology_edge_by_property_type_vertex_id(
+        vertex_id: &'p PropertyTypeVertexId,
+        edge_kind: OntologyEdgeKind,
+        reversed: bool,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::PropertyTypeEdge {
+                        edge_kind,
+                        path: Box::new(PropertyTypeQueryPath::BaseUrl),
+                        reversed,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::PropertyTypeEdge {
+                        edge_kind,
+                        path: Box::new(PropertyTypeQueryPath::Version),
+                        reversed,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_ontology_edge_by_entity_type_vertex_id(
+        vertex_id: &'p EntityTypeVertexId,
+        edge_kind: OntologyEdgeKind,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::EntityTypeEdge {
+                        edge_kind,
+                        path: Box::new(EntityTypeQueryPath::BaseUrl),
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::EntityTypeEdge {
+                        edge_kind,
+                        path: Box::new(EntityTypeQueryPath::Version),
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+}
+
+impl<'p> Filter<'p, EntityTypeWithMetadata> {
+    #[must_use]
+    pub fn for_ontology_edge_by_property_type_vertex_id(
+        vertex_id: &'p PropertyTypeVertexId,
+        edge_kind: OntologyEdgeKind,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    EntityTypeQueryPath::PropertyTypeEdge {
+                        edge_kind,
+                        path: PropertyTypeQueryPath::BaseUrl,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    EntityTypeQueryPath::PropertyTypeEdge {
+                        edge_kind,
+                        path: PropertyTypeQueryPath::Version,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_ontology_edge_by_entity_type_vertex_id(
+        vertex_id: &'p EntityTypeVertexId,
+        edge_kind: OntologyEdgeKind,
+        reversed: bool,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    EntityTypeQueryPath::EntityTypeEdge {
+                        edge_kind,
+                        path: Box::new(EntityTypeQueryPath::BaseUrl),
+                        reversed,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(
+                    EntityTypeQueryPath::EntityTypeEdge {
+                        edge_kind,
+                        path: Box::new(EntityTypeQueryPath::Version),
+                        reversed,
+                    },
+                )),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_shared_edge_by_entity_id(entity_id: EntityId, edge_kind: SharedEdgeKind) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityTypeQueryPath::EntityEdge {
+                    edge_kind,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                })),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.owned_by_id.as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityTypeQueryPath::EntityEdge {
+                    edge_kind,
+                    path: Box::new(EntityQueryPath::Uuid),
+                })),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.entity_uuid.as_uuid(),
+                ))),
+            ),
+        ])
+    }
+}
+
 impl<'p> Filter<'p, Entity> {
+    #[must_use]
+    pub fn for_shared_edge_by_entity_type_vertex_id(
+        vertex_id: &'p EntityTypeVertexId,
+        edge_kind: SharedEdgeKind,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                    edge_kind,
+                    path: EntityTypeQueryPath::BaseUrl,
+                })),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    vertex_id.base_id.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                    edge_kind,
+                    path: EntityTypeQueryPath::Version,
+                })),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    vertex_id.revision_id,
+                ))),
+            ),
+        ])
+    }
+
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
@@ -130,16 +386,18 @@ impl<'p> Filter<'p, Entity> {
         ])
     }
 
-    /// Creates a `Filter` to search for outgoing linked entities where the specified [`EntityId`]
-    /// identifies the source [`Entity`].
     #[must_use]
-    pub fn for_outgoing_link_by_source_entity_id(entity_id: EntityId) -> Self {
+    pub fn for_knowledge_graph_edge_by_entity_id(
+        entity_id: EntityId,
+        edge_kind: KnowledgeGraphEdgeKind,
+        reversed: bool,
+    ) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    edge_kind,
                     path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: false,
+                    reversed,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id.as_uuid(),
@@ -147,93 +405,9 @@ impl<'p> Filter<'p, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    edge_kind,
                     path: Box::new(EntityQueryPath::Uuid),
-                    reversed: false,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for incoming linked entities where the specified [`EntityId`]
-    /// identifies the target [`Entity`].
-    #[must_use]
-    pub fn for_incoming_link_by_source_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: false,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    reversed: false,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
-    /// the left [`Entity`].
-    #[must_use]
-    pub fn for_left_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: true,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    reversed: true,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
-    /// the right [`Entity`].
-    #[must_use]
-    pub fn for_right_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: true,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    reversed: true,
+                    reversed,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
@@ -470,7 +644,7 @@ mod tests {
             version: 1,
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["baseUrl"] },
@@ -481,7 +655,7 @@ mod tests {
               { "parameter": url.version }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<DataTypeWithMetadata>::for_versioned_url(&url),
@@ -499,7 +673,7 @@ mod tests {
             revision_id: OntologyTypeVersion::new(1),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["baseUrl"] },
@@ -510,10 +684,173 @@ mod tests {
               { "parameter": url.revision_id }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&url),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_property_type_constrains_values_on() {
+        let url = DataTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["dataTypes", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["dataTypes", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        });
+
+        test_filter_representation(
+            &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_data_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsValuesOn,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_property_type_constrains_properties_on() {
+        let url = PropertyTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["propertyTypes", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["propertyTypes", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        });
+
+        test_filter_representation(
+            &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsPropertiesOn,
+                false,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_type_constrains_properties_on() {
+        let url = PropertyTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["properties", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["properties", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        });
+
+        test_filter_representation(
+            &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsPropertiesOn,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_type_inherits_from() {
+        let url = EntityTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/person/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["inheritsFrom", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["inheritsFrom", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        });
+
+        test_filter_representation(
+            &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                &url,
+                OntologyEdgeKind::InheritsFrom,
+                false,
+            ),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_type_constrains_links_on() {
+        let url = EntityTypeVertexId {
+            base_id: BaseUrl::new(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/person/".to_owned(),
+            )
+            .expect("invalid base url"),
+            revision_id: OntologyTypeVersion::new(1),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["links", "*", "baseUrl"] },
+              { "parameter": url.base_id }
+            ]},
+            { "equal": [
+              { "path": ["links", "*", "version"] },
+              { "parameter": url.revision_id }
+            ]}
+          ]
+        });
+
+        test_filter_representation(
+            &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                &url,
+                OntologyEdgeKind::ConstrainsLinksOn,
+                false,
+            ),
             &expected,
         );
     }
@@ -525,7 +862,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
@@ -536,7 +873,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
@@ -548,7 +885,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
@@ -559,7 +896,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
@@ -571,7 +908,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["rightEntity", "ownedById"] },
@@ -582,10 +919,14 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
-            &Filter::for_incoming_link_by_source_entity_id(entity_id),
+            &Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                false,
+            ),
             &expected,
         );
     }
@@ -597,7 +938,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["leftEntity", "ownedById"] },
@@ -608,10 +949,14 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
-            &Filter::for_outgoing_link_by_source_entity_id(entity_id),
+            &Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                false,
+            ),
             &expected,
         );
     }
@@ -623,7 +968,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["outgoingLinks", "ownedById"] },
@@ -634,9 +979,16 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
-        test_filter_representation(&Filter::for_left_entity_by_entity_id(entity_id), &expected);
+        test_filter_representation(
+            &Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                true,
+            ),
+            &expected,
+        );
     }
 
     #[test]
@@ -646,7 +998,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["incomingLinks", "ownedById"] },
@@ -657,19 +1009,26 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
-        test_filter_representation(&Filter::for_right_entity_by_entity_id(entity_id), &expected);
+        test_filter_representation(
+            &Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                true,
+            ),
+            &expected,
+        );
     }
 
     #[test]
     fn null_check() {
-        let expected = json! {{
+        let expected = json!({
           "notEqual": [
             { "path": ["description"] },
             null
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::NotEqual(

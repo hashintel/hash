@@ -883,7 +883,7 @@ mod tests {
             identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
             knowledge::EntityUuid,
             provenance::OwnedById,
-            subgraph::identifier::DataTypeVertexId,
+            subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
         };
 
         #[test]
@@ -950,6 +950,568 @@ mod tests {
         }
 
         #[test]
+        fn for_property_type_constrains_values_on() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "data_types" AS "data_types_0_0_0"
+                INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+                  ON "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id" = "data_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_property_type_constrains_values_on_reversed() {
+            let url = DataTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_data_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+                  ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "data_types" AS "data_types_0_2_0"
+                  ON "data_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "data_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_property_type_constrains_properties_on() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                    false,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+                  ON "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_property_type_constrains_properties_on_reversed() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                    true,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+                  ON "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_properties_on() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+                  ON "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_properties_on_reversed() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+                  ON "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_inherits_from() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::InheritsFrom,
+                    false,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+                  ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_inherits_from_reversed() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::InheritsFrom,
+                    true,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+                  ON "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_links_on() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinksOn,
+                    false,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+                  ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_links_on_reversed() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinksOn,
+                    true,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+                  ON "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_link_destinations_on() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                    false,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_link_destinations_on" AS "entity_type_constrains_link_destinations_on_0_1_0"
+                  ON "entity_type_constrains_link_destinations_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_link_destinations_on_0_1_0"."target_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_link_destinations_on_reversed() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                    true,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_link_destinations_on" AS "entity_type_constrains_link_destinations_on_0_1_0"
+                  ON "entity_type_constrains_link_destinations_on_0_1_0"."target_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_link_destinations_on_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_is_of_type() {
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter = Filter::<EntityTypeWithMetadata>::for_shared_edge_by_entity_id(
+                entity_id,
+                SharedEdgeKind::IsOfType,
+            );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_1_0"
+                  ON "entity_is_of_type_0_1_0"."entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                  ON "entity_temporal_metadata_0_2_0"."entity_edition_id" = "entity_is_of_type_0_1_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_2_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_2_0"."entity_uuid" = $4)
+                "#,
+                &[
+                    &pinned_timestamp,
+                    &temporal_axes.variable_interval(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
+                ],
+            );
+        }
+
+        #[test]
+        fn for_entity_is_of_type_reversed() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
+            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+
+            let filter = Filter::<Entity>::for_shared_edge_by_entity_type_vertex_id(
+                &url,
+                SharedEdgeKind::IsOfType,
+            );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_1_0"
+                  ON "entity_is_of_type_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_is_of_type_0_1_0"."entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("ontology_id_with_metadata_0_3_0"."base_url" = $3)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $4)
+                "#,
+                &[
+                    &pinned_timestamp,
+                    &temporal_axes.variable_interval(),
+                    &url.base_id.as_str(),
+                    &url.revision_id,
+                ],
+            );
+        }
+
+        #[test]
         fn for_entity_by_entity_id() {
             let entity_id = EntityId {
                 owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -993,7 +1555,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                false,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -1029,7 +1595,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                false,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -1065,7 +1635,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_left_entity_by_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                true,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -1106,7 +1680,11 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_right_entity_by_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                true,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
