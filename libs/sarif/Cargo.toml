@@ -14,6 +14,7 @@ categories = ["no-std", "data-structures", "development-tools", "parsing"]
 [dependencies]
 serde = { version = "1", default-features = false, features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
+semver = { version = "1", default-features = false, features = ["serde"] }
 
 [features]
 serde = ["dep:serde", "dep:serde_json"]
