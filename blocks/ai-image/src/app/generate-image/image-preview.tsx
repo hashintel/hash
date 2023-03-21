@@ -252,7 +252,6 @@ export const ImagePreview = ({
                       (selectedImageIndex === null && !animatingImageOut) ||
                       selected
                     }
-                    onExited={() => setAnimatingImageIn(false)}
                   >
                     <Box
                       ref={(ref: HTMLDivElement | undefined) => {
@@ -298,6 +297,7 @@ export const ImagePreview = ({
                 <Fade
                   key={number}
                   in={selectedImageIndex === null && !animatingImageOut}
+                  onExited={() => setAnimatingImageIn(false)}
                 >
                   <Button
                     variant="tertiary"
