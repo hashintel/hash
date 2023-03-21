@@ -208,6 +208,7 @@ impl Font {
         self
     }
 
+    #[cfg(feature = "script")]
     #[must_use]
     pub const fn with_script(mut self, script: FontScript) -> Self {
         self.script = Some(script);
