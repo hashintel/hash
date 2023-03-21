@@ -166,6 +166,11 @@ impl Font {
         self
     }
 
+    #[must_use]
+    pub const fn weight(&self) -> Option<FontWeight> {
+        self.weight
+    }
+
     pub fn set_family(&mut self, family: FontFamily) -> &mut Self {
         self.family = Some(family);
 
@@ -177,6 +182,11 @@ impl Font {
         self.family = Some(family);
 
         self
+    }
+
+    #[must_use]
+    pub const fn family(&self) -> Option<FontFamily> {
+        self.family
     }
 
     pub fn set_underline(&mut self, underline: Underline) -> &mut Self {
@@ -192,6 +202,11 @@ impl Font {
         self
     }
 
+    #[must_use]
+    pub const fn underline(&self) -> Option<Underline> {
+        self.underline
+    }
+
     pub fn set_blinking(&mut self, blinking: Blinking) -> &mut Self {
         self.blinking = Some(blinking);
 
@@ -203,6 +218,11 @@ impl Font {
         self.blinking = Some(blinking);
 
         self
+    }
+
+    #[must_use]
+    pub const fn blinking(&self) -> Option<Blinking> {
+        self.blinking
     }
 
     // TODO: set, get font-script
