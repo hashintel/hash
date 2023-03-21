@@ -75,7 +75,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -96,7 +96,31 @@ jobs:
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
+        run: |
+          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
+            | clippy-sarif \
+            | jq '.runs[].results |= unique' \
+            | tee clippy.sarif \
+            | sarif-fmt
+
+          jq -e '.runs[].results == []' clippy.sarif> /dev/null
+
+      - name: Process SARIF file
+        working-directory: ${{ matrix.directory }}
+        if: always()
+        run: |
+          tmp=$(mktemp)
+
+          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
+
+          mv "$tmp" clippy.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: ${{ matrix.directory }}/clippy.sarif
+          category: ${{ matrix.name }}
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
@@ -292,7 +316,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-script@0.2.8,cargo-semver-checks@0.17.0
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
@@ -312,7 +336,11 @@ jobs:
       - name: SemVer check
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} semver-checks check-release
+        run: |
+          # Only run semver checks if this is not the initial release
+          grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
+
+          cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
