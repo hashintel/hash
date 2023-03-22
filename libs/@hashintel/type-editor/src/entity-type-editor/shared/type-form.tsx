@@ -8,6 +8,7 @@ import {
   Modal,
   TextField,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   Divider,
@@ -220,6 +221,7 @@ export const TypeFormModal: PolymorphicComponent = forwardRef(
           border: 1,
           borderColor: theme.palette.gray[20],
         })}
+        classes={{ root: fluidFontClassName }}
       >
         {inner}
       </Modal>

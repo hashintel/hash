@@ -1,3 +1,4 @@
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   Checkbox,
@@ -21,7 +22,12 @@ export const DisabledCheckboxCell = ({
 }) => {
   return (
     <EntityTypeTableCenteredCell width={width}>
-      <Tooltip title={title} placement="top" disableInteractive>
+      <Tooltip
+        title={title}
+        placement="top"
+        disableInteractive
+        classes={{ popper: fluidFontClassName }}
+      >
         <Box
           sx={[
             {

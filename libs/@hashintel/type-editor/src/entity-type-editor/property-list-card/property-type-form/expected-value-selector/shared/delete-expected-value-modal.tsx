@@ -5,6 +5,7 @@ import {
   IconButton,
   Modal,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
@@ -67,6 +68,7 @@ export const DeleteExpectedValueModal = ({
         border: 1,
         borderColor: theme.palette.gray[20],
       })}
+      classes={{ root: fluidFontClassName }}
     >
       <>
         <Box

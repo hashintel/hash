@@ -4,6 +4,7 @@ require("setimmediate");
 import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { theme } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { LinkListCard } from "./entity-type-editor/link-list-card";
@@ -68,7 +69,7 @@ export const EntityTypeEditor = ({
               <PropertyTypesOptionsContextProvider
                 propertyTypeOptions={propertyTypeOptions}
               >
-                <Stack spacing={6.5}>
+                <Stack spacing={6.5} className={fluidFontClassName}>
                   <Box>
                     <Typography variant="h5" mb={2}>
                       Properties of{" "}

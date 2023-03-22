@@ -7,6 +7,7 @@ import {
   StyledPlusCircleIcon,
   TextField,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -336,6 +337,7 @@ export const ExpectedValueSelector = ({
           }}
           componentsProps={{
             popper: {
+              className: fluidFontClassName,
               sx: { minWidth: 520 },
               placement: "bottom-start",
               modifiers: [

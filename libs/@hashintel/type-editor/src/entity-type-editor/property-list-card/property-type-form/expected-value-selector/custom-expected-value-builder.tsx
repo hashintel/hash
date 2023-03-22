@@ -7,6 +7,7 @@ import {
   faCube,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   buttonClasses,
@@ -111,6 +112,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
             <Tooltip
               title="Custom expected values can be useful when working with data ingested from external sources."
               placement="top"
+              classes={{ popper: fluidFontClassName }}
             >
               <FontAwesomeIcon
                 icon={faCircleQuestion}

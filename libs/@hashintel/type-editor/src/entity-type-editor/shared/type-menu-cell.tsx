@@ -8,6 +8,7 @@ import {
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   Divider,
@@ -26,6 +27,7 @@ import {
   TooltipProps,
   Typography,
 } from "@mui/material";
+import clsx from "clsx";
 import {
   bindMenu,
   bindTrigger,
@@ -44,7 +46,10 @@ import { useIsReadonly } from "../../shared/read-only-context";
 export const TYPE_MENU_CELL_WIDTH = 70;
 
 const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} classes={{ popper: className }} />
+  <Tooltip
+    {...props}
+    classes={{ popper: clsx(className, fluidFontClassName) }}
+  />
 ))({
   [`& .${tooltipClasses.tooltip}`]: {
     maxWidth: "none",
@@ -177,7 +182,11 @@ export const TypeMenuCell = ({
               </Typography>,
 
               editButtonDisabled ? (
-                <Tooltip key="edit" title={editButtonDisabled}>
+                <Tooltip
+                  key="edit"
+                  title={editButtonDisabled}
+                  classes={{ popper: fluidFontClassName }}
+                >
                   <Box>
                     <EditButton />
                   </Box>

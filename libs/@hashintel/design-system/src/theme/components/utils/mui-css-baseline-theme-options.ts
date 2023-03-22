@@ -1,13 +1,16 @@
 import { Components } from "@mui/material";
 
+import { fluidFontClassName } from "../../../fluid-fonts";
 import { customColors } from "../../palette";
+
+const typographyVariableSelector = `:root, .${fluidFontClassName}`;
 
 // should be much easier to configure once mui adds support for fluidTypography
 //  @see https://github.com/mui-org/material-ui/issues/15251
 const rootTypographyStyles = `
   /* @link https://utopia.fyi/type/calculator?c=320,15,1.2,1200,16,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6,s-l */
   // 
-  :root {
+  ${typographyVariableSelector} {
     --fluid-min-width: 320;
     --fluid-max-width: 1200;
   
@@ -19,12 +22,12 @@ const rootTypographyStyles = `
   }
   
   @media screen and (min-width: 1200px) {
-    :root {
+    ${typographyVariableSelector} {
       --fluid-screen: calc(var(--fluid-max-width) * 1px);
     }
   }
   
-  :root {
+  ${typographyVariableSelector} {
     /* STEP -3 */
     --f--3-min: 12;
     --f--3-max: 12;

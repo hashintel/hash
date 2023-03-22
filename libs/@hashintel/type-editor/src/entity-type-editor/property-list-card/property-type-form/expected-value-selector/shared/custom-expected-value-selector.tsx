@@ -1,5 +1,6 @@
 import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Autocomplete,
   autocompleteClasses,
@@ -48,6 +49,7 @@ export const CustomExpectedValueSelector = <T extends any>({
               width: autocompleteElem?.getBoundingClientRect().width,
             },
           },
+          className: fluidFontClassName,
         },
       }}
       clearOnBlur={false}
