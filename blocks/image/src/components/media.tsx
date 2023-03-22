@@ -304,9 +304,9 @@ export const Media: FunctionComponent<
             {
               "@context": "https://schema.org/",
               "@type": "ImageObject",
-              "@id": ${draftSrc},
-              "url": ${draftSrc},
-              "contentUrl": ${draftSrc}
+              "@id": "${draftSrc}",
+              "url": "${draftSrc}",
+              "contentUrl": "${draftSrc}"
             }
           `,
           }}
