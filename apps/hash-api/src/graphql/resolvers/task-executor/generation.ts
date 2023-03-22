@@ -231,7 +231,7 @@ export const createPropertyTypeTree = async (
             actorId: user.accountId,
             schema: record.schema,
           })
-        ).data,
+        ).data as OntologyElementMetadata,
       );
     } catch (err) {
       throw new Error(
@@ -330,7 +330,7 @@ export const createEntityTypeTree = async (
             actorId: user.accountId,
             schema: record.schema,
           })
-        ).data,
+        ).data as OntologyElementMetadata,
       );
     } catch (err) {
       throw new Error(
