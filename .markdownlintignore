@@ -109,6 +109,9 @@ __pycache__
 # Sentry
 .sentryclirc
 
+# Block Protocol
+.blockprotocolrc
+
 # Application data
 /var
 seed-users.json
@@ -123,6 +126,10 @@ seed-users.json
 
 # Storybook
 **/storybook-static
+
+# Status
+/libs/status/crate/src/gen
+
 
 #########################
 ## Shared between linters

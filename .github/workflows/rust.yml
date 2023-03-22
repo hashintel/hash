@@ -316,7 +316,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-script@0.2.8,cargo-semver-checks@0.17.0
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
@@ -336,7 +336,11 @@ jobs:
       - name: SemVer check
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} semver-checks check-release
+        run: |
+          # Only run semver checks if this is not the initial release
+          grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
+
+          cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
