@@ -2,21 +2,30 @@
 //!
 //! This follows exactly has serde implements `Range`, the only range is:
 //! * `RangeFrom`, `RangeTo`, `RangeFull` are supported
+//! * `Bounds::Unbounded` = `{"Unbounded": null}` instead of `"Unbounded"`
+//!
+//! Why is `Bounds::Unbounded` different? This ensures that everything is always consistent with
+//! each other, this also means that we only need to invoke `visit_object`.
 //!
 //! Ideally we'd want to move away from serde to better represent each range, instead of `{start,
 //! end}` do `{start: Bound, end: Bound}`. For the sake of compatability as `deer` has no serialize
 //! equivalent this uses the same as `serde`.
+// TODO: deserialize as string as a special container instruction? or automatic?
+// TODO: do we want a special visitor just for enums, e.g. EnumVisitor? that can only be supplied to
+//  visit_enum?
 
 use core::{marker::PhantomData, ops::Bound};
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{FutureExt, IntoReport, Report, Result, ResultExt};
 
 use crate::{
     error::{
-        DeserializeError, ExpectedLength, FieldAccessError, ObjectLengthError, ReceivedLength,
-        Variant, VisitorError,
+        DeserializeError, ExpectedLength, ExpectedVariant, FieldAccessError, ObjectLengthError,
+        ReceivedLength, ReceivedVariant, UnknownVariantError, Variant, VisitorError,
     },
-    Deserialize, Deserializer, Document, FieldAccess, ObjectAccess, Visitor,
+    impls::helpers::{FieldDiscriminatorKey, FieldDiscriminatorKeyAccess},
+    schema::Reference,
+    Deserialize, Deserializer, Document, FieldAccess, ObjectAccess, Reflection, Schema, Visitor,
 };
 
 struct BoundFieldAccess<T>(PhantomData<fn() -> *const T>);
@@ -33,8 +42,9 @@ where
         D: Deserializer<'de>,
     {
         match key {
-            BoundField::Excluded => T::deserialize(deserializer).map(BoundField::Excluded),
-            BoundField::Included => T::deserialize(deserializer).map(BoundField::Included),
+            BoundField::Excluded => T::deserialize(deserializer).map(Bound::Excluded),
+            BoundField::Included => T::deserialize(deserializer).map(Bound::Included),
+            BoundField::Unbounded => <()>::deserialize(deserializer).map(|_| Bound::Unbounded),
         }
         .change_context(FieldAccessError)
     }
@@ -43,8 +53,44 @@ where
 enum BoundField {
     Excluded,
     Included,
-    // Unbounded is a str
-    // Unbounded,
+    Unbounded,
+}
+
+impl Reflection for BoundField {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("string").with("enum", ["Included", "Excluded", "Unbounded"])
+    }
+}
+
+impl FieldDiscriminatorKey for BoundField {
+    const VARIANTS: &'static [&'static str] = &["Included", "Excluded", "Unbounded"];
+
+    fn try_str(value: &str) -> Option<Self> {
+        match value {
+            "Included" => Some(BoundField::Included),
+            "Excluded" => Some(BoundField::Excluded),
+            "Unbounded" => Some(BoundField::Unbounded),
+            _ => None,
+        }
+    }
+
+    fn try_bytes(value: &[u8]) -> Option<Self> {
+        match value {
+            b"Included" => Some(BoundField::Included),
+            b"Excluded" => Some(BoundField::Excluded),
+            b"Unbounded" => Some(BoundField::Unbounded),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for BoundField {
+    type Reflection = Self;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        de.deserialize_str(FieldDiscriminatorKeyAccess::new())
+            .change_context(DeserializeError)
+    }
 }
 
 struct BoundVisitor<T>(PhantomData<fn() -> *const T>);
@@ -57,14 +103,6 @@ where
 
     fn expecting(&self) -> Document {
         Self::Value::reflection()
-    }
-
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        todo!()
-    }
-
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        todo!()
     }
 
     fn visit_object<U>(self, mut v: U) -> Result<Self::Value, VisitorError>
@@ -82,14 +120,55 @@ where
 
         v.end().change_context(VisitorError)?;
 
-        todo!()
+        field.map(|(_, value)| value).change_context(VisitorError)
     }
 }
 
-impl<'de, T: 'de> Deserialize<'de> for Bound<T> {
-    type Reflection = ();
+struct BoundReflection<T: ?Sized>(PhantomData<*const T>);
+
+impl<T> Reflection for BoundReflection<T>
+where
+    T: Reflection + ?Sized,
+{
+    /// # Schema
+    ///
+    /// ```json
+    /// {
+    ///     "type": "object",
+    ///     "additionalProperties": false,
+    ///     "oneOf": [
+    ///         {"properties": {"Included": <ref>}}
+    ///         {"properties": {"Excluded": <ref>}}
+    ///         {"properties": {"Unbounded": <ref>}}
+    ///     ]
+    /// }
+    /// ```
+    fn schema(doc: &mut Document) -> Schema {
+        #[derive(serde::Serialize)]
+        enum Properties {
+            Included(Reference),
+            Excluded(Reference),
+            Unbounded(Reference),
+        }
+
+        Schema::new("object")
+            .with("oneOf", [
+                Properties::Included(doc.add::<T>()),
+                Properties::Excluded(doc.add::<T>()),
+                Properties::Unbounded(doc.add::<()>()),
+            ])
+            .with("additionalProperties", false)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Bound<T>
+where
+    T: Deserialize<'de>,
+{
+    type Reflection = BoundReflection<T::Reflection>;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        todo!()
+        de.deserialize_object(BoundVisitor(PhantomData))
+            .change_context(DeserializeError)
     }
 }

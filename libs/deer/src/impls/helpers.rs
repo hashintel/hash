@@ -9,6 +9,8 @@ use crate::{
 };
 
 pub(super) trait FieldDiscriminatorKey: Reflection {
+    const VARIANTS: &'static [&'static str];
+
     fn try_str(value: &str) -> Option<Self>;
     fn try_bytes(value: &[u8]) -> Option<Self>;
 }
@@ -22,13 +24,23 @@ impl<T> FieldDiscriminatorKeyAccess<T> {
     }
 }
 
-impl<T> FieldDiscriminatorKeyAccess<T> {
+impl<T> FieldDiscriminatorKeyAccess<T>
+where
+    T: FieldDiscriminatorKey,
+{
+    fn attach_expected_variants<C>(mut error: Report<C>) -> Report<C> {
+        for variant in T::VARIANTS {
+            error = error.attach(ExpectedVariant::new(*variant));
+        }
+
+        error
+    }
+
     fn unknown_variant_error(name: impl Into<String>) -> Report<impl Context> {
-        Report::new(UnknownVariantError.into_error())
-            .attach(ReceivedVariant::new(name))
-            .attach(ExpectedVariant::new("Ok"))
-            .attach(ExpectedVariant::new("Err"))
-            .change_context(VisitorError)
+        let error =
+            Report::new(UnknownVariantError.into_error()).attach(ReceivedVariant::new(name));
+
+        Self::attach_expected_variants(error).change_context(VisitorError)
     }
 }
 
@@ -51,13 +63,11 @@ where
             let value = core::str::from_utf8(v)
                 .into_report()
                 .change_context(UnknownVariantError.into_error())
-                .attach(ExpectedVariant::new("Ok"))
-                .attach(ExpectedVariant::new("Err"))
-                .change_context(VisitorError);
+                .map_err(Self::attach_expected_variants);
 
             match value {
                 Ok(name) => Self::unknown_variant_error(name),
-                Err(err) => err,
+                Err(error) => error.change_context(VisitorError),
             }
         })
     }

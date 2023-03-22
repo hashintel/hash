@@ -1,7 +1,6 @@
-use alloc::string::String;
 use core::marker::PhantomData;
 
-use error_stack::{Context, FutureExt, IntoReport, Report, ResultExt};
+use error_stack::{FutureExt, IntoReport, Report, Result, ResultExt};
 
 use crate::{
     error::{
@@ -24,11 +23,7 @@ where
     type Key = ResultField;
     type Value = Result<T, E>;
 
-    fn value<D>(
-        &self,
-        key: &Self::Key,
-        deserializer: D,
-    ) -> error_stack::Result<Self::Value, FieldAccessError>
+    fn value<D>(&self, key: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>,
     {
@@ -52,6 +47,8 @@ impl Reflection for ResultField {
 }
 
 impl FieldDiscriminatorKey for ResultField {
+    const VARIANTS: &'static [&'static str] = &["Ok", "Err"];
+
     fn try_str(value: &str) -> Option<Self> {
         match value {
             "Ok" => Some(ResultField::Ok),
@@ -72,7 +69,7 @@ impl FieldDiscriminatorKey for ResultField {
 impl<'de> Deserialize<'de> for ResultField {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         de.deserialize_str(FieldDiscriminatorKeyAccess::new())
             .change_context(DeserializeError)
     }
@@ -84,10 +81,10 @@ impl<'de, T: Deserialize<'de>, E: Deserialize<'de>> Visitor<'de> for ResultVisit
     type Value = Result<T, E>;
 
     fn expecting(&self) -> Document {
-        todo!()
+        Self::Value::reflection()
     }
 
-    fn visit_object<O>(self, mut v: O) -> error_stack::Result<Self::Value, VisitorError>
+    fn visit_object<O>(self, mut v: O) -> Result<Self::Value, VisitorError>
     where
         O: ObjectAccess<'de>,
     {
@@ -144,7 +141,7 @@ where
 impl<'de, T: Deserialize<'de>, E: Deserialize<'de>> Deserialize<'de> for Result<T, E> {
     type Reflection = ResultReflection<T::Reflection, E::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         de.deserialize_object(ResultVisitor(PhantomData))
             .change_context(DeserializeError)
     }
