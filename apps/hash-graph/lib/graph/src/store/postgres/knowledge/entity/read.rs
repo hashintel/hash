@@ -25,7 +25,7 @@ use crate::{
         AsClient, PostgresStore, QueryError,
     },
     subgraph::{
-        edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
         temporal_axes::QueryTemporalAxes,
     },
 };
@@ -42,22 +42,22 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let left_entity_uuid_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
             path: Box::new(EntityQueryPath::Uuid),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
         let left_owned_by_id_query_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
             path: Box::new(EntityQueryPath::OwnedById),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
         let right_entity_uuid_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
             path: Box::new(EntityQueryPath::Uuid),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
         let right_owned_by_id_query_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
             path: Box::new(EntityQueryPath::OwnedById),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
 
         let mut compiler = SelectCompiler::new(temporal_axes);

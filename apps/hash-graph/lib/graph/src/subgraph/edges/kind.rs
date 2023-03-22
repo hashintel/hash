@@ -14,7 +14,7 @@ use crate::subgraph::{
     },
 };
 
-pub trait EdgeKind<L: VertexId, R: EdgeEndpoint, const REVERSED: bool>: Sized {
+pub trait EdgeKind<L: VertexId, R: EdgeEndpoint>: Sized {
     type EdgeSet: EdgeEndpointSet<EdgeEndpoint = R>;
 
     fn subgraph_entry_mut<'a>(
@@ -51,9 +51,7 @@ pub enum OntologyEdgeKind {
     ConstrainsLinkDestinationsOn,
 }
 
-impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, EntityTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<EntityTypeVertexId, EntityTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<EntityTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -64,9 +62,7 @@ impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, EntityTypeVertexId, REVE
     }
 }
 
-impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, PropertyTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<EntityTypeVertexId, PropertyTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<PropertyTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -77,9 +73,7 @@ impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, PropertyTypeVertexId, RE
     }
 }
 
-impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<PropertyTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -90,9 +84,7 @@ impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId, 
     }
 }
 
-impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, DataTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<PropertyTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<DataTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -119,9 +111,7 @@ pub enum KnowledgeGraphEdgeKind {
     HasRightEntity,
 }
 
-impl<const REVERSED: bool> EdgeKind<EntityVertexId, EntityIdWithInterval, REVERSED>
-    for KnowledgeGraphEdgeKind
-{
+impl EdgeKind<EntityVertexId, EntityIdWithInterval> for KnowledgeGraphEdgeKind {
     type EdgeSet = EntityIdWithIntervalSet;
 
     fn subgraph_entry_mut<'a>(
@@ -142,7 +132,7 @@ pub enum SharedEdgeKind {
     IsOfType,
 }
 
-impl EdgeKind<EntityVertexId, EntityTypeVertexId, false> for SharedEdgeKind {
+impl EdgeKind<EntityVertexId, EntityTypeVertexId> for SharedEdgeKind {
     type EdgeSet = HashSet<EntityTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(

@@ -61,49 +61,17 @@
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/antsi/**"],
+      "matchPaths": ["libs/**"],
       "groupName": "Rust libraries toolchains",
-      "commitMessageTopic": "Rust toolchain for `antsi`"
+      "commitMessageTopic": "Rust toolchains for `/libs`"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/deer/**"],
-      "groupName": "Rust libraries toolchains",
-      "commitMessageTopic": "Rust toolchain for `deer`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/error-stack/**"],
-      "groupName": "Rust libraries toolchains",
-      "commitMessageTopic": "Rust toolchain for `error-stack`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/sarif/**"],
-      "groupName": "Rust libraries toolchains",
-      "commitMessageTopic": "Rust toolchain for `sarif`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/status/crate/**"],
-      "groupName": "Rust libraries toolchains",
-      "commitMessageTopic": "Rust toolchain for `hash-status`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/hash-graph/**"],
+      "matchPaths": ["apps/**"],
       "groupName": "Rust applications toolchains",
-      "commitMessageTopic": "Rust toolchain for `graph`"
+      "commitMessageTopic": "Rust toolchains for `/apps`"
     }
   ],
   "regexManagers": [

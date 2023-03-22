@@ -23,7 +23,7 @@ use self::{
 use crate::{
     store::{crud::Read, QueryError, Record},
     subgraph::{
-        edges::EdgeKind,
+        edges::{EdgeDirection, EdgeKind},
         identifier::{EdgeEndpoint, VertexId},
     },
 };
@@ -80,34 +80,21 @@ impl Subgraph {
         }
     }
 
-    pub fn insert_edge<L, E, R>(&mut self, left_endpoint: &L, edge_kind: E, right_endpoint: R)
-    where
-        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
-        R: EdgeEndpoint,
-        E: EdgeKind<L, R, false, EdgeSet: Default> + Eq + Hash,
-    {
-        edge_kind.subgraph_entry_mut(&mut self.edges).insert(
-            left_endpoint,
-            edge_kind,
-            false,
-            right_endpoint,
-        );
-    }
-
-    pub fn insert_reversed_edge<L, E, R>(
+    pub fn insert_edge<L, E, R>(
         &mut self,
         left_endpoint: &L,
         edge_kind: E,
+        direction: EdgeDirection,
         right_endpoint: R,
     ) where
         L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
         R: EdgeEndpoint,
-        E: EdgeKind<L, R, true, EdgeSet: Default> + Eq + Hash,
+        E: EdgeKind<L, R, EdgeSet: Default> + Eq + Hash,
     {
         edge_kind.subgraph_entry_mut(&mut self.edges).insert(
             left_endpoint,
             edge_kind,
-            true,
+            direction,
             right_endpoint,
         );
     }

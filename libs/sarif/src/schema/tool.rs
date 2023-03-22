@@ -149,6 +149,14 @@ impl Tool {
 pub struct ToolComponent {
     /// The name of the tool component.
     pub name: Cow<'static, str>,
+
+    /// The tool component version, in whatever format the component natively provides.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub version: Option<Cow<'static, str>>,
+
+    /// The tool component version in the format specified by Semantic Versioning 2.0.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub semantic_version: Option<semver::Version>,
 }
 
 impl ToolComponent {
@@ -164,6 +172,52 @@ impl ToolComponent {
     /// assert_eq!(tool_component.name, "prettier");
     /// ```
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
-        Self { name: name.into() }
+        Self {
+            name: name.into(),
+            version: None,
+            semantic_version: None,
+        }
+    }
+
+    /// Set the version of the tool component.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sarif::schema::ToolComponent;
+    ///
+    /// let tool_component = ToolComponent::new("rustc").with_version("1.70.0");
+    ///
+    /// assert_eq!(tool_component.version, Some("1.70.0".into()));
+    /// ```
+    #[must_use]
+    pub fn with_version(mut self, version: impl Into<Cow<'static, str>>) -> Self {
+        self.version = Some(version.into());
+        self
+    }
+
+    /// Set the semantic version of the tool component.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sarif::schema::ToolComponent;
+    ///
+    /// let tool_component =
+    ///     ToolComponent::new("rustc").with_semantic_version(semver::Version::new(1, 70, 0));
+    ///
+    /// assert_eq!(
+    ///     tool_component.semantic_version,
+    ///     Some(semver::Version::new(1, 70, 0))
+    /// );
+    /// ```
+    #[must_use]
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "destructor of `Option<Version>` cannot be evaluated at compile-time"
+    )]
+    pub fn with_semantic_version(mut self, version: semver::Version) -> Self {
+        self.semantic_version = Some(version);
+        self
     }
 }

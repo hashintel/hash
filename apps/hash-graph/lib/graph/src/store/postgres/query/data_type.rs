@@ -6,7 +6,7 @@ use crate::{
         table::{Column, DataTypes, JsonField, OntologyIds, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 impl PostgresRecord for DataTypeWithMetadata {
@@ -26,6 +26,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             | Self::Schema(_) => vec![],
             Self::BaseUrl
             | Self::Version
+            | Self::TransactionTime
             | Self::UpdatedById
             | Self::OwnedById
             | Self::AdditionalMetadata(_) => {
@@ -36,7 +37,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsValuesOn,
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             })
             .chain(path.relations())
             .collect(),
@@ -48,6 +49,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
         match self {
             Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::TransactionTime => Column::OntologyIds(OntologyIds::TransactionTime),
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
             ))),
