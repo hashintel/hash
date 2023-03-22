@@ -228,6 +228,7 @@ pub enum OntologyIds<'p> {
     Version,
     UpdatedById,
     LatestVersion,
+    TransactionTime,
     AdditionalMetadata(Option<JsonField<'p>>),
 }
 
@@ -267,6 +268,7 @@ impl OntologyIds<'_> {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::BaseUrl => "base_url",
+            Self::TransactionTime => "transaction_time",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
             Self::UpdatedById => "record_created_by_id",
