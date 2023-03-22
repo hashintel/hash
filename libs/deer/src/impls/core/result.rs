@@ -20,7 +20,7 @@ where
     T: Deserialize<'de>,
     E: Deserialize<'de>,
 {
-    type Key = Field;
+    type Key = ResultField;
     type Value = Result<T, E>;
 
     fn value<D>(
@@ -32,8 +32,8 @@ where
         D: Deserializer<'de>,
     {
         match key {
-            Field::Ok => T::deserialize(deserializer).map(Ok),
-            Field::Err => E::deserialize(deserializer).map_err(Err),
+            ResultField::Ok => T::deserialize(deserializer).map(Ok),
+            ResultField::Err => E::deserialize(deserializer).map_err(Err),
         }
         .change_context(FieldAccessError)
     }
@@ -52,24 +52,24 @@ impl FieldVisitor {
 }
 
 impl<'de> Visitor<'de> for FieldVisitor {
-    type Value = Field;
+    type Value = ResultField;
 
     fn expecting(&self) -> Document {
-        Field::reflection()
+        ResultField::reflection()
     }
 
     fn visit_str(self, v: &str) -> error_stack::Result<Self::Value, VisitorError> {
         match v {
-            "Ok" => Ok(Field::Ok),
-            "Err" => Ok(Field::Err),
+            "Ok" => Ok(ResultField::Ok),
+            "Err" => Ok(ResultField::Err),
             name => Err(Self::unknown_variant_error(name)),
         }
     }
 
     fn visit_bytes(self, v: &[u8]) -> error_stack::Result<Self::Value, VisitorError> {
         match v {
-            b"Ok" => Ok(Field::Ok),
-            b"Err" => Ok(Field::Err),
+            b"Ok" => Ok(ResultField::Ok),
+            b"Err" => Ok(ResultField::Err),
             name => {
                 let value = core::str::from_utf8(name)
                     .into_report()
@@ -78,24 +78,24 @@ impl<'de> Visitor<'de> for FieldVisitor {
                     .attach(ExpectedVariant::new("Err"))
                     .change_context(VisitorError)?;
 
-                Err(Self::unknown_variant_error(name))
+                Err(Self::unknown_variant_error(value))
             }
         }
     }
 }
 
-enum Field {
+enum ResultField {
     Ok,
     Err,
 }
 
-impl Reflection for Field {
+impl Reflection for ResultField {
     fn schema(_: &mut Document) -> Schema {
         Schema::new("string").with("enum", ["Ok", "Err"])
     }
 }
 
-impl<'de> Deserialize<'de> for Field {
+impl<'de> Deserialize<'de> for ResultField {
     type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
