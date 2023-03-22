@@ -1,0 +1,5 @@
+extend = { path = "../../../../.github/scripts/rust/Makefile.toml" }
+
+# This crate has no unsafe code
+[tasks.miri]
+disabled = true

@@ -113,6 +113,7 @@ const PostImage: FunctionComponent<{
     <BlogPostLink page={page} sx={{ img: { borderRadius: "4px" } }}>
       <Image
         {...((square ? page.photos.postSquare : null) ?? page.photos.post)}
+        placeholder="blur"
         layout="responsive"
         {...(fill && {
           layout: "fill",

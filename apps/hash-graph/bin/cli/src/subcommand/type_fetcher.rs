@@ -74,7 +74,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
         .filter_map(|r| future::ready(r.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
-            let server = FetchServer;
+            let server = FetchServer { buffer_size: 10 };
             channel.execute(server.serve())
         })
         .buffer_unordered(255)

@@ -15,11 +15,13 @@
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 
+mod shared;
+
 pub mod api;
 
 pub mod knowledge;
 pub mod ontology;
-mod shared;
+pub mod subgraph;
 
 pub mod store;
 

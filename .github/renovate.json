@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "automerge": false,
+  "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
@@ -46,6 +46,10 @@
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`"
+    },
+    {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
@@ -57,33 +61,17 @@
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/error-stack/**"],
-      "groupName": "error-stack",
-      "commitMessageTopic": "Rust toolchain for `error-stack`"
+      "matchPaths": ["libs/**"],
+      "groupName": "Rust libraries toolchains",
+      "commitMessageTopic": "Rust toolchains for `/libs`"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/deer/**"],
-      "groupName": "deer",
-      "commitMessageTopic": "Rust toolchain for `deer`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/antsi/**"],
-      "groupName": "antsi",
-      "commitMessageTopic": "Rust toolchain for `antsi`"
-    },
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/hash-graph/**"],
-      "groupName": "graph",
-      "commitMessageTopic": "Rust toolchain for `graph`"
+      "matchPaths": ["apps/**"],
+      "groupName": "Rust applications toolchains",
+      "commitMessageTopic": "Rust toolchains for `/apps`"
     }
   ],
   "regexManagers": [

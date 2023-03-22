@@ -93,7 +93,10 @@ mod tests {
             },
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         },
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+        subgraph::{
+            edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+            temporal_axes::QueryTemporalAxesUnresolved,
+        },
     };
 
     fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(
@@ -245,9 +248,12 @@ mod tests {
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
 
         compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                DataTypeQueryPath::Title,
-            ))),
+            Some(FilterExpression::Path(
+                PropertyTypeQueryPath::DataTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                    path: DataTypeQueryPath::Title,
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Text",
             )))),
@@ -258,10 +264,10 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+              ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
+              ON "data_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -269,17 +275,23 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                    DataTypeQueryPath::BaseUrl,
-                ))),
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                        path: DataTypeQueryPath::BaseUrl,
+                    },
+                )),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 )))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                    DataTypeQueryPath::Version,
-                ))),
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                        path: DataTypeQueryPath::Version,
+                    },
+                )),
                 Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
@@ -288,18 +300,20 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            SELECT *
-            FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            SELECT * FROM "property_types" AS "property_types_0_0_0"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+              ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_1_0"
-              ON "property_type_data_type_references_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+              ON "data_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_1_1_0"
+              ON "property_type_constrains_values_on_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "data_types" AS "data_types_1_2_0"
+              ON "data_types_1_2_0"."ontology_id" = "property_type_constrains_values_on_1_1_0"."target_data_type_ontology_id"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_1_3_0"
-              ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
+              ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "data_types_1_2_0"."ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
-              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2) AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
+              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2)
+              AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
             "#,
             &[
                 &"Text",
@@ -317,7 +331,11 @@ mod tests {
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
-                PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::Title)),
+                PropertyTypeQueryPath::PropertyTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                    path: Box::new(PropertyTypeQueryPath::Title),
+                    direction: EdgeDirection::Outgoing,
+                },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Text",
@@ -330,10 +348,10 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_1_0"
-              ON "property_type_property_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+              ON "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."ontology_id" = "property_type_property_type_references_0_1_0"."target_property_type_ontology_id"
+              ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
             WHERE "property_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -346,9 +364,12 @@ mod tests {
         let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::Properties(
-                PropertyTypeQueryPath::Title,
-            ))),
+            Some(FilterExpression::Path(
+                EntityTypeQueryPath::PropertyTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                    path: PropertyTypeQueryPath::Title,
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Name",
             )))),
@@ -360,10 +381,10 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_1_0"
-              ON "entity_type_property_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+            INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+              ON "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."ontology_id" = "entity_type_property_type_references_0_1_0"."target_property_type_ontology_id"
+              ON "property_types_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
             WHERE "property_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Name"],
@@ -376,11 +397,17 @@ mod tests {
         let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::Links(
-                Box::new(EntityTypeQueryPath::Links(Box::new(
-                    EntityTypeQueryPath::Title,
-                ))),
-            ))),
+            Some(FilterExpression::Path(
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                    path: Box::new(EntityTypeQueryPath::EntityTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                        path: Box::new(EntityTypeQueryPath::Title),
+                        direction: EdgeDirection::Outgoing,
+                    }),
+                    direction: EdgeDirection::Outgoing,
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Friend Of",
             )))),
@@ -392,17 +419,15 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+              ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_3_0"
-              ON "entity_type_entity_type_references_0_3_0"."source_entity_type_ontology_id" = "entity_types_0_2_0"."ontology_id"
+              ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id"
+            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_3_0"
+              ON "entity_type_constrains_links_on_0_3_0"."source_entity_type_ontology_id" = "entity_types_0_2_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_4_0"
-              ON "entity_types_0_4_0"."ontology_id" = "entity_type_entity_type_references_0_3_0"."target_entity_type_ontology_id"
-            WHERE jsonb_extract_path("entity_types_0_0_0"."schema", 'links', "entity_types_0_2_0"."schema"->>'$id') IS NOT NULL
-              AND jsonb_extract_path("entity_types_0_2_0"."schema", 'links', "entity_types_0_4_0"."schema"->>'$id') IS NOT NULL
-              AND "entity_types_0_4_0"."schema"->>'title' = $1
+              ON "entity_types_0_4_0"."ontology_id" = "entity_type_constrains_links_on_0_3_0"."target_entity_type_ontology_id"
+            WHERE "entity_types_0_4_0"."schema"->>'title' = $1
             "#,
             &[&"Friend Of"],
         );
@@ -414,9 +439,13 @@ mod tests {
         let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::InheritsFrom(
-                Box::new(EntityTypeQueryPath::BaseUrl),
-            ))),
+            Some(FilterExpression::Path(
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(EntityTypeQueryPath::BaseUrl),
+                    direction: EdgeDirection::Outgoing,
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
             )))),
@@ -428,14 +457,13 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+            INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+              ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
+              ON "entity_types_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
               ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
-            WHERE jsonb_contains("entity_types_0_0_0"."schema"->'allOf', jsonb_build_array(jsonb_build_object('$ref', "entity_types_0_2_0"."schema"->>'$id'))) IS NOT NULL
-              AND "ontology_id_with_metadata_0_3_0"."base_url" = $1
+            WHERE "ontology_id_with_metadata_0_3_0"."base_url" = $1
             "#,
             &[&"https://blockprotocol.org/@blockprotocol/types/entity-type/link/"],
         );
@@ -459,10 +487,10 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."entity_uuid" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
             "#,
             &[
                 &pinned_timestamp,
@@ -499,16 +527,18 @@ mod tests {
             &compiler,
             r#"
             SELECT
-                DISTINCT ON("entities_0_0_0"."entity_uuid", "entities_0_0_0"."decision_time")
-                "entities_0_0_0"."entity_uuid",
-                "entities_0_0_0"."decision_time",
-                "entities_0_0_0"."properties"
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."record_created_by_id" = $3
-            ORDER BY "entities_0_0_0"."entity_uuid" ASC,
-                     "entities_0_0_0"."decision_time" DESC
+                DISTINCT ON("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time")
+                "entity_temporal_metadata_0_0_0"."entity_uuid",
+                "entity_temporal_metadata_0_0_0"."decision_time",
+                "entity_editions_0_1_0"."properties"
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_editions_0_1_0"."record_created_by_id" = $3
+            ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
+                     "entity_temporal_metadata_0_0_0"."decision_time" DESC
             "#,
             &[
                 &pinned_timestamp,
@@ -541,10 +571,12 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) = $4
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[
                 &json_path,
@@ -576,10 +608,12 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) IS NULL
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[
                 &json_path,
@@ -596,11 +630,15 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::EditionId,
-                ))),
-            ))),
+            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path: Box::new(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::EditionId),
+                    direction: EdgeDirection::Outgoing,
+                }),
+                direction: EdgeDirection::Incoming,
+            })),
             Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
         compiler.add_filter(&filter);
@@ -609,18 +647,26 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_1_0"."decision_time" && $2
-              AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_edition_id" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."left_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_3_0"
+              ON "entity_has_right_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+             AND "entity_has_right_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_right_entity_0_3_0"."right_owned_by_id"
+             AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_right_entity_0_3_0"."right_entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
@@ -633,11 +679,15 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                Box::new(EntityQueryPath::LeftEntity(Box::new(
-                    EntityQueryPath::EditionId,
-                ))),
-            ))),
+            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path: Box::new(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::EditionId),
+                    direction: EdgeDirection::Outgoing,
+                }),
+                direction: EdgeDirection::Incoming,
+            })),
             Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
         compiler.add_filter(&filter);
@@ -646,18 +696,26 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_1_0"."decision_time" && $2
-              AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_edition_id" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."right_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_right_entity_0_1_0"."owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_3_0"
+              ON "entity_has_left_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+             AND "entity_has_left_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_left_entity_0_3_0"."left_owned_by_id"
+             AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_left_entity_0_3_0"."left_entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
@@ -671,27 +729,35 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
         ]);
@@ -701,13 +767,19 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND ("entities_0_0_0"."left_entity_uuid" = $3)
-              AND ("entities_0_0_0"."left_owned_by_id" = $4)
-              AND ("entities_0_0_0"."right_entity_uuid" = $5)
-              AND ("entities_0_0_0"."right_owned_by_id" = $6)
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3)
+              AND ("entity_has_left_entity_0_1_0"."left_owned_by_id" = $4)
+              AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $5)
+              AND ("entity_has_right_entity_0_1_0"."right_owned_by_id" = $6)
             "#,
             &[
                 &pinned_timestamp,
@@ -728,17 +800,27 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl)),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                    }),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/address",
                 )))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl)),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                    }),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/name",
                 )))),
@@ -749,17 +831,40 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-             SELECT *
-             FROM "entities" AS "entities_0_0_0"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_0" ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0" ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_1" ON "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1" ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
-             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
-               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
-               AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
-               AND ("ontology_id_with_metadata_0_3_0"."base_url" = $3)
-               AND ("ontology_id_with_metadata_0_3_1"."base_url" = $4)
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."left_owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."left_entity_uuid"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
+              ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
+            INNER JOIN "entity_types" AS "entity_types_0_4_0"
+              ON "entity_types_0_4_0"."ontology_id" = "entity_is_of_type_0_3_0"."entity_type_ontology_id"
+            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_5_0"
+              ON "ontology_id_with_metadata_0_5_0"."ontology_id" = "entity_types_0_4_0"."ontology_id"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
+              ON "entity_temporal_metadata_0_2_1"."owned_by_id" = "entity_has_right_entity_0_1_0"."right_owned_by_id"
+             AND "entity_temporal_metadata_0_2_1"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
+              ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
+            INNER JOIN "entity_types" AS "entity_types_0_4_1"
+              ON "entity_types_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
+            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_5_1"
+              ON "ontology_id_with_metadata_0_5_1"."ontology_id" = "entity_types_0_4_1"."ontology_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
+              AND ("ontology_id_with_metadata_0_5_0"."base_url" = $3)
+              AND ("ontology_id_with_metadata_0_5_1"."base_url" = $4)
             "#,
             &[
                 &pinned_timestamp,
@@ -775,12 +880,10 @@ mod tests {
 
         use super::*;
         use crate::{
-            identifier::{
-                account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion,
-                OntologyTypeVertexId,
-            },
+            identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
             knowledge::EntityUuid,
             provenance::OwnedById,
+            subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
         };
 
         #[test]
@@ -818,7 +921,7 @@ mod tests {
 
         #[test]
         fn for_ontology_type_record_id() {
-            let url = OntologyTypeVertexId {
+            let url = DataTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
@@ -847,6 +950,568 @@ mod tests {
         }
 
         #[test]
+        fn for_property_type_constrains_values_on_outgoing() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "data_types" AS "data_types_0_0_0"
+                INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+                  ON "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id" = "data_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_property_type_constrains_values_on_incoming() {
+            let url = DataTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_data_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+                  ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "data_types" AS "data_types_0_2_0"
+                  ON "data_types_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "data_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_property_type_constrains_properties_on_outgoing() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                    EdgeDirection::Outgoing,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+                  ON "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_property_type_constrains_properties_on_incoming() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                    EdgeDirection::Incoming,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+                  ON "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_properties_on_outgoing() {
+            let url = PropertyTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+                  ON "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "property_types" AS "property_types_0_2_0"
+                  ON "property_types_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "property_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_properties_on_incoming() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsPropertiesOn,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "property_types" AS "property_types_0_0_0"
+                INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+                  ON "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_inherits_from_outgoing() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::InheritsFrom,
+                    EdgeDirection::Outgoing,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+                  ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_inherits_from_incoming() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::InheritsFrom,
+                    EdgeDirection::Incoming,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+                  ON "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_links_on_outgoing() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinksOn,
+                    EdgeDirection::Outgoing,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+                  ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_links_on_incoming() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinksOn,
+                    EdgeDirection::Incoming,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+                  ON "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_link_destinations_on_outgoing() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                    EdgeDirection::Outgoing,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_link_destinations_on" AS "entity_type_constrains_link_destinations_on_0_1_0"
+                  ON "entity_type_constrains_link_destinations_on_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_link_destinations_on_0_1_0"."target_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_type_constrains_link_destinations_on_incoming() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter =
+                Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
+                    &url,
+                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                    EdgeDirection::Incoming,
+                );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_type_constrains_link_destinations_on" AS "entity_type_constrains_link_destinations_on_0_1_0"
+                  ON "entity_type_constrains_link_destinations_on_0_1_0"."target_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_type_constrains_link_destinations_on_0_1_0"."source_entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE ("ontology_id_with_metadata_0_3_0"."base_url" = $1)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $2)
+                "#,
+                &[&url.base_id.as_str(), &url.revision_id],
+            );
+        }
+
+        #[test]
+        fn for_entity_is_of_type_outgoing() {
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
+            let mut compiler =
+                SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+
+            let filter = Filter::<EntityTypeWithMetadata>::for_shared_edge_by_entity_id(
+                entity_id,
+                SharedEdgeKind::IsOfType,
+            );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_types" AS "entity_types_0_0_0"
+                INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_1_0"
+                  ON "entity_is_of_type_0_1_0"."entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
+                INNER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                  ON "entity_temporal_metadata_0_2_0"."entity_edition_id" = "entity_is_of_type_0_1_0"."entity_edition_id"
+                WHERE "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_2_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_2_0"."entity_uuid" = $4)
+                "#,
+                &[
+                    &pinned_timestamp,
+                    &temporal_axes.variable_interval(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
+                ],
+            );
+        }
+
+        #[test]
+        fn for_entity_is_of_type_incoming() {
+            let url = EntityTypeVertexId {
+                base_id: BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
+                )
+                .expect("invalid base url"),
+                revision_id: OntologyTypeVersion::new(1),
+            };
+
+            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
+            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+
+            let filter = Filter::<Entity>::for_shared_edge_by_entity_type_vertex_id(
+                &url,
+                SharedEdgeKind::IsOfType,
+            );
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_1_0"
+                  ON "entity_is_of_type_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                INNER JOIN "entity_types" AS "entity_types_0_2_0"
+                  ON "entity_types_0_2_0"."ontology_id" = "entity_is_of_type_0_1_0"."entity_type_ontology_id"
+                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
+                  ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("ontology_id_with_metadata_0_3_0"."base_url" = $3)
+                  AND ("ontology_id_with_metadata_0_3_0"."version" = $4)
+                "#,
+                &[
+                    &pinned_timestamp,
+                    &temporal_axes.variable_interval(),
+                    &url.base_id.as_str(),
+                    &url.revision_id,
+                ],
+            );
+        }
+
+        #[test]
         fn for_entity_by_entity_id() {
             let entity_id = EntityId {
                 owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -864,11 +1529,11 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."owned_by_id" = $3)
-                  AND ("entities_0_0_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_0_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -890,18 +1555,25 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                EdgeDirection::Outgoing,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."right_owned_by_id" = $3)
-                  AND ("entities_0_0_0"."right_entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+                  ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_has_right_entity_0_1_0"."right_owned_by_id" = $3)
+                  AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -923,18 +1595,25 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                EdgeDirection::Outgoing,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."left_owned_by_id" = $3)
-                  AND ("entities_0_0_0"."left_entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+                  ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_has_left_entity_0_1_0"."left_owned_by_id" = $3)
+                  AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -956,22 +1635,30 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_left_entity_by_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                EdgeDirection::Incoming,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."decision_time" && $2
-                  AND ("entities_0_1_0"."owned_by_id" = $3)
-                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+                  ON "entity_has_left_entity_0_1_0"."left_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                  ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."owned_by_id"
+                 AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_2_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_2_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,
@@ -993,22 +1680,30 @@ mod tests {
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
-            let filter = Filter::for_right_entity_by_entity_id(entity_id);
+            let filter = Filter::for_knowledge_graph_edge_by_entity_id(
+                entity_id,
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                EdgeDirection::Incoming,
+            );
             compiler.add_filter(&filter);
 
             test_compilation(
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."decision_time" && $2
-                  AND ("entities_0_1_0"."owned_by_id" = $3)
-                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+                  ON "entity_has_right_entity_0_1_0"."right_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+                 AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+                RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+                  ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_right_entity_0_1_0"."owned_by_id"
+                 AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_2_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_2_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,

@@ -100,11 +100,11 @@ export const EntitySelector = ({
       loading={loading}
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => ({
+        uniqueId: entity.metadata.recordId.entityId,
         /**
-         * @todo we should show namespace the entity belongs on the OntologyChip here.
-         * Using entity type for now
+         * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
          * */
-        $id: entity.metadata.entityTypeId,
+        typeId: entity.metadata.entityTypeId,
         title: generateEntityLabel(entitySubgraph, entity),
       })}
       inputPlaceholder="Search for an entity"

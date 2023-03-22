@@ -7,8 +7,9 @@ export const AutocompleteDropdown = ({
   sx,
   children,
   inputHeight = 0,
+  joined = true,
   ...props
-}: PaperProps & { inputHeight?: number }) => {
+}: PaperProps & { inputHeight?: number; joined?: boolean }) => {
   return (
     <>
       <Box
@@ -45,24 +46,28 @@ export const AutocompleteDropdown = ({
             boxSizing: "border-box",
             borderColor: theme.palette.gray[30],
             boxShadow: "none",
-            [`${popperPlacementSelectors.top} &`]: {
-              borderBottom: 0,
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-            },
-            [`${popperPlacementSelectors.topStart} &`]: {
-              borderBottom: 0,
-              borderBottomLeftRadius: 0,
-            },
-            [`${popperPlacementSelectors.bottom} &`]: {
-              borderTop: 0,
-              borderTopLeftRadius: 0,
-              borderTopRightRadius: 0,
-            },
-            [`${popperPlacementSelectors.bottomStart} &`]: {
-              borderTop: 0,
-              borderTopLeftRadius: 0,
-            },
+            ...(joined
+              ? {
+                  [`${popperPlacementSelectors.top} &`]: {
+                    borderBottom: 0,
+                    borderBottomLeftRadius: 0,
+                    borderBottomRightRadius: 0,
+                  },
+                  [`${popperPlacementSelectors.topStart} &`]: {
+                    borderBottom: 0,
+                    borderBottomLeftRadius: 0,
+                  },
+                  [`${popperPlacementSelectors.bottom} &`]: {
+                    borderTop: 0,
+                    borderTopLeftRadius: 0,
+                    borderTopRightRadius: 0,
+                  },
+                  [`${popperPlacementSelectors.bottomStart} &`]: {
+                    borderTop: 0,
+                    borderTopLeftRadius: 0,
+                  },
+                }
+              : {}),
 
             [`.${autocompleteClasses.listbox}`]: { p: 0 },
             [`.${autocompleteClasses.noOptions}`]: { display: "none" },
