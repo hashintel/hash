@@ -295,11 +295,12 @@ export const Media: FunctionComponent<
           </>
         )}
       </div>
-      <script
-        type="application/ld+json"
-        /* eslint-disable-next-line react/no-danger */
-        dangerouslySetInnerHTML={{
-          __html: `
+      {draftSrc ? (
+        <script
+          type="application/ld+json"
+          /* eslint-disable-next-line react/no-danger */
+          dangerouslySetInnerHTML={{
+            __html: `
             {
               "@context": "https://schema.org/",
               "@type": "ImageObject",
@@ -308,8 +309,9 @@ export const Media: FunctionComponent<
               "contentUrl": ${draftSrc}
             }
           `,
-        }}
-      />
+          }}
+        />
+      ) : null}
     </>
   );
 };
