@@ -5,6 +5,7 @@ use deer::{
     error::{
         DeserializerError, ExpectedLength, ObjectLengthError, ReceivedType, TypeError, Variant,
     },
+    value::NoneDeserializer,
     Context, EnumVisitor, OptionalVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -124,9 +125,12 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             .visit_discriminant(&mut *self)
             .change_context(DeserializerError)?;
 
-        let value = visitor
-            .visit_value(discriminant, &mut *self)
-            .change_context(DeserializerError)?;
+        let value = if is_map {
+            visitor.visit_value(discriminant, &mut *self)
+        } else {
+            visitor.visit_value(discriminant, NoneDeserializer::new(self.context))
+        }
+        .change_context(DeserializerError)?;
 
         if is_map {
             // make sure that we're close and that we have nothing dangling
