@@ -1,5 +1,18 @@
 # sarif specific lints
 
+warn = [
+    "missing_docs",
+    "clippy::expect_used",
+    "clippy::panic",
+    "clippy::unreachable",
+    "clippy::unimplemented",
+    "clippy::alloc_instead_of_core",
+    "clippy::std_instead_of_alloc",
+    "clippy::std_instead_of_core",
+    "clippy::unnecessary_safety_comment",
+    "clippy::unnecessary_safety_doc",
+]
+
 forbid = [
     "unsafe_code",
 ]

@@ -1,0 +1,5 @@
+allow-print-in-tests = true
+allow-expect-in-tests = true
+
+avoid-breaking-exported-api = false
+msrv = "1.70.0"

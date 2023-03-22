@@ -9,6 +9,7 @@ type Entries<T> = {
 export const getFormDataFromSchema = (
   schema: EntityType,
 ): EntityTypeEditorFormData => ({
+  description: schema.description ?? "",
   properties: Object.entries(schema.properties).map(([propertyId, ref]) => {
     const isArray = "type" in ref;
 

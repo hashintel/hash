@@ -17,6 +17,7 @@ export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
 };
 
 export type EntityTypeEditorFormData = {
+  description: string;
   properties: EntityTypeEditorPropertyData[];
   links: EntityTypeEditorLinkData[];
 };

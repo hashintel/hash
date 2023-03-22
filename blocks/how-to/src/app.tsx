@@ -4,6 +4,7 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
+import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import {
   Button,
   EditableField,
