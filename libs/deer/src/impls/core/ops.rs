@@ -16,12 +16,12 @@
 
 use core::{marker::PhantomData, ops::Bound};
 
-use error_stack::{FutureExt, IntoReport, Report, Result, ResultExt};
+use error_stack::{FutureExt, Report, Result, ResultExt};
 
 use crate::{
     error::{
-        DeserializeError, ExpectedLength, ExpectedVariant, FieldAccessError, ObjectLengthError,
-        ReceivedLength, ReceivedVariant, UnknownVariantError, Variant, VisitorError,
+        DeserializeError, ExpectedLength, FieldAccessError, ObjectLengthError, ReceivedLength,
+        ReceivedVariant, UnknownVariantError, Variant, VisitorError,
     },
     impls::helpers::{FieldDiscriminatorKey, FieldDiscriminatorKeyAccess},
     schema::Reference,
