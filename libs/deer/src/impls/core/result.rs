@@ -1,55 +1,55 @@
+use alloc::string::String;
 use core::marker::PhantomData;
 
-use error_stack::{FutureExt, IntoReport, Report, ResultExt};
+use error_stack::{Context, FutureExt, IntoReport, Report, ResultExt};
 
 use crate::{
     error::{
-        DeserializeError, ExpectedVariant, ObjectAccessError, ReceivedVariant, UnknownVariantError,
-        Variant, VisitorError,
+        DeserializeError, ExpectedLength, ExpectedVariant, FieldAccessError, ObjectAccessError,
+        ObjectItemsExtraError, ObjectLengthError, ReceivedLength, ReceivedVariant,
+        UnknownVariantError, Variant, VisitorError,
     },
+    schema::Reference,
     Deserialize, Deserializer, Document, FieldAccess, ObjectAccess, Reflection, Schema, Visitor,
 };
 
-// rename into field visitor!
-enum Field<T, E> {
-    Ok,
-    Err,
-}
+struct ResultFieldAccess<T, E>(PhantomData<fn() -> *const (T, E)>);
 
-impl<'de, T: Deserialize<'de>, E: Deserialize<'de>> Deserialize<'de> for Field<T, E> {
-    type Reflection = ();
-
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_str(de).change_context(DeserializeError)
-    }
-}
-
-impl<'de, T: Deserialize<'de>, E: Deserialize<'de>> FieldAccess<'de> for Field<T, E> {
+impl<'de, T, E> FieldAccess<'de> for ResultFieldAccess<T, E>
+where
+    T: Deserialize<'de>,
+    E: Deserialize<'de>,
+{
+    type Key = Field;
     type Value = Result<T, E>;
 
-    fn value<D>(&self, deserializer: D) -> error_stack::Result<Self::Value, ObjectAccessError>
+    fn value<D>(
+        &self,
+        key: &Self::Key,
+        deserializer: D,
+    ) -> error_stack::Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>,
     {
-        match self {
-            Self::Ok => T::deserialize(deserializer)
-                .map(Ok)
-                .change_context(ObjectAccessError),
-
-            Self::Err => T::deserialize(deserializer)
-                .map(Err)
-                .change_context(ObjectAccessError),
+        match key {
+            Field::Ok => T::deserialize(deserializer).map(Ok),
+            Field::Err => E::deserialize(deserializer).map_err(Err),
         }
-    }
-}
-
-impl Reflection for Field {
-    fn schema(doc: &mut Document) -> Schema {
-        Schema::new("string").with("enum", ["Ok", "Err"])
+        .change_context(FieldAccessError)
     }
 }
 
 struct FieldVisitor;
+
+impl FieldVisitor {
+    fn unknown_variant_error(name: impl Into<String>) -> Report<impl Context> {
+        Report::new(UnknownVariantError.into_error())
+            .attach(ReceivedVariant::new(name))
+            .attach(ExpectedVariant::new("Ok"))
+            .attach(ExpectedVariant::new("Err"))
+            .change_context(VisitorError)
+    }
+}
 
 impl<'de> Visitor<'de> for FieldVisitor {
     type Value = Field;
@@ -62,11 +62,7 @@ impl<'de> Visitor<'de> for FieldVisitor {
         match v {
             "Ok" => Ok(Field::Ok),
             "Err" => Ok(Field::Err),
-            name => Err(Report::new(UnknownVariantError.into_error())
-                .attach(ReceivedVariant::new(name))
-                .attach(ExpectedVariant::new("Ok"))
-                .attach(ExpectedVariant::new("Err"))
-                .change_context(VisitorError)),
+            name => Err(Self::unknown_variant_error(name)),
         }
     }
 
@@ -82,21 +78,29 @@ impl<'de> Visitor<'de> for FieldVisitor {
                     .attach(ExpectedVariant::new("Err"))
                     .change_context(VisitorError)?;
 
-                Err(Report::new(UnknownVariantError.into_error())
-                    .attach(ReceivedVariant::new(value))
-                    .attach(ExpectedVariant::new("Ok"))
-                    .attach(ExpectedVariant::new("Err"))
-                    .change_context(VisitorError))
+                Err(Self::unknown_variant_error(name))
             }
         }
     }
 }
 
+enum Field {
+    Ok,
+    Err,
+}
+
+impl Reflection for Field {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("string").with("enum", ["Ok", "Err"])
+    }
+}
+
 impl<'de> Deserialize<'de> for Field {
-    type Reflection = ();
+    type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        todo!()
+        de.deserialize_str(FieldVisitor)
+            .change_context(DeserializeError)
     }
 }
 
@@ -115,21 +119,59 @@ impl<'de, T: Deserialize<'de>, E: Deserialize<'de>> Visitor<'de> for ResultVisit
     {
         v.set_bounded(1).change_context(VisitorError)?;
 
-        // TODO: the problem - the type is different depending on the variant
-        //  we would first need to get the key THEN the value
+        let Some(field) = v.field(ResultFieldAccess(PhantomData)) else {
+            return Err(Report::new(ObjectLengthError.into_error())
+                .attach(ExpectedLength::new(1))
+                .attach(ReceivedLength::new(0))
+                .change_context(VisitorError));
+        };
 
-        // TODO: value by key
-        v.next_late(|key: &Field| match key {
-            Field::Ok => T::deserialize(),
-            Field::Err => V::deserialize,
-        });
+        v.end()?;
+
+        field.map(|(_, value)| value).change_context(VisitorError)
+    }
+}
+
+struct ResultReflection<T: ?Sized, E: ?Sized>(PhantomData<(*const T, *const E)>);
+
+impl<T, E> Reflection for ResultReflection<T, E>
+where
+    T: Reflection + ?Sized,
+    E: Reflection + ?Sized,
+{
+    /// # Schema
+    ///
+    /// ```json
+    /// {
+    ///     "type": "object",
+    ///     "additionalProperties": false,
+    ///     "oneOf": [
+    ///         {"properties": {"Ok": <ref>}}
+    ///         {"properties": {"Err": <ref>}}
+    ///     ]
+    /// }
+    /// ```
+    fn schema(doc: &mut Document) -> Schema {
+        #[derive(serde::Serialize)]
+        enum Properties {
+            Ok(Reference),
+            Err(Reference),
+        }
+
+        Schema::new("object")
+            .with("oneOf", [
+                Properties::Ok(doc.add::<T>()),
+                Properties::Err(doc.add::<E>()),
+            ])
+            .with("additionalProperties", false)
     }
 }
 
 impl<'de, T: Deserialize<'de>, E: Deserialize<'de>> Deserialize<'de> for Result<T, E> {
-    type Reflection = ();
+    type Reflection = ResultReflection<T::Reflection, E::Reflection>;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        todo!()
+        de.deserialize_object(ResultVisitor(PhantomData))
+            .change_context(DeserializeError)
     }
 }

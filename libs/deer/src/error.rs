@@ -55,6 +55,8 @@
 //!
 //! [`Location`]: core::panic::Location
 
+// TODO: error cause (the error underlying the processed `Error` in the strain)
+
 use alloc::{boxed::Box, format, string::String};
 #[cfg(nightly)]
 use core::any::Demand;
