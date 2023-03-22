@@ -13,6 +13,7 @@ RUN apk add --no-cache gcc musl-dev bash && \
 
 SHELL ["bash", "-c"]
 
+
 FROM rust as node_base
 
 WORKDIR /usr/local/
@@ -27,6 +28,7 @@ COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY libs/@local/tsconfig libs/@local/tsconfig
 
 RUN yarn workspace @local/status install --frozen-lockfile --ignore-scripts --prefer-offline
+
 
 FROM node_base AS builder
 
