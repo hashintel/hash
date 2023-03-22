@@ -157,21 +157,26 @@ pub trait ArrayAccess<'de> {
 //      * it is very convoluted to implemented
 //
 //  Is there a better, more modern, more ergonomic way?
-pub trait VariantVisitor<'de> {
+pub trait EnumVisitor<'de> {
     type Discriminator: Deserialize<'de>;
 
     // the value we will end up with
     type Value;
 
-    fn visit_discriminator<D>(
-        &self,
-        deserializer: D,
-    ) -> Result<Self::Discriminator, ArrayAccessError>
+    fn expecting(&self) -> Document;
+
+    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_discriminator<D>(&self, deserializer: D) -> Result<Self::Discriminator, VisitorError>
     where
         D: Deserializer<'de>,
     {
         <Self::Discriminator as Deserialize<'de>>::deserialize(deserializer)
-            .change_context(ArrayAccessError)
+            .change_context(VisitorError)
     }
 
     // Facts:
@@ -184,7 +189,11 @@ pub trait VariantVisitor<'de> {
     // depending on the format we might not know what follows, so the method invoking the enum, who
     // knows it needs to instruct the Deserializer to do so
 
-    fn visit_value<D>(&self, discriminator: Self::Discriminator, deserializer: D)
+    fn visit_value<D>(
+        self,
+        discriminator: Self::Discriminator,
+        deserializer: D,
+    ) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>;
 }
@@ -633,6 +642,14 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>;
+
+    /// Hint that the `Deserialize` type expect an enum
+    ///
+    /// Due to the very special nature of an enum (being a fundamental type) a special visitor is
+    /// used.
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,

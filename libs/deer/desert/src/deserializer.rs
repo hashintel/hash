@@ -1,7 +1,7 @@
 use alloc::borrow::ToOwned;
 use core::ops::Range;
 
-use deer::{error::DeserializerError, Context, OptionalVisitor, Visitor};
+use deer::{error::DeserializerError, Context, EnumVisitor, OptionalVisitor, Visitor};
 use error_stack::{Result, ResultExt};
 
 use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
@@ -174,5 +174,11 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
         V: OptionalVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
     }
 }
