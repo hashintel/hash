@@ -9,6 +9,7 @@ use crate::{
         ObjectItemsExtraError, ObjectLengthError, ReceivedLength, ReceivedVariant,
         UnknownVariantError, Variant, VisitorError,
     },
+    impls::helpers::{FieldDiscriminatorKey, FieldDiscriminatorKeyAccess},
     schema::Reference,
     Deserialize, Deserializer, Document, FieldAccess, ObjectAccess, Reflection, Schema, Visitor,
 };
@@ -39,51 +40,6 @@ where
     }
 }
 
-struct FieldVisitor;
-
-impl FieldVisitor {
-    fn unknown_variant_error(name: impl Into<String>) -> Report<impl Context> {
-        Report::new(UnknownVariantError.into_error())
-            .attach(ReceivedVariant::new(name))
-            .attach(ExpectedVariant::new("Ok"))
-            .attach(ExpectedVariant::new("Err"))
-            .change_context(VisitorError)
-    }
-}
-
-impl<'de> Visitor<'de> for FieldVisitor {
-    type Value = ResultField;
-
-    fn expecting(&self) -> Document {
-        ResultField::reflection()
-    }
-
-    fn visit_str(self, v: &str) -> error_stack::Result<Self::Value, VisitorError> {
-        match v {
-            "Ok" => Ok(ResultField::Ok),
-            "Err" => Ok(ResultField::Err),
-            name => Err(Self::unknown_variant_error(name)),
-        }
-    }
-
-    fn visit_bytes(self, v: &[u8]) -> error_stack::Result<Self::Value, VisitorError> {
-        match v {
-            b"Ok" => Ok(ResultField::Ok),
-            b"Err" => Ok(ResultField::Err),
-            name => {
-                let value = core::str::from_utf8(name)
-                    .into_report()
-                    .change_context(UnknownVariantError.into_error())
-                    .attach(ExpectedVariant::new("Ok"))
-                    .attach(ExpectedVariant::new("Err"))
-                    .change_context(VisitorError)?;
-
-                Err(Self::unknown_variant_error(value))
-            }
-        }
-    }
-}
-
 enum ResultField {
     Ok,
     Err,
@@ -95,11 +51,29 @@ impl Reflection for ResultField {
     }
 }
 
+impl FieldDiscriminatorKey for ResultField {
+    fn try_str(value: &str) -> Option<Self> {
+        match value {
+            "Ok" => Some(ResultField::Ok),
+            "Err" => Some(ResultField::Err),
+            _ => None,
+        }
+    }
+
+    fn try_bytes(value: &[u8]) -> Option<Self> {
+        match value {
+            b"Ok" => Some(ResultField::Ok),
+            b"Err" => Some(ResultField::Err),
+            _ => None,
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for ResultField {
     type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_str(FieldVisitor)
+        de.deserialize_str(FieldDiscriminatorKeyAccess::new())
             .change_context(DeserializeError)
     }
 }
