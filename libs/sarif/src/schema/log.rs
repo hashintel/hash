@@ -309,27 +309,27 @@ pub(crate) mod tests {
 
     #[test]
     fn full() {
-        let runs = [
-            Run::new(
-                Tool::new(ToolComponent::new("prettier"))
-                    .with_extension(ToolComponent::new("prettier-plugin-sql"))
-                    .with_properties(|properties| {
+        validate_schema(
+            &SarifLog::new(SchemaVersion::V2_1_0).with_runs([
+                Run::new(
+                    Tool::new(ToolComponent::new("prettier"))
+                        .with_extension(ToolComponent::new("prettier-plugin-sql"))
+                        .with_properties(|properties| {
+                            properties
+                                .with_tag("format")
+                                .with_property("language", "sql")
+                                .with_property("precision", "low")
+                        }),
+                ),
+                Run::new(
+                    Tool::new(ToolComponent::new("rustfmt")).with_properties(|properties| {
                         properties
                             .with_tag("format")
-                            .with_property("language", "sql")
-                            .with_property("precision", "low")
+                            .with_property("language", "rust")
+                            .with_property("precision", "high")
                     }),
-            ),
-            Run::new(
-                Tool::new(ToolComponent::new("rustfmt")).with_properties(|properties| {
-                    properties
-                        .with_tag("format")
-                        .with_property("language", "rust")
-                        .with_property("precision", "high")
-                }),
-            ),
-        ];
-
-        validate_schema(&runs.into_iter().collect());
+                ),
+            ]),
+        );
     }
 }
