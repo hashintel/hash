@@ -3,8 +3,7 @@ require("setimmediate");
 
 import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { theme } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
+import { fluidFontClassName, theme } from "@hashintel/design-system";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { LinkListCard } from "./entity-type-editor/link-list-card";

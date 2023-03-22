@@ -5,9 +5,9 @@ import {
   Chip,
   ChipProps,
   faCube,
+  fluidFontClassName,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   buttonClasses,

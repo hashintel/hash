@@ -6,9 +6,9 @@ import {
   MenuItem,
   MenuItemProps,
   OntologyChip,
+  fluidFontClassName,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   Divider,

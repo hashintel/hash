@@ -1,6 +1,9 @@
 import { PropertyType } from "@blockprotocol/type-system/slim";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
+import {
+  fluidFontClassName,
+  Chip,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 

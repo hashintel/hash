@@ -1,5 +1,6 @@
 import { BaseUrl } from "@blockprotocol/type-system/slim";
 import {
+  fluidFontClassName,
   AutocompleteDropdown,
   Button,
   Chip,
@@ -7,7 +8,6 @@ import {
   StyledPlusCircleIcon,
   TextField,
 } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import {

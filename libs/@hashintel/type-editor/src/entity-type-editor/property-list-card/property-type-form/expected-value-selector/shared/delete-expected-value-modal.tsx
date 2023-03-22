@@ -1,11 +1,11 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
+  fluidFontClassName,
   Button,
   FontAwesomeIcon,
   IconButton,
   Modal,
 } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";

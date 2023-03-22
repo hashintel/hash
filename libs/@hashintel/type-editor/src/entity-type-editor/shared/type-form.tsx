@@ -1,6 +1,7 @@
 import { BaseUrl } from "@blockprotocol/type-system/slim";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
+  fluidFontClassName,
   Button,
   ButtonProps,
   FontAwesomeIcon,
@@ -8,7 +9,6 @@ import {
   Modal,
   TextField,
 } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/src/fluid-fonts";
 import {
   Box,
   Divider,
