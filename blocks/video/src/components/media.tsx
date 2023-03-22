@@ -243,7 +243,6 @@ export const Media: FunctionComponent<
 
   return (
     <>
-      {" "}
       <div ref={blockRef}>
         {draftSrc ? (
           <MediaWithCaption
