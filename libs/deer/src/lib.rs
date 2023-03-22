@@ -45,17 +45,19 @@ struct GenericFieldAccess<T, U>(PhantomData<fn() -> *const (T, U)>);
 
 impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for GenericFieldAccess<T, U> {
     type Key = T;
-    type Value = U;
+    type Value = (T, U);
 
-    fn value<D>(&self, _: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>,
     {
-        U::deserialize(deserializer).change_context(FieldAccessError)
+        U::deserialize(deserializer)
+            .map(|value| (key, value))
+            .change_context(FieldAccessError)
     }
 }
 
-type FieldKeyValue<'de, F> = (<F as FieldAccess<'de>>::Key, <F as FieldAccess<'de>>::Value);
+type FieldKeyValue<'de, F> = <F as FieldAccess<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldKeyValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
@@ -101,7 +103,7 @@ pub trait ObjectAccess<'de> {
 }
 
 // TODO: should be `FieldVisitor`
-pub trait FieldAccess<'de> {
+pub trait FieldAccess<'de>: Sized {
     type Key: Deserialize<'de>;
     type Value;
 
@@ -112,7 +114,7 @@ pub trait FieldAccess<'de> {
         <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(FieldAccessError)
     }
 
-    fn value<D>(&self, key: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>;
 }

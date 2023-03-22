@@ -2,7 +2,9 @@ use alloc::borrow::ToOwned;
 use core::ops::Range;
 
 use deer::{
-    error::{DeserializerError, ExpectedLength, ObjectLengthError, Variant},
+    error::{
+        DeserializerError, ExpectedLength, ObjectLengthError, ReceivedType, TypeError, Variant,
+    },
     Context, EnumVisitor, OptionalVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -119,11 +121,11 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         };
 
         let discriminant = visitor
-            .visit_discriminant(self)
+            .visit_discriminant(&mut *self)
             .change_context(DeserializerError)?;
 
         let value = visitor
-            .visit_value(discriminant)
+            .visit_value(discriminant, &mut *self)
             .change_context(DeserializerError)?;
 
         if is_map {
@@ -131,9 +133,11 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             if self.peek() == Token::ObjectEnd {
                 self.next();
             } else {
-                return Err(Report::new(ObjectLengthError.into_error())
-                    .attach(ExpectedLength::new(1))
-                    .change_context(DeserializerError));
+                // we received a unit type, therefore error should be a type error
+                // we cannot determine the type we received, just that it is a map
+                // TODO: once HashMap has a reflection use it here as ReceivedType (or
+                //  UnknownObjectSchema?)
+                return Err(Report::new(TypeError.into_error()).change_context(DeserializerError));
             }
         }
 

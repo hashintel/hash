@@ -35,11 +35,11 @@ use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
         DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
-        ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant,
+        ObjectItemsExtraError, ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType,
+        ReceivedValue, TypeError, ValueError, Variant,
     },
-    Context, Deserialize, DeserializeOwned, Document, FieldAccess, OptionalVisitor, Reflection,
-    Schema, Visitor,
+    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldAccess, OptionalVisitor,
+    Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -387,6 +387,61 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             _ => visitor.visit_some(self),
         }
         .change_context(DeserializerError)
+    }
+
+    // TODO: I do **not** like how much logic is in here
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let Some(value) = self.value else {
+            return visitor.visit_none().change_context(DeserializerError)
+        };
+
+        let context = self.context;
+
+        match value {
+            Value::Object(object) => {
+                if object.len() != 1 {
+                    return Err(Report::new(ObjectLengthError.into_error())
+                        .attach(ExpectedLength::new(1))
+                        .attach(ReceivedLength::new(object.len()))
+                        .change_context(DeserializerError));
+                }
+
+                let (key, value) = object
+                    .into_iter()
+                    .next()
+                    .expect("previous check should make this infallible");
+
+                let discriminant = visitor
+                    .visit_discriminant(Deserializer {
+                        value: Some(key.into()),
+                        context,
+                    })
+                    .change_context(DeserializerError)?;
+
+                visitor
+                    .visit_value(discriminant, Deserializer {
+                        value: Some(value),
+                        context,
+                    })
+                    .change_context(DeserializerError)
+            }
+            _ => {
+                let discriminant = visitor.visit_discriminant(Deserializer {
+                    value: Some(value),
+                    context,
+                })?;
+
+                visitor
+                    .visit_value(discriminant, Deserializer {
+                        value: None,
+                        context,
+                    })
+                    .change_context(DeserializerError)
+            }
+        }
     }
 }
 
