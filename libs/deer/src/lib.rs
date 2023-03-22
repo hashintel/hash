@@ -100,6 +100,7 @@ pub trait ObjectAccess<'de> {
     fn end(self) -> Result<(), ObjectAccessError>;
 }
 
+// TODO: should be `FieldVisitor`
 pub trait FieldAccess<'de> {
     type Key: Deserialize<'de>;
     type Value;
@@ -150,9 +151,47 @@ pub trait ArrayAccess<'de> {
 //  2) generic variant access instance
 //
 //  depending on the variant value different methods on `VariantAccess` are called
-pub trait VariantAccess<'de>: Sized {}
+//
+//  What I don't like about this approach:
+//      * there's no guarantee what will be called
+//      * it is very convoluted to implemented
+//
+//  Is there a better, more modern, more ergonomic way?
+pub trait VariantVisitor<'de> {
+    type Discriminator: Deserialize<'de>;
 
-pub trait EnumAccess<'de> {}
+    // the value we will end up with
+    type Value;
+
+    fn visit_discriminator<D>(
+        &self,
+        deserializer: D,
+    ) -> Result<Self::Discriminator, ArrayAccessError>
+    where
+        D: Deserializer<'de>,
+    {
+        <Self::Discriminator as Deserialize<'de>>::deserialize(deserializer)
+            .change_context(ArrayAccessError)
+    }
+
+    // Facts:
+    //  we have 4 different types:
+    //      * newtype
+    //      * tuple
+    //      * struct
+    //      * unit
+    //
+    // depending on the format we might not know what follows, so the method invoking the enum, who
+    // knows it needs to instruct the Deserializer to do so
+
+    fn visit_value<D>(&self, discriminator: Self::Discriminator, deserializer: D)
+    where
+        D: Deserializer<'de>;
+}
+
+// pub trait VariantAccess<'de>: Sized {}
+//
+// pub trait EnumAccess<'de> {}
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
