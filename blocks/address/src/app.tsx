@@ -620,6 +620,7 @@ export const App: BlockComponent<RootEntity> = ({
                             maxWidth: INPUT_MAX_WIDTH,
                             [`.${autocompleteClasses.input}`]: {
                               paddingLeft: "0 !important",
+                              fontSize: 16,
                               // Override WP Input styles
                               lineHeight: "24px",
                               minHeight: "unset",
