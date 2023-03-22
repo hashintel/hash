@@ -22,11 +22,9 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
-    pub(crate) async fn traverse_data_type(
+    pub(crate) async fn traverse_data_types(
         &self,
-        data_type_ids: Vec<DataTypeVertexId>,
-        temporal_axes: QueryTemporalAxes,
-        graph_resolve_depths: GraphResolveDepths,
+        queue: Vec<(DataTypeVertexId, GraphResolveDepths, QueryTemporalAxes)>,
         _traversal_context: &mut TraversalContext,
         _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
@@ -94,10 +92,19 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
         //       vertices and have to `.collect()` the keys.
-        self.traverse_data_type(
-            subgraph.vertices.data_types.keys().cloned().collect(),
-            subgraph.temporal_axes.resolved.clone(),
-            subgraph.depths,
+        self.traverse_data_types(
+            subgraph
+                .vertices
+                .data_types
+                .keys()
+                .map(|id| {
+                    (
+                        id.clone(),
+                        subgraph.depths,
+                        subgraph.temporal_axes.resolved.clone(),
+                    )
+                })
+                .collect(),
             &mut TraversalContext,
             &mut subgraph,
         )

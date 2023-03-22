@@ -7,8 +7,10 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
+    knowledge::EntityQueryPath,
     ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
+    subgraph::edges::{OntologyEdgeKind, SharedEdgeKind},
 };
 
 /// A path to a [`EntityType`] field.
@@ -145,29 +147,6 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::examples()`]: type_system::EntityType::examples
     Examples,
-    /// Corresponds to [`EntityType::property_type_references()`].
-    ///
-    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
-    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
-    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
-    /// where `...` is the path to the desired field of the [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
-    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::Properties(PropertyTypeQueryPath::BaseUrl)
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    /// [`EntityType::property_type_references()`]: type_system::EntityType::property_type_references
-    /// [`PropertyType`]: type_system::PropertyType
-    Properties(PropertyTypeQueryPath<'p>),
     /// Corresponds to [`EntityType::required()`].
     ///
     /// ```rust
@@ -181,6 +160,84 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
+    /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
+    ///
+    /// The corresponding reversed edge is [`PropertyTypeQueryPath::EntityTypeEdge`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`ConstrainsPropertiesOn`]
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
+    /// [`EntityType`]: type_system::EntityType
+    /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
+    ///
+    ///
+    /// ## Constraining property types
+    ///
+    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
+    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
+    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
+    /// where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
+    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::PropertyTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///     path: PropertyTypeQueryPath::BaseUrl
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    PropertyTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: PropertyTypeQueryPath<'p>,
+    },
+    /// An edge between two [`EntityType`]s using an [`OntologyEdgeKind`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`InheritsFrom`]
+    /// - [`ConstrainsLinksOn`]
+    /// - [`ConstrainsLinkDestinationsOn`]
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`InheritsFrom`]: OntologyEdgeKind::InheritsFrom
+    /// [`ConstrainsLinksOn`]: OntologyEdgeKind::ConstrainsLinksOn
+    /// [`ConstrainsLinkDestinationsOn`]: OntologyEdgeKind::ConstrainsLinkDestinationsOn
+    ///
+    ///
+    /// ## Inheritance
+    ///
+    /// Currently, does not correspond to any field of [`EntityType`].
+    ///
+    /// In the future, this will most likely correspond to something like
+    /// `EntityType::inherits_from()`.
+    ///
+    /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     reversed: false
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    ///
+    /// ## Constraining links
+    ///
     /// Corresponds to the keys of [`EntityType::link_mappings()`].
     ///
     /// As an [`EntityType`] can link to multiple [`EntityType`]s, the deserialized path
@@ -193,43 +250,41 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
+    /// # use graph::subgraph::edges::OntologyEdgeKind;
     /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::BaseUrl))
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     reversed: false
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::EntityType
     /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
-    Links(Box<Self>),
-    /// Currently, does not correspond to any field of [`EntityType`].
     ///
-    /// In the future, this will most likely correspond to something like
-    /// [`EntityType::inherits_from()`].
     ///
-    /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
-    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
-    /// only the `*` selector is available, so the path will be deserialized as
-    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
-    /// [`EntityType`].
+    /// ## Constraining link destinations
     ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::InheritsFrom(Box::new(EntityTypeQueryPath::BaseUrl))
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
+    /// Corresponds to the values of [`EntityType::link_mappings()`].
     ///
-    /// [`EntityType`]: type_system::EntityType
-    /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
-    InheritsFrom(Box<Self>),
+    /// Only used internally and not available for deserialization, yet.
+    EntityTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: Box<Self>,
+        reversed: bool,
+    },
+    /// A reversed edge from an [`Entity`] to this [`EntityType`] using a [`SharedEdgeKind`].
+    ///
+    /// The corresponding edge is [`EntityQueryPath::EntityTypeEdge`].
+    ///
+    /// Only used internally and not available for deserialization.
+    ///
+    /// [`EntityType`]: type_system::PropertyType
+    /// [`Entity`]: crate::knowledge::Entity
+    EntityEdge {
+        edge_kind: SharedEdgeKind,
+        path: Box<EntityQueryPath<'p>>,
+    },
     /// Only used internally and not available for deserialization.
     OntologyId,
     /// Only used internally and not available for deserialization.
@@ -275,8 +330,9 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Title | Self::Description => ParameterType::Text,
-            Self::Properties(path) => path.expected_type(),
-            Self::Links(path) | Self::InheritsFrom(path) => path.expected_type(),
+            Self::PropertyTypeEdge { path, .. } => path.expected_type(),
+            Self::EntityTypeEdge { path, .. } => path.expected_type(),
+            Self::EntityEdge { path, .. } => path.expected_type(),
         }
     }
 }
@@ -295,10 +351,47 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Examples => fmt.write_str("examples"),
-            Self::Properties(path) => write!(fmt, "properties.{path}"),
             Self::Required => fmt.write_str("required"),
-            Self::Links(path) => write!(fmt, "links.{path}"),
-            Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
+            Self::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path,
+            } => write!(fmt, "properties.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
+            Self::PropertyTypeEdge { edge_kind, path } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                path,
+                ..
+            } => write!(fmt, "inheritsFrom.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                path,
+                ..
+            } => write!(fmt, "links.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path,
+                ..
+            } => write!(fmt, "linkDestinations.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
+            Self::EntityTypeEdge {
+                edge_kind, path, ..
+            } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            Self::EntityEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+                ..
+            } => write!(fmt, "isTypeOf.{path}"),
             Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
             Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
@@ -372,9 +465,10 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                EntityTypeQueryPath::Properties(
-                    PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
-                )
+                EntityTypeQueryPath::PropertyTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                    path: PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+                }
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
             EntityTypeQueryToken::Links => {
@@ -382,16 +476,22 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                EntityTypeQueryPath::Links(Box::new(Self::new(self.position).visit_seq(seq)?))
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    reversed: false,
+                }
             }
             EntityTypeQueryToken::InheritsFrom => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                EntityTypeQueryPath::InheritsFrom(Box::new(
-                    Self::new(self.position).visit_seq(seq)?,
-                ))
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    reversed: false,
+                }
             }
             EntityTypeQueryToken::Schema => {
                 let mut path_tokens = Vec::new();
@@ -449,12 +549,19 @@ mod tests {
         assert_eq!(deserialize(["examples"]), EntityTypeQueryPath::Examples);
         assert_eq!(
             deserialize(["properties", "*", "version"]),
-            EntityTypeQueryPath::Properties(PropertyTypeQueryPath::Version)
+            EntityTypeQueryPath::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path: PropertyTypeQueryPath::Version
+            }
         );
         assert_eq!(deserialize(["required"]), EntityTypeQueryPath::Required);
         assert_eq!(
             deserialize(["links", "*", "version"]),
-            EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::Version))
+            EntityTypeQueryPath::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                path: Box::new(EntityTypeQueryPath::Version),
+                reversed: false,
+            },
         );
 
         assert_eq!(

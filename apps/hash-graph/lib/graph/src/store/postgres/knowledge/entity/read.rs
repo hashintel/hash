@@ -24,7 +24,10 @@ use crate::{
         query::Filter,
         AsClient, PostgresStore, QueryError,
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
+    subgraph::{
+        edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+        temporal_axes::QueryTemporalAxes,
+    },
 };
 
 #[async_trait]
@@ -36,12 +39,26 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
-        let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
-        let left_owned_by_id_query_path =
-            EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::OwnedById));
-        let right_entity_uuid_path = EntityQueryPath::RightEntity(Box::new(EntityQueryPath::Uuid));
-        let right_owned_by_id_query_path =
-            EntityQueryPath::RightEntity(Box::new(EntityQueryPath::OwnedById));
+        let left_entity_uuid_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+            path: Box::new(EntityQueryPath::Uuid),
+            reversed: false,
+        };
+        let left_owned_by_id_query_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+            path: Box::new(EntityQueryPath::OwnedById),
+            reversed: false,
+        };
+        let right_entity_uuid_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+            path: Box::new(EntityQueryPath::Uuid),
+            reversed: false,
+        };
+        let right_owned_by_id_query_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+            path: Box::new(EntityQueryPath::OwnedById),
+            reversed: false,
+        };
 
         let mut compiler = SelectCompiler::new(temporal_axes);
 
@@ -55,8 +72,10 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let decision_time_index = compiler.add_selection_path(&EntityQueryPath::DecisionTime);
         let transaction_time_index = compiler.add_selection_path(&EntityQueryPath::TransactionTime);
 
-        let type_id_index =
-            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUrl));
+        let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+            edge_kind: SharedEdgeKind::IsOfType,
+            path: EntityTypeQueryPath::VersionedUrl,
+        });
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
 

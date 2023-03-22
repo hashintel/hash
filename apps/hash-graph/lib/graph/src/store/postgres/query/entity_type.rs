@@ -6,6 +6,7 @@ use crate::{
         table::{Column, EntityTypes, JsonField, OntologyIds, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
+    subgraph::edges::{OntologyEdgeKind, SharedEdgeKind},
 };
 
 impl PostgresRecord for EntityTypeWithMetadata {
@@ -18,6 +19,13 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
+            Self::VersionedUrl
+            | Self::Title
+            | Self::Description
+            | Self::Examples
+            | Self::Required
+            | Self::OntologyId
+            | Self::Schema(_) => vec![],
             Self::BaseUrl
             | Self::Version
             | Self::RecordCreatedById
@@ -25,22 +33,55 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::AdditionalMetadata(_) => {
                 vec![Relation::EntityTypeIds]
             }
-            Self::Properties(path) => once(Relation::Reference(
-                ReferenceTable::EntityTypeConstrainsPropertiesOn,
-            ))
+            Self::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
+                reversed: false,
+            })
             .chain(path.relations())
             .collect(),
-            Self::Links(path) => once(Relation::Reference(
-                ReferenceTable::EntityTypeConstrainsLinksOn,
-            ))
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                path,
+                reversed,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeInheritsFrom,
+                reversed: *reversed,
+            })
             .chain(path.relations())
             .collect(),
-            Self::InheritsFrom(path) => {
-                once(Relation::Reference(ReferenceTable::EntityTypeInheritsFrom))
-                    .chain(path.relations())
-                    .collect()
-            }
-            _ => vec![],
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                path,
+                reversed,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsLinksOn,
+                reversed: *reversed,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path,
+                reversed,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
+                reversed: *reversed,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityIsOfType,
+                reversed: true,
+            })
+            .chain(path.relations())
+            .collect(),
+            _ => unreachable!("Invalid path: {self}"),
         }
     }
 
@@ -73,8 +114,9 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::Required => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("required"))))
             }
-            Self::Links(path) | Self::InheritsFrom(path) => path.terminating_column(),
-            Self::Properties(path) => path.terminating_column(),
+            Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
+            Self::EntityTypeEdge { path, .. } => path.terminating_column(),
+            Self::EntityEdge { path, .. } => path.terminating_column(),
             Self::AdditionalMetadata(path) => path.as_ref().map_or(
                 Column::OntologyIds(OntologyIds::AdditionalMetadata(None)),
                 |path| {

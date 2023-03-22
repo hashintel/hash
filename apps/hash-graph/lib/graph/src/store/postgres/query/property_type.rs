@@ -6,6 +6,7 @@ use crate::{
         table::{Column, JsonField, OntologyIds, PropertyTypes, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
+    subgraph::edges::OntologyEdgeKind,
 };
 
 impl PostgresRecord for PropertyTypeWithMetadata {
@@ -17,6 +18,11 @@ impl PostgresRecord for PropertyTypeWithMetadata {
 impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
+            Self::VersionedUrl
+            | Self::Title
+            | Self::Description
+            | Self::OntologyId
+            | Self::Schema(_) => vec![],
             Self::BaseUrl
             | Self::Version
             | Self::RecordCreatedById
@@ -24,17 +30,35 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             | Self::AdditionalMetadata(_) => {
                 vec![Relation::PropertyTypeIds]
             }
-            Self::DataTypes(path) => once(Relation::Reference(
-                ReferenceTable::PropertyTypeConstrainsValuesOn,
-            ))
+            Self::DataTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                path,
+            } => once(Relation::Reference {
+                table: ReferenceTable::PropertyTypeConstrainsValuesOn,
+                reversed: false,
+            })
             .chain(path.relations())
             .collect(),
-            Self::PropertyTypes(path) => once(Relation::Reference(
-                ReferenceTable::PropertyTypeConstrainsPropertiesOn,
-            ))
+            Self::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path,
+                reversed,
+            } => once(Relation::Reference {
+                table: ReferenceTable::PropertyTypeConstrainsPropertiesOn,
+                reversed: *reversed,
+            })
             .chain(path.relations())
             .collect(),
-            _ => vec![],
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
+                reversed: true,
+            })
+            .chain(path.relations())
+            .collect(),
+            _ => unreachable!("Invalid path: {self}"),
         }
     }
 
@@ -64,8 +88,9 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             Self::Description => Column::PropertyTypes(PropertyTypes::Schema(Some(
                 JsonField::StaticText("description"),
             ))),
-            Self::DataTypes(path) => path.terminating_column(),
-            Self::PropertyTypes(path) => path.terminating_column(),
+            Self::DataTypeEdge { path, .. } => path.terminating_column(),
+            Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
+            Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::AdditionalMetadata(path) => path.as_ref().map_or(
                 Column::OntologyIds(OntologyIds::AdditionalMetadata(None)),
                 |path| {

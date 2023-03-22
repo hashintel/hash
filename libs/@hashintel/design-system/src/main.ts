@@ -5,6 +5,7 @@ export * from "./button";
 export * from "./chip";
 export * from "./chip-group";
 export * from "./constants";
+export * from "./editable-field";
 export * from "./fa-icons/icons";
 export * from "./fontawesome-icon";
 export * from "./form-inline";

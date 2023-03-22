@@ -9,6 +9,7 @@ use utoipa::ToSchema;
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::query::{JsonPath, ParameterType, PathToken, QueryPath},
+    subgraph::edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -108,7 +109,9 @@ pub enum EntityQueryPath<'p> {
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     /// [`Entity`]: crate::knowledge::Entity
     RecordCreatedById,
-    /// The [`EntityType`] of the [`EntityMetadata`] belonging to the [`Entity`].
+    /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
+    ///
+    /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
     ///
     /// Deserializes from `["type", ...]` where `...` is a path to a field of an [`EntityType`].
     ///
@@ -116,35 +119,97 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
+    /// # use graph::subgraph::edges::SharedEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["type", "baseUrl"]))?;
-    /// assert_eq!(path, EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl));
+    /// assert_eq!(path, EntityQueryPath::EntityTypeEdge {
+    ///     edge_kind: SharedEdgeKind::IsOfType,
+    ///     path: EntityTypeQueryPath::BaseUrl,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::PropertyType
     /// [`Entity`]: crate::knowledge::Entity
-    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
-    /// [`EntityType`]: type_system::EntityType
-    Type(EntityTypeQueryPath<'p>),
-    /// Represents an [`Entity`] linking to the [`Entity`].
+    EntityTypeEdge {
+        edge_kind: SharedEdgeKind,
+        path: EntityTypeQueryPath<'p>,
+    },
+    /// An edge between two [`Entities`][`Entity`] using a [`KnowledgeGraphEdgeKind`].
     ///
-    /// Deserializes from `["incomingLinks", ...]` where `...` is the path of the source
+    /// [`Entity`]: crate::knowledge::Entity
+    ///
+    ///
+    /// # Left entity
+    ///
+    /// Corresponds to the [`Entity`] specified by [`LinkData::left_entity_id()`].
+    ///
+    /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
+    /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "uuid"]))?;
+    /// assert_eq!(path, EntityQueryPath::EntityEdge {
+    ///     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+    ///     path: Box::new(EntityQueryPath::Uuid),
+    ///     reversed: false
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`LinkData::left_entity_id()`]: crate::knowledge::LinkData::left_entity_id
+    ///
+    ///
+    /// # Right entity
+    ///
+    /// Corresponds to the [`Entity`] specified by [`LinkData::right_entity_id()`].
+    ///
+    /// Deserializes from `["rightEntity", ...]` where `...` is the path of the left [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
+    /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "uuid"]))?;
+    /// assert_eq!(path, EntityQueryPath::EntityEdge {
+    ///     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+    ///     path: Box::new(EntityQueryPath::Uuid),
+    ///     reversed: false
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
+    ///
+    ///
+    /// # Incoming links
+    ///
+    /// Represents an [`Entity`] linked from this [`Entity`].
+    ///
+    /// Deserializes from `["incomingLinks", ...]` where `...` is the path of the target
     /// [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
+    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["incomingLinks", "uuid"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityQueryPath::IncomingLinks(Box::new(EntityQueryPath::Uuid))
-    /// );
+    /// assert_eq!(path, EntityQueryPath::EntityEdge {
+    ///     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+    ///     path: Box::new(EntityQueryPath::Uuid),
+    ///     reversed: true
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: crate::knowledge::Entity
-    IncomingLinks(Box<Self>),
-    /// Represents an [`Entity`] linked from the [`Entity`].
+    ///
+    /// # Outgoing links
+    ///
+    /// Represents an [`Entity`] linked from this [`Entity`].
     ///
     /// Deserializes from `["outgoingLinks", ...]` where `...` is the path of the target
     /// [`Entity`].
@@ -153,54 +218,20 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
+    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["outgoingLinks", "uuid"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityQueryPath::OutgoingLinks(Box::new(EntityQueryPath::Uuid))
-    /// );
+    /// assert_eq!(path, EntityQueryPath::EntityEdge {
+    ///     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+    ///     path: Box::new(EntityQueryPath::Uuid),
+    ///     reversed: true
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
-    OutgoingLinks(Box<Self>),
-    /// Corresponds to the entity specified by [`LinkData::left_entity_id()`].
-    ///
-    /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "uuid"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid))
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
-    /// [`LinkData::left_entity_id()`]: crate::knowledge::LinkData::left_entity_id
-    LeftEntity(Box<Self>),
-    /// Corresponds to the entity specified by [`LinkData::right_entity_id()`].
-    ///
-    /// Deserializes from `["leftEntity", ...]` where `...` is the path of the right [`Entity`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "uuid"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityQueryPath::RightEntity(Box::new(EntityQueryPath::Uuid))
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
-    /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
-    RightEntity(Box<Self>),
+    EntityEdge {
+        edge_kind: KnowledgeGraphEdgeKind,
+        path: Box<Self>,
+        reversed: bool,
+    },
     /// Corresponds to [`EntityLinkOrder::left_to_right`].
     ///
     /// ```rust
@@ -264,13 +295,32 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::Archived => fmt.write_str("archived"),
-            Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
-            Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
-            Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
-            Self::LeftEntity(path) => write!(fmt, "leftEntityUuid.{path}"),
-            Self::RightEntity(path) => write!(fmt, "rightEntityUuid.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+            } => write!(fmt, "type.{path}"),
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path,
+                reversed: false,
+            } => write!(fmt, "leftEntity.{path}"),
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path,
+                reversed: false,
+            } => write!(fmt, "rightEntity.{path}"),
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path,
+                reversed: true,
+            } => write!(fmt, "outgoingLinks.{path}"),
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path,
+                reversed: true,
+            } => write!(fmt, "incomingLinks.{path}"),
             Self::LeftToRightOrder => fmt.write_str("leftToRightOrder"),
             Self::RightToLeftOrder => fmt.write_str("rightToLeftOrder"),
         }
@@ -283,15 +333,12 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::EditionId | Self::Uuid | Self::OwnedById | Self::RecordCreatedById => {
                 ParameterType::Uuid
             }
-            Self::LeftEntity(path)
-            | Self::RightEntity(path)
-            | Self::IncomingLinks(path)
-            | Self::OutgoingLinks(path) => path.expected_type(),
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-            Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
             Self::Archived => ParameterType::Boolean,
+            Self::EntityTypeEdge { path, .. } => path.expected_type(),
+            Self::EntityEdge { path, .. } => path.expected_type(),
         }
     }
 }
@@ -356,9 +403,10 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::RecordCreatedById => EntityQueryPath::RecordCreatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
-            EntityQueryToken::Type => EntityQueryPath::Type(
-                EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
-            ),
+            EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+            },
             EntityQueryToken::Properties => {
                 let mut path_tokens = Vec::new();
                 while let Some(property) = seq.next_element::<PathToken<'de>>()? {
@@ -372,18 +420,26 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
                 }
             }
-            EntityQueryToken::OutgoingLinks => {
-                EntityQueryPath::OutgoingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
-            }
-            EntityQueryToken::IncomingLinks => {
-                EntityQueryPath::IncomingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
-            }
-            EntityQueryToken::LeftEntity => {
-                EntityQueryPath::LeftEntity(Box::new(Self::new(self.position).visit_seq(seq)?))
-            }
-            EntityQueryToken::RightEntity => {
-                EntityQueryPath::RightEntity(Box::new(Self::new(self.position).visit_seq(seq)?))
-            }
+            EntityQueryToken::LeftEntity => EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                reversed: false,
+            },
+            EntityQueryToken::RightEntity => EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                reversed: false,
+            },
+            EntityQueryToken::OutgoingLinks => EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                reversed: true,
+            },
+            EntityQueryToken::IncomingLinks => EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                reversed: true,
+            },
             EntityQueryToken::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
             EntityQueryToken::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
         })
@@ -417,7 +473,10 @@ mod tests {
         assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
         assert_eq!(
             deserialize(["type", "version"]),
-            EntityQueryPath::Type(EntityTypeQueryPath::Version)
+            EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::Version
+            }
         );
         assert_eq!(
             deserialize([
@@ -430,7 +489,11 @@ mod tests {
         );
         assert_eq!(
             deserialize(["leftEntity", "uuid"]),
-            EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid))
+            EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path: Box::new(EntityQueryPath::Uuid),
+                reversed: false
+            }
         );
 
         assert_eq!(
