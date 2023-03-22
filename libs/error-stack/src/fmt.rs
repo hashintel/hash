@@ -133,6 +133,155 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
 //!
+//! ## Implementation Details
+//!
+//! Nothing explained here is under any semver guarantee. This section explains the algorithm used
+//! to produce the [`Debug`] output of a [`Report`].
+//!
+//! During the explanation we will make use of two different [`Report`]s, the overview tree (shown
+//! first) only visualizes contexts, while the second, more detailed tree shows attachments and
+//! contexts.
+//!
+//! In the detailed tree the type of [`Frame`] is distinguished using a superscript letter, `ᵃ` is
+//! used to indicate attachments and `ᶜ` is used to indicate contexts. For clarity the overview tree
+//! uses digits, while the detailed tree uses letters for different [`Frame`]s.
+//!
+//! Overview (Context only) Tree:
+//!
+//! ```text
+//!     0
+//!     |
+//!     1
+//!    / \
+//!   2   6
+//!  / \  |
+//! 3   4 7
+//!     | |
+//!     5 8
+//! ```
+//!
+//!
+//! Detailed (Context + Attachment) Tree:
+//!
+//! ```text
+//!    Aᶜ
+//!    |
+//!    Bᵃ
+//!   / \
+//!  Cᵃ  Eᵃ
+//!  |   |
+//!  Dᶜ  Fᵃ
+//!     / \
+//!    Gᵃ  Iᶜ
+//!    |
+//!    Hᶜ
+//! ```
+//!
+//! During formatting we distinguish between two cases (for contexts):
+//!
+//! * Lists
+//! * Groups
+//!
+//! in this explanation lists are delimited by `[` and `]`, while groups are delimited by `(` and
+//! `)`.
+//!
+//! While formatting we view the [`Report`]s as a tree of [`Frame`]s, therefore the following
+//! explanation will use terminology associated with trees, every [`Frame`] is a node and can have
+//! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Context`].
+//!
+//! A list is a list of nodes where each node in the list is the parent of the next node in the list
+//! and only has a single child. The last node in the list is exempt of that rule of that rule and
+//! can have `0..n` children. In the examples above, `[6, 7, 8]` is considered a list, while `[1,
+//! 6]` is not, because while `1` is a parent of `6`, `1` has more than 1 child.
+//!
+//! A group is a list of nodes where each node shares a common immediate context parent that has
+//! more than `1` child, this means that `(2, 6)` is a group (they share `1` as an immediate context
+//! parent), while `(3, 4, 6)` is not. `(3, 4, 6)` share the same parent with more than 1 child
+//! (`1`), but `1` is not the immediate context parent of `3` and `4` (`2`) is. In the more detailed
+//! example `(Dᶜ, Hᶜ, Iᶜ)` is considered a group because they share the same *immediate* context
+//! parent `Aᶜ`, important to note is that we only refer to immediate context parents, `Fᵃ` is the
+//! immediate parent of `Iᶜ`, but is not a [`Context`], therefore to find the immediate context
+//! parent, we travel up the tree until we encounter our first [`Context`] node. Groups always
+//! contain lists, for the sake of clarity this explanation only shows the first element.
+//!
+//! The rules stated above also implies some additional rules:
+//! * lists are never empty
+//! * lists are nested in groups
+//! * groups are always preceded by a single list
+//! * groups are ordered left to right
+//!
+//! Using the aforementioned delimiters for lists and groups the end result would be:
+//!
+//! Overview Tree: `[0, 1] ([2] ([3], [4, 5]), [6, 7, 8])`
+//! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`
+//!
+//! Attachments are not ordered by insertion order but by depth in the tree. The depth in the tree
+//! is the inverse of the insertion order, this means that the [`Debug`] output of all
+//! attachments is reversed from the calling order of [`Report::attach`]. Each context uses the
+//! attachments that are it's parents until the next context node. If attachments are shared between
+//! multiple contexts, they are duplicated and output twice.
+//!
+//! Groups are always preceded by a single list, the only case where this is not true is at the top
+//! level, in that case we opt to output separate trees for each member in the group.
+//!
+//! ### Output Formatting
+//!
+//! Lists are guaranteed to be non-empty and have at least a single context. The context is the
+//! heading of the whole list, while all other contexts are intended. The last entry in that
+//! indentation is (if present) the group that follows, taking the detailed example this means that
+//! the following output would be rendered:
+//!
+//! ```text
+//! Aᶜ
+//! │
+//! ╰┬▶ Dᶜ
+//!  │  ├╴Bᵃ
+//!  │  ╰╴Cᵃ
+//!  │
+//!  ├▶ Hᶜ
+//!  │  ├╴Bᵃ
+//!  │  ├╴Eᵃ
+//!  │  ├╴Fᵃ
+//!  │  ╰╴Gᵃ
+//!  │
+//!  ╰▶ Iᶜ
+//!     ├╴Bᵃ
+//!     ├╴Eᵃ
+//!     ╰╴Fᵃ
+//! ```
+//!
+//! Groups are visually represented as an additional distinct indentation for other contexts in the
+//! preceding list, taking the overview tree this means:
+//!
+//! ```text
+//! 0
+//! ├╴Attachment
+//! │
+//! ├─▶ 1
+//! │   ╰╴Attachment
+//! │
+//! ╰┬▶ 2
+//!  │  │
+//!  │  ╰┬▶ 3
+//!  │   │
+//!  │   ╰▶ 4
+//!  │      │
+//!  │      ╰─▶ 5
+//!  ╰▶ 6
+//!     │
+//!     ├─▶ 7
+//!     │
+//!     ╰─▶ 8
+//! ```
+//!
+//! Attachments have been added to various places to simulate a real use-case with attachments and
+//! to visualise their placement.
+//!
+//! The spacing and characters used are chosen carefully, to reduce indentation and increase visual
+//! legibility in large trees. The indentation of the group following the last entry in the
+//! preceding list is the same. To indicate that the last entry in the preceding list is the parent
+//! a new indentation of the connecting line is used.
+//!
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`Mutex`]: std::sync::Mutex

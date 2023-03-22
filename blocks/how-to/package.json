@@ -31,7 +31,7 @@
     "@hashintel/design-system": "0.0.5",
     "@mui/material": "5.11.8",
     "react-sizeme": "3.0.2",
-    "uuid": "9.0.0"
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@types/react-dom": "18.0.9",

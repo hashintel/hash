@@ -185,7 +185,10 @@ export const EditableField = ({
         )}
       </Box>
 
-      <Fade in={!!value && hovered && !editing} timeout={editing ? 0 : 300}>
+      <Fade
+        in={!readonly && !!value && hovered && !editing}
+        timeout={editing ? 0 : 300}
+      >
         <IconButton
           tabIndex={0}
           onClick={() => {
