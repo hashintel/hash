@@ -66,6 +66,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
         match self {
             Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::TransactionTime => Column::OntologyIds(OntologyIds::TransactionTime),
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
             ))),
