@@ -5,11 +5,13 @@ mod string;
 
 pub use array::ArrayAccessDeserializer;
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
-use error_stack::ResultExt;
+use error_stack::{Result, ResultExt};
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
-use crate::{error::DeserializerError, Context, Deserializer, Number, OptionalVisitor, Visitor};
+use crate::{
+    error::DeserializerError, Context, Deserializer, EnumVisitor, Number, OptionalVisitor, Visitor,
+};
 
 macro_rules! impl_owned {
     (@INTERNAL COPY, $ty:ty, $name:ident, $method:ident) => {
@@ -66,6 +68,13 @@ macro_rules! impl_owned {
             {
                 visitor.visit_some(self).change_context(DeserializerError)
             }
+
+            fn deserialize_enum<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+            where
+                V: EnumVisitor<'de>,
+            {
+                $crate::value::EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+            }
         }
 
         impl<'de> IntoDeserializer<'de> for $ty {
@@ -106,6 +115,40 @@ pub trait IntoDeserializer<'de> {
         Self: 'a;
 }
 
+pub(crate) struct EnumUnitDeserializer<'a, D> {
+    context: &'a Context,
+    deserializer: D,
+}
+
+impl<'a, D> EnumUnitDeserializer<'a, D> {
+    pub(crate) fn new(context: &'a Context, deserializer: D) -> Self {
+        Self {
+            context,
+            deserializer,
+        }
+    }
+}
+
+impl<'de, D> EnumUnitDeserializer<'_, D>
+where
+    D: Deserializer<'de>,
+{
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let context = self.context;
+
+        let discriminant = visitor
+            .visit_discriminant(self.deserializer)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, NoneDeserializer::new(context))
+            .change_context(DeserializerError)
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct NoneDeserializer<'a> {
     context: &'a Context,
@@ -135,16 +178,23 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }
@@ -179,18 +229,25 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
         visitor.visit_null().change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_null().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
 }
 

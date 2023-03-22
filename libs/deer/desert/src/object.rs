@@ -180,7 +180,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         .change_context(ObjectAccessError)
     }
 
-    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
         F: FieldAccess<'de>,
     {
@@ -204,11 +204,9 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
                 });
 
                 key.and_then(|key| {
-                    access
-                        .value(&key, DeserializerNone {
-                            context: self.deserializer.context(),
-                        })
-                        .map(|value| (key, value))
+                    access.value(key, DeserializerNone {
+                        context: self.deserializer.context(),
+                    })
                 })
             } else {
                 return None;
@@ -216,11 +214,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         } else {
             let key = access.key(&mut *self.deserializer);
 
-            key.and_then(|key| {
-                access
-                    .value(&key, &mut *self.deserializer)
-                    .map(|value| (key, value))
-            })
+            key.and_then(|key| access.value(key, &mut *self.deserializer))
         };
 
         Some(key_value.change_context(ObjectAccessError))
