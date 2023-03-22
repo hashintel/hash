@@ -70,7 +70,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
     /// of the [`OntologyElementMetadata`].
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`PropertyType`]: type_system::PropertyType
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     TransactionTime,
