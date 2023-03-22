@@ -9,6 +9,7 @@ import {
   tableBodyClasses,
   TableCell,
   tableCellClasses,
+  tableFooterClasses,
   TableRow,
   Typography,
   TypographyProps,
@@ -297,8 +298,18 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
       <Box sx={{ p: 0.5 }}>
         <Table
           sx={(theme) => ({
+            "--footer-top-offset": "70px",
             height: "100%",
             minWidth: 800,
+            position: "relative",
+            marginTop: "var(--footer-top-offset)",
+            marginBottom: "calc(0px - var(--footer-top-offset))",
+
+            "> *": {
+              position: "relative",
+              top: "calc(0px - var(--footer-top-offset))",
+            },
+
             [`.${tableCellClasses.root}`]: {
               pl: 3.5,
               pr: 1,
@@ -324,6 +335,11 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
             },
             [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
               textAlign: "center",
+            },
+            [`.${tableFooterClasses.root} .${tableCellClasses.root}`]: {
+              position: "sticky",
+              bottom: 0,
+              background: "white",
             },
           })}
         >
