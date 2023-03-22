@@ -279,16 +279,15 @@ export const Media: FunctionComponent<
           type="application/ld+json"
           /* eslint-disable-next-line react/no-danger */
           dangerouslySetInnerHTML={{
-            __html: `
-            {
+            // @note – using JSON.stringify to prevent potential XSS
+            __html: JSON.stringify({
               "@context": "https://schema.org/",
               "@type": "VideoObject",
-              "@id": "${draftSrc}",
-              "url": "${draftSrc}",
-              "contentUrl": "${draftSrc}",
-              "description": "${draftCaption}"
-            }
-          `,
+              "@id": draftSrc,
+              url: draftSrc,
+              contentUrl: draftSrc,
+              description: draftCaption,
+            }),
           }}
         />
       ) : null}
