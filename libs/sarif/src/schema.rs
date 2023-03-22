@@ -1,6 +1,7 @@
 //! The JSON schema of the SARIF log file format as a Rust module.
 
 mod log;
+mod properties;
 mod run;
 mod tool;
 
@@ -9,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 pub use self::{
     log::SarifLog,
+    properties::PropertyBag,
     run::Run,
     tool::{Tool, ToolComponent},
 };
@@ -42,12 +44,12 @@ pub(crate) mod tests {
     #[expect(clippy::panic)]
     #[cfg_attr(coverage_nightly, no_coverage)]
     pub(crate) fn validate_schema(log: &SarifLog) {
-        let log_value = serde_json::to_value(log).expect("serializing `Log` into JSON failed");
+        let log_value = serde_json::to_value(log).expect("serializing `SarifLog` into JSON failed");
 
         assert_eq!(
-            SarifLog::deserialize(&log_value).expect("could not serialize into `Log`"),
+            SarifLog::deserialize(&log_value).expect("could not serialize into `SarifLog`"),
             *log,
-            "serialized `Log` is not equal to original"
+            "serialized `SarifLog` is not equal to original"
         );
 
         let json_schema_str = include_str!("../tests/schemas/sarif-2.1.0.json");
