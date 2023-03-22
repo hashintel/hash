@@ -306,7 +306,8 @@ export const Media: FunctionComponent<
               "@type": "ImageObject",
               "@id": "${draftSrc}",
               "url": "${draftSrc}",
-              "contentUrl": "${draftSrc}"
+              "contentUrl": "${draftSrc}",
+              "description": "${draftCaption}"
             }
           `,
           }}

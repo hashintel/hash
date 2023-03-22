@@ -242,35 +242,56 @@ export const Media: FunctionComponent<
   };
 
   return (
-    <div ref={blockRef}>
-      {draftSrc ? (
-        <MediaWithCaption
-          src={draftSrc}
-          caption={draftCaption}
-          onCaptionChange={(caption) => setDraftCaption(caption)}
-          onCaptionConfirm={() => updateData({ src: draftSrc })}
-          onReset={resetComponent}
-          type="video"
-          readonly={readonly}
-        />
-      ) : (
-        <>
-          {errorString && (
-            <ErrorAlert
-              error={errorString}
-              onClearError={() => setErrorString(null)}
-            />
-          )}
-          <UploadMediaForm
-            onUrlConfirm={onUrlConfirm}
-            onFileChoose={(file) => handleImageUpload({ file })}
-            onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
-            loading={loading}
+    <>
+      {" "}
+      <div ref={blockRef}>
+        {draftSrc ? (
+          <MediaWithCaption
+            src={draftSrc}
+            caption={draftCaption}
+            onCaptionChange={(caption) => setDraftCaption(caption)}
+            onCaptionConfirm={() => updateData({ src: draftSrc })}
+            onReset={resetComponent}
             type="video"
             readonly={readonly}
           />
-        </>
-      )}
-    </div>
+        ) : (
+          <>
+            {errorString && (
+              <ErrorAlert
+                error={errorString}
+                onClearError={() => setErrorString(null)}
+              />
+            )}
+            <UploadMediaForm
+              onUrlConfirm={onUrlConfirm}
+              onFileChoose={(file) => handleImageUpload({ file })}
+              onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
+              loading={loading}
+              type="video"
+              readonly={readonly}
+            />
+          </>
+        )}
+      </div>
+      {draftSrc ? (
+        <script
+          type="application/ld+json"
+          /* eslint-disable-next-line react/no-danger */
+          dangerouslySetInnerHTML={{
+            __html: `
+            {
+              "@context": "https://schema.org/",
+              "@type": "VideoObject",
+              "@id": "${draftSrc}",
+              "url": "${draftSrc}",
+              "contentUrl": "${draftSrc}",
+              "description": "${draftCaption}"
+            }
+          `,
+          }}
+        />
+      ) : null}
+    </>
   );
 };
