@@ -125,7 +125,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasLeftEntity,
-                            true,
+                            false,
                         ),
                         &temporal_axes,
                     )
@@ -171,7 +171,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasRightEntity,
-                            true,
+                            false,
                         ),
                         &temporal_axes,
                     )
@@ -217,7 +217,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasLeftEntity,
-                            false,
+                            true,
                         ),
                         &temporal_axes,
                     )
@@ -255,7 +255,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasRightEntity,
-                            false,
+                            true,
                         ),
                         &temporal_axes,
                     )
