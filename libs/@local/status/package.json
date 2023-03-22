@@ -1,0 +1,39 @@
+{
+  "name": "@local/status",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./pkg/src/main.ts",
+      "default": "./pkg/src/main.ts",
+      "node": "./pkg/src/main.ts"
+    },
+    "./type-defs/*": {
+      "types": "./type-defs/*.ts",
+      "default": "./type-defs/*.ts",
+      "node": "./type-defs/*.ts"
+    }
+  },
+  "main": "./pkg/src/main.ts",
+  "types": "./pkg/src/main.ts",
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "execa": "5.1.1",
+    "lodash": "4.17.21",
+    "typescript": "4.9.4",
+    "yargs": "^17.7.1"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/yargs": "^17.0.22",
+    "eslint": "8.33.0",
+    "quicktype": "^16.0.43"
+  }
+}

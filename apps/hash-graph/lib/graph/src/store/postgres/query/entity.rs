@@ -9,6 +9,7 @@ use crate::{
         },
         PostgresQueryPath, PostgresRecord, Table,
     },
+    subgraph::edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
 impl PostgresRecord for Entity {
@@ -30,37 +31,47 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::RightToLeftOrder
             | Self::UpdatedById
             | Self::Archived => vec![Relation::EntityEditions],
-            Self::Type(path) => once(Relation::Reference(ReferenceTable::EntityIsOfType))
-                .chain(path.relations())
-                .collect(),
-            Self::LeftEntity(path)
-                if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById =>
-            {
-                vec![Relation::LeftEntity]
-            }
-            Self::RightEntity(path)
-                if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById =>
-            {
-                vec![Relation::RightEntity]
-            }
-            Self::LeftEntity(path) => {
-                once(Relation::Reference(ReferenceTable::EntityHasLeftEntity))
-                    .chain(path.relations())
-                    .collect()
-            }
-            Self::RightEntity(path) => {
-                once(Relation::Reference(ReferenceTable::EntityHasRightEntity))
-                    .chain(path.relations())
-                    .collect()
-            }
-            Self::IncomingLinks(path) => once(Relation::ReversedReference(
-                ReferenceTable::EntityHasRightEntity,
-            ))
+            Self::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityIsOfType,
+                reversed: false,
+            })
             .chain(path.relations())
             .collect(),
-            Self::OutgoingLinks(path) => once(Relation::ReversedReference(
-                ReferenceTable::EntityHasLeftEntity,
-            ))
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path,
+                reversed: false,
+            } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById => {
+                vec![Relation::LeftEntity]
+            }
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path,
+                reversed,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityHasLeftEntity,
+                reversed: *reversed,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path,
+                reversed: false,
+            } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById => {
+                vec![Relation::RightEntity]
+            }
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path,
+                reversed,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityHasRightEntity,
+                reversed: *reversed,
+            })
             .chain(path.relations())
             .collect(),
         }
@@ -77,25 +88,38 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
-            Self::Type(path) => path.terminating_column(),
             Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
             Self::UpdatedById => Column::EntityEditions(EntityEditions::UpdatedById),
-            Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => {
+            Self::EntityTypeEdge { path, .. } => path.terminating_column(),
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path,
+                reversed: false,
+            } if **path == EntityQueryPath::Uuid => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid)
             }
-            Self::LeftEntity(path) if **path == EntityQueryPath::OwnedById => {
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path,
+                reversed: false,
+            } if **path == EntityQueryPath::OwnedById => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById)
             }
-            Self::RightEntity(path) if **path == EntityQueryPath::Uuid => {
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path,
+                reversed: false,
+            } if **path == EntityQueryPath::Uuid => {
                 Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid)
             }
-            Self::RightEntity(path) if **path == EntityQueryPath::OwnedById => {
+            Self::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path,
+                reversed: false,
+            } if **path == EntityQueryPath::OwnedById => {
                 Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById)
             }
-            Self::LeftEntity(path)
-            | Self::RightEntity(path)
-            | Self::IncomingLinks(path)
-            | Self::OutgoingLinks(path) => path.terminating_column(),
+            Self::EntityEdge { path, .. } => path.terminating_column(),
             Self::LeftToRightOrder => Column::EntityEditions(EntityEditions::LeftToRightOrder),
             Self::RightToLeftOrder => Column::EntityEditions(EntityEditions::RightToLeftOrder),
             Self::Properties(path) => path.as_ref().map_or(

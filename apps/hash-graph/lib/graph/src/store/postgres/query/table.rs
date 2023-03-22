@@ -741,8 +741,10 @@ pub enum Relation {
     EntityEditions,
     LeftEntity,
     RightEntity,
-    Reference(ReferenceTable),
-    ReversedReference(ReferenceTable),
+    Reference {
+        table: ReferenceTable,
+        reversed: bool,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -838,8 +840,9 @@ impl Relation {
                     Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
                 ],
             }),
-            Self::Reference(table) => ForeignKeyJoin::from_reference_table(table, false),
-            Self::ReversedReference(table) => ForeignKeyJoin::from_reference_table(table, true),
+            Self::Reference { table, reversed } => {
+                ForeignKeyJoin::from_reference_table(table, reversed)
+            }
         }
     }
 }
