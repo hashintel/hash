@@ -92,6 +92,7 @@ pub struct SarifLog {
     pub runs: Option<Vec<Run>>,
 }
 
+#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for SarifLog {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
