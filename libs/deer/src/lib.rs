@@ -143,6 +143,17 @@ pub trait ArrayAccess<'de> {
     fn end(self) -> Result<(), ArrayAccessError>;
 }
 
+// How it works in serde: `visit_enum` is called, with `EnumAccess` as value, then in there
+// `EnumAccess::variant` is called, which returns:
+//
+//  1) the variant (to be deserialized)
+//  2) generic variant access instance
+//
+//  depending on the variant value different methods on `VariantAccess` are called
+pub trait VariantAccess<'de>: Sized {}
+
+pub trait EnumAccess<'de> {}
+
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
 #[allow(unused_variables)]
