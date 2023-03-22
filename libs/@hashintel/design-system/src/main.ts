@@ -22,6 +22,7 @@ export * from "./ontology-icon";
 export * from "./popper-placement-modifier";
 export * from "./select";
 export * from "./selector-autocomplete";
+export * from "./skeleton";
 export * from "./submit-button-wrapper";
 export * from "./text-field";
 export * from "./theme";
