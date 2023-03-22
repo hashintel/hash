@@ -157,8 +157,8 @@ pub trait ArrayAccess<'de> {
 //      * it is very convoluted to implemented
 //
 //  Is there a better, more modern, more ergonomic way?
-pub trait EnumVisitor<'de> {
-    type Discriminator: Deserialize<'de>;
+pub trait EnumVisitor<'de>: Sized {
+    type Discriminant: Deserialize<'de>;
 
     // the value we will end up with
     type Value;
@@ -171,11 +171,11 @@ pub trait EnumVisitor<'de> {
             .change_context(VisitorError))
     }
 
-    fn visit_discriminator<D>(&self, deserializer: D) -> Result<Self::Discriminator, VisitorError>
+    fn visit_discriminant<D>(&self, deserializer: D) -> Result<Self::Discriminant, VisitorError>
     where
         D: Deserializer<'de>,
     {
-        <Self::Discriminator as Deserialize<'de>>::deserialize(deserializer)
+        <Self::Discriminant as Deserialize<'de>>::deserialize(deserializer)
             .change_context(VisitorError)
     }
 
@@ -191,7 +191,7 @@ pub trait EnumVisitor<'de> {
 
     fn visit_value<D>(
         self,
-        discriminator: Self::Discriminator,
+        discriminant: Self::Discriminant,
         deserializer: D,
     ) -> Result<Self::Value, VisitorError>
     where

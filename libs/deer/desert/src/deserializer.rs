@@ -1,8 +1,11 @@
 use alloc::borrow::ToOwned;
 use core::ops::Range;
 
-use deer::{error::DeserializerError, Context, EnumVisitor, OptionalVisitor, Visitor};
-use error_stack::{Result, ResultExt};
+use deer::{
+    error::{DeserializerError, ExpectedLength, ObjectLengthError, Variant},
+    Context, EnumVisitor, OptionalVisitor, Visitor,
+};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
 
@@ -99,6 +102,43 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let token = self.peek();
+
+        let is_map = match token {
+            Token::Object { .. } => {
+                // eat the token so that we're at the key
+                self.next();
+                true
+            }
+            _ => false,
+        };
+
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        let value = visitor
+            .visit_value(discriminant)
+            .change_context(DeserializerError)?;
+
+        if is_map {
+            // make sure that we're close and that we have nothing dangling
+            if self.peek() == Token::ObjectEnd {
+                self.next();
+            } else {
+                return Err(Report::new(ObjectLengthError.into_error())
+                    .attach(ExpectedLength::new(1))
+                    .change_context(DeserializerError));
+            }
+        }
+
+        Ok(value)
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -180,5 +220,6 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
     where
         V: EnumVisitor<'de>,
     {
+        visitor.visit_none().change_context(DeserializerError)
     }
 }
