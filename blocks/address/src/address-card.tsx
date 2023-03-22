@@ -4,14 +4,14 @@ import {
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import { Button, FontAwesomeIcon, Skeleton } from "@hashintel/design-system";
 import {
   Box,
-  Card,
   CircularProgress,
   Fade,
   Link,
   Stack,
+  styled,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -37,6 +37,60 @@ type AddressCardProps = {
   incrementZoomLevel?: () => void;
   decrementZoomLevel?: () => void;
 };
+
+const MapWrapper = styled(Box)<{ isMobile?: boolean }>(({ theme, isMobile }) =>
+  theme.unstable_sx({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    background: theme.palette.gray[10],
+    borderLeft: `1px solid ${theme.palette.gray[20]}`,
+    width: 500,
+    minHeight: 300,
+
+    ...(isMobile
+      ? {
+          width: 1,
+          height: 300,
+        }
+      : {}),
+  }),
+);
+
+const StyledCard = styled(Box)<{ isMobile?: boolean }>(({ theme, isMobile }) =>
+  theme.unstable_sx({
+    display: "flex",
+    width: "min-content",
+    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+    borderRadius: 2.5,
+    boxShadow: "none",
+    ...(isMobile
+      ? {
+          flexDirection: "column",
+          width: 1,
+        }
+      : {}),
+  }),
+);
+
+const ContentStack = styled(Stack)<{ isMobile?: boolean }>(
+  ({ theme, isMobile }) =>
+    theme.unstable_sx({
+      boxSizing: "border-box",
+      display: "flex",
+      justifyContent: "space-between",
+      paddingY: 3,
+      paddingX: 3.75,
+      gap: 4,
+      width: 300,
+      ...(isMobile
+        ? {
+            width: 1,
+          }
+        : {}),
+    }),
+);
 
 export const AddressCard = ({
   title,
@@ -94,37 +148,8 @@ export const AddressCard = ({
   }, [fullAddress]);
 
   return (
-    <Card
-      sx={{
-        display: "flex",
-        width: "min-content",
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2.5,
-        boxShadow: "none",
-        ...(isMobile
-          ? {
-              flexDirection: "column",
-              width: 1,
-            }
-          : {}),
-      }}
-    >
-      <Stack
-        sx={{
-          boxSizing: "border-box",
-          display: "flex",
-          justifyContent: "space-between",
-          paddingY: 3,
-          paddingX: 3.75,
-          gap: 4,
-          width: 300,
-          ...(isMobile
-            ? {
-                width: 1,
-              }
-            : {}),
-        }}
-      >
+    <StyledCard isMobile={isMobile}>
+      <ContentStack isMobile={isMobile}>
         <Stack gap={1.5}>
           <EditableField
             value={titleValue}
@@ -235,27 +260,9 @@ export const AddressCard = ({
             <FontAwesomeIcon icon={faPenToSquare} sx={{ ml: 1 }} />
           </Typography>
         ) : null}
-      </Stack>
+      </ContentStack>
 
-      <Box
-        sx={({ palette }) => ({
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          background: palette.gray[10],
-          borderLeft: `1px solid ${palette.gray[20]}`,
-          width: 500,
-          minHeight: 300,
-
-          ...(isMobile
-            ? {
-                width: 1,
-                height: 300,
-              }
-            : {}),
-        })}
-      >
+      <MapWrapper isMobile={isMobile}>
         <Fade in={hovered}>
           <Stack
             sx={{
@@ -390,7 +397,31 @@ export const AddressCard = ({
             </Button>
           </Fade>
         ) : null}
-      </Box>
-    </Card>
+      </MapWrapper>
+    </StyledCard>
+  );
+};
+
+export const AddressCardLoading = ({ isMobile }: { isMobile: boolean }) => {
+  return (
+    <StyledCard isMobile={isMobile}>
+      <ContentStack isMobile={isMobile}>
+        <Stack gap={1.5}>
+          <Skeleton style={{ fontSize: 21 }} />
+          <Skeleton style={{ lineHeight: 1.3, marginBottom: 2 }} />
+        </Stack>
+
+        <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 }}>
+          <Skeleton style={{ height: 46, width: 200, marginBottom: 2 }} />
+          <Skeleton style={{ height: 46, width: 200, marginBottom: 2 }} />
+        </Stack>
+
+        <Skeleton style={{ height: isMobile ? 18 : 36 }} />
+      </ContentStack>
+
+      <MapWrapper isMobile={isMobile}>
+        <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
+      </MapWrapper>
+    </StyledCard>
   );
 };

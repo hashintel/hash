@@ -21,7 +21,7 @@ import Stack from "@mui/material/Stack";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
 
-import { AddressCard } from "./address-card";
+import { AddressCard, AddressCardLoading } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
@@ -347,6 +347,7 @@ export const App: BlockComponent<RootEntity> = ({
     fetchSuggestions,
     selectAddress,
     selectedAddress,
+    selectedAddressLoading,
   } = useMapbox(
     blockRootRef,
     zoomLevel,
@@ -389,7 +390,9 @@ export const App: BlockComponent<RootEntity> = ({
 
   const displayTitle = title ?? selectedAddress?.featureName;
   const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
-  const displayCard = !!(displayTitle && displayFullAddress);
+
+  const hasData = !!(displayTitle && displayFullAddress);
+  const shouldDisplayCard = hasData || selectedAddressLoading;
 
   return (
     <>
@@ -473,7 +476,7 @@ export const App: BlockComponent<RootEntity> = ({
                           <Box component="span" sx={{ mr: 1 }}>
                             Using
                           </Box>
-                          {!displayCard ? (
+                          {!shouldDisplayCard ? (
                             <>
                               <Box
                                 component="span"
@@ -510,7 +513,9 @@ export const App: BlockComponent<RootEntity> = ({
                     </Fade>
 
                     <Collapse
-                      in={(!displayCard && !animatingIn) || suggestionsError}
+                      in={
+                        (!shouldDisplayCard && !animatingIn) || suggestionsError
+                      }
                       onEntered={() => setAnimatingOut(false)}
                       onExited={() => {
                         if (animatingIn) {
@@ -678,11 +683,11 @@ export const App: BlockComponent<RootEntity> = ({
                 ) : null}
 
                 <Collapse
-                  in={displayCard && !animatingOut && !suggestionsError}
+                  in={shouldDisplayCard && !animatingOut && !suggestionsError}
                   onEntered={() => setAnimatingIn(null)}
                   onExited={() => resetBlock()}
                 >
-                  {displayCard ? (
+                  {hasData ? (
                     <AddressCard
                       isMobile={isMobile}
                       title={displayTitle}
@@ -708,7 +713,9 @@ export const App: BlockComponent<RootEntity> = ({
                           : decrementZoomLevel
                       }
                     />
-                  ) : null}
+                  ) : (
+                    <AddressCardLoading isMobile={isMobile} />
+                  )}
                 </Collapse>
               </Box>
             );
