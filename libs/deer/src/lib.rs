@@ -27,9 +27,9 @@ pub use schema::{Document, Reflection, Schema};
 pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
-        VisitorError,
+        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, FieldAccessError,
+        MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError,
+        Variant, VisitorError,
     },
     schema::visitor,
 };
@@ -45,6 +45,23 @@ mod schema;
 pub mod value;
 
 extern crate alloc;
+
+struct GenericFieldAccess<T, U>(PhantomData<fn() -> *const (T, U)>);
+
+impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for GenericFieldAccess<T, U> {
+    type Key = T;
+    type Value = U;
+
+    fn value<D>(&self, _: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    where
+        D: Deserializer<'de>,
+    {
+        U::deserialize(deserializer).change_context(FieldAccessError)
+    }
+}
+
+type FieldKeyValue<'de, F> = (<F as FieldAccess<'de>>::Key, <F as FieldAccess<'de>>::Value);
+type FieldResult<'de, F> = Option<Result<FieldKeyValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
     /// This enables bound-checking for [`ObjectAccess`].
@@ -74,9 +91,12 @@ pub trait ObjectAccess<'de> {
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
         K: Deserialize<'de>,
-        V: Deserialize<'de>;
+        V: Deserialize<'de>,
+    {
+        self.field(GenericFieldAccess(PhantomData))
+    }
 
-    fn field<F>(&mut self) -> Option<Result<(F, F::Value), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> FieldResult<'de, F>
     where
         F: FieldAccess<'de>;
 
@@ -85,10 +105,18 @@ pub trait ObjectAccess<'de> {
     fn end(self) -> Result<(), ObjectAccessError>;
 }
 
-pub trait FieldAccess<'de>: Deserialize<'de> {
+pub trait FieldAccess<'de> {
+    type Key: Deserialize<'de>;
     type Value;
 
-    fn value<D>(&self, deserializer: D) -> Result<Self::Value, ObjectAccessError>
+    fn key<D>(&self, deserializer: D) -> Result<Self::Key, FieldAccessError>
+    where
+        D: Deserializer<'de>,
+    {
+        <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(FieldAccessError)
+    }
+
+    fn value<D>(&self, key: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>;
 }

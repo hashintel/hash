@@ -9,12 +9,12 @@ graph = { path = "../../lib/graph" }
 graph-test-data = { path = "../test_data" }
 
 error-stack = "0.3.1"
-futures = "0.3.26"
+futures = "0.3.27"
 rand = "0.8.5"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.93"
+serde = { version = "1.0.156", features = ["derive"] }
+serde_json = "1.0.94"
 time = "0.3.20"
-tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.26.0", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b8351b3" }
 uuid = { version = "1.3.0", features = ["v4", "serde"] }

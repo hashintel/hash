@@ -5,12 +5,6 @@ mod migration;
 mod pool;
 mod query;
 
-use std::{
-    collections::{hash_map::RawEntryMut, HashMap},
-    fmt::Debug,
-    hash::Hash,
-};
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 #[cfg(feature = "__internal_bench")]
@@ -25,9 +19,7 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
         account::AccountId,
-        ontology::OntologyTypeRecordId,
-        time::{TemporalInterval, VariableAxis},
-        EntityVertexId, OntologyTypeVertexId,
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     },
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
@@ -38,7 +30,6 @@ use crate::{
         postgres::ontology::{OntologyDatabaseType, OntologyId},
         AccountStore, BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
     },
-    subgraph::edges::GraphResolveDepths,
 };
 #[cfg(feature = "__internal_bench")]
 use crate::{
@@ -49,164 +40,8 @@ use crate::{
     knowledge::{EntityProperties, LinkOrder},
 };
 
-/// Status of a traversal of the graph.
-///
-/// This is used to determine whether a traversal should continue or stop. If a traversal is
-/// resolved for a sufficient depths and a large enough interval, [`TraversalStatus::Resolved`]
-/// will be returned from [`TraversalMap::update`], otherwise [`TraversalStatus::Unresolved`] will
-/// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
-/// continue with.
-///
-/// [`Interval`]: crate::interval::Interval
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TraversalStatus {
-    Unresolved(GraphResolveDepths, TemporalInterval<VariableAxis>),
-    Resolved,
-}
-
-pub struct TraversalMap<K> {
-    resolved: HashMap<K, (GraphResolveDepths, TemporalInterval<VariableAxis>)>,
-}
-
-impl<K> Default for TraversalMap<K> {
-    fn default() -> Self {
-        Self {
-            resolved: HashMap::default(),
-        }
-    }
-}
-
-impl<K> TraversalMap<K>
-where
-    K: Eq + Hash + Clone + Debug,
-{
-    /// Inserts new traversal parameters into the map.
-    ///
-    /// If the traversed object does not already exist in the traversal map, it will be inserted
-    /// with the provided `new_resolve_depth` and `new_interval`. If the traversed object was
-    /// already resolved it is checked whether the new resolve depth and interval are more
-    /// general than the existing resolve depth and interval. If they are, the existing resolve
-    /// depth and interval are updated to cover the new resolve depth and interval.
-    ///
-    /// If the traversed entry has to be resolved further, [`TraversalStatus::Unresolved`] is
-    /// returned with the new resolve depth and interval that the traversal should continue with.
-    pub fn update(
-        &mut self,
-        identifier: &K,
-        new_resolve_depth: GraphResolveDepths,
-        new_interval: TemporalInterval<VariableAxis>,
-    ) -> TraversalStatus {
-        match self.resolved.raw_entry_mut().from_key(identifier) {
-            RawEntryMut::Vacant(entry) => {
-                entry.insert(identifier.clone(), (new_resolve_depth, new_interval));
-                TraversalStatus::Unresolved(new_resolve_depth, new_interval)
-            }
-            RawEntryMut::Occupied(entry) => {
-                let (current_depths, current_interval) = entry.into_mut();
-                let old_interval = *current_interval;
-
-                // Ideally, we want to use a `union` here instead, as we only want to resolve
-                // elements contained in either sets of intervals. However, the current
-                // implementation doesn't have the necessary support to handle a bigger set of
-                // multiple intervals so we use a `merge` instead to make sure we're covering
-                // _at least_ the intervals requested. This does imply that in some cases the
-                // subgraph will contain more information than requested, where we'll also be
-                // querying the space between the two intervals when they're not adjacent or
-                // overlapping.
-                *current_interval = current_interval.merge(new_interval);
-
-                if current_depths.update(new_resolve_depth) {
-                    // We currently don't have a way to store different resolve depths for different
-                    // intervals for the same identifier. For simplicity, we require to resolve the
-                    // full interval with the updated resolve depths.
-                    TraversalStatus::Unresolved(*current_depths, *current_interval)
-                } else if old_interval.contains_interval(&new_interval) {
-                    // The traversed object is already resolved for the required interval
-                    // old: [-----)
-                    // new:  [---)
-                    TraversalStatus::Resolved
-                } else if new_interval.contains_interval(&old_interval)
-                    || new_interval.is_adjacent_to(&old_interval)
-                {
-                    // The traversed object is already resolved, but not for the required interval.
-                    // If the old interval is contained in the new interval, this means, that a
-                    // portion of the new interval has already been resolved, but not all of it.
-                    // Ideally we only want to resolve the difference of `new - old`, but we don't
-                    // have a way to store different resolve depths for different intervals for the
-                    // same identifier. For simplicity, we require to resolve the full interval.
-                    //
-                    //         |  contains   |  adjacent
-                    // old     |    [---)    | [---)
-                    // new     | [---------) |     [---)
-                    // ========|=============|===========
-                    // optimal | [--)   [--) |     [---)
-                    // current | [---------) |     [---)
-                    TraversalStatus::Unresolved(*current_depths, new_interval)
-                } else if old_interval.overlaps(&new_interval) {
-                    // This is a similar case to the above, but as the old interval is not contained
-                    // in the new interval, we can resolve the difference of `new - old`.
-                    // old:     [-----)
-                    // new:       [-------)
-                    // resolve:       [---)
-                    let difference = new_interval.difference(old_interval);
-                    // The intervals do overlap and the current interval is not a subset of
-                    // the required interval, so the difference must be a single interval
-                    debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
-
-                    TraversalStatus::Unresolved(
-                        *current_depths,
-                        difference
-                            .into_iter()
-                            .next()
-                            .expect("difference must be a single interval"),
-                    )
-                } else {
-                    // The time intervals are disjoint and not adjacent. Ideally, we only would
-                    // resolve the new interval, but we did not come up with a good way to store the
-                    // different intervals in the traversal map. So we resolve the full interval
-                    // for now.
-                    //
-                    // We only require this logic when traversing edges of the graph, so the roots
-                    // of the graph are always precisely resolved correctly. By this implementation,
-                    // we may get more dependencies resolved than necessary, which will appear as
-                    // vertices/edges in the subgraph. until we have decided, if we consider this a
-                    // bug or not, we keep the current behavior
-                    // see https://app.asana.com/0/0/1203774687353264/f.
-                    //
-                    // Ideally, we want to track this occurrence in production, but utilizing our
-                    // current logging strategy does not work well as we would have to log with a
-                    // high severity. see https://app.asana.com/0/0/1203774687353266/f
-                    //
-                    // However, we only have to resolve the difference of the merge of the two, as
-                    // the old interval is already resolved. and the intervals are disjoint:
-                    // Examples |      1      |      B
-                    // =========|=============|=============
-                    // old      | [---)       |       [---)
-                    // new      |       [---) | [---)
-                    // ---------|-------------|-------------
-                    // optimal  |       [---) | [---)
-                    // current  |     [-----) | [-----)
-                    let difference = old_interval.merge(new_interval).difference(old_interval);
-                    debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
-
-                    TraversalStatus::Unresolved(
-                        *current_depths,
-                        difference
-                            .into_iter()
-                            .next()
-                            .expect("difference must be a single interval"),
-                    )
-                }
-            }
-        }
-    }
-}
-
 #[derive(Default)]
-pub struct TraversalContext {
-    pub ontology_traversal_map: TraversalMap<OntologyTypeVertexId>,
-    pub knowledge_traversal_map: TraversalMap<EntityVertexId>,
-}
+pub struct TraversalContext;
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
@@ -491,40 +326,46 @@ where
         property_type: &PropertyType,
         ontology_id: OntologyId,
     ) -> Result<(), InsertionError> {
-        let property_type_ids = self
-            .property_type_reference_ids(property_type.property_type_references())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced property types")?;
-
-        for target_id in property_type_ids {
-            self.as_client().query_one(
+        for property_type in property_type.property_type_references() {
+            self.as_client()
+                .query_one(
                 r#"
-                        INSERT INTO property_type_property_type_references (source_property_type_ontology_id, target_property_type_ontology_id)
-                        VALUES ($1, $2)
-                        RETURNING source_property_type_ontology_id;
+                        INSERT INTO property_type_constrains_properties_on (
+                            source_property_type_ontology_id,
+                            target_property_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_property_type_ontology_id;
                     "#,
-                &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &property_type.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(property_type.url().version),
+                    ],
             )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
         }
 
-        let data_type_ids = self
-            .data_type_reference_ids(property_type.data_type_references())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced data types")?;
-
-        for target_id in data_type_ids {
-            self.as_client().query_one(
+        for data_type in property_type.data_type_references() {
+            self.as_client()
+                .query_one(
                 r#"
-                        INSERT INTO property_type_data_type_references (source_property_type_ontology_id, target_data_type_ontology_id)
-                        VALUES ($1, $2)
-                        RETURNING source_property_type_ontology_id;
+                        INSERT INTO property_type_constrains_values_on (
+                            source_property_type_ontology_id,
+                            target_data_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_data_type_ontology_id;
                     "#,
-                &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &data_type.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(data_type.url().version),
+                    ],
             )
                 .await
                 .into_report()
@@ -540,20 +381,46 @@ where
         entity_type: &EntityType,
         ontology_id: OntologyId,
     ) -> Result<(), InsertionError> {
-        let property_type_ids = self
-            .property_type_reference_ids(entity_type.property_type_references())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced property types")?;
-
-        for target_id in property_type_ids {
-            self.as_client().query_one(
-                r#"
-                        INSERT INTO entity_type_property_type_references (source_entity_type_ontology_id, target_property_type_ontology_id)
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_ontology_id;
+        for property_type in entity_type.property_type_references() {
+            self.as_client()
+                .query_one(
+                    r#"
+                        INSERT INTO entity_type_constrains_properties_on (
+                            source_entity_type_ontology_id,
+                            target_property_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING source_entity_type_ontology_id;
                     "#,
-                &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &property_type.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(property_type.url().version),
+                    ],
+                )
+            .await
+                .into_report()
+                .change_context(InsertionError)?;
+        }
+
+        for inherits_from in entity_type.inherits_from().all_of() {
+            self.as_client()
+                .query_one(
+                r#"
+                        INSERT INTO entity_type_inherits_from (
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_entity_type_ontology_id;
+                    "#,
+                    &[
+                        &ontology_id,
+                        &inherits_from.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(inherits_from.url().version),
+                    ],
             )
                 .await
                 .into_report()
@@ -561,44 +428,53 @@ where
         }
 
         // TODO: should we check that the `link_entity_type_ref` is a link entity type?
-        //   see https://app.asana.com/0/1202805690238892/1203277018227719/f
-        // TODO: `collect` is not needed but due to a higher-ranked lifetime error, this would fail
-        //       otherwise. This is expected to be solved in future Rust versions.
-        let entity_type_references = entity_type
-            .link_mappings()
-            .into_keys()
-            .chain(
-                entity_type
-                    .link_mappings()
-                    .into_values()
-                    .flatten()
-                    .flatten(),
-            )
-            .chain(entity_type.inherits_from().all_of())
-            .collect::<Vec<_>>();
-
-        let entity_type_reference_ids = self
-            .entity_type_reference_ids(entity_type_references)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced entity types")?;
-
-        for target_id in entity_type_reference_ids {
+        //   see https://app.asana.com/0/0/1203277018227719/f
+        for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(
                     r#"
-                        INSERT INTO entity_type_entity_type_references (
+                        INSERT INTO entity_type_constrains_links_on (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
-                        )
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_ontology_id;
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                        ) RETURNING target_entity_type_ontology_id;
                     "#,
-                    &[&ontology_id, &target_id],
+                    &[
+                        &ontology_id,
+                        &link_reference.url().base_url.as_str(),
+                        &OntologyTypeVersion::new(link_reference.url().version),
+                    ],
+            )
+            .await
+                .into_report()
+                .change_context(InsertionError)?;
+
+            if let Some(destinations) = destinations {
+                for destination in destinations {
+                    self.as_client()
+                .query_one(
+                    r#"
+                        INSERT INTO entity_type_constrains_link_destinations_on (
+                        source_entity_type_ontology_id,
+                        target_entity_type_ontology_id
+                            ) VALUES (
+                                $1,
+                                (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            ) RETURNING target_entity_type_ontology_id;
+                        "#,
+                        &[
+                            &ontology_id,
+                            &destination.url().base_url.as_str(),
+                            &OntologyTypeVersion::new(destination.url().version),
+                        ],
                 )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
+                }
+            }
         }
 
         Ok(())
@@ -725,54 +601,108 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<
-            Item = (EntityId, Option<EntityId>, Option<EntityId>),
-            IntoIter: Send,
-        > + Send,
+        entity_uuids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
     ) -> Result<u64, InsertionError> {
         let sink = self
             .client
             .copy_in(
                 "COPY entity_ids (
                     owned_by_id,
-                    entity_uuid,
-                    left_owned_by_id,
-                    left_entity_uuid,
-                    right_owned_by_id,
-                    right_entity_uuid
+                    entity_uuid
                 ) FROM STDIN BINARY",
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-        ]);
+        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
 
         futures::pin_mut!(writer);
-        for (entity_id, left_entity_id, right_entity_id) in entity_uuids {
+        for entity_id in entity_uuids {
+            writer
+                .as_mut()
+                .write(&[&entity_id.owned_by_id, &entity_id.entity_uuid])
+                .await
+                .into_report()
+                .change_context(InsertionError)
+                .attach_printable(entity_id.entity_uuid)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_is_of_type(
+        &self,
+        entity_edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
+        entity_type_ontology_id: OntologyId,
+    ) -> Result<u64, InsertionError> {
+        let sink = self
+            .client
+            .copy_in(
+                "COPY entity_is_of_type (
+                    entity_edition_id,
+                    entity_type_ontology_id
+                ) FROM STDIN BINARY",
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
+
+        futures::pin_mut!(writer);
+        for entity_edition_id in entity_edition_ids {
+            writer
+                .as_mut()
+                .write(&[&entity_edition_id, &entity_type_ontology_id])
+                .await
+                .into_report()
+                .change_context(InsertionError)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_links(
+        &self,
+        left_right: &'static str,
+        entity_ids: impl IntoIterator<Item = (EntityId, EntityId), IntoIter: Send> + Send,
+    ) -> Result<u64, InsertionError> {
+        let sink = self
+            .client
+            .copy_in(&format!(
+                "COPY entity_has_{left_right}_entity (
+                    owned_by_id,
+                    entity_uuid,
+                    {left_right}_owned_by_id,
+                    {left_right}_entity_uuid
+                ) FROM STDIN BINARY",
+            ))
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer =
+            BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::UUID, Type::UUID]);
+
+        futures::pin_mut!(writer);
+        for (entity_id, link_entity_id) in entity_ids {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id,
                     &entity_id.entity_uuid,
-                    &left_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.owned_by_id),
-                    &left_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.entity_uuid),
-                    &right_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.owned_by_id),
-                    &right_entity_id
-                        .as_ref()
-                        .map(|entity_id| entity_id.entity_uuid),
+                    &link_entity_id.owned_by_id,
+                    &link_entity_id.entity_uuid,
                 ])
                 .await
                 .into_report()
@@ -795,18 +725,16 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
             IntoIter: Send,
         > + Send,
-        entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
-                    record_created_by_id UUID NOT NULL,
-                    archived BOOLEAN NOT NULL,
-                    entity_type_ontology_id UUID NOT NULL,
                     properties JSONB NOT NULL,
                     left_to_right_order INT,
-                    right_to_left_order INT
+                    right_to_left_order INT,
+                    record_created_by_id UUID NOT NULL,
+                    archived BOOLEAN NOT NULL
                 );",
             )
             .await
@@ -817,24 +745,22 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(
                 "COPY entity_editions_temp (
-                    record_created_by_id,
-                    archived,
-                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
-                    right_to_left_order
+                    right_to_left_order,
+                    record_created_by_id,
+                    archived
                 ) FROM STDIN BINARY",
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[
-            Type::UUID,
-            Type::BOOL,
-            Type::UUID,
             Type::JSONB,
             Type::INT4,
             Type::INT4,
+            Type::UUID,
+            Type::BOOL,
         ]);
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
@@ -845,12 +771,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &actor_id,
-                    &false,
-                    &entity_type_ontology_id,
                     &properties,
                     &left_to_right_order,
                     &right_to_left_order,
+                    &actor_id,
+                    &false,
                 ])
                 .await
                 .into_report()
@@ -868,21 +793,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .query(
                 "INSERT INTO entity_editions (
                     entity_edition_id,
-                    record_created_by_id,
-                    archived,
-                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
-                    right_to_left_order
+                    right_to_left_order,
+                    record_created_by_id,
+                    archived
                 )
                 SELECT
                     gen_random_uuid(),
-                    record_created_by_id,
-                    archived,
-                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
-                    right_to_left_order
+                    right_to_left_order,
+                    record_created_by_id,
+                    archived
                 FROM entity_editions_temp
                 RETURNING entity_edition_id;",
                 &[],

@@ -6,7 +6,11 @@ use serde::{
 };
 use utoipa::ToSchema;
 
-use crate::store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath};
+use crate::{
+    ontology::PropertyTypeQueryPath,
+    store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
+    subgraph::edges::OntologyEdgeKind,
+};
 
 /// A path to a [`DataType`] field.
 ///
@@ -79,6 +83,16 @@ pub enum DataTypeQueryPath<'p> {
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     /// [`DataType`]: type_system::DataType
     VersionedUrl,
+    /// The transaction time of the [`DataType`].
+    ///
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
+    /// of the [`OntologyElementMetadata`].
+    ///
+    /// [`DataType`]: type_system::DataType
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
@@ -154,6 +168,22 @@ pub enum DataTypeQueryPath<'p> {
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
     AdditionalMetadata(Option<JsonPath<'p>>),
+    /// A reversed edge from a [`PropertyType`] to this [`DataType`] using an [`OntologyEdgeKind`].
+    ///
+    /// The corresponding edge is [`PropertyTypeQueryPath::DataTypeEdge`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`ConstrainsValuesOn`]
+    ///
+    /// Only used internally and not available for deserialization.
+    ///
+    /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
+    /// [`DataType`]: type_system::DataType
+    /// [`PropertyType`]: type_system::PropertyType
+    PropertyTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: Box<PropertyTypeQueryPath<'p>>,
+    },
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
@@ -167,6 +197,10 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 
     fn version() -> Self {
         Self::Version
+    }
+
+    fn transaction_time() -> Self {
+        Self::TransactionTime
     }
 
     fn updated_by_id() -> Self {
@@ -189,8 +223,10 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
+            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
+            Self::PropertyTypeEdge { path, .. } => path.expected_type(),
         }
     }
 }
@@ -202,6 +238,7 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
@@ -211,6 +248,15 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Type => fmt.write_str("type"),
             Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
             Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
+            Self::PropertyTypeEdge {
+                edge_kind, path, ..
+            } => write!(fmt, "<{edge_kind:?}>.{path}"),
         }
     }
 }

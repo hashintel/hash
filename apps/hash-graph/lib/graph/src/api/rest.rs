@@ -11,7 +11,6 @@ mod entity;
 mod entity_type;
 mod property_type;
 mod utoipa_typedef;
-
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
@@ -38,8 +37,8 @@ use crate::{
         middleware::log_request_and_response,
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, Vertex, Vertices,
+            KnowledgeGraphVertices, OntologyOutwardEdge, OntologyRootedEdges, OntologyTypeVertexId,
+            OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
         },
     },
     identifier::{
@@ -49,7 +48,6 @@ use crate::{
             OpenTemporalBound, RightBoundedTemporalInterval,
             RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
-        EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -60,10 +58,13 @@ use crate::{
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
-        SubgraphTemporalAxes,
+        identifier::{
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
+            GraphElementVertexId, PropertyTypeVertexId,
+        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
 
@@ -182,6 +183,9 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ExternalOntologyElementMetadata,
             EntityVertexId,
             EntityIdWithInterval,
+            DataTypeVertexId,
+            PropertyTypeVertexId,
+            EntityTypeVertexId,
             OntologyTypeVertexId,
             OntologyTypeVersion,
             Selector,
