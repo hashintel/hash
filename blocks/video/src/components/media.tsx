@@ -274,6 +274,7 @@ export const Media: FunctionComponent<
         )}
       </div>
       {draftSrc ? (
+        // @note This does not yet contain all required properties – these will be added in a follow up
         <script
           type="application/ld+json"
           /* eslint-disable-next-line react/no-danger */
