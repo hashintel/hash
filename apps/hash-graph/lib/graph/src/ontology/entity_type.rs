@@ -10,7 +10,7 @@ use crate::{
     knowledge::EntityQueryPath,
     ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::{OntologyEdgeKind, SharedEdgeKind},
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
 };
 
 /// A path to a [`EntityType`] field.
@@ -235,12 +235,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
     /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
     ///     edge_kind: OntologyEdgeKind::InheritsFrom,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -260,12 +260,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUrl"]))?;
     /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
     ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -281,7 +281,7 @@ pub enum EntityTypeQueryPath<'p> {
     EntityTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<Self>,
-        reversed: bool,
+        direction: EdgeDirection,
     },
     /// A reversed edge from an [`Entity`] to this [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -495,7 +495,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                 EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }
             }
             EntityTypeQueryToken::InheritsFrom => {
@@ -506,7 +506,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                 EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }
             }
             EntityTypeQueryToken::Schema => {
@@ -576,7 +576,7 @@ mod tests {
             EntityTypeQueryPath::EntityTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                 path: Box::new(EntityTypeQueryPath::Version),
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             },
         );
 

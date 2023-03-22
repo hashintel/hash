@@ -11,7 +11,7 @@ use crate::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, EntityTypeQueryPath, Selector,
     },
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -184,19 +184,19 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::PropertyTypeEdge {
     ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
     ///     path: Box::new(PropertyTypeQueryPath::Title),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<Self>,
-        reversed: bool,
+        direction: EdgeDirection,
     },
     /// A reversed edge from an [`EntityType`] to this [`PropertyType`] using an
     /// [`OntologyEdgeKind`].
@@ -402,7 +402,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
                 PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }
             }
             PropertyTypeQueryToken::Schema => {
@@ -470,7 +470,7 @@ mod tests {
             PropertyTypeQueryPath::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path: Box::new(PropertyTypeQueryPath::BaseUrl),
-                reversed: false
+                direction: EdgeDirection::Outgoing,
             }
         );
 
