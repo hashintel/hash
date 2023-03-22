@@ -471,8 +471,9 @@ const InsertPropertyRow = (
   );
 };
 
-const propertyDefaultValues = () => ({
+const propertyDefaultValues = (): PropertyTypeFormValues => ({
   expectedValues: [],
+  flattenedCustomExpectedValueList: {},
   name: "",
   description: "",
 });
