@@ -1,4 +1,4 @@
-import { Button } from "@hashintel/design-system";
+import { BlockErrorMessage, Button } from "@hashintel/design-system";
 import {
   Box,
   Collapse,
@@ -189,15 +189,7 @@ export const ImagePreview = ({
         </Stack>
 
         <Collapse in={!!errorMessage}>
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.red[50],
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            {errorMessage}
-          </Typography>
+          <BlockErrorMessage apiName="OpenAI" sx={{ mt: 1 }} />
         </Collapse>
       </Stack>
 

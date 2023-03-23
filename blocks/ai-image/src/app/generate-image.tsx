@@ -1,6 +1,7 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import {
+  BlockErrorMessage,
   BlockSettingsButton,
   Button,
   GetHelpLink,
@@ -357,18 +358,9 @@ export const GenerateImage = ({
             value={promptText}
           />
 
-          {errorMessage && (
-            <Typography
-              sx={{
-                color: ({ palette }) => palette.red[50],
-                fontSize: 14,
-                fontWeight: 500,
-                marginTop: 1.25,
-              }}
-            >
-              {errorMessage}
-            </Typography>
-          )}
+          <Collapse in={!!errorMessage}>
+            <BlockErrorMessage apiName="OpenAI" sx={{ mt: 1 }} />
+          </Collapse>
         </form>
       </Collapse>
 
