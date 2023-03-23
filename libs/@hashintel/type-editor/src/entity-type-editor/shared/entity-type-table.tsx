@@ -148,7 +148,6 @@ export const EntityTypeTableRow = forwardRef<
          */
         const observer = new IntersectionObserver(() => {
           const scrollSpacing = 4;
-          // @todo when to remove this
           // this ensures the row isn't covered by our sticky edit bar or table footer
           node.style.setProperty(
             "scroll-margin",

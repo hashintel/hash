@@ -29,7 +29,10 @@ import {
   useFlashRow,
   EntityTypeTableFooter,
 } from "./shared/entity-type-table";
-import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import {
+  InsertTypeField,
+  InsertTypeFieldProps,
+} from "./shared/insert-type-field";
 import { Link } from "./shared/link";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
@@ -192,9 +195,9 @@ const LinkTypeRow = ({
   );
 };
 
-const InsertLinkRow = (
+const InsertLinkField = (
   props: Omit<
-    InsertTypeRowProps<EntityType>,
+    InsertTypeFieldProps<EntityType>,
     "options" | "variant" | "createButtonProps"
   >,
 ) => {
@@ -210,7 +213,7 @@ const InsertLinkRow = (
   });
 
   return (
-    <InsertTypeRow {...props} options={filteredLinkTypes} variant="link" />
+    <InsertTypeField {...props} options={filteredLinkTypes} variant="link" />
   );
 };
 
@@ -356,7 +359,7 @@ export const LinkListCard = () => {
       <EntityTypeTableFooter>
         {addingNewLink ? (
           <>
-            <InsertLinkRow
+            <InsertLinkField
               inputRef={addingNewLinkRef}
               onCancel={cancelAddingNewLink}
               onAdd={handleAddEntityType}

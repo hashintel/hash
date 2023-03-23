@@ -58,7 +58,10 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
-import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import {
+  InsertTypeField,
+  InsertTypeFieldProps,
+} from "./shared/insert-type-field";
 import {
   MULTIPLE_VALUES_CELL_WIDTH,
   MultipleValuesCell,
@@ -448,8 +451,8 @@ export const PropertyTypeRow = ({
   );
 };
 
-const InsertPropertyRow = (
-  props: Omit<InsertTypeRowProps<PropertyType>, "options" | "variant">,
+const InsertPropertyField = (
+  props: Omit<InsertTypeFieldProps<PropertyType>, "options" | "variant">,
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const properties = useWatch({ control, name: "properties" });
@@ -463,7 +466,7 @@ const InsertPropertyRow = (
   });
 
   return (
-    <InsertTypeRow
+    <InsertTypeField
       {...props}
       options={filteredPropertyTypes}
       variant="property"
@@ -621,7 +624,7 @@ export const PropertyListCard = () => {
       <EntityTypeTableFooter>
         {addingNewProperty ? (
           <>
-            <InsertPropertyRow
+            <InsertPropertyField
               inputRef={addingNewPropertyRef}
               onCancel={cancelAddingNewProperty}
               onAdd={handleAddPropertyType}

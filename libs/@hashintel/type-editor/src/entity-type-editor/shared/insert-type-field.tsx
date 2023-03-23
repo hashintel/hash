@@ -13,10 +13,10 @@ import {
 import {
   TypeSelector,
   TypeSelectorType,
-} from "./insert-property-row/type-selector";
+} from "./insert-property-field/type-selector";
 import { withHandler } from "./with-handler";
 
-export type InsertTypeRowProps<T extends TypeSelectorType> = {
+export type InsertTypeFieldProps<T extends TypeSelectorType> = {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
   onAdd: (option: T) => void;
@@ -78,7 +78,7 @@ const useTableColumnWidth = (tableRowRef: RefObject<HTMLTableRowElement>) => {
   return columnWidth;
 };
 
-export const InsertTypeRow = <T extends TypeSelectorType>({
+export const InsertTypeField = <T extends TypeSelectorType>({
   inputRef,
   onCancel,
   onAdd,
@@ -87,7 +87,7 @@ export const InsertTypeRow = <T extends TypeSelectorType>({
   searchText,
   onSearchTextChange,
   options,
-}: InsertTypeRowProps<T>) => {
+}: InsertTypeFieldProps<T>) => {
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
   const tableRowRef = useRef<HTMLTableRowElement>(null);
