@@ -24,7 +24,12 @@ export const ImageTile = ({
       }}
     >
       {loading ? (
-        <Skeleton width="100%" height="100%" sx={{ transform: "unset" }} />
+        <Skeleton
+          variant="rectangular"
+          width="100%"
+          height="100%"
+          sx={{ transform: "unset" }}
+        />
       ) : null}
       <img
         alt={description}
