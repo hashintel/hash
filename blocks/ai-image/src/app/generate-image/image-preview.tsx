@@ -1,6 +1,7 @@
 import { BlockErrorMessage, Button } from "@hashintel/design-system";
 import {
   Box,
+  CircularProgress,
   Collapse,
   Fade,
   ImageList,
@@ -447,9 +448,21 @@ export const ImagePreview = ({
             })}
           >
             <Box display="flex" gap={1}>
-              <ArrowUpIcon
-                sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
-              />
+              {loading ? (
+                <CircularProgress
+                  size={16}
+                  sx={{
+                    color: ({ palette }) => palette.gray[40],
+                  }}
+                />
+              ) : (
+                <ArrowUpIcon
+                  sx={{
+                    fontSize: 16,
+                    color: ({ palette }) => palette.gray[40],
+                  }}
+                />
+              )}
               <Typography
                 sx={{
                   color: ({ palette }) => palette.gray[80],
@@ -459,7 +472,7 @@ export const ImagePreview = ({
                 }}
               >
                 {loading
-                  ? "Uploading images..."
+                  ? "Generating images..."
                   : "Click an image to preview or insert it"}
               </Typography>
             </Box>
