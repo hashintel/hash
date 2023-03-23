@@ -1,5 +1,6 @@
 import {
   Box,
+  Fade,
   inputBaseClasses,
   ListSubheader,
   menuItemClasses,
@@ -12,23 +13,23 @@ import { ReactNode, useMemo, useState } from "react";
 import { CaretDownIcon } from "./icons/caret-down";
 import { CheckIcon } from "./icons/check";
 import { MenuItem } from "./menu-item";
-import { Select } from "./select";
+import { Select, SelectProps } from "./select";
 
-export interface Option {
-  id: string;
+export interface Option<OptionId extends string = string> {
+  id: OptionId;
   icon: ReactNode;
   title: string;
   description: string;
   helperText?: string;
 }
 
-export interface OptionGroup {
+export interface OptionGroup<OptionId extends string = string> {
   name: string;
-  options: Option[];
+  options: Option<OptionId>[];
 }
 
-export interface GroupedOptions {
-  [key: string]: OptionGroup;
+export interface GroupedOptions<OptionId extends string = string> {
+  [key: string]: OptionGroup<OptionId>;
 }
 
 const INPUT_HEIGHT = 23;
@@ -126,27 +127,30 @@ const getSelectorItems = (options: Option[], value: string) =>
     );
   });
 
-export type DropdownSelectorProps = {
-  value: string;
-  onChange?: (value: string) => void;
+export type DropdownSelectorProps<OptionId extends string = string> = {
+  value: OptionId;
+  onChange?: (value: OptionId) => void;
   options: GroupedOptions | Option[];
   open: boolean;
+  disabled?: boolean;
   onOpen: () => void;
   onClose: () => void;
+  sx?: SelectProps["sx"];
   renderValue?: (
     selectedOption: Option,
     selectedGroup: OptionGroup | null,
   ) => JSX.Element;
 };
 
-export const DropdownSelector = ({
+export const DropdownSelector = <OptionId extends string = string>({
   options,
   value,
   open,
+  disabled,
   onChange,
   renderValue,
   ...props
-}: DropdownSelectorProps) => {
+}: DropdownSelectorProps<OptionId>) => {
   const [selectRef, setSelectRef] = useState<HTMLSelectElement | null>(null);
 
   const [selectedModel, selectedGroup] = useMemo(() => {
@@ -193,8 +197,9 @@ export const DropdownSelector = ({
       {...props}
       open={open}
       value={value}
+      disabled={disabled}
       onChange={(event) => {
-        onChange?.(event.target.value);
+        onChange?.(event.target.value as OptionId);
       }}
       ref={(ref: HTMLSelectElement | null) => {
         if (ref) {
@@ -227,16 +232,20 @@ export const DropdownSelector = ({
         },
       }}
       IconComponent={CaretDownIcon}
-      sx={{
-        [`.${inputBaseClasses.root}`]: {
-          background: "none !important",
-          boxShadow: "none !important",
-          [`& .${selectClasses.icon}`]: {
-            fontSize: 13,
-            color: ({ palette }) => palette.gray[40],
+      sx={[
+        {
+          [`.${inputBaseClasses.root}`]: {
+            background: "none !important",
+            boxShadow: "none !important",
+            [`& .${selectClasses.icon}`]: {
+              fontSize: 13,
+              color: ({ palette }) => palette.gray[40],
+              opacity: disabled ? 0 : 1,
+            },
           },
         },
-      }}
+        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
+      ]}
     >
       {Array.isArray(options)
         ? getSelectorItems(options, value)
