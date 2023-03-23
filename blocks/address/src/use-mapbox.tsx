@@ -39,6 +39,7 @@ export const useMapbox = (
   uploadMap: (mapFile: File, addressId: string) => Promise<void>,
   addressId?: string,
 ) => {
+  const [selectedAddressLoading, setSelectedAddressLoading] = useState(false);
   const { serviceModule } = useServiceBlockModule(blockRootRef);
   const [sessionToken, setSessionToken] = useSessionstorageState<string | null>(
     "mapboxSessionToken",
@@ -98,6 +99,8 @@ export const useMapbox = (
         const selectedAddressId =
           typeof suggestion === "string" ? suggestion : suggestion.action.id;
 
+        setSelectedAddressLoading(true);
+
         void serviceModule
           .mapboxRetrieveAddress({
             data: {
@@ -141,8 +144,12 @@ export const useMapbox = (
                 onSelectAddress(addr);
               }
             }
+          })
+          .finally(() => {
+            setSelectedAddressLoading(false);
           });
       } else {
+        setSelectedAddressLoading(false);
         setSuggestionsError(false);
         setMapError(false);
         setSelectedMapboxSuggestionActionId(null);
@@ -220,5 +227,6 @@ export const useMapbox = (
     mapError,
     selectAddress,
     selectedAddress: address,
+    selectedAddressLoading,
   };
 };
