@@ -329,6 +329,7 @@ export const EntityTypeTableFooter = forwardRef<
           })}
           ref={cellRef}
         >
+          {/* We need a separate div as you can't put box shadows on table cells */}
           <Box
             sx={[
               {

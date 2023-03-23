@@ -1,12 +1,6 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
-import {
-  Box,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-} from "@mui/material";
+import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
@@ -20,14 +14,14 @@ import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-select
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
-  EntityTypeTableFooterButton,
   EntityTypeTableCenteredCell,
+  EntityTypeTableFooter,
+  EntityTypeTableFooterButton,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
   sortRows,
   useFlashRow,
-  EntityTypeTableFooter,
 } from "./shared/entity-type-table";
 import {
   InsertTypeField,
@@ -356,46 +350,48 @@ export const LinkListCard = () => {
           />
         ))}
       </TableBody>
-      <EntityTypeTableFooter enableShadow={fields.length > 0}>
-        {addingNewLink ? (
-          <>
-            <InsertLinkField
-              inputRef={addingNewLinkRef}
-              onCancel={cancelAddingNewLink}
-              onAdd={handleAddEntityType}
-              searchText={searchText}
-              onSearchTextChange={setSearchText}
-              createModalPopupState={createModalPopupState}
-            />
-            <TypeFormModal
-              as={LinkTypeForm}
-              popupState={createModalPopupState}
-              modalTitle={
-                <>
-                  Create new link
-                  <QuestionIcon
-                    sx={{
-                      ml: 1.25,
-                    }}
-                    tooltip={
-                      <>
-                        You should only create a new link type if you can't find
-                        an existing one which corresponds to the relationship
-                        you're trying to capture.
-                      </>
-                    }
-                  />
-                </>
-              }
-              onSubmit={handleSubmit}
-              submitButtonProps={{ children: <>Create new link</> }}
-              getDefaultValues={() =>
-                searchText.length ? { name: searchText } : {}
-              }
-            />
-          </>
-        ) : (
-          !isReadonly && (
+      {isReadonly ? (
+        <Box sx={{ height: "var(--table-padding)" }} />
+      ) : (
+        <EntityTypeTableFooter enableShadow={fields.length > 0}>
+          {addingNewLink ? (
+            <>
+              <InsertLinkField
+                inputRef={addingNewLinkRef}
+                onCancel={cancelAddingNewLink}
+                onAdd={handleAddEntityType}
+                searchText={searchText}
+                onSearchTextChange={setSearchText}
+                createModalPopupState={createModalPopupState}
+              />
+              <TypeFormModal
+                as={LinkTypeForm}
+                popupState={createModalPopupState}
+                modalTitle={
+                  <>
+                    Create new link
+                    <QuestionIcon
+                      sx={{
+                        ml: 1.25,
+                      }}
+                      tooltip={
+                        <>
+                          You should only create a new link type if you can't
+                          find an existing one which corresponds to the
+                          relationship you're trying to capture.
+                        </>
+                      }
+                    />
+                  </>
+                }
+                onSubmit={handleSubmit}
+                submitButtonProps={{ children: <>Create new link</> }}
+                getDefaultValues={() =>
+                  searchText.length ? { name: searchText } : {}
+                }
+              />
+            </>
+          ) : (
             <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
@@ -406,9 +402,9 @@ export const LinkListCard = () => {
             >
               Add a link
             </EntityTypeTableFooterButton>
-          )
-        )}
-      </EntityTypeTableFooter>
+          )}
+        </EntityTypeTableFooter>
+      )}
     </EntityTypeTable>
   );
 };

@@ -9,6 +9,7 @@ import {
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import {
+  Box,
   Checkbox,
   Collapse,
   Table,
@@ -18,7 +19,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import {
+import React, {
   ReactNode,
   useCallback,
   useEffect,
@@ -621,48 +622,50 @@ export const PropertyListCard = () => {
           />
         ))}
       </TableBody>
-      <EntityTypeTableFooter enableShadow={fields.length > 0}>
-        {addingNewProperty ? (
-          <>
-            <InsertPropertyField
-              inputRef={addingNewPropertyRef}
-              onCancel={cancelAddingNewProperty}
-              onAdd={handleAddPropertyType}
-              createModalPopupState={createModalPopupState}
-              searchText={searchText}
-              onSearchTextChange={setSearchText}
-            />
-            <TypeFormModal
-              as={PropertyTypeForm}
-              modalTitle={
-                <>
-                  Create new property type
-                  <QuestionIcon
-                    sx={{
-                      display: "flex",
-                      ml: 1.25,
-                    }}
-                    tooltip={
-                      <>
-                        You should only create a new property type if you can't
-                        find an existing one which corresponds to the
-                        information you're trying to capture.
-                      </>
-                    }
-                  />
-                </>
-              }
-              popupState={createModalPopupState}
-              onSubmit={handleSubmit}
-              submitButtonProps={{ children: <>Create new property type</> }}
-              getDefaultValues={() => ({
-                expectedValues: [],
-                ...(searchText.length ? { name: searchText } : {}),
-              })}
-            />
-          </>
-        ) : (
-          !isReadonly && (
+      {isReadonly ? (
+        <Box sx={{ height: "var(--table-padding)" }} />
+      ) : (
+        <EntityTypeTableFooter enableShadow={fields.length > 0}>
+          {addingNewProperty ? (
+            <>
+              <InsertPropertyField
+                inputRef={addingNewPropertyRef}
+                onCancel={cancelAddingNewProperty}
+                onAdd={handleAddPropertyType}
+                createModalPopupState={createModalPopupState}
+                searchText={searchText}
+                onSearchTextChange={setSearchText}
+              />
+              <TypeFormModal
+                as={PropertyTypeForm}
+                modalTitle={
+                  <>
+                    Create new property type
+                    <QuestionIcon
+                      sx={{
+                        display: "flex",
+                        ml: 1.25,
+                      }}
+                      tooltip={
+                        <>
+                          You should only create a new property type if you
+                          can't find an existing one which corresponds to the
+                          information you're trying to capture.
+                        </>
+                      }
+                    />
+                  </>
+                }
+                popupState={createModalPopupState}
+                onSubmit={handleSubmit}
+                submitButtonProps={{ children: <>Create new property type</> }}
+                getDefaultValues={() => ({
+                  expectedValues: [],
+                  ...(searchText.length ? { name: searchText } : {}),
+                })}
+              />
+            </>
+          ) : (
             <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
@@ -673,9 +676,9 @@ export const PropertyListCard = () => {
             >
               Add a property
             </EntityTypeTableFooterButton>
-          )
-        )}
-      </EntityTypeTableFooter>
+          )}
+        </EntityTypeTableFooter>
+      )}
     </EntityTypeTable>
   );
 };
