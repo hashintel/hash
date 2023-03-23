@@ -87,7 +87,7 @@ blocks/**/.env
 **/venv
 
 # Python compiled files and package metadata
-__pycache__
+**/__pycache__
 *.egg-info
 
 # generated files
