@@ -114,7 +114,7 @@ use crate::{
 ///     "any": [
 ///       {
 ///         "equal": [
-///           { "path": ["updatedById"] },
+///           { "path": ["recordCreatedById"] },
 ///           { "parameter": "12345678-90ab-cdef-1234-567890abcdef" }
 ///         ]
 ///       },

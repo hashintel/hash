@@ -9,7 +9,7 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
@@ -69,7 +69,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
@@ -131,7 +131,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
@@ -193,6 +193,6 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 }
