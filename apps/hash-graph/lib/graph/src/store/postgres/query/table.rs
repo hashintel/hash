@@ -8,6 +8,7 @@ use std::{
 use crate::{
     identifier::time::TimeAxis,
     store::{postgres::query::Transpile, query::JsonPath},
+    subgraph::edges::EdgeDirection,
 };
 
 /// The name of a [`Table`] in the Postgres database.
@@ -228,6 +229,7 @@ pub enum OntologyIds<'p> {
     Version,
     UpdatedById,
     LatestVersion,
+    TransactionTime,
     AdditionalMetadata(Option<JsonField<'p>>),
 }
 
@@ -267,6 +269,7 @@ impl OntologyIds<'_> {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::BaseUrl => "base_url",
+            Self::TransactionTime => "transaction_time",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
             Self::UpdatedById => "record_created_by_id",
@@ -743,7 +746,7 @@ pub enum Relation {
     RightEntity,
     Reference {
         table: ReferenceTable,
-        reversed: bool,
+        direction: EdgeDirection,
     },
 }
 
@@ -778,15 +781,14 @@ impl ForeignKeyJoin {
         Self::Plain(once(reference))
     }
 
-    fn from_reference_table(table: ReferenceTable, reversed: bool) -> Self {
-        if reversed {
-            Self::Reference(
-                once(table.target_relation().reverse())
-                    .chain(once(table.source_relation().reverse())),
-            )
-        } else {
-            Self::Reference(once(table.source_relation()).chain(once(table.target_relation())))
-        }
+    fn from_reference_table(table: ReferenceTable, direction: EdgeDirection) -> Self {
+        Self::Reference(match direction {
+            EdgeDirection::Incoming => once(table.target_relation().reverse())
+                .chain(once(table.source_relation().reverse())),
+            EdgeDirection::Outgoing => {
+                once(table.source_relation()).chain(once(table.target_relation()))
+            }
+        })
     }
 }
 
@@ -840,8 +842,8 @@ impl Relation {
                     Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
                 ],
             }),
-            Self::Reference { table, reversed } => {
-                ForeignKeyJoin::from_reference_table(table, reversed)
+            Self::Reference { table, direction } => {
+                ForeignKeyJoin::from_reference_table(table, direction)
             }
         }
     }

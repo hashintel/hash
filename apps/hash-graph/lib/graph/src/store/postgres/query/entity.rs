@@ -9,7 +9,7 @@ use crate::{
         },
         PostgresQueryPath, PostgresRecord, Table,
     },
-    subgraph::edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
 impl PostgresRecord for Entity {
@@ -36,41 +36,41 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityIsOfType,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             })
             .chain(path.relations())
             .collect(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById => {
                 vec![Relation::LeftEntity]
             }
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityHasLeftEntity,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById => {
                 vec![Relation::RightEntity]
             }
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityHasRightEntity,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
@@ -94,28 +94,28 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::Uuid => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid)
             }
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::OwnedById => {
                 Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById)
             }
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::Uuid => {
                 Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid)
             }
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::OwnedById => {
                 Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById)
             }

@@ -11,7 +11,7 @@ use crate::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, EntityTypeQueryPath, Selector,
     },
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -64,6 +64,16 @@ pub enum PropertyTypeQueryPath<'p> {
     /// [`PropertyType`]: type_system::PropertyType
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     VersionedUrl,
+    /// The transaction time of the [`PropertyType`].
+    ///
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
+    /// of the [`OntologyElementMetadata`].
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
@@ -174,19 +184,19 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::PropertyTypeEdge {
     ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
     ///     path: Box::new(PropertyTypeQueryPath::Title),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<Self>,
-        reversed: bool,
+        direction: EdgeDirection,
     },
     /// A reversed edge from an [`EntityType`] to this [`PropertyType`] using an
     /// [`OntologyEdgeKind`].
@@ -228,6 +238,10 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
         Self::Version
     }
 
+    fn transaction_time() -> Self {
+        Self::TransactionTime
+    }
+
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -249,6 +263,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
+            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
@@ -264,6 +279,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
@@ -386,7 +402,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
                 PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }
             }
             PropertyTypeQueryToken::Schema => {
@@ -454,7 +470,7 @@ mod tests {
             PropertyTypeQueryPath::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path: Box::new(PropertyTypeQueryPath::BaseUrl),
-                reversed: false
+                direction: EdgeDirection::Outgoing,
             }
         );
 

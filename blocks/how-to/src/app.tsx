@@ -10,16 +10,10 @@ import {
   EditableField,
   faPlus,
   FontAwesomeIcon,
+  GetHelpLink,
   theme,
 } from "@hashintel/design-system";
-import {
-  Card,
-  Collapse,
-  Fade,
-  Link,
-  Stack,
-  ThemeProvider,
-} from "@mui/material";
+import { Card, Collapse, Fade, Stack, ThemeProvider } from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
@@ -314,35 +308,14 @@ export const App: BlockComponent<RootEntity> = ({
                 {!readonly ? (
                   <Fade in={hovered}>
                     <Box
-                      sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}
+                      sx={{
+                        display: "flex",
+                        columnGap: 3,
+                        flexWrap: "wrap",
+                        mb: 1.5,
+                      }}
                     >
-                      <Link
-                        href="https://blockprotocol.org/@hash/blocks/how-to"
-                        target="_blank"
-                        variant="regularTextLabels"
-                        sx={({ palette }) => ({
-                          display: "inline-flex",
-                          alignItems: "center",
-                          fontSize: 15,
-                          lineHeight: 1,
-                          letterSpacing: -0.02,
-                          marginBottom: 1.5,
-                          whiteSpace: "nowrap",
-                          fill: palette.gray[40],
-                          textDecoration: "none !important",
-                          color: `${palette.gray[50]} !important`,
-                          ":hover": {
-                            color: `${palette.gray[60]} !important`,
-                            fill: palette.gray[50],
-                          },
-                        })}
-                      >
-                        Get help{" "}
-                        <FontAwesomeIcon
-                          icon={faQuestionCircle}
-                          sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-                        />
-                      </Link>
+                      <GetHelpLink href="https://blockprotocol.org/@hash/blocks/how-to" />
                     </Box>
                   </Fade>
                 ) : null}
