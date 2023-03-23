@@ -265,26 +265,28 @@ export const EntityTypeTableButtonRow = ({
           p: "0 !important",
         }}
       >
-        <ButtonBase
-          disableRipple
-          disableTouchRipple
-          onClick={onClick}
-          sx={(theme) => ({
-            color: theme.palette.gray[50],
-            py: 1.5,
-            width: "100%",
-            borderRadius: 1,
-            "&:hover": {
-              backgroundColor: theme.palette.gray[10],
-              color: theme.palette.gray[70],
-            },
-          })}
-        >
-          {icon}
-          <Typography variant="smallTextLabels" fontWeight={500} ml={1}>
-            {children}
-          </Typography>
-        </ButtonBase>
+        <Box>
+          <ButtonBase
+            disableRipple
+            disableTouchRipple
+            onClick={onClick}
+            sx={(theme) => ({
+              color: theme.palette.gray[50],
+              py: 1.5,
+              width: "100%",
+              borderRadius: 1,
+              "&:hover": {
+                backgroundColor: theme.palette.gray[10],
+                color: theme.palette.gray[70],
+              },
+            })}
+          >
+            {icon}
+            <Typography variant="smallTextLabels" fontWeight={500} ml={1}>
+              {children}
+            </Typography>
+          </ButtonBase>
+        </Box>
       </TableCell>
     </TableRow>
   );
