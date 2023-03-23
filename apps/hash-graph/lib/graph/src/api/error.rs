@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use hash_status::Status as HashStatus;
 use serde::{Deserialize, Serialize};
 
-pub(super) use crate::api::gen::status_payloads::{ErrorInfo, RequestInfo, ResourceInfo};
+pub(in crate::api) use crate::api::gen::status_payloads::{ErrorInfo, RequestInfo, ResourceInfo};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum StatusPayloads {
