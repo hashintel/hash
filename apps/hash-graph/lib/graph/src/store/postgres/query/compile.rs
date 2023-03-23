@@ -7,8 +7,8 @@ use crate::{
     store::{
         postgres::query::{
             table::{
-                DataTypes, Entities, EntityEditions, EntityTypes, JsonField, OntologyIds,
-                PropertyTypes,
+                DataTypes, EntityEditions, EntityTemporalMetadata, EntityTypes, JsonField,
+                OntologyIds, PropertyTypes,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
@@ -84,7 +84,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     fn pin_entity_table(&mut self, alias: Alias) {
-        let table = Table::Entities.aliased(alias);
+        let table = Table::EntityTemporalMetadata.aliased(alias);
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
             match self.temporal_axes {
                 QueryTemporalAxes::DecisionTime { pinned, variable } => {
@@ -110,7 +110,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
             self.statement.where_expression.add_condition(
                 Condition::TimeIntervalContainsTimestamp(
                     Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
+                        Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
                             self.temporal_axes.pinned_time_axis(),
                         ))
                         .aliased(alias),
@@ -122,7 +122,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 .where_expression
                 .add_condition(Condition::Overlap(
                     Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
+                        Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
                             self.temporal_axes.variable_time_axis(),
                         ))
                         .aliased(alias),
@@ -354,7 +354,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
 
         let alias = self.add_join_statements(path);
 
-        if matches!(column, Column::Entities(_)) {
+        if matches!(column, Column::EntityTemporalMetadata(_)) {
             self.pin_entity_table(alias);
         }
         column.aliased(alias)
@@ -391,7 +391,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
         let mut current_table = self.statement.from;
 
-        if current_table.table == Table::Entities {
+        if current_table.table == Table::EntityTemporalMetadata {
             self.pin_entity_table(current_table.alias);
         }
 
@@ -451,7 +451,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     current_table = join_expression.table;
                     self.statement.joins.push(join_expression);
 
-                    if current_table.table == Table::Entities {
+                    if current_table.table == Table::EntityTemporalMetadata {
                         self.pin_entity_table(current_table.alias);
                     }
                 }
