@@ -32,6 +32,8 @@ use crate::{
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
+    type Record = Entity;
+
     #[tracing::instrument(level = "info", skip(self))]
     async fn read(
         &self,

@@ -57,6 +57,8 @@ where
     T: OntologyTypeWithMetadata + PostgresRecord,
     for<'p> T::QueryPath<'p>: OntologyQueryPath,
 {
+    type Record = T;
+
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
         &self,
