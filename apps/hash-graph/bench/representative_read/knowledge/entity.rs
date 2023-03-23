@@ -9,7 +9,7 @@ use graph::{
         EntityStore,
     },
     subgraph::{
-        edges::{GraphResolveDepths, KnowledgeGraphEdgeKind},
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -112,7 +112,7 @@ pub fn bench_get_link_by_target_by_property(
                         "https://blockprotocol.org/@alice/types/property-type/name/",
                     ))]),
                 ))),
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             })),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Alice",

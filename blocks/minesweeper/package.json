@@ -1,6 +1,7 @@
 {
   "name": "@blocks/minesweeper",
   "version": "0.0.1",
+  "private": true,
   "description": "Play Minesweeper in your browser!",
   "keywords": [
     "blockprotocol",

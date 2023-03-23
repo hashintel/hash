@@ -38,7 +38,8 @@ use deer::{
         ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
         ValueError, Variant,
     },
-    Context, Deserialize, DeserializeOwned, Document, OptionalVisitor, Reflection, Schema, Visitor,
+    Context, Deserialize, DeserializeOwned, Document, FieldAccess, OptionalVisitor, Reflection,
+    Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -559,10 +560,9 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         }
     }
 
-    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
     where
-        K: Deserialize<'de>,
-        V: Deserialize<'de>,
+        F: FieldAccess<'de>,
     {
         self.dirty = true;
 
@@ -578,19 +578,16 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
                     *remaining -= 1;
 
                     // defer to `Visitor::visit_none`
-                    let key = K::deserialize(Deserializer::empty(self.context));
-                    let value = V::deserialize(Deserializer::empty(self.context));
+                    let key = access.key(Deserializer::empty(self.context));
 
-                    match (key, value) {
-                        (Err(mut key), Err(value)) => {
-                            key.extend_one(value);
-                            Some(Err(key.change_context(ObjectAccessError)))
-                        }
-                        (Err(error), Ok(_)) | (Ok(_), Err(error)) => {
-                            Some(Err(error.change_context(ObjectAccessError)))
-                        }
-                        (Ok(key), Ok(value)) => Some(Ok((key, value))),
-                    }
+                    Some(
+                        key.and_then(|key| {
+                            access
+                                .value(&key, Deserializer::empty(self.context))
+                                .map(|value| (key, value))
+                        })
+                        .change_context(ObjectAccessError),
+                    )
                 }
             };
         }
@@ -607,21 +604,16 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         // `self.inner`
         let (key, value) = self.inner.remove_entry(&next).expect("key should exist");
 
-        let key = K::deserialize(Deserializer::new(Value::String(key), self.context));
-        let value = V::deserialize(Deserializer::new(value, self.context));
+        let key = access.key(Deserializer::new(Value::String(key), self.context));
+        let key_value = key.and_then(|key| {
+            access
+                .value(&key, Deserializer::new(value, self.context))
+                .map(|value| (key, value))
+        });
 
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)
-        match (key, value) {
-            (Err(mut key), Err(value)) => {
-                key.extend_one(value);
-                Some(Err(key.change_context(ObjectAccessError)))
-            }
-            (Err(error), Ok(_)) | (Ok(_), Err(error)) => {
-                Some(Err(error.change_context(ObjectAccessError)))
-            }
-            (Ok(key), Ok(value)) => Some(Ok((key, value))),
-        }
+        Some(key_value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {

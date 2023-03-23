@@ -3,7 +3,7 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
-    Deserialize, Deserializer as _,
+    Deserialize, Deserializer as _, FieldAccess,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -180,10 +180,9 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         .change_context(ObjectAccessError)
     }
 
-    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
     where
-        K: Deserialize<'de>,
-        V: Deserialize<'de>,
+        F: FieldAccess<'de>,
     {
         if self.remaining == Some(0) {
             return None;
@@ -195,40 +194,36 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             *remaining = remaining.saturating_sub(1);
         }
 
-        let (key, value) = if self.deserializer.peek() == Token::ObjectEnd {
+        let key_value = if self.deserializer.peek() == Token::ObjectEnd {
             // we're not in bounded mode, which means we need to signal that we're done
             self.remaining?;
 
             if self.remaining.is_some() {
-                let key = K::deserialize(DeserializerNone {
-                    context: self.deserializer.context(),
-                });
-                let value = V::deserialize(DeserializerNone {
+                let key = access.key(DeserializerNone {
                     context: self.deserializer.context(),
                 });
 
-                (key, value)
+                key.and_then(|key| {
+                    access
+                        .value(&key, DeserializerNone {
+                            context: self.deserializer.context(),
+                        })
+                        .map(|value| (key, value))
+                })
             } else {
                 return None;
             }
         } else {
-            let key = K::deserialize(&mut *self.deserializer);
-            let value = V::deserialize(&mut *self.deserializer);
+            let key = access.key(&mut *self.deserializer);
 
-            (key, value)
+            key.and_then(|key| {
+                access
+                    .value(&key, &mut *self.deserializer)
+                    .map(|value| (key, value))
+            })
         };
 
-        let result = match (key, value) {
-            (Err(mut key), Err(value)) => {
-                key.extend_one(value);
-
-                Err(key.change_context(ObjectAccessError))
-            }
-            (Err(error), _) | (_, Err(error)) => Err(error.change_context(ObjectAccessError)),
-            (Ok(key), Ok(value)) => Ok((key, value)),
-        };
-
-        Some(result)
+        Some(key_value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {

@@ -12,7 +12,7 @@ use crate::{
         EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
         identifier::EntityTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -62,6 +62,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
+                            EdgeDirection::Outgoing,
                             property_type_vertex_id.clone(),
                         );
 
@@ -88,7 +89,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::InheritsFrom,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -99,6 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::InheritsFrom,
+                            EdgeDirection::Outgoing,
                             referenced_entity_type_vertex_id.clone(),
                         );
 
@@ -125,7 +127,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinksOn,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -136,6 +138,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinksOn,
+                            EdgeDirection::Outgoing,
                             referenced_entity_type_vertex_id.clone(),
                         );
 
@@ -166,7 +169,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -177,6 +180,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                            EdgeDirection::Outgoing,
                             referenced_entity_type_vertex_id.clone(),
                         );
 
