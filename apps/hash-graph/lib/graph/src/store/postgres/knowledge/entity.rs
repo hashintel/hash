@@ -78,7 +78,6 @@ impl<C: AsClient> PostgresStore<C> {
                         unreachable!("The edge interval and the entity interval do not overlap")
                     });
 
-                // reversed `HasLeftEntity` is equivalent to an outgoing link `Entity`
                 subgraph.insert_edge(
                     &entity_vertex_id,
                     edge_kind,
