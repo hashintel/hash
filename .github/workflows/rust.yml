@@ -195,12 +195,6 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Show disk space
-        run: |
-          df -h
-          du -sh $HOME/.cargo/registry
-          du -sh .
-
       - name: Run tests
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
