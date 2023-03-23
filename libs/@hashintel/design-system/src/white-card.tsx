@@ -39,10 +39,9 @@ export const WhiteCard = ({
     <Card
       sx={[
         (theme) => ({
-          "--card-border-radius": "6px",
           boxShadow: theme.boxShadows.xs,
           overflow: "hidden",
-          borderRadius: "var(--card-border-radius)",
+          borderRadius: "6px",
         }),
         onClick
           ? (theme) => ({
