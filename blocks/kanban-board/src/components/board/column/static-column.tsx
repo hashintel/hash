@@ -11,7 +11,7 @@ import styles from "./styles.module.scss";
 
 export const StaticColumn = ({ data }: { data: ColumnData }) => {
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} style={{ boxShadow: "var(--shadow-3)" }}>
       <div className={clsx(styles.titleRow)}>
         <EditableColumnTitle readonly title={data.title} />
         <IconButton>
