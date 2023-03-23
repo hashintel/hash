@@ -21,7 +21,10 @@ use crate::{
         OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{BaseUrlAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool},
+    store::{
+        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
+        StorePool,
+    },
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
 
@@ -132,7 +135,10 @@ async fn create_data_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_data_types(data_types.into_iter().zip(metadata.iter()))
+        .create_data_types(
+            data_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             // TODO: consider adding the data type, or at least its URL in the trace

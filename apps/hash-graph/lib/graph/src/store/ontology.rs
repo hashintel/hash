@@ -10,7 +10,7 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::RecordCreatedById,
-    store::{crud, InsertionError, QueryError, UpdateError},
+    store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
 
@@ -30,7 +30,8 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         schema: DataType,
         metadata: &OntologyElementMetadata,
     ) -> Result<(), InsertionError> {
-        self.create_data_types(iter::once((schema, metadata))).await
+        self.create_data_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .await
     }
 
     /// Creates the provided [`DataType`]s.
@@ -47,6 +48,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -87,7 +89,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         schema: PropertyType,
         metadata: &OntologyElementMetadata,
     ) -> Result<(), InsertionError> {
-        self.create_property_types(iter::once((schema, metadata)))
+        self.create_property_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
             .await
     }
 
@@ -108,6 +110,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -148,7 +151,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         schema: EntityType,
         metadata: &OntologyElementMetadata,
     ) -> Result<(), InsertionError> {
-        self.create_entity_types(iter::once((schema, metadata)))
+        self.create_entity_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
             .await
     }
 
@@ -169,6 +172,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
