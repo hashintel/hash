@@ -284,6 +284,7 @@ const useIsSticky = (cellRef: RefObject<HTMLElement | null>) => {
           }
         },
         {
+          // We may be inside a scroll container (which we are in HASH) – find it
           root: getScrollParent(cell),
           threshold: [1],
         },
