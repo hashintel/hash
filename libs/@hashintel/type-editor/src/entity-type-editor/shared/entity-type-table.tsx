@@ -300,7 +300,7 @@ export const EntityTypeTableFooter = forwardRef<
   }, []);
 
   return (
-    <TableFooter sx={{ "--extra-offset": "1px" }}>
+    <TableFooter>
       <TableRow ref={ref}>
         <TableCell
           colSpan={
