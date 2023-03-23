@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import {
   closestCenter,
   defaultDropAnimationSideEffects,
@@ -18,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { RootEntityKey } from "../../additional-types";
 import { RootEntity } from "../../types";
@@ -51,9 +52,9 @@ interface BoardProps {
   readonly?: boolean;
 }
 
-let isDebounceInProgress = false;
-
 export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
+  const updateEntityQueue = useRef<number[]>([]);
+  const isDebounceQueued = useRef(false);
   const {
     properties: {
       [columnOrderKey]: entityColumnOrder = [],
@@ -71,9 +72,15 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const debouncedUpdateEntity = useMemo(
     () =>
-      debounce((newProperties: RootEntity["properties"]) => {
-        isDebounceInProgress = false;
-        return updateEntity(newProperties);
+      debounce(async (newProperties: RootEntity["properties"]) => {
+        isDebounceQueued.current = false;
+
+        const updateId = Date.now();
+        updateEntityQueue.current.push(updateId);
+        await updateEntity(newProperties);
+        updateEntityQueue.current = updateEntityQueue.current.filter(
+          (id) => id !== updateId,
+        );
       }, 1000),
     [updateEntity],
   );
@@ -88,7 +95,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     if (newColumns) setColumns(newColumns);
     if (newColumnOrder) setColumnOrder(newColumnOrder);
 
-    isDebounceInProgress = true;
+    isDebounceQueued.current = true;
     void debouncedUpdateEntity({
       [columnsKey]: newColumns ?? columns,
       [columnOrderKey]: newColumnOrder ?? columnOrder,
@@ -358,7 +365,11 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     }),
   );
 
-  if (blockEntity !== prevBlockEntity && !isDebounceInProgress) {
+  const isUpdatingEntity = updateEntityQueue.current.length > 0;
+  const shouldOverrideLocalState =
+    !isDebounceQueued.current && !isUpdatingEntity;
+
+  if (blockEntity !== prevBlockEntity && shouldOverrideLocalState) {
     setPrevBlockEntity(blockEntity);
 
     const columnsChanged = !isEqual(entityColumns, columns);
