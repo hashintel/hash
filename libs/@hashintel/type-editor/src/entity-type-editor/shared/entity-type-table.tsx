@@ -236,7 +236,7 @@ export const EntityTypeTableTitleCellText = ({
   </Typography>
 );
 
-const getScrollParent = (node: HTMLElement | null) => {
+const getScrollParent = (node: HTMLElement | null): HTMLElement | null => {
   if (node == null) {
     return null;
   }
@@ -246,9 +246,9 @@ const getScrollParent = (node: HTMLElement | null) => {
     window.getComputedStyle(node).overflowY !== "visible"
   ) {
     return node;
-  } else {
-    return getScrollParent(node.parentNode as HTMLElement | null);
   }
+
+  return getScrollParent(node.parentNode as HTMLElement | null);
 };
 
 export const EntityTypeTableHeaderRow = ({
