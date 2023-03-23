@@ -127,4 +127,3 @@ args = ["workspace", "@local/hash-graph-client", "prettier", "--write", "."]
 [tasks.generate-openapi-client-eslint]
 extend = "yarn"
 args = ["workspace", "@local/hash-graph-client", "fix:eslint"]
-
