@@ -298,7 +298,7 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
       <Box sx={{ p: 0.5 }}>
         <Table
           sx={(theme) => ({
-            "--footer-top-offset": "70px",
+            "--footer-top-offset": "91px",
             height: "100%",
             minWidth: 800,
             position: "relative",
