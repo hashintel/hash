@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "http://127.0.0.1:1337/meta.json",
+  "title": "Entity Type",
+  "description": "Specifies the structure of a Block Protocol entity type",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "http://127.0.0.1:1337/meta.json"
+    },
+    "kind": {
+      "const": "entityType"
+    },
+    "$id": {
+      "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
+    },
+    "type": {
+      "const": "object"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "allOf": {
+      "$comment": "Present if this entity type is a link entity type.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "$ref": {
+            "type": "string",
+            "const": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+          }
+        },
+        "required": ["$ref"],
+        "additionalProperties": false
+      },
+      "maxItems": 1
+    },
+    "examples": {
+      "$comment": "Example Entity instances",
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "properties": {
+      "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object",
+      "properties": {
+        "links": {
+          "type": "object",
+          "propertyNames": {
+            "$comment": "Property names must be a valid versioned URL to a link entity type to allow for outgoing links of that type from this entity.",
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
+          },
+          "patternProperties": {
+            ".*": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "array"
+                },
+                "ordered": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "items": {
+                  "$ref": "#/$defs/oneOfEntityTypeReference"
+                },
+                "minItems": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxItems": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": ["type", "ordered", "items"],
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    "required": {
+      "type": "array",
+      "items": {
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["$schema", "kind", "$id", "title", "properties"],
+  "$defs": {
+    "oneOfEntityTypeReference": {
+      "description": "Specifies a set of entity types inside a oneOf",
+      "type": "object",
+      "properties": {
+        "oneOf": {
+          "type": "array",
+          "items": {
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type-reference"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
