@@ -19,7 +19,11 @@ export const StaticColumn = ({ data }: { data: ColumnData }) => {
         </IconButton>
       </div>
       <div className={styles.body}>
-        <SortableContext items={data.cards.map((card) => card.id)} id={data.id}>
+        <SortableContext
+          items={data.cards.map((card) => card.id)}
+          id={data.id}
+          disabled
+        >
           {data.cards.map((card) => (
             <StaticCard key={card.id} data={card} />
           ))}

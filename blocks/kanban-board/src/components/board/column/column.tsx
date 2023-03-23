@@ -1,6 +1,7 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import clsx from "clsx";
+import { useMemo } from "react";
 
 import { IconButton } from "../../icon-button/icon-button";
 import { DiscardIcon } from "../../icons/discard-icon";
@@ -52,6 +53,11 @@ export const Column = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const sortableItems = useMemo(
+    () => data.cards.map((card) => card.id),
+    [data],
+  );
+
   return (
     <div
       className={styles.wrapper}
@@ -78,11 +84,7 @@ export const Column = ({
         )}
       </div>
       <div className={styles.body}>
-        <SortableContext
-          items={data.cards.map((card) => card.id)}
-          id={data.id}
-          disabled={readonly}
-        >
+        <SortableContext items={sortableItems} id={data.id} disabled={readonly}>
           {data.cards.map((card) => (
             <Card
               key={card.id}
