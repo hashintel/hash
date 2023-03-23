@@ -349,6 +349,7 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
               py: 1,
               // @note – gets bigger when the type selector is present
               minHeight: "var(--footer-height)",
+              zIndex: theme.zIndex.drawer + 1,
             },
           })}
         >
