@@ -23,6 +23,7 @@ import {
   forwardRef,
   PropsWithChildren,
   ReactNode,
+  RefObject,
   useEffect,
   useRef,
   useState,
@@ -268,12 +269,9 @@ export const EntityTypeTableHeaderRow = ({
   );
 };
 
-export const EntityTypeTableFooter = forwardRef<
-  HTMLTableRowElement,
-  PropsWithChildren
->(({ children }, ref) => {
+// Relies on an element sticking 1px out of the viewport to detect it
+const useIsSticky = (cellRef: RefObject<HTMLElement | null>) => {
   const [isSticky, setIsSticky] = useState(false);
-  const cellRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const cell = cellRef.current;
@@ -297,7 +295,17 @@ export const EntityTypeTableFooter = forwardRef<
         observer.disconnect();
       };
     }
-  }, []);
+  }, [cellRef]);
+
+  return isSticky;
+};
+
+export const EntityTypeTableFooter = forwardRef<
+  HTMLTableRowElement,
+  PropsWithChildren
+>(({ children }, ref) => {
+  const cellRef = useRef<HTMLElement>(null);
+  const isSticky = useIsSticky(cellRef);
 
   return (
     <TableFooter>
@@ -310,6 +318,8 @@ export const EntityTypeTableFooter = forwardRef<
           sx={(theme) => ({
             position: "sticky",
             padding: 0,
+            // This allows us to use intersection observer to detect when
+            // we're "stuck"
             bottom: "-1px",
             background: "white",
             // @note – gets bigger when the type selector is present
