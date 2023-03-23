@@ -16,12 +16,14 @@ import {
   Fade,
   Link,
   Stack,
-  styled,
   Typography,
   useTheme,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ContentStack } from "./address-card/content-stack";
+import { MapWrapper } from "./address-card/map-wrapper";
+import { StyledCard } from "./address-card/styled-card";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
 import { MapButton } from "./map-button";
@@ -41,60 +43,6 @@ type AddressCardProps = {
   incrementZoomLevel?: () => void;
   decrementZoomLevel?: () => void;
 };
-
-const MapWrapper = styled(Box)<{ isMobile?: boolean }>(({ theme, isMobile }) =>
-  theme.unstable_sx({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    background: theme.palette.gray[10],
-    borderLeft: `1px solid ${theme.palette.gray[20]}`,
-    width: 500,
-    minHeight: 300,
-
-    ...(isMobile
-      ? {
-          width: 1,
-          height: 300,
-        }
-      : {}),
-  }),
-);
-
-const StyledCard = styled(Box)<{ isMobile?: boolean }>(({ theme, isMobile }) =>
-  theme.unstable_sx({
-    display: "flex",
-    width: "min-content",
-    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-    borderRadius: 2.5,
-    boxShadow: "none",
-    ...(isMobile
-      ? {
-          flexDirection: "column",
-          width: 1,
-        }
-      : {}),
-  }),
-);
-
-const ContentStack = styled(Stack)<{ isMobile?: boolean }>(
-  ({ theme, isMobile }) =>
-    theme.unstable_sx({
-      boxSizing: "border-box",
-      display: "flex",
-      justifyContent: "space-between",
-      paddingY: 3,
-      paddingX: 3.75,
-      gap: 4,
-      width: 300,
-      ...(isMobile
-        ? {
-            width: 1,
-          }
-        : {}),
-    }),
-);
 
 export const AddressCard = ({
   title,
