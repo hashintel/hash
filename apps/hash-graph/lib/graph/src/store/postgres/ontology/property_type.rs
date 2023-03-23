@@ -12,7 +12,7 @@ use crate::{
         PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::PropertyTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -41,7 +41,12 @@ impl<C: AsClient> PostgresStore<C> {
             for (property_type_vertex_id, graph_resolve_depths, temporal_axes) in
                 mem::take(&mut property_type_queue)
             {
-                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsValuesOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for data_type in <Self as Read<DataTypeWithMetadata>>::read(
                         self,
                         &Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
@@ -65,20 +70,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                         data_type_queue.push((
                             data_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_values_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.constrains_values_on.outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_values_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone()
                         ));
                     }
                 }
 
-                if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsPropertiesOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
                         self,
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
@@ -104,16 +107,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         property_type_queue.push((
                             referenced_property_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_properties_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths
-                                        .constrains_properties_on
-                                        .outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_properties_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
