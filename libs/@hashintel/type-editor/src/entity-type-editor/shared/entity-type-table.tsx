@@ -134,14 +134,25 @@ export const EntityTypeTableRow = forwardRef<
         /**
          * This detects if the row is currently in view or not, and only triggers
          * the scroll into view logic if it's not
+         *
+         * @todo the bottom margin should be the max height of the footer row, not the edit bar
          */
         const observer = new IntersectionObserver(
           ([entry]) => {
             if (entry) {
               const ratio = entry.intersectionRatio;
+
               if (ratio < 1) {
                 const place: ScrollLogicalPosition =
                   ratio <= 0 ? "center" : "nearest";
+                node.style.setProperty(
+                  "scroll-margin-top",
+                  `${EDIT_BAR_HEIGHT}px`,
+                );
+                node.style.setProperty(
+                  "scroll-margin-bottom",
+                  `${EDIT_BAR_HEIGHT}px`,
+                );
                 node.scrollIntoView({
                   block: place,
                   inline: place,
@@ -153,7 +164,9 @@ export const EntityTypeTableRow = forwardRef<
           },
           {
             // Ensure we don't consider a row underneath the edit bar as 'in view'
-            rootMargin: `${EDIT_BAR_HEIGHT}px`,
+            rootMargin: `-${EDIT_BAR_HEIGHT}px 0px -${EDIT_BAR_HEIGHT}px 0px`,
+            // @todo fix this
+            root: document.querySelector("main"),
           },
         );
 
@@ -298,7 +311,12 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
       <Box sx={{ p: 0.5 }}>
         <Table
           sx={(theme) => ({
-            "--footer-top-offset": "91px",
+            "--header-gap": theme.spacing(0.75),
+            "--header-border-bottom": "1px",
+            "--header-height": "42px",
+            "--body-height": "40px",
+            "--footer-top-offset":
+              "calc(var(--body-height) + var(--header-height) + var(--header-gap) + var(--header-border-bottom))",
             height: "100%",
             minWidth: 800,
             position: "relative",
@@ -315,13 +333,15 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
               pr: 1,
               py: 0.5,
               border: "none",
+              height: "var(--body-height)",
             },
             [`.${tableCellClasses.head}`]: {
               py: 1.5,
-              borderBottom: 1,
+              borderBottom: "solid var(--header-border-bottom)",
               borderColor: theme.palette.gray[20],
               fontWeight: "inherit",
               lineHeight: "inherit",
+              height: "var(--header-height)",
 
               [`.${svgIconClasses.root}`]: {
                 verticalAlign: "middle",
@@ -329,7 +349,7 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
               },
             },
             [`.${tableBodyClasses.root}:before`]: {
-              lineHeight: "6px",
+              lineHeight: "var(--header-gap)",
               content: `"\\200C"`,
               display: "block",
             },
