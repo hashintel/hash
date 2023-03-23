@@ -20,13 +20,14 @@ import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-select
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
-  EntityTypeTableButtonRow,
+  EntityTypeTableFooterButton,
   EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
   sortRows,
   useFlashRow,
+  EntityTypeTableFooter,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { Link } from "./shared/link";
@@ -352,7 +353,7 @@ export const LinkListCard = () => {
           />
         ))}
       </TableBody>
-      <TableFooter>
+      <EntityTypeTableFooter>
         {addingNewLink ? (
           <>
             <InsertLinkRow
@@ -392,7 +393,7 @@ export const LinkListCard = () => {
           </>
         ) : (
           !isReadonly && (
-            <EntityTypeTableButtonRow
+            <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
                 setAddingNewLink(true, () => {
@@ -401,10 +402,10 @@ export const LinkListCard = () => {
               }}
             >
               Add a link
-            </EntityTypeTableButtonRow>
+            </EntityTypeTableFooterButton>
           )
         )}
-      </TableFooter>
+      </EntityTypeTableFooter>
     </EntityTypeTable>
   );
 };

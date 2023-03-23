@@ -14,7 +14,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableRow,
 } from "@mui/material";
@@ -51,8 +50,9 @@ import { CollapsibleRowLine } from "./shared/collapsible-row-line";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
-  EntityTypeTableButtonRow,
   EntityTypeTableCenteredCell,
+  EntityTypeTableFooter,
+  EntityTypeTableFooterButton,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   sortRows,
@@ -618,7 +618,7 @@ export const PropertyListCard = () => {
           />
         ))}
       </TableBody>
-      <TableFooter>
+      <EntityTypeTableFooter>
         {addingNewProperty ? (
           <>
             <InsertPropertyRow
@@ -660,7 +660,7 @@ export const PropertyListCard = () => {
           </>
         ) : (
           !isReadonly && (
-            <EntityTypeTableButtonRow
+            <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
                 setAddingNewProperty(true, () => {
@@ -669,10 +669,10 @@ export const PropertyListCard = () => {
               }}
             >
               Add a property
-            </EntityTypeTableButtonRow>
+            </EntityTypeTableFooterButton>
           )
         )}
-      </TableFooter>
+      </EntityTypeTableFooter>
     </EntityTypeTable>
   );
 };

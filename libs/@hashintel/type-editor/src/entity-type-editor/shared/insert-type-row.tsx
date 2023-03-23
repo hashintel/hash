@@ -1,10 +1,4 @@
-import {
-  Box,
-  TableCell,
-  tableCellClasses,
-  TableRow,
-  useForkRef,
-} from "@mui/material";
+import { Box, useForkRef } from "@mui/material";
 import { bindTrigger, PopupState } from "material-ui-popup-state/hooks";
 import {
   Dispatch,
@@ -48,11 +42,16 @@ const useTableColumnWidth = (tableRowRef: RefObject<HTMLTableRowElement>) => {
         return;
       }
 
-      const table = tableRow.parentNode?.parentNode as HTMLTableElement | null;
+      let table: HTMLElement = tableRow;
 
-      if (!table) {
-        return;
+      while (
+        table !== document.documentElement &&
+        table.parentNode &&
+        table.tagName !== "TABLE"
+      ) {
+        table = table.parentNode as HTMLElement;
       }
+
       if (table.tagName !== "TABLE") {
         throw new Error("Cannot find table");
       }
@@ -95,52 +94,45 @@ export const InsertTypeRow = <T extends TypeSelectorType>({
   const columnWidth = useTableColumnWidth(tableRowRef);
 
   return (
-    <TableRow
+    <Box
       sx={{
-        [`.${tableCellClasses.root}`]: {
-          py: 1,
-        },
+        py: 1,
+        pl: "var(--table-cell-left-padding)",
+        width: `${columnWidth ?? 0}px !important`,
       }}
       ref={tableRowRef}
     >
-      <TableCell colSpan={100}>
-        <Box sx={{ width: columnWidth ?? 0 }}>
-          {
-            // Deferring rendering of the type selector until column width is
-            // available, so the menu renders at the correct width
-            columnWidth === null ? null : (
-              <TypeSelector
-                searchText={searchText}
-                onSearchTextChange={onSearchTextChange}
-                inputRef={sharedRef}
-                createModalPopupState={createModalPopupState}
-                onAdd={onAdd}
-                onCancel={onCancel}
-                options={options}
-                dropdownProps={{
-                  query: searchText,
-                  createButtonProps: createModalPopupState
-                    ? {
-                        ...withHandler(
-                          bindTrigger(createModalPopupState),
-                          () => {
-                            ourInputRef.current?.focus();
-                          },
-                        ),
-                        onMouseDown: (evt) => {
-                          evt.preventDefault();
-                          evt.stopPropagation();
-                        },
-                      }
-                    : null,
-                  variant: variant === "property" ? "propertyType" : "linkType",
-                }}
-                variant={variant}
-              />
-            )
-          }
-        </Box>
-      </TableCell>
-    </TableRow>
+      {
+        // Deferring rendering of the type selector until column width is
+        // available, so the menu renders at the correct width
+        columnWidth === null ? null : (
+          <TypeSelector
+            searchText={searchText}
+            onSearchTextChange={onSearchTextChange}
+            inputRef={sharedRef}
+            createModalPopupState={createModalPopupState}
+            onAdd={onAdd}
+            onCancel={onCancel}
+            options={options}
+            dropdownProps={{
+              query: searchText,
+              createButtonProps: createModalPopupState
+                ? {
+                    ...withHandler(bindTrigger(createModalPopupState), () => {
+                      ourInputRef.current?.focus();
+                    }),
+                    onMouseDown: (evt) => {
+                      evt.preventDefault();
+                      evt.stopPropagation();
+                    },
+                  }
+                : null,
+              variant: variant === "property" ? "propertyType" : "linkType",
+            }}
+            variant={variant}
+          />
+        )
+      }
+    </Box>
   );
 };

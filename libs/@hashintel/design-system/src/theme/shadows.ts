@@ -25,6 +25,12 @@ const content = {
     "0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)",
     "0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07)",
   ],
+  mdReverse: [
+    "0px -11px 30px rgba(61, 78, 133, 0.04)",
+    "0px -7.12963px 18.37px rgba(61, 78, 133, 0.05)",
+    "0px -4.23704px 8.1px rgba(61, 78, 133, 0.06)",
+    "0px -0.203704px 0.62963px rgba(61, 78, 133, 0.07)",
+  ],
   lg: [
     "0px 20px 41px rgba(61, 78, 133, 0.07)",
     "0px 16px 25px rgba(61, 78, 133, 0.0531481)",
@@ -85,6 +91,7 @@ export const boxShadows = {
   xs: content.xs.join(","),
   sm: content.sm.join(","),
   md: content.md.join(","),
+  mdReverse: content.mdReverse.join(","),
   lg: content.lg.join(","),
   xl: content.xl.join(","),
   xxl: content.xxl.join(","),

@@ -1,23 +1,32 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { TYPE_SELECTOR_HEIGHT, WhiteCard } from "@hashintel/design-system";
+import { WhiteCard } from "@hashintel/design-system";
 import {
+  Box,
   ButtonBase,
   checkboxClasses,
   keyframes,
+  styled,
   svgIconClasses,
   Table,
   tableBodyClasses,
   TableCell,
   tableCellClasses,
-  tableFooterClasses,
+  TableFooter,
   TableRow,
+  tableRowClasses,
   Typography,
   TypographyProps,
   useForkRef,
 } from "@mui/material";
-import { Box, styled, useTheme } from "@mui/system";
 import memoize from "lodash.memoize";
-import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  PropsWithChildren,
+  ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 
@@ -145,7 +154,7 @@ export const EntityTypeTableRow = forwardRef<
             "scroll-margin",
             `${
               EDIT_BAR_HEIGHT + scrollSpacing
-            }px 0 calc(var(--footer-height) + ${scrollSpacing}px) 0`,
+            }px 0 calc(var(--footer-height) + ${scrollSpacing}px + 6px) 0`,
           );
           node.scrollIntoView({
             block: "nearest",
@@ -227,6 +236,21 @@ export const EntityTypeTableTitleCellText = ({
   </Typography>
 );
 
+const getScrollParent = (node: HTMLElement | null) => {
+  if (node == null) {
+    return null;
+  }
+
+  if (
+    node.scrollHeight > node.clientHeight &&
+    window.getComputedStyle(node).overflowY !== "visible"
+  ) {
+    return node;
+  } else {
+    return getScrollParent(node.parentNode as HTMLElement | null);
+  }
+};
+
 export const EntityTypeTableHeaderRow = ({
   children,
 }: {
@@ -245,7 +269,84 @@ export const EntityTypeTableHeaderRow = ({
   );
 };
 
-export const EntityTypeTableButtonRow = ({
+export const EntityTypeTableFooter = forwardRef<
+  HTMLTableRowElement,
+  PropsWithChildren
+>(({ children }, ref) => {
+  const [isSticky, setIsSticky] = useState(false);
+  const cellRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const cell = cellRef.current;
+
+    console.log(getScrollParent(cell));
+
+    if (cell) {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry) {
+            setIsSticky(entry.intersectionRatio !== 1);
+          }
+        },
+        {
+          root: getScrollParent(cell),
+          threshold: [1],
+        },
+      );
+
+      observer.observe(cell);
+
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, []);
+
+  return (
+    <TableFooter sx={{ "--extra-offset": "1px" }}>
+      <TableRow ref={ref}>
+        <TableCell
+          colSpan={
+            // Sufficiently large to span full width
+            100
+          }
+          sx={(theme) => ({
+            position: "sticky",
+            padding: 0,
+            bottom: "-1px",
+            background: "white",
+            // @note – gets bigger when the type selector is present
+            minHeight: "var(--footer-height)",
+            zIndex: theme.zIndex.drawer + 1,
+          })}
+          ref={cellRef}
+        >
+          <Box
+            sx={[
+              {
+                position: "relative",
+                width: "calc(100% + (var(--table-padding) * 2))",
+                left: "calc(0px - var(--table-padding))",
+                p: "var(--table-padding)",
+                pb: "calc(var(--table-padding) + 1px)",
+                clipPath: "polygon(0 -100px, 100% -100px, 100% 100%, 0 100%)",
+                transition: "box-shadow 200ms ease-in",
+              },
+              isSticky &&
+                ((theme) => ({
+                  boxShadow: theme.boxShadows.mdReverse,
+                })),
+            ]}
+          >
+            {children}
+          </Box>
+        </TableCell>
+      </TableRow>
+    </TableFooter>
+  );
+});
+
+export const EntityTypeTableFooterButton = ({
   icon,
   children,
   onClick,
@@ -255,108 +356,106 @@ export const EntityTypeTableButtonRow = ({
   onClick: () => void;
 }) => {
   return (
-    <TableRow>
-      <TableCell
-        colSpan={
-          // Sufficiently large to span full width
-          100
-        }
-        sx={{
-          p: "0 !important",
-        }}
-      >
-        <Box>
-          <ButtonBase
-            disableRipple
-            disableTouchRipple
-            onClick={onClick}
-            sx={(theme) => ({
-              color: theme.palette.gray[50],
-              py: 1.5,
-              width: "100%",
-              borderRadius: 1,
-              "&:hover": {
-                backgroundColor: theme.palette.gray[10],
-                color: theme.palette.gray[70],
-              },
-            })}
-          >
-            {icon}
-            <Typography variant="smallTextLabels" fontWeight={500} ml={1}>
-              {children}
-            </Typography>
-          </ButtonBase>
-        </Box>
-      </TableCell>
-    </TableRow>
+    <ButtonBase
+      disableRipple
+      disableTouchRipple
+      onClick={onClick}
+      sx={(theme) => ({
+        color: theme.palette.gray[50],
+        py: 1.5,
+        width: "100%",
+        borderRadius: 1,
+        "&:hover": {
+          backgroundColor: theme.palette.gray[10],
+          color: theme.palette.gray[70],
+        },
+      })}
+    >
+      {icon}
+      <Typography variant="smallTextLabels" fontWeight={500} ml={1}>
+        {children}
+      </Typography>
+    </ButtonBase>
   );
 };
 
-export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
-  return (
-    <WhiteCard sx={{ overflow: "visible" }}>
-      <Box sx={{ p: 0.5 }}>
-        <Table
+export const EntityTypeTable = forwardRef<HTMLDivElement, PropsWithChildren>(
+  ({ children }, ref) => {
+    return (
+      <WhiteCard sx={{ overflow: "visible" }}>
+        <Box
+          ref={ref}
           sx={(theme) => ({
+            "--table-padding": theme.spacing(0.5),
             "--header-gap": theme.spacing(0.75),
-            "--header-border-bottom": "1px",
             "--header-height": "42px",
             "--footer-height": "42px",
             "--body-height": "40px",
             "--footer-top-offset":
-              "calc(var(--body-height) + var(--header-height) + var(--header-gap) + var(--header-border-bottom))",
-            height: "100%",
-            minWidth: 800,
+              "calc(var(--body-height) + var(--header-height) + var(--header-gap))",
+            "--table-cell-left-padding": theme.spacing(3.5),
+
+            p: "var(--table-padding)",
             position: "relative",
-            marginTop: "var(--footer-top-offset)",
-            marginBottom: "calc(0px - var(--footer-top-offset))",
-
-            "> *": {
-              position: "relative",
-              top: "calc(0px - var(--footer-top-offset))",
-            },
-
-            [`.${tableCellClasses.root}`]: {
-              pl: 3.5,
-              pr: 1,
-              py: 0.5,
-              border: "none",
-              height: "var(--body-height)",
-            },
-            [`.${tableCellClasses.head}`]: {
-              py: 1.5,
-              borderBottom: "solid var(--header-border-bottom)",
-              borderColor: theme.palette.gray[20],
-              fontWeight: "inherit",
-              lineHeight: "inherit",
-              height: "var(--header-height)",
-
-              [`.${svgIconClasses.root}`]: {
-                verticalAlign: "middle",
-                ml: 0.75,
-              },
-            },
-            [`.${tableBodyClasses.root}:before`]: {
-              lineHeight: "var(--header-gap)",
-              content: `"\\200C"`,
-              display: "block",
-            },
-            [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
-              textAlign: "center",
-            },
-            [`.${tableFooterClasses.root} .${tableCellClasses.root}`]: {
-              position: "sticky",
-              bottom: 0,
-              background: "white",
-              // @note – gets bigger when the type selector is present
-              minHeight: "var(--footer-height)",
-              zIndex: theme.zIndex.drawer + 1,
-            },
           })}
         >
-          {children}
-        </Table>
-      </Box>
-    </WhiteCard>
-  );
-};
+          <Table
+            sx={(theme) => ({
+              height: "100%",
+              minWidth: 800,
+              position: "relative",
+              marginTop: "var(--footer-top-offset)",
+              // table padding is handled by the footer row
+              marginBottom:
+                "calc(0px - var(--footer-top-offset) - var(--table-padding))",
+
+              "> *": {
+                // Used by footer to help with its sticky styling
+                position: "relative",
+                top: "calc(0px - var(--footer-top-offset))",
+              },
+
+              [`.${tableCellClasses.root}`]: {
+                border: "none",
+              },
+
+              [`.${tableRowClasses.root}:not(.${tableRowClasses.footer}):not(.${tableRowClasses.head}) .${tableCellClasses.root}`]:
+                {
+                  pl: "var(--table-cell-left-padding)",
+                  pr: 1,
+                  py: 0.5,
+                  height: "var(--body-height)",
+                },
+
+              [`.${tableRowClasses.head} .${tableCellClasses.head}`]: {
+                pl: "var(--table-cell-left-padding)",
+                pr: 1,
+                py: 1.5,
+                borderBottom: 1,
+                borderColor: theme.palette.gray[20],
+                fontWeight: "inherit",
+                lineHeight: "inherit",
+                height: "var(--header-height)",
+
+                [`.${svgIconClasses.root}`]: {
+                  verticalAlign: "middle",
+                  ml: 0.75,
+                },
+              },
+              [`.${tableBodyClasses.root}:before`]: {
+                lineHeight: "var(--header-gap)",
+                content: `"\\200C"`,
+                display: "block",
+              },
+              [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
+                textAlign: "center",
+              },
+            })}
+          >
+            {children}
+          </Table>
+        </Box>
+      </WhiteCard>
+    );
+  },
+);

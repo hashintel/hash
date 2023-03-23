@@ -29,7 +29,6 @@ export const WhiteCard = ({
     <CardContent
       sx={{
         p: "0 !important",
-        background: "white",
       }}
     >
       {children}
@@ -40,9 +39,10 @@ export const WhiteCard = ({
     <Card
       sx={[
         (theme) => ({
+          "--card-border-radius": "6px",
           boxShadow: theme.boxShadows.xs,
           overflow: "hidden",
-          borderRadius: 1.5,
+          borderRadius: "var(--card-border-radius)",
         }),
         onClick
           ? (theme) => ({

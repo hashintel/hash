@@ -7,6 +7,7 @@ declare module "@mui/material/styles" {
     xs: string;
     sm: string;
     md: string;
+    mdReverse: string;
     lg: string;
     xl: string;
     xxl: string;
@@ -236,4 +237,5 @@ declare module "@mui/material/Chip" {
   }
 }
 
+// eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244
 export default "";

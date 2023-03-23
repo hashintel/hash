@@ -243,6 +243,7 @@ const Page: NextPageWithLayout = () => {
                     borderColor: "gray.20",
                     pt: 3.75,
                     backgroundColor: "white",
+                    mt: "400px",
                   }}
                 >
                   <Container>
