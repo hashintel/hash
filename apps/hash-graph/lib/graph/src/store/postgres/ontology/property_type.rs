@@ -229,7 +229,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        updated_by: RecordCreatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -237,7 +237,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (ontology_id, metadata) = transaction
-            .update::<PropertyType>(property_type.clone(), updated_by)
+            .update::<PropertyType>(property_type.clone(), record_created_by_id)
             .await?;
 
         transaction
