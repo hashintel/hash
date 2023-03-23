@@ -227,7 +227,7 @@ pub enum OntologyIds<'p> {
     OntologyId,
     BaseUrl,
     Version,
-    UpdatedById,
+    RecordCreatedById,
     LatestVersion,
     TransactionTime,
     AdditionalMetadata(Option<JsonField<'p>>),
@@ -272,7 +272,7 @@ impl OntologyIds<'_> {
             Self::TransactionTime => "transaction_time",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
-            Self::UpdatedById => "record_created_by_id",
+            Self::RecordCreatedById => "record_created_by_id",
             Self::AdditionalMetadata(None) => "additional_metadata",
             Self::AdditionalMetadata(Some(path)) => {
                 return transpile_json_field(path, "additional_metadata", table, fmt);
@@ -377,14 +377,14 @@ pub enum EntityEditions<'p> {
     Properties(Option<JsonField<'p>>),
     LeftToRightOrder,
     RightToLeftOrder,
-    UpdatedById,
+    RecordCreatedById,
     Archived,
 }
 
 impl EntityEditions<'_> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::UpdatedById => false,
+            Self::EditionId | Self::Archived | Self::RecordCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
@@ -400,7 +400,7 @@ impl EntityEditions<'_> {
             }
             Self::LeftToRightOrder => "left_to_right_order",
             Self::RightToLeftOrder => "right_to_left_order",
-            Self::UpdatedById => "record_created_by_id",
+            Self::RecordCreatedById => "record_created_by_id",
             Self::Archived => "archived",
         };
         table.transpile(fmt)?;

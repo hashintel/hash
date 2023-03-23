@@ -20,7 +20,7 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
@@ -70,7 +70,7 @@ struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -209,7 +209,7 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

@@ -20,7 +20,7 @@ use crate::{
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
         OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist},
         EntityTypeStore, StorePool,
@@ -73,7 +73,7 @@ struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -210,7 +210,7 @@ struct UpdateEntityTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

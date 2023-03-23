@@ -111,7 +111,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
           authenticatedUser.accountId === authorId ||
           authenticatedUser.accountId ===
-            comment.parent.metadata.provenance.updatedById
+            comment.parent.metadata.provenance.recordCreatedById
         }
       />
 

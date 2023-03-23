@@ -6,13 +6,13 @@ use type_system::PropertyType;
 
 use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{
         crud::Read, postgres::TraversalContext, query::Filter, AsClient, InsertionError,
         PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::PropertyTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -41,7 +41,12 @@ impl<C: AsClient> PostgresStore<C> {
             for (property_type_vertex_id, graph_resolve_depths, temporal_axes) in
                 mem::take(&mut property_type_queue)
             {
-                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsValuesOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for data_type in <Self as Read<DataTypeWithMetadata>>::read(
                         self,
                         &Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
@@ -65,20 +70,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                         data_type_queue.push((
                             data_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_values_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.constrains_values_on.outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_values_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone()
                         ));
                     }
                 }
 
-                if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsPropertiesOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
                         self,
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
@@ -104,16 +107,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         property_type_queue.push((
                             referenced_property_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_properties_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths
-                                        .constrains_properties_on
-                                        .outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_properties_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone(),
                         ));
                     }
@@ -229,7 +223,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        updated_by: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -237,7 +231,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (ontology_id, metadata) = transaction
-            .update::<PropertyType>(property_type.clone(), updated_by)
+            .update::<PropertyType>(property_type.clone(), record_created_by_id)
             .await?;
 
         transaction
