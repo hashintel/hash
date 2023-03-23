@@ -1,10 +1,14 @@
-import { faCopy, faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRotateLeft,
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Button,
+  EditableField,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   Card,
@@ -17,13 +21,12 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { EditableField } from "./editable-field";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
 import { MapButton } from "./map-button";
 
 type AddressCardProps = {
-  title: string;
+  title?: string;
   description?: string;
   fullAddress: string;
   mapUrl?: string;
@@ -54,7 +57,6 @@ export const AddressCard = ({
   decrementZoomLevel,
 }: AddressCardProps) => {
   const theme = useTheme();
-  const [editingDescription, setEditingDescription] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
 
@@ -128,19 +130,17 @@ export const AddressCard = ({
         <Stack gap={1.5}>
           <EditableField
             value={titleValue}
+            placeholder="Enter title"
             onChange={(event) => setTitleValue(event.target.value)}
             onBlur={(event) => updateTitle(event.target.value)}
-            iconSize="21px"
-            inputProps={{
-              sx: {
-                fontWeight: 700,
-                fontSize: 21,
-                lineHeight: 1,
-                letterSpacing: "-0.02em",
-                color: theme.palette.common.black,
-              },
-            }}
             readonly={readonly}
+            sx={{
+              fontWeight: 700,
+              fontSize: 21,
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              color: theme.palette.common.black,
+            }}
           />
 
           <Box display="flex" gap={1} alignItems="center">
@@ -176,7 +176,6 @@ export const AddressCard = ({
             ) : null}
           </Box>
         </Stack>
-
         <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 }}>
           {googleMapsUrl ? (
             <Box>
@@ -196,45 +195,23 @@ export const AddressCard = ({
           ) : null}
         </Stack>
 
-        {description || editingDescription ? (
-          <EditableField
-            value={descriptionValue}
-            onChange={(event) => setDescriptionValue(event.target.value)}
-            onBlur={(event) => {
-              setEditingDescription(false);
-              updateDescription(event.target.value);
-            }}
-            placeholder="Enter description"
-            iconSize="14px"
-            inputProps={{
-              sx: {
-                fontWeight: 500,
-                fontSize: 14,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: theme.palette.gray[90],
-              },
-            }}
-            readonly={readonly}
-          />
-        ) : !readonly ? (
-          <Typography
-            onClick={() => {
-              setEditingDescription(true);
-            }}
-            sx={{
-              display: "flex",
-              fontWeight: 500,
-              fontSize: 14,
-              lineHeight: 1.3,
-              letterSpacing: "-0.02em",
-              color: theme.palette.gray[50],
-            }}
-          >
-            Click here to add a description or more detailed information
-            <FontAwesomeIcon icon={faPenToSquare} sx={{ ml: 1 }} />
-          </Typography>
-        ) : null}
+        <EditableField
+          editIconFontSize={14}
+          value={descriptionValue}
+          placeholder="Click here to add a description or more detailed information"
+          onChange={(event) => setDescriptionValue(event.target.value)}
+          onBlur={(event) => {
+            updateDescription(event.target.value);
+          }}
+          readonly={readonly}
+          sx={{
+            fontWeight: 500,
+            fontSize: 14,
+            lineHeight: 1.3,
+            letterSpacing: "-0.02em",
+            color: theme.palette.gray[90],
+          }}
+        />
       </Stack>
 
       <Box

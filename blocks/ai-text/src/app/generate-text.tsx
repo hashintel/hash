@@ -1,13 +1,12 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { Button } from "@hashintel/design-system";
+import { Button, GetHelpLink } from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
   Collapse,
   Fade,
   inputBaseClasses,
-  Link,
   outlinedInputClasses,
   TextField,
   Typography,
@@ -16,7 +15,6 @@ import { FormEvent, useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { QuestionCircleIcon } from "../icons/question-circle";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import {
@@ -144,29 +142,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
         }
       >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
-          <Link
-            href="https://blockprotocol.org/@hash/blocks/ai-text"
-            target="_blank"
-            variant="regularTextLabels"
-            sx={({ palette }) => ({
-              display: "inline-flex",
-              alignItems: "center",
-              fontSize: 15,
-              lineHeight: 1,
-              letterSpacing: -0.02,
-              whiteSpace: "nowrap",
-              textDecoration: "none !important",
-              color: `${palette.gray[50]} !important`,
-              fill: palette.gray[40],
-              ":hover": {
-                color: `${palette.gray[60]} !important`,
-                fill: palette.gray[50],
-              },
-            })}
-          >
-            Get help{" "}
-            <QuestionCircleIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
-          </Link>
+          <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-text" />
 
           <Fade in={!generatedText}>
             <Box display="flex" gap={1} alignItems="center">
