@@ -55,7 +55,7 @@ export const Column = ({
 
   const sortableItems = useMemo(
     () => data.cards.map((card) => card.id),
-    [data],
+    [data.cards],
   );
 
   return (
