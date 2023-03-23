@@ -394,83 +394,80 @@ export const EntityTypeTableFooterButton = ({
   );
 };
 
-export const EntityTypeTable = forwardRef<HTMLDivElement, PropsWithChildren>(
-  ({ children }, ref) => {
-    return (
-      <WhiteCard sx={{ overflow: "visible" }}>
-        <Box
-          ref={ref}
+export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
+  return (
+    <WhiteCard sx={{ overflow: "visible" }}>
+      <Box
+        sx={(theme) => ({
+          "--table-padding": theme.spacing(0.5),
+          "--header-gap": theme.spacing(0.75),
+          "--header-height": "42px",
+          "--footer-height": "42px",
+          "--body-height": "40px",
+          "--footer-top-offset":
+            "calc(var(--body-height) + var(--header-height) + var(--header-gap))",
+          "--table-cell-left-padding": theme.spacing(3.5),
+
+          p: "var(--table-padding)",
+          position: "relative",
+        })}
+      >
+        <Table
           sx={(theme) => ({
-            "--table-padding": theme.spacing(0.5),
-            "--header-gap": theme.spacing(0.75),
-            "--header-height": "42px",
-            "--footer-height": "42px",
-            "--body-height": "40px",
-            "--footer-top-offset":
-              "calc(var(--body-height) + var(--header-height) + var(--header-gap))",
-            "--table-cell-left-padding": theme.spacing(3.5),
-
-            p: "var(--table-padding)",
+            height: "100%",
+            minWidth: 800,
             position: "relative",
-          })}
-        >
-          <Table
-            sx={(theme) => ({
-              height: "100%",
-              minWidth: 800,
+            marginTop: "var(--footer-top-offset)",
+            // table padding is handled by the footer row
+            marginBottom:
+              "calc(0px - var(--footer-top-offset) - var(--table-padding))",
+
+            "> *": {
+              // Used by footer to help with its sticky styling
               position: "relative",
-              marginTop: "var(--footer-top-offset)",
-              // table padding is handled by the footer row
-              marginBottom:
-                "calc(0px - var(--footer-top-offset) - var(--table-padding))",
+              top: "calc(0px - var(--footer-top-offset))",
+            },
 
-              "> *": {
-                // Used by footer to help with its sticky styling
-                position: "relative",
-                top: "calc(0px - var(--footer-top-offset))",
-              },
+            [`.${tableCellClasses.root}`]: {
+              border: "none",
+            },
 
-              [`.${tableCellClasses.root}`]: {
-                border: "none",
-              },
-
-              [`.${tableRowClasses.root}:not(.${tableRowClasses.footer}):not(.${tableRowClasses.head}) .${tableCellClasses.root}`]:
-                {
-                  pl: "var(--table-cell-left-padding)",
-                  pr: 1,
-                  py: 0.5,
-                  height: "var(--body-height)",
-                },
-
-              [`.${tableRowClasses.head} .${tableCellClasses.head}`]: {
+            [`.${tableRowClasses.root}:not(.${tableRowClasses.footer}):not(.${tableRowClasses.head}) .${tableCellClasses.root}`]:
+              {
                 pl: "var(--table-cell-left-padding)",
                 pr: 1,
-                py: 1.5,
-                borderBottom: 1,
-                borderColor: theme.palette.gray[20],
-                fontWeight: "inherit",
-                lineHeight: "inherit",
-                height: "var(--header-height)",
+                py: 0.5,
+                height: "var(--body-height)",
+              },
 
-                [`.${svgIconClasses.root}`]: {
-                  verticalAlign: "middle",
-                  ml: 0.75,
-                },
+            [`.${tableRowClasses.head} .${tableCellClasses.head}`]: {
+              pl: "var(--table-cell-left-padding)",
+              pr: 1,
+              py: 1.5,
+              borderBottom: 1,
+              borderColor: theme.palette.gray[20],
+              fontWeight: "inherit",
+              lineHeight: "inherit",
+              height: "var(--header-height)",
+
+              [`.${svgIconClasses.root}`]: {
+                verticalAlign: "middle",
+                ml: 0.75,
               },
-              [`.${tableBodyClasses.root}:before`]: {
-                lineHeight: "var(--header-gap)",
-                content: `"\\200C"`,
-                display: "block",
-              },
-              [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
-                textAlign: "center",
-              },
-            })}
-          >
-            {children}
-          </Table>
-        </Box>
-      </WhiteCard>
-    );
-  },
-);
+            },
+            [`.${tableBodyClasses.root}:before`]: {
+              lineHeight: "var(--header-gap)",
+              content: `"\\200C"`,
+              display: "block",
+            },
+            [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
+              textAlign: "center",
+            },
+          })}
+        >
+          {children}
+        </Table>
+      </Box>
+    </WhiteCard>
+  );
+};
