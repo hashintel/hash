@@ -356,7 +356,7 @@ export const LinkListCard = () => {
           />
         ))}
       </TableBody>
-      <EntityTypeTableFooter>
+      <EntityTypeTableFooter enableShadow={fields.length > 0}>
         {addingNewLink ? (
           <>
             <InsertLinkField

@@ -303,8 +303,8 @@ const useIsSticky = (cellRef: RefObject<HTMLElement | null>) => {
 
 export const EntityTypeTableFooter = forwardRef<
   HTMLTableRowElement,
-  PropsWithChildren
->(({ children }, ref) => {
+  PropsWithChildren<{ enableShadow: boolean }>
+>(({ children, enableShadow }, ref) => {
   const cellRef = useRef<HTMLElement>(null);
   const isSticky = useIsSticky(cellRef);
 
@@ -348,6 +348,7 @@ export const EntityTypeTableFooter = forwardRef<
                 transition: "box-shadow 200ms ease-in",
               },
               isSticky &&
+                enableShadow &&
                 ((theme) => ({
                   boxShadow: theme.boxShadows.mdReverse,
                 })),

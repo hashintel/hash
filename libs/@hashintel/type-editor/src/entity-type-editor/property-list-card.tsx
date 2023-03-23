@@ -621,7 +621,7 @@ export const PropertyListCard = () => {
           />
         ))}
       </TableBody>
-      <EntityTypeTableFooter>
+      <EntityTypeTableFooter enableShadow={fields.length > 0}>
         {addingNewProperty ? (
           <>
             <InsertPropertyField
