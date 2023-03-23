@@ -2,6 +2,19 @@ import fetch from "node-fetch";
 import Ajv2019 from "ajv/dist/2019.js";
 import {URL} from "node:url";
 
+const META_SCHEMA_URL = "http://127.0.0.1:1337/meta.json";
+const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
+
+/**
+ * We need a way to identify custom metaschemas (not a JSON schema draft), so we can squash them
+ * to deal with `ajv`'s problems when handling `$ref` graphs.
+ * These are strings to check `.includes()` on to determine if a given URL refers to a custom metaschema.
+ */
+const metaSchemaComponents = [
+  "types/modules/graph", // This is part of the root of the paths we store Block Protocol type system metaschemas on
+  META_SCHEMA_URL.split("/").pop(), // we only check against a piece of the path just in case some of the transformation steps below rewrites or drops the URL
+]
+
 /**
  * Keeps track of types to explore, types that have been explored, and their resolved dependency graph as its explored.
  */
@@ -22,10 +35,10 @@ class TraversalContext {
 
   encounter(sourceTypeId, dependencyTypeId) {
     if (!this.explored.has(dependencyTypeId) && !this.exploreQueue.has(dependencyTypeId)) {
-      console.log(`Adding ${dependencyTypeId} to explore queue, as it was encountered as a dependency of ${sourceTypeId}.`,);
+      // console.log(`Adding ${dependencyTypeId} to explore queue, as it was encountered as a dependency of ${sourceTypeId}.`,);
       this.exploreQueue.add(dependencyTypeId);
     } else {
-      console.log(`Skipping ${dependencyTypeId} as a dependency of ${sourceTypeId}, as it has already been explored.`,);
+      // console.log(`Skipping ${dependencyTypeId} as a dependency of ${sourceTypeId}, as it has already been explored.`,);
     }
   }
 
@@ -51,7 +64,7 @@ const getUrls = (obj) => {
     if (typeof obj === "string") {
       try {
         const _url = new URL(obj);
-        if (key === "$schema" || obj.includes("types/modules/graph") || obj.includes("meta.json")) {
+        if (key === "$schema" || metaSchemaComponents.includes(obj)) {
           metaSchemas.add(obj);
         } else {
           others.add(obj);
@@ -92,7 +105,7 @@ export const traverseAndCollateSchemas = async (traversalContext) => {
       continue;
     }
 
-    console.log(`Fetching ${typeId}...`);
+    // console.log(`Fetching ${typeId}...`);
 
     addFetchPromise((async () => {
       try {
@@ -132,7 +145,7 @@ const generateCombinedMetaSchema = (root, schemas) => {
     } else {
       // Remote reference
       const [url, pointer] = ref.split("#");
-      if (url === "https://json-schema.org/draft/2019-09/schema" || url === "http://127.0.0.1:1337/meta.json") {
+      if (url === JSON_SCHEMA_DRAFT_URL || url === META_SCHEMA_URL) {
         return url;
       }
       if (pointer) {
@@ -187,22 +200,28 @@ const generateCombinedMetaSchema = (root, schemas) => {
   return combinedSchema;
 };
 
-const main = async () => {
-  // const metaSchema = await (await fetch("http://127.0.0.1:1337/meta.json")).json();
-  const personV2Url = "http://127.0.0.1:1337/person/v/2";
-  const personV2 = await (await fetch(personV2Url)).json();
-
+const getConfiguredAjv = async (schemaUrls) => {
   const traversalContext = new TraversalContext();
 
-  traversalContext.others.add(personV2Url);
-  traversalContext.contents[personV2Url] = personV2;
-  traversalContext.exploreQueue.add(personV2Url);
+  const metaSchema = await (await fetch(META_SCHEMA_URL)).json();
+
+  traversalContext.metaschemas.add(META_SCHEMA_URL);
+  traversalContext.contents[META_SCHEMA_URL] = metaSchema;
+  traversalContext.exploreQueue.add(META_SCHEMA_URL);
+
+  for (const url of schemaUrls) {
+    const schema = await (await fetch(url)).json();
+
+    traversalContext.others.add(url);
+    traversalContext.contents[url] = schema;
+    traversalContext.exploreQueue.add(url);
+  }
 
   await traverseAndCollateSchemas(traversalContext);
 
   Object.values(traversalContext.contents).forEach((schema) => {
     // split the schema.$id by '/' if it exists and only take the last component
-    if (schema.$id && schema.$id !== "http://127.0.0.1:1337/meta.json" && schema.$id !== "https://json-schema.org/draft/2019-09/schema" && schema.$id.includes('/')) {
+    if (schema.$id && schema.$id !== META_SCHEMA_URL && schema.$id !== JSON_SCHEMA_DRAFT_URL && schema.$id.includes('/')) {
       const schemaId = schema.$id.split('/').pop();
       if (schemaId) {
         schema.$id = schemaId;
@@ -210,22 +229,20 @@ const main = async () => {
     }
   })
 
-  const generatedMetaSchema = generateCombinedMetaSchema("http://127.0.0.1:1337/meta.json", traversalContext.contents);
+  const generatedMetaSchema = generateCombinedMetaSchema(META_SCHEMA_URL, traversalContext.contents);
 
-  const metaSchemaUrls = Array.from(traversalContext.metaschemas);
-  // remove "http://127.0.0.1:1337/meta.json" from `metaSchemaUrls`
   const otherUrls = Array.from(traversalContext.others);
 
-  metaSchemaUrls.splice(metaSchemaUrls.indexOf("http://127.0.0.1:1337/meta.json"), 1);
-  // remove "https://json-schema.org/draft/2019-09/schema" from `metaSchemaUrls` as it's already included in Ajv2019
-  metaSchemaUrls.splice(metaSchemaUrls.indexOf("https://json-schema.org/draft/2019-09/schema"), 1);
+  let ajv = new Ajv2019().addMetaSchema(generatedMetaSchema).addSchema([...otherUrls].map((url) => traversalContext.contents[url]));
+  return ajv;
+}
 
-  let ajv = new Ajv2019();
+const main = async () => {
+  const personV2Url = "http://127.0.0.1:1337/person/v/2";
 
-  ajv = ajv.addMetaSchema(generatedMetaSchema);
-  ajv = ajv.addSchema([...otherUrls].map((url) => traversalContext.contents[url]));
+  const ajv = await getConfiguredAjv([personV2Url]);
 
-  console.log(ajv.validateSchema(personV2));
+  console.log(ajv.validateSchema(personV2Url));
 };
 
 main().then((r) => {
