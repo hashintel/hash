@@ -285,7 +285,7 @@ export const DataTypeQueryToken = {
   Version: "version",
   VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Title: "title",
   Description: "description",
   Type: "type",
@@ -568,7 +568,7 @@ export const EntityQueryToken = {
   EditionId: "editionId",
   Archived: "archived",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Type: "type",
   Properties: "properties",
   IncomingLinks: "incomingLinks",
@@ -744,7 +744,7 @@ export const EntityTypeQueryToken = {
   Version: "version",
   VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Title: "title",
   Description: "description",
   Examples: "examples",
@@ -1704,7 +1704,7 @@ export const PropertyTypeQueryToken = {
   Version: "version",
   VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Title: "title",
   Description: "description",
   DataTypes: "dataTypes",
@@ -1833,7 +1833,7 @@ export interface ProvenanceMetadata {
    * @type {string}
    * @memberof ProvenanceMetadata
    */
-  updatedById: string;
+  recordCreatedById: string;
 }
 /**
  * @type QueryTemporalAxes

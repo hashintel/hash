@@ -29,7 +29,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Properties(_)
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
-            | Self::UpdatedById
+            | Self::RecordCreatedById
             | Self::Archived => vec![Relation::EntityEditions],
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -89,7 +89,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
             Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
-            Self::UpdatedById => Column::EntityEditions(EntityEditions::UpdatedById),
+            Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
