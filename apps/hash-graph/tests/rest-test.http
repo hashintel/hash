@@ -78,20 +78,30 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
-  "schema": {
-    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-    "kind": "dataType",
-    "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
-    "title": "Text",
-    "type": "string"
-  }
+  "schema": [
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
+      "title": "Text",
+      "type": "string"
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "$id": "http://localhost:3000/@alice/types/data-type/number/v/1",
+      "title": "Text",
+      "type": "string"
+    }
+  ]
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
+    client.global.set("text_data_type_id", `${response.body[0].recordId.baseUrl}v/${response.body[0].recordId.version}`);
+    client.assert(response.body.length === 2, "Unexpected number of data types");
 %}
 
 ### Get Text data type

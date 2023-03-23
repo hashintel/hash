@@ -38,10 +38,13 @@ use self::{api_resource::RoutedResource, middleware::span_trace_layer};
 use crate::{
     api::rest::{
         middleware::log_request_and_response,
-        utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-            KnowledgeGraphVertices, OntologyOutwardEdge, OntologyRootedEdges, OntologyTypeVertexId,
-            OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
+        utoipa_typedef::{
+            subgraph::{
+                Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+                KnowledgeGraphVertices, OntologyOutwardEdge, OntologyRootedEdges,
+                OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
+            },
+            MaybeListOfOntologyElementMetadata,
         },
     },
     identifier::{
@@ -182,6 +185,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,
+            MaybeListOfOntologyElementMetadata,
             OwnedOntologyElementMetadata,
             ExternalOntologyElementMetadata,
             EntityVertexId,

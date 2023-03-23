@@ -26,7 +26,7 @@ use crate::schema::{Run, SchemaVersion};
 ///   ]
 /// }
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
 pub struct SarifLog {
     /// The format version of the SARIF specification to which this log file conforms.
@@ -305,5 +305,37 @@ pub(crate) mod tests {
         validate_schema(&log_2);
 
         assert_eq!(log, log_2);
+    }
+
+    #[test]
+    fn full() {
+        validate_schema(
+            &SarifLog::new(SchemaVersion::V2_1_0).with_runs([
+                Run::new(
+                    Tool::new(ToolComponent::new("prettier").with_version("2.8.2"))
+                        .with_extension(
+                            ToolComponent::new("prettier-plugin-sql").with_version("0.12.1"),
+                        )
+                        .with_properties(|properties| {
+                            properties
+                                .with_tag("format")
+                                .with_property("language", "sql")
+                                .with_property("precision", "low")
+                        }),
+                ),
+                Run::new(
+                    Tool::new(
+                        ToolComponent::new("rustfmt")
+                            .with_semantic_version(semver::Version::new(1, 5, 2)),
+                    )
+                    .with_properties(|properties| {
+                        properties
+                            .with_tag("format")
+                            .with_property("language", "rust")
+                            .with_property("precision", "high")
+                    }),
+                ),
+            ]),
+        );
     }
 }

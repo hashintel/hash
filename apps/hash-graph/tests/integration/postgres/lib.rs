@@ -39,7 +39,7 @@ use graph::{
         QueryError, StorePool, UpdateError,
     },
     subgraph::{
-        edges::{GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{
             DataTypeVertexId, EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId,
         },
@@ -500,7 +500,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::Uuid),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid.as_uuid(),
@@ -510,7 +510,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id.as_uuid(),
@@ -577,7 +577,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::Uuid),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid.as_uuid(),
@@ -587,7 +587,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id.as_uuid(),

@@ -1,8 +1,8 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { default as packageJson } from "../package.json";
+import packageJSON from "../package.json";
 import Component from "./index";
 import { RootEntity } from "./types";
 
@@ -14,7 +14,7 @@ const testEntity: RootEntity = {
       entityId: "test-entity",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
   },
   properties: {},
 } as const;
@@ -24,7 +24,7 @@ const DevApp = () => {
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={testEntity.metadata.recordId}
-      blockInfo={packageJson.blockprotocol}
+      blockInfo={packageJSON.blockprotocol}
       initialData={{
         initialEntities: [testEntity],
       }}

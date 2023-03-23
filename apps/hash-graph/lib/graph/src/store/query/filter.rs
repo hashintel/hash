@@ -24,7 +24,7 @@ use crate::{
         Record,
     },
     subgraph::{
-        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
         identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId, VertexId},
     },
 };
@@ -186,7 +186,7 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
     pub fn for_ontology_edge_by_property_type_vertex_id(
         vertex_id: &'p PropertyTypeVertexId,
         edge_kind: OntologyEdgeKind,
-        reversed: bool,
+        direction: EdgeDirection,
     ) -> Self {
         Self::All(vec![
             Self::Equal(
@@ -194,7 +194,7 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     PropertyTypeQueryPath::PropertyTypeEdge {
                         edge_kind,
                         path: Box::new(PropertyTypeQueryPath::BaseUrl),
-                        reversed,
+                        direction,
                     },
                 )),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -206,7 +206,7 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     PropertyTypeQueryPath::PropertyTypeEdge {
                         edge_kind,
                         path: Box::new(PropertyTypeQueryPath::Version),
-                        reversed,
+                        direction,
                     },
                 )),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
@@ -284,7 +284,7 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
     pub fn for_ontology_edge_by_entity_type_vertex_id(
         vertex_id: &'p EntityTypeVertexId,
         edge_kind: OntologyEdgeKind,
-        reversed: bool,
+        direction: EdgeDirection,
     ) -> Self {
         Self::All(vec![
             Self::Equal(
@@ -292,7 +292,7 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     EntityTypeQueryPath::EntityTypeEdge {
                         edge_kind,
                         path: Box::new(EntityTypeQueryPath::BaseUrl),
-                        reversed,
+                        direction,
                     },
                 )),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -304,7 +304,7 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     EntityTypeQueryPath::EntityTypeEdge {
                         edge_kind,
                         path: Box::new(EntityTypeQueryPath::Version),
-                        reversed,
+                        direction,
                     },
                 )),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
@@ -390,14 +390,14 @@ impl<'p> Filter<'p, Entity> {
     pub fn for_knowledge_graph_edge_by_entity_id(
         entity_id: EntityId,
         edge_kind: KnowledgeGraphEdgeKind,
-        reversed: bool,
+        direction: EdgeDirection,
     ) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind,
                     path: Box::new(EntityQueryPath::OwnedById),
-                    reversed,
+                    direction,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id.as_uuid(),
@@ -407,7 +407,7 @@ impl<'p> Filter<'p, Entity> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind,
                     path: Box::new(EntityQueryPath::Uuid),
-                    reversed,
+                    direction,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
@@ -751,7 +751,7 @@ mod tests {
             &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                 &url,
                 OntologyEdgeKind::ConstrainsPropertiesOn,
-                false,
+                EdgeDirection::Outgoing,
             ),
             &expected,
         );
@@ -816,7 +816,7 @@ mod tests {
             &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                 &url,
                 OntologyEdgeKind::InheritsFrom,
-                false,
+                EdgeDirection::Outgoing,
             ),
             &expected,
         );
@@ -849,7 +849,7 @@ mod tests {
             &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                 &url,
                 OntologyEdgeKind::ConstrainsLinksOn,
-                false,
+                EdgeDirection::Outgoing,
             ),
             &expected,
         );
@@ -925,7 +925,7 @@ mod tests {
             &Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasRightEntity,
-                false,
+                EdgeDirection::Outgoing,
             ),
             &expected,
         );
@@ -955,7 +955,7 @@ mod tests {
             &Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasLeftEntity,
-                false,
+                EdgeDirection::Outgoing,
             ),
             &expected,
         );
@@ -985,7 +985,7 @@ mod tests {
             &Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasLeftEntity,
-                true,
+                EdgeDirection::Incoming,
             ),
             &expected,
         );
@@ -1015,7 +1015,7 @@ mod tests {
             &Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasRightEntity,
-                true,
+                EdgeDirection::Incoming,
             ),
             &expected,
         );
