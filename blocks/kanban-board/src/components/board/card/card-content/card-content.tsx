@@ -2,16 +2,20 @@
 import { useRef, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 
+import { IconButton } from "../../../icon-button/icon-button";
+import { DiscardIcon } from "../../../icons/discard-icon";
 import styles from "./styles.module.scss";
 
-export const EditableCardContent = ({
+export const CardContent = ({
   onChange,
   content,
   readonly,
+  onDelete,
 }: {
   content: string;
   onChange?: (val: string) => void;
   readonly?: boolean;
+  onDelete?: () => void;
 }) => {
   const [prevContent, setPrevContent] = useState(content);
   const [inputVal, setInputVal] = useState(content);
@@ -25,14 +29,21 @@ export const EditableCardContent = ({
 
   if (readonly || !editing) {
     return (
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setEditing(true)}
-        className={styles.wrapper}
-      >
-        {content}
-      </div>
+      <>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setEditing(true)}
+          className={styles.wrapper}
+        >
+          {content}
+        </div>
+        {!readonly && (
+          <IconButton className={styles.deleteButton} onClick={onDelete}>
+            <DiscardIcon />
+          </IconButton>
+        )}
+      </>
     );
   }
 

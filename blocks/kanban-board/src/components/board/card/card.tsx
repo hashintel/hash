@@ -2,10 +2,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import clsx from "clsx";
 
-import { IconButton } from "../../icon-button/icon-button";
-import { DiscardIcon } from "../../icons/discard-icon";
 import { CardData, UpdateCardContentCallback } from "../types";
-import { EditableCardContent } from "./editable-card-content/editable-card-content";
+import { CardContent } from "./card-content/card-content";
 import styles from "./styles.module.scss";
 
 export const Card = ({
@@ -46,16 +44,12 @@ export const Card = ({
       {...attributes}
       {...listeners}
     >
-      <EditableCardContent
+      <CardContent
         content={data.content}
         onChange={(val) => updateCardContent(data.id, val)}
         readonly={readonly}
+        onDelete={() => onDelete()}
       />
-      {!readonly && (
-        <IconButton onClick={onDelete}>
-          <DiscardIcon />
-        </IconButton>
-      )}
     </div>
   );
 };

@@ -18,13 +18,6 @@
   &.showHandCursor {
     cursor: grabbing;
   }
-
-  button {
-    font-size: 13px;
-    position: absolute;
-    right: 4px;
-    top: 4px;
-  }
 }
 
 @media screen and (min-width: 768px) {
