@@ -5,7 +5,7 @@ use criterion_macro::criterion;
 use graph::{
     identifier::{account::AccountId, time::TemporalBound},
     knowledge::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -82,7 +82,7 @@ async fn seed_db(
         .clone();
 
     let owned_by_id = OwnedById::new(account_id);
-    let actor_id = UpdatedById::new(account_id);
+    let actor_id = RecordCreatedById::new(account_id);
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(

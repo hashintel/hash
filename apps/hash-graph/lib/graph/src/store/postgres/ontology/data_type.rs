@@ -6,7 +6,7 @@ use type_system::DataType;
 
 use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{
         crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
         PostgresStore, QueryError, Record, UpdateError,
@@ -117,12 +117,12 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (_, metadata) = transaction
-            .update::<DataType>(data_type, updated_by_id)
+            .update::<DataType>(data_type, record_created_by_id)
             .await?;
 
         transaction.commit().await.change_context(UpdateError)?;

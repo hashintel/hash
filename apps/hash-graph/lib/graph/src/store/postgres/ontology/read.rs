@@ -15,7 +15,7 @@ use crate::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         postgres::query::{Distinctness, PostgresRecord, SelectCompiler},
@@ -68,7 +68,8 @@ where
         let base_url_path = <T::QueryPath<'static> as OntologyQueryPath>::base_url();
         let version_path = <T::QueryPath<'static> as OntologyQueryPath>::version();
         let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
-        let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
+        let record_created_by_id_path =
+            <T::QueryPath<'static> as OntologyQueryPath>::record_created_by_id();
         let additional_metadata_path =
             <T::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
 
@@ -85,7 +86,8 @@ where
             None,
         );
         let schema_index = compiler.add_selection_path(&schema_path);
-        let updated_by_id_path_index = compiler.add_selection_path(&updated_by_id_path);
+        let record_created_by_id_path_index =
+            compiler.add_selection_path(&record_created_by_id_path);
         let additional_metadata_index = compiler.add_selection_path(&additional_metadata_path);
 
         compiler.add_filter(filter);
@@ -102,7 +104,8 @@ where
                     .into_report()
                     .change_context(QueryError)?;
                 let version: OntologyTypeVersion = row.get(version_index);
-                let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
+                let record_created_by_id =
+                    RecordCreatedById::new(row.get(record_created_by_id_path_index));
                 let metadata: AdditionalOntologyMetadata = row.get(additional_metadata_index);
 
                 let record_repr: <T::OntologyType as OntologyType>::Representation =
@@ -114,7 +117,7 @@ where
                     .change_context(QueryError)?;
 
                 let record_id = OntologyTypeRecordId { base_url, version };
-                let provenance = ProvenanceMetadata::new(updated_by_id);
+                let provenance = ProvenanceMetadata::new(record_created_by_id);
 
                 Ok(T::new(record, match metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {

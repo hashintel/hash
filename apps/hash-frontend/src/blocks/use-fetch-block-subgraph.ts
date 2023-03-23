@@ -5,9 +5,9 @@ import {
   EntityRevisionId,
   GraphResolveDepths,
   KnowledgeGraphVertices,
+  RecordCreatedById,
   Subgraph,
   Timestamp,
-  UpdatedById,
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -70,7 +70,7 @@ export const useFetchBlockSubgraph = () => {
             },
             archived: false,
             provenance: {
-              updatedById: "placeholder-account" as UpdatedById,
+              recordCreatedById: "placeholder-account" as RecordCreatedById,
             },
           },
           properties: {},

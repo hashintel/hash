@@ -15,7 +15,7 @@ use crate::{
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::EntityTypeWithMetadata,
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
@@ -309,7 +309,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -358,7 +358,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &entity_id.owned_by_id,
                     &entity_id.entity_uuid,
                     &decision_time,
-                    &updated_by_id,
+                    &record_created_by_id,
                     &archived,
                     &entity_type_ontology_id,
                     &properties,
@@ -396,7 +396,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction_time: row.get(2),
             },
             entity_type_id,
-            ProvenanceMetadata::new(updated_by_id),
+            ProvenanceMetadata::new(record_created_by_id),
             archived,
         ))
     }
@@ -415,7 +415,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -578,7 +578,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -642,7 +642,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &entity_id.owned_by_id,
                     &entity_id.entity_uuid,
                     &decision_time,
-                    &updated_by_id,
+                    &record_created_by_id,
                     &archived,
                     &entity_type_ontology_id,
                     &properties,
@@ -672,7 +672,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction_time: row.get(2),
             },
             entity_type_id,
-            ProvenanceMetadata::new(updated_by_id),
+            ProvenanceMetadata::new(record_created_by_id),
             archived,
         ))
     }

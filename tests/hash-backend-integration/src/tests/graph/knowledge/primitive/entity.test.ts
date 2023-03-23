@@ -176,7 +176,7 @@ describe("Entity CRU", () => {
 
   let updatedEntity: Entity;
   it("can update an entity", async () => {
-    expect(createdEntity.metadata.provenance.updatedById).toBe(
+    expect(createdEntity.metadata.provenance.recordCreatedById).toBe(
       testUser.accountId,
     );
 
@@ -190,7 +190,7 @@ describe("Entity CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntity.metadata.provenance.updatedById).toBe(
+    expect(updatedEntity.metadata.provenance.recordCreatedById).toBe(
       testUser2.accountId,
     );
   });
