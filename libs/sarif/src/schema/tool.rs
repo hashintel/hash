@@ -12,26 +12,26 @@ use crate::schema::PropertyBag;
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase", deny_unknown_fields)
 )]
-pub struct Tool {
+pub struct Tool<'s> {
     /// The analysis tool that was run.
-    pub driver: ToolComponent,
+    pub driver: ToolComponent<'s>,
 
     /// Tool extensions that contributed to or reconfigured the analysis tool that was run.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub extensions: Vec<ToolComponent>,
+    pub extensions: Vec<ToolComponent<'s>>,
 
     /// Key/value pairs that provide additional information about the tool.
     #[cfg_attr(
         feature = "serde",
-        serde(default, skip_serializing_if = "PropertyBag::is_empty")
+        serde(default, skip_serializing_if = "PropertyBag::is_empty", borrow)
     )]
-    pub properties: PropertyBag,
+    pub properties: PropertyBag<'s>,
 }
 
-impl Tool {
+impl<'s> Tool<'s> {
     /// Create a new `Tool` with the given driver.
     ///
     /// # Example
@@ -46,7 +46,7 @@ impl Tool {
     /// assert!(tool.properties.is_empty());
     /// ```
     #[must_use]
-    pub const fn new(driver: ToolComponent) -> Self {
+    pub const fn new(driver: ToolComponent<'s>) -> Self {
         Self {
             driver,
             extensions: Vec::new(),
@@ -73,7 +73,7 @@ impl Tool {
     /// ]);
     /// ```
     #[must_use]
-    pub fn with_extension(mut self, extension: ToolComponent) -> Self {
+    pub fn with_extension(mut self, extension: ToolComponent<'s>) -> Self {
         self.extensions.push(extension);
         self
     }
@@ -98,7 +98,10 @@ impl Tool {
     /// ]);
     /// ```
     #[must_use]
-    pub fn with_extensions(mut self, extension: impl IntoIterator<Item = ToolComponent>) -> Self {
+    pub fn with_extensions(
+        mut self,
+        extension: impl IntoIterator<Item = ToolComponent<'s>>,
+    ) -> Self {
         self.extensions.extend(extension);
         self
     }
@@ -131,7 +134,7 @@ impl Tool {
     #[must_use]
     pub fn with_properties(
         mut self,
-        mut properties: impl FnMut(PropertyBag) -> PropertyBag,
+        mut properties: impl FnMut(PropertyBag<'s>) -> PropertyBag<'s>,
     ) -> Self {
         self.properties = properties(self.properties);
         self
@@ -146,20 +149,20 @@ impl Tool {
     serde(rename_all = "camelCase")
 )]
 #[non_exhaustive]
-pub struct ToolComponent {
+pub struct ToolComponent<'s> {
     /// The name of the tool component.
-    pub name: Cow<'static, str>,
+    pub name: Cow<'s, str>,
 
     /// The tool component version, in whatever format the component natively provides.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub version: Option<Cow<'static, str>>,
+    pub version: Option<Cow<'s, str>>,
 
     /// The tool component version in the format specified by Semantic Versioning 2.0.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub semantic_version: Option<semver::Version>,
 }
 
-impl ToolComponent {
+impl<'s> ToolComponent<'s> {
     /// Create a new `ToolComponent` with the given name.
     ///
     /// # Example
@@ -171,7 +174,7 @@ impl ToolComponent {
     ///
     /// assert_eq!(tool_component.name, "prettier");
     /// ```
-    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(name: impl Into<Cow<'s, str>>) -> Self {
         Self {
             name: name.into(),
             version: None,
@@ -191,7 +194,7 @@ impl ToolComponent {
     /// assert_eq!(tool_component.version, Some("1.70.0".into()));
     /// ```
     #[must_use]
-    pub fn with_version(mut self, version: impl Into<Cow<'static, str>>) -> Self {
+    pub fn with_version(mut self, version: impl Into<Cow<'s, str>>) -> Self {
         self.version = Some(version.into());
         self
     }
