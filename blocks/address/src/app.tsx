@@ -409,7 +409,12 @@ export const App: BlockComponent<RootEntity> = ({
       <ThemeProvider theme={theme}>
         <SizeMe>
           {({ size }) => {
-            const isMobile = (size.width ?? 0) < 800;
+            const isMobile = (size.width ?? 0) < 620;
+            const inputPlaceholder =
+              (size.width ?? 0) < 400
+                ? "Enter an address"
+                : "Start typing to enter an address or location";
+
             return (
               <Box
                 ref={blockRootRef}
@@ -438,6 +443,7 @@ export const App: BlockComponent<RootEntity> = ({
                           flexWrap: "wrap",
                           mb: 1.5,
                           columnGap: 3,
+                          rowGap: isMobile ? 0 : 1,
                         }}
                       >
                         <GetHelpLink href="https://blockprotocol.org/@hash/blocks/address" />
@@ -535,11 +541,7 @@ export const App: BlockComponent<RootEntity> = ({
                             }
                           }}
                           filterOptions={(options) => options}
-                          inputPlaceholder={
-                            isMobile
-                              ? "Enter an address"
-                              : "Start typing to enter an address or location"
-                          }
+                          inputPlaceholder={inputPlaceholder}
                           inputProps={{
                             endAdornment: suggestionsError ? (
                               <TriangleExclamationIcon
@@ -619,6 +621,7 @@ export const App: BlockComponent<RootEntity> = ({
                             maxWidth: INPUT_MAX_WIDTH,
                             [`.${autocompleteClasses.input}`]: {
                               paddingLeft: "0 !important",
+                              fontSize: 16,
                               // Override WP Input styles
                               lineHeight: "24px",
                               minHeight: "unset",

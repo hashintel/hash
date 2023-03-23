@@ -1,6 +1,7 @@
 {
   "name": "@blocks/table",
   "version": "0.3.0",
+  "private": true,
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
     "blockprotocol",

@@ -1,14 +1,36 @@
-use serde::Serialize;
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 use utoipa::{openapi, ToSchema};
 
-#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct OutwardEdge<K, E> {
     pub kind: K,
     /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
-    pub reversed: bool,
+    pub direction: EdgeDirection,
     pub right_endpoint: E,
+}
+
+impl<K, E> Serialize for OutwardEdge<K, E>
+where
+    K: Serialize,
+    E: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("OutwardEdge", 3)?;
+        state.serialize_field("kind", &self.kind)?;
+        state.serialize_field("reversed", &(self.direction == EdgeDirection::Incoming))?;
+        state.serialize_field("rightEndpoint", &self.right_endpoint)?;
+        state.end()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EdgeDirection {
+    Outgoing,
+    Incoming,
 }
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by

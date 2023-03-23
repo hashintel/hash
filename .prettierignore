@@ -117,10 +117,14 @@ __pycache__
 
 # generated files
 *.gen.*
+blocks/**/generated
 *.tsbuildinfo
 
 # Sentry
 .sentryclirc
+
+# Block Protocol
+.blockprotocolrc
 
 # Application data
 /var
@@ -136,6 +140,9 @@ seed-users.json
 
 # Storybook
 **/storybook-static
+
+# Status
+/libs/status/crate/src/gen
 
 #########################
 ## Shared between linters

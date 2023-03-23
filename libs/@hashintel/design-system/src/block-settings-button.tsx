@@ -45,8 +45,8 @@ export const BlockSettingsButton: FunctionComponent<
           [`.${buttonClasses.endIcon}`]: {
             transform: `rotate(${expanded ? 90 : 0}deg)`,
           },
-          ...(Array.isArray(sx) ? sx : [sx]),
         }),
+        ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
       Block settings
