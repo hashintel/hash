@@ -59,6 +59,7 @@ typings/
 .yarn-integrity
 
 # local environment variable files
+blocks/**/.env
 .env.local
 .env.*.local
 
@@ -92,12 +93,10 @@ __pycache__
 # generated files
 *.gen.*
 *.tsbuildinfo
+blocks/**/generated
 
 # Sentry
 .sentryclirc
-
-# Block Protocol
-.blockprotocolrc
 
 # Application data
 /var
@@ -119,3 +118,6 @@ seed-users.json
 
 # SARIF files
 *.sarif
+
+# Status
+/libs/@local/status/crate/src/gen

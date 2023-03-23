@@ -6,12 +6,15 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, url::VersionedUrl, DataType};
+use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
+    api::rest::{
+        report_to_status_code,
+        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
+    },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
@@ -61,8 +64,8 @@ impl RoutedResource for DataTypeResource {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
-    #[schema(value_type = VAR_DATA_TYPE)]
-    schema: repr::DataType,
+    #[schema(inline)]
+    schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
@@ -73,7 +76,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = OntologyElementMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create data type in the store as the base data type URL already exists"),
@@ -86,42 +89,54 @@ async fn create_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode> {
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
         actor_id,
     }) = body;
 
-    let data_type: DataType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Data Type");
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
-    })?;
+    let is_list = matches!(&schema, ListOrValue::List(_));
 
-    domain_validator.validate(&data_type).map_err(|report| {
-        tracing::error!(error=?report, id=data_type.id().to_string(), "Data Type ID failed to validate");
-        StatusCode::UNPROCESSABLE_ENTITY
-    })?;
+    let schema_iter = schema.into_iter();
+    let mut data_types = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+
+    for schema in schema_iter {
+        let data_type: DataType = schema.try_into().into_report().map_err(|report| {
+            tracing::error!(error=?report, "Couldn't convert schema to Data Type");
+            StatusCode::UNPROCESSABLE_ENTITY
+            // TODO - We should probably return more information to the client
+            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        })?;
+
+        domain_validator.validate(&data_type).map_err(|report| {
+            tracing::error!(error=?report, id=data_type.id().to_string(), "Data Type ID failed to validate");
+            StatusCode::UNPROCESSABLE_ENTITY
+        })?;
+
+        metadata.push(OntologyElementMetadata::Owned(
+            OwnedOntologyElementMetadata::new(
+                data_type.id().clone().into(),
+                ProvenanceMetadata::new(actor_id),
+                owned_by_id,
+            ),
+        ));
+
+        data_types.push(data_type);
+    }
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        data_type.id().clone().into(),
-        ProvenanceMetadata::new(actor_id),
-        owned_by_id,
-    ));
-
     store
-        .create_data_type(data_type, &metadata)
+        .create_data_types(data_types.into_iter().zip(metadata.iter()))
         .await
         .map_err(|report| {
             // TODO: consider adding the data type, or at least its URL in the trace
-            tracing::error!(error=?report, "Could not create data type");
+            tracing::error!(error=?report, "Could not create data types");
 
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
@@ -131,7 +146,13 @@ async fn create_data_type<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(metadata))
+    if is_list {
+        Ok(Json(ListOrValue::List(metadata)))
+    } else {
+        Ok(Json(ListOrValue::Value(
+            metadata.pop().expect("metadata does not contain a value"),
+        )))
+    }
 }
 
 #[utoipa::path(

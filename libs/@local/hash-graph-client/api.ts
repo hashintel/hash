@@ -96,11 +96,17 @@ export interface CreateDataTypeRequest {
   ownedById: string;
   /**
    *
-   * @type {DataType}
+   * @type {CreateDataTypeRequestSchema}
    * @memberof CreateDataTypeRequest
    */
-  schema: DataType;
+  schema: CreateDataTypeRequestSchema;
 }
+/**
+ * @type CreateDataTypeRequestSchema
+ * @export
+ */
+export type CreateDataTypeRequestSchema = Array<DataType> | DataType;
+
 /**
  *
  * @export
@@ -164,11 +170,17 @@ export interface CreateEntityTypeRequest {
   ownedById: string;
   /**
    *
-   * @type {EntityType}
+   * @type {CreateEntityTypeRequestSchema}
    * @memberof CreateEntityTypeRequest
    */
-  schema: EntityType;
+  schema: CreateEntityTypeRequestSchema;
 }
+/**
+ * @type CreateEntityTypeRequestSchema
+ * @export
+ */
+export type CreateEntityTypeRequestSchema = Array<EntityType> | EntityType;
+
 /**
  *
  * @export
@@ -189,11 +201,19 @@ export interface CreatePropertyTypeRequest {
   ownedById: string;
   /**
    *
-   * @type {PropertyType}
+   * @type {CreatePropertyTypeRequestSchema}
    * @memberof CreatePropertyTypeRequest
    */
-  schema: PropertyType;
+  schema: CreatePropertyTypeRequestSchema;
 }
+/**
+ * @type CreatePropertyTypeRequestSchema
+ * @export
+ */
+export type CreatePropertyTypeRequestSchema =
+  | Array<PropertyType>
+  | PropertyType;
+
 /**
  * Specifies the structure of a Data Type
  * @export
@@ -1216,6 +1236,14 @@ export interface LinkDataAllOf {
    */
   rightEntityId: string;
 }
+/**
+ * @type MaybeListOfOntologyElementMetadata
+ * @export
+ */
+export type MaybeListOfOntologyElementMetadata =
+  | Array<OntologyElementMetadata>
+  | OntologyElementMetadata;
+
 /**
  *
  * @export
@@ -2921,7 +2949,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
         createDataTypeRequest,
@@ -3007,7 +3035,7 @@ export const DataTypeApiFactory = function (
     createDataType(
       createDataTypeRequest: CreateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createDataType(createDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -3059,7 +3087,7 @@ export interface DataTypeApiInterface {
   createDataType(
     createDataTypeRequest: CreateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -3738,7 +3766,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createEntityType(
@@ -3826,7 +3854,7 @@ export const EntityTypeApiFactory = function (
     createEntityType(
       createEntityTypeRequest: CreateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createEntityType(createEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -3878,7 +3906,7 @@ export interface EntityTypeApiInterface {
   createEntityType(
     createEntityTypeRequest: CreateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -4686,7 +4714,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
         createDataTypeRequest,
@@ -4735,7 +4763,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createEntityType(
@@ -4762,7 +4790,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createPropertyType(
@@ -5008,7 +5036,7 @@ export const GraphApiFactory = function (
     createDataType(
       createDataTypeRequest: CreateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createDataType(createDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5036,7 +5064,7 @@ export const GraphApiFactory = function (
     createEntityType(
       createEntityTypeRequest: CreateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createEntityType(createEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5050,7 +5078,7 @@ export const GraphApiFactory = function (
     createPropertyType(
       createPropertyTypeRequest: CreatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createPropertyType(createPropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5194,7 +5222,7 @@ export interface GraphApiInterface {
   createDataType(
     createDataTypeRequest: CreateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -5218,7 +5246,7 @@ export interface GraphApiInterface {
   createEntityType(
     createEntityTypeRequest: CreateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -5230,7 +5258,7 @@ export interface GraphApiInterface {
   createPropertyType(
     createPropertyTypeRequest: CreatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -5732,7 +5760,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createPropertyType(
@@ -5820,7 +5848,7 @@ export const PropertyTypeApiFactory = function (
     createPropertyType(
       createPropertyTypeRequest: CreatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createPropertyType(createPropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5872,7 +5900,7 @@ export interface PropertyTypeApiInterface {
   createPropertyType(
     createPropertyTypeRequest: CreatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *

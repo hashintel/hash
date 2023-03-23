@@ -45,7 +45,7 @@ pub enum Frame {
 /// [ISO 6429]: https://www.iso.org/standard/12782.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Decorations {
-    frame: Option<Frame>,
+    pub frame: Option<Frame>,
 }
 
 impl Decorations {

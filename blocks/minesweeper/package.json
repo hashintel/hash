@@ -1,0 +1,66 @@
+{
+  "name": "@blocks/minesweeper",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Play Minesweeper in your browser!",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "codegen": "block-scripts codegen",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.2.1",
+    "lit": "^2.4.1",
+    "mine-sweeper-tag": "1.0.6"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/react-dom": "18.0.9",
+    "block-scripts": "0.2.2",
+    "mock-block-dock": "0.1.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "port": 63212
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "custom-element",
+      "tagName": "minesweeper-block"
+    },
+    "displayName": "Minesweeper",
+    "examples": [
+      {
+        "https://blockprotocol.org/@hash/types/property-type/number-of-columns/": 12,
+        "https://blockprotocol.org/@hash/types/property-type/number-of-mines/": 30
+      }
+    ],
+    "icon": "public/minesweeper-icon.svg",
+    "image": "public/block-preview.png",
+    "name": "@hash/minesweeper",
+    "protocol": "0.3",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/minesweeper-block/v/1",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
+  }
+}
