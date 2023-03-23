@@ -23,7 +23,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist},
-        EntityTypeStore, StorePool,
+        ConflictBehavior, EntityTypeStore, StorePool,
     },
     subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
 };
@@ -139,7 +139,10 @@ async fn create_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity_types(entity_types.into_iter().zip(metadata.iter()))
+        .create_entity_types(
+            entity_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity types");

@@ -21,7 +21,10 @@ use crate::{
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
+    store::{
+        BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
+        StorePool,
+    },
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
@@ -137,7 +140,10 @@ async fn create_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_property_types(property_types.into_iter().zip(metadata.iter()))
+        .create_property_types(
+            property_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property types");
