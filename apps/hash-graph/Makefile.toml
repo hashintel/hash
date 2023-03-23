@@ -81,13 +81,9 @@ args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/tests/rest-tes
 
 [tasks.test]
 run_task = [
-    { name = ["deployment-up", "show-disk-space", "test-task", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["deployment-up", "test-task", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
     { name = ["test-task"] }
 ]
-
-[tasks.show-disk-space]
-command = "df"
-args = ["-h"]
 
 [tasks.test-task-doc]
 condition = { profiles = ["development"] }
