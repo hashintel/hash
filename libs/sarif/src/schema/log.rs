@@ -217,9 +217,11 @@ impl Extend<Run> for SarifLog {
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
     use coverage_helper::test;
+    use semver::Version;
 
     use crate::schema::{
-        tests::validate_schema, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+        tests::validate_schema, ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool,
+        ToolComponent,
     };
 
     #[test]
@@ -311,18 +313,11 @@ pub(crate) mod tests {
     fn full() {
         validate_schema(
             &SarifLog::new(SchemaVersion::V2_1_0).with_runs([
-                Run::new(
-                    Tool::new(ToolComponent::new("prettier").with_version("2.8.2"))
-                        .with_extension(
-                            ToolComponent::new("prettier-plugin-sql").with_version("0.12.1"),
-                        )
-                        .with_properties(|properties| {
-                            properties
-                                .with_tag("format")
-                                .with_property("language", "sql")
-                                .with_property("precision", "low")
-                        }),
-                ),
+                Run::new(Tool::new(
+                    ToolComponent::new("rustc")
+                        .with_semantic_version(Version::new(1, 70, 0))
+                        .with_rule(ReportingDescriptor::new("E0308").with_name("mismatched types")),
+                )),
                 Run::new(
                     Tool::new(
                         ToolComponent::new("rustfmt")

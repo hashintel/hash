@@ -3,7 +3,7 @@ use alloc::{borrow::Cow, vec::Vec};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::schema::PropertyBag;
+use crate::schema::{PropertyBag, ReportingDescriptor};
 
 /// The analysis tool that was run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -151,12 +151,26 @@ pub struct ToolComponent {
     pub name: Cow<'static, str>,
 
     /// The tool component version, in whatever format the component natively provides.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
     pub version: Option<Cow<'static, str>>,
 
     /// The tool component version in the format specified by Semantic Versioning 2.0.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
     pub semantic_version: Option<semver::Version>,
+
+    /// An array of [`ReportingDescriptor`]s relevant to the analysis performed by the tool
+    /// component.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    pub rules: Vec<ReportingDescriptor>,
 }
 
 impl ToolComponent {
@@ -176,6 +190,7 @@ impl ToolComponent {
             name: name.into(),
             version: None,
             semantic_version: None,
+            rules: Vec::new(),
         }
     }
 
@@ -218,6 +233,51 @@ impl ToolComponent {
     )]
     pub fn with_semantic_version(mut self, version: semver::Version) -> Self {
         self.semantic_version = Some(version);
+        self
+    }
+
+    /// Add a rule to the tool component.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sarif::schema::{ReportingDescriptor, ToolComponent};
+    ///
+    /// let tool_component = ToolComponent::new("rustc").with_rule(ReportingDescriptor::new("E0308"));
+    ///
+    /// assert_eq!(tool_component.rules[0].id, "E0308");
+    /// ```
+    #[must_use]
+    pub fn with_rule(mut self, rule: ReportingDescriptor) -> Self {
+        self.rules.push(rule);
+        self
+    }
+
+    /// Add rules to the tool component.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sarif::schema::{ReportingDescriptor, ToolComponent};
+    ///
+    /// let tool_component = ToolComponent::new("rustc")
+    ///     .with_rules(vec![
+    ///         ReportingDescriptor::new("E0308"),
+    ///         ReportingDescriptor::new("E0309"),
+    ///     ])
+    ///     .with_rules([
+    ///         ReportingDescriptor::new("E0310"),
+    ///         ReportingDescriptor::new("E0311"),
+    ///     ]);
+    ///
+    /// assert_eq!(tool_component.rules[0].id, "E0308");
+    /// assert_eq!(tool_component.rules[1].id, "E0309");
+    /// assert_eq!(tool_component.rules[2].id, "E0310");
+    /// assert_eq!(tool_component.rules[3].id, "E0311");
+    /// ```
+    #[must_use]
+    pub fn with_rules(mut self, rules: impl IntoIterator<Item = ReportingDescriptor>) -> Self {
+        self.rules.extend(rules);
         self
     }
 }

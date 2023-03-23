@@ -2,6 +2,7 @@
 
 mod log;
 mod properties;
+mod reporting_descriptor;
 mod run;
 mod tool;
 
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub use self::{
     log::SarifLog,
     properties::PropertyBag,
+    reporting_descriptor::ReportingDescriptor,
     run::Run,
     tool::{Tool, ToolComponent},
 };
