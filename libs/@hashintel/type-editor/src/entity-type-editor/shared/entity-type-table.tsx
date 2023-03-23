@@ -322,10 +322,17 @@ export const EntityTypeTableFooter = forwardRef<
             sx={[
               {
                 position: "relative",
+
+                // Overcomes the parent padding to ensure the box shadow is the full width of the table
                 width: "calc(100% + (var(--table-padding) * 2))",
                 left: "calc(0px - var(--table-padding))",
                 p: "var(--table-padding)",
+
+                // We need an extra 1px of padding to account for the fact we're
+                // sticking 1px below the viewport
                 pb: "calc(var(--table-padding) + 1px)",
+
+                // Ensures the box shadow only appears on the top side of the sticky row
                 clipPath: "polygon(0 -100px, 100% -100px, 100% 100%, 0 100%)",
                 transition: "box-shadow 200ms ease-in",
               },
