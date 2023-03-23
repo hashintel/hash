@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { RootEntityKey } from "../../additional-types";
 import { RootEntity } from "../../types";
@@ -69,44 +69,31 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   );
   const [columnOrder, setColumnOrder] = useState<string[]>(entityColumnOrder);
 
-  /**
-   * as a hacky way of keeping this debounced function memoized, but still use up-to-date values of
-   * local state, called setState functions below, and assigned the up-to-date values of local state
-   * to variables, then used those variables to use local state to update entity with a debounced function.
-   * If we don't do the hacky way (using setState functions to get current state values),
-   * and instead add state values to the dependency array, existing debounced calls get executed because
-   * memoization changes every time state is updated
-   * */
-  const debouncedSyncFunction = useMemo(
+  const debouncedUpdateEntity = useMemo(
     () =>
-      debounce(() => {
+      debounce((newProperties: RootEntity["properties"]) => {
         isDebounceInProgress = false;
-        let localColumns: ColumnsState;
-        let localColumnOrder: string[];
-
-        setColumns((cols) => {
-          localColumns = cols;
-          return cols;
-        });
-        setColumnOrder((colOrder) => {
-          localColumnOrder = colOrder;
-          return colOrder;
-        });
-
-        setImmediate(() => {
-          void updateEntity({
-            [columnOrderKey]: localColumnOrder,
-            [columnsKey]: localColumns,
-          });
-        });
+        return updateEntity(newProperties);
       }, 1000),
     [updateEntity],
   );
 
-  const syncLocalStateToEntity = useCallback(() => {
+  const updateStateAndEntity = ({
+    newColumns,
+    newColumnOrder,
+  }: {
+    newColumns?: ColumnsState;
+    newColumnOrder?: string[];
+  }) => {
+    if (newColumns) setColumns(newColumns);
+    if (newColumnOrder) setColumnOrder(newColumnOrder);
+
     isDebounceInProgress = true;
-    debouncedSyncFunction();
-  }, [debouncedSyncFunction]);
+    void debouncedUpdateEntity({
+      [columnsKey]: newColumns ?? columns,
+      [columnOrderKey]: newColumnOrder ?? columnOrder,
+    });
+  };
 
   const isCardOrColumn = (id: UniqueIdentifier) => {
     if (id in columns) return "column";
@@ -123,83 +110,71 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const createColumn = () => {
     const newColId = generateId();
 
-    setColumns((cols) => {
-      return {
-        ...cols,
-        [newColId]: {
-          id: newColId,
-          title: `Column ${Object.keys(cols).length + 1}`,
-          cards: [],
-        },
-      };
+    const newColumns = {
+      ...columns,
+      [newColId]: {
+        id: newColId,
+        title: `Column ${Object.keys(columns).length + 1}`,
+        cards: [],
+      },
+    };
+
+    updateStateAndEntity({
+      newColumns,
+      newColumnOrder: [...columnOrder, newColId],
     });
-
-    setColumnOrder((cols) => [...cols, newColId]);
-
-    syncLocalStateToEntity();
   };
 
   const deleteColumn: DeleteColumnCallback = (columnId) => {
-    setColumns((cols) => {
-      const newCols = { ...cols };
-      delete newCols[columnId];
-      return newCols;
-    });
-    setColumnOrder((ids) => ids.filter((id) => id !== columnId));
+    const newColumns = { ...columns };
+    delete newColumns[columnId];
 
-    syncLocalStateToEntity();
+    updateStateAndEntity({
+      newColumns,
+      newColumnOrder: columnOrder.filter((id) => id !== columnId),
+    });
   };
 
   const updateColumnTitle: UpdateColumnTitleCallback = (columnId, newTitle) => {
-    setColumns((cols) => {
-      const targetCol = cols[columnId];
-      if (!targetCol) return cols;
+    const targetCol = columns[columnId];
+    if (!targetCol) return;
 
-      const newCols = {
-        ...cols,
+    updateStateAndEntity({
+      newColumns: {
+        ...columns,
         [columnId]: { ...targetCol, title: newTitle },
-      };
-
-      return newCols;
+      },
     });
-
-    syncLocalStateToEntity();
   };
 
   const createCard: CreateCardCallback = (columnId, content) => {
-    setColumns((cols) => {
-      const targetCol = cols[columnId];
-      if (!targetCol) return cols;
+    const targetCol = columns[columnId];
+    if (!targetCol) return;
 
-      const cloneCol = { ...targetCol };
+    const cloneCol = { ...targetCol };
+    cloneCol.cards.push({ id: generateId(), content });
 
-      cloneCol.cards.push({ id: generateId(), content });
-
-      return {
-        ...cols,
+    updateStateAndEntity({
+      newColumns: {
+        ...columns,
         [columnId]: cloneCol,
-      };
+      },
     });
-
-    syncLocalStateToEntity();
   };
 
   const deleteCard: DeleteCardCallback = (columnId, cardId) => {
-    setColumns((cols) => {
-      const targetCol = cols[columnId];
-      if (!targetCol) return cols;
+    const targetCol = columns[columnId];
+    if (!targetCol) return;
 
-      const cloneCol = { ...targetCol };
+    const cloneCol = { ...targetCol };
+    cloneCol.cards = cloneCol.cards.filter((card) => card.id !== cardId);
 
-      cloneCol.cards = cloneCol.cards.filter((card) => card.id !== cardId);
-
-      return {
-        ...cols,
+    updateStateAndEntity({
+      newColumns: {
+        ...columns,
         [columnId]: cloneCol,
-      };
+      },
     });
-
-    syncLocalStateToEntity();
   };
 
   const updateCardContent: UpdateCardContentCallback = (cardId, newContent) => {
@@ -209,23 +184,21 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       throw new Error("column of card not found");
     }
 
-    setColumns((cols) => {
-      const targetCol = cols[columnId];
-      if (!targetCol) return cols;
+    const targetCol = columns[columnId];
+    if (!targetCol) return;
 
-      const cloneCol = { ...targetCol };
+    const cloneCol = { ...targetCol };
 
-      cloneCol.cards = cloneCol.cards.map((card) =>
-        card.id === cardId ? { ...card, content: newContent } : card,
-      );
+    cloneCol.cards = cloneCol.cards.map((card) =>
+      card.id === cardId ? { ...card, content: newContent } : card,
+    );
 
-      return {
-        ...cols,
+    updateStateAndEntity({
+      newColumns: {
+        ...columns,
         [columnId]: cloneCol,
-      };
+      },
     });
-
-    syncLocalStateToEntity();
   };
 
   const handleDragStart = ({ active }: DragStartEvent) => {
@@ -259,14 +232,12 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
         ? over.id
         : findColumnOfCard(over.id)?.id;
 
-      setColumnOrder((colIds) => {
-        const oldIndex = colIds.findIndex((id) => id === active.id);
-        const newIndex = colIds.findIndex((id) => id === overColumnId);
+      const oldIndex = columnOrder.findIndex((id) => id === active.id);
+      const newIndex = columnOrder.findIndex((id) => id === overColumnId);
 
-        return arrayMove(colIds, oldIndex, newIndex);
+      updateStateAndEntity({
+        newColumnOrder: arrayMove(columnOrder, oldIndex, newIndex),
       });
-
-      syncLocalStateToEntity();
 
       return;
     }
@@ -279,41 +250,39 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
     // dropping card into a column
     if (isOverColumn) {
-      setColumns((cols) => {
-        let movedCard: CardData | undefined;
+      let movedCard: CardData | undefined;
 
-        // remove card from old column
-        activeColumn.cards = activeColumn.cards.filter((card) => {
-          if (card.id === active.id) {
-            movedCard = card;
-            return false;
-          }
-
-          return true;
-        });
-
-        // insert the card into the new column
-        if (!movedCard) {
-          throw new Error("moved card not foundƒ");
+      // remove card from old column
+      activeColumn.cards = activeColumn.cards.filter((card) => {
+        if (card.id === active.id) {
+          movedCard = card;
+          return false;
         }
 
-        const overColumn = columns[over.id];
+        return true;
+      });
 
-        if (!overColumn) {
-          throw new Error("overColumn not found");
-        }
+      // insert the card into the new column
+      if (!movedCard) {
+        throw new Error("moved card not foundƒ");
+      }
 
-        return {
-          ...cols,
+      const overColumn = columns[over.id];
+
+      if (!overColumn) {
+        throw new Error("overColumn not found");
+      }
+
+      updateStateAndEntity({
+        newColumns: {
+          ...columns,
           [activeColumn.id]: activeColumn,
           [overColumn.id]: {
             ...overColumn,
             cards: [...overColumn.cards, movedCard],
           },
-        };
+        },
       });
-
-      syncLocalStateToEntity();
 
       return;
     }
@@ -328,58 +297,52 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
     // card moved in the same column
     if (droppedToSameColumn) {
-      setColumns((cols) => {
-        const oldIndex = overColumn.cards.findIndex(
-          (card) => card.id === active.id,
-        );
-        const newIndex = overColumn.cards.findIndex(
-          (card) => card.id === over.id,
-        );
-        const newCards = arrayMove(overColumn.cards, oldIndex, newIndex);
+      const oldIndex = overColumn.cards.findIndex(
+        (card) => card.id === active.id,
+      );
+      const newIndex = overColumn.cards.findIndex(
+        (card) => card.id === over.id,
+      );
+      const newCards = arrayMove(overColumn.cards, oldIndex, newIndex);
 
-        overColumn.cards = newCards;
+      overColumn.cards = newCards;
 
-        return { ...cols, [overColumn.id]: overColumn };
+      updateStateAndEntity({
+        newColumns: { ...columns, [overColumn.id]: overColumn },
       });
-
-      syncLocalStateToEntity();
 
       return;
     }
 
-    setColumns((cols) => {
-      let movedCard: CardData | undefined;
+    let movedCard: CardData | undefined;
 
-      // remove card from old column
-      activeColumn.cards = activeColumn.cards.filter((card) => {
-        if (card.id === active.id) {
-          movedCard = card;
-          return false;
-        }
-
-        return true;
-      });
-
-      if (!movedCard) {
-        throw new Error("moved card not foundƒ");
+    // remove card from old column
+    activeColumn.cards = activeColumn.cards.filter((card) => {
+      if (card.id === active.id) {
+        movedCard = card;
+        return false;
       }
 
-      // insert the card into the new column
-      const newIndex = overColumn.cards.findIndex(
-        (card) => card.id === over.id,
-      );
-      const newCards = [...overColumn.cards];
-      newCards.splice(newIndex, 0, movedCard);
-      overColumn.cards = newCards;
-
-      return {
-        ...cols,
-        [activeColumn.id]: activeColumn,
-        [overColumn.id]: overColumn,
-      };
+      return true;
     });
 
-    syncLocalStateToEntity();
+    if (!movedCard) {
+      throw new Error("moved card not foundƒ");
+    }
+
+    // insert the card into the new column
+    const newIndex = overColumn.cards.findIndex((card) => card.id === over.id);
+    const newCards = [...overColumn.cards];
+    newCards.splice(newIndex, 0, movedCard);
+    overColumn.cards = newCards;
+
+    updateStateAndEntity({
+      newColumns: {
+        ...columns,
+        [activeColumn.id]: activeColumn,
+        [overColumn.id]: overColumn,
+      },
+    });
   };
 
   const handleDragEnd = () => {
