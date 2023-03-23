@@ -12,7 +12,7 @@ use crate::{
         PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
         identifier::PropertyTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -57,6 +57,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &property_type_vertex_id,
                             OntologyEdgeKind::ConstrainsValuesOn,
+                            EdgeDirection::Outgoing,
                             data_type_vertex_id.clone(),
                         );
 
@@ -83,7 +84,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                             &property_type_vertex_id,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -94,6 +95,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &property_type_vertex_id,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
+                            EdgeDirection::Outgoing,
                             referenced_property_type_vertex_id.clone(),
                         );
 

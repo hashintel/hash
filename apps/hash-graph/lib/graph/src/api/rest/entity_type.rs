@@ -6,12 +6,14 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource, report_to_status_code, utoipa_typedef::subgraph::Subgraph,
+        api_resource::RoutedResource,
+        report_to_status_code,
+        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -68,8 +70,8 @@ impl RoutedResource for EntityTypeResource {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
-    #[schema(value_type = VAR_ENTITY_TYPE)]
-    schema: repr::EntityType,
+    #[schema(inline)]
+    schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
     actor_id: RecordCreatedById,
 }
@@ -80,7 +82,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -93,42 +95,54 @@ async fn create_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode> {
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
         actor_id,
     }) = body;
 
-    let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
-        // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
-    })?;
+    let is_list = matches!(&schema, ListOrValue::List(_));
 
-    domain_validator.validate(&entity_type).map_err(|report| {
-        tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
-        StatusCode::UNPROCESSABLE_ENTITY
-    })?;
+    let schema_iter = schema.into_iter();
+    let mut entity_types = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+
+    for schema in schema_iter {
+        let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
+            tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
+            // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
+            StatusCode::UNPROCESSABLE_ENTITY
+            // TODO - We should probably return more information to the client
+            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        })?;
+
+        domain_validator.validate(&entity_type).map_err(|report| {
+            tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
+            StatusCode::UNPROCESSABLE_ENTITY
+        })?;
+
+        metadata.push(OntologyElementMetadata::Owned(
+            OwnedOntologyElementMetadata::new(
+                entity_type.id().clone().into(),
+                ProvenanceMetadata::new(actor_id),
+                owned_by_id,
+            ),
+        ));
+
+        entity_types.push(entity_type);
+    }
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        entity_type.id().clone().into(),
-        ProvenanceMetadata::new(actor_id),
-        owned_by_id,
-    ));
-
     store
-        .create_entity_type(entity_type, &metadata)
+        .create_entity_types(entity_types.into_iter().zip(metadata.iter()))
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not create entity type");
+            tracing::error!(error=?report, "Could not create entity types");
 
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
@@ -138,7 +152,13 @@ async fn create_entity_type<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(metadata))
+    if is_list {
+        Ok(Json(ListOrValue::List(metadata)))
+    } else {
+        Ok(Json(ListOrValue::Value(
+            metadata.pop().expect("metadata does not contain a value"),
+        )))
+    }
 }
 
 #[utoipa::path(

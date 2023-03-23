@@ -6,7 +6,7 @@ use crate::{
         table::{Column, EntityTypes, JsonField, OntologyIds, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
-    subgraph::edges::{OntologyEdgeKind, SharedEdgeKind},
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
 };
 
 impl PostgresRecord for EntityTypeWithMetadata {
@@ -38,37 +38,37 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             })
             .chain(path.relations())
             .collect(),
             Self::EntityTypeEdge {
                 edge_kind: OntologyEdgeKind::InheritsFrom,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeInheritsFrom,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
             Self::EntityTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsLinksOn,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
             Self::EntityTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
@@ -77,7 +77,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityIsOfType,
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             })
             .chain(path.relations())
             .collect(),
@@ -89,6 +89,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
         match self {
             Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::TransactionTime => Column::OntologyIds(OntologyIds::TransactionTime),
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
             ))),

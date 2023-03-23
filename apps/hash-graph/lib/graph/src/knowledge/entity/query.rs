@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::query::{JsonPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -149,12 +149,12 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "uuid"]))?;
     /// assert_eq!(path, EntityQueryPath::EntityEdge {
     ///     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
     ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -172,12 +172,12 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "uuid"]))?;
     /// assert_eq!(path, EntityQueryPath::EntityEdge {
     ///     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
     ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -196,12 +196,12 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["incomingLinks", "uuid"]))?;
     /// assert_eq!(path, EntityQueryPath::EntityEdge {
     ///     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
     ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     reversed: true
+    ///     direction: EdgeDirection::Incoming,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -218,19 +218,19 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::KnowledgeGraphEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["outgoingLinks", "uuid"]))?;
     /// assert_eq!(path, EntityQueryPath::EntityEdge {
     ///     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
     ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     reversed: true
+    ///     direction: EdgeDirection::Incoming,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     EntityEdge {
         edge_kind: KnowledgeGraphEdgeKind,
         path: Box<Self>,
-        reversed: bool,
+        direction: EdgeDirection,
     },
     /// Corresponds to [`EntityLinkOrder::left_to_right`].
     ///
@@ -304,22 +304,22 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } => write!(fmt, "leftEntity.{path}"),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             } => write!(fmt, "rightEntity.{path}"),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             } => write!(fmt, "outgoingLinks.{path}"),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             } => write!(fmt, "incomingLinks.{path}"),
             Self::LeftToRightOrder => fmt.write_str("leftToRightOrder"),
             Self::RightToLeftOrder => fmt.write_str("rightToLeftOrder"),
@@ -423,22 +423,22 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::LeftEntity => EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             },
             EntityQueryToken::RightEntity => EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             },
             EntityQueryToken::OutgoingLinks => EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             },
             EntityQueryToken::IncomingLinks => EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             },
             EntityQueryToken::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
             EntityQueryToken::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
@@ -492,7 +492,7 @@ mod tests {
             EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path: Box::new(EntityQueryPath::Uuid),
-                reversed: false
+                direction: EdgeDirection::Outgoing
             }
         );
 

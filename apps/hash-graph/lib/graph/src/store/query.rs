@@ -58,6 +58,9 @@ pub trait OntologyQueryPath {
     /// [`OntologyTypeVersion`]: crate::identifier::ontology::OntologyTypeVersion
     fn version() -> Self;
 
+    /// Returns the path identifying the transaction time.
+    fn transaction_time() -> Self;
+
     /// Returns the path identifying the [`RecordCreatedById`].
     ///
     /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById

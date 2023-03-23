@@ -25,7 +25,7 @@ use crate::{
     },
     subgraph::{
         edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
+            EdgeDirection, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
             OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         identifier::{EntityIdWithInterval, EntityVertexId},
@@ -100,6 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_vertex_id,
                             SharedEdgeKind::IsOfType,
+                            EdgeDirection::Outgoing,
                             entity_type_vertex_id.clone(),
                         );
 
@@ -125,7 +126,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasLeftEntity,
-                            false,
+                            EdgeDirection::Outgoing,
                         ),
                         &temporal_axes,
                     )
@@ -137,9 +138,10 @@ impl<C: AsClient> PostgresStore<C> {
                             .variable_time_interval(time_axis);
 
                         // reversed `HasLeftEntity` is equivalent to an outgoing link `Entity`
-                        subgraph.insert_reversed_edge(
+                        subgraph.insert_edge(
                             &entity_vertex_id,
                             KnowledgeGraphEdgeKind::HasLeftEntity,
+                            EdgeDirection::Incoming,
                             EntityIdWithInterval {
                                 entity_id: outgoing_link_entity.metadata.record_id().entity_id,
                                 interval: link_entity_interval,
@@ -171,7 +173,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasRightEntity,
-                            false,
+                            EdgeDirection::Outgoing,
                         ),
                         &temporal_axes,
                     )
@@ -183,9 +185,10 @@ impl<C: AsClient> PostgresStore<C> {
                             .variable_time_interval(time_axis);
 
                         // reversed `HasRightEntity` is equivalent to an incoming link `Entity`
-                        subgraph.insert_reversed_edge(
+                        subgraph.insert_edge(
                             &entity_vertex_id,
                             KnowledgeGraphEdgeKind::HasRightEntity,
+                            EdgeDirection::Incoming,
                             EntityIdWithInterval {
                                 entity_id: incoming_link_entity.metadata.record_id().entity_id,
                                 interval: link_entity_interval,
@@ -217,7 +220,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasLeftEntity,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -226,6 +229,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_vertex_id,
                             KnowledgeGraphEdgeKind::HasLeftEntity,
+                            EdgeDirection::Outgoing,
                             EntityIdWithInterval {
                                 entity_id: left_entity.metadata.record_id().entity_id,
                                 interval: entity_interval,
@@ -255,7 +259,7 @@ impl<C: AsClient> PostgresStore<C> {
                         &Filter::for_knowledge_graph_edge_by_entity_id(
                             entity_vertex_id.base_id,
                             KnowledgeGraphEdgeKind::HasRightEntity,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -264,6 +268,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_vertex_id,
                             KnowledgeGraphEdgeKind::HasRightEntity,
+                            EdgeDirection::Outgoing,
                             EntityIdWithInterval {
                                 entity_id: right_entity.metadata.record_id().entity_id,
                                 interval: entity_interval,
