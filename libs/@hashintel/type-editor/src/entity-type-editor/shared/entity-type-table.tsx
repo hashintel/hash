@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { WhiteCard } from "@hashintel/design-system";
+import { TYPE_SELECTOR_HEIGHT, WhiteCard } from "@hashintel/design-system";
 import {
   ButtonBase,
   checkboxClasses,
@@ -15,7 +15,7 @@ import {
   TypographyProps,
   useForkRef,
 } from "@mui/material";
-import { Box, styled } from "@mui/system";
+import { Box, styled, useTheme } from "@mui/system";
 import memoize from "lodash.memoize";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
@@ -113,6 +113,7 @@ export const EntityTypeTableRow = forwardRef<
   { children: ReactNode; flash?: boolean }
 >(({ children, flash = false }, ref) => {
   const [flashed, setFlashed] = useState(false);
+
   const rowRef = useRef<HTMLElement>(null);
 
   const isReadonly = useIsReadonly();
@@ -130,45 +131,29 @@ export const EntityTypeTableRow = forwardRef<
       setFlashed(true);
 
       const node = rowRef.current;
+
       if (node) {
         /**
          * This detects if the row is currently in view or not, and only triggers
          * the scroll into view logic if it's not
-         *
-         * @todo the bottom margin should be the max height of the footer row, not the edit bar
          */
-        const observer = new IntersectionObserver(
-          ([entry]) => {
-            if (entry) {
-              const ratio = entry.intersectionRatio;
-
-              if (ratio < 1) {
-                const place: ScrollLogicalPosition =
-                  ratio <= 0 ? "center" : "nearest";
-                node.style.setProperty(
-                  "scroll-margin-top",
-                  `${EDIT_BAR_HEIGHT}px`,
-                );
-                node.style.setProperty(
-                  "scroll-margin-bottom",
-                  `${EDIT_BAR_HEIGHT}px`,
-                );
-                node.scrollIntoView({
-                  block: place,
-                  inline: place,
-                  behavior: "smooth",
-                });
-              }
-            }
-            observer.disconnect();
-          },
-          {
-            // Ensure we don't consider a row underneath the edit bar as 'in view'
-            rootMargin: `-${EDIT_BAR_HEIGHT}px 0px -${EDIT_BAR_HEIGHT}px 0px`,
-            // @todo fix this
-            root: document.querySelector("main"),
-          },
-        );
+        const observer = new IntersectionObserver(() => {
+          const scrollSpacing = 4;
+          // @todo when to remove this
+          // this ensures the row isn't covered by our sticky edit bar or table footer
+          node.style.setProperty(
+            "scroll-margin",
+            `${
+              EDIT_BAR_HEIGHT + scrollSpacing
+            }px 0 calc(var(--footer-height) + ${scrollSpacing}px) 0`,
+          );
+          node.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+            behavior: "smooth",
+          });
+          observer.disconnect();
+        });
 
         observer.observe(node);
         observerRef.current?.disconnect();
@@ -314,6 +299,7 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
             "--header-gap": theme.spacing(0.75),
             "--header-border-bottom": "1px",
             "--header-height": "42px",
+            "--footer-height": "42px",
             "--body-height": "40px",
             "--footer-top-offset":
               "calc(var(--body-height) + var(--header-height) + var(--header-gap) + var(--header-border-bottom))",
@@ -360,6 +346,9 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
               position: "sticky",
               bottom: 0,
               background: "white",
+              py: 1,
+              // @note – gets bigger when the type selector is present
+              minHeight: "var(--footer-height)",
             },
           })}
         >
