@@ -279,8 +279,6 @@ export const EntityTypeTableFooter = forwardRef<
   useEffect(() => {
     const cell = cellRef.current;
 
-    console.log(getScrollParent(cell));
-
     if (cell) {
       const observer = new IntersectionObserver(
         ([entry]) => {
