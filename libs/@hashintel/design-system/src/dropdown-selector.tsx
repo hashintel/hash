@@ -1,6 +1,5 @@
 import {
   Box,
-  Fade,
   inputBaseClasses,
   ListSubheader,
   menuItemClasses,
@@ -31,9 +30,6 @@ export interface OptionGroup<OptionId extends string = string> {
 export interface GroupedOptions<OptionId extends string = string> {
   [key: string]: OptionGroup<OptionId>;
 }
-
-const INPUT_HEIGHT = 23;
-const INPUT_PADDING_TOP = 16;
 
 const getSelectorItems = (options: Option[], value: string) =>
   options.map(({ id, icon, title, helperText, description }) => {
@@ -133,9 +129,9 @@ export type DropdownSelectorProps<OptionId extends string = string> = {
   options: GroupedOptions | Option[];
   open: boolean;
   disabled?: boolean;
+  sx: SelectProps["sx"];
   onOpen: () => void;
   onClose: () => void;
-  sx?: SelectProps["sx"];
   renderValue?: (
     selectedOption: Option,
     selectedGroup: OptionGroup | null,
@@ -177,7 +173,6 @@ export const DropdownSelector = <OptionId extends string = string>({
 
   const paperProps = useMemo(() => {
     const inputWidth = selectRef?.offsetWidth ?? 0;
-    const paperOffset = INPUT_HEIGHT + INPUT_PADDING_TOP;
     const paperWidth = Math.max(inputWidth, 340);
 
     return {
@@ -186,8 +181,6 @@ export const DropdownSelector = <OptionId extends string = string>({
         boxSizing: "border-box",
         overflow: "hidden",
         width: paperWidth,
-        marginTop: `${-paperOffset}px`,
-        marginLeft: `${(paperWidth - inputWidth) / 2}px`,
       },
     };
   }, [selectRef?.offsetWidth]);
@@ -224,6 +217,10 @@ export const DropdownSelector = <OptionId extends string = string>({
       }}
       MenuProps={{
         PaperProps: paperProps,
+        anchorOrigin: {
+          vertical: "top",
+          horizontal: "center",
+        },
         MenuListProps: {
           sx: {
             padding: 0,
