@@ -59,6 +59,39 @@ Every command line argument passed will also be forwarded to the subcommand, e.g
 cargo make doc --open
 ```
 
+### API Definitions
+
+The Graph's API is current exposed over REST with an accompanying OpenAPI spec.
+
+### Generate OpenAPI client
+
+The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
+
+```shell
+cargo make generate-openapi-client
+```
+
+Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
+
+### Modifications
+
+The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`lib/graph/src/api/rest/json_schemas`](lib/graph/src/api/rest/json_schemas).
+
+As such, when modifying return values related to these types, it's important to update the accompanying schemas.
+
+#### Status
+
+Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
+
+The [`status.json`](lib/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
+JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./lib/graph/build.rs).
+
+To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
+
+New payloads can then be added in the `definitions` and `oneOf` of the `Status` schema.
+
+> Note: migrating to the above is in progress, and not all error responses currently satisfy the `Status` shape, consult the API spec to see.
+
 ---
 
 ## Test the code
@@ -96,16 +129,6 @@ Migrations are run through the same binary as the server using the following com
 ```shell
 cargo run -- migrate
 ```
-
-## Generate OpenAPI client
-
-The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
-
-```shell
-cargo make generate-openapi-client
-```
-
-Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
 
 ## Benchmark the code
 

@@ -909,6 +909,31 @@ export interface EqualFilter {
 /**
  *
  * @export
+ * @interface ErrorInfo
+ */
+export interface ErrorInfo {
+  /**
+   * The reason of the error. This is a constant value that identifies the proximate cause of the error. Error reasons are unique within a particular domain of errors. This should be at most 63 characters and match a regular expression of `[A-Z][A-Z0-9_]+[A-Z0-9]`, which represents UPPER_SNAKE_CASE.
+   * @type {string}
+   * @memberof ErrorInfo
+   */
+  reason: string;
+  /**
+   * The logical grouping to which the \"reason\" belongs. The error domain is typically the registered service name of the tool or product that generates the error.
+   * @type {string}
+   * @memberof ErrorInfo
+   */
+  domain: string;
+  /**
+   * Construct a type with a set of properties K of type T
+   * @type {object}
+   * @memberof ErrorInfo
+   */
+  metadata: object;
+}
+/**
+ *
+ * @export
  * @interface ExclusiveBound
  */
 export interface ExclusiveBound {
@@ -2084,6 +2109,56 @@ export interface QueryTemporalAxesUnresolvedTransactionTimeVariable {
 /**
  *
  * @export
+ * @interface RequestInfo
+ */
+export interface RequestInfo {
+  /**
+   * An opaque string that should only be interpreted by the service generating it. For example, it can be used to identify requests in the service\'s logs.
+   * @type {string}
+   * @memberof RequestInfo
+   */
+  requestId: string;
+  /**
+   * Any data that was used to serve this request. For example, an encrypted stack trace that can be sent back to the service provider for debugging.
+   * @type {string}
+   * @memberof RequestInfo
+   */
+  servingData: string;
+}
+/**
+ *
+ * @export
+ * @interface ResourceInfo
+ */
+export interface ResourceInfo {
+  /**
+   * A name for the type of resource being accessed.  For example \"SQL table\", \"Entity\", \"Property Type\", \"Redis\"; or the type URL of the resource: e.g. \"https://blockprotocol.org/type-system/0.3/schema/meta/entity-type\".
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  resourceType: string;
+  /**
+   * The name of the resource being accessed.  For example, an ontology type ID: `https://hash.ai/@alice/types/entity-type/Person/`, if the current error is [@local/status/StatusCode.PermissionDenied].
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  resourceName: string;
+  /**
+   * The owner of the resource (optional).  For example, a User\'s entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  owner?: string;
+  /**
+   * Describes what error is encountered when accessing this resource.  For example, updating a property on a user\'s entity may require write permission on that property.
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  description: string;
+}
+/**
+ *
+ * @export
  * @interface RightBoundedTemporalInterval
  */
 export interface RightBoundedTemporalInterval {
@@ -2124,6 +2199,65 @@ export const SharedEdgeKind = {
 
 export type SharedEdgeKind =
   (typeof SharedEdgeKind)[keyof typeof SharedEdgeKind];
+
+/**
+ *
+ * @export
+ * @interface Status
+ */
+export interface Status {
+  /**
+   *
+   * @type {StatusCode}
+   * @memberof Status
+   */
+  code: StatusCode;
+  /**
+   * A developer-facing description of the status.  Where possible, this should provide guiding advice for debugging and/or handling the error.
+   * @type {string}
+   * @memberof Status
+   */
+  message?: string;
+  /**
+   *
+   * @type {Array<StatusContentsInner>}
+   * @memberof Status
+   */
+  contents: Array<StatusContentsInner>;
+}
+/**
+ * The canonical status codes for software within the HASH ecosystem. Sometimes multiple status codes may apply. Services should return the most specific status code that applies. For example, prefer `OutOfRange` over `FailedPrecondition` if both codes apply. Similarly prefer `NotFound` or `AlreadyExists` over `FailedPrecondition`.
+ * @export
+ * @enum {string}
+ */
+
+export const StatusCode = {
+  Aborted: "ABORTED",
+  AlreadyExists: "ALREADY_EXISTS",
+  Cancelled: "CANCELLED",
+  DataLoss: "DATA_LOSS",
+  DeadlineExceeded: "DEADLINE_EXCEEDED",
+  FailedPrecondition: "FAILED_PRECONDITION",
+  Internal: "INTERNAL",
+  InvalidArgument: "INVALID_ARGUMENT",
+  NotFound: "NOT_FOUND",
+  Ok: "OK",
+  OutOfRange: "OUT_OF_RANGE",
+  PermissionDenied: "PERMISSION_DENIED",
+  ResourceExhausted: "RESOURCE_EXHAUSTED",
+  Unauthenticated: "UNAUTHENTICATED",
+  Unavailable: "UNAVAILABLE",
+  Unimplemented: "UNIMPLEMENTED",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type StatusCode = (typeof StatusCode)[keyof typeof StatusCode];
+
+/**
+ * @type StatusContentsInner
+ * @export
+ */
+export type StatusContentsInner = ErrorInfo | RequestInfo | ResourceInfo;
 
 /**
  *

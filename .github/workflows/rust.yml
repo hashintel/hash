@@ -71,6 +71,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      - name: Warm-up repository
+        uses: ./.github/actions/warm-up-repo
+        if: matrix.directory == 'apps/hash-graph'
+
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
         with:
@@ -158,6 +162,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      - name: Warm-up repository
+        uses: ./.github/actions/warm-up-repo
+        if: matrix.directory == 'apps/hash-graph'
+
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
         with:
@@ -229,6 +237,10 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
+
+      - name: Warm-up repository
+        uses: ./.github/actions/warm-up-repo
+        if: matrix.directory == 'apps/hash-graph'
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
