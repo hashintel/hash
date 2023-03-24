@@ -40,7 +40,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-        {!readonly ? (
+        <Collapse in={!readonly && deletable}>
           <Fade in={deletable}>
             <Button
               variant="tertiary"
@@ -67,7 +67,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
               Remove question
             </Button>
           </Fade>
-        ) : null}
+        </Collapse>
       </Box>
 
       <Box display="flex" alignItems="flex-start">
