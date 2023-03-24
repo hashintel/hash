@@ -156,6 +156,51 @@ mod tests {
     }
 
     #[test]
+    fn limited_temporal() {
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+        );
+        compiler.add_filter(&filter);
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
+            "#,
+            &[
+                &temporal_axes.pinned_timestamp(),
+                &temporal_axes.variable_interval(),
+                &Uuid::nil(),
+            ],
+        );
+    }
+
+    #[test]
+    fn full_temporal() {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(None);
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+        );
+        compiler.add_filter(&filter);
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."entity_uuid" = $1
+            "#,
+            &[&Uuid::nil()],
+        );
+    }
+
+    #[test]
     fn specific_version() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler =
