@@ -77,32 +77,34 @@ export const Question: FunctionComponent<QuestionProps> = ({
             minHeight: 0,
             paddingX: 0,
             paddingY: 2.125,
-            mr: 1.5,
+            mr: displayNumber || displayToggle ? 1.5 : 0,
             background: "none !important",
             fontSize: 12,
             fontWeight: 700,
             lineHeight: 1.5,
             color: ({ palette }) => palette.black,
+            transition: ({ transitions }) => transitions.create("margin-right"),
             [`.${buttonClasses.endIcon}`]: {
               ml: 0.75,
             },
           }}
-          {...(displayToggle
-            ? {
-                endIcon: (
-                  <CaretDownIcon
-                    sx={{
-                      color: ({ palette }) => palette.black,
-                      transition: ({ transitions }) =>
-                        transitions.create("transform"),
-                      transform: `rotate(${expanded ? 0 : -90}deg)`,
-                    }}
-                  />
-                ),
-              }
-            : {})}
+          endIcon={
+            <Collapse in={displayToggle} orientation="horizontal">
+              <CaretDownIcon
+                sx={{
+                  fontSize: 12,
+                  color: ({ palette }) => palette.black,
+                  transition: ({ transitions }) =>
+                    transitions.create("transform"),
+                  transform: `rotate(${expanded ? 0 : -90}deg)`,
+                }}
+              />
+            </Collapse>
+          }
         >
-          {displayNumber ? 1 : null}
+          <Collapse in={displayNumber} orientation="horizontal">
+            1
+          </Collapse>
         </Button>
 
         <Box
