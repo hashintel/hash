@@ -14,7 +14,7 @@ export const Card = ({
 }: {
   data: CardData;
   onDelete: () => void;
-  updateCardContent: UpdateCardContentCallback;
+  updateCardContent?: UpdateCardContentCallback;
   readonly?: boolean;
 }) => {
   const {
@@ -46,7 +46,7 @@ export const Card = ({
     >
       <CardContent
         content={data.content}
-        onChange={(val) => updateCardContent(data.id, val)}
+        onChange={(val) => updateCardContent?.(data.id, val)}
         readonly={readonly}
         onDelete={() => onDelete()}
       />

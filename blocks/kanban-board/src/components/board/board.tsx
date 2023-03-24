@@ -30,7 +30,7 @@ import { KbnBoardColumnsPropertyValue, RootEntity } from "../../types";
 import { PlusIcon } from "../icons/plus-icon";
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
-import { StaticColumn } from "./column/static-column";
+import { SortableColumn } from "./column/sortable-column";
 import styles from "./styles.module.scss";
 import {
   ActiveItem,
@@ -483,7 +483,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       <SortableContext items={columnOrder} disabled={readonly}>
         <div className={styles.board}>
           {columnOrder.map((columnId) => (
-            <Column
+            <SortableColumn
               key={columnId}
               data={columns[columnId]!}
               deleteColumn={deleteColumn}
@@ -520,7 +520,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       >
         {activeItem ? (
           activeItem.type === "column" ? (
-            <StaticColumn data={columns[activeItem.id]!} />
+            <Column data={columns[activeItem.id]!} />
           ) : (
             <StaticCard data={activeItem.data} shadow />
           )
