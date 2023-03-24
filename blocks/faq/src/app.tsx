@@ -4,7 +4,6 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import {
   Button,
   EditableField,
@@ -19,41 +18,37 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
 import { v4 as uuid } from "uuid";
 
-import { Step } from "./step";
+import { Question } from "./question";
 import {
-  HasHowToBlockIntroduction,
-  HowToBlockIntroduction,
-  HowToBlockLinksByLinkTypeId,
-  HowToBlockStep,
-  HowToBlockStepProperties,
+  FrequentlyAskedQuestion,
+  FrequentlyAskedQuestionLinksByLinkTypeId,
+  FrequentlyAskedQuestionProperties,
   RootEntity,
 } from "./types";
 
 type RootEntityKey = keyof RootEntity["properties"];
-type LinkType = keyof HowToBlockLinksByLinkTypeId;
+type LinkType = keyof FrequentlyAskedQuestionLinksByLinkTypeId;
 
 // Property types
 export const titleKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 export const descriptionKey: RootEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
+export const questionKey: RootEntityKey =
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/question/";
+export const answerKey: RootEntityKey =
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/answer/";
 
 // Relevant Entity Types
-const howToBlockStepType =
-  "https://blockprotocol.org/@hash/types/entity-type/how-to-block-step/v/2";
-const howToBlockIntroductionType =
-  "https://blockprotocol.org/@hash/types/entity-type/how-to-block-introduction/v/2";
+const frequentlyAskedQuestionType =
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/frequently-asked-question/v/2";
 
 // Link Entity Types
-const hasHowToBlockStep: LinkType =
-  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1";
-const hasHowToBlockIntroduction: LinkType =
-  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1";
+const hasFrequentlyAskedQuestion: LinkType =
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/has-frequently-asked-question/v/1";
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
-export type EntityType =
-  | typeof howToBlockIntroductionType
-  | typeof howToBlockStepType;
+export type EntityType = typeof frequentlyAskedQuestionType;
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -73,26 +68,12 @@ export const App: BlockComponent<RootEntity> = ({
 
   const { [titleKey]: title, [descriptionKey]: description } = properties;
 
-  const introLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
-    () =>
-      linkedEntities.find(
-        ({ linkEntity }) =>
-          linkEntity.metadata.entityTypeId === hasHowToBlockIntroduction,
-      ),
-    [linkedEntities],
-  );
-
-  const introEntity: HowToBlockIntroduction | undefined =
-    introLinkedEntity?.rightEntity;
-  const introLinkEntity: HasHowToBlockIntroduction | undefined =
-    introLinkedEntity?.linkEntity;
-
-  const stepLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
+  const questionLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
     () =>
       linkedEntities
         .filter(
           ({ linkEntity }) =>
-            linkEntity.metadata.entityTypeId === hasHowToBlockStep,
+            linkEntity.metadata.entityTypeId === hasFrequentlyAskedQuestion,
         )
         .sort(
           (a, b) =>
@@ -102,27 +83,24 @@ export const App: BlockComponent<RootEntity> = ({
     [linkedEntities],
   );
 
-  const stepEntities: HowToBlockStep[] | undefined = stepLinkedEntities.map(
-    (linkEntity) => linkEntity.rightEntity,
-  );
+  const questionEntities: FrequentlyAskedQuestion[] | undefined =
+    questionLinkedEntities.map((linkEntity) => linkEntity.rightEntity);
 
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
-  const [steps, setSteps] = useState<
+  const [questions, setQuestions] = useState<
     {
       id: string;
-      properties: HowToBlockStepProperties;
+      properties: FrequentlyAskedQuestionProperties;
       animatingOut?: boolean;
     }[]
   >(
-    stepEntities.map((stepEntity) => ({
+    questionEntities.map((stepEntity) => ({
       id: stepEntity.metadata.recordId.entityId,
       properties: stepEntity.properties,
     })),
   );
-  const [introButtonAnimatingOut, setIntroButtonAnimatingOut] = useState(false);
-  const [introAnimatingOut, setIntroAnimatingOut] = useState(false);
 
   const updateField = async (value: string, field: TitleOrDescription) => {
     await graphModule.updateEntity({
@@ -137,101 +115,60 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const createHowToEntity = useCallback(
-    async (entityType: EntityType, linkType: LinkType) => {
-      if (readonly) {
-        return;
-      }
+  const createFrequentlyAskedQuestionEntity = useCallback(async () => {
+    if (readonly) {
+      return;
+    }
 
-      const createEntityResponse = await graphModule.createEntity({
+    const createEntityResponse = await graphModule.createEntity({
+      data: {
+        entityTypeId: frequentlyAskedQuestionType,
+        properties: {},
+      },
+    });
+
+    const createdEntityId =
+      createEntityResponse.data?.metadata.recordId.entityId;
+
+    if (createdEntityId) {
+      await graphModule.createEntity({
         data: {
-          entityTypeId: entityType,
+          entityTypeId: hasFrequentlyAskedQuestion,
           properties: {},
-        },
-      });
-
-      const createdEntityId =
-        createEntityResponse.data?.metadata.recordId.entityId;
-
-      if (createdEntityId) {
-        await graphModule.createEntity({
-          data: {
-            entityTypeId: linkType,
-            properties: {},
-            linkData: {
-              leftEntityId: entityId,
-              rightEntityId: createdEntityId,
-              leftToRightOrder:
-                (stepLinkedEntities[stepLinkedEntities.length - 1]?.linkEntity
-                  .linkData?.leftToRightOrder ?? 0) + 1,
-            },
-          },
-        });
-      }
-    },
-    [graphModule, stepLinkedEntities, entityId, readonly],
-  );
-
-  const createIntroduction = async () => {
-    setIntroButtonAnimatingOut(true);
-    await createHowToEntity(
-      howToBlockIntroductionType,
-      hasHowToBlockIntroduction,
-    );
-  };
-
-  const updateIntroductionField = async (
-    value: string | boolean,
-    field: TitleOrDescription,
-  ) => {
-    if (introEntity) {
-      await graphModule.updateEntity({
-        data: {
-          entityId: introEntity.metadata.recordId.entityId,
-          entityTypeId: howToBlockIntroductionType,
-          properties: {
-            ...introEntity.properties,
-            [field]: value,
+          linkData: {
+            leftEntityId: entityId,
+            rightEntityId: createdEntityId,
+            leftToRightOrder:
+              (questionLinkedEntities[questionLinkedEntities.length - 1]
+                ?.linkEntity.linkData?.leftToRightOrder ?? 0) + 1,
           },
         },
       });
     }
-  };
+  }, [graphModule, questionLinkedEntities, entityId, readonly]);
 
-  const removeIntroduction = async () => {
-    setIntroAnimatingOut(true);
-
-    if (introLinkEntity) {
-      await graphModule.deleteEntity({
-        data: {
-          entityId: introLinkEntity.metadata.recordId.entityId,
-        },
-      });
-    }
-  };
-
-  const addStep = useCallback(async () => {
-    setSteps([...steps, { id: uuid(), properties: {} }]);
-    await createHowToEntity(howToBlockStepType, hasHowToBlockStep);
-  }, [steps, createHowToEntity]);
+  const addQuestion = useCallback(async () => {
+    setQuestions([...questions, { id: uuid(), properties: {} }]);
+    await createFrequentlyAskedQuestionEntity();
+  }, [questions, createFrequentlyAskedQuestionEntity]);
 
   const updateStepField = async (
     index: number,
     value: string,
     field: TitleOrDescription,
   ) => {
-    const stepEntity = stepEntities[index];
+    const questionEntity = questionEntities[index];
 
-    if (!stepEntity) {
+    if (!questionEntity) {
       return;
     }
 
     await graphModule.updateEntity({
       data: {
-        entityId: stepEntity.metadata.recordId.entityId,
-        entityTypeId: howToBlockStepType,
+        entityId: questionEntity.metadata.recordId.entityId,
+        entityTypeId: frequentlyAskedQuestionType,
         properties: {
-          ...stepEntity.properties,
+          ...questionEntity.properties,
           [field]: value,
         },
       },
@@ -239,60 +176,60 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const removeStep = (index: number) => {
-    setSteps(
-      steps.map((step, stepIndex) => {
-        if (index === stepIndex) {
-          return { ...step, animatingOut: true };
+    setQuestions(
+      questions.map((question, questionIndex) => {
+        if (index === questionIndex) {
+          return { ...question, animatingOut: true };
         }
-        return step;
+        return question;
       }),
     );
   };
 
   useEffect(() => {
-    if (!stepEntities.length) {
-      void addStep();
+    if (!questionEntities.length) {
+      void addQuestion();
     }
     // We only want to run this once when the block is initiated
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const schema = useMemo(() => {
-    const stepsWithTitle = stepEntities.filter(
-      ({ properties: { [titleKey]: schemaTitle } }) => !!schemaTitle,
-    );
+  // const schema = useMemo(() => {
+  //   const stepsWithTitle = stepEntities.filter(
+  //     ({ properties: { [titleKey]: schemaTitle } }) => !!schemaTitle,
+  //   );
 
-    return JSON.stringify({
-      "@context": "http://schema.org",
-      "@type": "HowTo",
-      name: title,
-      // Must have at least 2 steps for it to be valid
-      ...(stepsWithTitle.length > 1
-        ? {
-            step: stepsWithTitle.map(
-              ({
-                properties: {
-                  [titleKey]: schemaTitle,
-                  [descriptionKey]: schemaDescription,
-                },
-              }) => ({
-                "@type": "HowToStep",
-                name: schemaTitle,
-                text: schemaDescription ?? schemaTitle,
-              }),
-            ),
-          }
-        : {}),
-    });
-  }, [title, stepEntities]);
+  //   return JSON.stringify({
+  //     "@context": "http://schema.org",
+  //     "@type": "HowTo",
+  //     name: title,
+  //     // Must have at least 2 steps for it to be valid
+  //     ...(stepsWithTitle.length > 1
+  //       ? {
+  //           step: stepsWithTitle.map(
+  //             ({
+  //               properties: {
+  //                 [titleKey]: schemaTitle,
+  //                 [descriptionKey]: schemaDescription,
+  //               },
+  //             }) => ({
+  //               "@type": "HowToStep",
+  //               name: schemaTitle,
+  //               text: schemaDescription ?? schemaTitle,
+  //             }),
+  //           ),
+  //         }
+  //       : {}),
+  //   });
+  // }, [title, stepEntities]);
 
   return (
     <>
-      <script
+      {/* <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: schema }}
-      />
+      /> */}
       <ThemeProvider theme={theme}>
         <SizeMe>
           {({ size }) => {
@@ -315,7 +252,7 @@ export const App: BlockComponent<RootEntity> = ({
                         mb: 1.5,
                       }}
                     >
-                      <GetHelpLink href="https://blockprotocol.org/@hash/blocks/how-to" />
+                      <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
                     </Box>
                   </Fade>
                 ) : null}
@@ -363,7 +300,7 @@ export const App: BlockComponent<RootEntity> = ({
                           letterSpacing: "-0.02em",
                           color: theme.palette.common.black,
                         }}
-                        placeholder="Enter a how-to guide name"
+                        placeholder="Enter an optional FAQ section title"
                         readonly={readonly}
                       />
 
@@ -385,7 +322,7 @@ export const App: BlockComponent<RootEntity> = ({
                           letterSpacing: "-0.02em",
                           color: theme.palette.gray[90],
                         }}
-                        placeholder="Click here to add a description of the how-to process"
+                        placeholder="Enter an optional description/introduction"
                         placeholderSx={{
                           fontStyle: "italic",
                         }}
@@ -394,69 +331,26 @@ export const App: BlockComponent<RootEntity> = ({
                     </Stack>
                   ) : null}
 
-                  {introEntity || !readonly ? (
-                    <Box>
-                      <Collapse
-                        in={!readonly && !introEntity && !introAnimatingOut}
-                        onExited={() => setIntroButtonAnimatingOut(false)}
-                      >
-                        <Button
-                          variant="tertiary"
-                          size="small"
-                          sx={{ fontSize: 14 }}
-                          onClick={() => createIntroduction()}
-                          disabled={introButtonAnimatingOut}
-                        >
-                          <FontAwesomeIcon
-                            icon={{ icon: faPlus }}
-                            sx={{ mr: 1, fontSize: 13 }}
-                          />
-                          Add Introduction
-                        </Button>
-                      </Collapse>
-
-                      <Collapse
-                        in={!!introEntity && !introButtonAnimatingOut}
-                        onExited={() => setIntroAnimatingOut(false)}
-                        appear
-                      >
-                        <Step
-                          header="Introduction"
-                          title={introEntity?.properties[titleKey] ?? ""}
-                          titlePlaceholder="Requirements, Ingredients, Pre-requisites, etc."
-                          description={
-                            introEntity?.properties[descriptionKey] ?? ""
-                          }
-                          descriptionPlaceholder="Enter a list of things that might be helpful for people to know before they begin."
-                          updateField={updateIntroductionField}
-                          onRemove={() => removeIntroduction()}
-                          readonly={readonly}
-                          deleteButtonText="Remove intro"
-                        />
-                      </Collapse>
-                    </Box>
-                  ) : null}
-
                   <Box>
-                    {steps.map((step, index) => (
+                    {questions.map((question, index) => (
                       <Collapse
-                        key={step.id}
-                        in={!step.animatingOut}
+                        key={question.id}
+                        in={!question.animatingOut}
                         onExited={async () => {
-                          const newSteps = [...steps];
-                          newSteps.splice(index, 1);
-                          setSteps(newSteps);
+                          const newQuestions = [...questions];
+                          newQuestions.splice(index, 1);
+                          setQuestions(newQuestions);
 
-                          const stepLink =
-                            stepLinkedEntities[index]?.linkEntity;
+                          const questionLink =
+                            questionLinkedEntities[index]?.linkEntity;
 
-                          if (!stepLink) {
+                          if (!questionLink) {
                             return;
                           }
 
                           await graphModule.deleteEntity({
                             data: {
-                              entityId: stepLink.metadata.recordId.entityId,
+                              entityId: questionLink.metadata.recordId.entityId,
                             },
                           });
                         }}
@@ -464,32 +358,20 @@ export const App: BlockComponent<RootEntity> = ({
                       >
                         <Box
                           sx={{
-                            mb: index === steps.length - 1 ? 0 : 3,
+                            mb: index === questions.length - 1 ? 0 : 3,
                             transition: ({ transitions }) =>
                               transitions.create("margin-bottom"),
                           }}
                         >
-                          <Step
-                            header={`Step ${index + 1}`}
-                            headerSx={{
-                              fontSize: 12,
-                              textTransform: "uppercase",
-                            }}
-                            title={step.properties[titleKey]}
-                            titlePlaceholder="Step name goes here"
-                            description={step.properties[descriptionKey]}
-                            descriptionPlaceholder={
-                              isMobile
-                                ? "Additional instructions here"
-                                : "Detailed instructions associated with the step can be added here. Click to start typing."
-                            }
+                          <Question
+                            question={question.properties[titleKey]}
+                            answer={question.properties[descriptionKey]}
                             updateField={(value, field) =>
                               updateStepField(index, value, field)
                             }
                             onRemove={() => removeStep(index)}
                             readonly={readonly}
-                            deletable={stepEntities.length > 1}
-                            deleteButtonText="Remove step"
+                            deletable={questionEntities.length > 1}
                           />
                         </Box>
                       </Collapse>
@@ -502,13 +384,13 @@ export const App: BlockComponent<RootEntity> = ({
                         variant="tertiary"
                         size="small"
                         sx={{ fontSize: 14 }}
-                        onClick={addStep}
+                        onClick={addQuestion}
                       >
                         <FontAwesomeIcon
                           icon={{ icon: faPlus }}
                           sx={{ mr: 1, fontSize: 13 }}
                         />
-                        Add a step
+                        Add a question
                       </Button>
                     </Box>
                   ) : null}
