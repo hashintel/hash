@@ -4,8 +4,6 @@ use utoipa::{openapi, ToSchema};
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct OutwardEdge<K, E> {
     pub kind: K,
-    /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
-    /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
     pub direction: EdgeDirection,
     pub right_endpoint: E,
 }
@@ -27,10 +25,23 @@ where
     }
 }
 
+/// The direction of an edge in a graph.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeDirection {
+    /// Represents an edge that points from the left endpoint to the right endpoint.
     Outgoing,
+    /// Represents a reversed edge that points from the right endpoint to the left endpoint.
     Incoming,
+}
+
+impl EdgeDirection {
+    #[must_use]
+    pub const fn reversed(self) -> Self {
+        match self {
+            Self::Outgoing => Self::Incoming,
+            Self::Incoming => Self::Outgoing,
+        }
+    }
 }
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
