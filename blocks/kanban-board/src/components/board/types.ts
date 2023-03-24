@@ -18,6 +18,14 @@ export type ActiveItem =
   | { type: "card"; id: UniqueIdentifier; data: CardData }
   | null;
 
+export type DataBeforeDrag =
+  | {
+      type: "columns";
+      data: ColumnsState;
+    }
+  | { type: "columnOrder"; data: string[] }
+  | null;
+
 export type DeleteColumnCallback = (columnId: string) => void;
 export type CreateCardCallback = (columnId: string, content: string) => void;
 export type DeleteCardCallback = (columnId: string, cardId: string) => void;

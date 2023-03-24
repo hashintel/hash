@@ -16,6 +16,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
+import cloneDeep from "lodash.clonedeep";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
 import { useMemo, useRef, useState } from "react";
@@ -36,6 +37,7 @@ import {
   CardData,
   ColumnsState,
   CreateCardCallback,
+  DataBeforeDrag,
   DeleteCardCallback,
   DeleteColumnCallback,
   UpdateCardContentCallback,
@@ -122,6 +124,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     transformEntityColumnsToColumnsState(entityColumns),
   );
   const [columnOrder, setColumnOrder] = useState<string[]>(entityColumnOrder);
+  const [dataBeforeDrag, setDataBeforeDrag] = useState<DataBeforeDrag>(null);
 
   const debouncedUpdateEntity = useMemo(
     () =>
@@ -267,6 +270,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     if (isCardOrColumn(active.id) === "column") {
+      setDataBeforeDrag({ type: "columnOrder", data: [...columnOrder] });
       return setActiveItem({ type: "column", id: active.id });
     }
 
@@ -278,6 +282,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       throw new Error("no card found");
     }
 
+    setDataBeforeDrag({ type: "columns", data: cloneDeep(columns) });
     setActiveItem({ type: "card", data: foundCard, id: active.id });
   };
 
@@ -416,11 +421,22 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const handleDragEnd = () => {
     /** we call `updateStateAndEntity` to update the entity with the current state after drag ends */
     updateStateAndEntity({});
+    setDataBeforeDrag(null);
     setActiveItem(null);
   };
 
   const handleDragCancel = () => {
     setActiveItem(null);
+
+    if (!dataBeforeDrag) return;
+
+    const { data, type } = dataBeforeDrag;
+
+    if (type === "columnOrder") {
+      return setColumnOrder(data);
+    }
+
+    setColumns(data);
   };
 
   const sensors = useSensors(
@@ -436,7 +452,12 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const shouldOverrideLocalState =
     !isDebounceQueued.current && !isUpdatingEntity;
 
-  if (blockEntity !== prevBlockEntity && shouldOverrideLocalState) {
+  if (
+    blockEntity !== prevBlockEntity &&
+    shouldOverrideLocalState &&
+    /** do not update the state while user is dragging an item to prevent flickering */
+    !activeItem
+  ) {
     setPrevBlockEntity(blockEntity);
 
     const columnsChanged = !isEqual(entityColumns, columns);

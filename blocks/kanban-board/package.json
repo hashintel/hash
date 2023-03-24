@@ -33,6 +33,7 @@
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
     "clsx": "1.2.1",
+    "lodash.clonedeep": "4.5.0",
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
     "react-textarea-autosize": "8.4.0"
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@types/lodash.clonedeep": "4.5.7",
     "@types/react-dom": "18.0.9",
     "block-scripts": "0.1.0",
     "eslint": "8.33.0",
