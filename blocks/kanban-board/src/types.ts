@@ -2,7 +2,7 @@ import { Entity } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/18 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/19 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
@@ -14,10 +14,6 @@ export type TitlePropertyValue = TextDataValue;
  * An ordered sequence of characters
  */
 export type TextDataValue = string;
-/**
- * 123
- */
-export type KanbanBoardColumnOrderPropertyValue = TextDataValue[];
 /**
  * 123
  */
@@ -49,7 +45,6 @@ export type TextContentPropertyValue = TextDataValue;
  */
 export type KanbanBlockProperties = {
   "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-board-column-order/"?: KanbanBoardColumnOrderPropertyValue;
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-columns/"?: KbnBoardColumnsPropertyValue;
 };
 

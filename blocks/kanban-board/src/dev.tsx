@@ -8,7 +8,6 @@ import {
   cardIdKey,
   columnCardsKey,
   columnIdKey,
-  columnOrderKey,
   columnsKey,
   columnTitleKey,
 } from "./components/board/board";
@@ -26,7 +25,6 @@ const testEntity: RootEntity = {
     entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
   },
   properties: {
-    [columnOrderKey]: ["col-todo", "col-in-progress", "col-done"],
     [columnsKey]: [
       {
         [columnIdKey]: "col-todo",

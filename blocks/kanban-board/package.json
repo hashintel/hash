@@ -66,6 +66,6 @@
     "image": "public/block-preview.png",
     "name": "@hash/kanban-board",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/18"
+    "schema": "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/19"
   }
 }

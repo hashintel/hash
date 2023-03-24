@@ -46,8 +46,6 @@ import {
 
 const generateId = () => Date.now().toString();
 
-export const columnOrderKey: RootEntityKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-board-column-order/";
 export const columnsKey: RootEntityKey =
   "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-columns/";
 
@@ -90,15 +88,19 @@ const transformEntityColumnsToColumnsState = (
 
 const transformColumnsStateToEntityColumns = (
   columns: ColumnsState,
+  columnOrder: string[],
 ): KbnBoardColumnsPropertyValue => {
-  return Object.values(columns).map((column) => ({
-    [columnIdKey]: column.id,
-    [columnTitleKey]: column.title,
-    [columnCardsKey]: column.cards.map((card) => ({
-      [cardIdKey]: card.id,
-      [cardContentKey]: card.content,
-    })),
-  }));
+  return columnOrder.map((columnId) => {
+    const column = columns[columnId]!;
+    return {
+      [columnIdKey]: column.id,
+      [columnTitleKey]: column.title,
+      [columnCardsKey]: column.cards.map((card) => ({
+        [cardIdKey]: card.id,
+        [cardContentKey]: card.content,
+      })),
+    };
+  });
 };
 
 interface BoardProps {
@@ -111,10 +113,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const updateEntityQueue = useRef<number[]>([]);
   const isDebounceQueued = useRef(false);
   const {
-    properties: {
-      [columnOrderKey]: entityColumnOrder = [],
-      [columnsKey]: entityColumns = [],
-    },
+    properties: { [columnsKey]: entityColumns = [] },
   } = blockEntity;
 
   const [prevBlockEntity, setPrevBlockEntity] = useState(blockEntity);
@@ -123,7 +122,9 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const [columns, setColumns] = useState<ColumnsState>(
     transformEntityColumnsToColumnsState(entityColumns),
   );
-  const [columnOrder, setColumnOrder] = useState<string[]>(entityColumnOrder);
+  const [columnOrder, setColumnOrder] = useState<string[]>(
+    entityColumns.map((col) => col[columnIdKey]),
+  );
   const [dataBeforeDrag, setDataBeforeDrag] = useState<DataBeforeDrag>(null);
 
   const debouncedUpdateEntity = useMemo(
@@ -157,8 +158,10 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
     isDebounceQueued.current = true;
     void debouncedUpdateEntity({
-      [columnsKey]: transformColumnsStateToEntityColumns(newColumns ?? columns),
-      [columnOrderKey]: newColumnOrder ?? columnOrder,
+      [columnsKey]: transformColumnsStateToEntityColumns(
+        newColumns ?? columns,
+        newColumnOrder ?? columnOrder,
+      ),
     });
   };
 
@@ -463,11 +466,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     const columnsChanged = !isEqual(entityColumns, columns);
     if (columnsChanged) {
       setColumns(transformEntityColumnsToColumnsState(entityColumns));
-    }
-
-    const columnOrderChanged = !isEqual(entityColumnOrder, columnOrder);
-    if (columnOrderChanged) {
-      setColumnOrder(entityColumnOrder);
+      setColumnOrder(entityColumns.map((col) => col[columnIdKey]));
     }
   }
 
