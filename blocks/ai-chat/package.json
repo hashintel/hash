@@ -30,7 +30,9 @@
     "@blockprotocol/hook": "0.1.0",
     "@blockprotocol/service": "0.1.1",
     "@hashintel/design-system": "0.0.5",
-    "@mui/material": "5.11.8"
+    "@mui/material": "5.11.8",
+    "react-transition-group": "4.4.5",
+    "react-type-animation": "3.0.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
