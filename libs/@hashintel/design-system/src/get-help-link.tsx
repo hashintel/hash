@@ -24,6 +24,7 @@ export const GetHelpLink: FunctionComponent<GetHelpProps> = ({
           display: "inline-flex",
           alignItems: "center",
           fontSize: 15,
+          fontWeight: 500,
           lineHeight: 1,
           letterSpacing: -0.02,
           whiteSpace: "nowrap",
