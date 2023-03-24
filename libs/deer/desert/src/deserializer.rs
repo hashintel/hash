@@ -187,7 +187,8 @@ impl<'a, 'de> Deserializer<'a, 'de> {
     }
 }
 
-#[derive(Debug)]
+// TODO: replace w/ NoneDeserializer
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct DeserializerNone<'a> {
     pub(crate) context: &'a Context,
 }
@@ -228,6 +229,12 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
     where
         V: EnumVisitor<'de>,
     {
-        visitor.visit_none().change_context(DeserializerError)
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, self)
+            .change_context(DeserializerError)
     }
 }

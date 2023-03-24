@@ -167,12 +167,6 @@ pub trait EnumVisitor<'de>: Sized {
 
     fn expecting(&self) -> Document;
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(MissingError.into_error())
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
     fn visit_discriminant<D>(&self, deserializer: D) -> Result<Self::Discriminant, VisitorError>
     where
         D: Deserializer<'de>,

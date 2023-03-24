@@ -121,7 +121,8 @@ pub(crate) struct EnumUnitDeserializer<'a, D> {
 }
 
 impl<'a, D> EnumUnitDeserializer<'a, D> {
-    pub(crate) fn new(context: &'a Context, deserializer: D) -> Self {
+    #[must_use]
+    pub(crate) const fn new(context: &'a Context, deserializer: D) -> Self {
         Self {
             context,
             deserializer,
@@ -196,7 +197,13 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
     where
         V: EnumVisitor<'de>,
     {
-        visitor.visit_none().change_context(DeserializerError)
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, self)
+            .change_context(DeserializerError)
     }
 }
 
