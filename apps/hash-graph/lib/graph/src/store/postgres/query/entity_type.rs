@@ -28,7 +28,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::Schema(_) => vec![],
             Self::BaseUrl
             | Self::Version
-            | Self::UpdatedById
+            | Self::RecordCreatedById
             | Self::OwnedById
             | Self::AdditionalMetadata(_) => {
                 vec![Relation::EntityTypeIds]
@@ -93,7 +93,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
             ))),
-            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
+            Self::RecordCreatedById => Column::OntologyIds(OntologyIds::RecordCreatedById),
             Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
             Self::Schema(path) => path
                 .as_ref()

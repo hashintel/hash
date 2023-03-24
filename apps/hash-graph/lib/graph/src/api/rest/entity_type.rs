@@ -20,10 +20,10 @@ use crate::{
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
         OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist},
-        EntityTypeStore, StorePool,
+        ConflictBehavior, EntityTypeStore, StorePool,
     },
     subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
 };
@@ -73,7 +73,7 @@ struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -139,7 +139,10 @@ async fn create_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity_types(entity_types.into_iter().zip(metadata.iter()))
+        .create_entity_types(
+            entity_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity types");
@@ -210,7 +213,7 @@ struct UpdateEntityTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

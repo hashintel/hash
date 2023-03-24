@@ -18,9 +18,9 @@ pub enum Table {
     DataTypes,
     PropertyTypes,
     EntityTypes,
-    Entities,
+    EntityTemporalMetadata,
     EntityEditions,
-    ReferenceTable(ReferenceTable),
+    Reference(ReferenceTable),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -76,13 +76,13 @@ impl ReferenceTable {
                 ),
             },
             Self::EntityIsOfType => ForeignKeyReference::Single {
-                on: Column::Entities(Entities::EditionId),
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
                 join: Column::EntityIsOfType(EntityIsOfType::EntityEditionId),
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
                 on: [
-                    Column::Entities(Entities::OwnedById),
-                    Column::Entities(Entities::EntityUuid),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
@@ -91,8 +91,8 @@ impl ReferenceTable {
             },
             Self::EntityHasRightEntity => ForeignKeyReference::Double {
                 on: [
-                    Column::Entities(Entities::OwnedById),
-                    Column::Entities(Entities::EntityUuid),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
                     Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),
@@ -150,8 +150,8 @@ impl ReferenceTable {
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid),
                 ],
                 join: [
-                    Column::Entities(Entities::OwnedById),
-                    Column::Entities(Entities::EntityUuid),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
             },
             Self::EntityHasRightEntity => ForeignKeyReference::Double {
@@ -160,8 +160,8 @@ impl ReferenceTable {
                     Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid),
                 ],
                 join: [
-                    Column::Entities(Entities::OwnedById),
-                    Column::Entities(Entities::EntityUuid),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
             },
         }
@@ -197,9 +197,9 @@ impl Table {
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
-            Self::Entities => "entity_temporal_metadata",
+            Self::EntityTemporalMetadata => "entity_temporal_metadata",
             Self::EntityEditions => "entity_editions",
-            Self::ReferenceTable(table) => table.as_str(),
+            Self::Reference(table) => table.as_str(),
         }
     }
 }
@@ -227,7 +227,7 @@ pub enum OntologyIds<'p> {
     OntologyId,
     BaseUrl,
     Version,
-    UpdatedById,
+    RecordCreatedById,
     LatestVersion,
     TransactionTime,
     AdditionalMetadata(Option<JsonField<'p>>),
@@ -272,7 +272,7 @@ impl OntologyIds<'_> {
             Self::TransactionTime => "transaction_time",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
-            Self::UpdatedById => "record_created_by_id",
+            Self::RecordCreatedById => "record_created_by_id",
             Self::AdditionalMetadata(None) => "additional_metadata",
             Self::AdditionalMetadata(Some(path)) => {
                 return transpile_json_field(path, "additional_metadata", table, fmt);
@@ -340,7 +340,7 @@ impl_ontology_column!(PropertyTypes);
 impl_ontology_column!(EntityTypes);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Entities {
+pub enum EntityTemporalMetadata {
     OwnedById,
     EntityUuid,
     EditionId,
@@ -348,7 +348,7 @@ pub enum Entities {
     TransactionTime,
 }
 
-impl Entities {
+impl EntityTemporalMetadata {
     pub const fn from_time_axis(time_axis: TimeAxis) -> Self {
         match time_axis {
             TimeAxis::DecisionTime => Self::DecisionTime,
@@ -357,7 +357,7 @@ impl Entities {
     }
 }
 
-impl Entities {
+impl EntityTemporalMetadata {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OwnedById => "owned_by_id",
@@ -377,14 +377,14 @@ pub enum EntityEditions<'p> {
     Properties(Option<JsonField<'p>>),
     LeftToRightOrder,
     RightToLeftOrder,
-    UpdatedById,
+    RecordCreatedById,
     Archived,
 }
 
 impl EntityEditions<'_> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::UpdatedById => false,
+            Self::EditionId | Self::Archived | Self::RecordCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
@@ -400,7 +400,7 @@ impl EntityEditions<'_> {
             }
             Self::LeftToRightOrder => "left_to_right_order",
             Self::RightToLeftOrder => "right_to_left_order",
-            Self::UpdatedById => "record_created_by_id",
+            Self::RecordCreatedById => "record_created_by_id",
             Self::Archived => "archived",
         };
         table.transpile(fmt)?;
@@ -569,7 +569,7 @@ pub enum Column<'p> {
     DataTypes(DataTypes<'p>),
     PropertyTypes(PropertyTypes<'p>),
     EntityTypes(EntityTypes<'p>),
-    Entities(Entities),
+    EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions<'p>),
     PropertyTypeConstrainsValuesOn(PropertyTypeConstrainsValuesOn),
     PropertyTypeConstrainsPropertiesOn(PropertyTypeConstrainsPropertiesOn),
@@ -589,33 +589,29 @@ impl<'p> Column<'p> {
             Self::DataTypes(_) => Table::DataTypes,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::EntityTypes(_) => Table::EntityTypes,
-            Self::Entities(_) => Table::Entities,
+            Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
             Self::PropertyTypeConstrainsValuesOn(_) => {
-                Table::ReferenceTable(ReferenceTable::PropertyTypeConstrainsValuesOn)
+                Table::Reference(ReferenceTable::PropertyTypeConstrainsValuesOn)
             }
             Self::PropertyTypeConstrainsPropertiesOn(_) => {
-                Table::ReferenceTable(ReferenceTable::PropertyTypeConstrainsPropertiesOn)
+                Table::Reference(ReferenceTable::PropertyTypeConstrainsPropertiesOn)
             }
             Self::EntityTypeConstrainsPropertiesOn(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeConstrainsPropertiesOn)
+                Table::Reference(ReferenceTable::EntityTypeConstrainsPropertiesOn)
             }
             Self::EntityTypeInheritsFrom(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeInheritsFrom)
+                Table::Reference(ReferenceTable::EntityTypeInheritsFrom)
             }
             Self::EntityTypeConstrainsLinksOn(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeConstrainsLinksOn)
+                Table::Reference(ReferenceTable::EntityTypeConstrainsLinksOn)
             }
             Self::EntityTypeConstrainsLinkDestinationsOn(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityTypeConstrainsLinkDestinationsOn)
+                Table::Reference(ReferenceTable::EntityTypeConstrainsLinkDestinationsOn)
             }
-            Self::EntityIsOfType(_) => Table::ReferenceTable(ReferenceTable::EntityIsOfType),
-            Self::EntityHasLeftEntity(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityHasLeftEntity)
-            }
-            Self::EntityHasRightEntity(_) => {
-                Table::ReferenceTable(ReferenceTable::EntityHasRightEntity)
-            }
+            Self::EntityIsOfType(_) => Table::Reference(ReferenceTable::EntityIsOfType),
+            Self::EntityHasLeftEntity(_) => Table::Reference(ReferenceTable::EntityHasLeftEntity),
+            Self::EntityHasRightEntity(_) => Table::Reference(ReferenceTable::EntityHasRightEntity),
         }
     }
 
@@ -643,7 +639,7 @@ impl<'p> Column<'p> {
             Self::DataTypes(column) => column.transpile_column(table, fmt),
             Self::PropertyTypes(column) => column.transpile_column(table, fmt),
             Self::EntityTypes(column) => column.transpile_column(table, fmt),
-            Self::Entities(column) => column.transpile_column(table, fmt),
+            Self::EntityTemporalMetadata(column) => column.transpile_column(table, fmt),
             Self::EntityEditions(column) => column.transpile_column(table, fmt),
             Self::PropertyTypeConstrainsValuesOn(column) => column.transpile_column(table, fmt),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.transpile_column(table, fmt),
@@ -823,13 +819,13 @@ impl Relation {
                 join: Column::OntologyIds(OntologyIds::OntologyId),
             }),
             Self::EntityEditions => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::Entities(Entities::EditionId),
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
                 join: Column::EntityEditions(EntityEditions::EditionId),
             }),
             Self::LeftEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
-                    Column::Entities(Entities::OwnedById),
-                    Column::Entities(Entities::EntityUuid),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
@@ -838,8 +834,8 @@ impl Relation {
             }),
             Self::RightEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
-                    Column::Entities(Entities::OwnedById),
-                    Column::Entities(Entities::EntityUuid),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
                     Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),

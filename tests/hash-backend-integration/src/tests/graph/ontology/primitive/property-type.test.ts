@@ -87,7 +87,7 @@ describe("Property type CRU", () => {
   it("can update a property type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
-        createdPropertyType.metadata.provenance.updatedById,
+        createdPropertyType.metadata.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
     const updatedPropertyType = await updatePropertyType(graphContext, {
@@ -101,7 +101,7 @@ describe("Property type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
-        updatedPropertyType.metadata.provenance.updatedById,
+        updatedPropertyType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
   });
 });

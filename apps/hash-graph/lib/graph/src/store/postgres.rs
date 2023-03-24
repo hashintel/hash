@@ -24,11 +24,12 @@ use crate::{
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
+        AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError,
+        StoreError, UpdateError,
     },
 };
 #[cfg(feature = "__internal_bench")]
@@ -82,7 +83,7 @@ where
                 &[
                     &metadata.record_id().base_url.as_str(),
                     &metadata.record_id().version,
-                    &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.provenance_metadata().record_created_by_id(),
                     &metadata.owned_by_id(),
                 ],
             )
@@ -126,7 +127,7 @@ where
                 &[
                     &metadata.record_id().base_url.as_str(),
                     &metadata.record_id().version,
-                    &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.provenance_metadata().record_created_by_id(),
                     &metadata.fetched_at(),
                 ],
             )
@@ -160,7 +161,7 @@ where
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<(OntologyId, OwnedById), UpdateError> {
         let row = self
             .as_client()
@@ -179,7 +180,7 @@ where
                     &url.base_url.as_str(),
                     &i64::from(url.version),
                     &i64::from(url.version - 1),
-                    &updated_by_id,
+                    &record_created_by_id,
                 ],
             )
             .await
@@ -221,23 +222,35 @@ where
         &self,
         database_type: T,
         metadata: &OntologyElementMetadata,
-    ) -> Result<OntologyId, InsertionError>
+        on_conflict: ConflictBehavior,
+    ) -> Result<Option<OntologyId>, InsertionError>
     where
         T: OntologyDatabaseType + Send,
         T::Representation: Send,
     {
-        let ontology_id = match metadata {
+        let creation_result = match metadata {
             OntologyElementMetadata::Owned(metadata) => {
-                self.create_owned_ontology_id(metadata).await?
+                self.create_owned_ontology_id(metadata).await
             }
             OntologyElementMetadata::External(metadata) => {
-                self.create_external_ontology_id(metadata).await?
+                self.create_external_ontology_id(metadata).await
             }
+        };
+
+        let ontology_id = match creation_result {
+            Ok(ontology_id) => ontology_id,
+            Err(report)
+                if report.contains::<BaseUrlAlreadyExists>()
+                    && on_conflict == ConflictBehavior::Skip =>
+            {
+                return Ok(None);
+            }
+            Err(err) => return Err(err),
         };
 
         self.insert_with_id(ontology_id, database_type).await?;
 
-        Ok(ontology_id)
+        Ok(Some(ontology_id))
     }
 
     /// Updates the specified [`OntologyDatabaseType`].
@@ -254,7 +267,7 @@ where
     async fn update<T>(
         &self,
         database_type: T,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Send,
@@ -263,7 +276,9 @@ where
         let url = database_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id) = self.update_owned_ontology_id(url, updated_by_id).await?;
+        let (ontology_id, owned_by_id) = self
+            .update_owned_ontology_id(url, record_created_by_id)
+            .await?;
         self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;
@@ -272,14 +287,14 @@ where
             ontology_id,
             OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 record_id,
-                ProvenanceMetadata::new(updated_by_id),
+                ProvenanceMetadata::new(record_created_by_id),
                 owned_by_id,
             )),
         ))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
-    /// [`OwnedById`] and [`UpdatedById`], into the database.
+    /// [`OwnedById`] and [`RecordCreatedById`], into the database.
     ///
     /// # Errors
     ///
@@ -725,7 +740,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
             IntoIter: Send,
         > + Send,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
