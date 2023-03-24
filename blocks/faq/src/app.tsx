@@ -12,7 +12,15 @@ import {
   GetHelpLink,
   theme,
 } from "@hashintel/design-system";
-import { Card, Collapse, Fade, Stack, ThemeProvider } from "@mui/material";
+import {
+  Card,
+  Collapse,
+  Fade,
+  Stack,
+  Switch,
+  ThemeProvider,
+  Typography,
+} from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
@@ -20,34 +28,41 @@ import { v4 as uuid } from "uuid";
 
 import { Question } from "./question";
 import {
+  FAQBlockLinksByLinkTypeId,
   FrequentlyAskedQuestion,
-  FrequentlyAskedQuestionLinksByLinkTypeId,
   FrequentlyAskedQuestionProperties,
   RootEntity,
 } from "./types";
 
 type RootEntityKey = keyof RootEntity["properties"];
-type LinkType = keyof FrequentlyAskedQuestionLinksByLinkTypeId;
+type QuestionEntityKey = keyof FrequentlyAskedQuestionProperties;
+
+type LinkType = keyof FAQBlockLinksByLinkTypeId;
 
 // Property types
 export const titleKey: RootEntityKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 export const descriptionKey: RootEntityKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
-export const questionKey: RootEntityKey =
+  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/description/";
+export const shouldDisplayQuestionNumbersKey: RootEntityKey =
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/should-display-question-numbers/";
+export const shouldDisplayQuestionTogglesKey: RootEntityKey =
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/should-display-question-toggles/";
+export const questionKey: QuestionEntityKey =
   "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/question/";
-export const answerKey: RootEntityKey =
+export const answerKey: QuestionEntityKey =
   "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/answer/";
 
 // Relevant Entity Types
 const frequentlyAskedQuestionType =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/frequently-asked-question/v/2";
+  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/frequently-asked-question/v/5";
 
 // Link Entity Types
 const hasFrequentlyAskedQuestion: LinkType =
   "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/has-frequently-asked-question/v/1";
 
 export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
+export type QuestionOrAnswer = typeof questionKey | typeof answerKey;
 export type EntityType = typeof frequentlyAskedQuestionType;
 
 export const App: BlockComponent<RootEntity> = ({
@@ -66,7 +81,12 @@ export const App: BlockComponent<RootEntity> = ({
     properties,
   } = blockEntity;
 
-  const { [titleKey]: title, [descriptionKey]: description } = properties;
+  const {
+    [titleKey]: title,
+    [descriptionKey]: description,
+    [shouldDisplayQuestionNumbersKey]: shouldDisplayQuestionNumbers,
+    [shouldDisplayQuestionTogglesKey]: shouldDisplayQuestionToggles,
+  } = properties;
 
   const questionLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
     () =>
@@ -89,6 +109,12 @@ export const App: BlockComponent<RootEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
+  const [displayNumbers, setDisplayNumbers] = useState(
+    shouldDisplayQuestionNumbers,
+  );
+  const [displayToggles, setDisplayToggles] = useState(
+    shouldDisplayQuestionToggles,
+  );
   const [questions, setQuestions] = useState<
     {
       id: string;
@@ -96,9 +122,9 @@ export const App: BlockComponent<RootEntity> = ({
       animatingOut?: boolean;
     }[]
   >(
-    questionEntities.map((stepEntity) => ({
-      id: stepEntity.metadata.recordId.entityId,
-      properties: stepEntity.properties,
+    questionEntities.map((questionEntity) => ({
+      id: questionEntity.metadata.recordId.entityId,
+      properties: questionEntity.properties,
     })),
   );
 
@@ -152,10 +178,10 @@ export const App: BlockComponent<RootEntity> = ({
     await createFrequentlyAskedQuestionEntity();
   }, [questions, createFrequentlyAskedQuestionEntity]);
 
-  const updateStepField = async (
+  const updateQuestionField = async (
     index: number,
     value: string,
-    field: TitleOrDescription,
+    field: QuestionOrAnswer,
   ) => {
     const questionEntity = questionEntities[index];
 
@@ -175,7 +201,7 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const removeStep = (index: number) => {
+  const removeQuestion = (index: number) => {
     setQuestions(
       questions.map((question, questionIndex) => {
         if (index === questionIndex) {
@@ -253,6 +279,22 @@ export const App: BlockComponent<RootEntity> = ({
                       }}
                     >
                       <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
+
+                      <Typography>Show numbers?</Typography>
+                      <Switch
+                        checked={displayNumbers}
+                        onChange={(event) =>
+                          setDisplayNumbers(event.target.checked)
+                        }
+                      />
+
+                      <Typography>Show toggles?</Typography>
+                      <Switch
+                        checked={displayToggles}
+                        onChange={(event) =>
+                          setDisplayToggles(event.target.checked)
+                        }
+                      />
                     </Box>
                   </Fade>
                 ) : null}
@@ -364,14 +406,16 @@ export const App: BlockComponent<RootEntity> = ({
                           }}
                         >
                           <Question
-                            question={question.properties[titleKey]}
-                            answer={question.properties[descriptionKey]}
+                            question={question.properties[questionKey]}
+                            answer={question.properties[answerKey]}
                             updateField={(value, field) =>
-                              updateStepField(index, value, field)
+                              updateQuestionField(index, value, field)
                             }
-                            onRemove={() => removeStep(index)}
+                            onRemove={() => removeQuestion(index)}
                             readonly={readonly}
                             deletable={questionEntities.length > 1}
+                            displayNumber={displayNumbers}
+                            displayToggle={displayToggles}
                           />
                         </Box>
                       </Collapse>

@@ -59,6 +59,6 @@
     "image": "public/block-preview.png",
     "name": "@hash/faq",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/frequently-asked-question/v/2"
+    "schema": "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/faq-block/v/4"
   }
 }

@@ -4,18 +4,10 @@ import {
   faTrash,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
-import {
-  Box,
-  buttonClasses,
-  Collapse,
-  Fade,
-  SxProps,
-  Theme,
-  Typography,
-} from "@mui/material";
+import { Box, buttonClasses, Collapse, Fade } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 
-import { descriptionKey, titleKey, TitleOrDescription } from "./app";
+import { answerKey, questionKey, QuestionOrAnswer } from "./app";
 import { CaretDownIcon } from "./icons/caret-down";
 
 interface QuestionProps {
@@ -23,7 +15,9 @@ interface QuestionProps {
   answer?: string;
   deletable?: boolean;
   readonly?: boolean;
-  updateField: (value: string, field: TitleOrDescription) => void;
+  displayNumber?: boolean;
+  displayToggle?: boolean;
+  updateField: (value: string, field: QuestionOrAnswer) => void;
   onRemove: () => void;
 }
 
@@ -32,6 +26,8 @@ export const Question: FunctionComponent<QuestionProps> = ({
   answer,
   deletable = true,
   readonly,
+  displayNumber = true,
+  displayToggle = true,
   updateField,
   onRemove,
 }) => {
@@ -91,18 +87,22 @@ export const Question: FunctionComponent<QuestionProps> = ({
               ml: 0.75,
             },
           }}
-          endIcon={
-            <CaretDownIcon
-              sx={{
-                color: ({ palette }) => palette.black,
-                transition: ({ transitions }) =>
-                  transitions.create("transform"),
-                transform: `rotate(${expanded ? 0 : -90}deg)`,
-              }}
-            />
-          }
+          {...(displayToggle
+            ? {
+                endIcon: (
+                  <CaretDownIcon
+                    sx={{
+                      color: ({ palette }) => palette.black,
+                      transition: ({ transitions }) =>
+                        transitions.create("transform"),
+                      transform: `rotate(${expanded ? 0 : -90}deg)`,
+                    }}
+                  />
+                ),
+              }
+            : {})}
         >
-          1
+          {displayNumber ? 1 : null}
         </Button>
 
         <Box
@@ -131,7 +131,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
                   setQuestionValue(event.target.value);
                 }
               }}
-              onBlur={(event) => updateField(event.target.value, titleKey)}
+              onBlur={(event) => updateField(event.target.value, questionKey)}
               sx={{
                 fontWeight: 700,
                 fontSize: 15,
@@ -167,9 +167,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
                     setAnswerValue(event.target.value);
                   }
                 }}
-                onBlur={(event) =>
-                  updateField(event.target.value, descriptionKey)
-                }
+                onBlur={(event) => updateField(event.target.value, answerKey)}
                 sx={{
                   fontWeight: 400,
                   fontSize: 14,
