@@ -438,6 +438,7 @@ export const App: BlockComponent<RootEntity> = ({
                           }}
                         >
                           <Question
+                            index={index + 1}
                             question={question.properties[questionKey]}
                             answer={question.properties[answerKey]}
                             updateField={(value, field) =>

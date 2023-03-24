@@ -11,6 +11,7 @@ import { answerKey, questionKey, QuestionOrAnswer } from "./app";
 import { CaretDownIcon } from "./icons/caret-down";
 
 interface QuestionProps {
+  index: number;
   question?: string;
   answer?: string;
   deletable?: boolean;
@@ -22,6 +23,7 @@ interface QuestionProps {
 }
 
 export const Question: FunctionComponent<QuestionProps> = ({
+  index,
   question,
   answer,
   deletable = true,
@@ -103,7 +105,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
           }
         >
           <Collapse in={displayNumber} orientation="horizontal">
-            1
+            {index}
           </Collapse>
         </Button>
 
