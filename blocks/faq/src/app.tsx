@@ -61,7 +61,6 @@ const frequentlyAskedQuestionType =
 const hasFrequentlyAskedQuestion: LinkType =
   "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/has-frequently-asked-question/v/1";
 
-export type TitleOrDescription = typeof titleKey | typeof descriptionKey;
 export type QuestionOrAnswer = typeof questionKey | typeof answerKey;
 export type EntityType = typeof frequentlyAskedQuestionType;
 
@@ -128,7 +127,7 @@ export const App: BlockComponent<RootEntity> = ({
     })),
   );
 
-  const updateField = async (value: string, field: TitleOrDescription) => {
+  const updateField = async (value: string | boolean, field: RootEntityKey) => {
     await graphModule.updateEntity({
       data: {
         entityId,
@@ -301,9 +300,13 @@ export const App: BlockComponent<RootEntity> = ({
                           <Switch
                             size="small"
                             checked={displayNumbers}
-                            onChange={(event) =>
-                              setDisplayNumbers(event.target.checked)
-                            }
+                            onChange={(event) => {
+                              setDisplayNumbers(event.target.checked);
+                              void updateField(
+                                event.target.checked,
+                                shouldDisplayQuestionNumbersKey,
+                              );
+                            }}
                           />
                         </Box>
 
@@ -321,9 +324,13 @@ export const App: BlockComponent<RootEntity> = ({
                           <Switch
                             size="small"
                             checked={displayToggles}
-                            onChange={(event) =>
-                              setDisplayToggles(event.target.checked)
-                            }
+                            onChange={(event) => {
+                              setDisplayToggles(event.target.checked);
+                              void updateField(
+                                event.target.checked,
+                                shouldDisplayQuestionTogglesKey,
+                              );
+                            }}
                           />
                         </Box>
                       </Box>
