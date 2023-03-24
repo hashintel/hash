@@ -110,10 +110,10 @@ export const App: BlockComponent<RootEntity> = ({
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
   const [displayNumbers, setDisplayNumbers] = useState(
-    shouldDisplayQuestionNumbers,
+    shouldDisplayQuestionNumbers ?? true,
   );
   const [displayToggles, setDisplayToggles] = useState(
-    shouldDisplayQuestionToggles,
+    shouldDisplayQuestionToggles ?? true,
   );
   const [questions, setQuestions] = useState<
     {
@@ -274,27 +274,59 @@ export const App: BlockComponent<RootEntity> = ({
                       sx={{
                         display: "flex",
                         columnGap: 3,
+                        rowGap: 1,
                         flexWrap: "wrap",
                         mb: 1.5,
                       }}
                     >
                       <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
 
-                      <Typography>Show numbers?</Typography>
-                      <Switch
-                        checked={displayNumbers}
-                        onChange={(event) =>
-                          setDisplayNumbers(event.target.checked)
-                        }
-                      />
+                      <Box
+                        display="flex"
+                        flexWrap="wrap"
+                        rowGap={1}
+                        columnGap={3}
+                      >
+                        <Box display="flex" gap={1}>
+                          <Typography
+                            sx={{
+                              fontWeight: 500,
+                              fontSize: 15,
+                              lineHeight: 1,
+                              color: ({ palette }) => palette.gray[50],
+                            }}
+                          >
+                            Show numbers?
+                          </Typography>
+                          <Switch
+                            size="small"
+                            checked={displayNumbers}
+                            onChange={(event) =>
+                              setDisplayNumbers(event.target.checked)
+                            }
+                          />
+                        </Box>
 
-                      <Typography>Show toggles?</Typography>
-                      <Switch
-                        checked={displayToggles}
-                        onChange={(event) =>
-                          setDisplayToggles(event.target.checked)
-                        }
-                      />
+                        <Box display="flex" gap={1}>
+                          <Typography
+                            sx={{
+                              fontWeight: 500,
+                              fontSize: 15,
+                              lineHeight: 1,
+                              color: ({ palette }) => palette.gray[50],
+                            }}
+                          >
+                            Show toggles?
+                          </Typography>
+                          <Switch
+                            size="small"
+                            checked={displayToggles}
+                            onChange={(event) =>
+                              setDisplayToggles(event.target.checked)
+                            }
+                          />
+                        </Box>
+                      </Box>
                     </Box>
                   </Fade>
                 ) : null}
