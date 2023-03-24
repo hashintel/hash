@@ -243,7 +243,8 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         let bump = self
             .scan_end()
             .unwrap_or_else(|| self.deserializer.tape().remaining());
-        self.deserializer.tape_mut().bump_n(bump);
+
+        self.deserializer.tape_mut().bump_n(bump + 1);
 
         if let Some(remaining) = self.remaining {
             if remaining > 0 {

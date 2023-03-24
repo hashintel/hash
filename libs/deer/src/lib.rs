@@ -146,20 +146,11 @@ pub trait ArrayAccess<'de> {
     fn end(self) -> Result<(), ArrayAccessError>;
 }
 
-// How it works in serde: `visit_enum` is called, with `EnumAccess` as value, then in there
-// `EnumAccess::variant` is called, which returns:
-//
-//  1) the variant (to be deserialized)
-//  2) generic variant access instance
-//
-//  depending on the variant value different methods on `VariantAccess` are called
-//
-//  What I don't like about this approach:
-//      * there's no guarantee what will be called
-//      * it is very convoluted to implemented
-//
-//  Is there a better, more modern, more ergonomic way?
 pub trait EnumVisitor<'de>: Sized {
+    // TODO: interesting part: serde actually has `deserialize_identifier` which can be used
+    //  deserialize implementations can then use that to their advantage by default it also
+    //  generates an index version for all fields, that is gated behind `deserialize_identifier`.
+    //  Maybe we want something like a `DiscriminantVisitor` and `visit_enum_discriminant`?
     type Discriminant: Deserialize<'de>;
 
     // the value we will end up with
@@ -174,16 +165,6 @@ pub trait EnumVisitor<'de>: Sized {
         <Self::Discriminant as Deserialize<'de>>::deserialize(deserializer)
             .change_context(VisitorError)
     }
-
-    // Facts:
-    //  we have 4 different types:
-    //      * newtype
-    //      * tuple
-    //      * struct
-    //      * unit
-    //
-    // depending on the format we might not know what follows, so the method invoking the enum, who
-    // knows it needs to instruct the Deserializer to do so
 
     fn visit_value<D>(
         self,
