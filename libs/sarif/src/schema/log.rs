@@ -369,5 +369,19 @@ pub(crate) mod tests {
         let log = SarifLog::deserialize(json).expect("failed to deserialize");
         validate_schema(&log);
         assert_eq!(log.schema, Cow::Borrowed(SchemaVersion::V2_1_0.schema_id()));
+        assert_eq!(
+            log.runs.as_ref().expect("no runs in log found")[0]
+                .tool
+                .driver
+                .name,
+            Cow::Borrowed("clippy")
+        );
+        assert_eq!(
+            log.runs.as_ref().expect("no runs in log found")[0]
+                .tool
+                .driver
+                .version,
+            Some(Cow::Borrowed("0.1.0"))
+        );
     }
 }

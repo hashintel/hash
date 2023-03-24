@@ -16,8 +16,7 @@ pub struct PropertyBag<'s> {
     /// A set of distinct strings that provide additional information.
     #[cfg_attr(
         feature = "serde",
-        serde(skip_serializing_if = "BTreeSet::is_empty"),
-        borrow
+        serde(skip_serializing_if = "BTreeSet::is_empty", borrow)
     )]
     pub tags: BTreeSet<Cow<'s, str>>,
 
