@@ -14,7 +14,11 @@ use serde::{Deserialize, Serialize};
 )]
 pub struct PropertyBag<'s> {
     /// A set of distinct strings that provide additional information.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "BTreeSet::is_empty"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "BTreeSet::is_empty"),
+        borrow
+    )]
     pub tags: BTreeSet<Cow<'s, str>>,
 
     /// A dictionary, each of whose keys specifies a distinct additional information element and

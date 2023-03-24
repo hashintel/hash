@@ -14,12 +14,13 @@ use crate::schema::PropertyBag;
 )]
 pub struct Tool<'s> {
     /// The analysis tool that was run.
+    #[cfg_attr(feature = "serde", serde(borrow))]
     pub driver: ToolComponent<'s>,
 
     /// Tool extensions that contributed to or reconfigured the analysis tool that was run.
     #[cfg_attr(
         feature = "serde",
-        serde(default, skip_serializing_if = "Vec::is_empty")
+        serde(default, skip_serializing_if = "Vec::is_empty", borrow)
     )]
     pub extensions: Vec<ToolComponent<'s>>,
 
@@ -151,10 +152,14 @@ impl<'s> Tool<'s> {
 #[non_exhaustive]
 pub struct ToolComponent<'s> {
     /// The name of the tool component.
+    #[cfg_attr(feature = "serde", serde(borrow))]
     pub name: Cow<'s, str>,
 
     /// The tool component version, in whatever format the component natively provides.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none", borrow)
+    )]
     pub version: Option<Cow<'s, str>>,
 
     /// The tool component version in the format specified by Semantic Versioning 2.0.

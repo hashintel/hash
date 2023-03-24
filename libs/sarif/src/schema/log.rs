@@ -98,7 +98,7 @@ impl<'s, 'de: 's> Deserialize<'de> for SarifLog<'s> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct OptionalSarifLog<'s> {
-            #[serde(default, rename = "$schema")]
+            #[serde(default, borrow, rename = "$schema")]
             schema: Option<Cow<'s, str>>,
             #[serde(default)]
             version: Option<SchemaVersion>,
