@@ -20,8 +20,12 @@ import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
 import { useMemo, useRef, useState } from "react";
 
-import { RootEntityKey } from "../../additional-types";
-import { RootEntity } from "../../types";
+import {
+  BoardCardKey,
+  BoardColumnKey,
+  RootEntityKey,
+} from "../../additional-types";
+import { KbnBoardColumnsPropertyValue, RootEntity } from "../../types";
 import { PlusIcon } from "../icons/plus-icon";
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
@@ -40,10 +44,60 @@ import {
 
 const generateId = () => Date.now().toString();
 
-const columnOrderKey: RootEntityKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-column-order/";
-const columnsKey: RootEntityKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-columns/";
+export const columnOrderKey: RootEntityKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-board-column-order/";
+export const columnsKey: RootEntityKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-columns/";
+
+export const columnIdKey: BoardColumnKey =
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/";
+export const columnTitleKey: BoardColumnKey =
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+export const columnCardsKey: BoardColumnKey =
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-cards/";
+
+export const cardIdKey: BoardCardKey =
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/";
+export const cardContentKey: BoardCardKey =
+  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/";
+
+const transformEntityColumnsToColumnsState = (
+  columns: KbnBoardColumnsPropertyValue,
+): ColumnsState => {
+  const cols: ColumnsState = {};
+
+  for (const column of columns) {
+    const {
+      [columnIdKey]: id,
+      [columnTitleKey]: title = "",
+      [columnCardsKey]: cards = [],
+    } = column;
+
+    cols[id] = {
+      id,
+      title,
+      cards: cards.map((card) => ({
+        id: card[cardIdKey],
+        content: card[cardContentKey] ?? "",
+      })),
+    };
+  }
+
+  return cols;
+};
+
+const transformColumnsStateToEntityColumns = (
+  columns: ColumnsState,
+): KbnBoardColumnsPropertyValue => {
+  return Object.values(columns).map((column) => ({
+    [columnIdKey]: column.id,
+    [columnTitleKey]: column.title,
+    [columnCardsKey]: column.cards.map((card) => ({
+      [cardIdKey]: card.id,
+      [cardContentKey]: card.content,
+    })),
+  }));
+};
 
 interface BoardProps {
   blockEntity: RootEntity;
@@ -57,7 +111,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const {
     properties: {
       [columnOrderKey]: entityColumnOrder = [],
-      [columnsKey]: entityColumns = {},
+      [columnsKey]: entityColumns = [],
     },
   } = blockEntity;
 
@@ -65,7 +119,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const [activeItem, setActiveItem] = useState<ActiveItem>(null);
   const [columns, setColumns] = useState<ColumnsState>(
-    entityColumns as ColumnsState,
+    transformEntityColumnsToColumnsState(entityColumns),
   );
   const [columnOrder, setColumnOrder] = useState<string[]>(entityColumnOrder);
 
@@ -85,18 +139,22 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   );
 
   const updateStateAndEntity = ({
-    newColumns,
     newColumnOrder,
+    newColumns,
+    skipUpdatingEntity,
   }: {
     newColumns?: ColumnsState;
     newColumnOrder?: string[];
+    skipUpdatingEntity?: boolean;
   }) => {
     if (newColumns) setColumns(newColumns);
     if (newColumnOrder) setColumnOrder(newColumnOrder);
 
+    if (skipUpdatingEntity) return;
+
     isDebounceQueued.current = true;
     void debouncedUpdateEntity({
-      [columnsKey]: newColumns ?? columns,
+      [columnsKey]: transformColumnsStateToEntityColumns(newColumns ?? columns),
       [columnOrderKey]: newColumnOrder ?? columnOrder,
     });
   };
@@ -242,6 +300,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       const newIndex = columnOrder.findIndex((id) => id === overColumnId);
 
       updateStateAndEntity({
+        skipUpdatingEntity: true,
         newColumnOrder: arrayMove(columnOrder, oldIndex, newIndex),
       });
 
@@ -280,6 +339,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       }
 
       updateStateAndEntity({
+        skipUpdatingEntity: true,
         newColumns: {
           ...columns,
           [activeColumn.id]: activeColumn,
@@ -314,6 +374,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       overColumn.cards = newCards;
 
       updateStateAndEntity({
+        skipUpdatingEntity: true,
         newColumns: { ...columns, [overColumn.id]: overColumn },
       });
 
@@ -343,6 +404,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     overColumn.cards = newCards;
 
     updateStateAndEntity({
+      skipUpdatingEntity: true,
       newColumns: {
         ...columns,
         [activeColumn.id]: activeColumn,
@@ -352,6 +414,12 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   };
 
   const handleDragEnd = () => {
+    /** we call `updateStateAndEntity` to update the entity with the current state after drag ends */
+    updateStateAndEntity({});
+    setActiveItem(null);
+  };
+
+  const handleDragCancel = () => {
     setActiveItem(null);
   };
 
@@ -373,7 +441,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
     const columnsChanged = !isEqual(entityColumns, columns);
     if (columnsChanged) {
-      setColumns(entityColumns as ColumnsState);
+      setColumns(transformEntityColumnsToColumnsState(entityColumns));
     }
 
     const columnOrderChanged = !isEqual(entityColumnOrder, columnOrder);
@@ -388,7 +456,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       collisionDetection={closestCenter}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={handleDragEnd}
+      onDragCancel={handleDragCancel}
       onDragStart={handleDragStart}
     >
       <SortableContext items={columnOrder} disabled={readonly}>

@@ -1,8 +1,8 @@
-import { Entity, JsonObject } from "@blockprotocol/graph";
+import { Entity } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/4 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/18 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
@@ -15,13 +15,32 @@ export type TitlePropertyValue = TextDataValue;
  */
 export type TextDataValue = string;
 /**
- * order of the columns
+ * 123
  */
-export type KanbanColumnOrderPropertyValue = TextDataValue;
+export type KanbanBoardColumnOrderPropertyValue = TextDataValue[];
 /**
- * columns data of kanban block
+ * 123
  */
-export type KanbanColumnsPropertyValue = ObjectDataValue;
+export type KbnBoardColumnsPropertyValue = {
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-cards/"?: KbnBoardCardsPropertyValue;
+}[];
+/**
+ * An arbitrary ID
+ */
+export type IDPropertyValue = TextDataValue;
+/**
+ * 132
+ */
+export type KbnBoardCardsPropertyValue = {
+  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/"?: TextContentPropertyValue;
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
+}[];
+/**
+ * Textual content
+ */
+export type TextContentPropertyValue = TextDataValue;
 
 /**
  * The block entity of the “Table” block.
@@ -30,16 +49,9 @@ export type KanbanColumnsPropertyValue = ObjectDataValue;
  */
 export type KanbanBlockProperties = {
   "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  /**
-   * @minItems 0
-   */
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-column-order/"?: KanbanColumnOrderPropertyValue[];
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-columns/"?: KanbanColumnsPropertyValue;
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kanban-board-column-order/"?: KanbanBoardColumnOrderPropertyValue;
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-columns/"?: KbnBoardColumnsPropertyValue;
 };
-/**
- * An opaque, untyped JSON object
- */
-export type ObjectDataValue = JsonObject;
 
 export type KanbanBlock = Entity<KanbanBlockProperties>;
 export type KanbanBlockLinksByLinkTypeId = {};
