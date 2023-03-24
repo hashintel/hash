@@ -78,12 +78,12 @@ export const Question: FunctionComponent<QuestionProps> = ({
             minWidth: 0,
             minHeight: 0,
             paddingX: 0,
-            paddingY: 2.125,
+            paddingY: readonly ? 0.5 : 2.125,
             mr: displayNumber || displayToggle ? 1.5 : 0,
             background: "none !important",
             fontSize: 12,
             fontWeight: 700,
-            lineHeight: 1.5,
+            lineHeight: "15px",
             color: ({ palette }) => palette.black,
             transition: ({ transitions }) => transitions.create("margin-right"),
             [`.${buttonClasses.endIcon}`]: {
@@ -112,9 +112,13 @@ export const Question: FunctionComponent<QuestionProps> = ({
         <Box
           sx={{
             flexGrow: 1,
-            border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-            borderRadius: 2.5,
-            overflow: "hidden",
+            ...(!readonly
+              ? {
+                  border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                  borderRadius: 2.5,
+                  overflow: "hidden",
+                }
+              : {}),
           }}
         >
           <Box
