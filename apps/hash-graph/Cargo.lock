@@ -733,14 +733,17 @@ dependencies = [
  "async-trait",
  "axum",
  "bb8-postgres",
+ "bytes",
  "clap 4.1.9",
  "criterion",
  "derivative",
  "error-stack",
  "futures",
  "graph-test-data",
+ "hash-status",
  "hyper",
  "include_dir",
+ "mime",
  "opentelemetry 0.18.0",
  "opentelemetry-otlp",
  "postgres-protocol",
@@ -855,6 +858,15 @@ dependencies = [
  "type-fetcher",
  "type-system",
  "uuid",
+]
+
+[[package]]
+name = "hash-status"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -4,8 +4,8 @@ services:
   type-fetcher:
     init: true
     build:
-      dockerfile: docker/Dockerfile
-      context: ../../apps/hash-graph
+      dockerfile: apps/hash-graph/docker/Dockerfile
+      context: ../../
       args:
         PROFILE: dev
         TYPE_FETCHER: yes

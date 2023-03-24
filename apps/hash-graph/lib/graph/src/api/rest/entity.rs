@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
@@ -10,7 +10,8 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource, report_to_status_code, utoipa_typedef::subgraph::Subgraph,
+        api_resource::RoutedResource, json::Json, report_to_status_code,
+        utoipa_typedef::subgraph::Subgraph,
     },
     identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
     knowledge::{
