@@ -2,12 +2,12 @@ import { Entity } from "@blockprotocol/graph";
 
 /**
  * This file was automatically generated – do not edit it.
- * @see https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/19 for the root JSON Schema these types were generated from
+ * @see https://blockprotocol.org/@hash/types/entity-type/kanban-board-block/v/2 for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of 2 from the root
  */
 
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 export type TitlePropertyValue = TextDataValue;
 /**
@@ -15,46 +15,57 @@ export type TitlePropertyValue = TextDataValue;
  */
 export type TextDataValue = string;
 /**
- * 123
+ * The definition of a specific column within the “Kanban Board” block.
  */
-export type KbnBoardColumnsPropertyValue = {
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-cards/"?: KbnBoardCardsPropertyValue;
-}[];
+export type KanbanBoardColumnPropertyValue = {
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-column-id/": KanbanBoardColumnIDPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-card/"?: KanbanBoardCardPropertyValue[];
+};
 /**
- * An arbitrary ID
+ * An identifier for a column stored on the “Kanban Board” block.
+ *
+ * Each column ID should be unique across all columns within a given board.
  */
-export type IDPropertyValue = TextDataValue;
+export type KanbanBoardColumnIDPropertyValue = TextDataValue;
 /**
- * 132
+ * The definition of a specific card within a column on the “Kanban Board” block.
  */
-export type KbnBoardCardsPropertyValue = {
-  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/"?: TextContentPropertyValue;
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
-}[];
+export type KanbanBoardCardPropertyValue = {
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/": KanbanBoardCardIDPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+};
 /**
- * Textual content
+ * An identifier for a card stored on a column on the “Kanban Board” block.
+ *
+ * Each card ID should be unique across all cards within a given board.
  */
-export type TextContentPropertyValue = TextDataValue;
+export type KanbanBoardCardIDPropertyValue = TextDataValue;
+/**
+ * The text material, information, or body, that makes up the content of this thing.
+ */
+export type TextualContentPropertyValue = TextDataValue;
 
 /**
- * The block entity of the “Table” block.
+ * The block entity of the “Kanban Board” block.
  *
- * See: https://blockprotocol.org/@hash/blocks/table
+ * See: https://blockprotocol.org/@hash/blocks/kanban-board
  */
-export type KanbanBlockProperties = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-columns/"?: KbnBoardColumnsPropertyValue;
+export type KanbanBoardBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  /**
+   * @minItems 0
+   */
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-column/"?: KanbanBoardColumnPropertyValue[];
 };
 
-export type KanbanBlock = Entity<KanbanBlockProperties>;
-export type KanbanBlockLinksByLinkTypeId = {};
+export type KanbanBoardBlock = Entity<KanbanBoardBlockProperties>;
+export type KanbanBoardBlockLinksByLinkTypeId = {};
 
-export type KanbanBlockLinkAndRightEntities = NonNullable<
-  KanbanBlockLinksByLinkTypeId[keyof KanbanBlockLinksByLinkTypeId]
+export type KanbanBoardBlockLinkAndRightEntities = NonNullable<
+  KanbanBoardBlockLinksByLinkTypeId[keyof KanbanBoardBlockLinksByLinkTypeId]
 >;
 
-export type RootEntity = KanbanBlock;
-export type RootEntityLinkedEntities = KanbanBlockLinkAndRightEntities;
-export type RootLinkMap = KanbanBlockLinksByLinkTypeId;
+export type RootEntity = KanbanBoardBlock;
+export type RootEntityLinkedEntities = KanbanBoardBlockLinkAndRightEntities;
+export type RootLinkMap = KanbanBoardBlockLinksByLinkTypeId;

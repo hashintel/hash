@@ -12,7 +12,7 @@ import { BoardTitle } from "./components/board-title/board-title";
 import { RootEntity, RootEntityLinkedEntities } from "./types";
 
 const titleKey: RootEntityKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },

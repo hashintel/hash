@@ -1,9 +1,9 @@
 import {
-  KbnBoardCardsPropertyValue,
-  KbnBoardColumnsPropertyValue,
+  KanbanBoardCardPropertyValue,
+  KanbanBoardColumnPropertyValue,
   RootEntity,
 } from "./types";
 
 export type RootEntityKey = keyof RootEntity["properties"];
-export type BoardColumnKey = keyof KbnBoardColumnsPropertyValue[0];
-export type BoardCardKey = keyof KbnBoardCardsPropertyValue[0];
+export type BoardColumnKey = keyof KanbanBoardColumnPropertyValue;
+export type BoardCardKey = keyof KanbanBoardCardPropertyValue;

@@ -26,7 +26,7 @@ import {
   BoardColumnKey,
   RootEntityKey,
 } from "../../additional-types";
-import { KbnBoardColumnsPropertyValue, RootEntity } from "../../types";
+import { KanbanBoardColumnPropertyValue, RootEntity } from "../../types";
 import { PlusIcon } from "../icons/plus-icon";
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
@@ -47,22 +47,22 @@ import {
 const generateId = () => Date.now().toString();
 
 export const columnsKey: RootEntityKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-columns/";
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-column/";
 
 export const columnIdKey: BoardColumnKey =
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/";
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-column-id/";
 export const columnTitleKey: BoardColumnKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 export const columnCardsKey: BoardColumnKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/kbn-board-cards/";
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-card/";
 
 export const cardIdKey: BoardCardKey =
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/";
+  "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/";
 export const cardContentKey: BoardCardKey =
-  "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/";
 
 const transformEntityColumnsToColumnsState = (
-  columns: KbnBoardColumnsPropertyValue,
+  columns: KanbanBoardColumnPropertyValue[],
 ): ColumnsState => {
   const cols: ColumnsState = {};
 
@@ -89,7 +89,7 @@ const transformEntityColumnsToColumnsState = (
 const transformColumnsStateToEntityColumns = (
   columns: ColumnsState,
   columnOrder: string[],
-): KbnBoardColumnsPropertyValue => {
+): KanbanBoardColumnPropertyValue[] => {
   return columnOrder.map((columnId) => {
     const column = columns[columnId]!;
     return {

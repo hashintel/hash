@@ -61,11 +61,53 @@
       "entryPoint": "react"
     },
     "displayName": "Kanban Board",
-    "examples": [],
+    "examples": [
+      {
+        "https://blockprotocol.org/@hash/types/property-type/kanban-board-column/": [
+          {
+            "https://blockprotocol.org/@hash/types/property-type/kanban-board-column-id/": "col-todo",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Todo",
+            "https://blockprotocol.org/@hash/types/property-type/kanban-board-card/": [
+              {
+                "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/": "task-1",
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "First task"
+              },
+              {
+                "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/": "task-2",
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Second task with a very long description"
+              },
+              {
+                "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/": "task-3",
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Third task"
+              }
+            ]
+          },
+          {
+            "https://blockprotocol.org/@hash/types/property-type/kanban-board-column-id/": "col-in-progress",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "In Progress",
+            "https://blockprotocol.org/@hash/types/property-type/kanban-board-card/": [
+              {
+                "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/": "task-4",
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Fourth task"
+              },
+              {
+                "https://blockprotocol.org/@hash/types/property-type/kanban-board-card-id/": "task-5",
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Fifth task"
+              }
+            ]
+          },
+          {
+            "https://blockprotocol.org/@hash/types/property-type/kanban-board-column-id/": "col-done",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Done",
+            "https://blockprotocol.org/@hash/types/property-type/kanban-board-card/": []
+          }
+        ]
+      }
+    ],
     "icon": "public/kanban-board.svg",
     "image": "public/block-preview.png",
     "name": "@hash/kanban-board",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/entity-type/kanban-block/v/19"
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/kanban-board-block/v/2"
   }
 }
