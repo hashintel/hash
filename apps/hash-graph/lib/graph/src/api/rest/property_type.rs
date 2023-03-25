@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,7 @@ use utoipa::{OpenApi, ToSchema};
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{
+        json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
     },
@@ -20,8 +21,11 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    store::{
+        BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
+        StorePool,
+    },
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
@@ -70,7 +74,7 @@ struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -137,7 +141,10 @@ async fn create_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_property_types(property_types.into_iter().zip(metadata.iter()))
+        .create_property_types(
+            property_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property types");
@@ -209,7 +216,7 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

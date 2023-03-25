@@ -3,14 +3,16 @@
 //! Handler methods are grouped by routes that make up the REST API.
 
 mod api_resource;
+mod json;
 mod middleware;
+mod status;
+mod utoipa_typedef;
 
 mod account;
 mod data_type;
 mod entity;
 mod entity_type;
 mod property_type;
-mod utoipa_typedef;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -57,7 +59,7 @@ use crate::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
         OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{QueryError, StorePool},
     subgraph::{
         edges::{
@@ -179,7 +181,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     components(
         schemas(
             OwnedById,
-            UpdatedById,
+            RecordCreatedById,
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,

@@ -39,7 +39,7 @@ impl SchemaVersion {
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
-    use std::{eprintln, fs::File, io::BufReader};
+    use std::{eprintln, fs};
 
     use coverage_helper::test;
 
@@ -75,43 +75,37 @@ pub(crate) mod tests {
 
     #[test]
     fn example_k1() {
-        let log = serde_json::from_reader(BufReader::new(
-            File::open("tests/example_reports/k1_minimal.sarif.json").expect("could not open file"),
-        ))
-        .expect("could not parse SARIF log");
+        let file_content =
+            fs::read("tests/example_reports/k1_minimal.sarif.json").expect("could not read file");
+        let log = serde_json::from_slice(&file_content).expect("could not parse SARIF log");
 
         validate_schema(&log);
     }
 
     #[test]
     fn example_k2() {
-        let log = serde_json::from_reader(BufReader::new(
-            File::open("tests/example_reports/k2_recommended_with_source.sarif.json")
-                .expect("could not open file"),
-        ))
-        .expect("could not parse SARIF log");
+        let file_content = fs::read("tests/example_reports/k2_recommended_with_source.sarif.json")
+            .expect("could not read file");
+        let log = serde_json::from_slice(&file_content).expect("could not parse SARIF log");
 
         validate_schema(&log);
     }
 
     #[test]
     fn example_k3() {
-        let log = serde_json::from_reader(BufReader::new(
-            File::open("tests/example_reports/k3_recommended_without_source.sarif.json")
-                .expect("could not open file"),
-        ))
-        .expect("could not parse SARIF log");
+        let file_content =
+            fs::read("tests/example_reports/k3_recommended_without_source.sarif.json")
+                .expect("could not read file");
+        let log = serde_json::from_slice(&file_content).expect("could not parse SARIF log");
 
         validate_schema(&log);
     }
 
     #[test]
     fn example_k4() {
-        let log = serde_json::from_reader(BufReader::new(
-            File::open("tests/example_reports/k4_comprehensive.sarif.json")
-                .expect("could not open file"),
-        ))
-        .expect("could not parse SARIF log");
+        let file_content = fs::read("tests/example_reports/k4_comprehensive.sarif.json")
+            .expect("could not read file");
+        let log = serde_json::from_slice(&file_content).expect("could not parse SARIF log");
 
         validate_schema(&log);
     }

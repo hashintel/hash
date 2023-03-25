@@ -1,0 +1,54 @@
+.wrapper {
+  min-width: var(--columm-width);
+  width: var(--columm-width);
+  background: #fafbfc;
+  border-radius: 8px;
+  font-size: 13px;
+  min-height: 100%;
+  box-shadow: var(--shadow-1);
+
+  .titleRow {
+    padding: 12px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    cursor: pointer;
+
+    &.showHandCursor {
+      cursor: grabbing;
+    }
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .addCardButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    gap: 8px;
+
+    height: 40px;
+    background: #f7fafc;
+    border: 1px solid #ebf2f7;
+    border-radius: 6px;
+
+    text-align: center;
+    color: #758aa1;
+
+    svg {
+      width: 13px;
+    }
+
+    &:hover,
+    &:focus {
+      background: #eff2f4;
+    }
+  }
+}
