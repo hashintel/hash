@@ -14,10 +14,12 @@ categories = ["no-std", "data-structures", "development-tools", "parsing"]
 [dependencies]
 serde = { version = "1", default-features = false, features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
-semver = { version = "1", default-features = false, features = ["serde"] }
+semver = { version = "1", default-features = false }
+url = { version = "2", default-features = false }
+uuid = { version = "1", default-features = false }
 
 [features]
-serde = ["dep:serde", "dep:serde_json"]
+serde = ["dep:serde", "dep:serde_json", "semver/serde", "url/serde", "uuid/serde"]
 
 [dev-dependencies]
 jsonschema = { version = "0.17.0", default-features = false }
