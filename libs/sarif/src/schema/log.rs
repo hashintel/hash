@@ -89,7 +89,7 @@ pub struct SarifLog<'s> {
     ///    management system, and the query was malformed.
     ///
     /// See [SARIF specification §3.13.4](https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10540920)
-    #[serde(default, borrow)]
+    #[cfg_attr(feature = "serde", serde(default, borrow))]
     pub runs: Option<Vec<Run<'s>>>,
 }
 
