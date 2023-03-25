@@ -14,13 +14,13 @@ use serde::{Deserialize, Serialize};
 #[non_exhaustive]
 pub struct ReportingDescriptor<'s> {
     /// A stable, opaque identifier for the report.
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[cfg_attr(feature = "serde", serde(borrow, default))]
     pub id: Cow<'s, str>,
 
     /// A report identifier that is understandable to an end user.
     #[cfg_attr(
         feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
+        serde(borrow, default, skip_serializing_if = "Option::is_none")
     )]
     pub name: Option<Cow<'s, str>>,
 }
