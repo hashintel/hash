@@ -152,7 +152,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
             />
           </Box>
 
-          <Collapse in={expanded}>
+          <Collapse in={expanded || !displayToggle}>
             <Box
               sx={{
                 ...(!readonly
