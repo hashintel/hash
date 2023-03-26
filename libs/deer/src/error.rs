@@ -453,14 +453,6 @@ error!(
 );
 
 error!(
-    /// Every [`FieldAccess`] implementation must return this error, this is just a wrapper context,
-    /// which is used to aid in error recovery. The underlying error should implement [`Error`] instead.
-    ///
-    /// [`FieldAccess`]: crate::FieldAccess
-    FieldAccessError: "field access encountered one or more errors during access"
-);
-
-error!(
     /// Every [`ArrayAccess`] implementation must return this error, this is just a wrapper context,
     /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
     ///
