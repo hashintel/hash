@@ -1,21 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any, error_in_core))]
-#![warn(
-    unreachable_pub,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::alloc_instead_of_core,
-    clippy::std_instead_of_alloc,
-    clippy::std_instead_of_core,
-    clippy::if_then_some_else_none,
-    clippy::print_stdout,
-    clippy::print_stderr,
-    clippy::mod_module_files
-)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::redundant_pub_crate)]
-#![allow(clippy::missing_errors_doc)]
 #![deny(unsafe_code)]
 mod error;
 
