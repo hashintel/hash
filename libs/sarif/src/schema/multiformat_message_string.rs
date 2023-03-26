@@ -38,6 +38,12 @@ pub struct MultiformatMessageString<'s> {
     /// See the [SARIF specification §3.12.3][spec] for more information.
     ///
     /// [spec]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html#_Toc34317476
+    ///
+    /// ## Note
+    ///
+    /// The SARIF specification requires a non-empty `text` property, but this crate does not
+    /// enforce this requirement. The JSON Schema for SARIF v2.1.0 does **not** enforce this
+    /// requirement.
     #[cfg_attr(feature = "serde", serde(borrow))]
     pub text: Cow<'s, str>,
 
@@ -51,6 +57,11 @@ pub struct MultiformatMessageString<'s> {
     /// [GitHub-Flavored Markdown]: https://github.github.com/gfm/
     /// [`text`]: Self::text
     /// [spec]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html#_Toc34317477
+    ///
+    /// ## Note
+    ///
+    /// The SARIF specification requires a non-empty `markdown` property, but this crate does not
+    /// enforce this requirement. The JSON Schema for SARIF v2.1.0 does **not** enforce this.
     #[cfg_attr(
         feature = "serde",
         serde(borrow, default, skip_serializing_if = "Option::is_none")
