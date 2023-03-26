@@ -134,52 +134,6 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         Ok(())
     }
 
-    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
-    where
-        T: Deserialize<'de>,
-    {
-        if self.remaining == Some(0) {
-            return T::deserialize(DeserializerNone {
-                context: self.deserializer.context(),
-            })
-            .change_context(ObjectAccessError);
-        }
-
-        self.consumed += 1;
-
-        if let Some(remaining) = &mut self.remaining {
-            *remaining = remaining.saturating_sub(1);
-        }
-
-        match self.scan(key) {
-            Some(offset) => {
-                // now we need to figure out which values are used, we can do this through offset
-                // calculations
-                let remaining = self.deserializer.remaining() - offset;
-
-                let tape = self.deserializer.tape().view(offset + 1..);
-
-                let mut deserializer = Deserializer::new_bare(
-                    tape.unwrap_or_else(Tape::empty),
-                    self.deserializer.context(),
-                );
-
-                let value = T::deserialize(&mut deserializer);
-
-                let erase = remaining - deserializer.remaining();
-                drop(deserializer);
-
-                self.deserializer.erase(offset..offset + erase);
-
-                value
-            }
-            None => T::deserialize(DeserializerNone {
-                context: self.deserializer.context(),
-            }),
-        }
-        .change_context(ObjectAccessError)
-    }
-
     fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
     where
         F: FieldAccess<'de>,

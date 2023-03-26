@@ -79,10 +79,6 @@ pub trait ObjectAccess<'de> {
     /// calling this function or this function has been called repeatably.
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
 
-    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
-    where
-        T: Deserialize<'de>;
-
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
         K: Deserialize<'de>,

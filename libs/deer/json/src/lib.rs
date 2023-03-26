@@ -531,35 +531,6 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         Ok(())
     }
 
-    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
-    where
-        T: Deserialize<'de>,
-    {
-        self.dirty = true;
-
-        // early return because we have exhausted all entries
-        if self.remaining == Some(0) {
-            return Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(T::reflection()))
-                .change_context(ObjectAccessError));
-        }
-
-        let entry = self.inner.remove(key);
-
-        match (entry, &mut self.remaining) {
-            (None, None) => Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(T::reflection()))
-                .change_context(ObjectAccessError)),
-            (None, Some(remaining)) => {
-                *remaining -= 1;
-
-                T::deserialize(Deserializer::empty(self.context)).change_context(ObjectAccessError)
-            }
-            (Some(value), _) => T::deserialize(Deserializer::new(value, self.context))
-                .change_context(ObjectAccessError),
-        }
-    }
-
     fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
     where
         F: FieldAccess<'de>,
