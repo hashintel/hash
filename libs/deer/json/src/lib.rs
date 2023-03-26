@@ -19,9 +19,8 @@ use std::any::Demand;
 use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
-        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
-        ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant,
+        DeserializerError, ExpectedLength, ExpectedType, ObjectAccessError, ObjectItemsExtraError,
+        ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
     },
     Context, Deserialize, DeserializeOwned, Document, FieldAccess, OptionalVisitor, Reflection,
     Schema, Visitor,

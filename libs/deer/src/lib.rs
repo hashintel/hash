@@ -63,20 +63,15 @@ pub trait ObjectAccess<'de> {
     ///
     /// After calling this [`ObjectAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
-    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`], for
-    /// [`Self::value`] calls [`Visitor::visit_none`] will be called on the tuple of `(K, V)`, while
-    /// [`Self::value`] will call [`Visitor::visit_none`] of `V`.
-    ///
-    /// [`Self::value`] also counts toward the length, behaviour of multiple calls to
-    /// [`Self::value`] will always decrement the counter.
+    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
     ///
     /// This is best suited for types where the length/amount of keys is already predetermined, like
     /// structs or enum variants.
     ///
     /// # Errors
     ///
-    /// This will error if a call to [`Self::next`] or [`Self::value`] has been made before
-    /// calling this function or this function has been called repeatably.
+    /// This will error if a call to [`Self::next`] has been made before calling this function or
+    /// this function has been called repeatably.
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
