@@ -1,7 +1,8 @@
 use deer::{
     error::{
-        DeserializeError, ExpectedLength, ExpectedVariant, FieldAccessError, ObjectLengthError,
-        ReceivedLength, ReceivedVariant, UnknownVariantError, Variant, VisitorError,
+        DeserializeError, ExpectedLength, ExpectedType, ExpectedVariant, FieldAccessError,
+        Location, MissingError, ObjectLengthError, ReceivedLength, ReceivedVariant,
+        UnknownVariantError, Variant, VisitorError,
     },
     schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldAccess, ObjectAccess, Reflection,
@@ -112,7 +113,7 @@ fn unit_variant() {
             Token::Bool(true),
             Token::ObjectEnd,
         ],
-    )
+    );
 }
 
 struct NewtypeEnumVisitor;
@@ -151,7 +152,7 @@ impl Reflection for NewtypeEnum {
         struct Properties<T>(T);
 
         impl<T: serde::Serialize> serde::Serialize for Properties<T> {
-            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+            fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -203,7 +204,7 @@ fn newtype_variant() {
             }
         ]),
         &[Token::String("Variant")],
-    )
+    );
 }
 
 #[derive(Debug, PartialEq)]
@@ -236,7 +237,7 @@ impl Reflection for StructEnum {
         struct Properties<T>(T);
 
         impl<T: serde::Serialize> serde::Serialize for Properties<T> {
-            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+            fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -362,11 +363,24 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     },
                 }
 
+                if id.is_none() {
+                    let error = Report::new(MissingError.into_error())
+                        .attach(Location::Field("id"))
+                        .attach(ExpectedType::new(u8::reflection()));
+
+                    match &mut errors {
+                        Ok(_) => errors = Err(error.change_context(VisitorError)),
+                        Err(errors) => errors.extend_one(error.change_context(VisitorError)),
+                    }
+                }
+
                 errors?;
 
                 v.end().change_context(VisitorError)?;
 
-                Ok(StructEnum::Variant { id: id.unwrap() })
+                Ok(StructEnum::Variant {
+                    id: id.expect("should be infallible"),
+                })
             }
         }
     }
@@ -433,7 +447,7 @@ fn struct_variant() {
             }
         ]),
         &[Token::String("Variant")],
-    )
+    );
 }
 
 #[allow(unused)]
@@ -452,7 +466,7 @@ enum InternallyTaggedMessage {
 #[test]
 #[ignore = "requires `Value<'de>` / `Content<'de>` variant"]
 fn internally_tagged() {
-    todo!()
+    unimplemented!()
 }
 
 #[allow(unused)]
@@ -471,7 +485,7 @@ enum AdjacentlyTaggedMessage {
 #[test]
 #[ignore = "requires `Value<'de>` / `Content<'de>` if the tag is not first"]
 fn adjacently_tagged() {
-    todo!()
+    unimplemented!()
 }
 
 #[allow(unused)]
@@ -490,5 +504,5 @@ enum UntaggedMessage {
 #[test]
 #[ignore = "required `Value<'de>` / `Content<'de>`"]
 fn untagged() {
-    todo!()
+    unimplemented!()
 }
