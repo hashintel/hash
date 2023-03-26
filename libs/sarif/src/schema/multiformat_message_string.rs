@@ -121,7 +121,7 @@ impl<'s> MultiformatMessageString<'s> {
     #[must_use]
     pub fn with_properties(
         mut self,
-        mut properties: impl FnMut(PropertyBag<'s>) -> PropertyBag<'s>,
+        properties: impl FnOnce(PropertyBag<'s>) -> PropertyBag<'s>,
     ) -> Self {
         self.properties = properties(self.properties);
         self
