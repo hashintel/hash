@@ -36,7 +36,7 @@ mod impls;
 #[macro_use]
 mod macros;
 mod number;
-mod schema;
+pub mod schema;
 pub mod value;
 
 extern crate alloc;

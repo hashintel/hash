@@ -1,13 +1,15 @@
 use deer::{
     error::{
         DeserializeError, ExpectedLength, ExpectedVariant, FieldAccessError, ObjectLengthError,
-        ReceivedLength, ReceivedVariant, UnknownVariantError, ValueError, Variant, VisitorError,
+        ReceivedLength, ReceivedVariant, UnknownVariantError, Variant, VisitorError,
     },
+    schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldAccess, ObjectAccess, Reflection,
     Schema, Visitor,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use error_stack::{Report, Result, ResultExt};
+use serde::{ser::SerializeMap, Serializer};
 use serde_json::json;
 
 struct DiscriminantVisitor;
@@ -144,6 +146,32 @@ enum NewtypeEnum {
     Variant(u8),
 }
 
+impl Reflection for NewtypeEnum {
+    fn schema(doc: &mut Document) -> Schema {
+        struct Properties<T>(T);
+
+        impl<T: serde::Serialize> serde::Serialize for Properties<T> {
+            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(&"properties", &self.0)?;
+                map.end()
+            }
+        }
+
+        #[derive(serde::Serialize)]
+        enum NewtypeEnumVariants {
+            Variant(Reference),
+        }
+
+        Schema::new("object").with("oneOf", [Properties(NewtypeEnumVariants::Variant(
+            doc.add::<u8>(),
+        ))])
+    }
+}
+
 impl<'de> Deserialize<'de> for NewtypeEnum {
     // TODO: this is wrong
     type Reflection = Discriminant;
@@ -183,6 +211,49 @@ enum StructEnum {
     Variant { id: u8 },
 }
 
+struct StructEnumVariant;
+
+impl Reflection for StructEnumVariant {
+    fn schema(doc: &mut Document) -> Schema {
+        #[derive(serde::Serialize)]
+        struct StructEnumVariantProperties {
+            id: Reference,
+        }
+
+        Schema::new("object").with("properties", StructEnumVariantProperties {
+            id: doc.add::<u8>(),
+        })
+    }
+}
+
+impl Reflection for StructEnum {
+    fn schema(doc: &mut Document) -> Schema {
+        #[derive(serde::Serialize)]
+        enum Variants {
+            Variant(Reference),
+        }
+
+        struct Properties<T>(T);
+
+        impl<T: serde::Serialize> serde::Serialize for Properties<T> {
+            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(&"properties", &self.0)?;
+                map.end()
+            }
+        }
+
+        Schema::new("object")
+            .with("oneOf", [Properties(Variants::Variant(
+                doc.add::<StructEnumVariant>(),
+            ))])
+            .with("additionalProperties", false)
+    }
+}
+
 struct StructEnumVisitor {
     field: Discriminant,
 }
@@ -191,8 +262,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
     type Value = StructEnum;
 
     fn expecting(&self) -> Document {
-        // TODO: this is the wrong reflection
-        Discriminant::reflection()
+        Self::Value::reflection()
     }
 
     fn visit_object<T>(self, mut v: T) -> Result<Self::Value, VisitorError>
@@ -206,6 +276,11 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
 
                 enum VariantFieldIdent {
                     Id,
+                }
+                impl Reflection for VariantFieldIdent {
+                    fn schema(_: &mut Document) -> Schema {
+                        Schema::new("string").with("enum", ["id"])
+                    }
                 }
 
                 enum VariantField {
@@ -232,8 +307,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                 }
 
                 impl<'de> Deserialize<'de> for VariantFieldIdent {
-                    // TODO: not correct reflection
-                    type Reflection = Discriminant;
+                    type Reflection = Self;
 
                     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
                         de.deserialize_str(VariantFieldVisitor)
@@ -288,6 +362,8 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     },
                 }
 
+                errors?;
+
                 v.end().change_context(VisitorError)?;
 
                 Ok(StructEnum::Variant { id: id.unwrap() })
@@ -325,8 +401,7 @@ impl<'de> EnumVisitor<'de> for StructEnumIdentVisitor {
 }
 
 impl<'de> Deserialize<'de> for StructEnum {
-    // TODO: not the right reflection
-    type Reflection = Discriminant;
+    type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         de.deserialize_enum(StructEnumIdentVisitor)
@@ -352,7 +427,7 @@ fn struct_variant() {
                 ns: "deer",
                 id: ["value", "missing"],
                 properties: {
-                    "expected": Discriminant::reflection(),
+                    "expected": StructEnum::reflection(),
                     "location": [],
                 }
             }
@@ -361,6 +436,7 @@ fn struct_variant() {
     )
 }
 
+#[allow(unused)]
 enum InternallyTaggedMessage {
     Request {
         id: String,
@@ -379,6 +455,7 @@ fn internally_tagged() {
     todo!()
 }
 
+#[allow(unused)]
 enum AdjacentlyTaggedMessage {
     Request {
         id: String,
@@ -397,6 +474,7 @@ fn adjacently_tagged() {
     todo!()
 }
 
+#[allow(unused)]
 enum UntaggedMessage {
     Request {
         id: String,

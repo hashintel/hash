@@ -1,14 +1,11 @@
-use core::marker::PhantomData;
-
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        DeserializeError, DeserializerError, ExpectedLength, FieldAccessError, ObjectLengthError,
-        ReceivedLength, Variant,
+        DeserializerError, ExpectedLength, FieldAccessError, ObjectLengthError, ReceivedLength,
+        Variant,
     },
-    Context, Deserialize, Deserializer, EnumVisitor, FieldAccess, ObjectAccess, OptionalVisitor,
-    Visitor,
+    Context, Deserializer, EnumVisitor, FieldAccess, ObjectAccess, OptionalVisitor, Visitor,
 };
 
 // TODO: MapDeserializer/IteratorDeserializer

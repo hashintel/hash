@@ -2,9 +2,7 @@ use alloc::borrow::ToOwned;
 use core::ops::Range;
 
 use deer::{
-    error::{
-        DeserializerError, ExpectedLength, ObjectLengthError, ReceivedType, TypeError, Variant,
-    },
+    error::{DeserializerError, TypeError, Variant},
     value::NoneDeserializer,
     Context, EnumVisitor, OptionalVisitor, Visitor,
 };
