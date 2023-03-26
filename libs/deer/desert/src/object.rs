@@ -3,13 +3,12 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
-    Deserialize, Deserializer as _, FieldAccess,
+    Deserializer as _, FieldAccess,
 };
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     deserializer::{Deserializer, DeserializerNone},
-    tape::Tape,
     token::Token,
 };
 
@@ -28,62 +27,6 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
             length,
             remaining: None,
             consumed: 0,
-        }
-    }
-
-    // This assumes that Str and such are atomic, meaning `Str Str` as a deserialize value is
-    // considered invalid, as that should use `ArrayAccess` instead.
-    fn scan(&self, key: &str) -> Option<usize> {
-        #[derive(Copy, Clone, Eq, PartialEq)]
-        enum State {
-            Key,
-            Value,
-        }
-
-        impl State {
-            fn flip(&mut self) {
-                match *self {
-                    Self::Key => *self = Self::Value,
-                    Self::Value => *self = Self::Key,
-                }
-            }
-        }
-
-        let mut objects: usize = 0;
-        let mut arrays: usize = 0;
-        let mut n = 0;
-
-        let mut state = State::Key;
-
-        loop {
-            let next = self.deserializer.peek_n(n)?;
-
-            match next {
-                Token::Array { .. } => arrays += 1,
-                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
-                Token::Object { .. } => objects += 1,
-                Token::ObjectEnd if objects == 0 && arrays == 0 => {
-                    // this is for the outer layer (that's us), therefore we can abort our linear
-                    // search
-                    return None;
-                }
-                Token::ObjectEnd => objects = objects.saturating_sub(1),
-                Token::Str(value) | Token::BorrowedStr(value) | Token::String(value)
-                    if objects == 0 && arrays == 0 && value == key && state == State::Key =>
-                {
-                    // we found an element that matches the element value that is next in line
-                    return Some(n);
-                }
-                _ => {}
-            }
-
-            if arrays == 0 && objects == 0 {
-                // we're dependent on the fact if something is a key or value, if we're not nested
-                // then we can switch the state.
-                state.flip();
-            }
-
-            n += 1;
         }
     }
 

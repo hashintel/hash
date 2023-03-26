@@ -1,64 +1,42 @@
-use core::{
-    ops::{Deref, Range},
-    slice::SliceIndex,
-};
+use core::ops::Deref;
 
 use bitvec::{
     boxed::BitBox,
-    order::Lsb0,
     prelude::{BitSlice, BitVec},
-    slice::BitSliceIndex,
 };
 
 use crate::token::Token;
 
 #[derive(Debug)]
-enum Trivia<'a> {
+enum Trivia {
     Owned(BitBox),
-    Slice(&'a BitSlice),
 }
 
-impl<'a> Deref for Trivia<'a> {
+impl Deref for Trivia {
     type Target = BitSlice;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Trivia::Owned(value) => value.as_bitslice(),
-            Trivia::Slice(value) => value,
+            Self::Owned(value) => value.as_bitslice(),
         }
     }
 }
 
-impl<'a> Trivia<'a> {
+impl Trivia {
     fn to_mut(&mut self) -> &mut BitSlice {
         match self {
-            Trivia::Owned(value) => value.as_mut_bitslice(),
-            Trivia::Slice(value) => {
-                let owned = BitBox::from_bitslice(*value);
-                *self = Self::Owned(owned);
-
-                self.to_mut()
-            }
+            Self::Owned(value) => value.as_mut_bitslice(),
         }
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct Tape<'a, 'de> {
+pub(crate) struct Tape<'de> {
     tokens: &'de [Token],
-    trivia: Trivia<'a>,
+    trivia: Trivia,
 }
 
-impl Tape<'_, '_> {
-    pub(crate) fn empty() -> Self {
-        Self {
-            tokens: &[],
-            trivia: Trivia::Slice(BitSlice::empty()),
-        }
-    }
-}
-
-impl<'a, 'de> Tape<'a, 'de> {
+impl<'de> Tape<'de> {
     // also includes trivia
     fn peek_all_n(&self, n: usize) -> Option<Token> {
         self.tokens.get(n).cloned()
@@ -66,32 +44,6 @@ impl<'a, 'de> Tape<'a, 'de> {
 
     fn is_trivia_n(&self, n: usize) -> Option<bool> {
         self.trivia.get(n).as_deref().copied()
-    }
-
-    /// ## Panics
-    ///
-    /// if range.start > range.end
-    pub(crate) fn set_trivia(&mut self, mut range: Range<usize>) {
-        // ensure that the start range smaller than or equal to the end range
-        // doing this we can ensure that `0..1` is valid, but `1..0` is not.
-        assert!(range.start <= range.end);
-
-        // automatically adjust so that we're able to always index to the end, even if the the end
-        // is out of bounds
-        if range.end > self.tokens.len() {
-            range.end = self.tokens.len();
-        }
-
-        // we have already asserted that `range.start <= range.end`, therefore if range.start is out
-        // of bounds, range.end must be out of bounds as well, in that case we do not need to fill
-        // the slice, as `.get_mut` will return `None`
-        if range.start >= self.tokens.len() {
-            return;
-        }
-
-        if let Some(slice) = self.trivia.to_mut().get_mut(range) {
-            slice.fill(true);
-        }
     }
 
     pub(crate) fn peek_n(&self, n: usize) -> Option<Token> {
@@ -153,24 +105,9 @@ impl<'a, 'de> Tape<'a, 'de> {
     pub(crate) const fn is_empty(&self) -> bool {
         self.tokens.is_empty()
     }
-
-    pub(crate) fn view<'b, B>(&'b self, n: B) -> Option<Tape<'b, 'de>>
-    where
-        B: BitSliceIndex<'b, usize, Lsb0, Immut = &'b BitSlice<usize, Lsb0>>
-            + SliceIndex<[Token], Output = [Token]>
-            + Clone,
-    {
-        let tokens = self.tokens.get(n.clone())?;
-        let trivia = self.trivia.get(n)?;
-
-        Some(Tape {
-            tokens,
-            trivia: Trivia::Slice(trivia),
-        })
-    }
 }
 
-impl<'de> From<&'de [Token]> for Tape<'_, 'de> {
+impl<'de> From<&'de [Token]> for Tape<'de> {
     fn from(value: &'de [Token]) -> Self {
         Self {
             tokens: value,
