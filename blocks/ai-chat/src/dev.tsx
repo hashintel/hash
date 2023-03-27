@@ -1,10 +1,25 @@
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
-import packageJSON from "../package.json";
+import packageJson from "../package.json";
 import Component from "./index";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
+
+const emptyChatEntity: BlockEntity = {
+  metadata: {
+    recordId: {
+      entityId: "test-entity",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId:
+      "http://localhost:3000/@alice/types/entity-type/ai-chat-block/v/6",
+  },
+  properties: {},
+} as const;
+
+const emptyChatEntityEntityRecordId = emptyChatEntity.metadata.recordId;
 
 /**
  * This is an embedding application for local development and debugging.
@@ -21,11 +36,26 @@ const DevApp = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockInfo={packageJSON.blockprotocol}
-      // @todo add dot-env support
+      blockEntityRecordId={emptyChatEntityEntityRecordId}
+      blockInfo={packageJson.blockprotocol}
+      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
+      initialData={{
+        initialEntities: [emptyChatEntity],
+      }}
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
       blockProtocolApiKey={process.env.BP_API_KEY}
       blockProtocolSiteHost={process.env.BP_HOST ?? "https://blockprotocol.org"} // update this to a recent staging deployment when testing
-      debug
+      // includeDefaultMockData // this seeds the datastore with sample entities and links, remove this to start with just the contents of `initialData`
+      // hideDebugToggle <- uncomment this to disable the debug UI entirely
+      // initialEntities={[]} <- customise the entities in the datastore (blockEntity is always added, if you provide it)
+      // initialEntityTypes={[]} <- customise the entity types in the datastore
+      // initialLinks={[]} <- customise the links in the datastore
+      // initialLinkedQueries={[]} <- customise the linkedQueries in the datastore
+      // readonly <- uncomment this to start your block in readonly mode. You can also toggle it in the UI
     />
   );
 };
