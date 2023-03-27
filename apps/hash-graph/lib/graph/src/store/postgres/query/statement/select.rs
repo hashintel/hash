@@ -94,7 +94,7 @@ mod tests {
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         },
         subgraph::{
-            edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+            edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
             temporal_axes::QueryTemporalAxesUnresolved,
         },
     };
@@ -334,7 +334,7 @@ mod tests {
                 PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(PropertyTypeQueryPath::Title),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -403,9 +403,9 @@ mod tests {
                     path: Box::new(EntityTypeQueryPath::EntityTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                         path: Box::new(EntityTypeQueryPath::Title),
-                        reversed: false,
+                        direction: EdgeDirection::Outgoing,
                     }),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -443,7 +443,7 @@ mod tests {
                 EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(EntityTypeQueryPath::BaseUrl),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -518,7 +518,7 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::UpdatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::RecordCreatedById)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);
@@ -635,9 +635,9 @@ mod tests {
                 path: Box::new(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::EditionId),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }),
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             })),
             Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
@@ -684,9 +684,9 @@ mod tests {
                 path: Box::new(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::EditionId),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }),
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             })),
             Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
@@ -732,7 +732,7 @@ mod tests {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::Uuid),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
@@ -740,7 +740,7 @@ mod tests {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
@@ -748,7 +748,7 @@ mod tests {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Uuid),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
@@ -756,7 +756,7 @@ mod tests {
                 Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::OwnedById),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
@@ -806,7 +806,7 @@ mod tests {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::BaseUrl,
                     }),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/address",
@@ -819,7 +819,7 @@ mod tests {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::BaseUrl,
                     }),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/name",
@@ -950,7 +950,7 @@ mod tests {
         }
 
         #[test]
-        fn for_property_type_constrains_values_on() {
+        fn for_property_type_constrains_values_on_outgoing() {
             let url = PropertyTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
@@ -989,7 +989,7 @@ mod tests {
         }
 
         #[test]
-        fn for_property_type_constrains_values_on_reversed() {
+        fn for_property_type_constrains_values_on_incoming() {
             let url = DataTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
@@ -1028,7 +1028,7 @@ mod tests {
         }
 
         #[test]
-        fn for_property_type_constrains_properties_on() {
+        fn for_property_type_constrains_properties_on_outgoing() {
             let url = PropertyTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
@@ -1045,7 +1045,7 @@ mod tests {
                 Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                     &url,
                     OntologyEdgeKind::ConstrainsPropertiesOn,
-                    false,
+                    EdgeDirection::Outgoing,
                 );
             compiler.add_filter(&filter);
 
@@ -1068,7 +1068,7 @@ mod tests {
         }
 
         #[test]
-        fn for_property_type_constrains_properties_on_reversed() {
+        fn for_property_type_constrains_properties_on_incoming() {
             let url = PropertyTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
@@ -1085,7 +1085,7 @@ mod tests {
                 Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                     &url,
                     OntologyEdgeKind::ConstrainsPropertiesOn,
-                    true,
+                    EdgeDirection::Incoming,
                 );
             compiler.add_filter(&filter);
 
@@ -1108,7 +1108,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_constrains_properties_on() {
+        fn for_entity_type_constrains_properties_on_outgoing() {
             let url = PropertyTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/property-type/text/".to_owned(),
@@ -1147,7 +1147,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_constrains_properties_on_reversed() {
+        fn for_entity_type_constrains_properties_on_incoming() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1186,7 +1186,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_inherits_from() {
+        fn for_entity_type_inherits_from_outgoing() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1203,7 +1203,7 @@ mod tests {
                 Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                     &url,
                     OntologyEdgeKind::InheritsFrom,
-                    false,
+                    EdgeDirection::Outgoing,
                 );
             compiler.add_filter(&filter);
 
@@ -1226,7 +1226,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_inherits_from_reversed() {
+        fn for_entity_type_inherits_from_incoming() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1243,7 +1243,7 @@ mod tests {
                 Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                     &url,
                     OntologyEdgeKind::InheritsFrom,
-                    true,
+                    EdgeDirection::Incoming,
                 );
             compiler.add_filter(&filter);
 
@@ -1266,7 +1266,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_constrains_links_on() {
+        fn for_entity_type_constrains_links_on_outgoing() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1283,7 +1283,7 @@ mod tests {
                 Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                     &url,
                     OntologyEdgeKind::ConstrainsLinksOn,
-                    false,
+                    EdgeDirection::Outgoing,
                 );
             compiler.add_filter(&filter);
 
@@ -1306,7 +1306,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_constrains_links_on_reversed() {
+        fn for_entity_type_constrains_links_on_incoming() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1323,7 +1323,7 @@ mod tests {
                 Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                     &url,
                     OntologyEdgeKind::ConstrainsLinksOn,
-                    true,
+                    EdgeDirection::Incoming,
                 );
             compiler.add_filter(&filter);
 
@@ -1346,7 +1346,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_constrains_link_destinations_on() {
+        fn for_entity_type_constrains_link_destinations_on_outgoing() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1363,7 +1363,7 @@ mod tests {
                 Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                     &url,
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                    false,
+                    EdgeDirection::Outgoing,
                 );
             compiler.add_filter(&filter);
 
@@ -1386,7 +1386,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_type_constrains_link_destinations_on_reversed() {
+        fn for_entity_type_constrains_link_destinations_on_incoming() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1403,7 +1403,7 @@ mod tests {
                 Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                     &url,
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                    true,
+                    EdgeDirection::Incoming,
                 );
             compiler.add_filter(&filter);
 
@@ -1426,7 +1426,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_is_of_type() {
+        fn for_entity_is_of_type_outgoing() {
             let entity_id = EntityId {
                 owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
@@ -1467,7 +1467,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entity_is_of_type_reversed() {
+        fn for_entity_is_of_type_incoming() {
             let url = EntityTypeVertexId {
                 base_id: BaseUrl::new(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/text/".to_owned(),
@@ -1558,7 +1558,7 @@ mod tests {
             let filter = Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasRightEntity,
-                false,
+                EdgeDirection::Outgoing,
             );
             compiler.add_filter(&filter);
 
@@ -1598,7 +1598,7 @@ mod tests {
             let filter = Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasLeftEntity,
-                false,
+                EdgeDirection::Outgoing,
             );
             compiler.add_filter(&filter);
 
@@ -1638,7 +1638,7 @@ mod tests {
             let filter = Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasLeftEntity,
-                true,
+                EdgeDirection::Incoming,
             );
             compiler.add_filter(&filter);
 
@@ -1683,7 +1683,7 @@ mod tests {
             let filter = Filter::for_knowledge_graph_edge_by_entity_id(
                 entity_id,
                 KnowledgeGraphEdgeKind::HasRightEntity,
-                true,
+                EdgeDirection::Incoming,
             );
             compiler.add_filter(&filter);
 

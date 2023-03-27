@@ -6,7 +6,7 @@ use crate::{
         table::{Column, JsonField, OntologyIds, PropertyTypes, ReferenceTable, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 impl PostgresRecord for PropertyTypeWithMetadata {
@@ -25,7 +25,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             | Self::Schema(_) => vec![],
             Self::BaseUrl
             | Self::Version
-            | Self::UpdatedById
+            | Self::RecordCreatedById
             | Self::OwnedById
             | Self::AdditionalMetadata(_) => {
                 vec![Relation::PropertyTypeIds]
@@ -35,17 +35,17 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsValuesOn,
-                reversed: false,
+                direction: EdgeDirection::Outgoing,
             })
             .chain(path.relations())
             .collect(),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
-                reversed,
+                direction,
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsPropertiesOn,
-                reversed: *reversed,
+                direction: *direction,
             })
             .chain(path.relations())
             .collect(),
@@ -54,7 +54,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 path,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
-                reversed: true,
+                direction: EdgeDirection::Incoming,
             })
             .chain(path.relations())
             .collect(),
@@ -66,10 +66,11 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
         match self {
             Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::TransactionTime => Column::OntologyIds(OntologyIds::TransactionTime),
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
             ))),
-            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
+            Self::RecordCreatedById => Column::OntologyIds(OntologyIds::RecordCreatedById),
             Self::OntologyId => Column::PropertyTypes(PropertyTypes::OntologyId),
             Self::Schema(path) => {
                 path.as_ref()

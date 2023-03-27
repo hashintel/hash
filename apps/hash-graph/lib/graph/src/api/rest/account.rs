@@ -2,12 +2,13 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
+    api::rest::json::Json,
     identifier::account::AccountId,
     store::{AccountStore, StorePool},
 };

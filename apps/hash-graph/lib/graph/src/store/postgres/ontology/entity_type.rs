@@ -6,13 +6,13 @@ use type_system::EntityType;
 
 use crate::{
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, query::Filter, AsClient, EntityTypeStore,
-        InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, query::Filter, AsClient, ConflictBehavior,
+        EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::EntityTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -41,12 +41,12 @@ impl<C: AsClient> PostgresStore<C> {
             for (entity_type_vertex_id, graph_resolve_depths, temporal_axes) in
                 mem::take(&mut entity_type_queue)
             {
-                if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
-                    tracing::trace!(
-                        "reading property types for `{}v/{}`",
-                        entity_type_vertex_id.base_id.as_str(),
-                        entity_type_vertex_id.revision_id.inner()
-                    );
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsPropertiesOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
                         self,
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
@@ -62,6 +62,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
+                            EdgeDirection::Outgoing,
                             property_type_vertex_id.clone(),
                         );
 
@@ -69,26 +70,24 @@ impl<C: AsClient> PostgresStore<C> {
 
                         property_type_queue.push((
                             property_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_properties_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.constrains_properties_on.outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_properties_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone()
                         ));
                     }
                 }
 
-                if graph_resolve_depths.inherits_from.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::InheritsFrom,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
                         self,
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::InheritsFrom,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -99,6 +98,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::InheritsFrom,
+                            EdgeDirection::Outgoing,
                             referenced_entity_type_vertex_id.clone(),
                         );
 
@@ -106,26 +106,24 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_type_queue.push((
                             referenced_entity_type_vertex_id,
-                            GraphResolveDepths {
-                                inherits_from: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.inherits_from.outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.inherits_from
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone()
                         ));
                     }
                 }
 
-                if graph_resolve_depths.constrains_links_on.outgoing > 0 {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsLinksOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
                     for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
                         self,
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinksOn,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -136,6 +134,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinksOn,
+                            EdgeDirection::Outgoing,
                             referenced_entity_type_vertex_id.clone(),
                         );
 
@@ -143,30 +142,24 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_type_queue.push((
                             referenced_entity_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_links_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.constrains_links_on.outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_links_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone()
                         ));
                     }
                 }
 
-                if graph_resolve_depths
-                    .constrains_link_destinations_on
-                    .outgoing
-                    > 0
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                        EdgeDirection::Outgoing,
+                    )
                 {
                     for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
                         self,
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                            true,
+                            EdgeDirection::Incoming,
                         ),
                         &temporal_axes,
                     )
@@ -177,6 +170,7 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph.insert_edge(
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                            EdgeDirection::Outgoing,
                             referenced_entity_type_vertex_id.clone(),
                         );
 
@@ -184,14 +178,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         entity_type_queue.push((
                             referenced_entity_type_vertex_id,
-                            GraphResolveDepths {
-                                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                                    outgoing: graph_resolve_depths.constrains_link_destinations_on.outgoing
-                                        - 1,
-                                    ..graph_resolve_depths.constrains_link_destinations_on
-                                },
-                                ..graph_resolve_depths
-                            },
+                            new_graph_resolve_depths,
                             temporal_axes.clone()
                         ));
                     }
@@ -218,16 +205,19 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
         for (schema, metadata) in entity_types {
-            let ontology_id = transaction
-                .create(schema.clone(), metadata.borrow())
-                .await?;
-            inserted_entity_types.push((ontology_id, schema));
+            if let Some(ontology_id) = transaction
+                .create(schema.clone(), metadata.borrow(), on_conflict)
+                .await?
+            {
+                inserted_entity_types.push((ontology_id, schema));
+            }
         }
 
         for (ontology_id, schema) in inserted_entity_types {
@@ -307,7 +297,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        updated_by: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -315,7 +305,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
         let (ontology_id, metadata) = transaction
-            .update::<EntityType>(entity_type.clone(), updated_by)
+            .update::<EntityType>(entity_type.clone(), record_created_by_id)
             .await?;
 
         transaction

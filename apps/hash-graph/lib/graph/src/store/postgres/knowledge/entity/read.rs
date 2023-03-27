@@ -17,7 +17,7 @@ use crate::{
         LinkData,
     },
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
@@ -25,13 +25,15 @@ use crate::{
         AsClient, PostgresStore, QueryError,
     },
     subgraph::{
-        edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
         temporal_axes::QueryTemporalAxes,
     },
 };
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
+    type Record = Entity;
+
     #[tracing::instrument(level = "info", skip(self))]
     async fn read(
         &self,
@@ -42,22 +44,22 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let left_entity_uuid_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
             path: Box::new(EntityQueryPath::Uuid),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
         let left_owned_by_id_query_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
             path: Box::new(EntityQueryPath::OwnedById),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
         let right_entity_uuid_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
             path: Box::new(EntityQueryPath::Uuid),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
         let right_owned_by_id_query_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
             path: Box::new(EntityQueryPath::OwnedById),
-            reversed: false,
+            direction: EdgeDirection::Outgoing,
         };
 
         let mut compiler = SelectCompiler::new(temporal_axes);
@@ -90,7 +92,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_to_left_order_index =
             compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
-        let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
+        let record_created_by_id_index =
+            compiler.add_selection_path(&EntityQueryPath::RecordCreatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
 
@@ -152,7 +155,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
+                let record_created_by_id =
+                    RecordCreatedById::new(row.get(record_created_by_id_index));
 
                 Ok(Entity {
                     properties,
@@ -170,7 +174,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        ProvenanceMetadata::new(updated_by_id),
+                        ProvenanceMetadata::new(record_created_by_id),
                         row.get(archived_index),
                     ),
                 })

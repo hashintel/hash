@@ -11,7 +11,7 @@ use crate::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, EntityTypeQueryPath, Selector,
     },
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -64,6 +64,16 @@ pub enum PropertyTypeQueryPath<'p> {
     /// [`PropertyType`]: type_system::PropertyType
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     VersionedUrl,
+    /// The transaction time of the [`PropertyType`].
+    ///
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
+    /// of the [`OntologyElementMetadata`].
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
@@ -79,7 +89,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
     /// [`PropertyType`]: type_system::PropertyType
     ///
@@ -87,14 +97,14 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::UpdatedById);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["recordCreatedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::RecordCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    UpdatedById,
+    RecordCreatedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
     /// [`PropertyType::title()`]: type_system::PropertyType::title
@@ -174,19 +184,19 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::PropertyTypeEdge {
     ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
     ///     path: Box::new(PropertyTypeQueryPath::Title),
-    ///     reversed: false
+    ///     direction: EdgeDirection::Outgoing,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<Self>,
-        reversed: bool,
+        direction: EdgeDirection,
     },
     /// A reversed edge from an [`EntityType`] to this [`PropertyType`] using an
     /// [`OntologyEdgeKind`].
@@ -228,8 +238,12 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn updated_by_id() -> Self {
-        Self::UpdatedById
+    fn transaction_time() -> Self {
+        Self::TransactionTime
+    }
+
+    fn record_created_by_id() -> Self {
+        Self::RecordCreatedById
     }
 
     fn schema() -> Self {
@@ -244,11 +258,12 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
 impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
+            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
@@ -264,8 +279,9 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -318,7 +334,7 @@ pub enum PropertyTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    UpdatedById,
+    RecordCreatedById,
     Title,
     Description,
     DataTypes,
@@ -335,8 +351,8 @@ pub struct PropertyTypeQueryPathVisitor {
 
 impl PropertyTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `updatedById`, `title`, `description`, \
-                                         `dataTypes`, `propertyTypes`";
+                                         `ownedById`, `recordCreatedById`, `title`, \
+                                         `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -362,7 +378,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
 
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryToken::UpdatedById => PropertyTypeQueryPath::UpdatedById,
+            PropertyTypeQueryToken::RecordCreatedById => PropertyTypeQueryPath::RecordCreatedById,
             PropertyTypeQueryToken::BaseUrl => PropertyTypeQueryPath::BaseUrl,
             PropertyTypeQueryToken::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,
@@ -386,7 +402,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
                 PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
-                    reversed: false,
+                    direction: EdgeDirection::Outgoing,
                 }
             }
             PropertyTypeQueryToken::Schema => {
@@ -454,7 +470,7 @@ mod tests {
             PropertyTypeQueryPath::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path: Box::new(PropertyTypeQueryPath::BaseUrl),
-                reversed: false
+                direction: EdgeDirection::Outgoing,
             }
         );
 

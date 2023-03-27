@@ -6,10 +6,10 @@ use type_system::DataType;
 
 use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
-        PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, ConflictBehavior, DataTypeStore,
+        InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
@@ -45,12 +45,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         for (schema, metadata) in data_types {
             transaction
-                .create(schema.clone(), metadata.borrow())
+                .create(schema.clone(), metadata.borrow(), on_conflict)
                 .await?;
         }
 
@@ -117,12 +118,12 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (_, metadata) = transaction
-            .update::<DataType>(data_type, updated_by_id)
+            .update::<DataType>(data_type, record_created_by_id)
             .await?;
 
         transaction.commit().await.change_context(UpdateError)?;

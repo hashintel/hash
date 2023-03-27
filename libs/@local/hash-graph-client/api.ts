@@ -96,11 +96,17 @@ export interface CreateDataTypeRequest {
   ownedById: string;
   /**
    *
-   * @type {DataType}
+   * @type {CreateDataTypeRequestSchema}
    * @memberof CreateDataTypeRequest
    */
-  schema: DataType;
+  schema: CreateDataTypeRequestSchema;
 }
+/**
+ * @type CreateDataTypeRequestSchema
+ * @export
+ */
+export type CreateDataTypeRequestSchema = Array<DataType> | DataType;
+
 /**
  *
  * @export
@@ -164,11 +170,17 @@ export interface CreateEntityTypeRequest {
   ownedById: string;
   /**
    *
-   * @type {EntityType}
+   * @type {CreateEntityTypeRequestSchema}
    * @memberof CreateEntityTypeRequest
    */
-  schema: EntityType;
+  schema: CreateEntityTypeRequestSchema;
 }
+/**
+ * @type CreateEntityTypeRequestSchema
+ * @export
+ */
+export type CreateEntityTypeRequestSchema = Array<EntityType> | EntityType;
+
 /**
  *
  * @export
@@ -189,11 +201,19 @@ export interface CreatePropertyTypeRequest {
   ownedById: string;
   /**
    *
-   * @type {PropertyType}
+   * @type {CreatePropertyTypeRequestSchema}
    * @memberof CreatePropertyTypeRequest
    */
-  schema: PropertyType;
+  schema: CreatePropertyTypeRequestSchema;
 }
+/**
+ * @type CreatePropertyTypeRequestSchema
+ * @export
+ */
+export type CreatePropertyTypeRequestSchema =
+  | Array<PropertyType>
+  | PropertyType;
+
 /**
  * Specifies the structure of a Data Type
  * @export
@@ -265,7 +285,7 @@ export const DataTypeQueryToken = {
   Version: "version",
   VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Title: "title",
   Description: "description",
   Type: "type",
@@ -548,7 +568,7 @@ export const EntityQueryToken = {
   EditionId: "editionId",
   Archived: "archived",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Type: "type",
   Properties: "properties",
   IncomingLinks: "incomingLinks",
@@ -724,7 +744,7 @@ export const EntityTypeQueryToken = {
   Version: "version",
   VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Title: "title",
   Description: "description",
   Examples: "examples",
@@ -885,6 +905,31 @@ export interface EqualFilter {
    * @memberof EqualFilter
    */
   equal: Array<FilterExpression>;
+}
+/**
+ *
+ * @export
+ * @interface ErrorInfo
+ */
+export interface ErrorInfo {
+  /**
+   * The reason of the error. This is a constant value that identifies the proximate cause of the error. Error reasons are unique within a particular domain of errors. This should be at most 63 characters and match a regular expression of `[A-Z][A-Z0-9_]+[A-Z0-9]`, which represents UPPER_SNAKE_CASE.
+   * @type {string}
+   * @memberof ErrorInfo
+   */
+  reason: string;
+  /**
+   * The logical grouping to which the \"reason\" belongs. The error domain is typically the registered service name of the tool or product that generates the error.
+   * @type {string}
+   * @memberof ErrorInfo
+   */
+  domain: string;
+  /**
+   * Construct a type with a set of properties K of type T
+   * @type {object}
+   * @memberof ErrorInfo
+   */
+  metadata: object;
 }
 /**
  *
@@ -1216,6 +1261,14 @@ export interface LinkDataAllOf {
    */
   rightEntityId: string;
 }
+/**
+ * @type MaybeListOfOntologyElementMetadata
+ * @export
+ */
+export type MaybeListOfOntologyElementMetadata =
+  | Array<OntologyElementMetadata>
+  | OntologyElementMetadata;
+
 /**
  *
  * @export
@@ -1676,7 +1729,7 @@ export const PropertyTypeQueryToken = {
   Version: "version",
   VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
-  UpdatedById: "updatedById",
+  RecordCreatedById: "recordCreatedById",
   Title: "title",
   Description: "description",
   DataTypes: "dataTypes",
@@ -1805,7 +1858,7 @@ export interface ProvenanceMetadata {
    * @type {string}
    * @memberof ProvenanceMetadata
    */
-  updatedById: string;
+  recordCreatedById: string;
 }
 /**
  * @type QueryTemporalAxes
@@ -2056,6 +2109,56 @@ export interface QueryTemporalAxesUnresolvedTransactionTimeVariable {
 /**
  *
  * @export
+ * @interface RequestInfo
+ */
+export interface RequestInfo {
+  /**
+   * An opaque string that should only be interpreted by the service generating it. For example, it can be used to identify requests in the service\'s logs.
+   * @type {string}
+   * @memberof RequestInfo
+   */
+  requestId: string;
+  /**
+   * Any data that was used to serve this request. For example, an encrypted stack trace that can be sent back to the service provider for debugging.
+   * @type {string}
+   * @memberof RequestInfo
+   */
+  servingData: string;
+}
+/**
+ *
+ * @export
+ * @interface ResourceInfo
+ */
+export interface ResourceInfo {
+  /**
+   * A name for the type of resource being accessed.  For example \"SQL table\", \"Entity\", \"Property Type\", \"Redis\"; or the type URL of the resource: e.g. \"https://blockprotocol.org/type-system/0.3/schema/meta/entity-type\".
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  resourceType: string;
+  /**
+   * The name of the resource being accessed.  For example, an ontology type ID: `https://hash.ai/@alice/types/entity-type/Person/`, if the current error is [@local/status/StatusCode.PermissionDenied].
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  resourceName: string;
+  /**
+   * The owner of the resource (optional).  For example, a User\'s entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  owner?: string;
+  /**
+   * Describes what error is encountered when accessing this resource.  For example, updating a property on a user\'s entity may require write permission on that property.
+   * @type {string}
+   * @memberof ResourceInfo
+   */
+  description: string;
+}
+/**
+ *
+ * @export
  * @interface RightBoundedTemporalInterval
  */
 export interface RightBoundedTemporalInterval {
@@ -2096,6 +2199,65 @@ export const SharedEdgeKind = {
 
 export type SharedEdgeKind =
   (typeof SharedEdgeKind)[keyof typeof SharedEdgeKind];
+
+/**
+ *
+ * @export
+ * @interface Status
+ */
+export interface Status {
+  /**
+   *
+   * @type {StatusCode}
+   * @memberof Status
+   */
+  code: StatusCode;
+  /**
+   * A developer-facing description of the status.  Where possible, this should provide guiding advice for debugging and/or handling the error.
+   * @type {string}
+   * @memberof Status
+   */
+  message?: string;
+  /**
+   *
+   * @type {Array<StatusContentsInner>}
+   * @memberof Status
+   */
+  contents: Array<StatusContentsInner>;
+}
+/**
+ * The canonical status codes for software within the HASH ecosystem. Sometimes multiple status codes may apply. Services should return the most specific status code that applies. For example, prefer `OutOfRange` over `FailedPrecondition` if both codes apply. Similarly prefer `NotFound` or `AlreadyExists` over `FailedPrecondition`.
+ * @export
+ * @enum {string}
+ */
+
+export const StatusCode = {
+  Aborted: "ABORTED",
+  AlreadyExists: "ALREADY_EXISTS",
+  Cancelled: "CANCELLED",
+  DataLoss: "DATA_LOSS",
+  DeadlineExceeded: "DEADLINE_EXCEEDED",
+  FailedPrecondition: "FAILED_PRECONDITION",
+  Internal: "INTERNAL",
+  InvalidArgument: "INVALID_ARGUMENT",
+  NotFound: "NOT_FOUND",
+  Ok: "OK",
+  OutOfRange: "OUT_OF_RANGE",
+  PermissionDenied: "PERMISSION_DENIED",
+  ResourceExhausted: "RESOURCE_EXHAUSTED",
+  Unauthenticated: "UNAUTHENTICATED",
+  Unavailable: "UNAVAILABLE",
+  Unimplemented: "UNIMPLEMENTED",
+  Unknown: "UNKNOWN",
+} as const;
+
+export type StatusCode = (typeof StatusCode)[keyof typeof StatusCode];
+
+/**
+ * @type StatusContentsInner
+ * @export
+ */
+export type StatusContentsInner = ErrorInfo | RequestInfo | ResourceInfo;
 
 /**
  *
@@ -2921,7 +3083,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
         createDataTypeRequest,
@@ -3007,7 +3169,7 @@ export const DataTypeApiFactory = function (
     createDataType(
       createDataTypeRequest: CreateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createDataType(createDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -3059,7 +3221,7 @@ export interface DataTypeApiInterface {
   createDataType(
     createDataTypeRequest: CreateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -3738,7 +3900,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createEntityType(
@@ -3826,7 +3988,7 @@ export const EntityTypeApiFactory = function (
     createEntityType(
       createEntityTypeRequest: CreateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createEntityType(createEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -3878,7 +4040,7 @@ export interface EntityTypeApiInterface {
   createEntityType(
     createEntityTypeRequest: CreateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -4686,7 +4848,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
         createDataTypeRequest,
@@ -4735,7 +4897,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createEntityType(
@@ -4762,7 +4924,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createPropertyType(
@@ -5008,7 +5170,7 @@ export const GraphApiFactory = function (
     createDataType(
       createDataTypeRequest: CreateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createDataType(createDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5036,7 +5198,7 @@ export const GraphApiFactory = function (
     createEntityType(
       createEntityTypeRequest: CreateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createEntityType(createEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5050,7 +5212,7 @@ export const GraphApiFactory = function (
     createPropertyType(
       createPropertyTypeRequest: CreatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createPropertyType(createPropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5194,7 +5356,7 @@ export interface GraphApiInterface {
   createDataType(
     createDataTypeRequest: CreateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -5218,7 +5380,7 @@ export interface GraphApiInterface {
   createEntityType(
     createEntityTypeRequest: CreateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -5230,7 +5392,7 @@ export interface GraphApiInterface {
   createPropertyType(
     createPropertyTypeRequest: CreatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *
@@ -5732,7 +5894,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<MaybeListOfOntologyElementMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createPropertyType(
@@ -5820,7 +5982,7 @@ export const PropertyTypeApiFactory = function (
     createPropertyType(
       createPropertyTypeRequest: CreatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<MaybeListOfOntologyElementMetadata> {
       return localVarFp
         .createPropertyType(createPropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5872,7 +6034,7 @@ export interface PropertyTypeApiInterface {
   createPropertyType(
     createPropertyTypeRequest: CreatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<MaybeListOfOntologyElementMetadata>;
 
   /**
    *

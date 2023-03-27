@@ -12,19 +12,22 @@ use serde::{Deserialize, Serialize};
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]
-pub struct PropertyBag {
+pub struct PropertyBag<'s> {
     /// A set of distinct strings that provide additional information.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "BTreeSet::is_empty"))]
-    pub tags: BTreeSet<Cow<'static, str>>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(borrow, skip_serializing_if = "BTreeSet::is_empty")
+    )]
+    pub tags: BTreeSet<Cow<'s, str>>,
 
     /// A dictionary, each of whose keys specifies a distinct additional information element and
     /// each of whose values provides the information.
     #[cfg(feature = "serde")]
-    #[serde(flatten)]
-    pub additional: BTreeMap<Cow<'static, str>, serde_json::Value>,
+    #[serde(flatten, borrow)]
+    pub additional: BTreeMap<Cow<'s, str>, serde_json::Value>,
 }
 
-impl PropertyBag {
+impl<'s> PropertyBag<'s> {
     /// Create a new, empty `PropertyBag`.
     ///
     /// # Example
@@ -65,7 +68,7 @@ impl PropertyBag {
     /// );
     /// ```
     #[must_use]
-    pub fn with_tag(mut self, tag: impl Into<Cow<'static, str>>) -> Self {
+    pub fn with_tag(mut self, tag: impl Into<Cow<'s, str>>) -> Self {
         self.tags.insert(tag.into());
         self
     }
@@ -87,10 +90,7 @@ impl PropertyBag {
     /// );
     /// ```
     #[must_use]
-    pub fn with_tags(
-        mut self,
-        tags: impl IntoIterator<Item = impl Into<Cow<'static, str>>>,
-    ) -> Self {
+    pub fn with_tags(mut self, tags: impl IntoIterator<Item = impl Into<Cow<'s, str>>>) -> Self {
         self.tags.extend(tags.into_iter().map(Into::into));
         self
     }
@@ -119,7 +119,7 @@ impl PropertyBag {
     #[cfg(feature = "serde")]
     pub fn with_property(
         mut self,
-        key: impl Into<Cow<'static, str>>,
+        key: impl Into<Cow<'s, str>>,
         value: impl Into<serde_json::Value>,
     ) -> Self {
         self.additional.insert(key.into(), value.into());
@@ -152,9 +152,7 @@ impl PropertyBag {
     #[cfg(feature = "serde")]
     pub fn with_properties(
         mut self,
-        properties: impl IntoIterator<
-            Item = (impl Into<Cow<'static, str>>, impl Into<serde_json::Value>),
-        >,
+        properties: impl IntoIterator<Item = (impl Into<Cow<'s, str>>, impl Into<serde_json::Value>)>,
     ) -> Self {
         self.additional
             .extend(properties.into_iter().map(|(k, v)| (k.into(), v.into())));

@@ -1,5 +1,9 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Chip,
+  fluidFontClassName,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   chipClasses,
@@ -165,6 +169,7 @@ export const ExpectedValueBadge = ({
                   [`.${tooltipClasses.tooltip}`]: { mb: "0px !important" },
                 },
               }}
+              classes={{ popper: fluidFontClassName }}
             >
               <Box
                 onClick={onDelete}

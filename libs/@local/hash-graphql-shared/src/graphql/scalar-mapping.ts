@@ -33,7 +33,7 @@ export const scalars = {
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
   OwnedById: "@local/hash-subgraph#OwnedById",
-  UpdatedById: "@local/hash-subgraph#UpdatedById",
+  RecordCreatedById: "@local/hash-subgraph#RecordCreatedById",
   AccountId: "@local/hash-subgraph#AccountId",
   EntityId: "@local/hash-subgraph#EntityId",
 

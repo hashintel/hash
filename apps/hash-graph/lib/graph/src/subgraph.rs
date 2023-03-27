@@ -12,8 +12,6 @@ use std::{
     hash::Hash,
 };
 
-use error_stack::Result;
-
 use self::{
     edges::{Edges, GraphResolveDepths},
     identifier::GraphElementVertexId,
@@ -21,9 +19,9 @@ use self::{
     vertices::Vertices,
 };
 use crate::{
-    store::{crud::Read, QueryError, Record},
+    store::Record,
     subgraph::{
-        edges::EdgeKind,
+        edges::{EdgeDirection, EdgeKind},
         identifier::{EdgeEndpoint, VertexId},
     },
 };
@@ -80,68 +78,22 @@ impl Subgraph {
         }
     }
 
-    pub fn insert_edge<L, E, R>(&mut self, left_endpoint: &L, edge_kind: E, right_endpoint: R)
-    where
-        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
-        R: EdgeEndpoint,
-        E: EdgeKind<L, R, false, EdgeSet: Default> + Eq + Hash,
-    {
-        edge_kind.subgraph_entry_mut(&mut self.edges).insert(
-            left_endpoint,
-            edge_kind,
-            false,
-            right_endpoint,
-        );
-    }
-
-    pub fn insert_reversed_edge<L, E, R>(
+    pub fn insert_edge<L, E, R>(
         &mut self,
         left_endpoint: &L,
         edge_kind: E,
+        direction: EdgeDirection,
         right_endpoint: R,
     ) where
         L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
         R: EdgeEndpoint,
-        E: EdgeKind<L, R, true, EdgeSet: Default> + Eq + Hash,
+        E: EdgeKind<L, R, EdgeSet: Default> + Eq + Hash,
     {
         edge_kind.subgraph_entry_mut(&mut self.edges).insert(
             left_endpoint,
             edge_kind,
-            true,
+            direction,
             right_endpoint,
         );
-    }
-
-    /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it
-    /// if it is not yet in the subgraph.
-    ///
-    /// # Errors
-    ///
-    /// - Returns an error if the [`Record`] could not be read from the [`Store`].
-    ///
-    /// [`Store`]: crate::store::Store
-    pub async fn get_or_read<'r, R>(
-        &'r mut self,
-        store: &impl Read<R>,
-        vertex_id: &R::VertexId,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<&'r R, QueryError>
-    where
-        R: Record + 'r,
-        R::VertexId: Eq + Clone + Hash,
-    {
-        Ok(match self.vertex_entry_mut(vertex_id) {
-            RawEntryMut::Occupied(entry) => entry.into_mut(),
-            RawEntryMut::Vacant(entry) => {
-                entry
-                    .insert(
-                        vertex_id.clone(),
-                        store
-                            .read_one(&R::create_filter_for_vertex_id(vertex_id), temporal_axes)
-                            .await?,
-                    )
-                    .1
-            }
-        })
     }
 }

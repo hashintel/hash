@@ -3,6 +3,7 @@ import {
   AutocompleteDropdown,
   Button,
   Chip,
+  fluidFontClassName,
   FontAwesomeIcon,
   StyledPlusCircleIcon,
   TextField,
@@ -341,6 +342,7 @@ export const ExpectedValueSelector = ({
           }}
           componentsProps={{
             popper: {
+              className: fluidFontClassName,
               sx: { minWidth: 520 },
               placement: "bottom-start",
               modifiers: [

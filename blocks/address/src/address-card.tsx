@@ -1,13 +1,17 @@
-import { faCopy, faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRotateLeft,
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Button,
+  EditableField,
+  FontAwesomeIcon,
+  Skeleton,
+} from "@hashintel/design-system";
 import {
   Box,
-  Card,
   CircularProgress,
   Fade,
   Link,
@@ -17,13 +21,15 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { EditableField } from "./editable-field";
+import { ContentStack } from "./address-card/content-stack";
+import { MapWrapper } from "./address-card/map-wrapper";
+import { StyledCard } from "./address-card/styled-card";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
 import { MapButton } from "./map-button";
 
 type AddressCardProps = {
-  title: string;
+  title?: string;
   description?: string;
   fullAddress: string;
   mapUrl?: string;
@@ -54,7 +60,6 @@ export const AddressCard = ({
   decrementZoomLevel,
 }: AddressCardProps) => {
   const theme = useTheme();
-  const [editingDescription, setEditingDescription] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
 
@@ -94,53 +99,22 @@ export const AddressCard = ({
   }, [fullAddress]);
 
   return (
-    <Card
-      sx={{
-        display: "flex",
-        width: "min-content",
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2.5,
-        boxShadow: "none",
-        ...(isMobile
-          ? {
-              flexDirection: "column",
-              width: 1,
-            }
-          : {}),
-      }}
-    >
-      <Stack
-        sx={{
-          boxSizing: "border-box",
-          display: "flex",
-          justifyContent: "space-between",
-          paddingY: 3,
-          paddingX: 3.75,
-          gap: 4,
-          width: 300,
-          ...(isMobile
-            ? {
-                width: 1,
-              }
-            : {}),
-        }}
-      >
+    <StyledCard isMobile={isMobile}>
+      <ContentStack isMobile={isMobile}>
         <Stack gap={1.5}>
           <EditableField
             value={titleValue}
+            placeholder="Enter title"
             onChange={(event) => setTitleValue(event.target.value)}
             onBlur={(event) => updateTitle(event.target.value)}
-            iconSize="21px"
-            inputProps={{
-              sx: {
-                fontWeight: 700,
-                fontSize: 21,
-                lineHeight: 1,
-                letterSpacing: "-0.02em",
-                color: theme.palette.common.black,
-              },
-            }}
             readonly={readonly}
+            sx={{
+              fontWeight: 700,
+              fontSize: 21,
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              color: theme.palette.common.black,
+            }}
           />
 
           <Box display="flex" gap={1} alignItems="center">
@@ -176,7 +150,6 @@ export const AddressCard = ({
             ) : null}
           </Box>
         </Stack>
-
         <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 }}>
           {googleMapsUrl ? (
             <Box>
@@ -196,66 +169,26 @@ export const AddressCard = ({
           ) : null}
         </Stack>
 
-        {description || editingDescription ? (
-          <EditableField
-            value={descriptionValue}
-            onChange={(event) => setDescriptionValue(event.target.value)}
-            onBlur={(event) => {
-              setEditingDescription(false);
-              updateDescription(event.target.value);
-            }}
-            placeholder="Enter description"
-            iconSize="14px"
-            inputProps={{
-              sx: {
-                fontWeight: 500,
-                fontSize: 14,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: theme.palette.gray[90],
-              },
-            }}
-            readonly={readonly}
-          />
-        ) : !readonly ? (
-          <Typography
-            onClick={() => {
-              setEditingDescription(true);
-            }}
-            sx={{
-              display: "flex",
-              fontWeight: 500,
-              fontSize: 14,
-              lineHeight: 1.3,
-              letterSpacing: "-0.02em",
-              color: theme.palette.gray[50],
-            }}
-          >
-            Click here to add a description or more detailed information
-            <FontAwesomeIcon icon={faPenToSquare} sx={{ ml: 1 }} />
-          </Typography>
-        ) : null}
-      </Stack>
+        <EditableField
+          editIconFontSize={14}
+          value={descriptionValue}
+          placeholder="Click here to add a description or more detailed information"
+          onChange={(event) => setDescriptionValue(event.target.value)}
+          onBlur={(event) => {
+            updateDescription(event.target.value);
+          }}
+          readonly={readonly}
+          sx={{
+            fontWeight: 500,
+            fontSize: 14,
+            lineHeight: 1.3,
+            letterSpacing: "-0.02em",
+            color: theme.palette.gray[90],
+          }}
+        />
+      </ContentStack>
 
-      <Box
-        sx={({ palette }) => ({
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          background: palette.gray[10],
-          borderLeft: `1px solid ${palette.gray[20]}`,
-          width: 500,
-          minHeight: 300,
-
-          ...(isMobile
-            ? {
-                width: 1,
-                height: 300,
-              }
-            : {}),
-        })}
-      >
+      <MapWrapper isMobile={isMobile}>
         <Fade in={hovered}>
           <Stack
             sx={{
@@ -390,7 +323,31 @@ export const AddressCard = ({
             </Button>
           </Fade>
         ) : null}
-      </Box>
-    </Card>
+      </MapWrapper>
+    </StyledCard>
+  );
+};
+
+export const AddressCardLoading = ({ isMobile }: { isMobile: boolean }) => {
+  return (
+    <StyledCard isMobile={isMobile}>
+      <ContentStack isMobile={isMobile}>
+        <Stack gap={1.5}>
+          <Skeleton style={{ fontSize: 21 }} />
+          <Skeleton style={{ lineHeight: 1.3, marginBottom: 2 }} />
+        </Stack>
+
+        <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 }}>
+          <Skeleton style={{ height: 46, width: 200, marginBottom: 2 }} />
+          <Skeleton style={{ height: 46, width: 200, marginBottom: 2 }} />
+        </Stack>
+
+        <Skeleton style={{ height: isMobile ? 18 : 36 }} />
+      </ContentStack>
+
+      <MapWrapper isMobile={isMobile}>
+        <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
+      </MapWrapper>
+    </StyledCard>
   );
 };

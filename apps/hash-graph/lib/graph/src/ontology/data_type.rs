@@ -83,6 +83,16 @@ pub enum DataTypeQueryPath<'p> {
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     /// [`DataType`]: type_system::DataType
     VersionedUrl,
+    /// The transaction time of the [`DataType`].
+    ///
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
+    /// of the [`OntologyElementMetadata`].
+    ///
+    /// [`DataType`]: type_system::DataType
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
@@ -98,21 +108,21 @@ pub enum DataTypeQueryPath<'p> {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::UpdatedById);
+    /// let path = DataTypeQueryPath::deserialize(json!(["recordCreatedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::RecordCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    UpdatedById,
+    RecordCreatedById,
     /// Corresponds to [`DataType::title()`].
     ///
     /// ```rust
@@ -189,8 +199,12 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn updated_by_id() -> Self {
-        Self::UpdatedById
+    fn transaction_time() -> Self {
+        Self::TransactionTime
+    }
+
+    fn record_created_by_id() -> Self {
+        Self::RecordCreatedById
     }
 
     fn schema() -> Self {
@@ -205,10 +219,11 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
+            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
@@ -223,8 +238,9 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -253,7 +269,7 @@ pub enum DataTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    UpdatedById,
+    RecordCreatedById,
     Title,
     Description,
     Type,
@@ -269,8 +285,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `updatedById`, `title`, `description`, \
-                                         `type`";
+                                         `ownedById`, `recordCreatedById`, `title`, \
+                                         `description`, `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -296,7 +312,7 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
 
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
-            DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
+            DataTypeQueryToken::RecordCreatedById => DataTypeQueryPath::RecordCreatedById,
             DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
             DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,

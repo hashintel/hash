@@ -3,6 +3,7 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   ButtonProps,
+  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   Modal,
@@ -221,6 +222,7 @@ export const TypeFormModal: PolymorphicComponent = forwardRef(
           border: 1,
           borderColor: theme.palette.gray[20],
         })}
+        classes={{ root: fluidFontClassName }}
       >
         {inner}
       </Modal>
