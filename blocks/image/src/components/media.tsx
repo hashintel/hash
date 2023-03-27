@@ -262,37 +262,57 @@ export const Media: FunctionComponent<
   };
 
   return (
-    <div ref={blockRef}>
-      {draftSrc ? (
-        <MediaWithCaption
-          src={draftSrc}
-          onWidthChange={updateWidth}
-          caption={draftCaption}
-          onCaptionChange={(caption) => setDraftCaption(caption)}
-          onCaptionConfirm={() => updateData({ src: draftSrc })}
-          onReset={resetComponent}
-          width={draftWidth}
-          type="image"
-          readonly={readonly}
-        />
-      ) : (
-        <>
-          {errorString && (
-            <ErrorAlert
-              error={errorString}
-              onClearError={() => setErrorString(null)}
-            />
-          )}
-          <UploadMediaForm
-            onUrlConfirm={onUrlConfirm}
-            onFileChoose={(file) => handleImageUpload({ file })}
-            onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
-            loading={loading}
+    <>
+      <div ref={blockRef}>
+        {draftSrc ? (
+          <MediaWithCaption
+            src={draftSrc}
+            onWidthChange={updateWidth}
+            caption={draftCaption}
+            onCaptionChange={(caption) => setDraftCaption(caption)}
+            onCaptionConfirm={() => updateData({ src: draftSrc })}
+            onReset={resetComponent}
+            width={draftWidth}
             type="image"
             readonly={readonly}
           />
-        </>
-      )}
-    </div>
+        ) : (
+          <>
+            {errorString && (
+              <ErrorAlert
+                error={errorString}
+                onClearError={() => setErrorString(null)}
+              />
+            )}
+            <UploadMediaForm
+              onUrlConfirm={onUrlConfirm}
+              onFileChoose={(file) => handleImageUpload({ file })}
+              onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
+              loading={loading}
+              type="image"
+              readonly={readonly}
+            />
+          </>
+        )}
+      </div>
+      {draftSrc ? (
+        // @note This does not yet contain all required properties – these will be added in a follow up
+        <script
+          type="application/ld+json"
+          /* eslint-disable-next-line react/no-danger */
+          dangerouslySetInnerHTML={{
+            // @note – using JSON.stringify to prevent potential XSS
+            __html: JSON.stringify({
+              "@context": "https://schema.org/",
+              "@type": "ImageObject",
+              "@id": draftSrc,
+              url: draftSrc,
+              contentUrl: draftSrc,
+              description: draftCaption,
+            }),
+          }}
+        />
+      ) : null}
+    </>
   );
 };
