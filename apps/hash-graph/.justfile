@@ -54,3 +54,7 @@ bench *arguments:
   @just deployment-up
   @just --justfile {{repo}}/.justfile bench {{arguments}}
   @just deployment-down
+
+[private]
+miri *arguments:
+  @echo 'miri is disabled for `hash-graph`'
