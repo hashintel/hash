@@ -218,42 +218,39 @@ export const App: BlockComponent<RootEntity> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // const schema = useMemo(() => {
-  //   const stepsWithTitle = stepEntities.filter(
-  //     ({ properties: { [titleKey]: schemaTitle } }) => !!schemaTitle,
-  //   );
+  const schema = useMemo(() => {
+    const questionsWithTitle = questionEntities.filter(
+      ({ properties: { [questionKey]: schemaQuestion } }) => !!schemaQuestion,
+    );
 
-  //   return JSON.stringify({
-  //     "@context": "http://schema.org",
-  //     "@type": "HowTo",
-  //     name: title,
-  //     // Must have at least 2 steps for it to be valid
-  //     ...(stepsWithTitle.length > 1
-  //       ? {
-  //           step: stepsWithTitle.map(
-  //             ({
-  //               properties: {
-  //                 [titleKey]: schemaTitle,
-  //                 [descriptionKey]: schemaDescription,
-  //               },
-  //             }) => ({
-  //               "@type": "HowToStep",
-  //               name: schemaTitle,
-  //               text: schemaDescription ?? schemaTitle,
-  //             }),
-  //           ),
-  //         }
-  //       : {}),
-  //   });
-  // }, [title, stepEntities]);
+    return JSON.stringify({
+      "@context": "http://schema.org",
+      "@type": "FAQPage",
+      mainEntity: questionsWithTitle.map(
+        ({
+          properties: {
+            [questionKey]: schemaQuestion,
+            [answerKey]: schemaAnswer,
+          },
+        }) => ({
+          "@type": "Question",
+          name: schemaQuestion,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: schemaAnswer ?? schemaQuestion,
+          },
+        }),
+      ),
+    });
+  }, [questionEntities]);
 
   return (
     <>
-      {/* <script
+      <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: schema }}
-      /> */}
+      />
       <ThemeProvider theme={theme}>
         <Box
           ref={blockRootRef}
