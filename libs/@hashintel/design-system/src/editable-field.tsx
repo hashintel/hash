@@ -74,6 +74,7 @@ export const EditableField = ({
         display: "flex",
         alignItems: "center",
         gap: 1.5,
+        width: 1,
       }}
     >
       <Box
