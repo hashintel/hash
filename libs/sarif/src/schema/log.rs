@@ -28,7 +28,7 @@ use crate::schema::{Run, SchemaVersion};
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize), serde(rename_all = "camelCase"))]
-pub struct SarifLog {
+pub struct SarifLog<'s> {
     /// The format version of the SARIF specification to which this log file conforms.
     ///
     /// See [SARIF specification §3.13.2](https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10540918)
@@ -64,8 +64,8 @@ pub struct SarifLog {
     /// The SARIF schema is available at <https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json>.
     ///
     /// [`version`]: [Self::version]
-    #[cfg_attr(feature = "serde", serde(rename = "$schema"))]
-    pub schema: Cow<'static, str>,
+    #[cfg_attr(feature = "serde", serde(rename = "$schema", borrow))]
+    pub schema: Cow<'s, str>,
 
     /// The set of runs contained in this log file.
     ///
@@ -89,20 +89,22 @@ pub struct SarifLog {
     ///    management system, and the query was malformed.
     ///
     /// See [SARIF specification §3.13.4](https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10540920)
-    pub runs: Option<Vec<Run>>,
+    #[cfg_attr(feature = "serde", serde(borrow, default))]
+    pub runs: Option<Vec<Run<'s>>>,
 }
 
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for SarifLog {
+impl<'s, 'de: 's> Deserialize<'de> for SarifLog<'s> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
-        struct OptionalSarifLog {
-            #[serde(default, rename = "$schema")]
-            schema: Option<Cow<'static, str>>,
+        struct OptionalSarifLog<'s> {
+            #[serde(borrow, default, rename = "$schema")]
+            schema: Option<Cow<'s, str>>,
             #[serde(default)]
             version: Option<SchemaVersion>,
-            runs: Option<Vec<Run>>,
+            #[serde(borrow, default)]
+            runs: Option<Vec<Run<'s>>>,
         }
 
         let log = OptionalSarifLog::deserialize(deserializer)?;
@@ -115,7 +117,7 @@ impl<'de> Deserialize<'de> for SarifLog {
     }
 }
 
-impl SarifLog {
+impl<'s> SarifLog<'s> {
     /// Creates a new SARIF log with the given schema version.
     ///
     /// Depending on the schema version, the `schema` field will be set to the corresponding schema
@@ -136,7 +138,7 @@ impl SarifLog {
         Self {
             schema: version.schema_id().into(),
             version,
-            runs: Some(Vec::new()),
+            runs: Some(vec![]),
         }
     }
 
@@ -154,7 +156,7 @@ impl SarifLog {
     /// assert_eq!(log.schema, "https://example.com/sarif-2.1.0.json");
     /// ```
     #[must_use]
-    pub fn with_schema_id(mut self, schema_id: impl Into<Cow<'static, str>>) -> Self {
+    pub fn with_schema_id(mut self, schema_id: impl Into<Cow<'s, str>>) -> Self {
         self.schema = schema_id.into();
         self
     }
@@ -172,7 +174,7 @@ impl SarifLog {
     /// assert_eq!(log.runs.unwrap().len(), 1);
     /// ```
     #[must_use]
-    pub fn with_run(mut self, run: Run) -> Self {
+    pub fn with_run(mut self, run: Run<'s>) -> Self {
         match self.runs {
             Some(ref mut runs) => runs.push(run),
             None => self.runs = Some(vec![run]),
@@ -195,7 +197,7 @@ impl SarifLog {
     /// assert_eq!(log.runs.unwrap().len(), 2);
     /// ```
     #[must_use]
-    pub fn with_runs(mut self, runs: impl IntoIterator<Item = Run>) -> Self {
+    pub fn with_runs(mut self, runs: impl IntoIterator<Item = Run<'s>>) -> Self {
         match self.runs {
             Some(ref mut existing_runs) => existing_runs.extend(runs),
             None => self.runs = Some(runs.into_iter().collect()),
@@ -204,8 +206,8 @@ impl SarifLog {
     }
 }
 
-impl Extend<Run> for SarifLog {
-    fn extend<T: IntoIterator<Item = Run>>(&mut self, iter: T) {
+impl<'s> Extend<Run<'s>> for SarifLog<'s> {
+    fn extend<T: IntoIterator<Item = Run<'s>>>(&mut self, iter: T) {
         match self.runs {
             Some(ref mut runs) => runs.extend(iter),
             None => self.runs = Some(iter.into_iter().collect()),
@@ -216,10 +218,16 @@ impl Extend<Run> for SarifLog {
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
+    use alloc::{borrow::Cow, vec};
+
     use coverage_helper::test;
+    use semver::Version;
+    use serde::Deserialize;
+    use serde_json::json;
 
     use crate::schema::{
-        tests::validate_schema, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+        tests::validate_schema, ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool,
+        ToolComponent,
     };
 
     #[test]
@@ -311,18 +319,11 @@ pub(crate) mod tests {
     fn full() {
         validate_schema(
             &SarifLog::new(SchemaVersion::V2_1_0).with_runs([
-                Run::new(
-                    Tool::new(ToolComponent::new("prettier").with_version("2.8.2"))
-                        .with_extension(
-                            ToolComponent::new("prettier-plugin-sql").with_version("0.12.1"),
-                        )
-                        .with_properties(|properties| {
-                            properties
-                                .with_tag("format")
-                                .with_property("language", "sql")
-                                .with_property("precision", "low")
-                        }),
-                ),
+                Run::new(Tool::new(
+                    ToolComponent::new("rustc")
+                        .with_semantic_version(Version::new(1, 70, 0))
+                        .with_rule(ReportingDescriptor::new("E0308").with_name("mismatched types")),
+                )),
                 Run::new(
                     Tool::new(
                         ToolComponent::new("rustfmt")
@@ -336,6 +337,46 @@ pub(crate) mod tests {
                     }),
                 ),
             ]),
+        );
+    }
+
+    #[test]
+    fn borrowed() {
+        let json = json!({
+            "version": "2.1.0",
+            "$schema": SchemaVersion::V2_1_0.schema_id(),
+            "runs": [{
+                "tool": {
+                    "driver": {
+                        "name": "clippy",
+                        "version": "0.1.0"
+                    }
+                }
+            }, {
+                "tool": {
+                    "driver": {
+                        "name": "rustfmt",
+                        "version": "0.1.0"
+                    }
+                }
+            }]
+        });
+        let log = SarifLog::deserialize(json).expect("failed to deserialize");
+        validate_schema(&log);
+        assert_eq!(log.schema, Cow::Borrowed(SchemaVersion::V2_1_0.schema_id()));
+        assert_eq!(
+            log.runs.as_ref().expect("no runs in log found")[0]
+                .tool
+                .driver
+                .name,
+            Cow::Borrowed("clippy")
+        );
+        assert_eq!(
+            log.runs.as_ref().expect("no runs in log found")[0]
+                .tool
+                .driver
+                .version,
+            Some(Cow::Borrowed("0.1.0"))
         );
     }
 }

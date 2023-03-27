@@ -1,0 +1,19 @@
+.wrapper {
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  font-family: var(--font-family);
+  width: 100%;
+  resize: none;
+  padding: 2px;
+  min-height: 19.5px;
+}
+
+.deleteButton {
+  font-size: 13px !important;
+  position: absolute;
+  right: 4px;
+  top: 4px;
+}

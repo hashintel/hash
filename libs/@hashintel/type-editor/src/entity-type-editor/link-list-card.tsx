@@ -2,7 +2,14 @@ import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
@@ -211,6 +218,8 @@ const InsertLinkField = (
   );
 };
 
+const linkDefaultValues = () => ({ name: "", description: "" });
+
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
   const {
@@ -285,6 +294,11 @@ export const LinkListCard = () => {
 
     handleAddEntityType(res.data.schema);
   };
+
+  const linkDirtyFields = useCallback(
+    () => (searchText ? { name: searchText } : {}),
+    [searchText],
+  );
 
   if (!addingNewLink && fields.length === 0) {
     return (
@@ -386,8 +400,8 @@ export const LinkListCard = () => {
                 }
                 onSubmit={handleSubmit}
                 submitButtonProps={{ children: <>Create new link</> }}
-                getDefaultValues={() =>
-                  searchText.length ? { name: searchText } : {}
+                getDefaultValues={linkDefaultValues}
+                  getDirtyFields={linkDirtyFields
                 }
               />
             </>

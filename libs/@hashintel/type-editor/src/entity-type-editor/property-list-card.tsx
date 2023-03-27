@@ -475,6 +475,13 @@ const InsertPropertyField = (
   );
 };
 
+const propertyDefaultValues = (): PropertyTypeFormValues => ({
+  expectedValues: [],
+  flattenedCustomExpectedValueList: {},
+  name: "",
+  description: "",
+});
+
 export const PropertyListCard = () => {
   const { control, getValues, setValue } =
     useFormContext<EntityTypeEditorFormData>();
@@ -552,6 +559,11 @@ export const PropertyListCard = () => {
 
     handleAddPropertyType(res.data.schema);
   };
+
+  const propertyDirtyFields = useCallback(
+    () => (searchText ? { name: searchText } : {}),
+    [searchText],
+  );
 
   if (!addingNewProperty && fields.length === 0) {
     return (
@@ -659,10 +671,9 @@ export const PropertyListCard = () => {
                 popupState={createModalPopupState}
                 onSubmit={handleSubmit}
                 submitButtonProps={{ children: <>Create new property type</> }}
-                getDefaultValues={() => ({
-                  expectedValues: [],
-                  ...(searchText.length ? { name: searchText } : {}),
-                })}
+                getDefaultValues={propertyDefaultValues}
+                  getDirtyFields={propertyDirtyFields
+                }
               />
             </>
           ) : (

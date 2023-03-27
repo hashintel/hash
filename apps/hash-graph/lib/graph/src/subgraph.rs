@@ -12,8 +12,6 @@ use std::{
     hash::Hash,
 };
 
-use error_stack::Result;
-
 use self::{
     edges::{Edges, GraphResolveDepths},
     identifier::GraphElementVertexId,
@@ -21,7 +19,7 @@ use self::{
     vertices::Vertices,
 };
 use crate::{
-    store::{crud::Read, QueryError, Record},
+    store::Record,
     subgraph::{
         edges::{EdgeDirection, EdgeKind},
         identifier::{EdgeEndpoint, VertexId},
@@ -97,38 +95,5 @@ impl Subgraph {
             direction,
             right_endpoint,
         );
-    }
-
-    /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it
-    /// if it is not yet in the subgraph.
-    ///
-    /// # Errors
-    ///
-    /// - Returns an error if the [`Record`] could not be read from the [`Store`].
-    ///
-    /// [`Store`]: crate::store::Store
-    pub async fn get_or_read<'r, R>(
-        &'r mut self,
-        store: &impl Read<R>,
-        vertex_id: &R::VertexId,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<&'r R, QueryError>
-    where
-        R: Record + 'r,
-        R::VertexId: Eq + Clone + Hash,
-    {
-        Ok(match self.vertex_entry_mut(vertex_id) {
-            RawEntryMut::Occupied(entry) => entry.into_mut(),
-            RawEntryMut::Vacant(entry) => {
-                entry
-                    .insert(
-                        vertex_id.clone(),
-                        store
-                            .read_one(&R::create_filter_for_vertex_id(vertex_id), temporal_axes)
-                            .await?,
-                    )
-                    .1
-            }
-        })
     }
 }
