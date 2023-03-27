@@ -13,7 +13,6 @@ profile := env_var_or_default('PROFILE', "dev")
 [private]
 clippy *arguments:
   @just install-cargo-hack
-  @just install-cargo-script
   @just in-pr cargo clippy --profile {{profile}} --workspace --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
