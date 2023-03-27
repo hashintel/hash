@@ -22,7 +22,7 @@ hyper = "0.14.25"
 mime = "0.3.16"
 postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
 postgres-protocol = "0.6.4"
-regex = "1.7.1"
+regex = "1.7.3"
 serde = { version = "1.0.158", features = ["derive"] }
 serde_json = "1.0.94"
 tokio = { version = "1.26.0", default-features = false }
