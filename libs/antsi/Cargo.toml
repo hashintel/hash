@@ -1,6 +1,6 @@
 [package]
 name = "antsi"
-version = "0.0.0-reserved"
+version = "0.0.0-reserved-test"
 authors = ["HASH"]
 edition = "2021"
 rust-version = "1.63.0"
