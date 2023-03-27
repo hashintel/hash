@@ -23,7 +23,8 @@ runs:
         if grep -q "${{ inputs.toolchain }}" rust-toolchain.toml; then
           rustup show
         else
-          rustup default "${{ inputs.toolchain }}"
+          export RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}
+          rustup default "$RUSTUP_TOOLCHAIN"
           rustup component add rustfmt
           rustup component add clippy
           rustup show
