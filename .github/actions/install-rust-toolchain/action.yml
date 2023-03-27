@@ -10,7 +10,9 @@ runs:
   using: "composite"
   steps:
     - name: "Install Rust"
+      env:
+        RUSTUP_TOOLCHAIN: ${{ inputs.toolchain }}
       run: |
-        rustup toolchain install ${{ inputs.toolchain }} --profile minimal --no-self-update
-        echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
+        rustup show
+        echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> $GITHUB_ENV
       shell: bash
