@@ -1,5 +1,4 @@
 use alloc::borrow::ToOwned;
-use core::ops::Range;
 
 use deer::{error::DeserializerError, Context, OptionalVisitor, Visitor};
 use error_stack::{Result, ResultExt};
@@ -22,13 +21,7 @@ macro_rules! forward {
 #[derive(Debug)]
 pub struct Deserializer<'a, 'de> {
     context: &'a Context,
-    tape: Tape<'a, 'de>,
-}
-
-impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) fn erase(&mut self, range: Range<usize>) {
-        self.tape.set_trivia(range);
-    }
+    tape: Tape<'de>,
 }
 
 impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
@@ -102,7 +95,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) const fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
+    pub(crate) const fn new_bare(tape: Tape<'de>, context: &'a Context) -> Self {
         Self { context, tape }
     }
 
@@ -122,11 +115,11 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) const fn tape(&self) -> &Tape<'a, 'de> {
+    pub(crate) const fn tape(&self) -> &Tape<'de> {
         &self.tape
     }
 
-    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'a, 'de> {
+    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'de> {
         &mut self.tape
     }
 
