@@ -401,8 +401,7 @@ export const LinkListCard = () => {
                 onSubmit={handleSubmit}
                 submitButtonProps={{ children: <>Create new link</> }}
                 getDefaultValues={linkDefaultValues}
-                  getDirtyFields={linkDirtyFields
-                }
+                getDirtyFields={linkDirtyFields}
               />
             </>
           ) : (

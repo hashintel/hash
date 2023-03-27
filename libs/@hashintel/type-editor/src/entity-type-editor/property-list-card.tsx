@@ -672,8 +672,7 @@ export const PropertyListCard = () => {
                 onSubmit={handleSubmit}
                 submitButtonProps={{ children: <>Create new property type</> }}
                 getDefaultValues={propertyDefaultValues}
-                  getDirtyFields={propertyDirtyFields
-                }
+                getDirtyFields={propertyDirtyFields}
               />
             </>
           ) : (
