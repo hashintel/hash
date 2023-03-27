@@ -46,7 +46,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
           minWidth: 0,
           minHeight: 0,
           paddingX: 0,
-          paddingY: readonly ? 0.5 : 2.125,
+          paddingY: readonly ? 0 : 2.125,
           mr: displayNumber || displayToggle ? 1.5 : 0,
           background: "none !important",
           fontSize: 12,
@@ -118,35 +118,39 @@ export const Question: FunctionComponent<QuestionProps> = ({
               lineHeight: 1,
               flexGrow: 1,
               color: ({ palette }) => palette.gray[90],
-              ...(readonly ? { paddingY: 0.5 } : {}),
             }}
             placeholder="Your frequently asked question goes here"
             readonly={readonly}
           />
 
-          <Fade in={deletable}>
-            <Button
-              variant="tertiary"
-              size="xs"
-              sx={({ palette }) => ({
-                paddingX: 1.25,
-                paddingY: 0.75,
-                height: 30,
-                minHeight: "unset",
-                minWidth: "unset",
-                background: "none !important",
-                borderWidth: 0,
-                borderRadius: 1.25,
-                color: palette.gray[70],
-                ":hover": {
-                  color: palette.red[70],
-                },
-              })}
-              onClick={onRemove}
-            >
-              <FontAwesomeIcon icon={{ icon: faTrash }} sx={{ fontSize: 12 }} />
-            </Button>
-          </Fade>
+          {!readonly ? (
+            <Fade in={deletable}>
+              <Button
+                variant="tertiary"
+                size="xs"
+                sx={({ palette }) => ({
+                  paddingX: 1.25,
+                  paddingY: 0.75,
+                  height: 30,
+                  minHeight: "unset",
+                  minWidth: "unset",
+                  background: "none !important",
+                  borderWidth: 0,
+                  borderRadius: 1.25,
+                  color: palette.gray[70],
+                  ":hover": {
+                    color: palette.red[70],
+                  },
+                })}
+                onClick={onRemove}
+              >
+                <FontAwesomeIcon
+                  icon={{ icon: faTrash }}
+                  sx={{ fontSize: 12 }}
+                />
+              </Button>
+            </Fade>
+          ) : null}
         </Box>
 
         <Collapse in={expanded || !displayToggle}>
