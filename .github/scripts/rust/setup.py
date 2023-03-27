@@ -256,9 +256,9 @@ def main():
 
     output_matrix("lint", github_output_file, changed_parent_crates)
     if IS_PULL_REQUEST_EVENT:
-        output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["dev"])
     else:
-        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "release"])
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["dev", "release"])
     output_matrix("coverage", github_output_file, coverage_crates)
     output_matrix(
         "publish",
