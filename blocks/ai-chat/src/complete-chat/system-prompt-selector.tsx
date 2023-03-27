@@ -35,6 +35,9 @@ export const systemPrompts = {
 
 export type SystemPromptId = keyof typeof systemPrompts;
 
+export const isSystemPromptId = (id: string): id is SystemPromptId =>
+  Object.keys(systemPrompts).includes(id);
+
 export const defaultSystemPromptId: SystemPromptId = "concise";
 
 enum SystemPromptGroupName {

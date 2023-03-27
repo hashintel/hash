@@ -1,4 +1,3 @@
-import { Entity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -6,13 +5,22 @@ import {
 import { theme } from "@hashintel/design-system";
 import { ThemeProvider } from "@mui/material";
 
-/** @todo: generate this somehow */
-type RootEntity = Entity<{}>;
+import { CompleteChat } from "./complete-chat";
+import { AIChatBlock } from "./types/generated/block-entity";
 
-export const App: BlockComponent<RootEntity> = ({
-  graph: { blockEntitySubgraph, readonly: _readonly },
+export const App: BlockComponent<AIChatBlock> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
-  const { rootEntity: _rootEntity } = useEntitySubgraph(blockEntitySubgraph);
+  const { rootEntity: aiChatBlockEntity } =
+    useEntitySubgraph(blockEntitySubgraph);
 
-  return <ThemeProvider theme={theme}>Hello World!</ThemeProvider>;
+  return (
+    <ThemeProvider theme={theme}>
+      {readonly ? (
+        <>READONLY</>
+      ) : (
+        <CompleteChat aiChatBlockEntity={aiChatBlockEntity} />
+      )}
+    </ThemeProvider>
+  );
 };

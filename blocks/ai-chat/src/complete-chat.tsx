@@ -1,3 +1,5 @@
+import { EntityId } from "@blockprotocol/graph/.";
+import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse } from "@mui/material";
 import {
@@ -13,12 +15,20 @@ import { ChatMessage } from "./complete-chat/chat-message";
 import {
   ChatModelId,
   defaultChatModelId,
+  isChatModelId,
 } from "./complete-chat/chat-model-selector";
 import { ChatTextField } from "./complete-chat/chat-textfield";
 import { ExamplePrompts } from "./complete-chat/example-prompts";
+import {
+  chatAIModelKey,
+  createAiChatRequestEntityMethod,
+  createAiChatResponseEntityMethod,
+  presetSystemPromptIdKey,
+} from "./complete-chat/graph";
 import { Header } from "./complete-chat/header";
 import {
   defaultSystemPromptId,
+  isSystemPromptId,
   SystemPromptId,
   systemPrompts,
 } from "./complete-chat/system-prompt-selector";
@@ -26,6 +36,7 @@ import {
   IncompleteOpenAiAssistantMessage,
   OpenAIChatMessage,
 } from "./complete-chat/types";
+import { AIChatBlock } from "./types/generated/block-entity";
 
 let requestCounter = 0;
 
@@ -44,6 +55,7 @@ const isIdResponseId = (id: RequestId | ResponseId): id is ResponseId =>
 
 type CompleteChatRequest = {
   id: RequestId;
+  entityId?: EntityId;
   message: OpenAIChatMessage<"user">;
   active: boolean;
   childResponseIds: ResponseId[];
@@ -51,10 +63,15 @@ type CompleteChatRequest = {
 
 type CompleteChatResponse = {
   id: ResponseId;
+  entityId?: EntityId;
   message: OpenAIChatMessage<"assistant"> | IncompleteOpenAiAssistantMessage;
   active: boolean;
   childRequestIds: RequestId[];
 };
+
+const isMessageCompleteChatResponse = (
+  message: CompleteChatRequest | CompleteChatResponse,
+): message is CompleteChatResponse => isIdResponseId(message.id);
 
 const constructMessageThread = (params: {
   currentRequest: CompleteChatRequest;
@@ -91,15 +108,38 @@ const constructMessageThread = (params: {
   ];
 };
 
-export const CompleteChat: FunctionComponent = () => {
+export const CompleteChat: FunctionComponent<{
+  aiChatBlockEntity: AIChatBlock;
+}> = ({ aiChatBlockEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
 
+  const {
+    metadata: {
+      recordId: { entityId: aiChatBlockEntityId },
+    },
+  } = aiChatBlockEntity;
+
   const { serviceModule } = useServiceBlockModule(blockRootRef);
+  const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const [chatModel, setChatModel] = useState<ChatModelId>(defaultChatModelId);
 
+  const aiChatBlockEntityPresetSystemPromptId = useMemo<
+    SystemPromptId | undefined
+  >(() => {
+    const value = aiChatBlockEntity.properties[presetSystemPromptIdKey];
+
+    return value && isSystemPromptId(value) ? value : undefined;
+  }, [aiChatBlockEntity]);
+
+  const aiChatBlockEntityChatAiModel = useMemo<ChatModelId | undefined>(() => {
+    const value = aiChatBlockEntity.properties[chatAIModelKey];
+
+    return value && isChatModelId(value) ? value : undefined;
+  }, [aiChatBlockEntity]);
+
   const [systemPromptId, setSystemPromptId] = useState<SystemPromptId>(
-    defaultSystemPromptId,
+    aiChatBlockEntityPresetSystemPromptId ?? defaultSystemPromptId,
   );
 
   const systemPrompt = useMemo<OpenAIChatMessage<"system">>(
@@ -132,6 +172,82 @@ export const CompleteChat: FunctionComponent = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
 
+  const updateAiChatBlockEntity = useCallback(
+    async (params: {
+      updatedProperties: Partial<AIChatBlock["properties"]>;
+    }) => {
+      const { updatedProperties } = params;
+
+      const { errors } = await graphModule.updateEntity({
+        data: {
+          entityId: aiChatBlockEntity.metadata.recordId.entityId,
+          entityTypeId: aiChatBlockEntity.metadata.entityTypeId,
+          properties: { ...aiChatBlockEntity.properties, ...updatedProperties },
+        },
+      });
+
+      if (errors) {
+        /** @todo: handle errors */
+      }
+    },
+    [aiChatBlockEntity, graphModule],
+  );
+
+  if (aiChatBlockEntityPresetSystemPromptId !== systemPromptId) {
+    void updateAiChatBlockEntity({
+      updatedProperties: { [presetSystemPromptIdKey]: systemPromptId },
+    });
+  }
+
+  if (aiChatBlockEntityChatAiModel !== chatModel) {
+    void updateAiChatBlockEntity({
+      updatedProperties: { [chatAIModelKey]: chatModel },
+    });
+  }
+
+  const updateOrAddChatMessage = useCallback(
+    (message: CompleteChatRequest | CompleteChatResponse) =>
+      isMessageCompleteChatResponse(message)
+        ? setCompleteChatResponses((previousResponses) => {
+            const existingResponseIndex = previousResponses.findIndex(
+              ({ id }) => id === message.id,
+            );
+
+            return existingResponseIndex === -1
+              ? [...previousResponses, message]
+              : [
+                  ...previousResponses.slice(0, existingResponseIndex),
+                  message,
+                  ...previousResponses.slice(existingResponseIndex + 1),
+                ];
+          })
+        : setCompleteChatRequests((previousRequests) => {
+            const existingRequestIndex = previousRequests.findIndex(
+              ({ id }) => id === message.id,
+            );
+
+            return existingRequestIndex === -1
+              ? [...previousRequests, message]
+              : [
+                  ...previousRequests.slice(0, existingRequestIndex),
+                  message,
+                  ...previousRequests.slice(existingRequestIndex + 1),
+                ];
+          }),
+    [setCompleteChatResponses, setCompleteChatRequests],
+  );
+
+  const createAiChatRequestEntity = useMemo(
+    () => createAiChatRequestEntityMethod({ graphModule, aiChatBlockEntityId }),
+    [graphModule, aiChatBlockEntityId],
+  );
+
+  const createAiChatResponseEntity = useMemo(
+    () =>
+      createAiChatResponseEntityMethod({ graphModule, aiChatBlockEntityId }),
+    [graphModule, aiChatBlockEntityId],
+  );
+
   const submitUserMessage = useCallback(
     async (params: {
       previousResponseId?: ResponseId;
@@ -149,6 +265,24 @@ export const CompleteChat: FunctionComponent = () => {
         childResponseIds: [responseId],
       };
 
+      const previousResponse = completeChatResponses.find(
+        ({ id }) => id === previousResponseId,
+      );
+
+      if (previousResponse && !previousResponse.entityId) {
+        throw new Error("Previous response does not have an entity ID");
+      }
+
+      /**
+       * Intentionally don't `await` the promise so that calling the `completeChat`
+       * method isn't delayed
+       */
+      const promisedAiChatRequestEntity = createAiChatRequestEntity({
+        parentResponseEntityId: previousResponse?.entityId,
+        messageContent: userMessage.content,
+        active: true,
+      });
+
       const response: CompleteChatResponse = {
         id: responseId,
         message: { role: "assistant" },
@@ -160,10 +294,6 @@ export const CompleteChat: FunctionComponent = () => {
         ...previousRequests,
         request,
       ]);
-
-      if (!rootChatRequestId) {
-        setRootChatRequestId(requestId);
-      }
 
       if (previousResponseId) {
         setCompleteChatResponses((previousResponses) => {
@@ -187,6 +317,8 @@ export const CompleteChat: FunctionComponent = () => {
             ...previousResponses.slice(previousResponseIndex + 1),
           ];
         });
+      } else {
+        setRootChatRequestId(requestId);
       }
 
       setTimeout(() => {
@@ -231,33 +363,37 @@ export const CompleteChat: FunctionComponent = () => {
         const firstChoiceMessage = firstChoice?.message;
 
         if (firstChoiceMessage) {
-          setCompleteChatResponses((previousResponses) => {
-            const existingResponseIndex = previousResponses.findIndex(
-              ({ id }) => id === responseId,
-            );
+          response.message =
+            firstChoiceMessage as OpenAIChatMessage<"assistant">;
 
-            if (existingResponseIndex === -1) {
-              return [
-                ...previousResponses,
-                {
-                  ...response,
-                  message: firstChoiceMessage as OpenAIChatMessage<"assistant">,
-                },
-              ];
-            }
-            return [
-              ...previousResponses.slice(0, existingResponseIndex),
-              {
-                ...response,
-                message: firstChoiceMessage as OpenAIChatMessage<"assistant">,
-              },
-              ...previousResponses.slice(existingResponseIndex + 1),
-            ];
+          updateOrAddChatMessage(response);
+
+          const aiChatRequestEntity = await promisedAiChatRequestEntity;
+          const aiChatResponseEntity = await createAiChatResponseEntity({
+            parentRequestEntityId:
+              aiChatRequestEntity.metadata.recordId.entityId,
+            messageContent: firstChoiceMessage.content,
+            active: true,
           });
+
+          request.entityId = aiChatRequestEntity.metadata.recordId.entityId;
+          response.entityId = aiChatResponseEntity.metadata.recordId.entityId;
+
+          updateOrAddChatMessage(request);
+          updateOrAddChatMessage(response);
         }
       }
     },
-    [chatModel, serviceModule, systemPrompt, messageThread, rootChatRequestId],
+    [
+      chatModel,
+      serviceModule,
+      systemPrompt,
+      messageThread,
+      completeChatResponses,
+      updateOrAddChatMessage,
+      createAiChatRequestEntity,
+      createAiChatResponseEntity,
+    ],
   );
 
   const chatHasStarted = completeChatRequests.length > 0;

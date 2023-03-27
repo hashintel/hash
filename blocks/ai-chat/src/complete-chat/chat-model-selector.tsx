@@ -11,6 +11,9 @@ export const chatModels = ["gpt-3.5-turbo"] as const;
 
 export type ChatModelId = (typeof chatModels)[number];
 
+export const isChatModelId = (value: string): value is ChatModelId =>
+  chatModels.includes(value as ChatModelId);
+
 export const defaultChatModelId: ChatModelId = "gpt-3.5-turbo";
 
 enum ModelGroupName {
