@@ -1,0 +1,33 @@
+.wrapper {
+  cursor: pointer;
+  padding: 10px;
+  gap: 10px;
+
+  background: white;
+
+  border: 1px solid #dde7f0;
+
+  box-shadow: var(--shadow-1);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  &.showHandCursor {
+    cursor: grabbing;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .wrapper {
+    &:hover button {
+      display: block;
+    }
+
+    button {
+      display: none;
+    }
+  }
+}

@@ -518,7 +518,7 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::UpdatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::RecordCreatedById)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);

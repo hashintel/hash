@@ -4,8 +4,8 @@ use crate::{
     knowledge::{Entity, EntityQueryPath},
     store::postgres::query::{
         table::{
-            Column, Entities, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity, JsonField,
-            ReferenceTable, Relation,
+            Column, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity,
+            EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
         },
         PostgresQueryPath, PostgresRecord, Table,
     },
@@ -14,7 +14,7 @@ use crate::{
 
 impl PostgresRecord for Entity {
     fn base_table() -> Table {
-        Table::Entities
+        Table::EntityTemporalMetadata
     }
 }
 
@@ -29,7 +29,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Properties(_)
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
-            | Self::UpdatedById
+            | Self::RecordCreatedById
             | Self::Archived => vec![Relation::EntityEditions],
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -79,13 +79,17 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::Uuid => Column::Entities(Entities::EntityUuid),
-            Self::EditionId => Column::Entities(Entities::EditionId),
-            Self::DecisionTime => Column::Entities(Entities::DecisionTime),
-            Self::TransactionTime => Column::Entities(Entities::TransactionTime),
+            Self::Uuid => Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+            Self::EditionId => Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+            Self::DecisionTime => {
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime)
+            }
+            Self::TransactionTime => {
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
+            }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
-            Self::OwnedById => Column::Entities(Entities::OwnedById),
-            Self::UpdatedById => Column::EntityEditions(EntityEditions::UpdatedById),
+            Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+            Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,

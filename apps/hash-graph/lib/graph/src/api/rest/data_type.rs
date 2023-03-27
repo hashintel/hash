@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,7 @@ use utoipa::{OpenApi, ToSchema};
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{
+        json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
     },
@@ -20,8 +21,11 @@ use crate::{
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
         OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUrlAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    store::{
+        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
+        StorePool,
+    },
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
 
@@ -67,7 +71,7 @@ struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -132,7 +136,10 @@ async fn create_data_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_data_types(data_types.into_iter().zip(metadata.iter()))
+        .create_data_types(
+            data_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             // TODO: consider adding the data type, or at least its URL in the trace
@@ -202,7 +209,7 @@ struct UpdateDataTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

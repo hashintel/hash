@@ -1,29 +1,37 @@
 //! Web routes for CRU operations on Entity types.
 
-use std::sync::Arc;
+use std::{collections::hash_map, sync::Arc};
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
-use error_stack::IntoReport;
+use axum::{http::StatusCode, response::Response, routing::post, Extension, Router};
 use futures::TryFutureExt;
+use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    EntityType, ParseEntityTypeError,
+};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::rest::{
-        api_resource::RoutedResource,
-        report_to_status_code,
-        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
+    api::{
+        error::{ErrorInfo, Status, StatusPayloads},
+        rest::{
+            api_resource::RoutedResource,
+            json::Json,
+            report_to_status_code,
+            status::status_to_response,
+            utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
+        },
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
         OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist},
-        EntityTypeStore, StorePool,
+        ConflictBehavior, EntityTypeStore, StorePool,
     },
     subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
 };
@@ -73,7 +81,7 @@ struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -83,10 +91,10 @@ struct CreateEntityTypeRequest {
     tag = "EntityType",
     responses(
         (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfOntologyElementMetadata),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
 
-        (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
-        (status = 500, description = "Store error occurred"),
+        (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
+        (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
     request_body = CreateEntityTypeRequest,
 )]
@@ -95,7 +103,9 @@ async fn create_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode> {
+    // TODO: We want to be able to return `Status` here we should try and create a general way to
+    //  call `status_to_response` for our routes that return Status
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response> {
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
@@ -109,17 +119,44 @@ async fn create_entity_type<P: StorePool + Send>(
     let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
     for schema in schema_iter {
-        let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
-            tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
-            // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
-            StatusCode::UNPROCESSABLE_ENTITY
-            // TODO - We should probably return more information to the client
-            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        let entity_type: EntityType = schema.try_into().map_err(|err: ParseEntityTypeError| {
+            tracing::error!(error=?err, "Provided schema wasn't a valid entity type");
+            status_to_response(Status::new(
+                hash_status::StatusCode::InvalidArgument,
+                Some("Provided schema wasn't a valid entity type.".to_owned()),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    HashMap::from([(
+                        "validationError".to_owned(),
+                        serde_json::to_value(err)
+                            .expect("Could not serialize entity type validation error"),
+                    )]),
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
+                    //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                    //  or perhaps as a big enum, or as an attachment
+                    "INVALID_SCHEMA".to_owned(),
+                ))],
+            ))
         })?;
 
         domain_validator.validate(&entity_type).map_err(|report| {
             tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
-            StatusCode::UNPROCESSABLE_ENTITY
+            status_to_response(Status::new(
+            hash_status::StatusCode::InvalidArgument,
+            Some("Entity Type ID failed to validate against the given domain regex. Are you sure the service is able to host a type under the domain you supplied?".to_owned()),
+            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                HashMap::from([
+                    (
+                        "entityTypeId".to_owned(),
+                        serde_json::to_value(entity_type.id().to_string())
+                            .expect("Could not serialize entity type id"),
+                    ),
+                ]),
+                // TODO: We should encapsulate these Reasons within the type system, perhaps
+                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                //  or perhaps as a big enum
+                "INVALID_TYPE_ID".to_owned()
+            ))],
+        ))
         })?;
 
         metadata.push(OntologyElementMetadata::Owned(
@@ -135,21 +172,82 @@ async fn create_entity_type<P: StorePool + Send>(
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
+        status_to_response(Status::new(
+            hash_status::StatusCode::Internal,
+            Some(
+                "Could not acquire store. This is an internal error, please report to the \
+                 developers of the HASH Graph with whatever information you can provide including \
+                 request details and logs."
+                    .to_owned(),
+            ),
+            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                // TODO: add information from the report here
+                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
+                HashMap::new(),
+                // TODO: We should encapsulate these Reasons within the type system, perhaps
+                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                //  or perhaps as a big enum, or as an attachment
+                "STORE_ACQUISITION_FAILURE".to_owned(),
+            ))],
+        ))
     })?;
 
     store
-        .create_entity_types(entity_types.into_iter().zip(metadata.iter()))
+        .create_entity_types(
+            entity_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity types");
 
             if report.contains::<BaseUrlAlreadyExists>() {
-                return StatusCode::CONFLICT;
+                let metadata =
+                    report
+                        .request_ref::<BaseUrl>()
+                        .next()
+                        .map_or_else(HashMap::new, |base_url| {
+                            let base_url = base_url.to_string();
+                            HashMap::from([(
+                                "baseUrl".to_owned(),
+                                serde_json::to_value(base_url)
+                                    .expect("Could not serialize base url"),
+                            )])
+                        });
+
+                return status_to_response(Status::new(
+                    hash_status::StatusCode::AlreadyExists,
+                    Some(
+                        "Could not create entity type as the base URI already existed, perhaps \
+                         you intended to call `updateEntityType` instead?"
+                            .to_owned(),
+                    ),
+                    vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                        metadata,
+                        // TODO: We should encapsulate these Reasons within the type system,
+                        //  perhaps requiring top level contexts to implement a trait
+                        //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
+                        "BASE_URI_ALREADY_EXISTS".to_owned(),
+                    ))],
+                ));
             }
 
             // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
+            status_to_response(Status::new(
+                hash_status::StatusCode::Internal,
+                Some(
+                    "Internal error, please report to the developers of the HASH Graph with \
+                     whatever information you can provide including request details and logs."
+                        .to_owned(),
+                ),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    HashMap::new(),
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
+                    //  requiring top level contexts to implement a trait
+                    //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
+                    "INTERNAL".to_owned(),
+                ))],
+            ))
         })?;
 
     if is_list {
@@ -210,7 +308,7 @@ struct UpdateEntityTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

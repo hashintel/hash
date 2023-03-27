@@ -61,10 +61,10 @@ pub trait OntologyQueryPath {
     /// Returns the path identifying the transaction time.
     fn transaction_time() -> Self;
 
-    /// Returns the path identifying the [`UpdatedById`].
+    /// Returns the path identifying the [`RecordCreatedById`].
     ///
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
-    fn updated_by_id() -> Self;
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
+    fn record_created_by_id() -> Self;
 
     /// Returns the path identifying the schema.
     fn schema() -> Self;

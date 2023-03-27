@@ -6,7 +6,6 @@
       "dependsOn": ["codegen"]
     },
     "codegen": {
-      "cache": false,
       "outputs": ["./src/**/*.gen.*"]
     },
     "fix:eslint": {
@@ -18,6 +17,11 @@
     },
     "lint:tsc": {
       "outputs": []
+    },
+    "@apps/hash-graph#build": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": ["target/**"]
     }
   }
 }
