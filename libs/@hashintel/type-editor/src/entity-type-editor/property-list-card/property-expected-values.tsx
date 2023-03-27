@@ -1,5 +1,9 @@
 import { PropertyType } from "@blockprotocol/type-system/slim";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Chip,
+  fluidFontClassName,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 
@@ -51,6 +55,7 @@ export const PropertyExpectedValues = ({
               key={index}
               title={childrenTitles.join(", ")}
               placement="top"
+              classes={{ popper: fluidFontClassName }}
             >
               <Chip
                 onClick={() => {

@@ -1,7 +1,11 @@
 import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Chip,
+  fluidFontClassName,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   Checkbox,
@@ -245,7 +249,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                 }}
               >
                 ALLOW MULTIPLE
-                <Tooltip title="Allow multiple values" placement="top">
+                <Tooltip
+                  title="Allow multiple values"
+                  placement="top"
+                  classes={{ popper: fluidFontClassName }}
+                >
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     sx={{
