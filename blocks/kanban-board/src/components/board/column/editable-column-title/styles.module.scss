@@ -1,0 +1,16 @@
+.wrapper {
+  flex: 1;
+  font-weight: 600;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-family: var(--font-family);
+  padding: 0;
+  line-height: 1.5;
+
+  text-align: start;
+
+  overflow-x: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

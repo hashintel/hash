@@ -8,8 +8,8 @@ use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, query::Filter, AsClient, InsertionError,
-        PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, query::Filter, AsClient, ConflictBehavior,
+        InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -134,16 +134,19 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
         for (schema, metadata) in property_types {
-            let ontology_id = transaction
-                .create(schema.clone(), metadata.borrow())
-                .await?;
-            inserted_property_types.push((ontology_id, schema));
+            if let Some(ontology_id) = transaction
+                .create(schema.clone(), metadata.borrow(), on_conflict)
+                .await?
+            {
+                inserted_property_types.push((ontology_id, schema));
+            }
         }
 
         for (ontology_id, schema) in inserted_property_types {

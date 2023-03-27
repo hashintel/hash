@@ -74,8 +74,8 @@ services:
       telemetry-collector:
         condition: service_healthy
     build: &graph-build
-      dockerfile: docker/Dockerfile
-      context: ../../apps/hash-graph
+      dockerfile: apps/hash-graph/docker/Dockerfile
+      context: ../../
       args:
         PROFILE: dev
         TYPE_FETCHER: no

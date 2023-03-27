@@ -1,5 +1,5 @@
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, BoxProps, styled, Tooltip } from "@mui/material";
 import { ComponentProps, ReactNode } from "react";
 
@@ -31,6 +31,7 @@ export const QuestionIcon = ({
           },
         ],
       }}
+      classes={{ popper: fluidFontClassName }}
     >
       <Box display="inline" {...props}>
         <StyledQuestionIcon />
