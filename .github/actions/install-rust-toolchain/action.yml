@@ -9,27 +9,25 @@ inputs:
     description: "Working directory to run the action in"
     required: false
     default: "."
-  components:
-    description: "Rust components to install"
-    required: false
-    default: ""
 
 runs:
   using: "composite"
   steps:
     - name: "Install Rust"
-      env:
-        RUSTUP_TOOLCHAIN: ${{ inputs.toolchain }}
       working-directory: ${{ inputs.working-directory }}
       run: |
         rustup set profile minimal
-        rustup show
 
-        # Split the list of components by a comma and call `rustup component add` for each component
-        IFS=',' read -ra components <<< "${{ inputs.components }}"
-        for component in "${components[@]}"; do
-          rustup component add "$component"
-        done
+        # If the toolchain does match `rust-toolchain.toml` we can rely on `rustup show` to install the toolchain. If it
+        # does not match, we need to install the toolchain manually.
+        if grep -q "${{ inputs.toolchain }}" rust-toolchain.toml; then
+          rustup show
+        else
+          rustup toolchain install "${{ inputs.toolchain }}"
+          rustup component add rustfmt
+          rustup component add clippy
+          rustup show
+        fi
 
-        echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> $GITHUB_ENV
+        echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
       shell: bash
