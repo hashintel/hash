@@ -89,7 +89,7 @@ pub struct SarifLog<'s> {
     ///    management system, and the query was malformed.
     ///
     /// See [SARIF specification §3.13.4](https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10540920)
-    #[cfg_attr(feature = "serde", serde(default, borrow))]
+    #[cfg_attr(feature = "serde", serde(borrow, default))]
     pub runs: Option<Vec<Run<'s>>>,
 }
 
@@ -99,11 +99,11 @@ impl<'s, 'de: 's> Deserialize<'de> for SarifLog<'s> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct OptionalSarifLog<'s> {
-            #[serde(default, borrow, rename = "$schema")]
+            #[serde(borrow, default, rename = "$schema")]
             schema: Option<Cow<'s, str>>,
             #[serde(default)]
             version: Option<SchemaVersion>,
-            #[serde(default, borrow)]
+            #[serde(borrow, default)]
             runs: Option<Vec<Run<'s>>>,
         }
 
@@ -221,11 +221,13 @@ pub(crate) mod tests {
     use alloc::{borrow::Cow, vec};
 
     use coverage_helper::test;
+    use semver::Version;
     use serde::Deserialize;
     use serde_json::json;
 
     use crate::schema::{
-        tests::validate_schema, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+        tests::validate_schema, ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool,
+        ToolComponent,
     };
 
     #[test]
@@ -317,18 +319,11 @@ pub(crate) mod tests {
     fn full() {
         validate_schema(
             &SarifLog::new(SchemaVersion::V2_1_0).with_runs([
-                Run::new(
-                    Tool::new(ToolComponent::new("prettier").with_version("2.8.2"))
-                        .with_extension(
-                            ToolComponent::new("prettier-plugin-sql").with_version("0.12.1"),
-                        )
-                        .with_properties(|properties| {
-                            properties
-                                .with_tag("format")
-                                .with_property("language", "sql")
-                                .with_property("precision", "low")
-                        }),
-                ),
+                Run::new(Tool::new(
+                    ToolComponent::new("rustc")
+                        .with_semantic_version(Version::new(1, 70, 0))
+                        .with_rule(ReportingDescriptor::new("E0308").with_name("mismatched types")),
+                )),
                 Run::new(
                     Tool::new(
                         ToolComponent::new("rustfmt")

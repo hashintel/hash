@@ -685,7 +685,6 @@ export const App: BlockComponent<RootEntity> = ({
                 <Collapse
                   in={shouldDisplayCard && !animatingOut && !suggestionsError}
                   onEntered={() => setAnimatingIn(null)}
-                  onExited={() => resetBlock()}
                 >
                   {displayFullAddress ? (
                     <AddressCard
@@ -699,6 +698,9 @@ export const App: BlockComponent<RootEntity> = ({
                       readonly={readonly}
                       onClose={() => {
                         setAnimatingOut(true);
+                        setTimeout(() => {
+                          void resetBlock();
+                        }, 300);
                       }}
                       updateTitle={updateTitle}
                       updateDescription={updateDescription}

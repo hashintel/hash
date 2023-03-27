@@ -1,7 +1,9 @@
 //! The JSON schema of the SARIF log file format as a Rust module.
 
 mod log;
+mod multiformat_message_string;
 mod properties;
+mod reporting_descriptor;
 mod run;
 mod tool;
 
@@ -10,7 +12,9 @@ use serde::{Deserialize, Serialize};
 
 pub use self::{
     log::SarifLog,
+    multiformat_message_string::MultiformatMessageString,
     properties::PropertyBag,
+    reporting_descriptor::ReportingDescriptor,
     run::Run,
     tool::{Tool, ToolComponent},
 };
