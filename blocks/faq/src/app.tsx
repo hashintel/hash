@@ -23,7 +23,6 @@ import {
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SizeMe } from "react-sizeme";
 import { v4 as uuid } from "uuid";
 
 import { Question } from "./question";
@@ -256,233 +255,217 @@ export const App: BlockComponent<RootEntity> = ({
         dangerouslySetInnerHTML={{ __html: schema }}
       /> */}
       <ThemeProvider theme={theme}>
-        <SizeMe>
-          {({ size }) => {
-            const isMobile = (size.width ?? 0) < 800;
-
-            return (
+        <Box
+          ref={blockRootRef}
+          sx={{ display: "inline-block", width: 1 }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          {!readonly ? (
+            <Fade in={hovered}>
               <Box
-                ref={blockRootRef}
-                sx={{ display: "inline-block", width: 1 }}
-                onMouseEnter={() => setHovered(true)}
-                onMouseLeave={() => setHovered(false)}
+                sx={{
+                  display: "flex",
+                  columnGap: 3,
+                  rowGap: 1,
+                  flexWrap: "wrap",
+                  mb: 1.5,
+                }}
               >
-                {!readonly ? (
-                  <Fade in={hovered}>
-                    <Box
+                <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
+
+                <Box display="flex" flexWrap="wrap" rowGap={1} columnGap={3}>
+                  <Box display="flex" gap={1}>
+                    <Typography
                       sx={{
-                        display: "flex",
-                        columnGap: 3,
-                        rowGap: 1,
-                        flexWrap: "wrap",
-                        mb: 1.5,
+                        fontWeight: 500,
+                        fontSize: 15,
+                        lineHeight: 1,
+                        color: ({ palette }) => palette.gray[50],
                       }}
                     >
-                      <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
-
-                      <Box
-                        display="flex"
-                        flexWrap="wrap"
-                        rowGap={1}
-                        columnGap={3}
-                      >
-                        <Box display="flex" gap={1}>
-                          <Typography
-                            sx={{
-                              fontWeight: 500,
-                              fontSize: 15,
-                              lineHeight: 1,
-                              color: ({ palette }) => palette.gray[50],
-                            }}
-                          >
-                            Show numbers?
-                          </Typography>
-                          <Switch
-                            size="small"
-                            checked={displayNumbers}
-                            onChange={(event) => {
-                              setDisplayNumbers(event.target.checked);
-                              void updateField(
-                                event.target.checked,
-                                shouldDisplayQuestionNumbersKey,
-                              );
-                            }}
-                          />
-                        </Box>
-
-                        <Box display="flex" gap={1}>
-                          <Typography
-                            sx={{
-                              fontWeight: 500,
-                              fontSize: 15,
-                              lineHeight: 1,
-                              color: ({ palette }) => palette.gray[50],
-                            }}
-                          >
-                            Show toggles?
-                          </Typography>
-                          <Switch
-                            size="small"
-                            checked={displayToggles}
-                            onChange={(event) => {
-                              setDisplayToggles(event.target.checked);
-                              void updateField(
-                                event.target.checked,
-                                shouldDisplayQuestionTogglesKey,
-                              );
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Fade>
-                ) : null}
-
-                <Card
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3,
-                    ...(!readonly
-                      ? {
-                          border: ({ palette }) =>
-                            `1px solid ${palette.gray[20]}`,
-                          borderRadius: 2.5,
-                          boxShadow: "none",
-                          paddingY: 3,
-                          paddingX: 3.75,
-                        }
-                      : {
-                          background: "none",
-                          boxShadow: "none",
-                        }),
-                  }}
-                >
-                  {title || description || !readonly ? (
-                    <Stack
-                      sx={{
-                        gap: 1.5,
+                      Show numbers?
+                    </Typography>
+                    <Switch
+                      size="small"
+                      checked={displayNumbers}
+                      onChange={(event) => {
+                        setDisplayNumbers(event.target.checked);
+                        void updateField(
+                          event.target.checked,
+                          shouldDisplayQuestionNumbersKey,
+                        );
                       }}
-                    >
-                      <EditableField
-                        value={titleValue}
-                        onChange={(event) => {
-                          if (!readonly) {
-                            setTitleValue(event.target.value);
-                          }
-                        }}
-                        onBlur={(event) =>
-                          updateField(event.target.value, titleKey)
-                        }
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 21,
-                          lineHeight: 1,
-                          letterSpacing: "-0.02em",
-                          color: theme.palette.common.black,
-                        }}
-                        placeholder="Enter an optional FAQ section title"
-                        readonly={readonly}
-                      />
-
-                      <EditableField
-                        editIconFontSize={14}
-                        value={descriptionValue}
-                        onChange={(event) => {
-                          if (!readonly) {
-                            setDescriptionValue(event.target.value);
-                          }
-                        }}
-                        onBlur={(event) => {
-                          void updateField(event.target.value, descriptionKey);
-                        }}
-                        sx={{
-                          fontWeight: 500,
-                          fontSize: 14,
-                          lineHeight: 1.3,
-                          letterSpacing: "-0.02em",
-                          color: theme.palette.gray[90],
-                        }}
-                        placeholder="Enter an optional description/introduction"
-                        placeholderSx={{
-                          fontStyle: "italic",
-                        }}
-                        readonly={readonly}
-                      />
-                    </Stack>
-                  ) : null}
-
-                  <Box>
-                    {questions.map((question, index) => (
-                      <Collapse
-                        key={question.id}
-                        in={!question.animatingOut}
-                        onExited={async () => {
-                          const newQuestions = [...questions];
-                          newQuestions.splice(index, 1);
-                          setQuestions(newQuestions);
-
-                          const questionLink =
-                            questionLinkedEntities[index]?.linkEntity;
-
-                          if (!questionLink) {
-                            return;
-                          }
-
-                          await graphModule.deleteEntity({
-                            data: {
-                              entityId: questionLink.metadata.recordId.entityId,
-                            },
-                          });
-                        }}
-                        appear
-                      >
-                        <Box
-                          sx={{
-                            mb: index === questions.length - 1 ? 0 : 3,
-                            transition: ({ transitions }) =>
-                              transitions.create("margin-bottom"),
-                          }}
-                        >
-                          <Question
-                            index={index + 1}
-                            question={question.properties[questionKey]}
-                            answer={question.properties[answerKey]}
-                            updateField={(value, field) =>
-                              updateQuestionField(index, value, field)
-                            }
-                            onRemove={() => removeQuestion(index)}
-                            readonly={readonly}
-                            deletable={questionEntities.length > 1}
-                            displayNumber={displayNumbers}
-                            displayToggle={displayToggles}
-                          />
-                        </Box>
-                      </Collapse>
-                    ))}
+                    />
                   </Box>
 
-                  {!readonly ? (
-                    <Box>
-                      <Button
-                        variant="tertiary"
-                        size="small"
-                        sx={{ fontSize: 14 }}
-                        onClick={addQuestion}
-                      >
-                        <FontAwesomeIcon
-                          icon={{ icon: faPlus }}
-                          sx={{ mr: 1, fontSize: 13 }}
-                        />
-                        Add a question
-                      </Button>
-                    </Box>
-                  ) : null}
-                </Card>
+                  <Box display="flex" gap={1}>
+                    <Typography
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: 15,
+                        lineHeight: 1,
+                        color: ({ palette }) => palette.gray[50],
+                      }}
+                    >
+                      Show toggles?
+                    </Typography>
+                    <Switch
+                      size="small"
+                      checked={displayToggles}
+                      onChange={(event) => {
+                        setDisplayToggles(event.target.checked);
+                        void updateField(
+                          event.target.checked,
+                          shouldDisplayQuestionTogglesKey,
+                        );
+                      }}
+                    />
+                  </Box>
+                </Box>
               </Box>
-            );
-          }}
-        </SizeMe>
+            </Fade>
+          ) : null}
+
+          <Card
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+              ...(!readonly
+                ? {
+                    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                    borderRadius: 2.5,
+                    boxShadow: "none",
+                    paddingY: 3,
+                    paddingX: 3.75,
+                  }
+                : {
+                    background: "none",
+                    boxShadow: "none",
+                  }),
+            }}
+          >
+            {title || description || !readonly ? (
+              <Stack
+                sx={{
+                  gap: 1.5,
+                }}
+              >
+                <EditableField
+                  value={titleValue}
+                  onChange={(event) => {
+                    if (!readonly) {
+                      setTitleValue(event.target.value);
+                    }
+                  }}
+                  onBlur={(event) => updateField(event.target.value, titleKey)}
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: 21,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
+                    color: theme.palette.common.black,
+                  }}
+                  placeholder="Enter an optional FAQ section title"
+                  readonly={readonly}
+                />
+
+                <EditableField
+                  editIconFontSize={14}
+                  value={descriptionValue}
+                  onChange={(event) => {
+                    if (!readonly) {
+                      setDescriptionValue(event.target.value);
+                    }
+                  }}
+                  onBlur={(event) => {
+                    void updateField(event.target.value, descriptionKey);
+                  }}
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: 14,
+                    lineHeight: 1.3,
+                    letterSpacing: "-0.02em",
+                    color: theme.palette.gray[90],
+                  }}
+                  placeholder="Enter an optional description/introduction"
+                  placeholderSx={{
+                    fontStyle: "italic",
+                  }}
+                  readonly={readonly}
+                />
+              </Stack>
+            ) : null}
+
+            <Box>
+              {questions.map((question, index) => (
+                <Collapse
+                  key={question.id}
+                  in={!question.animatingOut}
+                  onExited={async () => {
+                    const newQuestions = [...questions];
+                    newQuestions.splice(index, 1);
+                    setQuestions(newQuestions);
+
+                    const questionLink =
+                      questionLinkedEntities[index]?.linkEntity;
+
+                    if (!questionLink) {
+                      return;
+                    }
+
+                    await graphModule.deleteEntity({
+                      data: {
+                        entityId: questionLink.metadata.recordId.entityId,
+                      },
+                    });
+                  }}
+                  appear
+                >
+                  <Box
+                    sx={{
+                      mb: index === questions.length - 1 ? 0 : 3,
+                      transition: ({ transitions }) =>
+                        transitions.create("margin-bottom"),
+                    }}
+                  >
+                    <Question
+                      index={index + 1}
+                      question={question.properties[questionKey]}
+                      answer={question.properties[answerKey]}
+                      updateField={(value, field) =>
+                        updateQuestionField(index, value, field)
+                      }
+                      onRemove={() => removeQuestion(index)}
+                      readonly={readonly}
+                      deletable={questionEntities.length > 1}
+                      displayNumber={displayNumbers}
+                      displayToggle={displayToggles}
+                    />
+                  </Box>
+                </Collapse>
+              ))}
+            </Box>
+
+            {!readonly ? (
+              <Box>
+                <Button
+                  variant="tertiary"
+                  size="small"
+                  sx={{ fontSize: 14 }}
+                  onClick={addQuestion}
+                >
+                  <FontAwesomeIcon
+                    icon={{ icon: faPlus }}
+                    sx={{ mr: 1, fontSize: 13 }}
+                  />
+                  Add a question
+                </Button>
+              </Box>
+            ) : null}
+          </Card>
+        </Box>
       </ThemeProvider>
     </>
   );

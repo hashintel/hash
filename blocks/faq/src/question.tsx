@@ -4,7 +4,7 @@ import {
   faTrash,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
-import { Box, buttonClasses, Collapse, Fade } from "@mui/material";
+import { Box, Collapse, Fade } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 
 import { answerKey, questionKey, QuestionOrAnswer } from "./app";
