@@ -3,13 +3,12 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
-    Deserialize, Deserializer as _, FieldAccess,
+    Deserializer as _, FieldAccess,
 };
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     deserializer::{Deserializer, DeserializerNone},
-    tape::Tape,
     token::Token,
 };
 
@@ -28,62 +27,6 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
             length,
             remaining: None,
             consumed: 0,
-        }
-    }
-
-    // This assumes that Str and such are atomic, meaning `Str Str` as a deserialize value is
-    // considered invalid, as that should use `ArrayAccess` instead.
-    fn scan(&self, key: &str) -> Option<usize> {
-        #[derive(Copy, Clone, Eq, PartialEq)]
-        enum State {
-            Key,
-            Value,
-        }
-
-        impl State {
-            fn flip(&mut self) {
-                match *self {
-                    Self::Key => *self = Self::Value,
-                    Self::Value => *self = Self::Key,
-                }
-            }
-        }
-
-        let mut objects: usize = 0;
-        let mut arrays: usize = 0;
-        let mut n = 0;
-
-        let mut state = State::Key;
-
-        loop {
-            let next = self.deserializer.peek_n(n)?;
-
-            match next {
-                Token::Array { .. } => arrays += 1,
-                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
-                Token::Object { .. } => objects += 1,
-                Token::ObjectEnd if objects == 0 && arrays == 0 => {
-                    // this is for the outer layer (that's us), therefore we can abort our linear
-                    // search
-                    return None;
-                }
-                Token::ObjectEnd => objects = objects.saturating_sub(1),
-                Token::Str(value) | Token::BorrowedStr(value) | Token::String(value)
-                    if objects == 0 && arrays == 0 && value == key && state == State::Key =>
-                {
-                    // we found an element that matches the element value that is next in line
-                    return Some(n);
-                }
-                _ => {}
-            }
-
-            if arrays == 0 && objects == 0 {
-                // we're dependent on the fact if something is a key or value, if we're not nested
-                // then we can switch the state.
-                state.flip();
-            }
-
-            n += 1;
         }
     }
 
@@ -132,52 +75,6 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         self.remaining = Some(length);
 
         Ok(())
-    }
-
-    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
-    where
-        T: Deserialize<'de>,
-    {
-        if self.remaining == Some(0) {
-            return T::deserialize(DeserializerNone {
-                context: self.deserializer.context(),
-            })
-            .change_context(ObjectAccessError);
-        }
-
-        self.consumed += 1;
-
-        if let Some(remaining) = &mut self.remaining {
-            *remaining = remaining.saturating_sub(1);
-        }
-
-        match self.scan(key) {
-            Some(offset) => {
-                // now we need to figure out which values are used, we can do this through offset
-                // calculations
-                let remaining = self.deserializer.remaining() - offset;
-
-                let tape = self.deserializer.tape().view(offset + 1..);
-
-                let mut deserializer = Deserializer::new_bare(
-                    tape.unwrap_or_else(Tape::empty),
-                    self.deserializer.context(),
-                );
-
-                let value = T::deserialize(&mut deserializer);
-
-                let erase = remaining - deserializer.remaining();
-                drop(deserializer);
-
-                self.deserializer.erase(offset..offset + erase);
-
-                value
-            }
-            None => T::deserialize(DeserializerNone {
-                context: self.deserializer.context(),
-            }),
-        }
-        .change_context(ObjectAccessError)
     }
 
     fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>

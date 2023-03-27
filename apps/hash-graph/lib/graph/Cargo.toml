@@ -8,8 +8,8 @@ description = "HASH Graph API"
 [dependencies]
 type-fetcher = { path = "../type-fetcher", optional = true }
 
-async-trait = "0.1.66"
-axum = "0.6.11"
+async-trait = "0.1.68"
+axum = "0.6.12"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
 clap = { version = "4.1.9", features = ["derive", "env"], optional = true }
@@ -19,10 +19,10 @@ error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.27"
 hash-status = { path = "../../../../libs/@local/status/crate" }
 hyper = "0.14.25"
-mime = "0.3.16"
+mime = "0.3.17"
 postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
 postgres-protocol = "0.6.4"
-regex = "1.7.1"
+regex = "1.7.3"
 serde = { version = "1.0.158", features = ["derive"] }
 serde_json = "1.0.94"
 tokio = { version = "1.26.0", default-features = false }
@@ -43,7 +43,7 @@ utoipa = { version = "3.0.3", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
-tarpc = { version = "0.31", features = ["serde-transport", "tcp"], optional = true }
+tarpc = { version = "0.32", features = ["serde-transport", "tcp"], optional = true }
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 
 [dev-dependencies]
