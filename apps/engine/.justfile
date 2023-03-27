@@ -22,3 +22,8 @@ test *arguments:
   cargo build -p memory --profile {{profile}}
   bash lib/execution/src/runner/python/setup.sh python3.10
   @just --justfile {{repo}}/.justfile test {{arguments}}
+
+# Copied from `/.justfile` to ignore example scaping, which does not work properly on the Rust version we currently use.
+[no-cd]
+doc *arguments:
+  cargo doc --workspace --all-features --no-deps {{arguments}}
