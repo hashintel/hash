@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import React, {
+import {
   ReactNode,
   useCallback,
   useEffect,
