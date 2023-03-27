@@ -1,6 +1,5 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
-  fluidFontClassName,
   Button,
   FontAwesomeIcon,
   IconButton,
@@ -68,7 +67,6 @@ export const DeleteExpectedValueModal = ({
         border: 1,
         borderColor: theme.palette.gray[20],
       })}
-      classes={{ root: fluidFontClassName }}
     >
       <>
         <Box

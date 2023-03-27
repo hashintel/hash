@@ -1,12 +1,12 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
+  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   MenuItem,
   MenuItemProps,
   OntologyChip,
-  fluidFontClassName,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import {

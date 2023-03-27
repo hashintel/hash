@@ -1,9 +1,9 @@
 import { BaseUrl } from "@blockprotocol/type-system/slim";
 import {
-  fluidFontClassName,
   AutocompleteDropdown,
   Button,
   Chip,
+  fluidFontClassName,
   FontAwesomeIcon,
   StyledPlusCircleIcon,
   TextField,

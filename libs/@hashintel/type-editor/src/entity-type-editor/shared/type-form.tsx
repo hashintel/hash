@@ -1,9 +1,9 @@
 import { BaseUrl } from "@blockprotocol/type-system/slim";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
-  fluidFontClassName,
   Button,
   ButtonProps,
+  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   Modal,
