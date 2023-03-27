@@ -77,7 +77,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         Ok(())
     }
 
-    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
         F: FieldAccess<'de>,
     {
