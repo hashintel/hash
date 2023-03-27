@@ -255,6 +255,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           working-directory: ${{ matrix.directory }}
+          components: rust-src
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
