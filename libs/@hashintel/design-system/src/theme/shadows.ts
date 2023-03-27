@@ -5,6 +5,7 @@ type ShadowSizes = {
   xs: string;
   sm: string;
   md: string;
+  mdReverse: string;
   lg: string;
   xl: string;
   xxl: string;
@@ -103,6 +104,7 @@ export const dropShadows = {
   xs: toDropShadow("xs"),
   sm: toDropShadow("sm"),
   md: toDropShadow("md"),
+  mdReverse: toDropShadow("mdReverse"),
   lg: toDropShadow("lg"),
   xl: toDropShadow("xl"),
   xxl: toDropShadow("xxl"),
