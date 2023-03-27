@@ -174,9 +174,6 @@ jobs:
           working-directory: ${{ matrix.directory }}
           components: rust-src
 
-      - name: Pin toolchain
-        run: rustup override set ${{ matrix.toolchain }}
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
