@@ -197,10 +197,15 @@ export const ExpectedValueSelector = ({
           } else {
             newExpectedValues.push(expectedValue);
           }
-          propertyTypeFormMethods.setValue("expectedValues", newExpectedValues);
+          propertyTypeFormMethods.setValue(
+            "expectedValues",
+            newExpectedValues,
+            { shouldDirty: true },
+          );
           propertyTypeFormMethods.setValue(
             "flattenedCustomExpectedValueList",
             newValues,
+            { shouldDirty: true },
           );
           closeCustomExpectedValueBuilder();
         },
