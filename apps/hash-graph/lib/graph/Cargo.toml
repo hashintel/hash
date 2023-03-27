@@ -8,7 +8,7 @@ description = "HASH Graph API"
 [dependencies]
 type-fetcher = { path = "../type-fetcher", optional = true }
 
-async-trait = "0.1.66"
+async-trait = "0.1.68"
 axum = "0.6.12"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
