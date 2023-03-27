@@ -41,7 +41,8 @@ PUBLISH_PATTERNS = [
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
 # We only run a subset of configurations for PRs, the rest will only be tested prior merging
-IS_PULL_REQUEST_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "pull_request"
+# IS_PULL_REQUEST_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "pull_request"
+IS_PULL_REQUEST_EVENT = False
 
 
 def generate_diffs():
