@@ -39,43 +39,41 @@ export const Question: FunctionComponent<QuestionProps> = ({
 
   return (
     <Box display="flex" alignItems="flex-start">
-      <Button
-        variant="tertiary_quiet"
-        onClick={() => setExpanded(!expanded)}
-        sx={{
-          minWidth: 0,
-          minHeight: 0,
-          paddingX: 0,
-          paddingY: readonly ? 0 : 2.125,
-          mr: displayNumber || displayToggle ? 1.5 : 0,
-          background: "none !important",
-          fontSize: 12,
-          fontWeight: 700,
-          lineHeight: "15px",
-          color: ({ palette }) => palette.black,
-          transition: ({ transitions }) => transitions.create("margin-right"),
-          [`.${buttonClasses.endIcon}`]: {
-            ml: 0.75,
-          },
-        }}
-        endIcon={
+      <Box>
+        <Button
+          variant="tertiary_quiet"
+          onClick={() => setExpanded(!expanded)}
+          sx={{
+            minWidth: 0,
+            minHeight: 0,
+            paddingX: 0,
+            paddingY: readonly ? 0 : 2.125,
+            mr: displayNumber || displayToggle ? 1.5 : 0,
+            background: "none !important",
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: "15px",
+            color: ({ palette }) => palette.black,
+            transition: ({ transitions }) => transitions.create("margin-right"),
+          }}
+        >
+          <Collapse in={displayNumber} orientation="horizontal">
+            {index}
+          </Collapse>
           <Collapse in={displayToggle} orientation="horizontal">
             <CaretDownIcon
               sx={{
                 fontSize: 12,
                 color: ({ palette }) => palette.black,
                 transition: ({ transitions }) =>
-                  transitions.create("transform"),
+                  transitions.create(["transform", "margin-left"]),
                 transform: `rotate(${expanded ? 0 : -90}deg)`,
+                ml: displayNumber ? 0.75 : 0,
               }}
             />
           </Collapse>
-        }
-      >
-        <Collapse in={displayNumber} orientation="horizontal">
-          {index}
-        </Collapse>
-      </Button>
+        </Button>
+      </Box>
 
       <Box
         sx={{
@@ -95,6 +93,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
               ? {
                   display: "flex",
                   justifyContent: "space-between",
+                  alignItems: "center",
                   width: 1,
                   paddingY: 2.125,
                   paddingX: 2.75,
@@ -129,9 +128,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
                 variant="tertiary"
                 size="xs"
                 sx={({ palette }) => ({
-                  paddingX: 1.25,
-                  paddingY: 0.75,
-                  height: 30,
+                  padding: 0.5,
                   minHeight: "unset",
                   minWidth: "unset",
                   background: "none !important",
