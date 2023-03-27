@@ -170,6 +170,9 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
+      - name: Pin toolchain
+        run: rustup override set ${{ matrix.toolchain }}
+
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
