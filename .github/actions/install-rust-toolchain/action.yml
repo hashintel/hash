@@ -12,5 +12,5 @@ runs:
     - name: "Install Rust"
       run: |
         rustup toolchain install ${{ inputs.toolchain }} --profile minimal --no-self-update
-        rustup default ${{ inputs.toolchain }}
+        echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
       shell: bash

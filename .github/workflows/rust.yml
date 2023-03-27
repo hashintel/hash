@@ -66,8 +66,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
-    env:
-      RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -159,7 +157,6 @@ jobs:
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
-      RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -172,6 +169,9 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
+
+      - name: Pin toolchain
+        run: rustup override set ${{ matrix.toolchain }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -236,8 +236,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
-    env:
-      RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -294,8 +292,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
-    env:
-      RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
