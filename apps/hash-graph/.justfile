@@ -39,7 +39,7 @@ test *arguments:
   @just deployment-up
   @just --justfile {{repo}}/.justfile test {{arguments}}
   @just deployment-up graph --wait
-  just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http {{arguments}}
+  just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
   just generate-openapi-client
   @just deployment-down
 
