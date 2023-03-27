@@ -41,7 +41,7 @@ export const WhiteCard = ({
         (theme) => ({
           boxShadow: theme.boxShadows.xs,
           overflow: "hidden",
-          borderRadius: "6px",
+          borderRadius: 1.5,
         }),
         onClick
           ? (theme) => ({
