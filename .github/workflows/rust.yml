@@ -78,6 +78,8 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
+          working-directory: ${{ matrix.directory }}
+          components: rustfmt,clippy
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -169,6 +171,8 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
+          working-directory: ${{ matrix.directory }}
+          components: miri
 
       - name: Pin toolchain
         run: rustup override set ${{ matrix.toolchain }}
@@ -244,12 +248,11 @@ jobs:
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
+          working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -300,6 +303,8 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
+          working-directory: ${{ matrix.directory }}
+          components: rustfmt,clippy
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}

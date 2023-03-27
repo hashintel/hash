@@ -5,6 +5,14 @@ inputs:
   toolchain:
     required: true
     description: "Rust toolchain, e.g. 'stable' or 'nightly'"
+  working-directory:
+    description: "Working directory to run the action in"
+    required: false
+    default: "."
+  components:
+    description: "Rust components to install"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -12,7 +20,16 @@ runs:
     - name: "Install Rust"
       env:
         RUSTUP_TOOLCHAIN: ${{ inputs.toolchain }}
+      working-directory: ${{ inputs.working-directory }}
       run: |
+        rustup set profile minimal
         rustup show
+
+        # Split the list of components by a comman and call `rustup component add` for each component
+        IFS=',' read -ra components <<< "${{ inputs.components }}"
+        for component in "${components[@]}"; do
+          rustup component add "$component"
+        done
+
         echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> $GITHUB_ENV
       shell: bash
