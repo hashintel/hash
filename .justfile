@@ -102,8 +102,8 @@ install-cargo-nextest:
   @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
 
 [private]
-install-cargo-script:
-  @just install-cargo-tool 'cargo script' cargo-script 0.2.8
+install-rust-script:
+  @just install-cargo-tool 'rust-script' rust-script 0.23.0
 
 [private]
 install-llvm-cov:
@@ -122,7 +122,7 @@ install-cargo-insta:
 [private]
 [no-cd]
 lint-toml mode:
-  @cargo script "{{repo}}/.github/scripts/rust/lint.rs" {{mode}}
+  @rust-script "{{repo}}/.github/scripts/rust/lint.rs" {{mode}}
 
 # Runs all linting commands and fails if the CI would fail
 [no-cd]
@@ -139,7 +139,7 @@ format *arguments:
 
 # Lint the code using `clippy`
 [no-cd]
-clippy *arguments: install-cargo-hack install-cargo-script
+clippy *arguments: install-cargo-hack install-rust-script
   @just lint-toml "generate"
   @just in-pr cargo clippy --profile {{profile}} --workspace --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
