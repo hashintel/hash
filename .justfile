@@ -120,7 +120,7 @@ not-in-pr +command:
 [private]
 [no-cd]
 lint-toml mode:
-  @cargo script "{{repo}}/.github/scripts/rust/lint.rs" {{mode}}
+  @cargo script --clear-cache "{{repo}}/.github/scripts/rust/lint.rs" {{mode}}
 
 # Runs all linting commands and fails if the CI would fail
 [no-cd]
