@@ -66,6 +66,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
+    env:
+      PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -159,6 +161,7 @@ jobs:
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
+      PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -239,6 +242,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
+    env:
+      PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -295,6 +300,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
+    env:
+      PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
