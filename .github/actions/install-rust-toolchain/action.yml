@@ -28,10 +28,6 @@ runs:
         # Split the list of components by a comman and call `rustup component add` for each component
         IFS=',' read -ra components <<< "${{ inputs.components }}"
         for component in "${components[@]}"; do
-          if [[ "$component" == "miri" && "$RUSTUP_TOOLCHAIN" != "nightly-*" ]]; then
-            echo "Skipping miri for non-nightly toolchain"
-            continue
-          fi
           rustup component add "$component"
         done
 
