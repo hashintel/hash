@@ -2,4 +2,4 @@
 "@hashintel/type-editor": patch
 ---
 
-Bug fixes
+Disable the new/edit type modals until a change has been made, and associated fixes to validation. 
