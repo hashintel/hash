@@ -79,15 +79,16 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.7,sarif-fmt@0.3.7
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.13.0,cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -170,16 +171,16 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -248,16 +249,16 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
