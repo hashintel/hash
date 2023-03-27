@@ -15,8 +15,8 @@ runs:
   steps:
     - name: "Install Rust"
       working-directory: ${{ inputs.working-directory }}
+      shell: bash
       run: |
-
         # If the toolchain does match `rust-toolchain.toml` we can rely on `rustup show` to install the toolchain. If it
         # does not match, we need to install the toolchain manually.
         if grep -q "${{ inputs.toolchain }}" rust-toolchain.toml; then
@@ -28,4 +28,3 @@ runs:
 
         rustup show
         echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
-      shell: bash
