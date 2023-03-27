@@ -25,7 +25,7 @@ runs:
         rustup set profile minimal
         rustup show
 
-        # Split the list of components by a comman and call `rustup component add` for each component
+        # Split the list of components by a comma and call `rustup component add` for each component
         IFS=',' read -ra components <<< "${{ inputs.components }}"
         for component in "${components[@]}"; do
           rustup component add "$component"
