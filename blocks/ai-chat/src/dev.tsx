@@ -1,16 +1,32 @@
+import { Entity, EntityId } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
+import { defaultChatModelId } from "./complete-chat/chat-model-selector";
+import {
+  activeKey,
+  aiChatMessageLinkTypeId,
+  AIChatRequest,
+  aiChatRequestEntityTypeId,
+  aiChatRequestResponseLinkTypeId,
+  AIChatResponse,
+  aiChatResponseEntityTypeId,
+  chatAIModelKey,
+  messageContentKey,
+  presetSystemPromptIdKey,
+  rootAIChatRequestLinkTypeId,
+} from "./complete-chat/graph";
+import { defaultSystemPromptId } from "./complete-chat/system-prompt-selector";
 import Component from "./index";
 import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const emptyChatEntity: BlockEntity = {
+const blockEntity: BlockEntity = {
   metadata: {
     recordId: {
-      entityId: "test-entity",
+      entityId: "block-entity",
       editionId: new Date().toISOString(),
     },
     entityTypeId:
@@ -19,7 +35,93 @@ const emptyChatEntity: BlockEntity = {
   properties: {},
 } as const;
 
-const emptyChatEntityEntityRecordId = emptyChatEntity.metadata.recordId;
+const blockEntityId = blockEntity.metadata.recordId.entityId;
+
+const aiChatRequestEntity1: AIChatRequest = {
+  metadata: {
+    recordId: {
+      entityId: "ai-chat-request",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId: aiChatRequestEntityTypeId,
+  },
+  properties: {
+    [messageContentKey]: "Test Request Message",
+    [activeKey]: true,
+  },
+};
+
+const aiChatRequestEntity1Id = aiChatRequestEntity1.metadata.recordId.entityId;
+
+const aiChatResponseEntity1: AIChatResponse = {
+  metadata: {
+    recordId: {
+      entityId: "ai-chat-response",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId: aiChatResponseEntityTypeId,
+  },
+  properties: {
+    [messageContentKey]: "Test Response Message",
+    [activeKey]: true,
+  },
+};
+
+const aiChatResponseEntity1Id =
+  aiChatResponseEntity1.metadata.recordId.entityId;
+
+let counter = 0;
+
+const createLink = (params: {
+  linkEntityTypeId: `${string}v/${number}`;
+  leftEntityId: EntityId;
+  rightEntityId: EntityId;
+}): Entity => ({
+  metadata: {
+    recordId: {
+      entityId: `link-${counter++}`,
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId: params.linkEntityTypeId,
+  },
+  properties: {},
+  linkData: {
+    leftEntityId: params.leftEntityId,
+    rightEntityId: params.rightEntityId,
+  },
+});
+
+const _existingChatGraph: Entity[] = [
+  {
+    ...blockEntity,
+    properties: {
+      [chatAIModelKey]: defaultChatModelId,
+      [presetSystemPromptIdKey]: defaultSystemPromptId,
+    },
+  },
+  aiChatRequestEntity1,
+  createLink({
+    linkEntityTypeId: rootAIChatRequestLinkTypeId,
+    leftEntityId: blockEntityId,
+    rightEntityId: aiChatRequestEntity1Id,
+  }),
+  createLink({
+    linkEntityTypeId: aiChatMessageLinkTypeId,
+    leftEntityId: blockEntityId,
+    rightEntityId: aiChatRequestEntity1Id,
+  }),
+  aiChatResponseEntity1,
+  createLink({
+    linkEntityTypeId: aiChatMessageLinkTypeId,
+    leftEntityId: blockEntityId,
+    rightEntityId: aiChatResponseEntity1Id,
+  }),
+  createLink({
+    linkEntityTypeId: aiChatRequestResponseLinkTypeId,
+    leftEntityId: aiChatRequestEntity1Id,
+    rightEntityId: aiChatResponseEntity1Id,
+  }),
+];
 
 /**
  * This is an embedding application for local development and debugging.
@@ -36,11 +138,12 @@ const DevApp = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockEntityRecordId={emptyChatEntityEntityRecordId}
+      blockEntityRecordId={blockEntity.metadata.recordId}
       blockInfo={packageJson.blockprotocol}
       debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       initialData={{
-        initialEntities: [emptyChatEntity],
+        initialEntities: [blockEntity],
+        // initialEntities: _existingChatGraph,
       }}
       simulateDatastoreLatency={{
         // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)

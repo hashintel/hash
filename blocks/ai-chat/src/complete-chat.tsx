@@ -1,4 +1,4 @@
-import { EntityId } from "@blockprotocol/graph/.";
+import { EntityId } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse } from "@mui/material";
@@ -40,20 +40,20 @@ import { AIChatBlock } from "./types/generated/block-entity";
 
 let requestCounter = 0;
 
-type RequestId = `req_${number}`;
+export type RequestId = `req_${number}`;
 
-const createRequestId = (): RequestId => `req_${requestCounter++}`;
+export const createRequestId = (): RequestId => `req_${requestCounter++}`;
 
 let responseCounter = 0;
 
-type ResponseId = `res_${number}`;
+export type ResponseId = `res_${number}`;
 
-const createResponseId = (): ResponseId => `res_${responseCounter++}`;
+export const createResponseId = (): ResponseId => `res_${responseCounter++}`;
 
 const isIdResponseId = (id: RequestId | ResponseId): id is ResponseId =>
   id.startsWith("res_");
 
-type CompleteChatRequest = {
+export type CompleteChatRequest = {
   id: RequestId;
   entityId?: EntityId;
   message: OpenAIChatMessage<"user">;
@@ -61,7 +61,7 @@ type CompleteChatRequest = {
   childResponseIds: ResponseId[];
 };
 
-type CompleteChatResponse = {
+export type CompleteChatResponse = {
   id: ResponseId;
   entityId?: EntityId;
   message: OpenAIChatMessage<"assistant"> | IncompleteOpenAiAssistantMessage;
@@ -110,7 +110,15 @@ const constructMessageThread = (params: {
 
 export const CompleteChat: FunctionComponent<{
   aiChatBlockEntity: AIChatBlock;
-}> = ({ aiChatBlockEntity }) => {
+  initialRootRequestId?: RequestId;
+  initialCompleteChatRequests?: CompleteChatRequest[];
+  initialCompleteChatResponses?: CompleteChatResponse[];
+}> = ({
+  aiChatBlockEntity,
+  initialRootRequestId,
+  initialCompleteChatRequests,
+  initialCompleteChatResponses,
+}) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -149,12 +157,15 @@ export const CompleteChat: FunctionComponent<{
 
   const [completeChatRequests, setCompleteChatRequests] = useState<
     CompleteChatRequest[]
-  >([]);
+  >(initialCompleteChatRequests ?? []);
+
   const [completeChatResponses, setCompleteChatResponses] = useState<
     CompleteChatResponse[]
-  >([]);
+  >(initialCompleteChatResponses ?? []);
 
-  const [rootChatRequestId, setRootChatRequestId] = useState<RequestId>();
+  const [rootChatRequestId, setRootChatRequestId] = useState<
+    RequestId | undefined
+  >(initialRootRequestId);
 
   const messageThread = useMemo(() => {
     const rootChatRequest = completeChatRequests.find(

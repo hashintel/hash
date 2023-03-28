@@ -1,7 +1,6 @@
 import { EntityId, GraphBlockHandler } from "@blockprotocol/graph";
 
 import {
-  AIChatBlock,
   AIChatBlockOutgoingLinksByLinkEntityTypeId,
   AIChatRequestV4,
   AIChatRequestV4OutgoingLinksByLinkEntityTypeId,
@@ -9,12 +8,12 @@ import {
   AIChatResponseV4OutgoingLinksByLinkEntityTypeId,
 } from "../types/generated/block-entity";
 
-type AIChatRequest = AIChatRequestV4;
-type AIChatRequestOutgoingLinksByLinkEntityTypeId =
+export type AIChatRequest = AIChatRequestV4;
+export type AIChatRequestOutgoingLinksByLinkEntityTypeId =
   AIChatRequestV4OutgoingLinksByLinkEntityTypeId;
 
-type AIChatResponse = AIChatResponseV4;
-type AIChatResponseOutgoingLInksByLinkEntityTypeId =
+export type AIChatResponse = AIChatResponseV4;
+export type AIChatResponseOutgoingLInksByLinkEntityTypeId =
   AIChatResponseV4OutgoingLinksByLinkEntityTypeId;
 
 /** Entity Type IDs */
@@ -30,11 +29,17 @@ export const aiChatResponseEntityTypeId =
 
 /** Property Type Keys */
 
-export const presetSystemPromptIdKey: keyof AIChatBlock["properties"] =
-  "http://localhost:3000/@alice/types/property-type/preset-system-prompt-id/";
+export const presetSystemPromptIdKey =
+  "http://localhost:3000/@alice/types/property-type/preset-system-prompt-id/" as const;
 
-export const chatAIModelKey: keyof AIChatBlock["properties"] =
-  "http://localhost:3000/@alice/types/property-type/chat-ai-model/";
+export const chatAIModelKey =
+  "http://localhost:3000/@alice/types/property-type/chat-ai-model/" as const;
+
+export const messageContentKey =
+  "http://localhost:3000/@alice/types/property-type/message-content/" as const;
+
+export const activeKey =
+  "http://localhost:3000/@alice/types/property-type/active/" as const;
 
 /** Link Type IDs */
 
@@ -72,9 +77,8 @@ export const createAiChatRequestEntityMethod =
         data: {
           entityTypeId: aiChatRequestEntityTypeId,
           properties: {
-            "http://localhost:3000/@alice/types/property-type/message-content/":
-              messageContent,
-            "http://localhost:3000/@alice/types/property-type/active/": active,
+            [messageContentKey]: messageContent,
+            [activeKey]: active,
           },
         },
       });
@@ -150,9 +154,8 @@ export const createAiChatResponseEntityMethod =
         data: {
           entityTypeId: aiChatResponseEntityTypeId,
           properties: {
-            "http://localhost:3000/@alice/types/property-type/message-content/":
-              messageContent,
-            "http://localhost:3000/@alice/types/property-type/active/": active,
+            [messageContentKey]: messageContent,
+            [activeKey]: active,
           },
         },
       });
