@@ -10,6 +10,7 @@ export * from "./constants";
 export * from "./dropdown-selector";
 export * from "./editable-field";
 export * from "./fa-icons/icons";
+export * from "./fluid-fonts";
 export * from "./fontawesome-icon";
 export * from "./form-inline";
 export * from "./get-help-link";

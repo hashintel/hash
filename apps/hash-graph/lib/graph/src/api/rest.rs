@@ -3,14 +3,16 @@
 //! Handler methods are grouped by routes that make up the REST API.
 
 mod api_resource;
+mod json;
 mod middleware;
+mod status;
+mod utoipa_typedef;
 
 mod account;
 mod data_type;
 mod entity;
 mod entity_type;
 mod property_type;
-mod utoipa_typedef;
 
 use std::{collections::HashMap, sync::Arc};
 

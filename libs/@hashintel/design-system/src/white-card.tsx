@@ -29,7 +29,6 @@ export const WhiteCard = ({
     <CardContent
       sx={{
         p: "0 !important",
-        background: "white",
       }}
     >
       {children}

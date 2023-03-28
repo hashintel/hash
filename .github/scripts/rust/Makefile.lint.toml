@@ -1,9 +1,0 @@
-[tasks.install-cargo-script]
-private = true
-install_crate = { crate_name = "cargo-script", version = "0.2.8", binary = "cargo", test_arg = ["script", "--version"] }
-
-[tasks.update-clippy-check]
-env = { RUST_LOG = "cargo-script=warn", CARGO_MAKE_CLIPPY_LINT_MODE = "generate" }
-command = 'cargo'
-args = ['script', "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/lint.rs"]
-dependencies = ['install-cargo-script']

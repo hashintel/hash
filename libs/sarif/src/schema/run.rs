@@ -11,16 +11,17 @@ use crate::schema::Tool;
     serde(rename_all = "camelCase")
 )]
 #[non_exhaustive]
-pub struct Run {
+pub struct Run<'s> {
     /// Information about the tool or tool pipeline that generated the results in this run
     ///
     /// A run can only contain results produced by a single tool or tool pipeline. A run can
     /// aggregate results from multiple log files, as long as context around the tool run (tool
     /// command-line arguments and the like) is identical for all aggregated files.
-    pub tool: Tool,
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    pub tool: Tool<'s>,
 }
 
-impl Run {
+impl<'s> Run<'s> {
     /// Create a new `Run` with the given tool.
     ///
     /// # Example
@@ -33,7 +34,7 @@ impl Run {
     /// assert_eq!(run.tool.driver.name, "clippy");
     /// ```
     #[must_use]
-    pub const fn new(tool: Tool) -> Self {
+    pub const fn new(tool: Tool<'s>) -> Self {
         Self { tool }
     }
 }

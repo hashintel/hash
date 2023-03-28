@@ -127,10 +127,6 @@ seed-users.json
 # Storybook
 **/storybook-static
 
-# Status
-/libs/status/crate/src/gen
-
-
 #########################
 ## Shared between linters
 #########################

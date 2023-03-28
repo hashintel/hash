@@ -8,8 +8,8 @@ use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
-        PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, ConflictBehavior, DataTypeStore,
+        InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
@@ -45,12 +45,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         for (schema, metadata) in data_types {
             transaction
-                .create(schema.clone(), metadata.borrow())
+                .create(schema.clone(), metadata.borrow(), on_conflict)
                 .await?;
         }
 
