@@ -3,7 +3,7 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
-    Deserializer as _, FieldAccess,
+    Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
 

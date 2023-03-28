@@ -49,16 +49,17 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
     type Key = T;
     type Value = (T, U);
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
         U::deserialize(deserializer)
-            .change_context(FieldAccessError)
+            .map(|value| (key, value))
+            .change_context(VisitorError)
     }
 }
 
-type FieldValue<'de, F> = <F as FieldAccess<'de>>::Value;
+type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
