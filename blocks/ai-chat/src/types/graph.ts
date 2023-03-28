@@ -1,19 +1,6 @@
-import {
-  EntityId,
-  GraphBlockHandler,
-  VersionedUrl,
-} from "@blockprotocol/graph";
+import { EntityId, GraphBlockHandler } from "@blockprotocol/graph";
 
-import {
-  AIChatBlock,
-  AIChatBlockOutgoingLinksByLinkEntityTypeId,
-} from "./generated/ai-chat-block";
-import {
-  RequestMessage,
-  RequestMessageOutgoingLinksByLinkEntityTypeId,
-  ResponseMessage,
-  ResponseMessageOutgoingLinksByLinkEntityTypeId,
-} from "./generated/shared";
+import { RequestMessage, ResponseMessage } from "./generated/shared";
 
 /** Entity Type IDs */
 
@@ -24,7 +11,8 @@ export const entityTypeIds = {
     "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2",
   responseMessage:
     "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2",
-} as const satisfies Record<string, VersionedUrl>;
+} as const;
+// } as const satisfies Record<string, VersionedUrl>;
 
 /** Property Type Base URLs */
 
@@ -35,12 +23,13 @@ export const propertyTypeBaseUrls = {
     "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/property-type/ai-chat-block-preset-system-prompt-id/",
   textContent:
     "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/",
-} as const satisfies Record<
-  string,
-  keyof (AIChatBlock["properties"] &
-    RequestMessage["properties"] &
-    ResponseMessage["properties"])
->;
+} as const;
+// } as const satisfies Record<
+//   string,
+//   keyof (AIChatBlock["properties"] &
+//     RequestMessage["properties"] &
+//     ResponseMessage["properties"])
+// >;
 
 /** Link Entity Type IDs */
 
@@ -53,12 +42,13 @@ export const linkEntityTypeIds = {
     "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/has-response/v/1",
   followedBy:
     "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/followed-by/v/1",
-} as const satisfies Record<
-  string,
-  keyof (AIChatBlockOutgoingLinksByLinkEntityTypeId &
-    RequestMessageOutgoingLinksByLinkEntityTypeId &
-    ResponseMessageOutgoingLinksByLinkEntityTypeId)
->;
+} as const;
+// } as const satisfies Record<
+//   string,
+//   keyof (AIChatBlockOutgoingLinksByLinkEntityTypeId &
+//     RequestMessageOutgoingLinksByLinkEntityTypeId &
+//     ResponseMessageOutgoingLinksByLinkEntityTypeId)
+// >;
 
 /** Helper Methods */
 
