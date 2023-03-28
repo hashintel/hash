@@ -79,7 +79,6 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           working-directory: ${{ matrix.directory }}
-          components: rustfmt,clippy
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -89,7 +88,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+          tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -173,7 +172,6 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           working-directory: ${{ matrix.directory }}
-          components: rust-src
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -206,9 +204,7 @@ jobs:
       - name: Run miri
         if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
-        run: |
-          rustup component add miri
-          just miri --no-fail-fast
+        run: just miri --no-fail-fast
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -253,7 +249,6 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           working-directory: ${{ matrix.directory }}
-          components: rust-src
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -305,13 +300,12 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           working-directory: ${{ matrix.directory }}
-          components: rustfmt,clippy
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@v2
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-script@0.2.8,cargo-semver-checks@0.17.0
+          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks@0.17.0
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}

@@ -13,7 +13,7 @@ use std::{
     collections::{BTreeSet, HashMap},
     env, fs,
     iter::once,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use serde::Deserialize;
@@ -309,16 +309,25 @@ fn check(cwd: &Path) {
 }
 
 fn main() {
-    let cwd = env::current_dir().expect("should be able to get current directory");
-
-    let mode = env::args()
+    let mut args = env::args();
+    let mode = args
+        .by_ref()
         .skip(1)
         .next()
         .expect("at least one position argument specifying mode required");
 
+    let cwd = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or_else(env::current_dir)
+        .expect("unable to read working directory");
+
     match mode.as_str() {
         "generate" => generate(&cwd),
         "check" => check(&cwd),
-        arg => panic!("unrecognized mode `{}`, available: `generate`, `check`", arg),
+        arg => panic!(
+            "unrecognized mode `{}`, available: `generate`, `check`",
+            arg
+        ),
     };
 }
