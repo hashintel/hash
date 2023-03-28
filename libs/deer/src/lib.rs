@@ -36,7 +36,7 @@ mod impls;
 #[macro_use]
 mod macros;
 mod number;
-mod schema;
+pub mod schema;
 pub mod value;
 
 extern crate alloc;
@@ -45,17 +45,19 @@ struct GenericFieldAccess<T, U>(PhantomData<fn() -> *const (T, U)>);
 
 impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for GenericFieldAccess<T, U> {
     type Key = T;
-    type Value = U;
+    type Value = (T, U);
 
-    fn value<D>(&self, _: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>,
     {
-        U::deserialize(deserializer).change_context(FieldAccessError)
+        U::deserialize(deserializer)
+            .map(|value| (key, value))
+            .change_context(FieldAccessError)
     }
 }
 
-type FieldKeyValue<'de, F> = (<F as FieldAccess<'de>>::Key, <F as FieldAccess<'de>>::Value);
+type FieldKeyValue<'de, F> = <F as FieldAccess<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldKeyValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
@@ -63,25 +65,16 @@ pub trait ObjectAccess<'de> {
     ///
     /// After calling this [`ObjectAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
-    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`], for
-    /// [`Self::value`] calls [`Visitor::visit_none`] will be called on the tuple of `(K, V)`, while
-    /// [`Self::value`] will call [`Visitor::visit_none`] of `V`.
-    ///
-    /// [`Self::value`] also counts toward the length, behaviour of multiple calls to
-    /// [`Self::value`] will always decrement the counter.
+    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
     ///
     /// This is best suited for types where the length/amount of keys is already predetermined, like
     /// structs or enum variants.
     ///
     /// # Errors
     ///
-    /// This will error if a call to [`Self::next`] or [`Self::value`] has been made before
-    /// calling this function or this function has been called repeatably.
+    /// This will error if a call to [`Self::next`] has been made before calling this function or
+    /// this function has been called repeatably.
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
-
-    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
-    where
-        T: Deserialize<'de>;
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
@@ -100,7 +93,8 @@ pub trait ObjectAccess<'de> {
     fn end(self) -> Result<(), ObjectAccessError>;
 }
 
-pub trait FieldAccess<'de> {
+// TODO: should be `FieldVisitor`
+pub trait FieldAccess<'de>: Sized {
     type Key: Deserialize<'de>;
     type Value;
 
@@ -111,7 +105,7 @@ pub trait FieldAccess<'de> {
         <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(FieldAccessError)
     }
 
-    fn value<D>(&self, key: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>;
 }
@@ -142,6 +136,39 @@ pub trait ArrayAccess<'de> {
 
     fn end(self) -> Result<(), ArrayAccessError>;
 }
+
+pub trait EnumVisitor<'de>: Sized {
+    // TODO: interesting part: serde actually has `deserialize_identifier` which can be used
+    //  deserialize implementations can then use that to their advantage by default it also
+    //  generates an index version for all fields, that is gated behind `deserialize_identifier`.
+    //  Maybe we want something like a `DiscriminantVisitor` and `visit_enum_discriminant`?
+    type Discriminant: Deserialize<'de>;
+
+    // the value we will end up with
+    type Value;
+
+    fn expecting(&self) -> Document;
+
+    fn visit_discriminant<D>(&self, deserializer: D) -> Result<Self::Discriminant, VisitorError>
+    where
+        D: Deserializer<'de>,
+    {
+        <Self::Discriminant as Deserialize<'de>>::deserialize(deserializer)
+            .change_context(VisitorError)
+    }
+
+    fn visit_value<D>(
+        self,
+        discriminant: Self::Discriminant,
+        deserializer: D,
+    ) -> Result<Self::Value, VisitorError>
+    where
+        D: Deserializer<'de>;
+}
+
+// pub trait VariantAccess<'de>: Sized {}
+//
+// pub trait EnumAccess<'de> {}
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
@@ -583,6 +610,14 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>;
+
+    /// Hint that the `Deserialize` type expect an enum
+    ///
+    /// Due to the very special nature of an enum (being a fundamental type) a special visitor is
+    /// used.
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,

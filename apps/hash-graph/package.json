@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "cargo make build",
-    "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node"
+    "exe": "ts-node"
   },
   "dependencies": {
     "@local/status": "0.0.0-private"

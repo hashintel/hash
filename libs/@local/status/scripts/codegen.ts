@@ -5,9 +5,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { argv } from "node:process";
 
-// We don't want/need sync but we can't seem to import the normal async execa function in ESM with
-// execa 5.1.1. If we upgrade to 6.x it might work.
-import { sync as execaSync } from "execa";
+import execa from "execa";
 import snakeCase from "lodash/snakeCase";
 import yargs from "yargs";
 
@@ -103,7 +101,7 @@ const codegen = async ({
           `${snakeCase(fileName)}.rs`,
         );
 
-        execaSync("quicktype", [
+        await execa("quicktype", [
           filePath,
           "-o",
           rustOutputPath,
@@ -127,7 +125,7 @@ const codegen = async ({
           `${snakeCase(fileName)}.json`,
         );
 
-        execaSync("quicktype", [
+        await execa("quicktype", [
           filePath,
           "--lang",
           "schema",

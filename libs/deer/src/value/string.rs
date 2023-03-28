@@ -4,8 +4,8 @@ use error_stack::ResultExt;
 
 use crate::{
     error::DeserializerError,
-    value::{impl_owned, IntoDeserializer},
-    Context, Deserializer, OptionalVisitor, Visitor,
+    value::{impl_owned, EnumUnitDeserializer, IntoDeserializer, NoneDeserializer},
+    Context, Deserializer, EnumVisitor, OptionalVisitor, Visitor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -52,6 +52,21 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let context = self.context;
+
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, NoneDeserializer::new(context))
+            .change_context(DeserializerError)
     }
 }
 
@@ -110,6 +125,13 @@ impl<'de> Deserializer<'de> for BorrowedStrDeserializer<'_, 'de> {
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
 }
 
