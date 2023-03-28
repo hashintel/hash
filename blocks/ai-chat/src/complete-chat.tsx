@@ -158,6 +158,12 @@ export const CompleteChat: FunctionComponent<{
     [systemPromptId],
   );
 
+  /**
+   * @todo: consider unifying the `completeChatRequests` and `completeChatResponses`
+   * arrays into a single `messages` array to simplify the logic in this file. Potentially
+   * `RequestId` and `ResponseId` could be unified in a single `MessageId` as part of this.
+   */
+
   const [completeChatRequests, setCompleteChatRequests] = useState<
     CompleteChatRequest[]
   >(initialCompleteChatRequests ?? []);
