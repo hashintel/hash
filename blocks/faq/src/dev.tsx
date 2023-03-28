@@ -2,19 +2,19 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
-import packageJSON from "../package.json";
+import packageJson from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const testEntity: RootEntity = {
+const testEntity: BlockEntity = {
   metadata: {
     recordId: {
       entityId: "test-entity",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJson.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {},
 } as const;
@@ -24,11 +24,16 @@ const DevApp = () => {
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={testEntity.metadata.recordId}
-      blockInfo={packageJSON.blockprotocol}
+      blockInfo={packageJson.blockprotocol}
+      debug
       initialData={{
         initialEntities: [testEntity],
       }}
-      debug
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
     />
   );
 };

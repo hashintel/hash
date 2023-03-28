@@ -27,16 +27,16 @@ import { v4 as uuid } from "uuid";
 
 import { Question } from "./question";
 import {
-  FAQBlockLinksByLinkTypeId,
+  BlockEntity,
+  FAQBlockOutgoingLinksByLinkEntityTypeId,
   FrequentlyAskedQuestion,
   FrequentlyAskedQuestionProperties,
-  RootEntity,
-} from "./types";
+} from "./types/generated/block-entity";
 
-type RootEntityKey = keyof RootEntity["properties"];
+type RootEntityKey = keyof BlockEntity["properties"];
 type QuestionEntityKey = keyof FrequentlyAskedQuestionProperties;
 
-type LinkType = keyof FAQBlockLinksByLinkTypeId;
+type LinkType = keyof FAQBlockOutgoingLinksByLinkEntityTypeId;
 
 // Property types
 export const titleKey: RootEntityKey =
@@ -63,7 +63,7 @@ const hasFrequentlyAskedQuestion: LinkType =
 export type QuestionOrAnswer = typeof questionKey | typeof answerKey;
 export type EntityType = typeof frequentlyAskedQuestionType;
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
