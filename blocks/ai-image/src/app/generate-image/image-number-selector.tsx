@@ -9,7 +9,7 @@ import { GridIcon } from "../../icons/grid";
 import { Grid2Icon } from "../../icons/grid-2";
 import { SquareIcon } from "../../icons/square";
 
-export const DEFAULT_IMAGE_NUMBER = "4";
+export const DEFAULT_IMAGE_NUMBER = "1";
 
 const IMAGE_NUMBER_OPTIONS: Option[] = [
   {
