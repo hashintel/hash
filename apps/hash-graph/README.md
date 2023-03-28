@@ -1,9 +1,9 @@
 # The HASH Graph Query Layer
 
-To run the HASH Graph Query Layer make sure `cargo-make` is installed:
+To run the HASH Graph Query Layer make sure `just` is installed:
 
 ```shell
-cargo install cargo-make
+cargo install just
 ```
 
 ## Run the Graph
@@ -17,7 +17,7 @@ cargo install cargo-make
 > It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
 
 ```shell
-cargo make deployment-up
+just deployment-up
 ```
 
 _It is possible to teardown the database with the equivalent `deployment-down` task_
@@ -25,7 +25,7 @@ _It is possible to teardown the database with the equivalent `deployment-down` t
 Then, the Graph Query Layer can be started:
 
 ```shell
-cargo make run -- server
+just run server
 ```
 
 ### Logging configuration
@@ -38,25 +38,25 @@ If you're interested in just increasing the logs for the Graph, we recommend spe
 In order to build run the following command:
 
 ```shell
-cargo make build
+just build
 ```
 
 In order to create an optimized build, run:
 
 ```shell
-cargo make --profile production build
+PROFILE=release just build
 ```
 
-Please see the list of all possible `cargo make` commands:
+Please see the list of all possible `just` commands:
 
 ```shell
-cargo make --list-all-steps
+just
 ```
 
 Every command line argument passed will also be forwarded to the subcommand, e.g. this will not only build the documentation but also open it in the browser:
 
 ```shell
-cargo make doc --open
+just doc --open
 ```
 
 ### API Definitions
@@ -68,7 +68,7 @@ The Graph's API is current exposed over REST with an accompanying OpenAPI spec.
 The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
 
 ```shell
-cargo make generate-openapi-client
+just generate-openapi-client
 ```
 
 Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
@@ -96,22 +96,10 @@ New payloads can then be added in the `definitions` and `oneOf` of the `Status` 
 
 ## Test the code
 
-The code base has two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
+The code base has a few test suites. Except for the unit tests, every test suite requires an active database connection. The test setup uses `docker` to start the required services. To run all available tests, run:
 
 ```shell
-cargo make test
-```
-
-For the integration tests, the database needs to be deployed [as specified here](../README.md#running-the-database). Next, the integration test suite can be started:
-
-```shell
-cargo make test-integration
-```
-
-The REST API can be tested as well. Note, that this requires the Graph to run and does not clean up the database after running:
-
-```shell
-cargo make test-rest-api
+just test
 ```
 
 ## Migrations
@@ -127,7 +115,7 @@ The tool we are using, `refinery`, also supports Rust based (`.rs`) migration fi
 Migrations are run through the same binary as the server using the following command:
 
 ```shell
-cargo run -- migrate
+just run migrate
 ```
 
 ## Benchmark the code
@@ -135,7 +123,7 @@ cargo run -- migrate
 The benchmark suite can be run with:
 
 ```shell
-cargo make bench
+just bench
 ```
 
 ### Note:

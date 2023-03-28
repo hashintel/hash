@@ -13,7 +13,7 @@ use std::{
     collections::{BTreeSet, HashMap},
     env, fs,
     iter::once,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use serde::Deserialize;
@@ -267,7 +267,7 @@ fn print_diff(level: &str, left: &BTreeSet<String>, right: &BTreeSet<String>) {
     eprintln!("Lint Level {level} Errors:");
     eprintln!("  Extra lints: {:?}", remove);
     eprintln!("  Missing lints: {:?}", create);
-    eprintln!("  Run `cargo make update-clippy update` to automatically update the config.")
+    eprintln!("  Run `just lint-toml generate` to automatically update the config.")
 }
 
 fn check(cwd: &Path) {
@@ -309,21 +309,16 @@ fn check(cwd: &Path) {
 }
 
 fn main() {
-    let cwd = env::var("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY")
-        .expect("environment variable should exist");
-    let cwd = PathBuf::from(cwd);
+    let cwd = env::current_dir().expect("should be able to get current directory");
 
-    let args = env::var("CARGO_MAKE_CLIPPY_LINT_MODE")
-        .or_else(|_| env::var("CARGO_MAKE_TASK_ARGS"))
-        .expect("environment variable should exist");
-    let mode = args
-        .split(" ")
+    let mode = env::args()
+        .skip(1)
         .next()
         .expect("at least one position argument specifying mode required");
 
-    match mode {
+    match mode.as_str() {
         "generate" => generate(&cwd),
         "check" => check(&cwd),
-        _ => panic!("unrecognized mode, available: `generate`, `check`"),
+        arg => panic!("unrecognized mode `{}`, available: `generate`, `check`", arg),
     };
 }

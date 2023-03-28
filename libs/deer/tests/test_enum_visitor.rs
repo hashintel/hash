@@ -1,11 +1,11 @@
 use deer::{
     error::{
-        DeserializeError, ExpectedLength, ExpectedType, ExpectedVariant, FieldAccessError,
-        Location, MissingError, ObjectLengthError, ReceivedLength, ReceivedVariant,
-        UnknownVariantError, Variant, VisitorError,
+        DeserializeError, ExpectedLength, ExpectedType, ExpectedVariant, Location, MissingError,
+        ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant,
+        VisitorError,
     },
     schema::Reference,
-    Deserialize, Deserializer, Document, EnumVisitor, FieldAccess, ObjectAccess, Reflection,
+    Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
@@ -318,22 +318,22 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
 
                 struct VariantFieldAccess;
 
-                impl<'de> FieldAccess<'de> for VariantFieldAccess {
+                impl<'de> FieldVisitor<'de> for VariantFieldAccess {
                     type Key = VariantFieldIdent;
                     type Value = VariantField;
 
-                    fn value<D>(
+                    fn visit_value<D>(
                         self,
                         key: Self::Key,
                         deserializer: D,
-                    ) -> Result<Self::Value, FieldAccessError>
+                    ) -> Result<Self::Value, VisitorError>
                     where
                         D: Deserializer<'de>,
                     {
                         match key {
                             VariantFieldIdent::Id => u8::deserialize(deserializer)
                                 .map(VariantField::Id)
-                                .change_context(FieldAccessError),
+                                .change_context(VisitorError),
                         }
                     }
                 }

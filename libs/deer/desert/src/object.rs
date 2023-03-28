@@ -3,7 +3,7 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
-    Deserializer as _, FieldAccess,
+    Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -79,7 +79,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
 
     fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
-        F: FieldAccess<'de>,
+        F: FieldVisitor<'de>,
     {
         if self.remaining == Some(0) {
             return None;
@@ -96,12 +96,12 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             self.remaining?;
 
             if self.remaining.is_some() {
-                let key = access.key(DeserializerNone {
+                let key = access.visit_key(DeserializerNone {
                     context: self.deserializer.context(),
                 });
 
                 key.and_then(|key| {
-                    access.value(key, DeserializerNone {
+                    access.visit_value(key, DeserializerNone {
                         context: self.deserializer.context(),
                     })
                 })
@@ -109,9 +109,9 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
                 return None;
             }
         } else {
-            let key = access.key(&mut *self.deserializer);
+            let key = access.visit_key(&mut *self.deserializer);
 
-            key.and_then(|key| access.value(key, &mut *self.deserializer))
+            key.and_then(|key| access.visit_value(key, &mut *self.deserializer))
         };
 
         Some(key_value.change_context(ObjectAccessError))
