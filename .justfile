@@ -127,7 +127,7 @@ lint-toml mode:
 # Runs all linting commands and fails if the CI would fail
 [no-cd]
 lint:
-  @just format -- --check
+  @just format --check
   @just clippy -- -D warnings
   @RUSTDOCFLAGS='-Z unstable-options --check' just doc
   @RUSTDOCFLAGS='-Z unstable-options --check' just doc --document-private-items
