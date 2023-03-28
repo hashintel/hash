@@ -18,10 +18,13 @@ import { RectangleHistoryCirclePlusIcon } from "../../icons/rectangle-history-ci
 import { SquarePlusIcon } from "../../icons/square-plus";
 import { ImageTile } from "../../shared/image-tile";
 import { ImageObject } from "../generate-image";
+import { CTAButton } from "./image-preview/cta-button";
 import { ImageDetails } from "./image-preview/image-details";
+import { ReturnButton } from "./image-preview/return-button";
 
 const IMAGE_SIZE = 182;
 const IMAGE_LIST_GAP = 30;
+const MAX_SELECTED_IMAGE_SIZE = 512;
 
 const ADDITIONAL_IMAGES_OPTIONS = [
   { number: 1, Icon: SquarePlusIcon },
@@ -95,7 +98,11 @@ export const ImagePreview = ({
       const offsetLeft = childRect.left - parentRect.left;
       const offsetTop = childRect.top - parentRect.top;
 
-      const scale = parentRect.width / (isMobile ? 1 : 2) / childRect.width;
+      const scale =
+        Math.min(
+          parentRect.width / (isMobile ? 1 : 2),
+          MAX_SELECTED_IMAGE_SIZE,
+        ) / childRect.width;
 
       setSelectedImageTransition({
         scale,
@@ -162,32 +169,32 @@ export const ImagePreview = ({
           gap: 0.75,
         })}
       >
-        <Typography
-          sx={{
-            color: ({ palette }) => palette.gray[70],
-            fontWeight: 700,
-            fontSize: 13,
-            lineHeight: 1.3,
-            textTransform: "uppercase",
-          }}
-        >
-          Prompt
-        </Typography>
-
         <Stack flexDirection="row" gap={1.5} alignItems="center">
           <ImageIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
           <Typography
             sx={{
-              color: ({ palette }) => palette.black,
-              fontSize: 16,
+              color: ({ palette }) => palette.gray[70],
+              fontWeight: 700,
+              fontSize: 13,
               lineHeight: 1.3,
+              textTransform: "uppercase",
             }}
           >
-            {prompt}
+            Prompt
           </Typography>
         </Stack>
+
+        <Typography
+          sx={{
+            color: ({ palette }) => palette.black,
+            fontSize: 16,
+            lineHeight: 1.3,
+          }}
+        >
+          {prompt}
+        </Typography>
 
         <Collapse in={!!errorMessage}>
           <BlockErrorMessage apiName="OpenAI" sx={{ mt: 1 }} />
@@ -195,7 +202,6 @@ export const ImagePreview = ({
       </Stack>
 
       <Stack
-        gap={1.25}
         sx={{
           boxSizing: "border-box",
           width: 1,
@@ -209,7 +215,7 @@ export const ImagePreview = ({
           overflow: "hidden",
         }}
       >
-        <Box sx={{ paddingY: 2.75, paddingX: 3.75 }}>
+        <Box sx={{ pt: 2.75, pb: isMobile ? 1.5 : 2.75, paddingX: 3.75 }}>
           <Typography
             sx={{
               color: ({ palette }) => palette.gray[70],
@@ -230,6 +236,24 @@ export const ImagePreview = ({
               </>
             ) : null}
           </Typography>
+
+          {isMobile ? (
+            <Collapse
+              in={shouldDetailsFadeIn}
+              onEntered={() => setAnimationStage(false)}
+              onExited={() => {
+                setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
+                setTimeout(() => {
+                  setSelectedImageIndex(null);
+                  setAnimationStage(false);
+                }, 500);
+              }}
+            >
+              <Box sx={{ mb: 1.25 }}>
+                <CTAButton onSubmit={() => {}} />
+              </Box>
+            </Collapse>
+          ) : null}
 
           <Box position="relative">
             <Box
@@ -372,67 +396,72 @@ export const ImagePreview = ({
                 <Box
                   sx={{
                     display: "flex",
-                    justifyContent: "space-around",
+                    justifyContent: "flex-start",
                     flexDirection: "column",
                     width: (selectedImageTransition?.imageSize ?? 0) - 48,
                     height: 1,
                     position: "absolute",
                     top: 0,
-                    right: 0,
+                    left: (selectedImageTransition?.imageSize ?? 0) + 48,
                   }}
                 >
-                  <ImageDetails
-                    generatedAt={selectedImageGeneratedAt}
-                    isMobile={isMobile}
-                    onSubmit={() => {
-                      const selectedImageEntityId =
-                        selectedImageIndex !== null &&
-                        images[selectedImageIndex]?.entityId;
+                  <Stack gap={3}>
+                    <CTAButton
+                      onSubmit={() => {
+                        const selectedImageEntityId =
+                          selectedImageIndex !== null &&
+                          images[selectedImageIndex]?.entityId;
 
-                      if (selectedImageEntityId) {
-                        onConfirm(selectedImageEntityId);
-                      }
-                    }}
-                    onCancel={() => {
-                      setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
-                    }}
-                  />
+                        if (selectedImageEntityId) {
+                          onConfirm(selectedImageEntityId);
+                        }
+                      }}
+                    />
+                    <ImageDetails generatedAt={selectedImageGeneratedAt} />
+                    <ReturnButton
+                      onCancel={() => {
+                        setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
+                      }}
+                    />
+                  </Stack>
                 </Box>
               </Fade>
-            ) : (
-              <Collapse
-                in={shouldDetailsFadeIn}
-                onEntered={() => setAnimationStage(false)}
-                onExited={() => {
-                  setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
-                  setTimeout(() => {
-                    setSelectedImageIndex(null);
-                    setAnimationStage(false);
-                  }, 500);
-                }}
-              >
-                <Box mt={2}>
-                  <ImageDetails
-                    generatedAt={selectedImageGeneratedAt}
-                    isMobile={isMobile}
-                    onSubmit={() => {
-                      const selectedImageEntityId =
-                        selectedImageIndex !== null &&
-                        images[selectedImageIndex]?.entityId;
-
-                      if (selectedImageEntityId) {
-                        onConfirm(selectedImageEntityId);
-                      }
-                    }}
-                    onCancel={() => {
-                      setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
-                    }}
-                  />
-                </Box>
-              </Collapse>
-            )}
+            ) : null}
           </Box>
         </Box>
+
+        {isMobile ? (
+          <Collapse
+            in={shouldDetailsFadeIn}
+            onEntered={() => setAnimationStage(false)}
+            onExited={() => {
+              setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
+              setTimeout(() => {
+                setSelectedImageIndex(null);
+                setAnimationStage(false);
+              }, 500);
+            }}
+          >
+            <Box sx={{ pb: 2.75, paddingX: 3.75 }}>
+              <ReturnButton
+                onCancel={() => {
+                  setAnimationStage(ANIMATION_STAGES.DETAILS_FADE_OUT);
+                }}
+              />
+            </Box>
+
+            <Box
+              sx={{
+                paddingY: 2.125,
+                paddingX: 3.75,
+                border: ({ palette }) => `0 solid ${palette.gray[30]}`,
+                borderTopWidth: 1,
+              }}
+            >
+              <ImageDetails generatedAt={selectedImageGeneratedAt} isMobile />
+            </Box>
+          </Collapse>
+        ) : null}
 
         <Collapse in={selectedImageIndex === null}>
           <Box
@@ -445,6 +474,7 @@ export const ImagePreview = ({
               background: palette.gray[10],
               paddingY: 2.125,
               paddingX: 3.75,
+              mt: isMobile ? 2.25 : 0,
             })}
           >
             <Box display="flex" gap={1}>

@@ -43,7 +43,7 @@ export const App: BlockComponent<RootEntity> = ({
     <ThemeProvider theme={theme}>
       <SizeMe>
         {({ size }) => {
-          const isMobile = (size.width ?? 0) < 520;
+          const isMobile = (size.width ?? 0) < 400;
 
           return fileEntity ? (
             <Box
