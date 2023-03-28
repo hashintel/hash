@@ -204,9 +204,7 @@ jobs:
       - name: Run miri
         if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
-        run: |
-          rustup component add miri
-          just miri --no-fail-fast
+        run: just miri --no-fail-fast
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
