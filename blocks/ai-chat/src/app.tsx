@@ -17,12 +17,15 @@ import {
   RequestId,
   ResponseId,
 } from "./complete-chat";
-import { AIChatBlock, ResponseMessage } from "./types/generated/block-entity";
+import {
+  AIChatBlock,
+  RequestMessage,
+  ResponseMessage,
+} from "./types/generated/ai-chat-block";
 import {
   entityTypeIds,
   linkEntityTypeIds,
   propertyTypeBaseUrls,
-  RequestMessage,
 } from "./types/graph";
 
 const isMessageRequestMessage = (

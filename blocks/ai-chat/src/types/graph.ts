@@ -7,15 +7,13 @@ import {
 import {
   AIChatBlock,
   AIChatBlockOutgoingLinksByLinkEntityTypeId,
-  RequestMessageV2,
-  RequestMessageV2OutgoingLinksByLinkEntityTypeId,
+} from "./generated/ai-chat-block";
+import {
+  RequestMessage,
+  RequestMessageOutgoingLinksByLinkEntityTypeId,
   ResponseMessage,
   ResponseMessageOutgoingLinksByLinkEntityTypeId,
-} from "./generated/block-entity";
-
-export type RequestMessage = RequestMessageV2;
-export type RequestMessageOutgoingLinksByLinkEntityTypeId =
-  RequestMessageV2OutgoingLinksByLinkEntityTypeId;
+} from "./generated/shared";
 
 /** Entity Type IDs */
 

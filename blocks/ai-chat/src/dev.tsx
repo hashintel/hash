@@ -6,12 +6,15 @@ import packageJson from "../package.json";
 import { defaultChatModelId } from "./complete-chat/chat-model-selector";
 import { defaultSystemPromptId } from "./complete-chat/system-prompt-selector";
 import Component from "./index";
-import { BlockEntity, ResponseMessage } from "./types/generated/block-entity";
+import {
+  BlockEntity,
+  RequestMessage,
+  ResponseMessage,
+} from "./types/generated/ai-chat-block";
 import {
   entityTypeIds,
   linkEntityTypeIds,
   propertyTypeBaseUrls,
-  RequestMessage,
 } from "./types/graph";
 
 const node = document.getElementById("app");

@@ -69,15 +69,19 @@
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {
-        "block-entity.ts": [
+        "ai-chat-block.ts": [
           {
             "blockEntityType": true
-          },
+          }
+        ],
+        "request-message.ts": [
           {
             "sourceTypeId": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2"
-          },
+          }
+        ],
+        "response-message.ts": [
           {
-            "sourceTypeId": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2"
+            "sourceTypeId": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/response-message/v/1"
           }
         ]
       }
