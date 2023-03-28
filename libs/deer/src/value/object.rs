@@ -2,10 +2,9 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        DeserializerError, ExpectedLength, FieldAccessError, ObjectLengthError, ReceivedLength,
-        Variant,
+        DeserializerError, ExpectedLength, ObjectLengthError, ReceivedLength, Variant, VisitorError,
     },
-    Context, Deserializer, EnumVisitor, FieldAccess, ObjectAccess, OptionalVisitor, Visitor,
+    Context, Deserializer, EnumVisitor, FieldVisitor, ObjectAccess, OptionalVisitor, Visitor,
 };
 
 // TODO: MapDeserializer/IteratorDeserializer
@@ -63,35 +62,35 @@ where
     where
         V: EnumVisitor<'de>,
     {
-        struct EnumFieldAccess<T>(T);
+        struct EnumFieldVisitor<T>(T);
 
-        impl<'de, T> FieldAccess<'de> for EnumFieldAccess<T>
+        impl<'de, T> FieldVisitor<'de> for EnumFieldVisitor<T>
         where
             T: EnumVisitor<'de>,
         {
             type Key = T::Discriminant;
             type Value = T::Value;
 
-            fn key<D>(&self, deserializer: D) -> Result<Self::Key, FieldAccessError>
+            fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, VisitorError>
             where
                 D: Deserializer<'de>,
             {
                 self.0
                     .visit_discriminant(deserializer)
-                    .change_context(FieldAccessError)
+                    .change_context(VisitorError)
             }
 
-            fn value<D>(
+            fn visit_value<D>(
                 self,
                 key: Self::Key,
                 deserializer: D,
-            ) -> Result<Self::Value, FieldAccessError>
+            ) -> Result<Self::Value, VisitorError>
             where
                 D: Deserializer<'de>,
             {
                 self.0
                     .visit_value(key, deserializer)
-                    .change_context(FieldAccessError)
+                    .change_context(VisitorError)
             }
         }
 
@@ -99,7 +98,7 @@ where
             .set_bounded(1)
             .change_context(DeserializerError)?;
 
-        let Some(value) = self.value.field(EnumFieldAccess(visitor)) else {
+        let Some(value) = self.value.field(EnumFieldVisitor(visitor)) else {
             return Err(Report::new(ObjectLengthError.into_error())
                 .attach(ExpectedLength::new(1))
                 .attach(ReceivedLength::new(0))

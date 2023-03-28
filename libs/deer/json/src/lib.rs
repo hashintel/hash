@@ -24,7 +24,7 @@ use deer::{
         ValueError, Variant,
     },
     value::NoneDeserializer,
-    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldAccess, OptionalVisitor,
+    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
     Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -572,7 +572,7 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
 
     fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
-        F: FieldAccess<'de>,
+        F: FieldVisitor<'de>,
     {
         self.dirty = true;
 
@@ -588,11 +588,13 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
                     *remaining -= 1;
 
                     // defer to `Visitor::visit_none`
-                    let key = access.key(Deserializer::empty(self.context));
+                    let key = access.visit_key(Deserializer::empty(self.context));
 
                     Some(
-                        key.and_then(|key| access.value(key, Deserializer::empty(self.context)))
-                            .change_context(ObjectAccessError),
+                        key.and_then(|key| {
+                            access.visit_value(key, Deserializer::empty(self.context))
+                        })
+                        .change_context(ObjectAccessError),
                     )
                 }
             };
@@ -610,8 +612,9 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         // `self.inner`
         let (key, value) = self.inner.remove_entry(&next).expect("key should exist");
 
-        let key = access.key(Deserializer::new(Value::String(key), self.context));
-        let value = key.and_then(|key| access.value(key, Deserializer::new(value, self.context)));
+        let key = access.visit_key(Deserializer::new(Value::String(key), self.context));
+        let value =
+            key.and_then(|key| access.visit_value(key, Deserializer::new(value, self.context)));
 
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)

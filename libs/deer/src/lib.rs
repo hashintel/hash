@@ -23,9 +23,9 @@ pub use schema::{Document, Reflection, Schema};
 pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, FieldAccessError,
-        MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError,
-        Variant, VisitorError,
+        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
+        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
+        VisitorError,
     },
     schema::visitor,
 };
@@ -41,24 +41,26 @@ pub mod value;
 
 extern crate alloc;
 
-struct GenericFieldAccess<T, U>(PhantomData<fn() -> *const (T, U)>);
+struct GenericFieldVisitor<T, U>(PhantomData<fn() -> *const (T, U)>);
 
-impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for GenericFieldAccess<T, U> {
+impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
+    for GenericFieldVisitor<T, U>
+{
     type Key = T;
     type Value = (T, U);
 
-    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
         U::deserialize(deserializer)
             .map(|value| (key, value))
-            .change_context(FieldAccessError)
+            .change_context(VisitorError)
     }
 }
 
-type FieldKeyValue<'de, F> = <F as FieldAccess<'de>>::Value;
-type FieldResult<'de, F> = Option<Result<FieldKeyValue<'de, F>, ObjectAccessError>>;
+type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
+type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
     /// This enables bound-checking for [`ObjectAccess`].
@@ -81,31 +83,30 @@ pub trait ObjectAccess<'de> {
         K: Deserialize<'de>,
         V: Deserialize<'de>,
     {
-        self.field(GenericFieldAccess(PhantomData))
+        self.field(GenericFieldVisitor(PhantomData))
     }
 
     fn field<F>(&mut self, access: F) -> FieldResult<'de, F>
     where
-        F: FieldAccess<'de>;
+        F: FieldVisitor<'de>;
 
     fn size_hint(&self) -> Option<usize>;
 
     fn end(self) -> Result<(), ObjectAccessError>;
 }
 
-// TODO: should be `FieldVisitor`
-pub trait FieldAccess<'de>: Sized {
+pub trait FieldVisitor<'de> {
     type Key: Deserialize<'de>;
     type Value;
 
-    fn key<D>(&self, deserializer: D) -> Result<Self::Key, FieldAccessError>
+    fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, VisitorError>
     where
         D: Deserializer<'de>,
     {
-        <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(FieldAccessError)
+        <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(VisitorError)
     }
 
-    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>;
 }
@@ -545,7 +546,6 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
-    // TODO: in theory - can't we defer this?!
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
