@@ -72,6 +72,45 @@
       "matchPaths": ["apps/**"],
       "groupName": "Rust applications toolchains",
       "commitMessageTopic": "Rust toolchains for `/apps`"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^clap[-_]?"],
+      "groupName": "`clap` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^criterion[-_]?"],
+      "groupName": "`criterion` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^futures[-_]?"],
+      "groupName": "`futures` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": [
+        "^opentelemetry[-_]?",
+        "^tracing-opentelemetry$"
+      ],
+      "groupName": "`opentelemetry` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
+      "groupName": "`postgres` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^serde[-_]?"],
+      "groupName": "`serde` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^tracing[-_]?"],
+      "excludePackageNames": ["tracing-opentelemetry"],
+      "groupName": "`tracing` crates"
     }
   ],
   "regexManagers": [
