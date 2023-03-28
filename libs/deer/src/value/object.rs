@@ -1,7 +1,11 @@
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::DeserializerError, Context, Deserializer, ObjectAccess, OptionalVisitor, Visitor,
+    error::{
+        DeserializerError, ExpectedLength, FieldAccessError, ObjectLengthError, ReceivedLength,
+        Variant,
+    },
+    Context, Deserializer, EnumVisitor, FieldAccess, ObjectAccess, OptionalVisitor, Visitor,
 };
 
 // TODO: MapDeserializer/IteratorDeserializer
@@ -53,5 +57,57 @@ where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        struct EnumFieldAccess<T>(T);
+
+        impl<'de, T> FieldAccess<'de> for EnumFieldAccess<T>
+        where
+            T: EnumVisitor<'de>,
+        {
+            type Key = T::Discriminant;
+            type Value = T::Value;
+
+            fn key<D>(&self, deserializer: D) -> Result<Self::Key, FieldAccessError>
+            where
+                D: Deserializer<'de>,
+            {
+                self.0
+                    .visit_discriminant(deserializer)
+                    .change_context(FieldAccessError)
+            }
+
+            fn value<D>(
+                self,
+                key: Self::Key,
+                deserializer: D,
+            ) -> Result<Self::Value, FieldAccessError>
+            where
+                D: Deserializer<'de>,
+            {
+                self.0
+                    .visit_value(key, deserializer)
+                    .change_context(FieldAccessError)
+            }
+        }
+
+        self.value
+            .set_bounded(1)
+            .change_context(DeserializerError)?;
+
+        let Some(value) = self.value.field(EnumFieldAccess(visitor)) else {
+            return Err(Report::new(ObjectLengthError.into_error())
+                .attach(ExpectedLength::new(1))
+                .attach(ReceivedLength::new(0))
+                .change_context(DeserializerError))
+        };
+
+        // TODO: fold_results
+        self.value.end().change_context(DeserializerError)?;
+        value.change_context(DeserializerError)
     }
 }

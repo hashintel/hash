@@ -20,10 +20,12 @@ use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
         DeserializerError, ExpectedLength, ExpectedType, ObjectAccessError, ObjectItemsExtraError,
-        ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
+        ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
+        ValueError, Variant,
     },
-    Context, Deserialize, DeserializeOwned, Document, FieldAccess, OptionalVisitor, Reflection,
-    Schema, Visitor,
+    value::NoneDeserializer,
+    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldAccess, OptionalVisitor,
+    Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -372,6 +374,59 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let Some(value) = self.value else {
+            return NoneDeserializer::new(self.context).deserialize_enum(visitor)
+        };
+
+        let context = self.context;
+
+        if let Value::Object(object) = value {
+            if object.len() != 1 {
+                return Err(Report::new(ObjectLengthError.into_error())
+                    .attach(ExpectedLength::new(1))
+                    .attach(ReceivedLength::new(object.len()))
+                    .change_context(DeserializerError));
+            }
+
+            let (key, value) = object
+                .into_iter()
+                .next()
+                .expect("previous check should make this infallible");
+
+            let discriminant = visitor
+                .visit_discriminant(Deserializer {
+                    value: Some(key.into()),
+                    context,
+                })
+                .change_context(DeserializerError)?;
+
+            visitor
+                .visit_value(discriminant, Deserializer {
+                    value: Some(value),
+                    context,
+                })
+                .change_context(DeserializerError)
+        } else {
+            let discriminant = visitor
+                .visit_discriminant(Deserializer {
+                    value: Some(value),
+                    context,
+                })
+                .change_context(DeserializerError)?;
+
+            visitor
+                .visit_value(discriminant, Deserializer {
+                    value: None,
+                    context,
+                })
+                .change_context(DeserializerError)
+        }
+    }
 }
 
 #[must_use]
@@ -515,7 +570,7 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         Ok(())
     }
 
-    fn field<F>(&mut self, access: F) -> Option<Result<(F::Key, F::Value), ObjectAccessError>>
+    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
         F: FieldAccess<'de>,
     {
@@ -536,12 +591,8 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
                     let key = access.key(Deserializer::empty(self.context));
 
                     Some(
-                        key.and_then(|key| {
-                            access
-                                .value(&key, Deserializer::empty(self.context))
-                                .map(|value| (key, value))
-                        })
-                        .change_context(ObjectAccessError),
+                        key.and_then(|key| access.value(key, Deserializer::empty(self.context)))
+                            .change_context(ObjectAccessError),
                     )
                 }
             };
@@ -560,15 +611,11 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         let (key, value) = self.inner.remove_entry(&next).expect("key should exist");
 
         let key = access.key(Deserializer::new(Value::String(key), self.context));
-        let key_value = key.and_then(|key| {
-            access
-                .value(&key, Deserializer::new(value, self.context))
-                .map(|value| (key, value))
-        });
+        let value = key.and_then(|key| access.value(key, Deserializer::new(value, self.context)));
 
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)
-        Some(key_value.change_context(ObjectAccessError))
+        Some(value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {

@@ -36,7 +36,7 @@ mod impls;
 #[macro_use]
 mod macros;
 mod number;
-mod schema;
+pub mod schema;
 pub mod value;
 
 extern crate alloc;
@@ -45,17 +45,19 @@ struct GenericFieldAccess<T, U>(PhantomData<fn() -> *const (T, U)>);
 
 impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldAccess<'de> for GenericFieldAccess<T, U> {
     type Key = T;
-    type Value = U;
+    type Value = (T, U);
 
-    fn value<D>(&self, _: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>,
     {
-        U::deserialize(deserializer).change_context(FieldAccessError)
+        U::deserialize(deserializer)
+            .map(|value| (key, value))
+            .change_context(FieldAccessError)
     }
 }
 
-type FieldKeyValue<'de, F> = (<F as FieldAccess<'de>>::Key, <F as FieldAccess<'de>>::Value);
+type FieldKeyValue<'de, F> = <F as FieldAccess<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldKeyValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
@@ -91,7 +93,8 @@ pub trait ObjectAccess<'de> {
     fn end(self) -> Result<(), ObjectAccessError>;
 }
 
-pub trait FieldAccess<'de> {
+// TODO: should be `FieldVisitor`
+pub trait FieldAccess<'de>: Sized {
     type Key: Deserialize<'de>;
     type Value;
 
@@ -102,7 +105,7 @@ pub trait FieldAccess<'de> {
         <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(FieldAccessError)
     }
 
-    fn value<D>(&self, key: &Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
+    fn value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, FieldAccessError>
     where
         D: Deserializer<'de>;
 }
@@ -133,6 +136,39 @@ pub trait ArrayAccess<'de> {
 
     fn end(self) -> Result<(), ArrayAccessError>;
 }
+
+pub trait EnumVisitor<'de>: Sized {
+    // TODO: interesting part: serde actually has `deserialize_identifier` which can be used
+    //  deserialize implementations can then use that to their advantage by default it also
+    //  generates an index version for all fields, that is gated behind `deserialize_identifier`.
+    //  Maybe we want something like a `DiscriminantVisitor` and `visit_enum_discriminant`?
+    type Discriminant: Deserialize<'de>;
+
+    // the value we will end up with
+    type Value;
+
+    fn expecting(&self) -> Document;
+
+    fn visit_discriminant<D>(&self, deserializer: D) -> Result<Self::Discriminant, VisitorError>
+    where
+        D: Deserializer<'de>,
+    {
+        <Self::Discriminant as Deserialize<'de>>::deserialize(deserializer)
+            .change_context(VisitorError)
+    }
+
+    fn visit_value<D>(
+        self,
+        discriminant: Self::Discriminant,
+        deserializer: D,
+    ) -> Result<Self::Value, VisitorError>
+    where
+        D: Deserializer<'de>;
+}
+
+// pub trait VariantAccess<'de>: Sized {}
+//
+// pub trait EnumAccess<'de> {}
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
@@ -574,6 +610,14 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>;
+
+    /// Hint that the `Deserialize` type expect an enum
+    ///
+    /// Due to the very special nature of an enum (being a fundamental type) a special visitor is
+    /// used.
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,

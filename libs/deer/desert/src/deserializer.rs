@@ -1,7 +1,11 @@
 use alloc::borrow::ToOwned;
 
-use deer::{error::DeserializerError, Context, OptionalVisitor, Visitor};
-use error_stack::{Result, ResultExt};
+use deer::{
+    error::{DeserializerError, TypeError, Variant},
+    value::NoneDeserializer,
+    Context, EnumVisitor, OptionalVisitor, Visitor,
+};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
 
@@ -92,6 +96,48 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let token = self.peek();
+
+        let is_map = match token {
+            Token::Object { .. } => {
+                // eat the token so that we're at the key
+                self.next();
+                true
+            }
+            _ => false,
+        };
+
+        let discriminant = visitor
+            .visit_discriminant(&mut *self)
+            .change_context(DeserializerError)?;
+
+        let value = if is_map {
+            visitor.visit_value(discriminant, &mut *self)
+        } else {
+            visitor.visit_value(discriminant, NoneDeserializer::new(self.context))
+        }
+        .change_context(DeserializerError)?;
+
+        if is_map {
+            // make sure that we're close and that we have nothing dangling
+            if self.peek() == Token::ObjectEnd {
+                self.next();
+            } else {
+                // we received a unit type, therefore error should be a type error
+                // we cannot determine the type we received, just that it is a map
+                // TODO: once HashMap has a reflection use it here as ReceivedType (or
+                //  UnknownObjectSchema?)
+                return Err(Report::new(TypeError.into_error()).change_context(DeserializerError));
+            }
+        }
+
+        Ok(value)
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -132,7 +178,8 @@ impl<'a, 'de> Deserializer<'a, 'de> {
     }
 }
 
-#[derive(Debug)]
+// TODO: replace w/ NoneDeserializer
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct DeserializerNone<'a> {
     pub(crate) context: &'a Context,
 }
@@ -167,5 +214,18 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
         V: OptionalVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, self)
+            .change_context(DeserializerError)
     }
 }
