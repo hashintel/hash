@@ -38,6 +38,7 @@ generate-openapi-client:
 test *arguments:
   @just deployment-up
   @just --justfile {{repo}}/.justfile test {{arguments}}
+  cargo test --workspace --benches --profile {{profile}} {{arguments}}
   @just deployment-up graph --wait
   just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
   just generate-openapi-client
