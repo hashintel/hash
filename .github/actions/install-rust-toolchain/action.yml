@@ -26,5 +26,6 @@ runs:
           rustup set profile default
         fi
 
+        # Installs the specified toolchains and prints it
         rustup show
         echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
