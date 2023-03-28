@@ -109,11 +109,13 @@ const constructMessageThread = (params: {
 };
 
 export const CompleteChat: FunctionComponent<{
+  readonly: boolean;
   aiChatBlockEntity: AIChatBlock;
   initialRootRequestId?: RequestId;
   initialCompleteChatRequests?: CompleteChatRequest[];
   initialCompleteChatResponses?: CompleteChatResponse[];
 }> = ({
+  readonly,
   aiChatBlockEntity,
   initialRootRequestId,
   initialCompleteChatRequests,
@@ -435,38 +437,39 @@ export const CompleteChat: FunctionComponent<{
             </Collapse>
           ))}
         </TransitionGroup>
+        {readonly ? null : (
+          <Box padding={3}>
+            <ChatTextField
+              loading={loading}
+              chatHasStarted={chatHasStarted}
+              submitMessageContent={(messageContent) => {
+                const lastMessage = messageThread[messageThread.length - 1];
 
-        <Box padding={3}>
-          <ChatTextField
-            loading={loading}
-            chatHasStarted={chatHasStarted}
-            submitMessageContent={(messageContent) => {
-              const lastMessage = messageThread[messageThread.length - 1];
-
-              void submitUserMessage({
-                previousResponseId:
-                  lastMessage && isIdResponseId(lastMessage.id)
-                    ? lastMessage.id
-                    : undefined,
-                userMessage: {
-                  role: "user",
-                  content: messageContent,
-                },
-              });
-            }}
-          />
-          <Collapse in={!chatHasStarted}>
-            <Box marginX={3} marginTop={3}>
-              <ExamplePrompts
-                submitPrompt={(prompt) =>
-                  submitUserMessage({
-                    userMessage: { role: "user", content: prompt },
-                  })
-                }
-              />
-            </Box>
-          </Collapse>
-        </Box>
+                void submitUserMessage({
+                  previousResponseId:
+                    lastMessage && isIdResponseId(lastMessage.id)
+                      ? lastMessage.id
+                      : undefined,
+                  userMessage: {
+                    role: "user",
+                    content: messageContent,
+                  },
+                });
+              }}
+            />
+            <Collapse in={!chatHasStarted}>
+              <Box marginX={3} marginTop={3}>
+                <ExamplePrompts
+                  submitPrompt={(prompt) =>
+                    submitUserMessage({
+                      userMessage: { role: "user", content: prompt },
+                    })
+                  }
+                />
+              </Box>
+            </Collapse>
+          </Box>
+        )}
       </Box>
     </Box>
   );

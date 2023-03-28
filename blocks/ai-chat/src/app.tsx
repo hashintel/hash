@@ -190,16 +190,13 @@ export const App: BlockComponent<AIChatBlock> = ({
 
   return (
     <ThemeProvider theme={theme}>
-      {readonly ? (
-        <>READONLY</>
-      ) : (
-        <CompleteChat
-          aiChatBlockEntity={aiChatBlockEntity}
-          initialRootRequestId={initialRootRequestId}
-          initialCompleteChatRequests={initialCompleteChatRequests}
-          initialCompleteChatResponses={initialCompleteChatResponses}
-        />
-      )}
+      <CompleteChat
+        readonly={readonly ?? false}
+        aiChatBlockEntity={aiChatBlockEntity}
+        initialRootRequestId={initialRootRequestId}
+        initialCompleteChatRequests={initialCompleteChatRequests}
+        initialCompleteChatResponses={initialCompleteChatResponses}
+      />
     </ThemeProvider>
   );
 };
