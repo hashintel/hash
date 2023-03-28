@@ -9,12 +9,9 @@ profile := env_var_or_default('PROFILE', "dev")
 @default:
   just usage
 
-# Copied from `/.justfile` to ignore the `lint-toml` job.
 [private]
-clippy *arguments:
-  @just install-cargo-hack
-  @just in-pr cargo clippy --profile {{profile}} --workspace --all-features --all-targets --no-deps {{arguments}}
-  @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
+lint-toml mode:
+  @echo "Lints in `.cargo/config.toml` are currently unmaintained"
 
 [private]
 test *arguments:
