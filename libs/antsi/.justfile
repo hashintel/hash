@@ -3,8 +3,8 @@
 set fallback
 
 [private]
-@default:
-  just usage
+default:
+  @just usage
 
 [private]
 miri *arguments:

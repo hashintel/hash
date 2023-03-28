@@ -10,8 +10,8 @@ export HASH_GRAPH_PG_DATABASE := env_var('HASH_GRAPH_PG_DEV_DATABASE')
 export DOCKER_BUILDKIT := "1"
 
 [private]
-@default:
-  just usage
+default:
+  @just usage
 
 # Runs the Graph API and accompanying services
 run *arguments:

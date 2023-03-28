@@ -6,8 +6,8 @@ repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
 
 [private]
-@default:
-  just usage
+default:
+  @just usage
 
 [private]
 lint-toml mode:
@@ -21,5 +21,6 @@ test *arguments:
 
 # Copied from `/.justfile` to ignore example scraping, which does not work properly on the Rust version we currently use.
 [no-cd]
+[private]
 doc *arguments:
   cargo doc --workspace --all-features --no-deps {{arguments}}

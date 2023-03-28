@@ -3,8 +3,8 @@
 set fallback
 
 [private]
-@default:
-  just usage
+default:
+  @just usage
 
 miri *arguments:
   @echo 'miri is disabled for `sarif`'

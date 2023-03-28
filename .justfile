@@ -11,30 +11,30 @@ github-event-name := env_var_or_default('GITHUB_EVENT_NAME', "none")
 ## Helper to print a message when calling `just`
 ######################################################################
 [private]
-@default:
-  echo "Usage: just <recipe>"
-  just list-repo-recipes
-  echo "For further information, run 'just --help'"
+default:
+  @echo "Usage: just <recipe>"
+  @just list-repo-recipes
+  @echo "For further information, run 'just --help'"
 
 # List recipes in this file and from the calling directory
 [no-cd]
 [private]
-@usage:
-  echo "Usage: just <recipe>"
-  just list-local-recipes
-  just list-repo-recipes
-  echo "For further information, run 'just --help'"
+usage:
+  @echo "Usage: just <recipe>"
+  @just list-local-recipes
+  @just list-repo-recipes
+  @echo "For further information, run 'just --help'"
 
 [no-cd]
 [private]
-@list-local-recipes:
-  echo '\nAvailable recipes:'
-  just --list --unsorted --list-heading ''
+list-local-recipes:
+  @echo '\nAvailable recipes:'
+  @just --list --unsorted --list-heading ''
 
 [private]
-@list-repo-recipes:
-  echo "\nRepository recipes:"
-  just --list --unsorted --list-heading ''
+list-repo-recipes:
+  @echo "\nRepository recipes:"
+  @just --list --unsorted --list-heading ''
 
 
 ######################################################################
@@ -90,28 +90,28 @@ not-in-pr +command:
 ######################################################################
 
 [private]
-@install-cargo-tool tool install version:
-  `{{tool}} --version | grep -q "{{version}}" || cargo install "{{install}}" --version "{{version}}" --locked --force`
+install-cargo-tool tool install version:
+  @`{{tool}} --version | grep -q "{{version}}" || cargo install "{{install}}" --version "{{version}}" --locked --force`
 
 [private]
-@install-cargo-hack:
-  just install-cargo-tool 'cargo hack' cargo-hack 0.5.26
+install-cargo-hack:
+  @just install-cargo-tool 'cargo hack' cargo-hack 0.5.26
 
 [private]
-@install-cargo-nextest:
-  just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
+install-cargo-nextest:
+  @just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
 
 [private]
-@install-cargo-script:
-  just install-cargo-tool 'cargo script' cargo-script 0.2.8
+install-cargo-script:
+  @just install-cargo-tool 'cargo script' cargo-script 0.2.8
 
 [private]
-@install-llvm-cov:
-  just install-cargo-tool 'cargo llvm-cov' cargo-llvm-cov 0.5.9
+install-llvm-cov:
+  @just install-cargo-tool 'cargo llvm-cov' cargo-llvm-cov 0.5.9
 
 [private]
-@install-cargo-insta:
-  just install-cargo-tool 'cargo insta' cargo-insta 1.18.2
+install-cargo-insta:
+  @just install-cargo-tool 'cargo insta' cargo-insta 1.18.2
 
 
 ######################################################################
@@ -140,7 +140,7 @@ format *arguments:
 # Lint the code using `clippy`
 [no-cd]
 clippy *arguments: install-cargo-hack install-cargo-script
-  @lint-toml "generate"
+  @just lint-toml "generate"
   @just in-pr cargo clippy --profile {{profile}} --workspace --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
