@@ -66,9 +66,9 @@
     "protocol": "0.3",
     "blockEntityType": "http://localhost:3000/@alice/types/entity-type/ai-chat-block/v/6",
     "codegen": {
-      "outputFolder": "src/types/generated",
+      "outputFolder": "src/types",
       "targets": {
-        "block-entity.ts": [
+        "generated.ts": [
           {
             "blockEntityType": true
           },

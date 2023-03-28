@@ -6,7 +6,7 @@ import {
   AIChatRequestV4OutgoingLinksByLinkEntityTypeId,
   AIChatResponseV4,
   AIChatResponseV4OutgoingLinksByLinkEntityTypeId,
-} from "../types/generated/block-entity";
+} from "../types/generated";
 
 export type AIChatRequest = AIChatRequestV4;
 export type AIChatRequestOutgoingLinksByLinkEntityTypeId =

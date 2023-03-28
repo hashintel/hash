@@ -19,7 +19,7 @@ import {
 } from "./complete-chat/graph";
 import { defaultSystemPromptId } from "./complete-chat/system-prompt-selector";
 import Component from "./index";
-import { BlockEntity } from "./types/generated/block-entity";
+import { BlockEntity } from "./types/generated";
 
 const node = document.getElementById("app");
 

@@ -36,7 +36,7 @@ import {
   IncompleteOpenAiAssistantMessage,
   OpenAIChatMessage,
 } from "./complete-chat/types";
-import { AIChatBlock } from "./types/generated/block-entity";
+import { AIChatBlock } from "./types/generated";
 
 let requestCounter = 0;
 

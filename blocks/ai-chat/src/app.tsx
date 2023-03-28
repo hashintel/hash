@@ -28,7 +28,7 @@ import {
   messageContentKey,
   rootAIChatRequestLinkTypeId,
 } from "./complete-chat/graph";
-import { AIChatBlock } from "./types/generated/block-entity";
+import { AIChatBlock } from "./types/generated";
 
 const isMessageEntityAIChatRequest = (
   message: AIChatRequest | AIChatResponse,
