@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.1.0",
-    "@hashintel/design-system": "0.0.5",
+    "@hashintel/design-system": "0.0.6",
     "@mui/material": "5.11.8",
     "react-sizeme": "3.0.2",
     "uuid": "8.3.2"

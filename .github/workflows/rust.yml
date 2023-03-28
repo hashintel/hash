@@ -31,7 +31,6 @@ jobs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
       coverage: ${{ steps.crates.outputs.coverage }}
-      docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
       samples: ${{ steps.samples.outputs.samples }}
     steps:
@@ -79,19 +78,17 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
-
-      - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-hack@0.5.26,cargo-script@0.2.8,clippy-sarif@0.3.7,sarif-fmt@0.3.7
-
-      - name: Install cargo-make
-        run: cargo install --version 0.36.3 cargo-make
+          working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -102,13 +99,13 @@ jobs:
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make format -- --check
+        run: just format --check
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
         if: always()
         run: |
-          cargo +${{ matrix.toolchain }} make clippy --message-format=json \
+          just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | tee clippy.sarif \
@@ -138,14 +135,14 @@ jobs:
         if: always()
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: cargo +${{ matrix.toolchain }} make doc
+        run: just doc
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
         if: always()
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: cargo +${{ matrix.toolchain }} make doc --document-private-items
+        run: just doc --document-private-items
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -161,6 +158,7 @@ jobs:
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
+      PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -173,20 +171,18 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
-
-      - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-hack@0.5.26,cargo-nextest@0.9.37
-
-      - name: Install cargo-make
-        run: cargo install --version 0.36.3 cargo-make
+          working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -203,12 +199,12 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: just test --no-fail-fast
 
       - name: Run miri
         if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
+        run: just miri --no-fail-fast
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -248,26 +244,22 @@ jobs:
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
-
-      - name: Install tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
-
-      - name: Install cargo-make
-        run: cargo install --version 0.36.3 cargo-make
+          working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -278,7 +270,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make coverage --lcov --output-path lcov.info
+        run: just coverage --lcov --output-path lcov.info
 
       - uses: codecov/codecov-action@v3
         if: ${{ success() || failure() }}
@@ -290,33 +282,6 @@ jobs:
           files: ${{ matrix.directory }}/lcov.info
           flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
-
-  docker:
-    name: docker
-    needs: setup
-    if: needs.setup.outputs.docker != '{}'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.docker) }}
-    defaults:
-      run:
-        working-directory: ${{ matrix.directory }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Install cargo-make
-        run: cargo install --version 0.36.3 cargo-make
-
-      - name: Build Docker container
-        run: cargo make --profile ${{ matrix.profile }} build-docker
-
-      - name: Test Docker container
-        run: cargo make --profile ${{ matrix.profile }} test-docker
-
-      - name: Ensure empty git diff
-        run: git --no-pager diff --exit-code --color
 
   publish:
     name: publish
@@ -334,25 +299,23 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
+          working-directory: ${{ matrix.directory }}
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-script@0.2.8,cargo-semver-checks@0.17.0
-
-      - name: Install cargo-make
-        run: cargo install --version 0.36.3 cargo-make
+          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks@0.17.0
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
+        run: just lint
 
       - name: Run tests
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: just test
 
       - name: Login
         run: |
@@ -380,7 +343,7 @@ jobs:
 
   merging-enabled:
     name: Merging enabled
-    needs: [setup, lint, test, coverage, docker, publish]
+    needs: [setup, lint, test, coverage, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -396,9 +359,6 @@ jobs:
       - name: check coverage
         run: |
           [[ ${{ needs.coverage.result }} =~ success|skipped ]]
-      - name: check docker
-        run: |
-          [[ ${{ needs.docker.result }} =~ success|skipped ]]
       - name: check publish
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
