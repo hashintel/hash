@@ -29,8 +29,12 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         let mut result: Result<(), ArrayAccessError> = Ok(());
 
         #[allow(unsafe_code)]
-        // SAFETY: this is the same as `MaybeUninit::uninit_array()`, which is still unstable
-        let mut array = unsafe { MaybeUninit::<[MaybeUninit<T>; N]>::uninit().assume_init() };
+        #[allow(clippy::uninit_assumed_init)]
+        // SAFETY: `uninit_assumed_init` is fine here, as `[MaybeUninit<T>; N]` as no inhabitants,
+        // the code shown here is also present in 1) the rust docs and 2) as an OK example in the
+        // clippy docs. The code is the same as in `MaybeUninit::uninit_array()`, which is still
+        // unstable
+        let mut array: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
 
         let mut index = 0;
         let mut failed = false;
