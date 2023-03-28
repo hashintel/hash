@@ -148,6 +148,11 @@ clippy *arguments: install-cargo-hack install-cargo-script (lint-toml "generate"
 doc *arguments:
   cargo doc --workspace --all-features --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
 
+# Builds the crate
+[no-cd]
+build *arguments:
+  cargo build --profile {{profile}} {{arguments}}
+
 # Run the test suite
 [no-cd]
 test *arguments: install-cargo-nextest install-cargo-hack
