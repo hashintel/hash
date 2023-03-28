@@ -44,7 +44,7 @@ just build
 In order to create an optimized build, run:
 
 ```shell
-just --profile production build
+PROFILE=release just build
 ```
 
 Please see the list of all possible `just` commands:
