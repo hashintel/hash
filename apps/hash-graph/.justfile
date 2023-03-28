@@ -29,19 +29,19 @@ deployment-down *arguments:
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-client:
   @just deployment-up graph --wait
-  just yarn workspace @local/hash-graph-client-generator generate
-  just yarn workspace @local/hash-graph-client prettier --write .
-  just yarn workspace @local/hash-graph-client fix:eslint
+  @just yarn workspace @local/hash-graph-client-generator generate
+  @just yarn workspace @local/hash-graph-client prettier --write .
+  @just yarn workspace @local/hash-graph-client fix:eslint
   @just deployment-down
 
 [private]
 test *arguments:
   @just deployment-up
   @just --justfile {{repo}}/.justfile test {{arguments}}
-  cargo test --workspace --benches --profile {{profile}} {{arguments}}
+  cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
   @just deployment-up graph --wait
-  just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
-  just generate-openapi-client
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
+  @just generate-openapi-client
   @just deployment-down
 
 [private]
