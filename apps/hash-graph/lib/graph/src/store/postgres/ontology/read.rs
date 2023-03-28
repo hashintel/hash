@@ -63,7 +63,7 @@ where
     async fn read(
         &self,
         filter: &Filter<T>,
-        temporal_axes: &QueryTemporalAxes,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Vec<T>, QueryError> {
         let base_url_path = <T::QueryPath<'static> as OntologyQueryPath>::base_url();
         let version_path = <T::QueryPath<'static> as OntologyQueryPath>::version();
@@ -73,7 +73,7 @@ where
         let additional_metadata_path =
             <T::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes));
+        let mut compiler = SelectCompiler::new(temporal_axes);
 
         let base_url_index = compiler.add_distinct_selection_with_ordering(
             &base_url_path,
