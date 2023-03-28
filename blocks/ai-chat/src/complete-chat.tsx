@@ -19,12 +19,6 @@ import {
 } from "./complete-chat/chat-model-selector";
 import { ChatTextField } from "./complete-chat/chat-textfield";
 import { ExamplePrompts } from "./complete-chat/example-prompts";
-import {
-  chatAIModelKey,
-  createAiChatRequestEntityMethod,
-  createAiChatResponseEntityMethod,
-  presetSystemPromptIdKey,
-} from "./complete-chat/graph";
 import { Header } from "./complete-chat/header";
 import {
   defaultSystemPromptId,
@@ -36,7 +30,12 @@ import {
   IncompleteOpenAiAssistantMessage,
   OpenAIChatMessage,
 } from "./complete-chat/types";
-import { AIChatBlock } from "./types/generated";
+import { AIChatBlock } from "./types/generated/block-entity";
+import {
+  createRequestMessageEntityMethod,
+  createResponseMessageEntityMethod,
+  propertyTypeBaseUrls,
+} from "./types/graph";
 
 let requestCounter = 0;
 
@@ -137,13 +136,15 @@ export const CompleteChat: FunctionComponent<{
   const aiChatBlockEntityPresetSystemPromptId = useMemo<
     SystemPromptId | undefined
   >(() => {
-    const value = aiChatBlockEntity.properties[presetSystemPromptIdKey];
+    const value =
+      aiChatBlockEntity.properties[propertyTypeBaseUrls.presetSystemPromptId];
 
     return value && isSystemPromptId(value) ? value : undefined;
   }, [aiChatBlockEntity]);
 
   const aiChatBlockEntityChatAiModel = useMemo<ChatModelId | undefined>(() => {
-    const value = aiChatBlockEntity.properties[chatAIModelKey];
+    const value =
+      aiChatBlockEntity.properties[propertyTypeBaseUrls.openAIChatModelName];
 
     return value && isChatModelId(value) ? value : undefined;
   }, [aiChatBlockEntity]);
@@ -208,13 +209,17 @@ export const CompleteChat: FunctionComponent<{
 
   if (aiChatBlockEntityPresetSystemPromptId !== systemPromptId) {
     void updateAiChatBlockEntity({
-      updatedProperties: { [presetSystemPromptIdKey]: systemPromptId },
+      updatedProperties: {
+        [propertyTypeBaseUrls.presetSystemPromptId]: systemPromptId,
+      },
     });
   }
 
   if (aiChatBlockEntityChatAiModel !== chatModel) {
     void updateAiChatBlockEntity({
-      updatedProperties: { [chatAIModelKey]: chatModel },
+      updatedProperties: {
+        [propertyTypeBaseUrls.openAIChatModelName]: chatModel,
+      },
     });
   }
 
@@ -250,14 +255,15 @@ export const CompleteChat: FunctionComponent<{
     [setCompleteChatResponses, setCompleteChatRequests],
   );
 
-  const createAiChatRequestEntity = useMemo(
-    () => createAiChatRequestEntityMethod({ graphModule, aiChatBlockEntityId }),
+  const createRequestMessageEntity = useMemo(
+    () =>
+      createRequestMessageEntityMethod({ graphModule, aiChatBlockEntityId }),
     [graphModule, aiChatBlockEntityId],
   );
 
-  const createAiChatResponseEntity = useMemo(
+  const createResponseMessageEntity = useMemo(
     () =>
-      createAiChatResponseEntityMethod({ graphModule, aiChatBlockEntityId }),
+      createResponseMessageEntityMethod({ graphModule, aiChatBlockEntityId }),
     [graphModule, aiChatBlockEntityId],
   );
 
@@ -290,10 +296,9 @@ export const CompleteChat: FunctionComponent<{
        * Intentionally don't `await` the promise so that calling the `completeChat`
        * method isn't delayed
        */
-      const promisedAiChatRequestEntity = createAiChatRequestEntity({
+      const promisedRequestMessageEntity = createRequestMessageEntity({
         parentResponseEntityId: previousResponse?.entityId,
         messageContent: userMessage.content,
-        active: true,
       });
 
       const response: CompleteChatResponse = {
@@ -381,16 +386,15 @@ export const CompleteChat: FunctionComponent<{
 
           updateOrAddChatMessage(response);
 
-          const aiChatRequestEntity = await promisedAiChatRequestEntity;
-          const aiChatResponseEntity = await createAiChatResponseEntity({
+          const requestMessageEntity = await promisedRequestMessageEntity;
+          const responseMessageEntity = await createResponseMessageEntity({
             parentRequestEntityId:
-              aiChatRequestEntity.metadata.recordId.entityId,
+              requestMessageEntity.metadata.recordId.entityId,
             messageContent: firstChoiceMessage.content,
-            active: true,
           });
 
-          request.entityId = aiChatRequestEntity.metadata.recordId.entityId;
-          response.entityId = aiChatResponseEntity.metadata.recordId.entityId;
+          request.entityId = requestMessageEntity.metadata.recordId.entityId;
+          response.entityId = responseMessageEntity.metadata.recordId.entityId;
 
           updateOrAddChatMessage(request);
           updateOrAddChatMessage(response);
@@ -404,8 +408,8 @@ export const CompleteChat: FunctionComponent<{
       messageThread,
       completeChatResponses,
       updateOrAddChatMessage,
-      createAiChatRequestEntity,
-      createAiChatResponseEntity,
+      createRequestMessageEntity,
+      createResponseMessageEntity,
     ],
   );
 

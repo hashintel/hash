@@ -4,22 +4,15 @@ import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
 import { defaultChatModelId } from "./complete-chat/chat-model-selector";
-import {
-  activeKey,
-  aiChatMessageLinkTypeId,
-  AIChatRequest,
-  aiChatRequestEntityTypeId,
-  aiChatRequestResponseLinkTypeId,
-  AIChatResponse,
-  aiChatResponseEntityTypeId,
-  chatAIModelKey,
-  messageContentKey,
-  presetSystemPromptIdKey,
-  rootAIChatRequestLinkTypeId,
-} from "./complete-chat/graph";
 import { defaultSystemPromptId } from "./complete-chat/system-prompt-selector";
 import Component from "./index";
-import { BlockEntity } from "./types/generated";
+import { BlockEntity, ResponseMessage } from "./types/generated/block-entity";
+import {
+  entityTypeIds,
+  linkEntityTypeIds,
+  propertyTypeBaseUrls,
+  RequestMessage,
+} from "./types/graph";
 
 const node = document.getElementById("app");
 
@@ -37,38 +30,37 @@ const blockEntity: BlockEntity = {
 
 const blockEntityId = blockEntity.metadata.recordId.entityId;
 
-const aiChatRequestEntity1: AIChatRequest = {
+const requestMessageEntity1: RequestMessage = {
   metadata: {
     recordId: {
       entityId: "ai-chat-request",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: aiChatRequestEntityTypeId,
+    entityTypeId: entityTypeIds.requestMessage,
   },
   properties: {
-    [messageContentKey]: "Test Request Message",
-    [activeKey]: true,
+    [propertyTypeBaseUrls.textContent]: "Test Request Message",
   },
 };
 
-const aiChatRequestEntity1Id = aiChatRequestEntity1.metadata.recordId.entityId;
+const requestMessageEntity1Id =
+  requestMessageEntity1.metadata.recordId.entityId;
 
-const aiChatResponseEntity1: AIChatResponse = {
+const responseMessageEntity1: ResponseMessage = {
   metadata: {
     recordId: {
       entityId: "ai-chat-response",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: aiChatResponseEntityTypeId,
+    entityTypeId: entityTypeIds.responseMessage,
   },
   properties: {
-    [messageContentKey]: "Test Response Message",
-    [activeKey]: true,
+    [propertyTypeBaseUrls.textContent]: "Test Response Message",
   },
 };
 
-const aiChatResponseEntity1Id =
-  aiChatResponseEntity1.metadata.recordId.entityId;
+const responseMessageEntity1Id =
+  responseMessageEntity1.metadata.recordId.entityId;
 
 let counter = 0;
 
@@ -95,31 +87,31 @@ const _existingChatGraph: Entity[] = [
   {
     ...blockEntity,
     properties: {
-      [chatAIModelKey]: defaultChatModelId,
-      [presetSystemPromptIdKey]: defaultSystemPromptId,
+      [propertyTypeBaseUrls.openAIChatModelName]: defaultChatModelId,
+      [propertyTypeBaseUrls.presetSystemPromptId]: defaultSystemPromptId,
     },
   },
-  aiChatRequestEntity1,
+  requestMessageEntity1,
   createLink({
-    linkEntityTypeId: rootAIChatRequestLinkTypeId,
+    linkEntityTypeId: linkEntityTypeIds.rootedAt,
     leftEntityId: blockEntityId,
-    rightEntityId: aiChatRequestEntity1Id,
+    rightEntityId: requestMessageEntity1Id,
   }),
   createLink({
-    linkEntityTypeId: aiChatMessageLinkTypeId,
+    linkEntityTypeId: linkEntityTypeIds.hasMessage,
     leftEntityId: blockEntityId,
-    rightEntityId: aiChatRequestEntity1Id,
+    rightEntityId: requestMessageEntity1Id,
   }),
-  aiChatResponseEntity1,
+  responseMessageEntity1,
   createLink({
-    linkEntityTypeId: aiChatMessageLinkTypeId,
+    linkEntityTypeId: linkEntityTypeIds.hasResponse,
     leftEntityId: blockEntityId,
-    rightEntityId: aiChatResponseEntity1Id,
+    rightEntityId: responseMessageEntity1Id,
   }),
   createLink({
-    linkEntityTypeId: aiChatRequestResponseLinkTypeId,
-    leftEntityId: aiChatRequestEntity1Id,
-    rightEntityId: aiChatResponseEntity1Id,
+    linkEntityTypeId: linkEntityTypeIds.hasMessage,
+    leftEntityId: requestMessageEntity1Id,
+    rightEntityId: responseMessageEntity1Id,
   }),
 ];
 

@@ -17,27 +17,22 @@ import {
   RequestId,
   ResponseId,
 } from "./complete-chat";
+import { AIChatBlock, ResponseMessage } from "./types/generated/block-entity";
 import {
-  activeKey,
-  AIChatRequest,
-  aiChatRequestEntityTypeId,
-  aiChatRequestResponseLinkTypeId,
-  AIChatResponse,
-  aiChatResponseEntityTypeId,
-  aiChatResponseRequestLinkTypeId,
-  messageContentKey,
-  rootAIChatRequestLinkTypeId,
-} from "./complete-chat/graph";
-import { AIChatBlock } from "./types/generated";
+  entityTypeIds,
+  linkEntityTypeIds,
+  propertyTypeBaseUrls,
+  RequestMessage,
+} from "./types/graph";
 
-const isMessageEntityAIChatRequest = (
-  message: AIChatRequest | AIChatResponse,
-): message is AIChatRequest =>
-  message.metadata.entityTypeId === aiChatRequestEntityTypeId;
+const isMessageRequestMessage = (
+  message: RequestMessage | ResponseMessage,
+): message is RequestMessage =>
+  message.metadata.entityTypeId === entityTypeIds.requestMessage;
 
 const getRemainingMessagesFromSubgraph = (params: {
   id: RequestId | ResponseId;
-  currentMessageEntity: AIChatRequest | AIChatResponse;
+  currentMessageEntity: RequestMessage | ResponseMessage;
   subgraph: Subgraph;
 }): {
   requests: CompleteChatRequest[];
@@ -48,18 +43,17 @@ const getRemainingMessagesFromSubgraph = (params: {
   const requests: CompleteChatRequest[] = [];
   const responses: CompleteChatResponse[] = [];
 
-  if (isMessageEntityAIChatRequest(currentMessageEntity)) {
+  if (isMessageRequestMessage(currentMessageEntity)) {
     const childResponseEntities = getOutgoingLinkAndTargetEntities(
       subgraph,
       currentMessageEntity.metadata.recordId.entityId,
     )
       .filter(
         ({ linkEntity, rightEntity }) =>
-          linkEntity.metadata.entityTypeId ===
-            aiChatRequestResponseLinkTypeId &&
-          rightEntity.metadata.entityTypeId === aiChatResponseEntityTypeId,
+          linkEntity.metadata.entityTypeId === linkEntityTypeIds.hasResponse &&
+          rightEntity.metadata.entityTypeId === entityTypeIds.responseMessage,
       )
-      .map(({ rightEntity }) => rightEntity as AIChatResponse);
+      .map(({ rightEntity }) => rightEntity as ResponseMessage);
 
     const childResponseIds: ResponseId[] = [];
 
@@ -82,16 +76,17 @@ const getRemainingMessagesFromSubgraph = (params: {
       entityId: currentMessageEntity.metadata.recordId.entityId,
       message: {
         role: "user",
-        content: currentMessageEntity.properties[messageContentKey],
+        content:
+          currentMessageEntity.properties[propertyTypeBaseUrls.textContent],
       },
-      active: currentMessageEntity.properties[activeKey],
+      active: true,
       childResponseIds,
     };
 
     requests.push(request);
   } else {
-    /** @todo: figure out why TS is not inferring the `AIChatResponse` type */
-    const currentResponseEntity = currentMessageEntity as AIChatResponse;
+    /** @todo: figure out why TS is not inferring the `ResponseMessage` type */
+    const currentResponseEntity = currentMessageEntity as ResponseMessage;
 
     const childRequestEntities = getOutgoingLinkAndTargetEntities(
       subgraph,
@@ -99,11 +94,10 @@ const getRemainingMessagesFromSubgraph = (params: {
     )
       .filter(
         ({ linkEntity, rightEntity }) =>
-          linkEntity.metadata.entityTypeId ===
-            aiChatResponseRequestLinkTypeId &&
-          rightEntity.metadata.entityTypeId === aiChatRequestEntityTypeId,
+          linkEntity.metadata.entityTypeId === linkEntityTypeIds.followedBy &&
+          rightEntity.metadata.entityTypeId === entityTypeIds.requestMessage,
       )
-      .map(({ rightEntity }) => rightEntity as AIChatRequest);
+      .map(({ rightEntity }) => rightEntity as RequestMessage);
 
     const childRequestIds: RequestId[] = [];
 
@@ -126,9 +120,10 @@ const getRemainingMessagesFromSubgraph = (params: {
       entityId: currentResponseEntity.metadata.recordId.entityId,
       message: {
         role: "assistant",
-        content: currentResponseEntity.properties[messageContentKey],
+        content:
+          currentResponseEntity.properties[propertyTypeBaseUrls.textContent],
       },
-      active: currentResponseEntity.properties[activeKey],
+      active: true,
       childRequestIds,
     };
 
@@ -161,8 +156,8 @@ export const App: BlockComponent<AIChatBlock> = ({
 
     const rootRequestEntity = aiChatBlockOutgoingLinkAndTargetEntities.find(
       ({ linkEntity, rightEntity }) =>
-        linkEntity.metadata.entityTypeId === rootAIChatRequestLinkTypeId &&
-        rightEntity.metadata.entityTypeId === aiChatRequestEntityTypeId,
+        linkEntity.metadata.entityTypeId === linkEntityTypeIds.rootedAt &&
+        rightEntity.metadata.entityTypeId === entityTypeIds.requestMessage,
     )?.rightEntity;
 
     if (!rootRequestEntity) {
@@ -177,7 +172,7 @@ export const App: BlockComponent<AIChatBlock> = ({
 
     const { requests, responses } = getRemainingMessagesFromSubgraph({
       id: rootRequestId,
-      currentMessageEntity: rootRequestEntity as AIChatRequest,
+      currentMessageEntity: rootRequestEntity as RequestMessage,
       subgraph: initialBlockEntitySubgraph,
     });
 
