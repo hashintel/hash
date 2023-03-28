@@ -96,7 +96,7 @@ New payloads can then be added in the `definitions` and `oneOf` of the `Status` 
 
 ## Test the code
 
-The code base has different test suites. Except the unit tests, every test suite require an active database connection. The test setup uses `docker` for this setup. To run all available tests, run:
+The code base has a few test suites. Except for the unit tests, every test suite requires an active database connection. The test setup uses `docker` to start the required services. To run all available tests, run:
 
 ```shell
 just test
