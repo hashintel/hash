@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "cargo make build",
+    "build": "just build",
     "exe": "ts-node"
   },
   "dependencies": {
