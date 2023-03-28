@@ -1,3 +1,5 @@
+#!/usr/bin/env just --justfile
+
 set dotenv-load := true
 
 repo := `git rev-parse --show-toplevel`
