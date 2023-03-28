@@ -79,7 +79,7 @@
     "react-hook-form": "7.37.0",
     "react-modal-hook": "3.0.0",
     "react-responsive-carousel": "3.2.23",
-    "react-transition-group": "4.4.2",
+    "react-transition-group": "4.4.5",
     "rooks": "7.4.3",
     "setimmediate": "1.0.5",
     "ts-node": "10.9.1",
