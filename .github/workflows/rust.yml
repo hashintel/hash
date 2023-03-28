@@ -100,7 +100,7 @@ jobs:
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
-        run: just format
+        run: just format --check
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
