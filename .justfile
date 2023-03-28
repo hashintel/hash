@@ -90,28 +90,24 @@ not-in-pr +command:
 ######################################################################
 
 [private]
-@install-cargo-tool tool install version:
-  `{{tool}} --version | grep -q "{{version}}" || cargo install "{{install}}" --version "{{version}}" --locked --force`
-
-[private]
 @install-cargo-hack:
-  just install-cargo-tool 'cargo hack' cargo-hack 0.5.26
+  cargo install cargo-hack --version 0.5.26 --locked
 
 [private]
 @install-cargo-nextest:
-  just install-cargo-tool 'cargo nextest' cargo-nextest 0.9.37
+  cargo install cargo-nextest --version 0.9.37 --locked
 
 [private]
 @install-cargo-script:
-  just install-cargo-tool 'cargo script' cargo-script 0.2.8
+  cargo install cargo-script --version 0.2.8 --locked
 
 [private]
 @install-llvm-cov:
-  just install-cargo-tool 'cargo llvm-cov' cargo-llvm-cov 0.5.9
+  cargo install cargo-llvm-cov --version 0.5.9 --locked
 
 [private]
 @install-cargo-insta:
-  just install-cargo-tool 'cargo insta' cargo-insta 1.18.2
+  cargo install cargo-insta --version 1.18.2 --locked
 
 
 ######################################################################
