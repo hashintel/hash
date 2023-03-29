@@ -367,8 +367,11 @@ export const CompleteChat: FunctionComponent<{
             ...messageThread
               .map(({ message }) => message)
               .filter(
-                (message): message is OpenAIChatMessage<"user" | "assistant"> =>
-                  "content" in message,
+                (
+                  message,
+                ): message is
+                  | OpenAIChatMessage<"user">
+                  | OpenAIChatMessage<"assistant"> => "content" in message,
               ),
             userMessage,
           ],
