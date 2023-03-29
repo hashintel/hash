@@ -63,12 +63,11 @@ export const createRequestMessageEntityMethod =
     aiChatBlockEntityId: EntityId;
   }) =>
   async (params: {
-    isRootRequest?: boolean;
     parentResponseEntityId?: EntityId;
     messageContent: string;
   }): Promise<AIChatRequestMessage> => {
     const { graphModule, aiChatBlockEntityId } = context;
-    const { isRootRequest, parentResponseEntityId, messageContent } = params;
+    const { parentResponseEntityId, messageContent } = params;
 
     const { data: requestMessageEntity, errors } =
       await graphModule.createEntity<AIChatRequestMessage["properties"]>({
@@ -103,18 +102,6 @@ export const createRequestMessageEntityMethod =
             },
           },
         }),
-        isRootRequest
-          ? graphModule.createEntity({
-              data: {
-                properties: {},
-                entityTypeId: linkEntityTypeIds.rootedAt,
-                linkData: {
-                  leftEntityId: aiChatBlockEntityId,
-                  rightEntityId: requestMessageEntityId,
-                },
-              },
-            })
-          : [],
         parentResponseEntityId
           ? graphModule.createEntity({
               data: {
@@ -126,7 +113,16 @@ export const createRequestMessageEntityMethod =
                 },
               },
             })
-          : [],
+          : graphModule.createEntity({
+              data: {
+                properties: {},
+                entityTypeId: linkEntityTypeIds.rootedAt,
+                linkData: {
+                  leftEntityId: aiChatBlockEntityId,
+                  rightEntityId: requestMessageEntityId,
+                },
+              },
+            }),
       ].flat(),
     );
 
