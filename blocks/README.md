@@ -2,7 +2,7 @@
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 [`address`]: address
-[`ai-chat`]: ai-text
+[`ai-chat`]: ai-chat
 [`ai-image`]: ai-image
 [`ai-text`]: ai-text
 [`calculation`]: calculation
