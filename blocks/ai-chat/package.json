@@ -17,12 +17,12 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
     "format": "prettier --write --ignore-unknown .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
