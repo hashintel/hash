@@ -91,7 +91,19 @@ impl EntityTemporalMetadata {
 }
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    FromSql,
+    ToSql,
+    ToSchema,
 )]
 #[postgres(transparent)]
 #[repr(transparent)]
@@ -109,7 +121,7 @@ impl EntityEditionId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {
     pub entity_id: EntityId,
