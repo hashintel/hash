@@ -31,7 +31,7 @@ import {
   FAQBlockOutgoingLinksByLinkEntityTypeId,
   FrequentlyAskedQuestion,
   FrequentlyAskedQuestionProperties,
-} from "./types/generated/block-entity";
+} from "./types/block-entity";
 
 type RootEntityKey = keyof BlockEntity["properties"];
 type QuestionEntityKey = keyof FrequentlyAskedQuestionProperties;

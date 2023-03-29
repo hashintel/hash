@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
 import Component from "./index";
-import { BlockEntity } from "./types/generated/block-entity";
+import { BlockEntity } from "./types/block-entity";
 
 const node = document.getElementById("app");
 
