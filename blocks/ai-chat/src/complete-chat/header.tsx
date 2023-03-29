@@ -31,15 +31,18 @@ export const Header: FunctionComponent<{
     <Box
       sx={{
         display: "flex",
-        justifyContent: "space-between",
         flexWrap: "wrap",
         mb: 1.5,
+        columnGap: 3,
+        rowGap: 1,
       }}
     >
       <GetHelpLink
         sx={{ fontWeight: 500 }}
         href="https://blockprotocol.org/@hash/blocks/ai-chat"
       />
+
+      {/* @todo: improve responsiveness for mobile sizes */}
 
       <Typography
         variant="regularTextLabels"
