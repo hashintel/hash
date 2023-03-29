@@ -64,16 +64,28 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let mut compiler = SelectCompiler::new(temporal_axes);
 
-        let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
-        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let edition_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
+        let owned_by_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::OwnedById,
             Distinctness::Distinct,
             None,
         );
-        let decision_time_index = compiler.add_selection_path(&EntityQueryPath::DecisionTime);
-        let transaction_time_index = compiler.add_selection_path(&EntityQueryPath::TransactionTime);
+        let entity_uuid_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::Uuid,
+            Distinctness::Distinct,
+            None,
+        );
+        let decision_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::DecisionTime,
+            Distinctness::Distinct,
+            None,
+        );
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            None,
+        );
 
+        let edition_id_index = compiler.add_selection_path(&EntityQueryPath::EditionId);
         let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
             edge_kind: SharedEdgeKind::IsOfType,
             path: EntityTypeQueryPath::VersionedUrl,
