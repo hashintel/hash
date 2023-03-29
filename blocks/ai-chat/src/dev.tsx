@@ -7,9 +7,9 @@ import { defaultChatModelId } from "./complete-chat/chat-model-selector";
 import { defaultSystemPromptId } from "./complete-chat/system-prompt-selector";
 import Component from "./index";
 import {
+  AIChatRequestMessage,
+  AIChatResponseMessage,
   BlockEntity,
-  RequestMessage,
-  ResponseMessage,
 } from "./types/generated/ai-chat-block";
 import {
   entityTypeIds,
@@ -33,7 +33,7 @@ const blockEntity: BlockEntity = {
 
 const blockEntityId = blockEntity.metadata.recordId.entityId;
 
-const requestMessageEntity1: RequestMessage = {
+const requestMessageEntity1: AIChatRequestMessage = {
   metadata: {
     recordId: {
       entityId: "ai-chat-request",
@@ -49,7 +49,7 @@ const requestMessageEntity1: RequestMessage = {
 const requestMessageEntity1Id =
   requestMessageEntity1.metadata.recordId.entityId;
 
-const responseMessageEntity1: ResponseMessage = {
+const responseMessageEntity1: AIChatResponseMessage = {
   metadata: {
     recordId: {
       entityId: "ai-chat-response",

@@ -19,8 +19,8 @@ import {
 } from "./complete-chat";
 import {
   AIChatBlock,
-  RequestMessage,
-  ResponseMessage,
+  AIChatRequestMessage,
+  AIChatResponseMessage,
 } from "./types/generated/ai-chat-block";
 import {
   entityTypeIds,
@@ -29,13 +29,13 @@ import {
 } from "./types/graph";
 
 const isMessageRequestMessage = (
-  message: RequestMessage | ResponseMessage,
-): message is RequestMessage =>
+  message: AIChatRequestMessage | AIChatResponseMessage,
+): message is AIChatRequestMessage =>
   message.metadata.entityTypeId === entityTypeIds.requestMessage;
 
 const getRemainingMessagesFromSubgraph = (params: {
   id: RequestId | ResponseId;
-  currentMessageEntity: RequestMessage | ResponseMessage;
+  currentMessageEntity: AIChatRequestMessage | AIChatResponseMessage;
   subgraph: Subgraph;
 }): {
   requests: CompleteChatRequest[];
@@ -56,7 +56,7 @@ const getRemainingMessagesFromSubgraph = (params: {
           linkEntity.metadata.entityTypeId === linkEntityTypeIds.hasResponse &&
           rightEntity.metadata.entityTypeId === entityTypeIds.responseMessage,
       )
-      .map(({ rightEntity }) => rightEntity as ResponseMessage);
+      .map(({ rightEntity }) => rightEntity as AIChatResponseMessage);
 
     const childResponseIds: ResponseId[] = [];
 
@@ -88,8 +88,8 @@ const getRemainingMessagesFromSubgraph = (params: {
 
     requests.push(request);
   } else {
-    /** @todo: figure out why TS is not inferring the `ResponseMessage` type */
-    const currentResponseEntity = currentMessageEntity as ResponseMessage;
+    /** @todo: figure out why TS is not inferring the `AIChatResponseMessage` type */
+    const currentResponseEntity = currentMessageEntity as AIChatResponseMessage;
 
     const childRequestEntities = getOutgoingLinkAndTargetEntities(
       subgraph,
@@ -100,7 +100,7 @@ const getRemainingMessagesFromSubgraph = (params: {
           linkEntity.metadata.entityTypeId === linkEntityTypeIds.followedBy &&
           rightEntity.metadata.entityTypeId === entityTypeIds.requestMessage,
       )
-      .map(({ rightEntity }) => rightEntity as RequestMessage);
+      .map(({ rightEntity }) => rightEntity as AIChatRequestMessage);
 
     const childRequestIds: RequestId[] = [];
 
@@ -175,7 +175,7 @@ export const App: BlockComponent<AIChatBlock> = ({
 
     const { requests, responses } = getRemainingMessagesFromSubgraph({
       id: rootRequestId,
-      currentMessageEntity: rootRequestEntity as RequestMessage,
+      currentMessageEntity: rootRequestEntity as AIChatRequestMessage,
       subgraph: initialBlockEntitySubgraph,
     });
 

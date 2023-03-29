@@ -1,6 +1,9 @@
 import { EntityId, GraphBlockHandler } from "@blockprotocol/graph";
 
-import { RequestMessage, ResponseMessage } from "./generated/shared";
+import {
+  AIChatRequestMessage,
+  AIChatResponseMessage,
+} from "./generated/shared";
 
 /** @todo: consider splitting this file into smaller ones */
 
@@ -8,11 +11,11 @@ import { RequestMessage, ResponseMessage } from "./generated/shared";
 
 export const entityTypeIds = {
   aiChatBlock:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/ai-chat-block/v/1",
+    "https://blockprotocol.org/@hash/types/entity-type/ai-chat-block/v/1",
   requestMessage:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2",
+    "https://blockprotocol.org/@hash/types/entity-type/ai-chat-request-message/v/1",
   responseMessage:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2",
+    "https://blockprotocol.org/@hash/types/entity-type/ai-chat-response-message/v/1",
 } as const;
 // } as const satisfies Record<string, VersionedUrl>;
 
@@ -20,30 +23,30 @@ export const entityTypeIds = {
 
 export const propertyTypeBaseUrls = {
   openAIChatModelName:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/property-type/openai-chat-model-name/",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/openai-chat-model-name/",
   presetSystemPromptId:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/property-type/ai-chat-block-preset-system-prompt-id/",
+    "https://blockprotocol.org/@hash/types/property-type/ai-chat-block-preset-system-prompt-id/",
   textContent:
-    "https://blockprotocol-9a7200lt2.stage.hash.ai/@ciaranm/types/property-type/text-content/",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
 } as const;
 // } as const satisfies Record<
 //   string,
 //   keyof (AIChatBlock["properties"] &
-//     RequestMessage["properties"] &
-//     ResponseMessage["properties"])
+//     AIChatRequestMessage["properties"] &
+//     AIChatResponseMessage["properties"])
 // >;
 
 /** Link Entity Type IDs */
 
 export const linkEntityTypeIds = {
   hasMessage:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/has-message/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/has-message/v/1",
   rootedAt:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/rooted-at/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/rooted-at/v/1",
   hasResponse:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/has-response/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/has-response/v/1",
   followedBy:
-    "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/followed-by/v/1",
+    "https://blockprotocol.org/@blockprotocol/types/entity-type/followed-by/v/1",
 } as const;
 // } as const satisfies Record<
 //   string,
@@ -63,12 +66,12 @@ export const createRequestMessageEntityMethod =
     isRootRequest?: boolean;
     parentResponseEntityId?: EntityId;
     messageContent: string;
-  }): Promise<RequestMessage> => {
+  }): Promise<AIChatRequestMessage> => {
     const { graphModule, aiChatBlockEntityId } = context;
     const { isRootRequest, parentResponseEntityId, messageContent } = params;
 
     const { data: requestMessageEntity, errors } =
-      await graphModule.createEntity<RequestMessage["properties"]>({
+      await graphModule.createEntity<AIChatRequestMessage["properties"]>({
         data: {
           entityTypeId: entityTypeIds.requestMessage,
           properties: {
@@ -127,7 +130,7 @@ export const createRequestMessageEntityMethod =
       ].flat(),
     );
 
-    return requestMessageEntity as RequestMessage;
+    return requestMessageEntity as AIChatRequestMessage;
   };
 
 export const createResponseMessageEntityMethod =
@@ -138,12 +141,12 @@ export const createResponseMessageEntityMethod =
   async (params: {
     parentRequestEntityId: EntityId;
     messageContent: string;
-  }): Promise<ResponseMessage> => {
+  }): Promise<AIChatResponseMessage> => {
     const { graphModule, aiChatBlockEntityId } = context;
     const { parentRequestEntityId, messageContent } = params;
 
     const { data: responseMessageEntity, errors } =
-      await graphModule.createEntity<ResponseMessage["properties"]>({
+      await graphModule.createEntity<AIChatResponseMessage["properties"]>({
         data: {
           entityTypeId: entityTypeIds.responseMessage,
           properties: {
@@ -190,5 +193,5 @@ export const createResponseMessageEntityMethod =
       ].flat(),
     );
 
-    return responseMessageEntity as ResponseMessage;
+    return responseMessageEntity as AIChatResponseMessage;
   };

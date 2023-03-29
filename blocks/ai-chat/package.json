@@ -66,7 +66,7 @@
     "icon": "public/ai-chat-icon.svg",
     "image": "public/ai-chat-preview.png",
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/ai-chat-block/v/1",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/ai-chat-block/v/1",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {
@@ -75,14 +75,14 @@
             "blockEntityType": true
           }
         ],
-        "request-message.ts": [
+        "ai-chat-request-message.ts": [
           {
-            "sourceTypeId": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/request-message/v/2"
+            "sourceTypeId": "https://blockprotocol.org/@hash/types/entity-type/ai-chat-request-message/v/1"
           }
         ],
-        "response-message.ts": [
+        "ai-chat-response-message.ts": [
           {
-            "sourceTypeId": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/response-message/v/1"
+            "sourceTypeId": "https://blockprotocol.org/@hash/types/entity-type/ai-chat-response-message/v/1"
           }
         ]
       }
