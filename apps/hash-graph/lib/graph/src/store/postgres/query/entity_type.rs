@@ -28,6 +28,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::Schema(_) => vec![],
             Self::BaseUrl
             | Self::Version
+            | Self::TransactionTime
             | Self::RecordCreatedById
             | Self::OwnedById
             | Self::AdditionalMetadata(_) => {

@@ -191,7 +191,16 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     );
 
-    for size in [1, 5, 10, 25, 50] {
+    for size in [
+        1,
+        5,
+        #[cfg(not(test))]
+        10,
+        #[cfg(not(test))]
+        25,
+        #[cfg(not(test))]
+        50,
+    ] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
@@ -242,7 +251,16 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     );
 
-    for size in [1, 5, 10, 25, 50] {
+    for size in [
+        1,
+        5,
+        #[cfg(not(test))]
+        10,
+        #[cfg(not(test))]
+        25,
+        #[cfg(not(test))]
+        50,
+    ] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 

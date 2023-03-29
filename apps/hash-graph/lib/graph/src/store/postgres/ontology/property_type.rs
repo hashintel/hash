@@ -103,7 +103,7 @@ impl<C: AsClient> PostgresStore<C> {
                         );
 
                         subgraph
-                            .insert_vertex(&property_type_vertex_id, referenced_property_type);
+                            .insert_vertex(&referenced_property_type_vertex_id, referenced_property_type);
 
                         property_type_queue.push((
                             referenced_property_type_vertex_id,
