@@ -42,7 +42,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)                         |             |
 | [`ai-image`]     | 0.3         | **Maintained** | [@hash/blocks/ai-image](https://blockprotocol.org/@hash/blocks/ai-image)                       |             |
 | [`ai-text`]      | 0.3         | **Maintained** | [@hash/blocks/ai-text](https://blockprotocol.org/@hash/blocks/ai-text)                         |             |
-| [`calculation`]  | 0.2         | Unmaintained   | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
+| [`calculation`]  | 0.2         | Deprecated     | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
 | [`callout`]      | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)                         |             |
 | [`chart`]        | 0.1         | Pending Update |                                                                                                |             |
 | [`code`]         | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                               |             |
@@ -51,7 +51,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`embed`]        | 0.1         | Pending Update |                                                                                                |             |
 | [`faq`]          | 0.3         | **Maintained** | [@hash/blocks/faq](https://blockprotocol.org/@hash/blocks/faq)                                 |             |
 | [`heading`]      | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)                         |             |
-| [`html-para`]    | 0.1         | Unmaintained   |                                                                                                |             |
+| [`html-para`]    | 0.1         | Deprecated     |                                                                                                |             |
 | [`how-to`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                             |             |
 | [`image`]        | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                             |             |
 | [`kanban-board`] | 0.3         | **Maintained** | [@hash/blocks/kanban-board](https://blockprotocol.org/@hash/blocks/kanban-board)               |             |
@@ -62,7 +62,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`stopwatch`]    | 0.3         | Unmaintained   | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                     |             |
 | [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)                             |             |
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)                             |             |
-| [`toggle-item`]  | 0.1         | Unmaintained   |                                                                                                |             |
+| [`toggle-item`]  | 0.1         | Pending Update |                                                                                                |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)                             |             |
 
 ## Running these blocks
