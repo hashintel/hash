@@ -41,13 +41,13 @@ pub struct CompilerArtifacts<'p> {
 pub struct SelectCompiler<'c, 'p, T> {
     statement: SelectStatement<'c>,
     artifacts: CompilerArtifacts<'p>,
-    temporal_axes: &'p QueryTemporalAxes,
+    temporal_axes: Option<&'p QueryTemporalAxes>,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(temporal_axes: &'p QueryTemporalAxes) -> Self {
+    pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -74,7 +74,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(temporal_axes: &'p QueryTemporalAxes) -> Self {
+    pub fn with_asterisk(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
         let mut default = Self::new(temporal_axes);
         default
             .statement
@@ -84,52 +84,54 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     fn pin_entity_table(&mut self, alias: Alias) {
-        let table = Table::EntityTemporalMetadata.aliased(alias);
-        let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
-            match self.temporal_axes {
-                QueryTemporalAxes::DecisionTime { pinned, variable } => {
-                    self.artifacts.parameters.push(&pinned.timestamp);
-                    self.artifacts.parameters.push(&variable.interval);
-                }
-                QueryTemporalAxes::TransactionTime { pinned, variable } => {
-                    self.artifacts.parameters.push(&pinned.timestamp);
-                    self.artifacts.parameters.push(&variable.interval);
-                }
-            };
+        if let Some(temporal_axes) = self.temporal_axes {
+            let table = Table::EntityTemporalMetadata.aliased(alias);
+            let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
+                match temporal_axes {
+                    QueryTemporalAxes::DecisionTime { pinned, variable } => {
+                        self.artifacts.parameters.push(&pinned.timestamp);
+                        self.artifacts.parameters.push(&variable.interval);
+                    }
+                    QueryTemporalAxes::TransactionTime { pinned, variable } => {
+                        self.artifacts.parameters.push(&pinned.timestamp);
+                        self.artifacts.parameters.push(&variable.interval);
+                    }
+                };
 
-            TemporalTableInfo {
-                tables: HashSet::new(),
-                pinned_timestamp_index: self.artifacts.parameters.len() - 1,
-                variable_interval_index: self.artifacts.parameters.len(),
+                TemporalTableInfo {
+                    tables: HashSet::new(),
+                    pinned_timestamp_index: self.artifacts.parameters.len() - 1,
+                    variable_interval_index: self.artifacts.parameters.len(),
+                }
+            });
+
+            if !temporal_table_info.tables.contains(&table) {
+                // Adds the pinned timestamp condition, so for the projected decision time, we use
+                // the transaction time and vice versa.
+                self.statement.where_expression.add_condition(
+                    Condition::TimeIntervalContainsTimestamp(
+                        Expression::Column(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
+                                temporal_axes.pinned_time_axis(),
+                            ))
+                            .aliased(alias),
+                        ),
+                        Expression::Parameter(temporal_table_info.pinned_timestamp_index),
+                    ),
+                );
+                self.statement
+                    .where_expression
+                    .add_condition(Condition::Overlap(
+                        Expression::Column(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
+                                temporal_axes.variable_time_axis(),
+                            ))
+                            .aliased(alias),
+                        ),
+                        Expression::Parameter(temporal_table_info.variable_interval_index),
+                    ));
+                temporal_table_info.tables.insert(table);
             }
-        });
-
-        if !temporal_table_info.tables.contains(&table) {
-            // Adds the pinned timestamp condition, so for the projected decision time, we use the
-            // transaction time and vice versa.
-            self.statement.where_expression.add_condition(
-                Condition::TimeIntervalContainsTimestamp(
-                    Expression::Column(
-                        Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
-                            self.temporal_axes.pinned_time_axis(),
-                        ))
-                        .aliased(alias),
-                    ),
-                    Expression::Parameter(temporal_table_info.pinned_timestamp_index),
-                ),
-            );
-            self.statement
-                .where_expression
-                .add_condition(Condition::Overlap(
-                    Expression::Column(
-                        Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
-                            self.temporal_axes.variable_time_axis(),
-                        ))
-                        .aliased(alias),
-                    ),
-                    Expression::Parameter(temporal_table_info.variable_interval_index),
-                ));
-            temporal_table_info.tables.insert(table);
         }
     }
 

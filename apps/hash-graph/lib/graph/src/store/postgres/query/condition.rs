@@ -114,7 +114,7 @@ mod tests {
         parameters: &[&'p dyn ToSql],
     ) {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::new(&temporal_axes);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes));
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
