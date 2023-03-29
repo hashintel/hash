@@ -14,7 +14,9 @@ export const ChatTextField: FunctionComponent<{
   loading: boolean;
   chatHasStarted: boolean;
   submitMessageContent: (messageContent: string) => void;
-}> = ({ submitMessageContent, chatHasStarted, loading }) => {
+  onFocus: () => void;
+  onBlur: () => void;
+}> = ({ submitMessageContent, chatHasStarted, loading, onFocus, onBlur }) => {
   const [inputValue, setInputValue] = useState<string>("");
 
   const handleSubmit = useCallback(
@@ -39,6 +41,8 @@ export const ChatTextField: FunctionComponent<{
         autoFocus
         multiline
         fullWidth
+        onFocus={onFocus}
+        onBlur={onBlur}
         value={inputValue}
         onChange={({ target }) => setInputValue(target.value)}
         onKeyDown={(event) => {
@@ -54,6 +58,7 @@ export const ChatTextField: FunctionComponent<{
         disabled={loading}
         sx={({ palette }) => ({
           width: 1,
+          maxWidth: 600,
           [`& .${inputBaseClasses.input}`]: {
             minHeight: "unset",
             fontSize: 16,

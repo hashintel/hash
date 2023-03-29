@@ -125,6 +125,9 @@ export const CompleteChat: FunctionComponent<{
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
 
+  const [hovered, setHovered] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+
   const {
     metadata: {
       recordId: { entityId: aiChatBlockEntityId },
@@ -438,9 +441,15 @@ export const CompleteChat: FunctionComponent<{
   const chatHasStarted = completeChatRequests.length > 0;
 
   return (
-    <Box ref={blockRootRef}>
+    <Box
+      ref={blockRootRef}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+    >
       <Header
         disabled={chatHasStarted}
+        hovered={hovered}
+        inputFocused={inputFocused}
         chatModel={chatModel}
         setChatModel={setChatModel}
         systemPromptId={systemPromptId}
@@ -468,6 +477,8 @@ export const CompleteChat: FunctionComponent<{
             <ChatTextField
               loading={loading}
               chatHasStarted={chatHasStarted}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
               submitMessageContent={(messageContent) => {
                 const lastMessage = messageThread[messageThread.length - 1];
 
