@@ -452,6 +452,7 @@ export const CompleteChat: FunctionComponent<{
           return (
             <>
               <Header
+                readonly={readonly}
                 isMobile={isMobile}
                 disabled={chatHasStarted}
                 hovered={hovered}

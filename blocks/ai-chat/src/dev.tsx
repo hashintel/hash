@@ -25,8 +25,7 @@ const blockEntity: BlockEntity = {
       entityId: "block-entity",
       editionId: new Date().toISOString(),
     },
-    entityTypeId:
-      "http://localhost:3000/@alice/types/entity-type/ai-chat-block/v/6",
+    entityTypeId: entityTypeIds.aiChatBlock,
   },
   properties: {},
 } as const;

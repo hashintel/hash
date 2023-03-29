@@ -13,6 +13,7 @@ import { ChatModelId, ChatModelSelector } from "./chat-model-selector";
 import { SystemPromptId, SystemPromptSelector } from "./system-prompt-selector";
 
 export const Header: FunctionComponent<{
+  readonly: boolean;
   isMobile: boolean;
   disabled: boolean;
   hovered: boolean;
@@ -22,6 +23,7 @@ export const Header: FunctionComponent<{
   systemPromptId: SystemPromptId;
   setSystemPromptId: (systemPromptId: SystemPromptId) => void;
 }> = ({
+  readonly,
   isMobile,
   disabled,
   hovered,
@@ -36,7 +38,7 @@ export const Header: FunctionComponent<{
   const [systemPromptSelectorOpen, setSystemPromptSelectorOpen] =
     useState(false);
 
-  return (
+  return readonly ? null : (
     <Fade in={hovered || inputFocused || (isMobile && mobileSettingsExpanded)}>
       <Box
         sx={{
