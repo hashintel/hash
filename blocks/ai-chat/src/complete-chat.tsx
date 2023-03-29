@@ -442,6 +442,7 @@ export const CompleteChat: FunctionComponent<{
       ref={blockRootRef}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
+      sx={{ maxWidth: 650 }}
     >
       <Header
         disabled={chatHasStarted}

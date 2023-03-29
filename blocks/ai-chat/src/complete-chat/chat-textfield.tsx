@@ -58,7 +58,6 @@ export const ChatTextField: FunctionComponent<{
         disabled={loading}
         sx={({ palette }) => ({
           width: 1,
-          maxWidth: 600,
           [`& .${inputBaseClasses.input}`]: {
             minHeight: "unset",
             fontSize: 16,
