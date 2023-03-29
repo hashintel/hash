@@ -11,6 +11,7 @@ const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
  * These are strings to check `.includes()` on to determine if a given URL refers to a custom metaschema.
  */
 const metaSchemaComponents = [
+  JSON_SCHEMA_DRAFT_URL,
   "types/modules/graph", // This is part of the root of the paths we store Block Protocol type system metaschemas on
   META_SCHEMA_URL.split("/").pop(), // we only check against a piece of the path just in case some of the transformation steps below rewrites or drops the URL
 ]
@@ -21,15 +22,15 @@ const metaSchemaComponents = [
 class TraversalContext {
   explored;
   exploreQueue;
-  metaschemas;
-  others;
+  metaschemaUrls;
+  otherSchemaUrls;
   contents;
 
   constructor() {
     this.explored = new Set();
     this.exploreQueue = new Set();
-    this.metaschemas = new Set();
-    this.others = new Set();
+    this.metaschemaUrls = new Set();
+    this.otherSchemaUrls = new Set();
     this.contents = {};
   }
 
@@ -55,7 +56,12 @@ class TraversalContext {
   }
 }
 
-// recurse inside an object and get all url string values from within it
+/**
+ * Recurse inside an object and get all url string values from within it
+ *
+ * @param obj
+ * @returns {{metaSchemas: Set<string>, otherSchemaUrls: Set<string>}}
+ */
 const getUrls = (obj) => {
   const metaSchemas = new Set();
   const others = new Set();
@@ -64,7 +70,8 @@ const getUrls = (obj) => {
     if (typeof obj === "string") {
       try {
         const _url = new URL(obj);
-        if (key === "$schema" || metaSchemaComponents.includes(obj)) {
+
+        if (key === "$schema" || metaSchemaComponents.some((component) => obj.includes(component))) {
           metaSchemas.add(obj);
         } else {
           others.add(obj);
@@ -205,20 +212,21 @@ const getConfiguredAjv = async (schemaUrls) => {
 
   const metaSchema = await (await fetch(META_SCHEMA_URL)).json();
 
-  traversalContext.metaschemas.add(META_SCHEMA_URL);
+  traversalContext.metaschemaUrls.add(META_SCHEMA_URL);
   traversalContext.contents[META_SCHEMA_URL] = metaSchema;
   traversalContext.exploreQueue.add(META_SCHEMA_URL);
 
   for (const url of schemaUrls) {
     const schema = await (await fetch(url)).json();
 
-    traversalContext.others.add(url);
+    traversalContext.otherSchemaUrls.add(url);
     traversalContext.contents[url] = schema;
     traversalContext.exploreQueue.add(url);
   }
 
   await traverseAndCollateSchemas(traversalContext);
 
+  // Post process schema contents
   Object.values(traversalContext.contents).forEach((schema) => {
     // split the schema.$id by '/' if it exists and only take the last component
     if (schema.$id && schema.$id !== META_SCHEMA_URL && schema.$id !== JSON_SCHEMA_DRAFT_URL && schema.$id.includes('/')) {
@@ -231,9 +239,23 @@ const getConfiguredAjv = async (schemaUrls) => {
 
   const generatedMetaSchema = generateCombinedMetaSchema(META_SCHEMA_URL, traversalContext.contents);
 
-  const otherUrls = Array.from(traversalContext.others);
+  const otherUrls = Array.from(traversalContext.otherSchemaUrls);
 
-  let ajv = new Ajv2019().addMetaSchema(generatedMetaSchema).addSchema([...otherUrls].map((url) => traversalContext.contents[url]));
+  let ajv = new Ajv2019({allErrors: true});
+  try {
+    ajv = ajv.addMetaSchema(generatedMetaSchema)
+  } catch (e) {
+    console.error(`Failed to add meta schema: ${e}`);
+  }
+
+  for (const url of otherUrls) {
+    try {
+      ajv = ajv.addSchema(traversalContext.contents[url]);
+    } catch (e) {
+      console.error(`Failed to add schema "${url}": ${e}`);
+      console.error({schema: traversalContext.contents[url]})
+    }
+  }
   return ajv;
 }
 
