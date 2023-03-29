@@ -2,6 +2,7 @@
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 [`address`]: address
+[`ai-chat`]: ai-text
 [`ai-image`]: ai-image
 [`ai-text`]: ai-text
 [`calculation`]: calculation
@@ -40,6 +41,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | Directory        | Spec Target | Status         | Þ Hub URL                                                                                      | Description |
 | ---------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
 | [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)                         |             |
+| [`ai-chat`]      | 0.3         | **Maintained** | [@hash/blocks/ai-chat](https://blockprotocol.org/@hash/blocks/ai-chat)                         |             |
 | [`ai-image`]     | 0.3         | **Maintained** | [@hash/blocks/ai-image](https://blockprotocol.org/@hash/blocks/ai-image)                       |             |
 | [`ai-text`]      | 0.3         | **Maintained** | [@hash/blocks/ai-text](https://blockprotocol.org/@hash/blocks/ai-text)                         |             |
 | [`calculation`]  | 0.2         | Deprecated     | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
