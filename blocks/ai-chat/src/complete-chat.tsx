@@ -30,7 +30,10 @@ import {
   IncompleteOpenAiAssistantMessage,
   OpenAIChatMessage,
 } from "./complete-chat/types";
-import { AIChatBlock } from "./types/generated/ai-chat-block";
+import {
+  AIChatBlock,
+  AIChatBlockProperties,
+} from "./types/generated/ai-chat-block";
 import {
   createRequestMessageEntityMethod,
   createResponseMessageEntityMethod,
@@ -213,20 +216,30 @@ export const CompleteChat: FunctionComponent<{
     [aiChatBlockEntity, graphModule],
   );
 
-  if (aiChatBlockEntityPresetSystemPromptId !== systemPromptId) {
-    void updateAiChatBlockEntity({
-      updatedProperties: {
-        [propertyTypeBaseUrls.presetSystemPromptId]: systemPromptId,
-      },
-    });
-  }
+  const propertiesToUpdate = useMemo<Partial<AIChatBlockProperties>>(
+    () => ({
+      ...(aiChatBlockEntityPresetSystemPromptId !== systemPromptId
+        ? { [propertyTypeBaseUrls.presetSystemPromptId]: systemPromptId }
+        : {}),
+      ...(aiChatBlockEntityChatAiModel !== chatModel
+        ? { [propertyTypeBaseUrls.openAIChatModelName]: chatModel }
+        : {}),
+    }),
+    [
+      aiChatBlockEntityPresetSystemPromptId,
+      systemPromptId,
+      aiChatBlockEntityChatAiModel,
+      chatModel,
+    ],
+  );
 
-  if (aiChatBlockEntityChatAiModel !== chatModel) {
-    void updateAiChatBlockEntity({
-      updatedProperties: {
-        [propertyTypeBaseUrls.openAIChatModelName]: chatModel,
-      },
-    });
+  const shouldUpdateProperties = useMemo(
+    () => Object.entries(propertiesToUpdate).length > 0,
+    [propertiesToUpdate],
+  );
+
+  if (shouldUpdateProperties) {
+    void updateAiChatBlockEntity({ updatedProperties: propertiesToUpdate });
   }
 
   const updateOrAddChatMessage = useCallback(
