@@ -146,6 +146,15 @@ export const ImagePreview = ({
     return "";
   }, [images, selectedImageIndex]);
 
+  const selectImage = useCallback(() => {
+    const selectedImageEntityId =
+      selectedImageIndex !== null && images[selectedImageIndex]?.entityId;
+
+    if (selectedImageEntityId) {
+      onConfirm(selectedImageEntityId);
+    }
+  }, [images, onConfirm, selectedImageIndex]);
+
   const shouldImagesFadeOut = selectedImageIndex !== null;
   const shouldSelectedImageZoomIn =
     shouldImagesFadeOut &&
@@ -250,7 +259,7 @@ export const ImagePreview = ({
               }}
             >
               <Box sx={{ mb: 1.25 }}>
-                <CTAButton onSubmit={() => {}} />
+                <CTAButton onSubmit={selectImage} />
               </Box>
             </Collapse>
           ) : null}
@@ -406,17 +415,7 @@ export const ImagePreview = ({
                   }}
                 >
                   <Stack gap={3}>
-                    <CTAButton
-                      onSubmit={() => {
-                        const selectedImageEntityId =
-                          selectedImageIndex !== null &&
-                          images[selectedImageIndex]?.entityId;
-
-                        if (selectedImageEntityId) {
-                          onConfirm(selectedImageEntityId);
-                        }
-                      }}
-                    />
+                    <CTAButton onSubmit={selectImage} />
                     <ImageDetails generatedAt={selectedImageGeneratedAt} />
                     <ReturnButton
                       onCancel={() => {
