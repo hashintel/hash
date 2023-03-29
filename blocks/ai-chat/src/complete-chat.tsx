@@ -492,7 +492,12 @@ export const CompleteChat: FunctionComponent<{
               }}
             />
             <Collapse in={!chatHasStarted}>
-              <Box marginX={3} marginTop={3}>
+              <Box
+                sx={{
+                  marginX: { xs: 0, sm: 3 },
+                  marginTop: 3,
+                }}
+              >
                 <ExamplePrompts
                   submitPrompt={(prompt) =>
                     submitUserMessage({

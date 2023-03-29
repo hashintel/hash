@@ -62,6 +62,14 @@ export const ExamplePrompts: FunctionComponent<{
               [`& .${buttonClasses.startIcon}`]: {
                 marginLeft: 0,
               },
+              textAlign: "left",
+              alignItems: {
+                xs: "flex-start",
+                sm: "center",
+              },
+              [`& .${buttonClasses.startIcon}`]: {
+                marginTop: { xs: 0.5, sm: 0 },
+              },
             }}
             onClick={() => submitPrompt(prompt)}
           >
