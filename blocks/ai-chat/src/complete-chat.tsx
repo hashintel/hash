@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { TransitionGroup } from "react-transition-group";
+import { v4 as uuid } from "uuid";
 
 import { ChatMessage } from "./complete-chat/chat-message";
 import {
@@ -40,17 +41,13 @@ import {
   propertyTypeBaseUrls,
 } from "./types/graph";
 
-let requestCounter = 0;
+export type RequestId = `req_${string}`;
 
-export type RequestId = `req_${number}`;
+export const createRequestId = (): RequestId => `req_${uuid()}`;
 
-export const createRequestId = (): RequestId => `req_${requestCounter++}`;
+export type ResponseId = `res_${string}`;
 
-let responseCounter = 0;
-
-export type ResponseId = `res_${number}`;
-
-export const createResponseId = (): ResponseId => `res_${responseCounter++}`;
+export const createResponseId = (): ResponseId => `res_${uuid()}`;
 
 const isIdResponseId = (id: RequestId | ResponseId): id is ResponseId =>
   id.startsWith("res_");

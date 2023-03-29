@@ -32,7 +32,8 @@
     "@hashintel/design-system": "0.0.6",
     "@mui/material": "5.11.8",
     "react-transition-group": "4.4.5",
-    "react-type-animation": "3.0.1"
+    "react-type-animation": "3.0.1",
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
