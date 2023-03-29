@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn transpile_where_expression() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(&temporal_axes);
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes));
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 

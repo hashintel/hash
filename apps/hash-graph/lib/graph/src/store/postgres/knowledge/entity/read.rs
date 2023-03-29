@@ -62,7 +62,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             direction: EdgeDirection::Outgoing,
         };
 
-        let mut compiler = SelectCompiler::new(temporal_axes);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes));
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
