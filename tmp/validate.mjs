@@ -22,14 +22,14 @@ const metaSchemaComponents = [
 class TraversalContext {
   explored;
   exploreQueue;
-  metaschemaUrls;
+  metaSchemaUrls;
   otherSchemaUrls;
   contents;
 
   constructor() {
     this.explored = new Set();
     this.exploreQueue = new Set();
-    this.metaschemaUrls = new Set();
+    this.metaSchemaUrls = new Set();
     this.otherSchemaUrls = new Set();
     this.contents = {};
   }
@@ -57,36 +57,49 @@ class TraversalContext {
 }
 
 /**
+ * Recurse inside an object and call a callback for each non-object key/value pair
+ * @param key
+ * @param obj
+ * @param callback
+ */
+const recurseWithCallBack = (key, obj, callback) => {
+  if (typeof obj === "object") {
+    for (const key in obj) {
+      recurseWithCallBack(key, obj[key], callback);
+    }
+  } else {
+    callback(key, obj);
+  }
+}
+
+/**
  * Recurse inside an object and get all url string values from within it
  *
  * @param obj
- * @returns {{metaSchemas: Set<string>, otherSchemaUrls: Set<string>}}
+ * @returns {{metaSchemaUrls: Set<string>, otherSchemaUrls: Set<string>}}
  */
 const getUrls = (obj) => {
-  const metaSchemas = new Set();
-  const others = new Set();
+  /** @type {Set<string>} */
+  const metaSchemaUrls = new Set();
+  /** @type {Set<string>} */
+  const otherSchemaUrls = new Set();
 
-  const recurse = (key, obj) => {
-    if (typeof obj === "string") {
-      try {
-        const _url = new URL(obj);
+  const parseUrl = (key, obj) => {
+    try {
+      const _url = new URL(obj);
 
-        if (key === "$schema" || metaSchemaComponents.some((component) => obj.includes(component))) {
-          metaSchemas.add(obj);
-        } else {
-          others.add(obj);
-        }
-      } catch (e) {
-        // ignore
+      if (key === "$schema" || metaSchemaComponents.some((component) => obj.includes(component))) {
+        metaSchemaUrls.add(obj);
+      } else {
+        otherSchemaUrls.add(obj);
       }
-    } else if (typeof obj === "object") {
-      for (const key in obj) {
-        recurse(key, obj[key]);
-      }
+    } catch (e) {
+      // ignore
     }
-  };
-  recurse(null, obj);
-  return {metaSchemas, others};
+  }
+
+  recurseWithCallBack(null, obj, parseUrl);
+  return {metaSchemaUrls, otherSchemaUrls};
 }
 
 export const traverseAndCollateSchemas = async (traversalContext) => {
@@ -124,17 +137,15 @@ export const traverseAndCollateSchemas = async (traversalContext) => {
     })().then((type) => {
       traversalContext.contents[typeId] = type;
 
-      const {metaSchemas, others} = getUrls(type);
-      const metaSchemaUrls = Array.from(metaSchemas);
-      const otherUrls = Array.from(others);
+      const {metaSchemaUrls, otherSchemaUrls} = getUrls(type);
 
-      metaSchemaUrls.forEach((url) => {
-        traversalContext.metaschemas.add(url);
+      Array.from(metaSchemaUrls).forEach((url) => {
+        traversalContext.metaSchemaUrls.add(url);
         traversalContext.encounter(typeId, url);
       });
 
-      otherUrls.forEach((url) => {
-        traversalContext.others.add(url);
+      Array.from(otherSchemaUrls).forEach((url) => {
+        traversalContext.otherSchemaUrls.add(url);
         traversalContext.encounter(typeId, url);
       });
     }));
@@ -212,7 +223,7 @@ const getConfiguredAjv = async (schemaUrls) => {
 
   const metaSchema = await (await fetch(META_SCHEMA_URL)).json();
 
-  traversalContext.metaschemaUrls.add(META_SCHEMA_URL);
+  traversalContext.metaSchemaUrls.add(META_SCHEMA_URL);
   traversalContext.contents[META_SCHEMA_URL] = metaSchema;
   traversalContext.exploreQueue.add(META_SCHEMA_URL);
 
