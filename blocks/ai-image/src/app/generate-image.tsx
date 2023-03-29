@@ -5,7 +5,6 @@ import {
   BlockSettingsButton,
   Button,
   GetHelpLink,
-  TextField,
 } from "@hashintel/design-system";
 import {
   Box,
@@ -14,9 +13,10 @@ import {
   Fade,
   inputBaseClasses,
   outlinedInputClasses,
+  TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useRef, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { generatedLinkKey, urlKey } from "../app";
@@ -194,6 +194,14 @@ export const GenerateImage = ({
     [imageNumber, promptText, serviceModule, graphModule, images, loading],
   );
 
+  const onSubmit = useCallback(
+    async (event: FormEvent) => {
+      event.preventDefault();
+      await generateAndUploadImages();
+    },
+    [generateAndUploadImages],
+  );
+
   return (
     <Box
       ref={blockRootRef}
@@ -272,17 +280,19 @@ export const GenerateImage = ({
         onEntered={() => setAnimatingOut(false)}
         onExited={() => setAnimatingIn(false)}
       >
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void generateAndUploadImages();
-          }}
-        >
+        <form onSubmit={onSubmit}>
           <TextField
             autoFocus
+            multiline
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             onChange={(event) => setPromptText(event.target.value)}
+            onKeyDown={async (event) => {
+              const { shiftKey, code } = event;
+              if (!shiftKey && code === "Enter") {
+                await onSubmit(event);
+              }
+            }}
             placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={inputRef}
@@ -297,8 +307,6 @@ export const GenerateImage = ({
                 paddingY: 2.125,
                 paddingLeft: 2.75,
                 paddingRight: 0,
-                border: "none !important",
-                boxShadow: "none !important",
               },
               [`& .${inputBaseClasses.disabled}`]: {
                 background: palette.gray[10],
@@ -315,18 +323,19 @@ export const GenerateImage = ({
                   variant="tertiary_quiet"
                   disabled={!!loading}
                   sx={({ palette }) => ({
+                    alignSelf: "flex-end",
                     fontSize: 13,
                     fontWeight: 700,
                     letterSpacing: "-0.02em",
                     lineHeight: 1,
                     color: palette.blue[70],
                     textTransform: "uppercase",
-                    whiteSpace: "nowrap",
                     height: 55,
                     width: 1,
                     maxHeight: 55,
                     maxWidth: 168,
                     minHeight: 51,
+                    whiteSpace: "nowrap",
                     [`&.${buttonBaseClasses.disabled}`]: {
                       color: palette.common.black,
                       background: "none",
