@@ -7,10 +7,6 @@ const CODEGEN_SCRIPT_PATH: &str = "scripts/codegen.ts";
 const TYPE_DEFS_PATH: &str = "./type-defs";
 
 fn main() {
-    println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed={CODEGEN_PACKAGE_PATH}");
-    println!("cargo:rerun-if-changed={TYPE_DEFS_PATH}");
-
     let out_dir = std::env::var("OUT_DIR").expect("Failed to find OUT_DIR environment variable");
 
     let virtual_manifest_dir = PathBuf::from(
@@ -21,8 +17,11 @@ fn main() {
     .canonicalize()
     .expect("Failed to find virtual manifest directory");
 
-    let codegen_path = virtual_manifest_dir
+    let codegen_package_path = virtual_manifest_dir
         .join(CODEGEN_PACKAGE_PATH)
+        .canonicalize()
+        .expect("Failed to find codegen package path");
+    let codegen_script_path = codegen_package_path
         .join(CODEGEN_SCRIPT_PATH)
         .canonicalize()
         .expect("Failed to find codegen script path");
@@ -32,10 +31,14 @@ fn main() {
         .canonicalize()
         .expect("Failed to find HASH Graph type-defs path");
 
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed={}", codegen_package_path.display());
+    println!("cargo:rerun-if-changed={}", type_defs_path.display());
+
     if !std::process::Command::new("yarn")
         .args([
             "exe",
-            &codegen_path.to_string_lossy(),
+            &codegen_script_path.to_string_lossy(),
             &type_defs_path.to_string_lossy(),
             "--rust-out-dir",
             &out_dir,
