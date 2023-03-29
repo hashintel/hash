@@ -11,6 +11,7 @@
 [`countdown`]: countdown
 [`divider`]: divider
 [`embed`]: embed
+[`faq`]: faq
 [`heading`]: heading
 [`html-para`]: html-para
 [`how-to`]: how-to
