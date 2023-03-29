@@ -61,7 +61,7 @@
     "examples": [
       {}
     ],
-    "icon": "TODO",
+    "icon": "public/ai-chat-icon.svg",
     "image": "TODO",
     "protocol": "0.3",
     "blockEntityType": "https://blockprotocol-imqnt3bj2.stage.hash.ai/@alfie/types/entity-type/ai-chat-block/v/1",
