@@ -28,8 +28,9 @@ export const examplePrompts: ExamplePrompt[] = [
 ];
 
 export const ExamplePrompts: FunctionComponent<{
+  isMobile: boolean;
   submitPrompt: (prompt: string) => void;
-}> = ({ submitPrompt }) => {
+}> = ({ submitPrompt, isMobile }) => {
   return (
     <>
       <Typography
@@ -63,12 +64,9 @@ export const ExamplePrompts: FunctionComponent<{
                 marginLeft: 0,
               },
               textAlign: "left",
-              alignItems: {
-                xs: "flex-start",
-                sm: "center",
-              },
+              alignItems: isMobile ? "flex-start" : "center",
               [`& .${buttonClasses.startIcon}`]: {
-                marginTop: { xs: 0.5, sm: 0 },
+                marginTop: isMobile ? 0.5 : 0,
               },
             }}
             onClick={() => submitPrompt(prompt)}

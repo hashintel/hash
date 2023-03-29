@@ -1,6 +1,7 @@
-import { GetHelpLink } from "@hashintel/design-system";
+import { BlockSettingsButton, GetHelpLink } from "@hashintel/design-system";
 import {
   Box,
+  Collapse,
   Fade,
   inputBaseClasses,
   selectClasses,
@@ -12,6 +13,7 @@ import { ChatModelId, ChatModelSelector } from "./chat-model-selector";
 import { SystemPromptId, SystemPromptSelector } from "./system-prompt-selector";
 
 export const Header: FunctionComponent<{
+  isMobile: boolean;
   disabled: boolean;
   hovered: boolean;
   inputFocused: boolean;
@@ -20,6 +22,7 @@ export const Header: FunctionComponent<{
   systemPromptId: SystemPromptId;
   setSystemPromptId: (systemPromptId: SystemPromptId) => void;
 }> = ({
+  isMobile,
   disabled,
   hovered,
   inputFocused,
@@ -28,12 +31,13 @@ export const Header: FunctionComponent<{
   systemPromptId,
   setSystemPromptId,
 }) => {
+  const [mobileSettingsExpanded, setMobileSettingsExpanded] = useState(false);
   const [chatModelSelectorOpen, setChatModelSelectorOpen] = useState(false);
   const [systemPromptSelectorOpen, setSystemPromptSelectorOpen] =
     useState(false);
 
   return (
-    <Fade in={hovered || inputFocused}>
+    <Fade in={hovered || inputFocused || (isMobile && mobileSettingsExpanded)}>
       <Box
         sx={{
           display: "flex",
@@ -48,60 +52,68 @@ export const Header: FunctionComponent<{
           href="https://blockprotocol.org/@hash/blocks/ai-chat"
         />
 
-        {/* @todo: improve responsiveness for mobile sizes */}
+        {isMobile ? (
+          <BlockSettingsButton
+            expanded={mobileSettingsExpanded}
+            onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
+          />
+        ) : null}
 
-        <Typography
-          variant="regularTextLabels"
-          sx={{
-            display: "inline-flex",
-            gap: 1,
-            alignItems: "center",
-            fontWeight: 500,
-            fontSize: 15,
-            lineHeight: 1,
-            letterSpacing: -0.02,
-            color: ({ palette }) => palette.gray[50],
-          }}
-        >
-          Using
-          <ChatModelSelector
-            open={chatModelSelectorOpen}
-            disabled={disabled}
-            onOpen={() => setChatModelSelectorOpen(true)}
-            onClose={() => setChatModelSelectorOpen(false)}
-            value={chatModel}
-            onChange={setChatModel}
+        <Collapse in={!isMobile || mobileSettingsExpanded}>
+          <Typography
+            variant="regularTextLabels"
             sx={{
-              [`& .${selectClasses.icon}`]: {
-                right: 0,
-              },
-              [`& .${selectClasses.select}.${selectClasses.outlined}.${inputBaseClasses.input}`]:
-                {
+              display: "inline-flex",
+              gap: 1,
+              alignItems: "center",
+              fontWeight: 500,
+              fontSize: 15,
+              lineHeight: 1,
+              letterSpacing: -0.02,
+              flexWrap: "wrap",
+              color: ({ palette }) => palette.gray[50],
+            }}
+          >
+            Using
+            <ChatModelSelector
+              open={chatModelSelectorOpen}
+              disabled={disabled}
+              onOpen={() => setChatModelSelectorOpen(true)}
+              onClose={() => setChatModelSelectorOpen(false)}
+              value={chatModel}
+              onChange={setChatModel}
+              sx={{
+                [`& .${selectClasses.icon}`]: {
+                  right: 0,
+                },
+                [`& .${selectClasses.select}.${selectClasses.outlined}.${inputBaseClasses.input}`]:
+                  {
+                    paddingLeft: 0,
+                    transition: (theme) =>
+                      theme.transitions.create("padding-right"),
+                    paddingRight: disabled ? 0 : 2,
+                  },
+              }}
+            />
+            in
+            <SystemPromptSelector
+              open={systemPromptSelectorOpen}
+              disabled={disabled}
+              onOpen={() => setSystemPromptSelectorOpen(true)}
+              onClose={() => setSystemPromptSelectorOpen(false)}
+              value={systemPromptId}
+              onChange={setSystemPromptId}
+              sx={{
+                [`& .${selectClasses.select}`]: {
                   paddingLeft: 0,
                   transition: (theme) =>
                     theme.transitions.create("padding-right"),
-                  paddingRight: disabled ? 0 : 2,
+                  paddingRight: disabled ? 0 : undefined,
                 },
-            }}
-          />
-          in
-          <SystemPromptSelector
-            open={systemPromptSelectorOpen}
-            disabled={disabled}
-            onOpen={() => setSystemPromptSelectorOpen(true)}
-            onClose={() => setSystemPromptSelectorOpen(false)}
-            value={systemPromptId}
-            onChange={setSystemPromptId}
-            sx={{
-              [`& .${selectClasses.select}`]: {
-                paddingLeft: 0,
-                transition: (theme) =>
-                  theme.transitions.create("padding-right"),
-                paddingRight: disabled ? 0 : undefined,
-              },
-            }}
-          />
-        </Typography>
+              }}
+            />
+          </Typography>
+        </Collapse>
       </Box>
     </Fade>
   );

@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { SizeMe } from "react-sizeme";
 import { TransitionGroup } from "react-transition-group";
 import { v4 as uuid } from "uuid";
 
@@ -444,73 +445,86 @@ export const CompleteChat: FunctionComponent<{
       onPointerLeave={() => setHovered(false)}
       sx={{ maxWidth: 650 }}
     >
-      <Header
-        disabled={chatHasStarted}
-        hovered={hovered}
-        inputFocused={inputFocused}
-        chatModel={chatModel}
-        setChatModel={setChatModel}
-        systemPromptId={systemPromptId}
-        setSystemPromptId={setSystemPromptId}
-      />
-      <Box
-        sx={{
-          position: "relative",
-          backgroundColor: ({ palette }) => palette.common.white,
-          borderRadius: 2,
-          borderStyle: "solid",
-          borderColor: ({ palette }) => palette.gray[20],
-          borderSize: 1,
-        }}
-      >
-        <TransitionGroup>
-          {messageThread.map(({ id, message }) => (
-            <Collapse key={id}>
-              <ChatMessage message={message} />
-            </Collapse>
-          ))}
-        </TransitionGroup>
-        {readonly ? null : (
-          <Box padding={3}>
-            <ChatTextField
-              loading={loading}
-              chatHasStarted={chatHasStarted}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              submitMessageContent={(messageContent) => {
-                const lastMessage = messageThread[messageThread.length - 1];
+      <SizeMe>
+        {({ size }) => {
+          const isMobile = (size.width ?? 0) < 620;
 
-                void submitUserMessage({
-                  previousResponseId:
-                    lastMessage && isIdResponseId(lastMessage.id)
-                      ? lastMessage.id
-                      : undefined,
-                  userMessage: {
-                    role: "user",
-                    content: messageContent,
-                  },
-                });
-              }}
-            />
-            <Collapse in={!chatHasStarted}>
+          return (
+            <>
+              <Header
+                isMobile={isMobile}
+                disabled={chatHasStarted}
+                hovered={hovered}
+                inputFocused={inputFocused}
+                chatModel={chatModel}
+                setChatModel={setChatModel}
+                systemPromptId={systemPromptId}
+                setSystemPromptId={setSystemPromptId}
+              />
               <Box
                 sx={{
-                  marginX: { xs: 0, sm: 3 },
-                  marginTop: 3,
+                  position: "relative",
+                  backgroundColor: ({ palette }) => palette.common.white,
+                  borderRadius: 2,
+                  borderStyle: "solid",
+                  borderColor: ({ palette }) => palette.gray[20],
+                  borderSize: 1,
                 }}
               >
-                <ExamplePrompts
-                  submitPrompt={(prompt) =>
-                    submitUserMessage({
-                      userMessage: { role: "user", content: prompt },
-                    })
-                  }
-                />
+                <TransitionGroup>
+                  {messageThread.map(({ id, message }) => (
+                    <Collapse key={id}>
+                      <ChatMessage message={message} />
+                    </Collapse>
+                  ))}
+                </TransitionGroup>
+                {readonly ? null : (
+                  <Box padding={3}>
+                    <ChatTextField
+                      loading={loading}
+                      chatHasStarted={chatHasStarted}
+                      onFocus={() => setInputFocused(true)}
+                      onBlur={() => setInputFocused(false)}
+                      submitMessageContent={(messageContent) => {
+                        const lastMessage =
+                          messageThread[messageThread.length - 1];
+
+                        void submitUserMessage({
+                          previousResponseId:
+                            lastMessage && isIdResponseId(lastMessage.id)
+                              ? lastMessage.id
+                              : undefined,
+                          userMessage: {
+                            role: "user",
+                            content: messageContent,
+                          },
+                        });
+                      }}
+                    />
+                    <Collapse in={!chatHasStarted}>
+                      <Box
+                        sx={{
+                          marginX: isMobile ? 0 : 3,
+                          marginTop: 3,
+                        }}
+                      >
+                        <ExamplePrompts
+                          isMobile={isMobile}
+                          submitPrompt={(prompt) =>
+                            submitUserMessage({
+                              userMessage: { role: "user", content: prompt },
+                            })
+                          }
+                        />
+                      </Box>
+                    </Collapse>
+                  </Box>
+                )}
               </Box>
-            </Collapse>
-          </Box>
-        )}
-      </Box>
+            </>
+          );
+        }}
+      </SizeMe>
     </Box>
   );
 };
