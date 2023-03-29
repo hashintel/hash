@@ -31,8 +31,7 @@
         "type": "object",
         "properties": {
           "$ref": {
-            "type": "string",
-            "const": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
           }
         },
         "required": ["$ref"],
@@ -48,41 +47,39 @@
       }
     },
     "properties": {
-      "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object",
-      "properties": {
-        "links": {
+      "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object"
+    },
+    "links": {
+      "type": "object",
+      "propertyNames": {
+        "$comment": "Property names must be a valid versioned URL to a link entity type to allow for outgoing links of that type from this entity.",
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
+      },
+      "patternProperties": {
+        ".*": {
           "type": "object",
-          "propertyNames": {
-            "$comment": "Property names must be a valid versioned URL to a link entity type to allow for outgoing links of that type from this entity.",
-            "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url"
-          },
-          "patternProperties": {
-            ".*": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "const": "array"
-                },
-                "ordered": {
-                  "type": "boolean",
-                  "default": false
-                },
-                "items": {
-                  "$ref": "#/$defs/oneOfEntityTypeReference"
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": ["type", "ordered", "items"],
-              "additionalProperties": false
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "ordered": {
+              "type": "boolean",
+              "default": false
+            },
+            "items": {
+              "$ref": "#/$defs/oneOfEntityTypeReference"
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
             }
-          }
+          },
+          "required": ["type", "ordered", "items"],
+          "additionalProperties": false
         }
       }
     },

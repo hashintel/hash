@@ -1,6 +1,8 @@
 import fetch from "node-fetch";
 import Ajv2019 from "ajv/dist/2019.js";
 import {URL} from "node:url";
+import {inspect} from "node:util";
+import betterAjvErrors from "better-ajv-errors";
 
 const META_SCHEMA_URL = "http://127.0.0.1:1337/meta.json";
 const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
@@ -259,13 +261,25 @@ const getConfiguredAjv = async (schemaUrls) => {
     console.error(`Failed to add meta schema: ${e}`);
   }
 
+  const failures = []
   for (const url of otherUrls) {
-    try {
-      ajv = ajv.addSchema(traversalContext.contents[url]);
-    } catch (e) {
-      console.error(`Failed to add schema "${url}": ${e}`);
-      console.error({schema: traversalContext.contents[url]})
+    const schema = traversalContext.contents[url];
+    if (!ajv.validateSchema(schema)) {
+      console.log(`Failed to validate schema "${url}"`);
+      for (const error of ajv.errors) {
+        console.log(betterAjvErrors(generatedMetaSchema, schema, [error], {indent: 2}));
+      }
+      console.log("\n\n")
+
+      failures.push(url);
+      continue;
     }
+
+    ajv = ajv.addSchema(schema);
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`Failed to add schemas: ${failures.join(', ')}`);
   }
   return ajv;
 }
@@ -273,9 +287,13 @@ const getConfiguredAjv = async (schemaUrls) => {
 const main = async () => {
   const personV2Url = "http://127.0.0.1:1337/person/v/2";
 
-  const ajv = await getConfiguredAjv([personV2Url]);
+  const ajv = await getConfiguredAjv([
+    personV2Url
+  ]);
 
-  console.log(ajv.validateSchema(personV2Url));
+  if (!ajv.validateSchema(personV2Url)) {
+    console.log(inspect({errors: ajv.errors}, {colors: true, compact: false, depth: null}));
+  }
 };
 
 main().then((r) => {
