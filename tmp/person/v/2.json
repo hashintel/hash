@@ -2,6 +2,7 @@
   "$schema": "http://127.0.0.1:1337/meta.json",
   "$id": "http://127.0.0.1:1337/person/v/2",
   "kind": "entityType",
+  "type": "object",
   "title": "Person",
   "allOf": [
     {
@@ -11,16 +12,28 @@
   "properties": {},
   "links": {
     "http://127.0.0.1:1337/friend/v/2": {
-      "maxItems": 5,
+      "type": "array",
+      "ordered": false,
       "items": {
-        "$ref": "http://127.0.0.1:1337/person/v/2"
-      }
+        "oneOf": [
+          {
+            "$ref": "http://127.0.0.1:1337/person/v/2"
+          }
+        ]
+      },
+      "maxItems": 5
     },
     "http://127.0.0.1:1337/knows/v/2": {
-      "maxItems": 2,
+      "type": "array",
+      "ordered": false,
       "items": {
-        "$ref": "http://127.0.0.1:1337/person/v/2"
-      }
+        "oneOf": [
+          {
+            "$ref": "http://127.0.0.1:1337/person/v/2"
+          }
+        ]
+      },
+      "maxItems": 2
     }
   }
 }

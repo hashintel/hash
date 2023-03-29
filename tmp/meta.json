@@ -91,7 +91,7 @@
     }
   },
   "additionalProperties": false,
-  "required": ["$schema", "kind", "$id", "title", "properties"],
+  "required": ["$schema", "$id", "kind", "type", "title", "properties"],
   "$defs": {
     "oneOfEntityTypeReference": {
       "description": "Specifies a set of entity types inside a oneOf",

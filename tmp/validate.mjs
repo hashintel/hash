@@ -239,22 +239,18 @@ const getConfiguredAjv = async (schemaUrls) => {
 
   await traverseAndCollateSchemas(traversalContext);
 
-  // Post process schema contents
-  Object.values(traversalContext.contents).forEach((schema) => {
-    // split the schema.$id by '/' if it exists and only take the last component
-    if (schema.$id && schema.$id !== META_SCHEMA_URL && schema.$id !== JSON_SCHEMA_DRAFT_URL && schema.$id.includes('/')) {
-      const schemaId = schema.$id.split('/').pop();
-      if (schemaId) {
-        schema.$id = schemaId;
-      }
-    }
-  })
-
   const generatedMetaSchema = generateCombinedMetaSchema(META_SCHEMA_URL, traversalContext.contents);
 
   const otherUrls = Array.from(traversalContext.otherSchemaUrls);
 
-  let ajv = new Ajv2019({allErrors: true});
+  let ajv = new Ajv2019({
+    allErrors: true,
+    /*
+      TODO: we can perhaps remove this by manually calling `.addVocabulary` for our additional
+        keywords such as `kind`, `links`, etc.
+     */
+    strictSchema: false
+  });
   try {
     ajv = ajv.addMetaSchema(generatedMetaSchema)
   } catch (e) {
@@ -291,9 +287,21 @@ const main = async () => {
     personV2Url
   ]);
 
-  if (!ajv.validateSchema(personV2Url)) {
-    console.log(inspect({errors: ajv.errors}, {colors: true, compact: false, depth: null}));
+  const compileSchemaById = (url) => {
+    const { schema } = ajv.getSchema(url);
+    if (!schema) {
+      throw new Error(`Could not find schema: ${url}`);
+    }
+
+    const validateFunc = ajv.compile(schema);
+    if (!validateFunc) {
+      console.log(inspect({errors: ajv.errors}, {colors: true, compact: false, depth: null}));
+      throw new Error(`Could not compile schema: ${url}`);
+    }
+    return validateFunc;
   }
+
+  const validatePerson = compileSchemaById(personV2Url);
 };
 
 main().then((r) => {
