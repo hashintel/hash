@@ -29,8 +29,7 @@ const MODELS_BY_GROUP: GroupedOptions<ChatModelId> = {
         icon: <AbstractAiIcon sx={{ fontSize: "inherit" }} />,
         title: "OpenAI GPT-3.5 Turbo",
         helperText: "gpt-3.5-turbo",
-        /** @todo: improve description */
-        description: "The best model for many use cases.",
+        description: "The fastest and cheapest ChatGPT model (default).",
       },
     ],
   },
