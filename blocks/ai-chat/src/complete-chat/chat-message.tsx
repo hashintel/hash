@@ -45,11 +45,13 @@ export const ChatMessage: FunctionComponent<{
       </Box>
       {message.role === "assistant" ? (
         "content" in message ? (
-          <TypeAnimation
-            className="type-animation"
-            sequence={[message.content, () => setShowCursor(false)]}
-            speed={99}
-          />
+          <Typography>
+            <TypeAnimation
+              className="type-animation"
+              sequence={[message.content, () => setShowCursor(false)]}
+              speed={99}
+            />
+          </Typography>
         ) : (
           <>
             <TypeAnimation sequence={[]} speed={99} cursor={showCursor} />
@@ -59,7 +61,7 @@ export const ChatMessage: FunctionComponent<{
           </>
         )
       ) : (
-        message.content
+        <Typography>{message.content}</Typography>
       )}
     </Box>
   );
