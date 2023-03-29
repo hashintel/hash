@@ -59,7 +59,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`paragraph`]    | 0.3         | **Maintained** | [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)                     |             |
 | [`person`]       | 0.2         | Pending Update |                                                                                                |             |
 | [`shuffle`]      | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)                         |             |
-| [`stopwatch`]    | 0.3         | Unmaintained   | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                     |             |
+| [`stopwatch`]    | 0.3         | Deprecated     | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                     |             |
 | [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)                             |             |
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)                             |             |
 | [`toggle-item`]  | 0.1         | Pending Update |                                                                                                |             |
