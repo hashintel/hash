@@ -2,6 +2,8 @@ import { EntityId, GraphBlockHandler } from "@blockprotocol/graph";
 
 import { RequestMessage, ResponseMessage } from "./generated/shared";
 
+/** @todo: consider splitting this file into smaller ones */
+
 /** Entity Type IDs */
 
 export const entityTypeIds = {
