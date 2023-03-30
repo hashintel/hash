@@ -75,8 +75,6 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                 .into_report()
                 .change_context(GraphError)?;
 
-            println!("{:#?}", test_data);
-
             store
                 .write_test_graph(test_data)
                 .await
