@@ -9,6 +9,11 @@ import { Entity, LinkData } from "@blockprotocol/graph";
  */
 export type AnswerPropertyValue = Text;
 
+/**
+ * Defines whether or not toggles should be displayed on questions to show/hide their respective answer.
+ */
+export type AnswerVisibilityIsConfigurablePropertyValue = Boolean;
+
 export type BlockEntity = FAQBlock;
 
 export type BlockEntityOutgoingLinkAndTarget = FAQBlockOutgoingLinkAndTarget;
@@ -19,7 +24,7 @@ export type BlockEntityOutgoingLinkAndTarget = FAQBlockOutgoingLinkAndTarget;
 export type Boolean = boolean;
 
 /**
- * A description of something
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
 export type DescriptionPropertyValue = Text;
 
@@ -34,17 +39,14 @@ export type FAQBlockOutgoingLinkAndTarget =
   FAQBlockHasFrequentlyAskedQuestionLinks;
 
 export type FAQBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/has-frequently-asked-question/v/1": FAQBlockHasFrequentlyAskedQuestionLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-frequently-asked-question/v/1": FAQBlockHasFrequentlyAskedQuestionLinks;
 };
 
-/**
- * Contains a list of frequently asked questions (FAQs) along with their corresponding answers.
- */
 export type FAQBlockProperties = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/should-display-question-numbers/"?: ShouldDisplayQuestionNumbersPropertyValue;
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/should-display-question-toggles/"?: ShouldDisplayQuestionTogglesPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/sections-should-be-numbered/"?: SectionsShouldBeNumberedPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/answer-visibility-is-configurable/"?: AnswerVisibilityIsConfigurablePropertyValue;
 };
 
 export type FrequentlyAskedQuestion = Entity<FrequentlyAskedQuestionProperties>;
@@ -53,14 +55,9 @@ export type FrequentlyAskedQuestionOutgoingLinkAndTarget = never;
 
 export type FrequentlyAskedQuestionOutgoingLinksByLinkEntityTypeId = {};
 
-/**
- * Defines a single frequently asked question along with is corresponding answer within a FAQ Block.
- *
- * See: https://blockprotocol.org/@hash/types/entity-type/faq-block
- */
 export type FrequentlyAskedQuestionProperties = {
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/question/"?: QuestionPropertyValue;
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/answer/"?: AnswerPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/question/"?: QuestionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/answer/"?: AnswerPropertyValue;
 };
 
 export type HasFrequentlyAskedQuestion =
@@ -93,14 +90,9 @@ export type LinkProperties = {};
 export type QuestionPropertyValue = Text;
 
 /**
- * Defines whether or not ordered numbers should be displayed in a list of questions.
+ * Defines whether or not sections should be numbered.
  */
-export type ShouldDisplayQuestionNumbersPropertyValue = Boolean;
-
-/**
- * Defines whether or not toggles should be displayed on questions to show/hide their correspondent answer.
- */
-export type ShouldDisplayQuestionTogglesPropertyValue = Boolean;
+export type SectionsShouldBeNumberedPropertyValue = Boolean;
 
 /**
  * An ordered sequence of characters
@@ -108,6 +100,6 @@ export type ShouldDisplayQuestionTogglesPropertyValue = Boolean;
 export type Text = string;
 
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 export type TitlePropertyValue = Text;

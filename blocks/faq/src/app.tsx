@@ -40,25 +40,25 @@ type LinkType = keyof FAQBlockOutgoingLinksByLinkEntityTypeId;
 
 // Property types
 export const titleKey: RootEntityKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 export const descriptionKey: RootEntityKey =
-  "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/description/";
-export const shouldDisplayQuestionNumbersKey: RootEntityKey =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/should-display-question-numbers/";
-export const shouldDisplayQuestionTogglesKey: RootEntityKey =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/should-display-question-toggles/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
+export const sectionsShouldBeNumberedKey: RootEntityKey =
+  "https://blockprotocol.org/@hash/types/property-type/sections-should-be-numbered/";
+export const answerVisibilityIsConfigurableKey: RootEntityKey =
+  "https://blockprotocol.org/@hash/types/property-type/answer-visibility-is-configurable/";
 export const questionKey: QuestionEntityKey =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/question/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/question/";
 export const answerKey: QuestionEntityKey =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/property-type/answer/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/answer/";
 
 // Relevant Entity Types
 const frequentlyAskedQuestionType =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/frequently-asked-question/v/5";
+  "https://blockprotocol.org/@hash/types/entity-type/frequently-asked-question/v/1";
 
 // Link Entity Types
 const hasFrequentlyAskedQuestion: LinkType =
-  "https://blockprotocol-7cpmxox21.stage.hash.ai/@luisbett/types/entity-type/has-frequently-asked-question/v/1";
+  "https://blockprotocol.org/@hash/types/entity-type/has-frequently-asked-question/v/1";
 
 export type QuestionOrAnswer = typeof questionKey | typeof answerKey;
 export type EntityType = typeof frequentlyAskedQuestionType;
@@ -82,8 +82,8 @@ export const App: BlockComponent<BlockEntity> = ({
   const {
     [titleKey]: title,
     [descriptionKey]: description,
-    [shouldDisplayQuestionNumbersKey]: shouldDisplayQuestionNumbers,
-    [shouldDisplayQuestionTogglesKey]: shouldDisplayQuestionToggles,
+    [sectionsShouldBeNumberedKey]: shouldDisplayQuestionNumbers,
+    [answerVisibilityIsConfigurableKey]: shouldDisplayQuestionToggles,
   } = properties;
 
   const questionLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
@@ -292,7 +292,7 @@ export const App: BlockComponent<BlockEntity> = ({
                         setDisplayNumbers(event.target.checked);
                         void updateField(
                           event.target.checked,
-                          shouldDisplayQuestionNumbersKey,
+                          sectionsShouldBeNumberedKey,
                         );
                       }}
                     />
@@ -316,7 +316,7 @@ export const App: BlockComponent<BlockEntity> = ({
                         setDisplayToggles(event.target.checked);
                         void updateField(
                           event.target.checked,
-                          shouldDisplayQuestionTogglesKey,
+                          answerVisibilityIsConfigurableKey,
                         );
                       }}
                     />
