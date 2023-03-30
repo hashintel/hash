@@ -40,7 +40,8 @@ module.exports = (workspaceDirPath) => {
       if (
         line.includes("/") &&
         !line.match(/^[^/]+\/$/) &&
-        !line.startsWith(workspaceDirPrefix)
+        !line.startsWith(workspaceDirPrefix) &&
+        !line.startsWith("**")
       ) {
         return [];
       }

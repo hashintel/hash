@@ -1,6 +1,9 @@
-#####################################
-## Files uniquely ignored by Prettier
-#####################################
+################################################
+## Files uniquely ignored by Prettier and ESLint
+################################################
+
+# NOTE: `libs/@local/eslint-config/generate-ignore-patterns.cjs` is used to generate ESLint ignore patterns based on
+#   this file
 
 # Ignore all files (but still allow sub-folder scanning)
 *
