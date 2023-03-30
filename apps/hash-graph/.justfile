@@ -17,10 +17,21 @@ default:
 run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
+print-disk-usage:
+  df -h
+  du -sh
+  docker system df
+
 [private]
 docker-build:
+  @echo "Pre-building Docker images"
+  @just print-disk-usage
   @just yarn external-services build graph
+  @echo "building Docker images complete"
+  @just print-disk-usage
   @just in-pr docker builder prune --force
+  @echo "pruning Docker images complete"
+  @just print-disk-usage
 
 # Spins up the deployment environment
 deployment-up *arguments: docker-build
