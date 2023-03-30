@@ -109,7 +109,6 @@ export const Question: FunctionComponent<QuestionProps> = ({
             }}
             onBlur={(event) => updateField(event.target.value, questionKey)}
             sx={{
-              width: 1,
               fontWeight: 700,
               fontSize: 15,
               lineHeight: 1,
