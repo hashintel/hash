@@ -25,6 +25,19 @@
 
 - ...
 
+## 🔍 Has this modified a publishable library?
+
+<!-- Confirm you have taken the necessary action to record a changeset or publish a change, as appropriate -->
+<!-- AT LEAST ONE box must be checked. Do not delete this section! see libs/README.md for info on publishing -->
+
+This PR:
+
+- [ ] modifies an **npm**-publishable library and **I have added a changeset file(s)**
+- [ ] modifies a **Cargo**-publishable library and **I have amended the version**
+- [ ] modifies a **Cargo**-publishable library, but **it is not yet ready to publish**
+- [ ] does not modify any publishable libraries
+- [ ] I am unsure / need advice
+
 ## 📜 Does this require a change to the docs?
 
 <!-- If this adds a user facing feature or modifies how an existing feature is used, it likely needs a docs change. -->

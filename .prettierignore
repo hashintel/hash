@@ -117,7 +117,6 @@ __pycache__
 
 # generated files
 *.gen.*
-blocks/**/generated
 *.tsbuildinfo
 
 # Sentry

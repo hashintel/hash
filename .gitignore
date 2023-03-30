@@ -93,7 +93,6 @@ blocks/**/.env
 # generated files
 *.gen.*
 *.tsbuildinfo
-blocks/**/generated
 
 # Sentry
 .sentryclirc
