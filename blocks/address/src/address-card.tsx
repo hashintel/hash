@@ -189,46 +189,48 @@ export const AddressCard = ({
       </ContentStack>
 
       <MapWrapper isMobile={isMobile}>
-        <Fade in={hovered}>
-          <Stack
-            sx={{
-              display: "inline-flex",
-              position: "absolute",
-              top: 13,
-              left: 13,
-            }}
-          >
-            <Button
-              onClick={incrementZoomLevel}
-              disabled={!incrementZoomLevel}
-              variant="tertiary"
+        {!readonly ? (
+          <Fade in={hovered}>
+            <Stack
               sx={{
-                minWidth: "unset",
-                minHeight: "unset",
-                padding: 0.5,
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                borderBottomWidth: 0,
+                display: "inline-flex",
+                position: "absolute",
+                top: 13,
+                left: 13,
               }}
             >
-              <FontAwesomeIcon icon={faPlus} />
-            </Button>
-            <Button
-              onClick={decrementZoomLevel}
-              disabled={!decrementZoomLevel}
-              variant="tertiary"
-              sx={{
-                minWidth: "unset",
-                minHeight: "unset",
-                padding: 0.5,
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-              }}
-            >
-              <FontAwesomeIcon icon={faMinus} />
-            </Button>
-          </Stack>
-        </Fade>
+              <Button
+                onClick={incrementZoomLevel}
+                disabled={!incrementZoomLevel}
+                variant="tertiary"
+                sx={{
+                  minWidth: "unset",
+                  minHeight: "unset",
+                  padding: 0.5,
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderBottomWidth: 0,
+                }}
+              >
+                <FontAwesomeIcon icon={faPlus} />
+              </Button>
+              <Button
+                onClick={decrementZoomLevel}
+                disabled={!decrementZoomLevel}
+                variant="tertiary"
+                sx={{
+                  minWidth: "unset",
+                  minHeight: "unset",
+                  padding: 0.5,
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                }}
+              >
+                <FontAwesomeIcon icon={faMinus} />
+              </Button>
+            </Stack>
+          </Fade>
+        ) : null}
 
         {mapUrl ? (
           <Box
@@ -237,6 +239,7 @@ export const AddressCard = ({
               height: 1,
               background: `url(${mapUrl}) no-repeat`,
               backgroundSize: "cover",
+              backgroundPosition: "center",
             }}
           >
             <Typography
@@ -297,22 +300,31 @@ export const AddressCard = ({
               variant="tertiary"
               sx={({ palette }) => ({
                 position: "absolute",
-                top: 4,
-                right: 4,
-                padding: 0.5,
-                background: "transparent !important",
+                minHeight: 0,
+                top: 0,
+                right: 0,
+                paddingX: 1.25,
+                paddingY: 0.5,
                 fontSize: 12,
-                fontWeight: 600,
-                lineHeight: "18px",
+                fontWeight: 400,
+                lineHeight: "26px",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 border: "none",
-                fill: palette.gray[70],
+                fill: palette.white,
+                color: palette.white,
+                background: `${palette.black}A8`,
+                borderRadius: 0,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                boxShadow:
+                  "0px 11px 30px rgba(61, 78, 133, 0.04), 0px 7.12963px 18.37px rgba(61, 78, 133, 0.05), 0px 4.23704px 8.1px rgba(61, 78, 133, 0.06), 0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07)",
                 ":hover": {
-                  fill: palette.gray[80],
+                  color: palette.white,
+                  background: palette.black,
                 },
               })}
-              endIcon={
+              startIcon={
                 <FontAwesomeIcon
                   icon={faArrowRotateLeft}
                   sx={{ fill: "inherit" }}
