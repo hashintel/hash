@@ -133,27 +133,16 @@ impl CustomGlobalMetadata {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockProtocolModuleVersions {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub graph: Option<semver::Version>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub authorization: Option<semver::Version>,
-}
-
-impl BlockProtocolModuleVersions {
-    #[must_use]
-    const fn is_empty(&self) -> bool {
-        self.graph.is_none() && self.authorization.is_none()
-    }
+    pub graph: semver::Version,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TestData {
-    #[serde(default, skip_serializing_if = "BlockProtocolModuleVersions::is_empty")]
-    pub block_protocol_spec: BlockProtocolModuleVersions,
+    pub block_protocol_module_versions: BlockProtocolModuleVersions,
     pub data_types: Vec<OntologyTypeRecord<DataType>>,
     pub property_types: Vec<OntologyTypeRecord<PropertyType>>,
     pub entity_types: Vec<OntologyTypeRecord<EntityType>>,
