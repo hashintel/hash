@@ -40,7 +40,7 @@
     "prosemirror-transform": "1.7.0",
     "prosemirror-view": "1.29.1",
     "slugify": "1.6.5",
-    "uuid": "8.3.2"
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@blockprotocol/type-system": "0.1.0-canary-20230227152050",

@@ -33,7 +33,7 @@
     "@blockprotocol/type-system": "0.1.0-canary-20230227152050",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "uuid": "8.3.2"
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
