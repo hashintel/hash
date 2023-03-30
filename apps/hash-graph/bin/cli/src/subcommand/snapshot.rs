@@ -6,7 +6,8 @@ use graph::{
     knowledge::Entity,
     logging::{init_logger, LoggingArgs},
     store::{
-        crud::Read, query::Filter, test_graph, DatabaseConnectionInfo, PostgresStorePool, StorePool,
+        crud::Read, query::Filter, test_graph, test_graph::BlockProtocolModuleVersions,
+        DatabaseConnectionInfo, PostgresStorePool, StorePool,
     },
 };
 use tokio_postgres::NoTls;
@@ -89,7 +90,9 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                 .collect();
 
             let test_graph = test_graph::TestData {
-                block_protocol_spec: semver::Version::new(0, 3, 0),
+                block_protocol_module_versions: BlockProtocolModuleVersions {
+                    graph: semver::Version::new(0, 3, 0),
+                },
                 data_types,
                 property_types,
                 entity_types,
