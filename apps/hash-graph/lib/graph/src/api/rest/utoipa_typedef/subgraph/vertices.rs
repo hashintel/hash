@@ -3,7 +3,7 @@ use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::{
-    openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
+    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
@@ -95,13 +95,16 @@ impl ToSchema<'_> for Vertices {
         (
             "Vertices",
             ObjectBuilder::new()
-                .additional_properties(Some(Schema::from(
-                    ObjectBuilder::new().additional_properties(Some(
-                        OneOfBuilder::new()
-                            .item(Ref::from_schema_name(KnowledgeGraphVertex::schema().0))
-                            .item(Ref::from_schema_name(OntologyVertex::schema().0)),
-                    )),
-                )))
+                .additional_properties(Some(AdditionalProperties::RefOr(RefOr::T(Schema::from(
+                    ObjectBuilder::new().additional_properties(Some(AdditionalProperties::RefOr(
+                        RefOr::T(Schema::from(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name(KnowledgeGraphVertex::schema().0))
+                                .item(Ref::from_schema_name(OntologyVertex::schema().0))
+                                .build(),
+                        )),
+                    ))),
+                )))))
                 .into(),
         )
     }

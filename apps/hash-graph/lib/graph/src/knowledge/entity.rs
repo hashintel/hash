@@ -99,12 +99,14 @@ pub struct EntityLinkOrder {
         skip_serializing_if = "Option::is_none",
         rename = "leftToRightOrder"
     )]
+    #[schema(nullable = false)]
     pub left_to_right: Option<LinkOrder>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "rightToLeftOrder"
     )]
+    #[schema(nullable = false)]
     pub right_to_left: Option<LinkOrder>,
 }
 
@@ -185,6 +187,7 @@ impl EntityMetadata {
 pub struct Entity {
     pub properties: EntityProperties,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub link_data: Option<LinkData>,
     pub metadata: EntityMetadata,
 }

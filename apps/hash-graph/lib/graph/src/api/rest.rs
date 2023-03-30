@@ -40,9 +40,9 @@ use crate::{
         middleware::log_request_and_response,
         utoipa_typedef::{
             subgraph::{
-                Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-                KnowledgeGraphVertices, OntologyOutwardEdge, OntologyRootedEdges,
-                OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
+                Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
+                OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices,
+                Subgraph, Vertex, Vertices,
             },
             MaybeListOfOntologyElementMetadata,
         },
@@ -209,8 +209,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OntologyEdgeKind,
             OntologyOutwardEdge,
             KnowledgeGraphOutwardEdge,
-            OntologyRootedEdges,
-            KnowledgeGraphRootedEdges,
             Edges,
             GraphResolveDepths,
             EdgeResolveDepths,
