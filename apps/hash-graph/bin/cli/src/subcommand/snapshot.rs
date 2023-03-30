@@ -103,7 +103,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             serde_json::to_writer(&mut std::io::stdout(), &test_graph)
                 .into_report()
                 .change_context(GraphError)?;
-            writeln!(std::io::stdout(), "")
+            writeln!(std::io::stdout())
                 .into_report()
                 .change_context(GraphError)?;
         }
