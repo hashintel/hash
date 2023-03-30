@@ -1,6 +1,6 @@
-#####################
-## Specific to Docker
-#####################
+###################################
+## Files uniquely ignored by Docker
+###################################
 
 # Docker
 .dockerignore
