@@ -74,6 +74,7 @@ export const EditableField = ({
         display: "flex",
         alignItems: "center",
         gap: 1.5,
+        width: 1,
       }}
     >
       <Box
@@ -185,32 +186,31 @@ export const EditableField = ({
         )}
       </Box>
 
-      <Fade
-        in={!readonly && !!value && hovered && !editing}
-        timeout={editing ? 0 : 300}
-      >
-        <IconButton
-          tabIndex={0}
-          onClick={() => {
-            setEditing(!editing);
-            inputRef.current?.focus();
-          }}
-          sx={{
-            padding: 0.5,
-          }}
-        >
-          <FontAwesomeIcon
-            icon={{ icon: faPenToSquare.icon }}
-            sx={{
-              ...(editIconFontSize
-                ? {
-                    fontSize: `${editIconFontSize}px !important`,
-                  }
-                : {}),
+      {!readonly ? (
+        <Fade in={!!value && hovered && !editing} timeout={editing ? 0 : 300}>
+          <IconButton
+            tabIndex={0}
+            onClick={() => {
+              setEditing(!editing);
+              inputRef.current?.focus();
             }}
-          />
-        </IconButton>
-      </Fade>
+            sx={{
+              padding: 0.5,
+            }}
+          >
+            <FontAwesomeIcon
+              icon={{ icon: faPenToSquare.icon }}
+              sx={{
+                ...(editIconFontSize
+                  ? {
+                      fontSize: `${editIconFontSize}px !important`,
+                    }
+                  : {}),
+              }}
+            />
+          </IconButton>
+        </Fade>
+      ) : null}
     </Box>
   );
 };
