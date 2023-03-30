@@ -53,7 +53,7 @@ impl<C: AsClient> PostgresStore<C> {
                             &property_type_vertex_id,
                             OntologyEdgeKind::ConstrainsValuesOn,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                     .await?
                     {
@@ -89,7 +89,7 @@ impl<C: AsClient> PostgresStore<C> {
                             OntologyEdgeKind::ConstrainsPropertiesOn,
                             EdgeDirection::Incoming,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                     .await?
                     {
@@ -182,11 +182,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let property_types = Read::<PropertyTypeWithMetadata>::read(self, filter, &temporal_axes)
-            .await?
-            .into_iter()
-            .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect();
+        let property_types =
+            Read::<PropertyTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
+                .await?
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,

@@ -31,14 +31,14 @@ pub trait Read<R>: Sync {
     async fn read(
         &self,
         query: &Filter<Self::Record>,
-        temporal_axes: &QueryTemporalAxes,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Vec<R>, QueryError>;
 
     #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(
         &self,
         query: &Filter<Self::Record>,
-        temporal_axes: &QueryTemporalAxes,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<R, QueryError> {
         let mut records = self.read(query, temporal_axes).await?;
         ensure!(
