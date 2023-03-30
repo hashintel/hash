@@ -105,9 +105,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
             editIconFontSize={15}
             value={questionValue}
             onChange={(event) => {
-              if (!readonly) {
-                setQuestionValue(event.target.value);
-              }
+              setQuestionValue(event.target.value);
             }}
             onBlur={(event) => updateField(event.target.value, questionKey)}
             sx={{
@@ -169,9 +167,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
               editIconFontSize={14}
               value={answerValue}
               onChange={(event) => {
-                if (!readonly) {
-                  setAnswerValue(event.target.value);
-                }
+                setAnswerValue(event.target.value);
               }}
               onBlur={(event) => updateField(event.target.value, answerKey)}
               sx={{

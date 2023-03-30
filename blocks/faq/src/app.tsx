@@ -352,9 +352,7 @@ export const App: BlockComponent<BlockEntity> = ({
                 <EditableField
                   value={titleValue}
                   onChange={(event) => {
-                    if (!readonly) {
-                      setTitleValue(event.target.value);
-                    }
+                    setTitleValue(event.target.value);
                   }}
                   onBlur={(event) => updateField(event.target.value, titleKey)}
                   sx={{
@@ -372,9 +370,7 @@ export const App: BlockComponent<BlockEntity> = ({
                   editIconFontSize={14}
                   value={descriptionValue}
                   onChange={(event) => {
-                    if (!readonly) {
-                      setDescriptionValue(event.target.value);
-                    }
+                    setDescriptionValue(event.target.value);
                   }}
                   onBlur={(event) => {
                     void updateField(event.target.value, descriptionKey);
