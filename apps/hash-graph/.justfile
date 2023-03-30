@@ -17,9 +17,14 @@ default:
 run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
+[private]
+docker-build:
+  @just yarn external-services build graph
+  @just in-pr docker builder prune --force
+
 # Spins up the deployment environment
-deployment-up *arguments:
-  @just yarn external-services up postgres type-fetcher --build --wait
+deployment-up *arguments: docker-build
+  @just yarn external-services up postgres type-fetcher --wait
   @just yarn external-services up graph-migrate {{arguments}}
 
 # Tears down the deployment environment
