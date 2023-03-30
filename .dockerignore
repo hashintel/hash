@@ -1,6 +1,6 @@
-### IMPORTANT ###
-# When adding new filters please also consider adding them to `.gitignore` if desired
-# Currently, `.dockerignore` contains _all_ entries from `.gitignore`
+#####################
+## Specific to Docker
+#####################
 
 # Docker
 .dockerignore
@@ -11,8 +11,14 @@
 .git
 .gitignore
 
-# Platform Specific
-**/.DS_Store
+# Readmes
+**/*.md
+!**/README*.md
+!**/LICENSE*.md
+
+########################
+## Same as in .gitignore
+########################
 
 # Logs
 **/logs
@@ -148,7 +154,3 @@ seed-users.json
 # SARIF files
 *.sarif
 
-# Readmes
-**/*.md
-!**/README*.md
-!**/LICENSE*.md
