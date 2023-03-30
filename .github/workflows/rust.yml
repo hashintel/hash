@@ -161,7 +161,6 @@ jobs:
       PROFILE: ${{ matrix.profile }}
     steps:
       - name: Print disk usage
-        working-directory: ${{ matrix.directory }}
         run: |
           df -h
           du -sh
