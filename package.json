@@ -53,6 +53,23 @@
       "suppress-exit-code prettier --write"
     ]
   },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-packagejson",
+      "prettier-plugin-sh",
+      "prettier-plugin-sql"
+    ],
+    "trailingComma": "all",
+    "overrides": [
+      {
+        "files": "*.sql",
+        "options": {
+          "keywordCase": "upper",
+          "language": "postgresql"
+        }
+      }
+    ]
+  },
   "resolutions": {
     "@types/react": "18.0.25",
     "react": "^18.2.0",
