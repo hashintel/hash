@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::{
-    openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
+    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
@@ -134,13 +134,13 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
     }
 }
 
-#[derive(Default, Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
     pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
-#[derive(Default, Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
     pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
@@ -222,13 +222,17 @@ impl ToSchema<'_> for Edges {
         (
             "Edges",
             ObjectBuilder::new()
-                .additional_properties(Some(Schema::from(
-                    ObjectBuilder::new().additional_properties(Some(Array::new(
-                        OneOfBuilder::new()
-                            .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
-                            .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0)),
+                .additional_properties(Some(AdditionalProperties::RefOr(RefOr::T(Schema::from(
+                    ObjectBuilder::new().additional_properties(Some(AdditionalProperties::RefOr(
+                        RefOr::T(Schema::from(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
+                                .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0))
+                                .to_array_builder()
+                                .build(),
+                        )),
                     ))),
-                )))
+                )))))
                 .into(),
         )
     }
