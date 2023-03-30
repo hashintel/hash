@@ -239,6 +239,7 @@ export const AddressCard = ({
               height: 1,
               background: `url(${mapUrl}) no-repeat`,
               backgroundSize: "cover",
+              backgroundPosition: "center",
             }}
           >
             <Typography
