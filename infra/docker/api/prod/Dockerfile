@@ -9,6 +9,7 @@ RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offlin
 
 # Also ensure that api node modules can be cached
 COPY apps/hash-api/package.json apps/hash-api/
+COPY apps/hash-graph/package.json apps/hash-graph/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
 COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
@@ -17,6 +18,7 @@ COPY libs/@local/hash-graphql-shared/package.json libs/@local/hash-graphql-share
 COPY libs/@local/hash-subgraph/package.json libs/@local/hash-subgraph/
 COPY libs/@local/advanced-types/package.json libs/@local/advanced-types/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
+COPY libs/@local/status/package.json libs/@local/status/
 RUN yarn workspace @apps/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
 
 COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
@@ -43,6 +45,7 @@ COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/hash-subgraph libs/@local/hash-subgraph
 COPY libs/@local/advanced-types libs/@local/advanced-types
 COPY libs/@local/tsconfig libs/@local/tsconfig
+COPY libs/@local/status libs/@local/status
 RUN mkdir -p /app/var/uploads
 
 
