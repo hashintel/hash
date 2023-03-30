@@ -26,7 +26,7 @@ const getEquivalentIgnorePaths = (pattern, workspaceDirPrefix) => {
   // We want to traverse the components of the workspaceDirPrefix, and consume wild cards whenever they match.
   // On some wildcards there may be a branch of equivalent paths, e.g. for a "**" wildcard
   const getEquivalentPaths = (pathComponents, patternComponents) => {
-    let equivalentPaths = new Set();
+    const equivalentPaths = new Set();
 
     let i = 0;
     for (; i < patternComponents.length; i++) {
@@ -44,31 +44,39 @@ const getEquivalentIgnorePaths = (pattern, workspaceDirPrefix) => {
         break;
       }
 
-      if (patternComponent === pathComponent) {
-      } else if (patternComponent === "**") {
+      if (patternComponent === "**") {
         // We can choose to use ** once, or multiple times, or never
 
         // we use and consume **, so we advance both sets of components
-        getEquivalentPaths(
+        for (const equivalentPath of getEquivalentPaths(
           pathComponents.slice(i + 1),
           patternComponents.slice(i + 1),
-        ).forEach((path) => equivalentPaths.add(path));
+        )) {
+          equivalentPaths.add(equivalentPath);
+        }
         // we use ** but don't consume it, so we advance the path components by one but leave the pattern as is
-        getEquivalentPaths(
+        for (const equivalentPath of getEquivalentPaths(
           pathComponents.slice(i + 1),
           patternComponents.slice(i),
-        ).forEach((path) => equivalentPaths.add(path));
+        )) {
+          equivalentPaths.add(equivalentPath);
+        }
+
         // we don't use but consume **, so we advance the pattern components by one but leave the path as is
-        getEquivalentPaths(
+        for (const equivalentPath of getEquivalentPaths(
           pathComponents.slice(i),
           patternComponents.slice(i + 1),
-        ).forEach((path) => equivalentPaths.add(path));
+        )) {
+          equivalentPaths.add(equivalentPath);
+        }
       } else if (patternComponent === "*") {
         // We must consume "*" if it is present
-        getEquivalentPaths(
+        for (const equivalentPath of getEquivalentPaths(
           pathComponents.slice(i + 1),
           patternComponents.slice(i + 1),
-        ).forEach((path) => equivalentPaths.add(path));
+        )) {
+          equivalentPaths.add(equivalentPath);
+        }
       }
     }
 
