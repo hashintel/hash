@@ -244,6 +244,8 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   }, [questionEntities]);
 
+  const shouldDisplayIntro = !!title || !!description || !readonly;
+
   return (
     <>
       <script
@@ -343,7 +345,7 @@ export const App: BlockComponent<BlockEntity> = ({
                   }),
             }}
           >
-            {title || description || !readonly ? (
+            {shouldDisplayIntro ? (
               <Stack
                 sx={{
                   gap: 1.5,
