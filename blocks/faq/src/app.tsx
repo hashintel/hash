@@ -211,7 +211,7 @@ export const App: BlockComponent<BlockEntity> = ({
   };
 
   useEffect(() => {
-    if (!questionEntities.length) {
+    if (!readonly && !questionEntities.length) {
       void addQuestion();
     }
     // We only want to run this once when the block is initiated
