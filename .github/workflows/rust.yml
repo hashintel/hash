@@ -160,12 +160,30 @@ jobs:
       RUST_BACKTRACE: 1
       PROFILE: ${{ matrix.profile }}
     steps:
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
+
       - name: Checkout source code
         uses: actions/checkout@v3
+
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
+
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -173,16 +191,34 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           working-directory: ${{ matrix.directory }}
 
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
+
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
 
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
+
       - name: Install tools
         uses: taiki-e/install-action@v2
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
+
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -191,23 +227,53 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
+
       - name: Install Python
         if: matrix.directory == 'apps/engine'
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
+
       - name: Run tests
         working-directory: ${{ matrix.directory }}
         run: just test --no-fail-fast
+
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
 
       - name: Run miri
         if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
         run: just miri --no-fail-fast
 
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
+
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
+
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
 
       - name: Upload to Datadog
         if: matrix.directory == 'apps/engine' && matrix.profile == 'production'
@@ -227,6 +293,12 @@ jobs:
                     --argjson message "$message" \
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
+
+      - name: Print disk usage
+        working-directory: ${{ matrix.directory }}
+        run: |
+          df -h
+          du -sh
 
   coverage:
     name: coverage
