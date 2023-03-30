@@ -154,6 +154,7 @@ export const traverseAndCollateSchemas = async (traversalContext) => {
   }
 };
 
+// TODO: make this a more general 'collapseSchema' function (not limited to metaschemas)
 const generateCombinedMetaSchema = (root, schemas) => {
   const combinedSchema = schemas[root];
   combinedSchema.definitions = {};
@@ -240,8 +241,15 @@ const getConfiguredAjv = async (schemaUrls) => {
   await traverseAndCollateSchemas(traversalContext);
 
   const generatedMetaSchema = generateCombinedMetaSchema(META_SCHEMA_URL, traversalContext.contents);
+  // Add `unevaluatedProperties` to the metaschema
+  generatedMetaSchema.properties.unevaluatedProperties = {
+    type: "boolean",
+  }
 
   const otherUrls = Array.from(traversalContext.otherSchemaUrls);
+
+  // TODO: For each entity type, make an accompanying synthetic type to validate an array of linked
+  //  entities (endpoints of links, not the links themselves)
 
   let ajv = new Ajv2019({
     allErrors: true,
@@ -287,21 +295,29 @@ const main = async () => {
     personV2Url
   ]);
 
-  const compileSchemaById = (url) => {
+  const getValidator = (url) => {
     const { schema } = ajv.getSchema(url);
     if (!schema) {
       throw new Error(`Could not find schema: ${url}`);
     }
 
-    const validateFunc = ajv.compile(schema);
-    if (!validateFunc) {
-      console.log(inspect({errors: ajv.errors}, {colors: true, compact: false, depth: null}));
-      throw new Error(`Could not compile schema: ${url}`);
-    }
-    return validateFunc;
+    ajv.removeSchema(url);
+
+    schema.unevaluatedProperties = false;
+    ajv.addSchema(schema);
+
+    return ajv.getSchema(url)
   }
 
-  const validatePerson = compileSchemaById(personV2Url);
+  const validatePerson = getValidator(personV2Url);
+  const bob = {
+  }
+
+  const valid = validatePerson(bob);
+
+  if (!valid) {
+    console.log(betterAjvErrors(validatePerson.schema, bob, validatePerson.errors, {indent: 2}));
+  }
 };
 
 main().then((r) => {
