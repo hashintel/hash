@@ -54,7 +54,7 @@
     },
     "displayName": "How To",
     "examples": [],
-    "icon": "public/book-arrow-right.svg",
+    "icon": "public/faq-icon.svg",
     "image": "public/block-preview.png",
     "name": "@hash/faq",
     "protocol": "0.3",
