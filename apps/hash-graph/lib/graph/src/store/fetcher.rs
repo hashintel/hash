@@ -414,7 +414,7 @@ where
     async fn read(
         &self,
         query: &Filter<Self::Record>,
-        temporal_axes: &QueryTemporalAxes,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Vec<R>, QueryError> {
         self.store.read(query, temporal_axes).await
     }
