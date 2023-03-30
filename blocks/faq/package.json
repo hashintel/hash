@@ -52,7 +52,7 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "displayName": "How To",
+    "displayName": "FAQ",
     "examples": [],
     "icon": "public/faq-icon.svg",
     "image": "public/block-preview.png",
