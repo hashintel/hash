@@ -299,22 +299,31 @@ export const AddressCard = ({
               variant="tertiary"
               sx={({ palette }) => ({
                 position: "absolute",
-                top: 4,
-                right: 4,
-                padding: 0.5,
-                background: "transparent !important",
+                minHeight: 0,
+                top: 0,
+                right: 0,
+                paddingX: 1.25,
+                paddingY: 0.5,
                 fontSize: 12,
-                fontWeight: 600,
-                lineHeight: "18px",
+                fontWeight: 400,
+                lineHeight: "26px",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 border: "none",
-                fill: palette.gray[70],
+                fill: palette.white,
+                color: palette.white,
+                background: `${palette.black}A8`,
+                borderRadius: 0,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                boxShadow:
+                  "0px 11px 30px rgba(61, 78, 133, 0.04), 0px 7.12963px 18.37px rgba(61, 78, 133, 0.05), 0px 4.23704px 8.1px rgba(61, 78, 133, 0.06), 0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07)",
                 ":hover": {
-                  fill: palette.gray[80],
+                  color: palette.white,
+                  background: palette.black,
                 },
               })}
-              endIcon={
+              startIcon={
                 <FontAwesomeIcon
                   icon={faArrowRotateLeft}
                   sx={{ fill: "inherit" }}
