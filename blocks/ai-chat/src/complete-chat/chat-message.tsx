@@ -1,10 +1,63 @@
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { Fragment, FunctionComponent, useMemo, useState } from "react";
 import { TypeAnimation } from "react-type-animation";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { UserIcon } from "../icons/user";
 import { IncompleteOpenAiAssistantMessage, OpenAIChatMessage } from "./types";
+
+type MessageContentBlock = {
+  kind: "text" | "code";
+  content: string;
+};
+
+const typeAnimationSpeed = 99;
+
+const AssistantMessageContent: FunctionComponent<{
+  messageContent: string;
+  onAnimationEnd: () => void;
+}> = ({ messageContent, onAnimationEnd }) => {
+  const blocks = useMemo<MessageContentBlock[]>(() => {
+    const sanitizedMessageContent = messageContent.trim();
+
+    const startsWithCodeBlock = sanitizedMessageContent.startsWith("```");
+
+    return sanitizedMessageContent
+      .split("```")
+      .filter((content) => content !== "")
+      .map((content, index) => ({
+        kind: index % 2 === (startsWithCodeBlock ? 1 : 0) ? "text" : "code",
+        content: content.trim(),
+      }));
+  }, [messageContent]);
+
+  return (
+    <Box sx={{ "& .type-animation": { whiteSpace: "pre-line" } }}>
+      {blocks.map(({ kind, content }, index) => (
+        // eslint-disable-next-line react/no-array-index-key
+        <Fragment key={index}>
+          {kind === "text" ? (
+            <Typography>
+              <TypeAnimation
+                className="type-animation"
+                sequence={[content, onAnimationEnd]}
+                speed={typeAnimationSpeed}
+              />
+            </Typography>
+          ) : (
+            <code>
+              <TypeAnimation
+                className="type-animation"
+                sequence={[content]}
+                speed={typeAnimationSpeed}
+              />
+            </code>
+          )}
+        </Fragment>
+      ))}
+    </Box>
+  );
+};
 
 export const ChatMessage: FunctionComponent<{
   message: OpenAIChatMessage | IncompleteOpenAiAssistantMessage;
@@ -45,16 +98,15 @@ export const ChatMessage: FunctionComponent<{
       </Box>
       {message.role === "assistant" ? (
         "content" in message ? (
-          <Typography>
-            <TypeAnimation
-              className="type-animation"
-              sequence={[message.content, () => setShowCursor(false)]}
-              speed={99}
-            />
-          </Typography>
+          <AssistantMessageContent
+            messageContent={message.content}
+            onAnimationEnd={() => setShowCursor(false)}
+          />
         ) : (
           <>
-            <TypeAnimation sequence={[]} speed={99} cursor={showCursor} />
+            <Typography>
+              <TypeAnimation sequence={[]} speed={99} cursor={showCursor} />
+            </Typography>
             <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
               Thinking...
             </Typography>
