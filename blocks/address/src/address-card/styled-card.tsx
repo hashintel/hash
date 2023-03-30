@@ -11,7 +11,8 @@ export const StyledCard = ({
   <Card
     sx={({ palette }) => ({
       display: "flex",
-      width: "min-content",
+      maxWidth: 800,
+      width: 1,
       border: `1px solid ${palette.gray[20]}`,
       borderRadius: 2.5,
       boxShadow: "none",
