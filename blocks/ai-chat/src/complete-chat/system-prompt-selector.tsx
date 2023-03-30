@@ -10,26 +10,33 @@ import { HeartIcon } from "../icons/heart";
 import { SkullCrossbonesIcon } from "../icons/skull-crossbones";
 import { TruckFastIcon } from "../icons/tuck-fast";
 
+const codeBlockFormattingPrompt =
+  "Return code blocks as ```{language}{code...}```, with language being a supported PrismJS language.";
+
 export const systemPrompts = {
   concise: [
     "You are ChatGPT, a large language model trained by OpenAI.",
     "Answer as concisely as possible.",
+    codeBlockFormattingPrompt,
     `Current date: ${new Date().toISOString()}.`,
   ].join(" "),
   elaborate: [
     "You are ChatGPT, a large language model trained by OpenAI.",
     "Answer as elaborately as possible.",
+    codeBlockFormattingPrompt,
     `Current date: ${new Date().toISOString()}.`,
   ].join(" "),
   sensitive: [
     "You are ChatGPT, a large language model trained by OpenAI.",
     "Answer as sensitively as possible in a caring and compassionate tone.",
+    codeBlockFormattingPrompt,
     `Current date: ${new Date().toISOString()}.`,
   ].join(" "),
   pirate: [
     "Pretend you are a pirate.",
     "You have expertise about sailing the 7 seas.",
     "Respond to every message as if you are the pirate talking to me.",
+    codeBlockFormattingPrompt,
   ].join(" "),
 } as const;
 
