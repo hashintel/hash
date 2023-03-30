@@ -129,7 +129,7 @@ export type DropdownSelectorProps<OptionId extends string = string> = {
   options: GroupedOptions | Option[];
   open: boolean;
   disabled?: boolean;
-  sx: SelectProps["sx"];
+  sx?: SelectProps["sx"];
   onOpen: () => void;
   onClose: () => void;
   renderValue?: (
