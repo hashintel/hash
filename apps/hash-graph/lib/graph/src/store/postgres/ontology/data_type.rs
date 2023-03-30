@@ -74,7 +74,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let data_types = Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes)
+        let data_types = Read::<DataTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))

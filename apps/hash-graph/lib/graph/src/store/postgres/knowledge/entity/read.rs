@@ -38,7 +38,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     async fn read(
         &self,
         filter: &Filter<Entity>,
-        temporal_axes: &QueryTemporalAxes,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::EntityEdge {
@@ -62,7 +62,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             direction: EdgeDirection::Outgoing,
         };
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes));
+        let mut compiler = SelectCompiler::new(temporal_axes);
 
         let owned_by_id_index = compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::OwnedById,

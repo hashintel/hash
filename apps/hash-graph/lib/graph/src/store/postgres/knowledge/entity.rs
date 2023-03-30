@@ -65,7 +65,7 @@ impl<C: AsClient> PostgresStore<C> {
                     edge_kind,
                     edge_direction.reversed(),
                 ),
-                temporal_axes,
+                Some(temporal_axes),
             )
             .await?
             {
@@ -158,7 +158,7 @@ impl<C: AsClient> PostgresStore<C> {
                             entity_vertex_id.base_id,
                             SharedEdgeKind::IsOfType,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                     .await?
                     {
@@ -455,7 +455,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entities = Read::<Entity>::read(self, filter, &temporal_axes)
+        let entities = Read::<Entity>::read(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))
