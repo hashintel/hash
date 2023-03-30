@@ -3,6 +3,83 @@ const fs = require("node:fs");
 
 const monorepoRoot = path.resolve(__dirname, "../../..");
 
+// Check if the line's glob affects this workspace e.g.
+// say the path to this workspace is `path/to/workspace/foo`
+// - if the line is `path/to/**/bar`
+//     then we want patterns equivalent to `**/bar`
+//     as `path/to/**` overlaps the current path
+// - if the line is `**/bar`
+//     then we want patterns equivalent to `**/bar`
+//     as `**` overlaps the current path
+// - if the line is `path/to/**/foo/bar**`
+//     then we want patterns equivalent to [`bar**`, `**/foo/bar/**`]
+//     as both `path/to/**/foo` and `path/to/**` overlaps the current path
+/**
+ * Given a path from a .gitignore in a parent directory, this returns the equivalent paths if written in the current
+ * directory
+ *
+ * @param pattern
+ * @param workspaceDirPrefix
+ * @returns {[string]}
+ */
+const getEquivalentIgnorePaths = (pattern, workspaceDirPrefix) => {
+  // We want to traverse the components of the workspaceDirPrefix, and consume wild cards whenever they match.
+  // On some wildcards there may be a branch of equivalent paths, e.g. for a "**" wildcard
+  const getEquivalentPaths = (pathComponents, patternComponents) => {
+    let equivalentPaths = new Set();
+
+    let i = 0;
+    for (; i < patternComponents.length; i++) {
+      const patternComponent = patternComponents[i];
+      const pathComponent = pathComponents[i];
+
+      // This could happen if the pattern started or ended with `/`
+      if (patternComponent === "") {
+        break;
+      }
+
+      if (!pathComponent) {
+        // We have reached the end of the path components
+        equivalentPaths.add(patternComponents.slice(i).join("/"));
+        break;
+      }
+
+      if (patternComponent === pathComponent) {
+      } else if (patternComponent === "**") {
+        // We can choose to use ** once, or multiple times, or never
+
+        // we use and consume **, so we advance both sets of components
+        getEquivalentPaths(
+          pathComponents.slice(i + 1),
+          patternComponents.slice(i + 1),
+        ).forEach((path) => equivalentPaths.add(path));
+        // we use ** but don't consume it, so we advance the path components by one but leave the pattern as is
+        getEquivalentPaths(
+          pathComponents.slice(i + 1),
+          patternComponents.slice(i),
+        ).forEach((path) => equivalentPaths.add(path));
+        // we don't use but consume **, so we advance the pattern components by one but leave the path as is
+        getEquivalentPaths(
+          pathComponents.slice(i),
+          patternComponents.slice(i + 1),
+        ).forEach((path) => equivalentPaths.add(path));
+      } else if (patternComponent === "*") {
+        // We must consume "*" if it is present
+        getEquivalentPaths(
+          pathComponents.slice(i + 1),
+          patternComponents.slice(i + 1),
+        ).forEach((path) => equivalentPaths.add(path));
+      }
+    }
+
+    return equivalentPaths;
+  };
+
+  return [
+    ...getEquivalentPaths(workspaceDirPrefix.split("/"), pattern.split("/")),
+  ];
+};
+
 /**
  * ESlint requires .eslintignore file to be placed next to .eslintrc.cjs file.
  * Because .*ignore files are not composable, we cannot import or otherwise reuse
@@ -29,13 +106,28 @@ module.exports = (workspaceDirPath) => {
     .relative(monorepoRoot, workspaceDirPath)
     .replace(/\\/g, "/")}/`;
 
-  const sharedPatternsFromPrettierignore = match
+  const sharedPatternsFromPrettierIgnore = match
     .split("\n")
     .map((line) => {
       // Ignore empty lines and comments
       if (!line || line.startsWith("#")) {
         return [];
       }
+
+      if (line.includes("**")) {
+        // remove the leading "/" from the workspaceDirPrefix as we need to check it as a relative path
+        const relativePrefix = workspaceDirPrefix.slice(1);
+
+        const overlappingPatterns = getEquivalentIgnorePaths(
+          line.startsWith("/") ? line.slice(1) : line,
+          relativePrefix,
+        );
+
+        if (overlappingPatterns.length > 0) {
+          return overlappingPatterns;
+        }
+      }
+
       // Ignore patterns specific to other workspaces
       if (
         line.includes("/") &&
@@ -45,10 +137,12 @@ module.exports = (workspaceDirPath) => {
       ) {
         return [];
       }
+
       // Remove workspace-specific prefix (path/to/workspace/foo/**/bar => foo/**/bar)
       if (line.startsWith(workspaceDirPrefix)) {
         return [line.replace(workspaceDirPrefix, "")];
       }
+
       // Keep other patterns as is
       return [line];
     })
@@ -69,6 +163,6 @@ module.exports = (workspaceDirPath) => {
     "!*.tsx",
 
     // Add patterns extracted from .prettierignore
-    ...sharedPatternsFromPrettierignore,
+    ...sharedPatternsFromPrettierIgnore,
   ];
 };
