@@ -11,7 +11,7 @@ import {
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { FormEvent, RefObject, useCallback, useRef, useState } from "react";
 
 import { generatedLinkKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
@@ -31,10 +31,16 @@ const isFileEntity = (
   image: RemoteFileEntity | ImageObject,
 ): image is RemoteFileEntity => "properties" in image;
 
-export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
-  const blockRootRef = useRef<HTMLDivElement>(null);
-  const { graphModule } = useGraphBlockModule(blockRootRef);
-  const { serviceModule } = useServiceBlockModule(blockRootRef);
+export const GenerateImage = ({
+  blockEntity,
+  shadowHostRef,
+}: {
+  blockEntity: RootEntity;
+  shadowHostRef: RefObject<HTMLDivElement>;
+}) => {
+  console.log({ shadowHostRef });
+  const { graphModule } = useGraphBlockModule(shadowHostRef);
+  const { serviceModule } = useServiceBlockModule(shadowHostRef);
 
   const initialPromptText = blockEntity.properties[promptKey];
 
@@ -144,7 +150,6 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
   return (
     <Box
-      ref={blockRootRef}
       style={{ fontFamily: "colfax-web", fontWeight: 400 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

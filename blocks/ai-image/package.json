@@ -30,6 +30,8 @@
   "dependencies": {
     "@blockprotocol/graph": "^0.1.0",
     "@blockprotocol/service": "0.1.1",
+    "@emotion/cache": "11.10.5",
+    "@emotion/react": "11.10.6",
     "@hashintel/design-system": "0.0.5",
     "@mui/material": "5.11.8"
   },
