@@ -150,7 +150,6 @@ export interface CreateEntityRequest {
    */
   properties: object;
 }
-
 /**
  *
  * @export
@@ -182,7 +181,6 @@ export interface CreateEntityRequestLinkData {
    */
   rightEntityId: string;
 }
-
 /**
  *
  * @export
