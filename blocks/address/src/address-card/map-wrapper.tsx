@@ -16,7 +16,7 @@ export const MapWrapper = ({
       position: "relative",
       background: palette.gray[10],
       borderLeft: `1px solid ${palette.gray[20]}`,
-      width: 500,
+      width: 1,
       minHeight: 300,
 
       ...(isMobile
