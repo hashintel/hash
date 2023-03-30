@@ -1,3 +1,19 @@
+### IMPORTANT ###
+# When adding new filters please also consider adding them to `.gitignore` if desired
+# Currently, `.dockerignore` contains _all_ entries from `.gitignore`
+
+# Docker
+.dockerignore
+*Dockerfile*
+*docker-compose*
+
+# Git
+.git
+.gitignore
+
+# Platform Specific
+**/.DS_Store
+
 # Logs
 **/logs
 **/*.log
@@ -16,6 +32,9 @@ pids
 
 # Coverage directory used by tools like istanbul
 **/coverage
+**/coverage.*
+**/.coverage
+**/.coverage.*
 
 # nyc test coverage
 .nyc_output
@@ -85,10 +104,20 @@ blocks/**/.env
 
 # Python virtual environment
 **/venv
+**/.venv
 
 # Python compiled files and package metadata
 **/__pycache__
 *.egg-info
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/pip-log.txt
+**/pip-delete-this-directory.txt
+**/.mypy_cache
+**/.pytest_cache
+**/.hypothesis
 
 # generated files
 *.gen.*
@@ -118,3 +147,8 @@ seed-users.json
 
 # SARIF files
 *.sarif
+
+# Readmes
+**/*.md
+!**/README*.md
+!**/LICENSE*.md
