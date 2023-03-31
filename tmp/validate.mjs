@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import Ajv2019 from "ajv/dist/2019.js";
 import { URL } from "node:url";
+// import { inspect } from "node:util";
 import betterAjvErrors from "better-ajv-errors";
 
 const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
@@ -12,7 +13,7 @@ const DATA_TYPE_META_SCHEMA_URL =
 
 const TYPE_SYSTEM_META_SCHEMA_URLS = [
   ENTITY_TYPE_META_SCHEMA_URL,
-  PROPERTY_TYPE_META_SCHEMA_URL,
+  // PROPERTY_TYPE_META_SCHEMA_URL,
   DATA_TYPE_META_SCHEMA_URL,
 ];
 

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
   "$id": "http://127.0.0.1:1337/types/property-type/age/v/1",
   "kind": "propertyType",
   "title": "Age",
