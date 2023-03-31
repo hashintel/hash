@@ -102,6 +102,15 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     inputRef.current?.blur();
   }, [loading, model, promptText, serviceModule]);
 
+  const discard = () => {
+    setAnimatingOut(true);
+  };
+
+  const regeneratePrompt = () => {
+    discard();
+    void onSubmit();
+  };
+
   const confirm = () =>
     graphModule.updateEntity({
       data: {
@@ -186,7 +195,8 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
         {generatedText && (
           <TextPreview
             onConfirm={confirm}
-            onDiscard={() => setAnimatingOut(true)}
+            onDiscard={discard}
+            onRegenerate={regeneratePrompt}
             prompt={promptText}
             text={generatedText}
           />
