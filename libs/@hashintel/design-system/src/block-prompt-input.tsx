@@ -1,9 +1,7 @@
 import {
-  Box,
   Button,
   buttonBaseClasses,
   Collapse,
-  InputBase,
   inputBaseClasses,
   outlinedInputClasses,
   SxProps,
@@ -16,7 +14,6 @@ import {
   forwardRef,
   FunctionComponent,
   ReactNode,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -110,7 +107,7 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
             }}
             onChange={(event) => {
               calculateMultipleLines();
-              onChange(event);
+              onChange?.(event);
             }}
             placeholder="Enter a prompt to generate image, and hit enter"
             required
