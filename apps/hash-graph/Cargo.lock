@@ -921,6 +921,7 @@ dependencies = [
  "graph",
  "regex",
  "reqwest",
+ "semver",
  "serde_json",
  "tarpc",
  "time",
