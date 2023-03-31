@@ -71,12 +71,12 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                 .change_context(GraphError)?;
         }
         SnapshotCommand::Restore(_) => {
-            let test_data: test_graph::TestData = serde_json::from_reader(std::io::stdin())
+            let snapshot: test_graph::TestData = serde_json::from_reader(std::io::stdin())
                 .into_report()
                 .change_context(GraphError)?;
 
             store
-                .write_test_graph(test_data)
+                .write_test_graph(snapshot)
                 .await
                 .change_context(GraphError)?;
         }
