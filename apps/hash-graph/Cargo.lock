@@ -830,7 +830,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tokio-serde",
- "tonic",
+ "tonic 0.9.0",
  "tower",
  "tower-http",
  "tracing",
@@ -1402,7 +1402,7 @@ dependencies = [
  "prost",
  "thiserror",
  "tokio",
- "tonic",
+ "tonic 0.8.3",
 ]
 
 [[package]]
@@ -1415,7 +1415,7 @@ dependencies = [
  "futures-util",
  "opentelemetry 0.18.0",
  "prost",
- "tonic",
+ "tonic 0.8.3",
  "tonic-build",
 ]
 
@@ -2568,6 +2568,34 @@ dependencies = [
  "tower-service",
  "tracing",
  "tracing-futures",
+]
+
+[[package]]
+name = "tonic"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1395a90742867024769551f906de147d352fb7cbdb4fd1cdbffe17734cfb124c"
+dependencies = [
+ "async-trait",
+ "axum",
+ "base64 0.21.0",
+ "bytes",
+ "futures-core",
+ "futures-util",
+ "h2",
+ "http",
+ "http-body",
+ "hyper",
+ "hyper-timeout",
+ "percent-encoding",
+ "pin-project",
+ "prost",
+ "tokio",
+ "tokio-stream",
+ "tower",
+ "tower-layer",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]
