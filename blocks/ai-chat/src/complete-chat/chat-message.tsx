@@ -1,5 +1,12 @@
-import { Box, Typography } from "@mui/material";
-import { Fragment, FunctionComponent, useMemo, useState } from "react";
+import { Box, Collapse, CollapseProps, Typography } from "@mui/material";
+import {
+  Fragment,
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { TypeAnimation } from "react-type-animation";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
@@ -12,12 +19,55 @@ type MessageContentBlock = {
   content: string;
 };
 
-const typeAnimationSpeed = 99;
+const typeAnimationSpeed = 95;
+
+const ExpandOnMount: FunctionComponent<CollapseProps> = ({
+  children,
+  ...remainingProps
+}) => {
+  const [rendered, setRendered] = useState(false);
+
+  useEffect(() => {
+    setRendered(true);
+  }, []);
+
+  return (
+    <Collapse in={rendered} {...remainingProps}>
+      {children}
+    </Collapse>
+  );
+};
+
+const TextBlockTypeAnimation: FunctionComponent<{
+  text: string;
+  onAnimationEnd: () => void;
+}> = ({ text, onAnimationEnd }) => {
+  const [showCursor, setShowCursor] = useState(true);
+  const handleAnimationEnd = useCallback(() => {
+    setShowCursor(false);
+    onAnimationEnd();
+  }, [onAnimationEnd]);
+
+  return (
+    <Typography
+      sx={{
+        "& .type-animation::after": {
+          display: showCursor ? undefined : "none",
+        },
+      }}
+    >
+      <TypeAnimation
+        className="type-animation"
+        sequence={[text, handleAnimationEnd]}
+        speed={typeAnimationSpeed}
+      />
+    </Typography>
+  );
+};
 
 const AssistantMessageContent: FunctionComponent<{
   messageContent: string;
-  onAnimationEnd: () => void;
-}> = ({ messageContent, onAnimationEnd }) => {
+}> = ({ messageContent }) => {
   const blocks = useMemo<MessageContentBlock[]>(() => {
     const sanitizedMessageContent = messageContent.trim();
 
@@ -32,24 +82,39 @@ const AssistantMessageContent: FunctionComponent<{
       }));
   }, [messageContent]);
 
+  const [displayedBlocks, setDisplayedBlocks] = useState<MessageContentBlock[]>(
+    blocks.slice(0, 1),
+  );
+
+  useEffect(() => {
+    setDisplayedBlocks(blocks.slice(0, 1));
+  }, [blocks]);
+
   return (
     <Box sx={{ "& .type-animation": { whiteSpace: "pre-line" } }}>
-      {blocks.map(({ kind, content }, index) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <Fragment key={index}>
-          {kind === "text" ? (
-            <Typography>
-              <TypeAnimation
-                className="type-animation"
-                sequence={[content, onAnimationEnd]}
-                speed={typeAnimationSpeed}
+      {displayedBlocks.map(({ kind, content }, index) => {
+        const onAnimationEnd = () => {
+          if (blocks.length > index + 1) {
+            setDisplayedBlocks((prev) => [...prev, blocks[index + 1]!]);
+          }
+        };
+
+        return (
+          // eslint-disable-next-line react/no-array-index-key
+          <Fragment key={index}>
+            {kind === "text" ? (
+              <TextBlockTypeAnimation
+                text={content}
+                onAnimationEnd={onAnimationEnd}
               />
-            </Typography>
-          ) : (
-            <CodeBlock code={content} />
-          )}
-        </Fragment>
-      ))}
+            ) : (
+              <ExpandOnMount onAnimationEnd={onAnimationEnd}>
+                <CodeBlock code={content} />
+              </ExpandOnMount>
+            )}
+          </Fragment>
+        );
+      })}
     </Box>
   );
 };
@@ -57,8 +122,6 @@ const AssistantMessageContent: FunctionComponent<{
 export const ChatMessage: FunctionComponent<{
   message: OpenAIChatMessage | IncompleteOpenAiAssistantMessage;
 }> = ({ message }) => {
-  const [showCursor, setShowCursor] = useState(true);
-
   return (
     <Box
       display="flex"
@@ -73,9 +136,6 @@ export const ChatMessage: FunctionComponent<{
         borderBottomStyle: "solid",
         borderBottomColor: ({ palette }) => palette.gray[20],
         borderBottomWidth: 1,
-        "& .type-animation::after": {
-          display: showCursor ? undefined : "none",
-        },
       }}
     >
       <Box sx={{ marginRight: 2 }}>
@@ -93,14 +153,11 @@ export const ChatMessage: FunctionComponent<{
       </Box>
       {message.role === "assistant" ? (
         "content" in message ? (
-          <AssistantMessageContent
-            messageContent={message.content}
-            onAnimationEnd={() => setShowCursor(false)}
-          />
+          <AssistantMessageContent messageContent={message.content} />
         ) : (
           <>
             <Typography>
-              <TypeAnimation sequence={[]} speed={99} cursor={showCursor} />
+              <TypeAnimation sequence={[]} cursor />
             </Typography>
             <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
               Thinking...
