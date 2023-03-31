@@ -39,30 +39,36 @@ export const Question: FunctionComponent<QuestionProps> = ({
 
   return (
     <Box display="flex" alignItems="flex-start">
-      <Box>
+      <Box display="flex">
         <Button
           variant="tertiary_quiet"
           onClick={() => setExpanded(!expanded)}
           sx={{
+            border: "none",
             minWidth: 0,
             minHeight: 0,
             paddingX: 0,
-            paddingY: readonly ? 0 : 2.125,
+            paddingY: readonly ? 0 : 2.435,
             mr: displayNumber || displayToggle ? 1.5 : 0,
             background: "none !important",
             fontSize: 12,
             fontWeight: 700,
             lineHeight: "15px",
-            color: ({ palette }) => palette.black,
+            color: ({ palette }) => `${palette.black} !important`,
             transition: ({ transitions }) => transitions.create("margin-right"),
           }}
         >
           <Collapse in={displayNumber} orientation="horizontal">
             {index}
           </Collapse>
-          <Collapse in={displayToggle} orientation="horizontal">
+          <Collapse
+            in={displayToggle}
+            orientation="horizontal"
+            sx={{ display: "flex" }}
+          >
             <CaretDownIcon
               sx={{
+                display: "flex",
                 fontSize: 12,
                 color: ({ palette }) => palette.black,
                 transition: ({ transitions }) =>
@@ -97,12 +103,13 @@ export const Question: FunctionComponent<QuestionProps> = ({
                   width: 1,
                   paddingY: 2.125,
                   paddingX: 2.75,
+                  boxSizing: "border-box",
                 }
               : {}),
           }}
         >
           <EditableField
-            editIconFontSize={15}
+            editIconFontSize={12}
             value={questionValue}
             onChange={(event) => {
               setQuestionValue(event.target.value);
@@ -163,7 +170,7 @@ export const Question: FunctionComponent<QuestionProps> = ({
             }}
           >
             <EditableField
-              editIconFontSize={14}
+              editIconFontSize={12}
               value={answerValue}
               onChange={(event) => {
                 setAnswerValue(event.target.value);
