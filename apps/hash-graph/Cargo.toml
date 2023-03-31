@@ -16,3 +16,7 @@ repository = "https://github.com/hashintel/hash/tree/main/apps/hash-graph"
 inherits = "release"
 lto = "fat"
 strip = "symbols"
+
+# TODO: Remove when https://github.com/rust-lang/socket2/issues/405 is fixed
+[patch.crates-io]
+libc = { git = 'https://github.com/rust-lang/libc.git', rev = "e71a4c0b1fd40050f50844e2a752576bcb6b5edb" }
