@@ -16820,7 +16820,7 @@ mock-block-dock@0.1.3:
     use-local-storage-state "^18.1.1"
     uuid "^8.3.2"
 
-mock-block-dock@0.1.4, mock-block-dock@^0.1.0:
+mock-block-dock@0.1.4, mock-block-dock@^0.1.3:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.4.tgz#558190c4fd21687483c12a3fc03e2cca25352f43"
   integrity sha512-rCqOW+rghHL1Sc/Ii8jldIx8fxLKPzJ2UUKEc+Oh5LQTTMvucv52bLK2mJdqWhtWQ+6EH9Gcod5bxN2syiHVBg==

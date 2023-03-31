@@ -1,6 +1,7 @@
 export * from "./autocomplete";
 export * from "./autocomplete-dropdown";
 export * from "./avatar";
+export * from "./block-error-message";
 export * from "./block-settings-button";
 export * from "./button";
 export * from "./chip";

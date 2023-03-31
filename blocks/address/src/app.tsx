@@ -7,6 +7,7 @@ import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
+  BlockErrorMessage,
   BlockSettingsButton,
   FontAwesomeIcon,
   GetHelpLink,
@@ -639,43 +640,7 @@ export const App: BlockComponent<RootEntity> = ({
                         />
 
                         {suggestionsError ? (
-                          <Box
-                            display="flex"
-                            flexDirection="column"
-                            justifyContent="center"
-                            gap={1}
-                          >
-                            <Typography
-                              variant="smallTextLabels"
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: 13,
-                                lineHeight: 1,
-                                letterSpacing: "-0.02em",
-                                color: ({ palette }) => palette.black,
-                              }}
-                            >
-                              <Box
-                                component="span"
-                                sx={{ color: ({ palette }) => palette.red[60] }}
-                              >
-                                Error connecting
-                              </Box>{" "}
-                              to the Mapbox API
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontWeight: 500,
-                                fontSize: 15,
-                                lineHeight: 1,
-                                letterSpacing: "-0.02em",
-                                color: ({ palette }) => palette.gray[50],
-                              }}
-                            >
-                              Check your network connection or contact support
-                              if this issue persists.
-                            </Typography>
-                          </Box>
+                          <BlockErrorMessage apiName="Mapbox" />
                         ) : null}
                       </Box>
                     </Collapse>
