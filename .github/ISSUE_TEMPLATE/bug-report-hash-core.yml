@@ -62,7 +62,7 @@ body:
     attributes:
       label: Operating system
       description: Which operating system do you use?
-      placeholder: e.g. Windows 10, macOS 13, Ubuntu 22.10
+      placeholder: e.g. Windows 10, macOS 13.3, Ubuntu 22.10, iOS 16, Android 13
     validations:
       required: false
 
