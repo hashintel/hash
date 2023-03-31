@@ -124,8 +124,9 @@ export const ChatMessage: FunctionComponent<{
 }> = ({ message }) => {
   return (
     <Box
-      display="flex"
       sx={{
+        display: "flex",
+        width: "100%",
         padding: ({ spacing }) => spacing(2, 3),
         backgroundColor: ({ palette }) =>
           message.role === "user" ? "transparent" : palette.gray[10],
@@ -151,22 +152,24 @@ export const ChatMessage: FunctionComponent<{
           />
         )}
       </Box>
-      {message.role === "assistant" ? (
-        "content" in message ? (
-          <AssistantMessageContent messageContent={message.content} />
+      <Box flexGrow={1} minWidth={0}>
+        {message.role === "assistant" ? (
+          "content" in message ? (
+            <AssistantMessageContent messageContent={message.content} />
+          ) : (
+            <Box display="flex">
+              <Typography>
+                <TypeAnimation sequence={[]} cursor />
+              </Typography>
+              <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
+                Thinking...
+              </Typography>
+            </Box>
+          )
         ) : (
-          <>
-            <Typography>
-              <TypeAnimation sequence={[]} cursor />
-            </Typography>
-            <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
-              Thinking...
-            </Typography>
-          </>
-        )
-      ) : (
-        <Typography>{message.content}</Typography>
-      )}
+          <Typography>{message.content}</Typography>
+        )}
+      </Box>
     </Box>
   );
 };
