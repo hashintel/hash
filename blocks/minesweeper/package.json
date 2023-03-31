@@ -11,9 +11,10 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
-    "codegen": "block-scripts codegen",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"

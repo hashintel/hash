@@ -80,11 +80,13 @@ struct CreateEntityRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
+    #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
     actor_id: RecordCreatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     link_data: Option<LinkData>,
 }
 
