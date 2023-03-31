@@ -1,17 +1,8 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { Button, GetHelpLink } from "@hashintel/design-system";
-import {
-  Box,
-  buttonBaseClasses,
-  Collapse,
-  Fade,
-  inputBaseClasses,
-  outlinedInputClasses,
-  TextField,
-  Typography,
-} from "@mui/material";
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { BlockPromptInput, GetHelpLink } from "@hashintel/design-system";
+import { Box, Collapse, Fade } from "@mui/material";
+import { useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
@@ -41,7 +32,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const { serviceModule } = useServiceBlockModule(blockRootRef);
 
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [error, setError] = useState(false);
 
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -61,61 +52,55 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     },
   } = blockEntity;
 
-  const onSubmit = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
+  const onSubmit = useCallback(async () => {
+    if (loading || !promptText.trim()) {
+      return;
+    }
 
-      if (loading || !promptText.trim()) {
-        return;
+    setError(false);
+    setLoading(true);
+
+    const isTurbo = model === "gpt-3.5-turbo";
+    const { data, errors } = await (isTurbo
+      ? serviceModule.openaiCompleteChat({
+          data: {
+            max_tokens: 4000 - promptText.length,
+            messages: [{ role: "user", content: promptText }],
+            model: "gpt-3.5-turbo",
+          },
+        })
+      : serviceModule.openaiCompleteText({
+          data: {
+            max_tokens:
+              (model === "text-davinci-003" ? 4000 : 2000) - promptText.length,
+            model,
+            prompt: promptText,
+          },
+        }));
+
+    const choice = data?.choices[0];
+
+    let textResponse: string | undefined;
+    if (choice) {
+      if ("message" in choice) {
+        textResponse = choice.message?.content;
+      } else if ("text" in choice) {
+        textResponse = choice.text;
       }
+    }
 
-      setErrorMessage("");
-      setLoading(true);
-
-      const isTurbo = model === "gpt-3.5-turbo";
-      const { data, errors } = await (isTurbo
-        ? serviceModule.openaiCompleteChat({
-            data: {
-              max_tokens: 4000 - promptText.length,
-              messages: [{ role: "user", content: promptText }],
-              model: "gpt-3.5-turbo",
-            },
-          })
-        : serviceModule.openaiCompleteText({
-            data: {
-              max_tokens:
-                (model === "text-davinci-003" ? 4000 : 2000) -
-                promptText.length,
-              model,
-              prompt: promptText,
-            },
-          }));
-
-      const choice = data?.choices[0];
-
-      let textResponse: string | undefined;
-      if (choice) {
-        if ("message" in choice) {
-          textResponse = choice.message?.content;
-        } else if ("text" in choice) {
-          textResponse = choice.text;
-        }
-      }
-
-      if (errors || !textResponse) {
-        setErrorMessage("An error occurred");
-        setLoading(false);
-        return;
-      }
-
-      setGeneratedText(textResponse.replace(/^\n\n/, ""));
-      setAnimatingIn(true);
-
+    if (errors || !textResponse) {
+      setError(true);
       setLoading(false);
-      inputRef.current?.blur();
-    },
-    [loading, model, promptText, serviceModule],
-  );
+      return;
+    }
+
+    setGeneratedText(textResponse.replace(/^\n\n/, ""));
+    setAnimatingIn(true);
+
+    setLoading(false);
+    inputRef.current?.blur();
+  }, [loading, model, promptText, serviceModule]);
 
   const confirm = () =>
     graphModule.updateEntity({
@@ -163,102 +148,35 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
         onEntered={() => setAnimatingOut(false)}
         onExited={() => setAnimatingIn(false)}
       >
-        <form onSubmit={onSubmit}>
-          <TextField
-            autoFocus
-            multiline
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            onChange={(event) => setPromptText(event.target.value)}
-            onKeyDown={async (event) => {
-              const { shiftKey, code } = event;
-              if (!shiftKey && code === "Enter") {
-                await onSubmit(event);
-              }
-            }}
-            placeholder="Enter a prompt to generate image, and hit enter"
-            required
-            ref={inputRef}
-            disabled={loading}
-            sx={({ palette }) => ({
-              maxWidth: 580,
-              width: 1,
-              [`& .${inputBaseClasses.input}`]: {
-                minHeight: "unset",
-                fontSize: 16,
-                lineHeight: "21px",
-                paddingY: 2.125,
-                paddingLeft: 2.75,
-                paddingRight: 0,
-              },
-              [`& .${inputBaseClasses.disabled}`]: {
-                background: palette.gray[10],
-                color: palette.gray[70],
-              },
-              [`& .${outlinedInputClasses.notchedOutline}`]: {
-                border: `1px solid ${palette.gray[20]}`,
-              },
-            })}
-            InputProps={{
-              endAdornment: (
-                <Button
-                  type="submit"
-                  variant="tertiary_quiet"
-                  disabled={loading}
-                  sx={({ palette }) => ({
-                    alignSelf: "flex-end",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                    lineHeight: 1,
-                    color: palette.blue[70],
-                    textTransform: "uppercase",
-                    height: 55,
-                    width: 1,
-                    maxHeight: 55,
-                    maxWidth: 168,
-                    minHeight: 51,
-                    whiteSpace: "nowrap",
-                    [`&.${buttonBaseClasses.disabled}`]: {
-                      color: palette.common.black,
-                      background: "none",
-                    },
-                  })}
-                >
-                  {loading ? (
-                    <>
-                      GENERATING <BouncingDotsLoader />
-                    </>
-                  ) : (
-                    <>
-                      Submit Prompt{" "}
-                      <ArrowTurnDownLeftIcon
-                        sx={{
-                          ml: 1,
-                          fontSize: 12,
-                        }}
-                      />
-                    </>
-                  )}
-                </Button>
-              ),
-            }}
-            value={promptText}
-          />
-
-          {errorMessage && (
-            <Typography
-              sx={{
-                color: ({ palette }) => palette.red[50],
-                fontSize: 14,
-                fontWeight: 500,
-                marginTop: 1.25,
-              }}
-            >
-              Could not contact OpenAI
-            </Typography>
-          )}
-        </form>
+        <BlockPromptInput
+          value={promptText}
+          onSubmit={onSubmit}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
+          onChange={(event) => setPromptText(event.target.value)}
+          placeholder="Enter a prompt to generate image, and hit enter"
+          ref={inputRef}
+          disabled={loading}
+          buttonLabel={
+            loading ? (
+              <>
+                GENERATING <BouncingDotsLoader />
+              </>
+            ) : (
+              <>
+                Submit Prompt{" "}
+                <ArrowTurnDownLeftIcon
+                  sx={{
+                    ml: 1,
+                    fontSize: 12,
+                  }}
+                />
+              </>
+            )
+          }
+          error={error}
+          apiName="OpenAI"
+        />
       </Collapse>
 
       <Collapse
