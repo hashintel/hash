@@ -2,6 +2,7 @@ import { Button, CheckIcon, CopyIcon } from "@hashintel/design-system";
 import {
   Box,
   buttonClasses,
+  Fade,
   MenuItem,
   outlinedInputClasses,
   Select,
@@ -12,6 +13,8 @@ import {
 } from "@mui/material";
 import { lowlight } from "lowlight";
 import {
+  FormEvent,
+  forwardRef,
   FunctionComponent,
   useCallback,
   useEffect,
@@ -20,6 +23,8 @@ import {
 } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
+
+import { CodegenIcon } from "../icons/codegen";
 
 const supportedLanguages = lowlight.listLanguages();
 
@@ -34,6 +39,7 @@ const CodeBlockSelect = styled(Select)(({ theme }) =>
       color: theme.palette.gray[70],
     },
     [`& .${selectClasses.select}.${selectClasses.outlined}`]: {
+      fontWeight: 500,
       background: theme.palette.gray[90],
       transition: theme.transitions.create("background"),
       color: theme.palette.common.white,
@@ -74,6 +80,58 @@ const CodeBlockButton = styled(Button)(({ theme }) =>
     },
   }),
 );
+
+const EditInCodePenButton = forwardRef<
+  HTMLButtonElement,
+  {
+    html?: string;
+    css?: string;
+    js?: string;
+  }
+>(({ html, css, js }, ref) => {
+  const handleSubmit = useCallback(
+    (event: FormEvent) => {
+      event.preventDefault();
+
+      const data = {
+        title: "My Custom Pen",
+        html: html ?? "",
+        css: css ?? "",
+        js: js ?? "",
+        // This determines which editors are open: 1st bit for HTML, 2nd for CSS, 3rd for JS
+        editors: "111",
+      };
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://codepen.io/pen/define";
+      form.target = "_blank";
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "data";
+      input.value = JSON.stringify(data);
+
+      form.appendChild(input);
+      document.body.appendChild(form);
+
+      form.submit();
+      document.body.removeChild(form);
+    },
+    [html, css, js],
+  );
+
+  return (
+    <CodeBlockButton
+      onClick={handleSubmit}
+      variant="tertiary"
+      endIcon={<CodegenIcon />}
+      ref={ref}
+    >
+      Edit in CodePen
+    </CodeBlockButton>
+  );
+});
 
 /**
  * Convert the `a11yDark` highlight.js styling into the MUI `sx` format,
@@ -160,13 +218,22 @@ export const CodeBlock: FunctionComponent<{ code: string }> = ({ code }) => {
             </MenuItem>
           ))}
         </CodeBlockSelect>
-        <CodeBlockButton
-          onClick={handleCopy}
-          variant="tertiary"
-          endIcon={copied ? <CheckIcon /> : <CopyIcon />}
-        >
-          {copied ? "Copied" : "Copy"}
-        </CodeBlockButton>
+        <Box display="flex" columnGap={1}>
+          <Fade in={["javascript", "css"].includes(language)} mountOnEnter>
+            <EditInCodePenButton
+              html={language === "html" ? sanitizedCode : undefined}
+              css={language === "css" ? sanitizedCode : undefined}
+              js={language === "javascript" ? sanitizedCode : undefined}
+            />
+          </Fade>
+          <CodeBlockButton
+            onClick={handleCopy}
+            variant="tertiary"
+            endIcon={copied ? <CheckIcon /> : <CopyIcon />}
+          >
+            {copied ? "Copied" : "Copy"}
+          </CodeBlockButton>
+        </Box>
       </Box>
       <SyntaxHighlighter
         language={language}
