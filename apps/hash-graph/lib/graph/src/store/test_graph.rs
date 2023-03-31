@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+use error_stack::Result;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
@@ -11,6 +13,7 @@ use crate::{
     knowledge::{Entity, EntityProperties, LinkData},
     ontology::OntologyType,
     provenance::{OwnedById, ProvenanceMetadata},
+    store::{crud::Read, query::Filter, InsertionError, QueryError},
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -149,4 +152,66 @@ pub struct TestData {
     pub entities: Vec<EntityRecord>,
     #[serde(default, skip_serializing_if = "CustomGlobalMetadata::is_empty")]
     pub custom: CustomGlobalMetadata,
+}
+
+#[async_trait]
+#[expect(
+    clippy::trait_duplication_in_bounds,
+    reason = "False positive: the generics are different"
+)]
+pub trait TestStore:
+    Read<OntologyTypeRecord<DataType>>
+    + Read<OntologyTypeRecord<PropertyType>>
+    + Read<OntologyTypeRecord<EntityType>>
+    + Read<Entity>
+{
+    async fn read_test_graph(&self) -> Result<TestData, QueryError> {
+        let data_types =
+            Read::<OntologyTypeRecord<DataType>>::read(self, &Filter::All(vec![]), None).await?;
+
+        let property_types =
+            Read::<OntologyTypeRecord<PropertyType>>::read(self, &Filter::All(vec![]), None)
+                .await?;
+
+        let entity_types =
+            Read::<OntologyTypeRecord<EntityType>>::read(self, &Filter::All(vec![]), None).await?;
+
+        let entities = Read::<Entity>::read(self, &Filter::All(vec![]), None)
+            .await?
+            .into_iter()
+            .map(EntityRecord::from)
+            .collect();
+
+        Ok(TestData {
+            block_protocol_module_versions: BlockProtocolModuleVersions {
+                graph: semver::Version::new(0, 3, 0),
+            },
+            data_types,
+            property_types,
+            entity_types,
+            entities,
+            custom: CustomGlobalMetadata,
+        })
+    }
+
+    #[expect(
+        unused_variables,
+        clippy::todo,
+        reason = "This will be done in a follow-up"
+    )]
+    async fn write_test_graph(&mut self, data: TestData) -> Result<(), InsertionError> {
+        todo!("https://app.asana.com/0/0/1204216809501006/f")
+    }
+}
+
+#[expect(
+    clippy::trait_duplication_in_bounds,
+    reason = "False positive: the generics are different"
+)]
+impl<S> TestStore for S where
+    S: Read<OntologyTypeRecord<DataType>>
+        + Read<OntologyTypeRecord<PropertyType>>
+        + Read<OntologyTypeRecord<EntityType>>
+        + Read<Entity>
+{
 }
