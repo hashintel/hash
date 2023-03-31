@@ -24,8 +24,8 @@ postgres-types = { version = "0.2.5", default-features = false, features = ["der
 postgres-protocol = "0.6.5"
 regex = "1.7.3"
 semver = { version = "1.0.4", default-features = false, features = ["serde"] }
-serde = { version = "1.0.158", features = ["derive"] }
-serde_json = "1.0.94"
+serde = { version = "1.0.159", features = ["derive"] }
+serde_json = "1.0.95"
 tokio = { version = "1.27.0", default-features = false }
 tokio-postgres = { version = "0.7.8", default-features = false }
 tower = "0.4.13"
