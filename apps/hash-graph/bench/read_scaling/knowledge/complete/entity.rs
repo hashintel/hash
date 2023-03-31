@@ -5,7 +5,7 @@ use criterion_macro::criterion;
 use graph::{
     identifier::{account::AccountId, time::TemporalBound},
     knowledge::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -82,7 +82,7 @@ async fn seed_db(
         .clone();
 
     let owned_by_id = OwnedById::new(account_id);
-    let actor_id = UpdatedById::new(account_id);
+    let actor_id = RecordCreatedById::new(account_id);
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
@@ -179,10 +179,6 @@ pub fn bench_get_entity_by_id(
 }
 
 #[criterion]
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "false positive, see https://github.com/rust-lang/rust-clippy/issues/10413"
-)]
 fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_complete_zero_depth");
 
@@ -195,7 +191,16 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     );
 
-    for size in [1, 5, 10, 25, 50] {
+    for size in [
+        1,
+        5,
+        #[cfg(not(test))]
+        10,
+        #[cfg(not(test))]
+        25,
+        #[cfg(not(test))]
+        50,
+    ] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
@@ -234,10 +239,6 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 }
 
 #[criterion]
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "false positive, see https://github.com/rust-lang/rust-clippy/issues/10413"
-)]
 fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_complete_one_depth");
 
@@ -250,7 +251,16 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     );
 
-    for size in [1, 5, 10, 25, 50] {
+    for size in [
+        1,
+        5,
+        #[cfg(not(test))]
+        10,
+        #[cfg(not(test))]
+        25,
+        #[cfg(not(test))]
+        50,
+    ] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 

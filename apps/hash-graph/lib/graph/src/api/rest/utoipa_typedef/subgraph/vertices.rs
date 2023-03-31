@@ -3,15 +3,14 @@ use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::{
-    openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
+    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
 pub use self::vertex::*;
-use crate::identifier::{
-    knowledge::EntityId,
-    ontology::OntologyTypeVersion,
-    time::{Timestamp, VariableAxis},
+use crate::{
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
+    subgraph::temporal_axes::VariableAxis,
 };
 
 pub mod vertex;
@@ -40,25 +39,27 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
         let data_types = vertices
             .data_types
             .into_iter()
-            .map(|(id, data_type)| (id, data_type.into()));
+            .map(|(id, data_type)| (OntologyTypeVertexId::DataType(id), data_type.into()));
         let property_types = vertices
             .property_types
             .into_iter()
-            .map(|(id, property_type)| (id, property_type.into()));
+            .map(|(id, property_type)| {
+                (OntologyTypeVertexId::PropertyType(id), property_type.into())
+            });
         let entity_types = vertices
             .entity_types
             .into_iter()
-            .map(|(id, entity_type)| (id, entity_type.into()));
+            .map(|(id, entity_type)| (OntologyTypeVertexId::EntityType(id), entity_type.into()));
         Self {
             ontology: OntologyVertices(data_types.chain(property_types).chain(entity_types).fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id.clone()) {
+                    match map.entry(id.base_id().clone()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.revision_id, vertex);
+                            entry.into_mut().insert(id.revision_id(), vertex);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.revision_id, vertex)]));
+                            entry.insert(BTreeMap::from([(id.revision_id(), vertex)]));
                         }
                     }
                     map
@@ -94,13 +95,16 @@ impl ToSchema<'_> for Vertices {
         (
             "Vertices",
             ObjectBuilder::new()
-                .additional_properties(Some(Schema::from(
-                    ObjectBuilder::new().additional_properties(Some(
-                        OneOfBuilder::new()
-                            .item(Ref::from_schema_name(KnowledgeGraphVertex::schema().0))
-                            .item(Ref::from_schema_name(OntologyVertex::schema().0)),
-                    )),
-                )))
+                .additional_properties(Some(AdditionalProperties::RefOr(RefOr::T(Schema::from(
+                    ObjectBuilder::new().additional_properties(Some(AdditionalProperties::RefOr(
+                        RefOr::T(Schema::from(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name(KnowledgeGraphVertex::schema().0))
+                                .item(Ref::from_schema_name(OntologyVertex::schema().0))
+                                .build(),
+                        )),
+                    ))),
+                )))))
                 .into(),
         )
     }

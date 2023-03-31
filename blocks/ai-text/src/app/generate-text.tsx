@@ -1,9 +1,26 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Button, GetHelpLink } from "@hashintel/design-system";
+import {
+  Box,
+  buttonBaseClasses,
+  Collapse,
+  Fade,
+  inputBaseClasses,
+  outlinedInputClasses,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { FormEvent, useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
+import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
+import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
+import {
+  DEFAULT_MODEL_ID,
+  ModelSelector,
+} from "./generate-text/model-selector";
 import { TextPreview } from "./generate-text/text-preview";
 
 export const promptKey: keyof RootEntity["properties"] =
@@ -14,6 +31,10 @@ export const modelKey: keyof RootEntity["properties"] =
 
 export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
+
+  const initialPromptText = blockEntity.properties[promptKey];
+  const initialModel = blockEntity.properties[modelKey];
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { graphModule } = useGraphBlockModule(blockRootRef);
@@ -22,11 +43,16 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // @todo implement model selection UI
-  // @see https://app.asana.com/0/1203358502199087/1203701786066059/f
-  const [model, _setModel] = useState("text-davinci-003");
-  const [promptText, setPromptText] = useState("");
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  const [model, setModel] = useState(initialModel ?? DEFAULT_MODEL_ID);
+  const [promptText, setPromptText] = useState(initialPromptText ?? "");
   const [generatedText, setGeneratedText] = useState("");
+
+  const [animatingIn, setAnimatingIn] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState(false);
 
   const {
     metadata: {
@@ -46,15 +72,35 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       setErrorMessage("");
       setLoading(true);
 
-      const { data, errors } = await serviceModule.openaiCompleteText({
-        data: {
-          max_tokens: 1000,
-          model,
-          prompt: promptText,
-        },
-      });
+      const isTurbo = model === "gpt-3.5-turbo";
+      const { data, errors } = await (isTurbo
+        ? serviceModule.openaiCompleteChat({
+            data: {
+              max_tokens: 4000 - promptText.length,
+              messages: [{ role: "user", content: promptText }],
+              model: "gpt-3.5-turbo",
+            },
+          })
+        : serviceModule.openaiCompleteText({
+            data: {
+              max_tokens:
+                (model === "text-davinci-003" ? 4000 : 2000) -
+                promptText.length,
+              model,
+              prompt: promptText,
+            },
+          }));
 
-      const textResponse = data?.choices[0]?.text;
+      const choice = data?.choices[0];
+
+      let textResponse: string | undefined;
+      if (choice) {
+        if ("message" in choice) {
+          textResponse = choice.message?.content;
+        } else if ("text" in choice) {
+          textResponse = choice.text;
+        }
+      }
 
       if (errors || !textResponse) {
         setErrorMessage("An error occurred");
@@ -63,16 +109,13 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       }
 
       setGeneratedText(textResponse.replace(/^\n\n/, ""));
+      setAnimatingIn(true);
 
       setLoading(false);
       inputRef.current?.blur();
     },
     [loading, model, promptText, serviceModule],
   );
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   const confirm = () =>
     graphModule.updateEntity({
@@ -88,91 +131,149 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     });
 
   return (
-    <div
+    <Box
       ref={blockRootRef}
-      style={{ fontFamily: "colfax-web", fontWeight: 400 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <link rel="stylesheet" href="https://use.typekit.net/igj4jff.css" />
-      <form onSubmit={onSubmit}>
-        <label>
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>
-            DESCRIBE THE TEXT TO GENERATE
-          </div>
-          <input
+      <Fade
+        in={
+          hovered || inputFocused || animatingIn || animatingOut || selectorOpen
+        }
+      >
+        <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
+          <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-text" />
+
+          <Fade in={!generatedText}>
+            <Box display="flex" gap={1} alignItems="center">
+              <ModelSelector
+                open={selectorOpen}
+                onOpen={() => setSelectorOpen(true)}
+                onClose={() => setSelectorOpen(false)}
+                value={model}
+                onChange={setModel}
+              />
+            </Box>
+          </Fade>
+        </Box>
+      </Fade>
+
+      <Collapse
+        in={!generatedText && !animatingIn}
+        onEntered={() => setAnimatingOut(false)}
+        onExited={() => setAnimatingIn(false)}
+      >
+        <form onSubmit={onSubmit}>
+          <TextField
+            autoFocus
+            multiline
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             onChange={(event) => setPromptText(event.target.value)}
-            placeholder="Enter a prompt to generate text"
+            onKeyDown={async (event) => {
+              const { shiftKey, code } = event;
+              if (!shiftKey && code === "Enter") {
+                await onSubmit(event);
+              }
+            }}
+            placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={inputRef}
-            style={{
-              border: "1px solid rgba(235, 242, 247, 1)",
-              borderRadius: 10,
-              boxShadow:
-                "0px 4px 11px rgba(39, 50, 86, 0.04), 0px 2.59259px 6.44213px rgba(39, 50, 86, 0.08), 0px 0.5px 1px rgba(39, 50, 86, 0.15)",
-              fontSize: 16,
-              fontFamily: "colfax-web",
-              marginRight: -14,
-              height: 54,
-              padding: "0 31px 0 16px",
-              width: 400,
-              maxWidth: "100%",
+            disabled={loading}
+            sx={({ palette }) => ({
+              maxWidth: 580,
+              width: 1,
+              [`& .${inputBaseClasses.input}`]: {
+                minHeight: "unset",
+                fontSize: 16,
+                lineHeight: "21px",
+                paddingY: 2.125,
+                paddingLeft: 2.75,
+                paddingRight: 0,
+              },
+              [`& .${inputBaseClasses.disabled}`]: {
+                background: palette.gray[10],
+                color: palette.gray[70],
+              },
+              [`& .${outlinedInputClasses.notchedOutline}`]: {
+                border: `1px solid ${palette.gray[20]}`,
+              },
+            })}
+            InputProps={{
+              endAdornment: (
+                <Button
+                  type="submit"
+                  variant="tertiary_quiet"
+                  disabled={loading}
+                  sx={({ palette }) => ({
+                    alignSelf: "flex-end",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1,
+                    color: palette.blue[70],
+                    textTransform: "uppercase",
+                    height: 55,
+                    width: 1,
+                    maxHeight: 55,
+                    maxWidth: 168,
+                    minHeight: 51,
+                    whiteSpace: "nowrap",
+                    [`&.${buttonBaseClasses.disabled}`]: {
+                      color: palette.common.black,
+                      background: "none",
+                    },
+                  })}
+                >
+                  {loading ? (
+                    <>
+                      GENERATING <BouncingDotsLoader />
+                    </>
+                  ) : (
+                    <>
+                      Submit Prompt{" "}
+                      <ArrowTurnDownLeftIcon
+                        sx={{
+                          ml: 1,
+                          fontSize: 12,
+                        }}
+                      />
+                    </>
+                  )}
+                </Button>
+              ),
             }}
             value={promptText}
           />
-        </label>
-        {promptText.trim().length > 0 && (
-          <button
-            disabled={loading || !!generatedText}
-            style={{
-              background: loading
-                ? "#0059A5"
-                : generatedText
-                ? "rgba(221, 231, 240, 1)"
-                : "#0775E3",
-              borderRadius: 10,
-              boxShadow:
-                "0px 4px 11px rgba(39, 50, 86, 0.04), 0px 2.59259px 6.44213px rgba(39, 50, 86, 0.08), 0px 0.5px 1px rgba(39, 50, 86, 0.15)",
-              color: loading
-                ? "rgba(180, 226, 253, 1)"
-                : generatedText
-                ? "rgba(117, 138, 161, 1)"
-                : "white",
-              cursor: "pointer",
-              border: "none",
-              fontWeight: 600,
-              fontSize: 14,
-              height: 55,
-              padding: "0px 15px",
-              position: "relative",
-            }}
-            type="submit"
-          >
-            {loading
-              ? "GENERATING ..."
-              : generatedText
-              ? "GENERATED"
-              : "GENERATE TEXT"}
-          </button>
+
+          {errorMessage && (
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.red[50],
+                fontSize: 14,
+                fontWeight: 500,
+                marginTop: 1.25,
+              }}
+            >
+              Could not contact OpenAI
+            </Typography>
+          )}
+        </form>
+      </Collapse>
+
+      <Collapse
+        in={!!generatedText && !animatingOut && !animatingIn}
+        onExited={() => setGeneratedText("")}
+      >
+        {generatedText && (
+          <TextPreview
+            onConfirm={confirm}
+            onDiscard={() => setAnimatingOut(true)}
+            prompt={promptText}
+            text={generatedText}
+          />
         )}
-        {errorMessage && (
-          <div
-            style={{
-              color: "red",
-              fontSize: 14,
-              fontWeight: 500,
-              marginTop: 10,
-            }}
-          >
-            Could not contact OpenAI
-          </div>
-        )}
-      </form>
-      {generatedText && (
-        <TextPreview
-          onConfirm={confirm}
-          onDiscard={() => setGeneratedText("")}
-          text={generatedText}
-        />
-      )}
-    </div>
+      </Collapse>
+    </Box>
   );
 };

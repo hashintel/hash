@@ -1,21 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any, error_in_core))]
-#![warn(
-    unreachable_pub,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::alloc_instead_of_core,
-    clippy::std_instead_of_alloc,
-    clippy::std_instead_of_core,
-    clippy::if_then_some_else_none,
-    clippy::print_stdout,
-    clippy::print_stderr,
-    clippy::mod_module_files
-)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::redundant_pub_crate)]
-#![allow(clippy::missing_errors_doc)]
 #![deny(unsafe_code)]
 mod error;
 
@@ -34,11 +19,13 @@ use std::any::Demand;
 use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
-        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
-        ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
+        DeserializerError, ExpectedLength, ExpectedType, ObjectAccessError, ObjectItemsExtraError,
+        ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
         ValueError, Variant,
     },
-    Context, Deserialize, DeserializeOwned, Document, OptionalVisitor, Reflection, Schema, Visitor,
+    value::NoneDeserializer,
+    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
+    Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -387,6 +374,59 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let Some(value) = self.value else {
+            return NoneDeserializer::new(self.context).deserialize_enum(visitor)
+        };
+
+        let context = self.context;
+
+        if let Value::Object(object) = value {
+            if object.len() != 1 {
+                return Err(Report::new(ObjectLengthError.into_error())
+                    .attach(ExpectedLength::new(1))
+                    .attach(ReceivedLength::new(object.len()))
+                    .change_context(DeserializerError));
+            }
+
+            let (key, value) = object
+                .into_iter()
+                .next()
+                .expect("previous check should make this infallible");
+
+            let discriminant = visitor
+                .visit_discriminant(Deserializer {
+                    value: Some(key.into()),
+                    context,
+                })
+                .change_context(DeserializerError)?;
+
+            visitor
+                .visit_value(discriminant, Deserializer {
+                    value: Some(value),
+                    context,
+                })
+                .change_context(DeserializerError)
+        } else {
+            let discriminant = visitor
+                .visit_discriminant(Deserializer {
+                    value: Some(value),
+                    context,
+                })
+                .change_context(DeserializerError)?;
+
+            visitor
+                .visit_value(discriminant, Deserializer {
+                    value: None,
+                    context,
+                })
+                .change_context(DeserializerError)
+        }
+    }
 }
 
 #[must_use]
@@ -530,39 +570,9 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         Ok(())
     }
 
-    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
+    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
-        T: Deserialize<'de>,
-    {
-        self.dirty = true;
-
-        // early return because we have exhausted all entries
-        if self.remaining == Some(0) {
-            return Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(T::reflection()))
-                .change_context(ObjectAccessError));
-        }
-
-        let entry = self.inner.remove(key);
-
-        match (entry, &mut self.remaining) {
-            (None, None) => Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(T::reflection()))
-                .change_context(ObjectAccessError)),
-            (None, Some(remaining)) => {
-                *remaining -= 1;
-
-                T::deserialize(Deserializer::empty(self.context)).change_context(ObjectAccessError)
-            }
-            (Some(value), _) => T::deserialize(Deserializer::new(value, self.context))
-                .change_context(ObjectAccessError),
-        }
-    }
-
-    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
-    where
-        K: Deserialize<'de>,
-        V: Deserialize<'de>,
+        F: FieldVisitor<'de>,
     {
         self.dirty = true;
 
@@ -578,19 +588,14 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
                     *remaining -= 1;
 
                     // defer to `Visitor::visit_none`
-                    let key = K::deserialize(Deserializer::empty(self.context));
-                    let value = V::deserialize(Deserializer::empty(self.context));
+                    let key = access.visit_key(Deserializer::empty(self.context));
 
-                    match (key, value) {
-                        (Err(mut key), Err(value)) => {
-                            key.extend_one(value);
-                            Some(Err(key.change_context(ObjectAccessError)))
-                        }
-                        (Err(error), Ok(_)) | (Ok(_), Err(error)) => {
-                            Some(Err(error.change_context(ObjectAccessError)))
-                        }
-                        (Ok(key), Ok(value)) => Some(Ok((key, value))),
-                    }
+                    Some(
+                        key.and_then(|key| {
+                            access.visit_value(key, Deserializer::empty(self.context))
+                        })
+                        .change_context(ObjectAccessError),
+                    )
                 }
             };
         }
@@ -607,21 +612,13 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         // `self.inner`
         let (key, value) = self.inner.remove_entry(&next).expect("key should exist");
 
-        let key = K::deserialize(Deserializer::new(Value::String(key), self.context));
-        let value = V::deserialize(Deserializer::new(value, self.context));
+        let key = access.visit_key(Deserializer::new(Value::String(key), self.context));
+        let value =
+            key.and_then(|key| access.visit_value(key, Deserializer::new(value, self.context)));
 
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)
-        match (key, value) {
-            (Err(mut key), Err(value)) => {
-                key.extend_one(value);
-                Some(Err(key.change_context(ObjectAccessError)))
-            }
-            (Err(error), Ok(_)) | (Ok(_), Err(error)) => {
-                Some(Err(error.change_context(ObjectAccessError)))
-            }
-            (Ok(key), Ok(value)) => Some(Ok((key, value))),
-        }
+        Some(value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {

@@ -1,9 +1,14 @@
+import { inspect } from "node:util";
+
+import { GraphStatus } from "@apps/hash-graph/type-defs/status";
+import { ErrorInfo } from "@apps/hash-graph/type-defs/status-payloads";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
+import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
@@ -57,35 +62,50 @@ export type GraphApi = GraphApiClient & DataSource;
 const isErrorAxiosError = (error: Error): error is AxiosError =>
   (error as AxiosError).isAxiosError;
 
-type JSONValue =
-  | string
-  | number
-  | boolean
-  | { [x: string]: JSONValue }
-  | Array<JSONValue>;
-
 export class GraphApiError extends Error {
-  // `status` is the HTTP status code from the server response
-  status?: number;
-  // `payload` is the contents of the HTTP body from the server response
-  payload: JSONValue;
+  status: GraphStatus;
 
+  /**
+   * Constructs a `GraphApiError` from an Axios error.
+   *
+   * @param axiosError
+   * @throws {Error} if the Axios error does not contain a response from the Graph API, (e.g. if
+   *   there was a local error while trying to send the request to the Graph API) as this is a local
+   *   error and not a Graph API error.
+   */
   constructor(axiosError: AxiosError) {
     const responseData = axiosError.response?.data;
 
-    const message = `GraphApi error: ${
-      typeof responseData === "string" ? responseData : axiosError.message
-    }`;
+    /*
+     * @todo - Once we start attaching and logging better information about requests (e.g. span traces) we should
+     *   generate and attached a `RequestInfo` instance to these.
+     */
 
-    super(message);
-
-    this.status = axiosError.response?.status;
-
-    if (!responseData) {
-      throw new Error("No response data found in Graph API error.");
+    if (axiosError.response) {
+      if (isStatus(responseData)) {
+        super(responseData.message);
+        this.status = responseData as GraphStatus;
+      } else if (typeof responseData === "string") {
+        const message = `Error from Graph API: ${responseData}`;
+        super(message);
+        const errorInfo: ErrorInfo = {
+          reason: "UNKNOWN",
+          domain: "HASH Graph",
+          metadata: {},
+        };
+        this.status = {
+          message: responseData,
+          code: convertHttpCodeToStatusCode(axiosError.response.status),
+          contents: [errorInfo],
+        };
+      } else {
+        throw new Error(
+          `Unknown response format from Graph API: ${inspect(responseData)}`,
+        );
+      }
+    } else {
+      throw new Error("No response found in Graph API error.");
     }
-
-    this.payload = responseData as JSONValue;
   }
 }
 
@@ -102,12 +122,23 @@ export const createGraphClient = (
     (response) => response,
     (error: Error) => {
       if (!isErrorAxiosError(error)) {
-        throw new Error("Graph error is not axios error");
+        throw new Error(
+          `Unknown error encountered while querying the graph, was not an Axios Error: ${error.toString()}`,
+        );
       }
-
-      const graphApiError = new GraphApiError(error);
-
-      return Promise.reject(graphApiError);
+      try {
+        const graphApiError = new GraphApiError(error);
+        return Promise.reject(graphApiError);
+      } catch (secondaryError) {
+        // the error was apparently not a valid error from the Graph API, construct a local one
+        /* @todo - Do we want to have the same structure as the `GraphApiError` here? */
+        /* @todo - Do we have any useful information we can extract from `response.request`? */
+        return Promise.reject(
+          new Error(
+            "Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API.",
+          ),
+        );
+      }
     },
   );
 

@@ -1,0 +1,5 @@
+{
+  "extends": "@local/tsconfig/block.json",
+  "include": ["src", "mine-sweeper-tag.d.ts"],
+  "exclude": ["node_modules"]
+}

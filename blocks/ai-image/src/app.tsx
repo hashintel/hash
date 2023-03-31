@@ -3,9 +3,12 @@ import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
+import { theme } from "@hashintel/design-system";
+import { Box, ThemeProvider } from "@mui/material";
+import { SizeMe } from "react-sizeme";
 
 import { GenerateImage } from "./app/generate-image";
-import { Image } from "./app/image";
+import { ImageTile } from "./shared/image-tile";
 import {
   AIImageBlockLinksByLinkTypeId,
   RootEntity,
@@ -36,18 +39,35 @@ export const App: BlockComponent<RootEntity> = ({
     return null;
   }
 
-  if (fileEntity) {
-    return (
-      <div style={{ position: "relative", width: "100%" }}>
-        <Image
-          description={
-            fileEntity.properties[descriptionKey] ?? "An AI-generated image"
-          }
-          url={fileEntity.properties[urlKey]}
-        />
-      </div>
-    );
-  }
+  return (
+    <ThemeProvider theme={theme}>
+      <SizeMe>
+        {({ size }) => {
+          const isMobile = (size.width ?? 0) < 400;
 
-  return <GenerateImage blockEntity={blockEntity} />;
+          return fileEntity ? (
+            <Box
+              sx={{
+                position: "relative",
+                display: "flex",
+                width: "100%",
+                justifyContent: "center",
+              }}
+            >
+              <ImageTile
+                url={fileEntity.properties[urlKey]}
+                description={
+                  fileEntity.properties[descriptionKey] ??
+                  "An AI-generated image"
+                }
+                maxWidth={400}
+              />
+            </Box>
+          ) : (
+            <GenerateImage blockEntity={blockEntity} isMobile={isMobile} />
+          );
+        }}
+      </SizeMe>
+    </ThemeProvider>
+  );
 };

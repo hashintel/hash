@@ -1,25 +1,19 @@
-use std::{borrow::Borrow, future::Future, pin::Pin};
+use std::{borrow::Borrow, mem};
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
-use futures::FutureExt;
-use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
+use type_system::PropertyType;
 
 use crate::{
-    identifier::OntologyTypeVertexId,
-    ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
-    provenance::UpdatedById,
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
+    provenance::RecordCreatedById,
     store::{
-        crud::Read,
-        postgres::{DependencyContext, DependencyStatus},
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
-        UpdateError,
+        crud::Read, postgres::TraversalContext, query::Filter, AsClient, ConflictBehavior,
+        InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{
-            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdge,
-            OutgoingEdgeResolveDepth, OutwardEdge,
-        },
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::PropertyTypeVertexId,
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
         Subgraph,
@@ -27,130 +21,104 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
+    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
-    pub(crate) fn traverse_property_type<'a>(
-        &'a self,
-        property_type_id: &'a OntologyTypeVertexId,
-        dependency_context: &'a mut DependencyContext,
-        subgraph: &'a mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: QueryTemporalAxes,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        async move {
-            let dependency_status = dependency_context.ontology_dependency_map.update(
-                property_type_id,
-                current_resolve_depths,
-                temporal_axes.variable_interval().convert(),
-            );
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
+    pub(crate) async fn traverse_property_types(
+        &self,
+        mut property_type_queue: Vec<(PropertyTypeVertexId, GraphResolveDepths, QueryTemporalAxes)>,
+        traversal_context: &mut TraversalContext,
+        subgraph: &mut Subgraph,
+    ) -> Result<(), QueryError> {
+        let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
-            let property_type = match dependency_status {
-                DependencyStatus::Unresolved(depths, interval) => {
-                    // The dependency may have to be resolved more than anticipated, so we update
-                    // the resolve depth and the temporal axes.
-                    current_resolve_depths = depths;
-                    temporal_axes.set_variable_interval(interval.convert());
-                    subgraph
-                        .get_or_read::<PropertyTypeWithMetadata>(
-                            self,
-                            property_type_id,
-                            &temporal_axes,
-                        )
-                        .await?
-                }
-                DependencyStatus::Resolved => return Ok(()),
-            };
+        let mut data_type_queue = Vec::new();
 
-            // Collecting references before traversing further to avoid having a shared
-            // reference to the subgraph when borrowing it mutably
-            let data_type_ref_urls = (current_resolve_depths.constrains_values_on.outgoing > 0)
-                .then(|| {
-                    property_type
-                        .inner()
-                        .data_type_references()
-                        .into_iter()
-                        .map(DataTypeReference::url)
-                        .cloned()
-                        .collect::<Vec<_>>()
-                });
-
-            let property_type_ref_urls =
-                (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
-                    property_type
-                        .inner()
-                        .property_type_references()
-                        .into_iter()
-                        .map(PropertyTypeReference::url)
-                        .cloned()
-                        .collect::<Vec<_>>()
-                });
-
-            if let Some(data_type_ref_urls) = data_type_ref_urls {
-                for data_type_ref in data_type_ref_urls {
-                    let data_type_vertex_id = OntologyTypeVertexId::from(data_type_ref);
-
-                    subgraph.edges.insert(Edge::Ontology {
-                        vertex_id: property_type_id.clone(),
-                        outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                            kind: OntologyEdgeKind::ConstrainsValuesOn,
-                            reversed: false,
-                            right_endpoint: data_type_vertex_id.clone(),
-                        }),
-                    });
-
-                    self.traverse_data_type(
-                        &data_type_vertex_id,
-                        dependency_context,
-                        subgraph,
-                        GraphResolveDepths {
-                            constrains_values_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.constrains_values_on.outgoing - 1,
-                                ..current_resolve_depths.constrains_values_on
-                            },
-                            ..current_resolve_depths
-                        },
-                        temporal_axes.clone(),
+        while !property_type_queue.is_empty() {
+            // TODO: We could re-use the memory here but we expect to batch the processing of this
+            //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
+            for (property_type_vertex_id, graph_resolve_depths, temporal_axes) in
+                mem::take(&mut property_type_queue)
+            {
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsValuesOn,
+                        EdgeDirection::Outgoing,
                     )
-                    .await?;
+                {
+                    for data_type in <Self as Read<DataTypeWithMetadata>>::read(
+                        self,
+                        &Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                            &property_type_vertex_id,
+                            OntologyEdgeKind::ConstrainsValuesOn,
+                        ),
+                        Some(&temporal_axes),
+                    )
+                    .await?
+                    {
+                        let data_type_vertex_id = data_type.vertex_id(time_axis);
+
+                        subgraph.insert_edge(
+                            &property_type_vertex_id,
+                            OntologyEdgeKind::ConstrainsValuesOn,
+                            EdgeDirection::Outgoing,
+                            data_type_vertex_id.clone(),
+                        );
+
+                        subgraph.insert_vertex(&data_type_vertex_id, data_type);
+
+                        data_type_queue.push((
+                            data_type_vertex_id,
+                            new_graph_resolve_depths,
+                            temporal_axes.clone()
+                        ));
+                    }
+                }
+
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(
+                        OntologyEdgeKind::ConstrainsPropertiesOn,
+                        EdgeDirection::Outgoing,
+                    )
+                {
+                    for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
+                        self,
+                        &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
+                            &property_type_vertex_id,
+                            OntologyEdgeKind::ConstrainsPropertiesOn,
+                            EdgeDirection::Incoming,
+                        ),
+                        Some(&temporal_axes),
+                    )
+                    .await?
+                    {
+                        let referenced_property_type_vertex_id = referenced_property_type.vertex_id(time_axis);
+
+                        subgraph.insert_edge(
+                            &property_type_vertex_id,
+                            OntologyEdgeKind::ConstrainsPropertiesOn,
+                            EdgeDirection::Outgoing,
+                            referenced_property_type_vertex_id.clone(),
+                        );
+
+                        subgraph
+                            .insert_vertex(&referenced_property_type_vertex_id, referenced_property_type);
+
+                        property_type_queue.push((
+                            referenced_property_type_vertex_id,
+                            new_graph_resolve_depths,
+                            temporal_axes.clone(),
+                        ));
+                    }
                 }
             }
-
-            if let Some(property_type_ref_urls) = property_type_ref_urls {
-                for property_type_ref_url in property_type_ref_urls {
-                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_url);
-
-                    subgraph.edges.insert(Edge::Ontology {
-                        vertex_id: property_type_id.clone(),
-                        outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
-                            kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                            reversed: false,
-                            right_endpoint: property_type_vertex_id.clone(),
-                        }),
-                    });
-
-                    self.traverse_property_type(
-                        &property_type_vertex_id,
-                        dependency_context,
-                        subgraph,
-                        GraphResolveDepths {
-                            constrains_properties_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.constrains_properties_on.outgoing
-                                    - 1,
-                                ..current_resolve_depths.constrains_properties_on
-                            },
-                            ..current_resolve_depths
-                        },
-                        temporal_axes.clone(),
-                    )
-                    .await?;
-                }
-            }
-
-            Ok(())
         }
-        .boxed()
+
+        self.traverse_data_types(data_type_queue, traversal_context, subgraph)
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -166,16 +134,19 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
         for (schema, metadata) in property_types {
-            let ontology_id = transaction
-                .create(schema.clone(), metadata.borrow())
-                .await?;
-            inserted_property_types.push((ontology_id, schema));
+            if let Some(ontology_id) = transaction
+                .create(schema.clone(), metadata.borrow(), on_conflict)
+                .await?
+            {
+                inserted_property_types.push((ontology_id, schema));
+            }
         }
 
         for (ontology_id, schema) in inserted_property_types {
@@ -211,31 +182,43 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
+        let property_types =
+            Read::<PropertyTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
+                .await?
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect();
+
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        subgraph.vertices.property_types = property_types;
 
-        for property_type in
-            Read::<PropertyTypeWithMetadata>::read(self, filter, &temporal_axes).await?
-        {
-            let vertex_id = property_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, property_type);
-
-            self.traverse_property_type(
-                &vertex_id,
-                &mut dependency_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                temporal_axes.clone(),
-            )
-            .await?;
-
-            subgraph.roots.insert(vertex_id.into());
+        for vertex_id in subgraph.vertices.property_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
         }
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_property_types(
+            subgraph
+                .vertices
+                .property_types
+                .keys()
+                .map(|id| {
+                    (
+                        id.clone(),
+                        subgraph.depths,
+                        subgraph.temporal_axes.resolved.clone(),
+                    )
+                })
+                .collect(),
+            &mut TraversalContext,
+            &mut subgraph,
+        )
+        .await?;
 
         Ok(subgraph)
     }
@@ -244,7 +227,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        updated_by: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -252,7 +235,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (ontology_id, metadata) = transaction
-            .update::<PropertyType>(property_type.clone(), updated_by)
+            .update::<PropertyType>(property_type.clone(), record_created_by_id)
             .await?;
 
         transaction

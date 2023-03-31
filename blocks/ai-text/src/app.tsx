@@ -2,6 +2,8 @@ import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
+import { theme } from "@hashintel/design-system";
+import { ThemeProvider } from "@mui/material";
 
 import { ConfirmedText } from "./app/confirmed-text";
 import { GenerateText } from "./app/generate-text";
@@ -17,18 +19,16 @@ export const App: BlockComponent<RootEntity> = ({
 
   const textContent = rootEntity.properties[contentKey];
 
-  if (textContent || readonly) {
-    if (!textContent) {
-      return null;
-    }
-
-    return (
-      <ConfirmedText
-        entityId={rootEntity.metadata.recordId.entityId}
-        text={textContent}
-      />
-    );
-  }
-
-  return <GenerateText blockEntity={rootEntity} />;
+  return (
+    <ThemeProvider theme={theme}>
+      {textContent ? (
+        <ConfirmedText
+          entityId={rootEntity.metadata.recordId.entityId}
+          text={textContent}
+        />
+      ) : !readonly ? (
+        <GenerateText blockEntity={rootEntity} />
+      ) : null}
+    </ThemeProvider>
+  );
 };

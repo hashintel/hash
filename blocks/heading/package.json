@@ -1,6 +1,6 @@
 {
   "name": "@blocks/heading",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",
   "keywords": [
@@ -31,7 +31,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.1.0",
+    "block-scripts": "0.1.1",
     "eslint": "8.33.0",
     "mock-block-dock": "0.1.0",
     "react": "^18.2.0",
@@ -50,7 +50,7 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "name": "@hash/heading",
+    "name": "heading",
     "displayName": "Heading",
     "icon": "public/h1.svg",
     "image": "public/preview.svg",

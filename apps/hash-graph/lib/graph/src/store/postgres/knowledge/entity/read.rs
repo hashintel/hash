@@ -17,46 +17,79 @@ use crate::{
         LinkData,
     },
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
         query::Filter,
         AsClient, PostgresStore, QueryError,
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
+    subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        temporal_axes::QueryTemporalAxes,
+    },
 };
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
+    type Record = Entity;
+
     #[tracing::instrument(level = "info", skip(self))]
     async fn read(
         &self,
         filter: &Filter<Entity>,
-        temporal_axes: &QueryTemporalAxes,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
-        let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
-        let left_owned_by_id_query_path =
-            EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::OwnedById));
-        let right_entity_uuid_path = EntityQueryPath::RightEntity(Box::new(EntityQueryPath::Uuid));
-        let right_owned_by_id_query_path =
-            EntityQueryPath::RightEntity(Box::new(EntityQueryPath::OwnedById));
+        let left_entity_uuid_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+            path: Box::new(EntityQueryPath::Uuid),
+            direction: EdgeDirection::Outgoing,
+        };
+        let left_owned_by_id_query_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+            path: Box::new(EntityQueryPath::OwnedById),
+            direction: EdgeDirection::Outgoing,
+        };
+        let right_entity_uuid_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+            path: Box::new(EntityQueryPath::Uuid),
+            direction: EdgeDirection::Outgoing,
+        };
+        let right_owned_by_id_query_path = EntityQueryPath::EntityEdge {
+            edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+            path: Box::new(EntityQueryPath::OwnedById),
+            direction: EdgeDirection::Outgoing,
+        };
 
         let mut compiler = SelectCompiler::new(temporal_axes);
 
-        let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
-        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let edition_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
+        let owned_by_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::OwnedById,
             Distinctness::Distinct,
             None,
         );
-        let decision_time_index = compiler.add_selection_path(&EntityQueryPath::DecisionTime);
-        let transaction_time_index = compiler.add_selection_path(&EntityQueryPath::TransactionTime);
+        let entity_uuid_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::Uuid,
+            Distinctness::Distinct,
+            None,
+        );
+        let decision_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::DecisionTime,
+            Distinctness::Distinct,
+            None,
+        );
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            None,
+        );
 
-        let type_id_index =
-            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUrl));
+        let edition_id_index = compiler.add_selection_path(&EntityQueryPath::EditionId);
+        let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+            edge_kind: SharedEdgeKind::IsOfType,
+            path: EntityTypeQueryPath::VersionedUrl,
+        });
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
@@ -71,7 +104,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_to_left_order_index =
             compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
-        let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
+        let record_created_by_id_index =
+            compiler.add_selection_path(&EntityQueryPath::RecordCreatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
 
@@ -133,7 +167,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
+                let record_created_by_id =
+                    RecordCreatedById::new(row.get(record_created_by_id_index));
 
                 Ok(Entity {
                     properties,
@@ -151,7 +186,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        ProvenanceMetadata::new(updated_by_id),
+                        ProvenanceMetadata::new(record_created_by_id),
                         row.get(archived_index),
                     ),
                 })

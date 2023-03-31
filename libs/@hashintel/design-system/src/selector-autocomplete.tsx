@@ -10,6 +10,7 @@ import {
 import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
+import { fluidFontClassName } from "./fluid-fonts";
 import {
   Button,
   ButtonProps,
@@ -103,7 +104,10 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
 };
 
 type OptionRenderData = {
-  $id: string;
+  /** a unique id for this option, which will be used as a key for the option */
+  uniqueId: string;
+  /** the typeId associated with this entity type or entity, displayed as a chip in the option */
+  typeId: string;
   title: string;
   description?: string;
 };
@@ -121,6 +125,8 @@ type SelectorAutocompleteProps<
 > & {
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
+  /** Determines if a given option matches a selected value (defaults to strict equality) */
+  isOptionEqualToValue?: (option: T, value: T) => boolean;
   optionToRenderData: (option: T) => OptionRenderData;
   dropdownProps: TypeListSelectorDropdownProps;
   autoFocus?: boolean;
@@ -138,6 +144,7 @@ export const SelectorAutocomplete = <
   Multiple extends boolean | undefined = undefined,
 >({
   open,
+  isOptionEqualToValue,
   optionToRenderData,
   sx,
   inputRef,
@@ -240,11 +247,12 @@ export const SelectorAutocomplete = <
           return (
             <SelectorAutocompleteOption
               liProps={props}
-              key={optionRenderData.$id}
+              key={optionRenderData.uniqueId}
               {...optionRenderData}
             />
           );
         }}
+        isOptionEqualToValue={isOptionEqualToValue}
         popupIcon={null}
         disableClearable
         forcePopupIcon={false}
@@ -254,7 +262,11 @@ export const SelectorAutocomplete = <
         getOptionLabel={(opt) => optionToRenderData(opt).title}
         PaperComponent={TypeListSelectorDropdown}
         componentsProps={{
-          popper: { modifiers: allModifiers, anchorEl },
+          popper: {
+            modifiers: allModifiers,
+            anchorEl,
+            className: fluidFontClassName,
+          },
         }}
         {...rest}
       />

@@ -68,10 +68,6 @@ fn bench_representative_read_entity(c: &mut Criterion) {
 
 #[criterion]
 #[expect(clippy::too_many_lines)]
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "false positive, see https://github.com/rust-lang/rust-clippy/issues/10413"
-)]
 fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_multiple_entities");
     let (runtime, store_wrapper) = setup(DB_NAME, false, false);
@@ -216,6 +212,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
             },
         },
+        #[cfg(not(test))]
         GraphResolveDepths {
             inherits_from: OutgoingEdgeResolveDepth {
                 outgoing: 1,

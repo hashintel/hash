@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
-use error_stack::ResultExt;
+use error_stack::{Result, ResultExt};
 
 use crate::{
     error::DeserializerError,
-    value::{impl_owned, IntoDeserializer},
-    Context, Deserializer, OptionalVisitor, Visitor,
+    value::{impl_owned, EnumUnitDeserializer, IntoDeserializer},
+    Context, Deserializer, EnumVisitor, OptionalVisitor, Visitor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -52,6 +52,13 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
 }
 
@@ -110,6 +117,13 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
 }
 

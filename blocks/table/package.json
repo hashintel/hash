@@ -1,6 +1,6 @@
 {
   "name": "@blocks/table",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "private": true,
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git",
+    "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/table"
   },
   "license": "(MIT OR Apache-2.0)",
@@ -21,73 +21,77 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
+  "prettier": {
+    "printWidth": 80,
+    "trailingComma": "all"
+  },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
-    "@headlessui/react": "1.4.1",
-    "lodash": "4.17.21",
-    "react-table": "7.7.0",
-    "twind": "0.16.17",
-    "uuid": "8.3.2"
+    "@blockprotocol/graph": "0.1.0",
+    "@glideapps/glide-data-grid": "5.2.1",
+    "clsx": "1.2.1",
+    "immer": "9.0.6",
+    "lodash.uniqueid": "4.0.1",
+    "react-laag": "2.0.5",
+    "rooks": "7.4.3"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-table": "7.7.1",
-    "block-scripts": "0.0.14",
+    "@types/react-dom": "18.0.9",
+    "block-scripts": "0.1.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "typescript": "4.9.4",
-    "typescript-json-schema": "0.54.0"
-  },
-  "peerDependencies": {
-    "lodash": "4.17.21",
+    "mock-block-dock": "0.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
   "block-scripts": {
-    "devPort": 9090,
-    "servePort": 62678
+    "port": 63212
   },
   "blockprotocol": {
     "blockType": {
       "entryPoint": "react"
     },
-    "name": "@hash/table",
     "displayName": "Table",
-    "icon": "public/table.svg",
-    "image": "public/preview.svg",
     "examples": [
       {
-        "initialState": {
-          "hiddenColumns": [
-            "entityId",
-            "name"
-          ],
-          "columns": [
-            {
-              "Header": "entityId",
-              "accessor": "entityId"
-            },
-            {
-              "Header": "email",
-              "accessor": "email"
-            },
-            {
-              "Header": "name",
-              "accessor": "name"
-            },
-            {
-              "Header": "age",
-              "accessor": "age"
-            }
-          ]
-        }
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "My Table",
+        "https://blockprotocol.org/@hash/types/property-type/table-local-column/": [
+          {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Full Name",
+            "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": "fullName"
+          },
+          {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Role",
+            "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": "role"
+          }
+        ],
+        "https://blockprotocol.org/@hash/types/property-type/table-local-row/": [
+          {
+            "fullName": "John Johnson",
+            "role": "Role 1"
+          },
+          {
+            "fullName": "Bob Bobson",
+            "role": "Role 2"
+          },
+          {
+            "fullName": "Alice Aliceson",
+            "role": "Role 3"
+          }
+        ]
       }
     ],
-    "protocol": "0.2"
+    "icon": "public/table.svg",
+    "image": "public/block-preview.png",
+    "name": "@hash/table",
+    "protocol": "0.3",
+    "schema": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/3"
   }
 }

@@ -20,7 +20,9 @@ use crate::{
 // TODO: Use queries, which are passed to the query-endpoint
 //   see https://app.asana.com/0/1202805690238892/1202979057056097/f
 #[async_trait]
-pub trait Read<R: Record + Send>: Sync {
+pub trait Read<R>: Sync {
+    type Record: Record;
+
     // TODO: Return a stream of `R` instead
     //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
     /// Returns a value from the [`Store`] specified by the passed `query`.
@@ -28,15 +30,15 @@ pub trait Read<R: Record + Send>: Sync {
     /// [`Store`]: crate::store::Store
     async fn read(
         &self,
-        query: &Filter<R>,
-        temporal_axes: &QueryTemporalAxes,
+        query: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Vec<R>, QueryError>;
 
     #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(
         &self,
-        query: &Filter<R>,
-        temporal_axes: &QueryTemporalAxes,
+        query: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<R, QueryError> {
         let mut records = self.read(query, temporal_axes).await?;
         ensure!(

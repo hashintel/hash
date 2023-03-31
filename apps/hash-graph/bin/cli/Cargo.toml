@@ -10,17 +10,18 @@ description = "The entity-graph query-layer for the HASH datastore"
 [dependencies]
 type-fetcher = { path = "../../lib/type-fetcher", optional = true }
 
-axum = "0.6.9"
-clap = { version = "4.1.6", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.1.2"
+axum = "0.6.12"
+clap = { version = "4.2.1", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
-futures = { version = "0.3.26", optional = true }
+futures = { version = "0.3.27", optional = true }
 graph = { path = "../../lib/graph", features = ["clap"] }
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
-regex = "1.7.1"
-serde_json = "1.0.93"
-tarpc = { version = "0.31", features = ["serde1", "tokio1", "serde-transport", "tcp"], optional = true }
-tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros"] }
+regex = "1.7.3"
+semver = { version = "1.0.4", default-features = false }
+serde_json = "1.0.94"
+tarpc = { version = "0.32", features = ["serde1", "tokio1", "serde-transport", "tcp"], optional = true }
+tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 tracing = "0.1.37"

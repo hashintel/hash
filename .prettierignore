@@ -1,6 +1,6 @@
-#######################
-## Specific to Prettier
-#######################
+#####################################
+## Files uniquely ignored by Prettier
+#####################################
 
 # Ignore all files (but still allow sub-folder scanning)
 *
@@ -121,6 +121,9 @@ __pycache__
 
 # Sentry
 .sentryclirc
+
+# Block Protocol
+.blockprotocolrc
 
 # Application data
 /var

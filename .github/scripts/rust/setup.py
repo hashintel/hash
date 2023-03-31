@@ -19,26 +19,23 @@ from pygit2 import Repository, Commit
 CWD = Path.cwd()
 
 # All jobs for all crates will run if any of these paths change
-ALWAYS_RUN_PATTERNS = [".github/**"]
+ALWAYS_RUN_PATTERNS = [".github/**", ".config/**", ".cargo/**"]
 
 # Toolchains used for the specified crates in addition to the toolchain which is defined in
 # rust-toolchain.toml
 TOOLCHAINS = {
-    "libs/deer": ["1.65"],
     "libs/antsi": ["1.63"],
+    "libs/deer": ["1.65"],
     "libs/error-stack": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = [
-    "libs/error-stack**",
     "libs/antsi**",
+    "libs/deer**",
+    "libs/error-stack**",
+    "libs/sarif**",
 ]
-# deer is disabled for now because we don't want to publish it just yet
-# "libs/deer**"
-
-# Build a docker container for these crates
-DOCKER_PATTERNS = ["apps/hash-graph"]
 
 # Build a coverage report for these crates
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
@@ -62,7 +59,7 @@ def find_local_crates():
     Returns all available crates in the workspace.
 
     If a crate is in a sub-crate of another crate, only the super-crate will be returned because
-    `cargo-make` will run the sub-crate automatically.
+    the sub-crates will be picked up by `cargo` automatically.
     :return: a list of crate paths
     """
     return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
@@ -182,20 +179,6 @@ def filter_for_coverage_crates(crates):
     ]
 
 
-def filter_for_docker_crates(crates):
-    """
-    Returns the crates for which docker containers are built
-    :param crates: a list of paths to crates
-    :return: a list of crate paths for which docker containers are built
-    """
-    return [
-        crate
-        for crate in crates
-        for pattern in DOCKER_PATTERNS
-        if fnmatch(crate, pattern)
-    ]
-
-
 def output_matrix(name, github_output_file, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
@@ -267,20 +250,15 @@ def main():
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
     coverage_crates = filter_for_coverage_crates(changed_parent_crates)
-    changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
 
     output_matrix("lint", github_output_file, changed_parent_crates)
     if IS_PULL_REQUEST_EVENT:
-        output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["dev"])
     else:
-        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["dev", "release"])
     output_matrix("coverage", github_output_file, coverage_crates)
-    if IS_PULL_REQUEST_EVENT:
-        output_matrix("docker", github_output_file, changed_docker_crates, profile=["development"])
-    else:
-        output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
         github_output_file,

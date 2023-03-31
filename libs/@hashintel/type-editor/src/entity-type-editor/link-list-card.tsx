@@ -1,14 +1,15 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
-import {
-  Box,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-} from "@mui/material";
+import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
@@ -20,15 +21,19 @@ import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-select
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
-  EntityTypeTableButtonRow,
   EntityTypeTableCenteredCell,
+  EntityTypeTableFooter,
+  EntityTypeTableFooterButton,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
-import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import {
+  InsertTypeField,
+  InsertTypeFieldProps,
+} from "./shared/insert-type-field";
 import { Link } from "./shared/link";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
@@ -191,9 +196,9 @@ const LinkTypeRow = ({
   );
 };
 
-const InsertLinkRow = (
+const InsertLinkField = (
   props: Omit<
-    InsertTypeRowProps<EntityType>,
+    InsertTypeFieldProps<EntityType>,
     "options" | "variant" | "createButtonProps"
   >,
 ) => {
@@ -209,9 +214,11 @@ const InsertLinkRow = (
   });
 
   return (
-    <InsertTypeRow {...props} options={filteredLinkTypes} variant="link" />
+    <InsertTypeField {...props} options={filteredLinkTypes} variant="link" />
   );
 };
+
+const linkDefaultValues = () => ({ name: "", description: "" });
 
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
@@ -288,6 +295,11 @@ export const LinkListCard = () => {
     handleAddEntityType(res.data.schema);
   };
 
+  const linkDirtyFields = useCallback(
+    () => (searchText ? { name: searchText } : {}),
+    [searchText],
+  );
+
   if (!addingNewLink && fields.length === 0) {
     return (
       <EmptyListCard
@@ -352,47 +364,48 @@ export const LinkListCard = () => {
           />
         ))}
       </TableBody>
-      <TableFooter>
-        {addingNewLink ? (
-          <>
-            <InsertLinkRow
-              inputRef={addingNewLinkRef}
-              onCancel={cancelAddingNewLink}
-              onAdd={handleAddEntityType}
-              searchText={searchText}
-              onSearchTextChange={setSearchText}
-              createModalPopupState={createModalPopupState}
-            />
-            <TypeFormModal
-              as={LinkTypeForm}
-              popupState={createModalPopupState}
-              modalTitle={
-                <>
-                  Create new link
-                  <QuestionIcon
-                    sx={{
-                      ml: 1.25,
-                    }}
-                    tooltip={
-                      <>
-                        You should only create a new link type if you can't find
-                        an existing one which corresponds to the relationship
-                        you're trying to capture.
-                      </>
-                    }
-                  />
-                </>
-              }
-              onSubmit={handleSubmit}
-              submitButtonProps={{ children: <>Create new link</> }}
-              getDefaultValues={() =>
-                searchText.length ? { name: searchText } : {}
-              }
-            />
-          </>
-        ) : (
-          !isReadonly && (
-            <EntityTypeTableButtonRow
+      {isReadonly ? (
+        <Box sx={{ height: "var(--table-padding)" }} />
+      ) : (
+        <EntityTypeTableFooter enableShadow={fields.length > 0}>
+          {addingNewLink ? (
+            <>
+              <InsertLinkField
+                inputRef={addingNewLinkRef}
+                onCancel={cancelAddingNewLink}
+                onAdd={handleAddEntityType}
+                searchText={searchText}
+                onSearchTextChange={setSearchText}
+                createModalPopupState={createModalPopupState}
+              />
+              <TypeFormModal
+                as={LinkTypeForm}
+                popupState={createModalPopupState}
+                modalTitle={
+                  <>
+                    Create new link
+                    <QuestionIcon
+                      sx={{
+                        ml: 1.25,
+                      }}
+                      tooltip={
+                        <>
+                          You should only create a new link type if you can't
+                          find an existing one which corresponds to the
+                          relationship you're trying to capture.
+                        </>
+                      }
+                    />
+                  </>
+                }
+                onSubmit={handleSubmit}
+                submitButtonProps={{ children: <>Create new link</> }}
+                getDefaultValues={linkDefaultValues}
+                getDirtyFields={linkDirtyFields}
+              />
+            </>
+          ) : (
+            <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
                 setAddingNewLink(true, () => {
@@ -401,10 +414,10 @@ export const LinkListCard = () => {
               }}
             >
               Add a link
-            </EntityTypeTableButtonRow>
-          )
-        )}
-      </TableFooter>
+            </EntityTypeTableFooterButton>
+          )}
+        </EntityTypeTableFooter>
+      )}
     </EntityTypeTable>
   );
 };

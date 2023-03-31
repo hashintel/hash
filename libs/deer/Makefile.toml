@@ -1,9 +1,0 @@
-extend = { path = "../../.github/scripts/rust/Makefile.toml" }
-
-[tasks.test]
-dependencies = ['install-rust-src']
-
-# required for deer-macro UI tests
-[tasks.install-rust-src]
-private = true
-install_crate = { rustup_component_name = "rust-src" }
