@@ -53,7 +53,7 @@ impl<C: AsClient> PostgresStore<C> {
                             &entity_type_vertex_id,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                         .await?
                     {
@@ -89,7 +89,7 @@ impl<C: AsClient> PostgresStore<C> {
                             OntologyEdgeKind::InheritsFrom,
                             EdgeDirection::Incoming,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                         .await?
                     {
@@ -125,7 +125,7 @@ impl<C: AsClient> PostgresStore<C> {
                             OntologyEdgeKind::ConstrainsLinksOn,
                             EdgeDirection::Incoming,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                         .await?
                     {
@@ -161,7 +161,7 @@ impl<C: AsClient> PostgresStore<C> {
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                             EdgeDirection::Incoming,
                         ),
-                        &temporal_axes,
+                        Some(&temporal_axes),
                     )
                         .await?
                     {
@@ -253,7 +253,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entity_types = Read::<EntityTypeWithMetadata>::read(self, filter, &temporal_axes)
+        let entity_types = Read::<EntityTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))

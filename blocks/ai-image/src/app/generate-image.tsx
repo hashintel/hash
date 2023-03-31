@@ -1,7 +1,11 @@
-import { RemoteFileEntity } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { Button, GetHelpLink, TextField } from "@hashintel/design-system";
+import {
+  BlockErrorMessage,
+  BlockSettingsButton,
+  Button,
+  GetHelpLink,
+} from "@hashintel/design-system";
 import {
   Box,
   buttonBaseClasses,
@@ -9,29 +13,40 @@ import {
   Fade,
   inputBaseClasses,
   outlinedInputClasses,
+  TextField,
   Typography,
 } from "@mui/material";
 import { FormEvent, useCallback, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 
-import { generatedLinkKey } from "../app";
+import { generatedLinkKey, urlKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import { RootEntity } from "../types";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
+import {
+  DEFAULT_IMAGE_NUMBER,
+  ImageNumberSelector,
+} from "./generate-image/image-number-selector";
 import { ImagePreview } from "./generate-image/image-preview";
 
 export type ImageObject = {
-  url: string;
+  id: string;
+  entityId?: string;
+  url?: string;
+  date?: string;
 };
 
 const promptKey: keyof RootEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-image-model-prompt/";
 
-const isFileEntity = (
-  image: RemoteFileEntity | ImageObject,
-): image is RemoteFileEntity => "properties" in image;
-
-export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
+export const GenerateImage = ({
+  blockEntity,
+  isMobile,
+}: {
+  blockEntity: RootEntity;
+  isMobile?: boolean;
+}) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { serviceModule } = useServiceBlockModule(blockRootRef);
@@ -42,17 +57,16 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
   const [inputFocused, setInputFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [mobileSettingsExpanded, setMobileSettingsExpanded] = useState(false);
+  const [loading, setLoading] = useState<false | "service" | "upload">(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [promptText, setPromptText] = useState(initialPromptText ?? "");
-  const [images, setImages] = useState<
-    ImageObject[] | RemoteFileEntity[] | null
-  >(null);
+  const [images, setImages] = useState<ImageObject[] | null>(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [imageNumber, setImageNumber] = useState(DEFAULT_IMAGE_NUMBER);
 
   const [animatingIn, setAnimatingIn] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
-
-  const uploadInProgress = images?.some((image) => !isFileEntity(image));
 
   const confirm = (imageEntityId: string) => {
     void graphModule.createEntity({
@@ -75,18 +89,31 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
   };
 
   const generateAndUploadImages = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
+    async (numberOfImages?: number) => {
       if (loading || promptText.trim().length === 0) {
         return;
       }
 
+      const newImageCount = numberOfImages ?? parseInt(imageNumber, 10);
+
+      const oldImages = [...(images ?? [])];
+      const newImageIds = new Array(newImageCount).fill("").map(() => uuid());
+
+      if (numberOfImages) {
+        setImages([
+          ...oldImages,
+          ...newImageIds.map((id) => ({
+            id,
+          })),
+        ]);
+      }
+
       setErrorMessage("");
-      setLoading(true);
+      setLoading("service");
       const { data, errors } = await serviceModule.openaiCreateImage({
         data: {
           prompt: promptText,
-          n: 4,
+          n: numberOfImages ?? parseInt(imageNumber, 10),
         },
       });
 
@@ -94,24 +121,34 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
         setErrorMessage(
           errors?.[0]?.message ?? "Could not contact OpenAI's image service",
         );
+        setImages(oldImages);
         setLoading(false);
-        setImages(null);
         return;
       }
 
-      const generatedImages = data.data.filter(
-        (image): image is ImageObject => !!image.url,
-      );
+      const generatedImageUrls = data.data
+        .map(({ url }) => url)
+        .filter((url): url is string => !!url);
 
-      setImages(generatedImages);
-      setAnimatingIn(true);
+      if (!numberOfImages) {
+        setAnimatingIn(true);
+      }
+
+      setImages([
+        ...oldImages,
+        ...generatedImageUrls.map((url, index) => ({
+          id: newImageIds[index]!,
+          url,
+        })),
+      ]);
 
       try {
-        const uploadedImages = await Promise.all(
-          generatedImages.map((image) =>
+        setLoading("upload");
+        const uploadedEntities = await Promise.all(
+          generatedImageUrls.map((url) =>
             graphModule
               .uploadFile({
-                data: { description: promptText, url: image.url },
+                data: { description: promptText, url },
               })
               .then((response) => {
                 if (response.data) {
@@ -124,22 +161,45 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
           ),
         );
 
-        setImages(uploadedImages);
+        const uploadedImages = uploadedEntities
+          .map((entity) => ({
+            entityId: entity.metadata.recordId.entityId,
+            date: entity.metadata.recordId.editionId,
+            url: entity.properties[urlKey],
+          }))
+          .filter(({ url }) => !!url);
+
+        setImages([
+          ...oldImages,
+          ...uploadedImages.map(({ entityId, date, url }, index) => ({
+            id: newImageIds[index]!,
+            entityId,
+            date,
+            url,
+          })),
+        ]);
       } catch (err) {
         setErrorMessage(
           `Could not upload images: ${
             err instanceof Error ? err.message : "unknown error"
           }`,
         );
+        setImages(oldImages);
         setLoading(false);
-        setImages(null);
       }
 
       setLoading(false);
-
       inputRef.current?.blur();
     },
-    [loading, promptText, serviceModule, graphModule],
+    [imageNumber, promptText, serviceModule, graphModule, images, loading],
+  );
+
+  const onSubmit = useCallback(
+    async (event: FormEvent) => {
+      event.preventDefault();
+      await generateAndUploadImages();
+    },
+    [generateAndUploadImages],
   );
 
   return (
@@ -149,40 +209,69 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Fade in={hovered || inputFocused || animatingIn || animatingOut}>
+      <Fade
+        in={
+          hovered ||
+          inputFocused ||
+          animatingIn ||
+          animatingOut ||
+          (isMobile && mobileSettingsExpanded)
+        }
+      >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
           <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-image" />
 
-          <Typography
-            variant="regularTextLabels"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              textDecoration: "none",
-              fontSize: 15,
-              lineHeight: 1,
-              letterSpacing: -0.02,
+          {isMobile ? (
+            <BlockSettingsButton
+              expanded={mobileSettingsExpanded}
+              onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
+            />
+          ) : null}
 
-              flexWrap: "wrap",
-              color: ({ palette }) => palette.gray[50],
-            }}
-          >
-            <Box component="span" sx={{ mr: 1 }}>
-              Using
+          <Collapse in={!isMobile || mobileSettingsExpanded}>
+            <Box display="flex" gap={1} flexWrap="wrap" mt={isMobile ? 1 : 0}>
+              <Typography
+                variant="regularTextLabels"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  textDecoration: "none",
+                  fontSize: 15,
+                  lineHeight: 1,
+                  letterSpacing: -0.02,
+
+                  flexWrap: "wrap",
+                  color: ({ palette }) => palette.gray[50],
+                }}
+              >
+                <Box component="span" sx={{ mr: 1 }}>
+                  Using
+                </Box>
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: ({ palette }) => palette.gray[60],
+                    mr: 1,
+                  }}
+                >
+                  <AbstractAiIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                  OpenAI DALL-E
+                </Box>
+              </Typography>
+
+              {!images?.length ? (
+                <ImageNumberSelector
+                  open={selectorOpen}
+                  onOpen={() => setSelectorOpen(true)}
+                  onClose={() => setSelectorOpen(false)}
+                  value={imageNumber}
+                  onChange={setImageNumber}
+                />
+              ) : null}
             </Box>
-            <Box
-              component="span"
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                color: ({ palette }) => palette.gray[60],
-                mr: 1,
-              }}
-            >
-              <AbstractAiIcon sx={{ fontSize: 16, mr: 0.375 }} />
-              OpenAI DALL-E
-            </Box>
-          </Typography>
+          </Collapse>
         </Box>
       </Fade>
 
@@ -191,16 +280,23 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
         onEntered={() => setAnimatingOut(false)}
         onExited={() => setAnimatingIn(false)}
       >
-        <form onSubmit={generateAndUploadImages}>
+        <form onSubmit={onSubmit}>
           <TextField
             autoFocus
+            multiline
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             onChange={(event) => setPromptText(event.target.value)}
+            onKeyDown={async (event) => {
+              const { shiftKey, code } = event;
+              if (!shiftKey && code === "Enter") {
+                await onSubmit(event);
+              }
+            }}
             placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={inputRef}
-            disabled={loading || uploadInProgress}
+            disabled={!!loading}
             sx={({ palette }) => ({
               maxWidth: 580,
               width: 1,
@@ -211,8 +307,6 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
                 paddingY: 2.125,
                 paddingLeft: 2.75,
                 paddingRight: 0,
-                border: "none !important",
-                boxShadow: "none !important",
               },
               [`& .${inputBaseClasses.disabled}`]: {
                 background: palette.gray[10],
@@ -227,8 +321,9 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
                 <Button
                   type="submit"
                   variant="tertiary_quiet"
-                  disabled={loading || uploadInProgress}
+                  disabled={!!loading}
                   sx={({ palette }) => ({
+                    alignSelf: "flex-end",
                     fontSize: 13,
                     fontWeight: 700,
                     letterSpacing: "-0.02em",
@@ -240,17 +335,18 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
                     maxHeight: 55,
                     maxWidth: 168,
                     minHeight: 51,
+                    whiteSpace: "nowrap",
                     [`&.${buttonBaseClasses.disabled}`]: {
                       color: palette.common.black,
                       background: "none",
                     },
                   })}
                 >
-                  {loading ? (
+                  {loading === "service" ? (
                     <>
                       GENERATING <BouncingDotsLoader />
                     </>
-                  ) : uploadInProgress ? (
+                  ) : loading === "upload" ? (
                     <>
                       UPLOADING <BouncingDotsLoader />
                     </>
@@ -271,18 +367,9 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
             value={promptText}
           />
 
-          {errorMessage && (
-            <Typography
-              sx={{
-                color: ({ palette }) => palette.red[50],
-                fontSize: 14,
-                fontWeight: 500,
-                marginTop: 1.25,
-              }}
-            >
-              {errorMessage}
-            </Typography>
-          )}
+          <Collapse in={!!errorMessage}>
+            <BlockErrorMessage apiName="OpenAI" sx={{ mt: 1 }} />
+          </Collapse>
         </form>
       </Collapse>
 
@@ -292,8 +379,8 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
       >
         {images && (
           <ImagePreview
-            onConfirm={(image) => {
-              confirm(image.metadata.recordId.entityId);
+            onConfirm={(entityId) => {
+              confirm(entityId);
             }}
             onDiscard={() => {
               setAnimatingOut(true);
@@ -301,7 +388,11 @@ export const GenerateImage = ({ blockEntity }: { blockEntity: RootEntity }) => {
             }}
             images={images}
             prompt={promptText}
-            uploadInProgress={!!uploadInProgress}
+            loading={!!loading}
+            generateAdditionalImages={(numberOfImages) =>
+              generateAndUploadImages(numberOfImages)
+            }
+            errorMessage={errorMessage}
           />
         )}
       </Collapse>

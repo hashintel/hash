@@ -84,6 +84,17 @@ not-in-pr +command:
     {{command}}
   fi
 
+# Runs the provided command in CI only
+[private]
+[no-cd]
+in-ci +command:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  if [ -n "$CI" ]; then
+    echo "{{command}}" >&2
+    {{command}}
+  fi
+
 
 ######################################################################
 ## Install scripts

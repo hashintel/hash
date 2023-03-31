@@ -1,10 +1,23 @@
+import { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
+
+const testEntity: RootEntity = {
+  metadata: {
+    recordId: {
+      entityId: "test-entity",
+      editionId: new Date().toISOString(),
+    },
+    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+  },
+  properties: {},
+};
 
 /**
  * This is an embedding application for local development and debugging.
@@ -26,6 +39,9 @@ const DevApp = () => {
       blockProtocolApiKey={undefined} // Set this to an API key when testing
       blockProtocolSiteHost="https://blockprotocol.org" // update this to a recent staging deployment when testing
       debug
+      initialData={{
+        initialEntities: [testEntity],
+      }}
     />
   );
 };

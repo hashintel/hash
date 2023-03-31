@@ -79,6 +79,13 @@ yarn workspace @blocks/block-name build
 yarn workspace @blocks/block-name serve
 ```
 
+## Publishing blocks
+
+Blocks are currently published via manually-triggered GitHub actions:
+
+- Publish blocks to preview (choose a branch)
+- Publish blocks to production
+
 ## Using these blocks
 
 As a user, you can access the published versions of these blocks via any embedding application that integrates with the Þ Hub.
