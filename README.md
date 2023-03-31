@@ -5,6 +5,7 @@
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [block protocol]: https://github.com/blockprotocol/blockprotocol
+[block protocol types]: https://blockprotocol.org/docs/types?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [awesome hash]: https://github.com/hashintel/awesome-hash
 
@@ -77,9 +78,17 @@ Key projects within are summarized below.
 
 ### Libraries
 
+#### Rust crates
+
 - [`antsi`](libs/antsi): Rust crate supporting Select Graphic Rendition (as defined in ISO 6429) without external dependencies
 - [`deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context
 - [`error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
+- [`sarif`](libs/sarif): representation of the SARIF specification in Rust
+
+#### npm packages
+
+- [`@hashintel/design-system`](libs/@hashintel/design-system): design system for [HASH] and new [hash.ai] website
+- [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
