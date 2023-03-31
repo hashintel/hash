@@ -154,7 +154,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
           onFocus={() => setInputFocused(true)}
           onBlur={() => setInputFocused(false)}
           onChange={(event) => setPromptText(event.target.value)}
-          placeholder="Enter a prompt to generate image, and hit enter"
+          placeholder="Enter a prompt to generate text, and hit enter"
           ref={inputRef}
           disabled={loading}
           buttonLabel={
