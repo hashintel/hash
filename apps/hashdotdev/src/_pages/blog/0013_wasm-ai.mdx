@@ -18,12 +18,14 @@ We remain huge proponents of Wasm and its ecosystem. Initially seen by many as �
 ## WebAssembly highlights from 2022-2023
 
 There are plenty of quality articles out there aggregating updates on the “state of WebAssembly” which detail specific language and runtime changes from the last year. One of our [favorites](https://platform.uno/blog/the-state-of-webassembly-2022-and-2023/) captures some of the most significant:
+
 - Ongoing enhanced support for Wasm in browsers, particularly in Safari
 - More sophisticated runtime abilities in Wasm, especially SIMD and Tail Calls
 - Garbage Collection is coming to WebAssembly soon
 - [Docker Wasm support](https://docs.docker.com/desktop/wasm/) is now in beta
 
 Alongside these items, we’d add in:
+
 - Growing Wasmtime capabilities, including [Wasmtime v1.0](https://bytecodealliance.org/articles/wasmtime-1-0-fast-safe-and-production-ready) and its astonishing speed gains and industry adoption – your language of choice can probably invoke a Wasm module like a library, and your platform of choice can probably execute a Wasm module like a binary
 - The near-term addition of WebGPU, a major replacement for WebGL providing (...with some glue needed) GPU access for Wasm in the browser
 
@@ -54,13 +56,13 @@ This in turn will likely motivate further language tooling to evolve in support 
 We’re yet to see exactly what Docker has in mind for the extent of their Wasm support, but there are reasons to be optimistic. Docker knows that they have an opportunity to become a sharing hub for Wasm binaries, and are surely well aware that many classic uses for Docker are obviated by WebAssembly. Eager to show off their new Wasm capabilities, they've produced some extremely "vibey" marketing collateral, some of which featured on their homepage until earlier this week.
 
 <figure>
-<img
-  width="1110px"
-  height="733px"
-  src="/blog/0013_wasm-ai/docker-wasm-vibes.webp"
-  alt="WASM IS AWESOME. docker+WASM"
-/>
-<figcaption>Brace yourself... Docker really loves Wasm.</figcaption>
+  <img
+    width="1110px"
+    height="733px"
+    src="/blog/0013_wasm-ai/docker-wasm-vibes.webp"
+    alt="WASM IS AWESOME. docker+WASM"
+  />
+  <figcaption>Brace yourself... Docker really loves Wasm.</figcaption>
 </figure>
 
 ### 3. Wasm plus WebGPU delivers a general-purpose, portable AI compilation target
@@ -71,16 +73,18 @@ Something we’re seeing in today’s AI boom is a common pattern of AI models b
 
 So let’s say we have a model trained to have conversations about whatever content I put on my website, guiding users to specific sections or encouraging calls to action. Wasm + WebGPU gives us a platform for embedding that AI ourselves. In this manner, websites (or mobile apps, or any application really) could package AI models in just the same way they include software libraries, bypassing hosted API subscriptions and relying on client-side execution.
 
-WebGPU is new enough that there aren’t stable tools for this yet, however projects like [`wasm_webgpu`](https://github.com/juj/wasm_webgpu) are coming to life to make the task easier, and projects like [`web-stable-diffusion`](https://github.com/mlc-ai/web-stable-diffusion) are proving out that the pieces work. Web-stable-diffusion in particular is worth a glance, as they’ve successfully compiled stable diffusion all the way through to a Wasm binary that runs shaders in WebGPU to provide fully client-side execution. There’s work to be done to make this a simple task rather than a dedicated project, and indeed it still depends on running Chrome’s experimental mode, but the proof of work is complete. 
+WebGPU is new enough that there aren’t stable tools for this yet, however projects like [`wasm_webgpu`](https://github.com/juj/wasm_webgpu) are coming to life to make the task easier, and projects like [`web-stable-diffusion`](https://github.com/mlc-ai/web-stable-diffusion) are proving out that the pieces work. Web-stable-diffusion in particular is worth a glance, as they’ve successfully compiled stable diffusion all the way through to a Wasm binary that runs shaders in WebGPU to provide fully client-side execution. There’s work to be done to make this a simple task rather than a dedicated project, and indeed it still depends on running Chrome’s experimental mode, but the proof of work is complete.
 
 <figure>
-<img
-  width="1055px"
-  height="918px"
-  src="/blog/0013_wasm-ai/web-stable-diffusion-screenshot_70.webp"
-  alt="A screenshot of Web Stable Diffusion in action, being used to generate a photorealistic image of an astronaut riding a horse on the planet Mars"
-/>
-<figcaption>We're sure the horse doesn't require oxygen and is totally fine.</figcaption>
+  <img
+    width="1055px"
+    height="918px"
+    src="/blog/0013_wasm-ai/web-stable-diffusion-screenshot_70.webp"
+    alt="A screenshot of Web Stable Diffusion in action, being used to generate a photorealistic image of an astronaut riding a horse on the planet Mars"
+  />
+  <figcaption>
+    We're sure the horse doesn't require oxygen and is totally fine.
+  </figcaption>
 </figure>
 
 ### Building toward Wasm AI
