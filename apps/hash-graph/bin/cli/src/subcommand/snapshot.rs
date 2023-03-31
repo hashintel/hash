@@ -42,18 +42,18 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
         })?;
 
     let store = pool
         .acquire()
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to acquire database connection");
+            report
         })?;
 
     match args.command {

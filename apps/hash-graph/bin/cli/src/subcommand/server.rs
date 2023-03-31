@@ -192,7 +192,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .await
         .change_context(GraphError)
         .map_err(|err| {
-            tracing::error!("{err:?}");
+            tracing::error!(?err, "Failed to acquire database connection");
             err
         })?;
 
@@ -287,9 +287,9 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
         })?;
 
     #[cfg(not(feature = "type-fetcher"))]
