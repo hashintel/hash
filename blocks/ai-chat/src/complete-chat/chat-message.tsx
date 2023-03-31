@@ -1,12 +1,10 @@
 import { Box, Typography } from "@mui/material";
-import { lowlight } from "lowlight";
 import { Fragment, FunctionComponent, useMemo, useState } from "react";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { TypeAnimation } from "react-type-animation";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { UserIcon } from "../icons/user";
+import { CodeBlock } from "./code-block";
 import { IncompleteOpenAiAssistantMessage, OpenAIChatMessage } from "./types";
 
 type MessageContentBlock = {
@@ -15,26 +13,6 @@ type MessageContentBlock = {
 };
 
 const typeAnimationSpeed = 99;
-
-const supportedLanguages = lowlight.listLanguages();
-
-const codeLanguageRegex = /^\s*([\w-]+)/;
-
-const CodeBlock: FunctionComponent<{ code: string }> = ({ code }) => {
-  const language = useMemo(() => {
-    const match = code.match(codeLanguageRegex);
-
-    return match && match[0] && supportedLanguages.includes(match[0])
-      ? match[0]
-      : undefined;
-  }, [code]);
-
-  return (
-    <SyntaxHighlighter language={language} style={a11yDark} showLineNumbers>
-      {language ? code.replace(codeLanguageRegex, "").trim() : code}
-    </SyntaxHighlighter>
-  );
-};
 
 const AssistantMessageContent: FunctionComponent<{
   messageContent: string;
