@@ -88,7 +88,7 @@ not-in-pr +command:
 [private]
 [no-cd]
 in-ci +command:
-  #!/usr/bin/env sh
+  #!/usr/bin/env bash
   set -euo pipefail
   if [ -n "$CI" ]; then
     echo "{{command}}" >&2
