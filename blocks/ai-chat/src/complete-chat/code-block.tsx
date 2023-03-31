@@ -191,6 +191,7 @@ export const CodeBlock: FunctionComponent<{ code: string }> = ({ code }) => {
         marginBottom: 4,
         "> pre": {
           ...a11yDarkSxStyles,
+          fontSize: 14,
           background: ({ palette }) => palette.gray[100],
           marginTop: 0,
           borderBottomRightRadius: codeBlockBorderRadius,
