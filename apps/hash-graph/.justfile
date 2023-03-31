@@ -20,7 +20,7 @@ run *arguments:
 [private]
 docker-build:
   @just yarn external-services build graph
-  @just in-pr docker builder prune --force
+  @just in-ci docker builder prune --force
 
 # Spins up the deployment environment
 deployment-up *arguments: docker-build
