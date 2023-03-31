@@ -1199,8 +1199,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "libc"
 version = "0.2.140"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
+source = "git+https://github.com/rust-lang/libc.git?rev=e71a4c0b1fd40050f50844e2a752576bcb6b5edb#e71a4c0b1fd40050f50844e2a752576bcb6b5edb"
 
 [[package]]
 name = "linux-raw-sys"
