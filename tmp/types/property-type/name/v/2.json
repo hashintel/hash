@@ -1,0 +1,11 @@
+{
+  "$id": "http://127.0.0.1:1337/types/property-type/name/v/2",
+  "kind": "propertyType",
+  "title": "Name",
+  "description": "A word or set of words by which something is known, addressed, or referred to.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+    }
+  ]
+}

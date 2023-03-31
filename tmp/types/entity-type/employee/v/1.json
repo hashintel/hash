@@ -12,8 +12,14 @@
   "properties": {
     "http://127.0.0.1:1337/types/property-type/occupation/": {
       "$ref": "http://127.0.0.1:1337/types/property-type/occupation/v/1"
+    },
+    "http://127.0.0.1:1337/types/property-type/name/": {
+      "$ref": "http://127.0.0.1:1337/types/property-type/name/v/2"
     }
   },
-  "required": ["http://127.0.0.1:1337/types/property-type/occupation/"],
+  "required": [
+    "http://127.0.0.1:1337/types/property-type/name/",
+    "http://127.0.0.1:1337/types/property-type/occupation/"
+  ],
   "links": {}
 }

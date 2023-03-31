@@ -372,10 +372,11 @@ const propertyTypeBaseUrls = {
 };
 
 const main = async () => {
+  const personV1Url = "http://127.0.0.1:1337/types/entity-type/person/v/1";
   const personV2Url = "http://127.0.0.1:1337/types/entity-type/person/v/2";
   const employeeV1Url = "http://127.0.0.1:1337/types/entity-type/employee/v/1";
 
-  const ajv = await getConfiguredAjv([personV2Url, employeeV1Url]);
+  const ajv = await getConfiguredAjv([personV1Url, personV2Url, employeeV1Url]);
 
   const getValidator = (url) => {
     const { schema } = ajv.getSchema(url);
@@ -393,16 +394,23 @@ const main = async () => {
 
     const validate = ajv.getSchema(syntheticSchema.$id);
 
-    return (data) => {
+    return (data, dataObjName) => {
+      console.log(
+        `Validating ${`'${dataObjName}'` ?? "data"} against schema "${url}"`,
+      );
       const valid = validate(data);
       if (!valid) {
         console.log(`Failed to validate data against schema "${url}":`);
-        console.log(
-          betterAjvErrors(validate.schema, data, validate.errors, {
-            indent: 2,
-          }),
-        );
+        for (const error of validate.errors) {
+          console.log(
+            betterAjvErrors(validate.schema, data, [error], {
+              indent: 2,
+            }),
+          );
+        }
         console.log();
+      } else {
+        console.log(`Successfully validated data against schema "${url}"\n`);
       }
       return valid;
     };
@@ -411,24 +419,26 @@ const main = async () => {
   const bob = {
     [propertyTypeBaseUrls.name]: "Bob",
     [propertyTypeBaseUrls.age]: 30,
-    [propertyTypeBaseUrls.occupation]: "Software Engineer",
+    // [propertyTypeBaseUrls.occupation]: "Software Engineer",
   };
 
-  const validatePerson = getValidator(personV2Url);
+  const validatePersonV1 = getValidator(personV1Url);
+  const validatePersonV2 = getValidator(personV2Url);
   const validateEmployee = getValidator(employeeV1Url);
 
-  validatePerson(bob);
-  validateEmployee(bob);
-
-  const coerceEmployeeToPerson = (employee) => {
-    const person = JSON.parse(JSON.stringify(employee));
-    if (person[propertyTypeBaseUrls.occupation]) {
-      delete person[propertyTypeBaseUrls.occupation];
-    }
-    return person;
-  };
-
-  validatePerson(coerceEmployeeToPerson(bob));
+  validatePersonV1(bob, "Bob");
+  validatePersonV2(bob, "Bob");
+  validateEmployee(bob, "Bob");
+  //
+  // const coerceEmployeeToPerson = (employee) => {
+  //   const person = JSON.parse(JSON.stringify(employee));
+  //   if (person[propertyTypeBaseUrls.occupation]) {
+  //     delete person[propertyTypeBaseUrls.occupation];
+  //   }
+  //   return person;
+  // };
+  //
+  // validatePerson(coerceEmployeeToPerson(bob), "Coerced Bob");
 };
 
 main().then((r) => {});

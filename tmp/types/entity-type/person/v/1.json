@@ -12,8 +12,5 @@
       "$ref": "http://127.0.0.1:1337/types/property-type/age/v/1"
     }
   },
-  "required": [
-    "http://127.0.0.1:1337/types/property-type/name/",
-    "http://127.0.0.1:1337/types/property-type/age/"
-  ]
+  "required": ["http://127.0.0.1:1337/types/property-type/age/"]
 }
