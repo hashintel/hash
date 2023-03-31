@@ -1,0 +1,12 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "$id": "http://127.0.0.1:1337/types/property-type/occupation/v/1",
+  "kind": "propertyType",
+  "title": "Occupation",
+  "description": "The position or field of work this thing is in.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://127.0.0.1:1337/meta.json",
+  "$id": "http://127.0.0.1:1337/types/entity-type/employee/v/1",
+  "kind": "entityType",
+  "type": "object",
+  "title": "Employee",
+  "allOf": [
+    {
+      "$ref": "http://127.0.0.1:1337/types/entity-type/person/v/2"
+    }
+  ],
+  "properties": {
+    "http://127.0.0.1:1337/types/property-type/occupation/": {
+      "$ref": "http://127.0.0.1:1337/types/property-type/occupation/v/1"
+    }
+  },
+  "required": ["http://127.0.0.1:1337/types/property-type/occupation/"],
+  "links": {}
+}

@@ -1,11 +1,20 @@
 import fetch from "node-fetch";
 import Ajv2019 from "ajv/dist/2019.js";
-import {URL} from "node:url";
-import {inspect} from "node:util";
+import { URL } from "node:url";
 import betterAjvErrors from "better-ajv-errors";
 
-const META_SCHEMA_URL = "http://127.0.0.1:1337/meta.json";
 const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
+const ENTITY_TYPE_META_SCHEMA_URL = "http://127.0.0.1:1337/meta.json";
+const PROPERTY_TYPE_META_SCHEMA_URL =
+  "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type";
+const DATA_TYPE_META_SCHEMA_URL =
+  "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
+
+const TYPE_SYSTEM_META_SCHEMA_URLS = [
+  ENTITY_TYPE_META_SCHEMA_URL,
+  PROPERTY_TYPE_META_SCHEMA_URL,
+  DATA_TYPE_META_SCHEMA_URL,
+];
 
 /**
  * We need a way to identify custom metaschemas (not a JSON schema draft), so we can squash them
@@ -15,8 +24,8 @@ const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
 const metaSchemaComponents = [
   JSON_SCHEMA_DRAFT_URL,
   "types/modules/graph", // This is part of the root of the paths we store Block Protocol type system metaschemas on
-  META_SCHEMA_URL.split("/").pop(), // we only check against a piece of the path just in case some of the transformation steps below rewrites or drops the URL
-]
+  ENTITY_TYPE_META_SCHEMA_URL.split("/").pop(), // we only check against a piece of the path just in case some of the transformation steps below rewrites or drops the URL
+];
 
 /**
  * Keeps track of types to explore, types that have been explored, and their resolved dependency graph as its explored.
@@ -37,7 +46,10 @@ class TraversalContext {
   }
 
   encounter(sourceTypeId, dependencyTypeId) {
-    if (!this.explored.has(dependencyTypeId) && !this.exploreQueue.has(dependencyTypeId)) {
+    if (
+      !this.explored.has(dependencyTypeId) &&
+      !this.exploreQueue.has(dependencyTypeId)
+    ) {
       // console.log(`Adding ${dependencyTypeId} to explore queue, as it was encountered as a dependency of ${sourceTypeId}.`,);
       this.exploreQueue.add(dependencyTypeId);
     } else {
@@ -64,15 +76,17 @@ class TraversalContext {
  * @param obj
  * @param callback
  */
-const recurseWithCallBack = (key, obj, callback) => {
+const recurseWithCallBack = (key, obj, callback, ignoreKeys) => {
   if (typeof obj === "object") {
     for (const key in obj) {
-      recurseWithCallBack(key, obj[key], callback);
+      if (!ignoreKeys || !ignoreKeys.includes(key)) {
+        recurseWithCallBack(key, obj[key], callback);
+      }
     }
   } else {
     callback(key, obj);
   }
-}
+};
 
 /**
  * Recurse inside an object and get all url string values from within it
@@ -90,7 +104,10 @@ const getUrls = (obj) => {
     try {
       const _url = new URL(obj);
 
-      if (key === "$schema" || metaSchemaComponents.some((component) => obj.includes(component))) {
+      if (
+        key === "$schema" ||
+        metaSchemaComponents.some((component) => obj.includes(component))
+      ) {
         metaSchemaUrls.add(obj);
       } else {
         otherSchemaUrls.add(obj);
@@ -98,11 +115,13 @@ const getUrls = (obj) => {
     } catch (e) {
       // ignore
     }
-  }
+  };
 
-  recurseWithCallBack(null, obj, parseUrl);
-  return {metaSchemaUrls, otherSchemaUrls};
-}
+  // We don't want to look inside the `required` array, as it contains Base URLs which may not
+  // return anything
+  recurseWithCallBack(null, obj, parseUrl, ["required"]);
+  return { metaSchemaUrls, otherSchemaUrls };
+};
 
 export const traverseAndCollateSchemas = async (traversalContext) => {
   const fetchQueue = [];
@@ -129,35 +148,37 @@ export const traverseAndCollateSchemas = async (traversalContext) => {
 
     // console.log(`Fetching ${typeId}...`);
 
-    addFetchPromise((async () => {
-      try {
-        return (await fetch(typeId)).json()
-      } catch (e) {
-        console.error(`Failed to fetch ${typeId}: ${e}`);
-        throw e;
-      }
-    })().then((type) => {
-      traversalContext.contents[typeId] = type;
+    addFetchPromise(
+      (async () => {
+        try {
+          return (await fetch(typeId)).json();
+        } catch (e) {
+          console.error(`Failed to fetch ${typeId}: ${e}`);
+          throw e;
+        }
+      })().then((type) => {
+        traversalContext.contents[typeId] = type;
 
-      const {metaSchemaUrls, otherSchemaUrls} = getUrls(type);
+        const { metaSchemaUrls, otherSchemaUrls } = getUrls(type);
 
-      Array.from(metaSchemaUrls).forEach((url) => {
-        traversalContext.metaSchemaUrls.add(url);
-        traversalContext.encounter(typeId, url);
-      });
+        Array.from(metaSchemaUrls).forEach((url) => {
+          traversalContext.metaSchemaUrls.add(url);
+          traversalContext.encounter(typeId, url);
+        });
 
-      Array.from(otherSchemaUrls).forEach((url) => {
-        traversalContext.otherSchemaUrls.add(url);
-        traversalContext.encounter(typeId, url);
-      });
-    }));
+        Array.from(otherSchemaUrls).forEach((url) => {
+          traversalContext.otherSchemaUrls.add(url);
+          traversalContext.encounter(typeId, url);
+        });
+      }),
+    );
   }
 };
 
 // TODO: make this a more general 'collapseSchema' function (not limited to metaschemas)
 const generateCombinedMetaSchema = (root, schemas) => {
   const combinedSchema = schemas[root];
-  combinedSchema.definitions = {};
+  combinedSchema.$defs ??= {};
 
   const resolveRef = (ref) => {
     if (ref.startsWith("#")) {
@@ -166,11 +187,16 @@ const generateCombinedMetaSchema = (root, schemas) => {
     } else {
       // Remote reference
       const [url, pointer] = ref.split("#");
-      if (url === JSON_SCHEMA_DRAFT_URL || url === META_SCHEMA_URL) {
+      if (
+        url === JSON_SCHEMA_DRAFT_URL ||
+        url === ENTITY_TYPE_META_SCHEMA_URL
+      ) {
         return url;
       }
       if (pointer) {
-        throw new Error(`Remote references with pointers are not supported: ${ref}`);
+        throw new Error(
+          `Remote references with pointers are not supported: ${ref}`,
+        );
       }
 
       const remoteSchema = schemas[url];
@@ -178,7 +204,7 @@ const generateCombinedMetaSchema = (root, schemas) => {
         throw new Error(`Could not resolve remote reference: ${ref}`);
       }
       // split the url by '/' and take the last component
-      const resolvedUrl = url.split('/').pop();
+      const resolvedUrl = url.split("/").pop();
 
       const localRef = `#/$defs/${resolvedUrl}`;
       if (remoteSchema.$id) {
@@ -224,11 +250,13 @@ const generateCombinedMetaSchema = (root, schemas) => {
 const getConfiguredAjv = async (schemaUrls) => {
   const traversalContext = new TraversalContext();
 
-  const metaSchema = await (await fetch(META_SCHEMA_URL)).json();
+  for (const metaSchemaUrl of TYPE_SYSTEM_META_SCHEMA_URLS) {
+    const metaSchema = await (await fetch(metaSchemaUrl)).json();
 
-  traversalContext.metaSchemaUrls.add(META_SCHEMA_URL);
-  traversalContext.contents[META_SCHEMA_URL] = metaSchema;
-  traversalContext.exploreQueue.add(META_SCHEMA_URL);
+    traversalContext.metaSchemaUrls.add(metaSchemaUrl);
+    traversalContext.contents[metaSchemaUrl] = metaSchema;
+    traversalContext.exploreQueue.add(metaSchemaUrl);
+  }
 
   for (const url of schemaUrls) {
     const schema = await (await fetch(url)).json();
@@ -240,14 +268,6 @@ const getConfiguredAjv = async (schemaUrls) => {
 
   await traverseAndCollateSchemas(traversalContext);
 
-  const generatedMetaSchema = generateCombinedMetaSchema(META_SCHEMA_URL, traversalContext.contents);
-  // Add `unevaluatedProperties` to the metaschema
-  generatedMetaSchema.properties.unevaluatedProperties = {
-    type: "boolean",
-  }
-
-  const otherUrls = Array.from(traversalContext.otherSchemaUrls);
-
   // TODO: For each entity type, make an accompanying synthetic type to validate an array of linked
   //  entities (endpoints of links, not the links themselves)
 
@@ -257,24 +277,79 @@ const getConfiguredAjv = async (schemaUrls) => {
       TODO: we can perhaps remove this by manually calling `.addVocabulary` for our additional
         keywords such as `kind`, `links`, etc.
      */
-    strictSchema: false
+    strictSchema: false,
   });
-  try {
-    ajv = ajv.addMetaSchema(generatedMetaSchema)
-  } catch (e) {
-    console.error(`Failed to add meta schema: ${e}`);
+
+  let generatedEntityTypeMetaSchema;
+  const failures = [];
+
+  for (const metaSchemaUrl of TYPE_SYSTEM_META_SCHEMA_URLS) {
+    let combinedMetaSchema;
+    try {
+      combinedMetaSchema = generateCombinedMetaSchema(
+        metaSchemaUrl,
+        traversalContext.contents,
+      );
+    } catch (e) {
+      failures.push(metaSchemaUrl);
+      console.error(
+        `Failed to generate combined meta schema [${metaSchemaUrl}]:\n${e}`,
+      );
+    }
+
+    if (metaSchemaUrl === ENTITY_TYPE_META_SCHEMA_URL) {
+      // Add `unevaluatedProperties` to the metaschema as we wish to implicitly add this when validating
+      // entity types
+      combinedMetaSchema.properties.unevaluatedProperties = {
+        type: "boolean",
+      };
+      generatedEntityTypeMetaSchema = combinedMetaSchema;
+    }
+
+    try {
+      ajv = ajv.addMetaSchema(combinedMetaSchema);
+    } catch (e) {
+      failures.push(metaSchemaUrl);
+      console.error(`Failed to add meta schema [${metaSchemaUrl}]:\n${e}`);
+
+      if (ajv.errors) {
+        const jsonDraftMetaSchema = ajv.getSchema(JSON_SCHEMA_DRAFT_URL);
+        for (const error of ajv.errors) {
+          console.log(
+            betterAjvErrors(jsonDraftMetaSchema, combinedMetaSchema, [error], {
+              indent: 2,
+            }),
+          );
+        }
+      }
+    }
   }
 
-  const failures = []
+  if (failures.length > 0) {
+    throw new Error(`Failed to add schemas: ${failures.join(", ")}`);
+  }
+
+  const otherUrls = Array.from(traversalContext.otherSchemaUrls);
+
   for (const url of otherUrls) {
     const schema = traversalContext.contents[url];
-    if (!ajv.validateSchema(schema)) {
-      console.log(`Failed to validate schema "${url}"`);
-      for (const error of ajv.errors) {
-        console.log(betterAjvErrors(generatedMetaSchema, schema, [error], {indent: 2}));
-      }
-      console.log("\n\n")
 
+    try {
+      const valid = ajv.validateSchema(schema);
+      if (!valid) {
+        throw new Error("Invalid schema");
+      }
+    } catch (e) {
+      console.log(`Failed to validate schema "${url}": ${e}`);
+      if (ajv.errors) {
+        for (const error of ajv.errors) {
+          console.log(
+            betterAjvErrors(generatedEntityTypeMetaSchema, schema, [error], {
+              indent: 2,
+            }),
+          );
+        }
+      }
       failures.push(url);
       continue;
     }
@@ -283,17 +358,22 @@ const getConfiguredAjv = async (schemaUrls) => {
   }
 
   if (failures.length > 0) {
-    throw new Error(`Failed to add schemas: ${failures.join(', ')}`);
+    throw new Error(`Failed to add schemas: ${failures.join(", ")}`);
   }
   return ajv;
-}
+};
+
+const propertyTypeBaseUrls = {
+  name: "http://127.0.0.1:1337/types/property-type/name/",
+  age: "http://127.0.0.1:1337/types/property-type/age/",
+  occupation: "http://127.0.0.1:1337/types/property-type/occupation/",
+};
 
 const main = async () => {
-  const personV2Url = "http://127.0.0.1:1337/person/v/2";
+  const personV2Url = "http://127.0.0.1:1337/types/entity-type/person/v/2";
+  const employeeV1Url = "http://127.0.0.1:1337/types/entity-type/employee/v/1";
 
-  const ajv = await getConfiguredAjv([
-    personV2Url
-  ]);
+  const ajv = await getConfiguredAjv([personV2Url, employeeV1Url]);
 
   const getValidator = (url) => {
     const { schema } = ajv.getSchema(url);
@@ -306,19 +386,32 @@ const main = async () => {
     schema.unevaluatedProperties = false;
     ajv.addSchema(schema);
 
-    return ajv.getSchema(url)
-  }
+    const validate = ajv.getSchema(url);
+
+    return (data) => {
+      const valid = validate(data);
+      if (!valid) {
+        console.log(
+          betterAjvErrors(validate.schema, data, validate.errors, {
+            indent: 2,
+          }),
+        );
+      }
+      return valid;
+    };
+  };
+
+  const bob = {
+    [propertyTypeBaseUrls.name]: "Bob",
+    [propertyTypeBaseUrls.age]: 30,
+    [propertyTypeBaseUrls.occupation]: "Software Engineer",
+  };
 
   const validatePerson = getValidator(personV2Url);
-  const bob = {
-  }
+  const validateEmployee = getValidator(employeeV1Url);
 
-  const valid = validatePerson(bob);
-
-  if (!valid) {
-    console.log(betterAjvErrors(validatePerson.schema, bob, validatePerson.errors, {indent: 2}));
-  }
+  validatePerson(bob);
+  validateEmployee(bob);
 };
 
-main().then((r) => {
-});
+main().then((r) => {});

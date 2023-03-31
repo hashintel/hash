@@ -1,8 +1,0 @@
-{
-  "$schema": "http://127.0.0.1:1337/meta.json",
-  "$id": "http://127.0.0.1:1337/person/v/1",
-  "kind": "entityType",
-  "type": "object",
-  "title": "Person",
-  "properties": {}
-}

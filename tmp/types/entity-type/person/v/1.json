@@ -1,0 +1,19 @@
+{
+  "$schema": "http://127.0.0.1:1337/meta.json",
+  "$id": "http://127.0.0.1:1337/types/entity-type/person/v/1",
+  "kind": "entityType",
+  "type": "object",
+  "title": "Person",
+  "properties": {
+    "http://127.0.0.1:1337/types/property-type/name/": {
+      "$ref": "http://127.0.0.1:1337/types/property-type/name/v/1"
+    },
+    "http://127.0.0.1:1337/types/property-type/age/": {
+      "$ref": "http://127.0.0.1:1337/types/property-type/age/v/1"
+    }
+  },
+  "required": [
+    "http://127.0.0.1:1337/types/property-type/name/",
+    "http://127.0.0.1:1337/types/property-type/age/"
+  ]
+}
