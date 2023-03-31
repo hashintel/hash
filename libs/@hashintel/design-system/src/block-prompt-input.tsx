@@ -1,7 +1,9 @@
 import {
+  Box,
   Button,
   buttonBaseClasses,
   Collapse,
+  InputBase,
   inputBaseClasses,
   outlinedInputClasses,
   SxProps,
@@ -9,7 +11,15 @@ import {
   TextFieldProps,
   Theme,
 } from "@mui/material";
-import { FormEvent, forwardRef, FunctionComponent, ReactNode } from "react";
+import {
+  FormEvent,
+  forwardRef,
+  FunctionComponent,
+  ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { BlockErrorMessage } from "./block-error-message";
 
@@ -31,11 +41,56 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
         sx,
         buttonSx,
         onSubmit,
+        onChange,
         disabled,
         ...props
       },
-      inputRef,
+      ref,
     ) => {
+      const inputRef = useRef<HTMLTextAreaElement | null>();
+      const [hasMultipleLines, setHasMultipleLines] = useState(false);
+
+      const calculateMultipleLines = () => {
+        if (inputRef.current) {
+          const computedStyles = window.getComputedStyle(
+            inputRef.current,
+            null,
+          );
+
+          const lineHeight = parseInt(
+            computedStyles.getPropertyValue("line-height"),
+            10,
+          );
+          const paddingLeft = parseInt(
+            computedStyles.getPropertyValue("padding-left"),
+            10,
+          );
+
+          const width = inputRef.current.offsetWidth;
+
+          // Calculate width and height of the text inside the input
+          const temp = document.createElement("span");
+          temp.style.fontSize = computedStyles.fontSize;
+          temp.style.fontFamily = computedStyles.fontFamily;
+          temp.style.lineHeight = computedStyles.lineHeight;
+          temp.style.maxWidth = computedStyles.width;
+          temp.style.wordBreak = "break-word";
+          temp.style.whiteSpace = "break-spaces";
+          temp.textContent = inputRef.current.value;
+          document.body.appendChild(temp);
+          const textWidth = temp.offsetWidth;
+          const textHeight = temp.offsetHeight;
+          document.body.removeChild(temp);
+
+          const firstLineOverflowsButton =
+            width - paddingLeft - textWidth - 170 < 0;
+
+          const multipleLines = textHeight / lineHeight > 1;
+
+          setHasMultipleLines(firstLineOverflowsButton || multipleLines);
+        }
+      };
+
       const submit = (event: FormEvent) => {
         event.preventDefault();
         onSubmit?.();
@@ -53,21 +108,36 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                 onSubmit?.(event);
               }
             }}
+            onChange={(event) => {
+              calculateMultipleLines();
+              onChange(event);
+            }}
             placeholder="Enter a prompt to generate image, and hit enter"
             required
-            ref={inputRef}
+            ref={ref}
+            inputRef={inputRef}
             disabled={disabled}
             sx={[
-              ({ palette }) => ({
+              ({ palette, transitions, spacing }) => ({
+                display: "flex",
+                alignItems: "flex-start",
                 maxWidth: 580,
                 width: 1,
+                [`& .${inputBaseClasses.root}`]: {
+                  width: 1,
+                },
+                [`& .${inputBaseClasses.focused}, .${inputBaseClasses.disabled}`]:
+                  {
+                    boxShadow: "0px 1px 5px rgba(27, 33, 40, 0)",
+                  },
                 [`& .${inputBaseClasses.input}`]: {
                   minHeight: "unset",
                   fontSize: 16,
                   lineHeight: "21px",
                   paddingY: 2.125,
-                  paddingLeft: 2.75,
-                  paddingRight: 0,
+                  paddingLeft: `${spacing(2.75)} !important`,
+                  paddingBottom: hasMultipleLines ? 7.5 : 2.125,
+                  transition: transitions.create("padding-bottom"),
                 },
                 [`& .${inputBaseClasses.disabled}`]: {
                   background: palette.gray[10],
@@ -75,6 +145,18 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                 },
                 [`& .${outlinedInputClasses.notchedOutline}`]: {
                   border: `1px solid ${palette.gray[20]}`,
+                  transition: transitions.create("border-color"),
+                },
+                ":hover": {
+                  [`& .${outlinedInputClasses.notchedOutline}`]: {
+                    borderColor: palette.gray[40],
+                  },
+                },
+                [`& .${inputBaseClasses.focused}`]: {
+                  [`& .${outlinedInputClasses.notchedOutline}`]: {
+                    borderWidth: "1px !important",
+                    borderColor: `${palette.blue[70]} !important`,
+                  },
                 },
               }),
               ...(Array.isArray(sx) ? sx : [sx]),
@@ -87,6 +169,11 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                   disabled={disabled}
                   sx={[
                     ({ palette }) => ({
+                      background: "transparent",
+                      borderRadius: 0,
+                      borderTopLeftRadius: hasMultipleLines ? 10 : 0,
+                      transition: ({ transitions }) =>
+                        transitions.create("border-top-left-radius"),
                       alignSelf: "flex-end",
                       fontSize: 13,
                       fontWeight: 700,
@@ -100,9 +187,14 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                       maxWidth: 168,
                       minHeight: 51,
                       whiteSpace: "nowrap",
+                      position: "absolute",
+                      right: 0,
                       [`&.${buttonBaseClasses.disabled}`]: {
                         color: palette.common.black,
                         background: "none",
+                      },
+                      ":hover": {
+                        color: palette.blue[70],
                       },
                     }),
                     ...(Array.isArray(buttonSx) ? buttonSx : [buttonSx]),
