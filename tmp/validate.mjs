@@ -76,6 +76,7 @@ class TraversalContext {
  * @param key
  * @param obj
  * @param callback
+ * @param ignoreKeys
  */
 const recurseWithCallBack = (key, obj, callback, ignoreKeys) => {
   if (typeof obj === "object") {
@@ -382,21 +383,26 @@ const main = async () => {
       throw new Error(`Could not find schema: ${url}`);
     }
 
-    ajv.removeSchema(url);
+    // Create a synthetic schema to inject `unevaluatedProperties: false` into the schema
 
-    schema.unevaluatedProperties = false;
-    ajv.addSchema(schema);
+    const syntheticSchema = JSON.parse(JSON.stringify(schema));
+    syntheticSchema.unevaluatedProperties = false;
+    syntheticSchema.$id = `${syntheticSchema.$id}-synthetic`;
 
-    const validate = ajv.getSchema(url);
+    ajv.addSchema(syntheticSchema);
+
+    const validate = ajv.getSchema(syntheticSchema.$id);
 
     return (data) => {
       const valid = validate(data);
       if (!valid) {
+        console.log(`Failed to validate data against schema "${url}":`);
         console.log(
           betterAjvErrors(validate.schema, data, validate.errors, {
             indent: 2,
           }),
         );
+        console.log();
       }
       return valid;
     };
@@ -413,6 +419,16 @@ const main = async () => {
 
   validatePerson(bob);
   validateEmployee(bob);
+
+  const coerceEmployeeToPerson = (employee) => {
+    const person = JSON.parse(JSON.stringify(employee));
+    if (person[propertyTypeBaseUrls.occupation]) {
+      delete person[propertyTypeBaseUrls.occupation];
+    }
+    return person;
+  };
+
+  validatePerson(coerceEmployeeToPerson(bob));
 };
 
 main().then((r) => {});
