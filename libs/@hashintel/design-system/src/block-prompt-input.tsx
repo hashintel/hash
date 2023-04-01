@@ -118,7 +118,6 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
               calculateMultipleLines();
               onChange?.(event);
             }}
-            placeholder="Enter a prompt to generate image, and hit enter"
             required
             ref={ref}
             inputRef={inputRef}
