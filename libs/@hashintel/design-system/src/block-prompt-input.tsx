@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   buttonBaseClasses,
   Collapse,
@@ -103,7 +104,7 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
       };
 
       return (
-        <form onSubmit={submit}>
+        <Box component="form" onSubmit={submit} sx={{ mb: 0 }}>
           <TextField
             {...props}
             autoFocus
@@ -216,7 +217,7 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
               <BlockErrorMessage apiName={apiName} sx={{ mt: 1 }} />
             </Collapse>
           ) : null}
-        </form>
+        </Box>
       );
     },
   );
