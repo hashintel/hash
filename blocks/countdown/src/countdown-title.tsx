@@ -16,13 +16,33 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
   const textareaEl = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!textareaEl.current) return;
-    textareaEl.current.textContent = value ?? "";
-  }, [value]);
+    const textarea = textareaEl.current;
+    if (!textarea) return;
+    textarea.textContent = value ?? "";
+
+    // Calling this whenever value changes makes it so the cursor position is lost in some browsers
+    // (firefox and safari for example), so we leave it out of the dependency array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const textarea = textareaEl.current;
+    if (!textarea) return;
+
+    const onKeyDown = ({ code }: KeyboardEvent) => {
+      if (code === "Enter") {
+        textarea.blur();
+        onBlur();
+      }
+    };
+
+    textarea.addEventListener("keydown", onKeyDown);
+    return () => textarea.removeEventListener("keydown", onKeyDown);
+  }, [onBlur]);
 
   const handleChange = (evt: ChangeEvent<HTMLDivElement>) => {
     if (!textareaEl.current) return;
-    textareaEl.current.textContent = evt.target.textContent;
+
     onChangeText(evt.currentTarget.textContent ?? "");
   };
 
