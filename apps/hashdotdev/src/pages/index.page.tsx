@@ -190,7 +190,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: { xs: 0, md: 7, lg: 8 } }}>HASH</Box>}
+            title={<Box sx={{ mt: { xs: 0, md: 7, lg: 8 } }}>HASH App</Box>}
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/apps/hash"
@@ -231,7 +231,9 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH Engine</Box>}
+            title={
+              <Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH Simulations</Box>
+            }
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/apps/engine"

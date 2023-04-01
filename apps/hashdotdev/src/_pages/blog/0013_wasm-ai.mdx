@@ -1,0 +1,96 @@
+---
+authors:
+  - name: Jude Allred
+    jobTitle: Co-founder, HASH
+    photo: blog/authors/jude-allred.webp
+postPhoto: blog/0013_wasm-ai/13_wasm-ai.webp
+title: "WebAssembly’s second-order impact on AI"
+subtitle: "What's new in Wasm and what it means for running large models client-side, in-browser"
+date: "2023-03-31"
+---
+
+We first built HASH’s agent-based modeling engine in Rust, and compiled it to WebAssembly, back in 2019. This allowed users to prototype and execute simulations quickly and locally in their browser, offloading heavy simulation workloads to beefy (and more costly) cloud servers only when required at the point of experimentation.
+
+Fast-forward to 2023 and we now rely on Wasm for a whole lot more: as a cross-language single source of truth for the [Block Protocol type system](https://blockprotocol.org/docs/types), providing both type definitions and runtime schema validation across both the Block Protocol and HASH.
+
+We remain huge proponents of Wasm and its ecosystem. Initially seen by many as “just” a secure and high performance environment for web browsers, Wasm today marches steadily toward becoming a universal runtime and interop language of choice. And although we’d previously lamented the slow rollout of compiler support for languages to target Wasm, the last year has brought a number of exciting developments.
+
+## WebAssembly highlights from 2022-2023
+
+There are plenty of quality articles out there aggregating updates on the “state of WebAssembly” which detail specific language and runtime changes from the last year. One of our [favorites](https://platform.uno/blog/the-state-of-webassembly-2022-and-2023/) captures some of the most significant:
+
+- Ongoing enhanced support for Wasm in browsers, particularly in Safari
+- More sophisticated runtime abilities in Wasm, especially SIMD and Tail Calls
+- Garbage Collection is coming to WebAssembly soon
+- [Docker Wasm support](https://docs.docker.com/desktop/wasm/) is now in beta
+
+Alongside these items, we’d add in:
+
+- Growing Wasmtime capabilities, including [Wasmtime v1.0](https://bytecodealliance.org/articles/wasmtime-1-0-fast-safe-and-production-ready) and its astonishing speed gains and industry adoption – your language of choice can probably invoke a Wasm module like a library, and your platform of choice can probably execute a Wasm module like a binary
+- The near-term addition of WebGPU, a major replacement for WebGL providing (...with some glue needed) GPU access for Wasm in the browser
+
+While some of these changes alter _how we use_ WebAssembly, others influence folks’ _decision to use_ Wasm in the first place. We expect both to contribute to an acceleration in the ecosystem’s growth.
+
+## Ecosystem expectations
+
+### 1. Wasm technical changes will accelerate compiler and tooling support across many more languages
+
+We underappreciated the significance of WebAssembly’s absence of a garbage collector. Without it, languages which expect a garbage collector to be running (most modern compiled languages sans Rust) face a significant hurdle of having to bundle their own garbage collector into their Wasm binary. Some projects, most notably Blazor for the .NET language family, manage this impressively but nonetheless wrestle with a horrible task: forfeit the well-proven native garbage collectors and roll your own, just for Wasm, to bloat your binary and perform in a sub-par way.
+
+Well, trouble no more– Garbage Collection has strong indications of coming to WebAssembly, most likely with an approach of exposing the system-native garbage collectors for Wasm modules that need them, and leaving them off for modules which don’t. With GC arriving, (and also an honorable mention to tail recursion), we expect to see substantially better tooling and support for Java, Scala, Scheme, Go, Haskel, C# and the .NET family, and the rest of our garbage-collected friends. We may also see improvements for Python, which is already quite well supported but may enjoy the native GC, and even some [utility in Rust](https://github.com/rustwasm/wasm-pack/issues/930).
+
+When it comes to Wasm, Rust remains [dominant in terms of _usage_](https://blog.scottlogic.com/2022/06/20/state-of-wasm-2022.html), as well as being at the forefront of tooling for _compiling_ into Wasm. We expect Rust will remain the mature “hardcore” language and proving ground for some time, but the future for other languages has brightened substantially.
+
+We believe that WebAssembly is well on its way to being a standard compile target for your favorite language, available as a choice in a dropdown menu in your favorite IDE. There are [challenges to overcome](https://digest.browsertech.com/archive/browsertech-digest-the-webassembly-rift/), but we see the path ahead and we’re ready to build.
+
+For a technical look at how these Wasm runtime features come together to create a change in kind, see this [delightful call to arms](https://www.wingolog.org/archives/2023/03/20/a-world-to-win-webassembly-for-the-rest-of-us) for the Scheme community to bring its compilers and runtimes into the Wasm ecosystem.
+
+### 2. Docker Hub may popularize Wasm binaries as general-purpose deployment targets
+
+Runtime support for WebAssembly has made leaps this year, with Wasmtime and Docker (by way of Wasmtime) leading the pack. Although we view Wasmtime as the critical technical component here, Docker has space to provide a meaningfully important user experience within the WebAssembly ecosystem.
+
+Being able to browse Wasm binaries in Docker Hub and instantiate them with a simple Docker Compose will provide push button access to WebAssembly for huge numbers of developers. Countless projects whose deployment target is a Docker container can switch to targeting a Wasm binary to realize the Wasm runtime and portability benefits.
+
+This in turn will likely motivate further language tooling to evolve in support of compiling to Wasm, and many IDEs who already integrate with Docker may choose to do so more directly with Wasm, as well.
+
+We’re yet to see exactly what Docker has in mind for the extent of their Wasm support, but there are reasons to be optimistic. Docker knows that they have an opportunity to become a sharing hub for Wasm binaries, and are surely well aware that many classic uses for Docker are obviated by WebAssembly. Eager to show off their new Wasm capabilities, they've produced some extremely "vibey" marketing collateral, various of which featured on their homepage until earlier this week.
+
+<figure>
+  <img
+    width="1110px"
+    height="733px"
+    src="/blog/0013_wasm-ai/docker-wasm-vibes.webp"
+    alt="WASM IS AWESOME. docker+WASM"
+  />
+  <figcaption>Brace yourself... Docker really loves Wasm.</figcaption>
+</figure>
+
+### 3. Wasm plus WebGPU delivers a general-purpose, portable AI compilation target
+
+WebGPU is coming, which brings fresh shader programming to the browser. This previously existed via WebGL, however WebGPU brings higher performance and specific designs for GPU-powered processing. This on its own creates an interesting and compelling case for browser-based games, and the gap between the capabilities of a web browser and a native application are ever narrowing.
+
+Something we’re seeing in today’s AI boom is a common pattern of AI models being served as SaaS platforms. The process of incorporating an AI into, say, a documentation website, involves purchasing API credits and communicating back and forth across the internet to the AI black box. This model will likely persist for some time, but we think that as the open source community catches up with the big players, we’ll start seeing more commodity AIs.
+
+So let’s say we have a model trained to have conversations about whatever content I put on my website, guiding users to specific sections or encouraging calls to action. Wasm + WebGPU gives us a platform for embedding that AI ourselves. In this manner, websites (or mobile apps, or any application really) could package AI models in just the same way they include software libraries, bypassing hosted API subscriptions and relying on client-side execution.
+
+WebGPU is new enough that there aren’t stable tools for this yet, however projects like [`wasm_webgpu`](https://github.com/juj/wasm_webgpu) are coming to life to make the task easier, and projects like [`web-stable-diffusion`](https://github.com/mlc-ai/web-stable-diffusion) are proving out that the pieces work. Web-stable-diffusion in particular is worth a glance, as they’ve successfully compiled stable diffusion all the way through to a Wasm binary that runs shaders in WebGPU to provide fully client-side execution. There’s work to be done to make this a simple task rather than a dedicated project, and indeed it still depends on running Chrome’s experimental mode, but the proof of work is complete.
+
+<figure>
+  <img
+    width="1055px"
+    height="918px"
+    src="/blog/0013_wasm-ai/web-stable-diffusion-screenshot_70.webp"
+    alt="A screenshot of Web Stable Diffusion in action, being used to generate a photorealistic image of an astronaut riding a horse on the planet Mars"
+  />
+  <figcaption>
+    We're sure the horse doesn't require oxygen and is totally fine.
+  </figcaption>
+</figure>
+
+### Building toward Wasm AI
+
+Drawing upon these advances, we believe that Wasm makes an ideal universal runtime for AI.
+
+By using a Wasm compile target and publishing to Docker Hub, AI authors will be able to share and browse and easily interact with a variety of models. When it’s time to use those models, take that same Wasm binary and run it directly in your application. Open source projects will push AI packages into mainstream use, and AI-enabled software will become as casual as web-enabled. This, we think, is an absolutely killer use of Wasm, and one which will provide an easy, affordable and attractive vector for consuming AI models on the web.
+
+For our own part, we’ll be building client-side Wasm AI models into the Block Protocol’s [AI Text](https://blockprotocol.org/@hash/blocks/ai-text), [AI Image](https://blockprotocol.org/@hash/blocks/ai-image), and [AI Chat](https://blockprotocol.org/@hash/blocks/ai-chat) blocks to provide users with the choice between using “traditional” API-gated large language models in the cloud, and memory-optimized (free to use!) models which can be run client-side in their browsers. While the required technologies are a long way from ready for mass-adoption, we’ll be writing up our experiments and build process as we go, as well as publishing best-practice guides and utilities to help others do the same. To receive updates when these posts go live, enter your email address below.

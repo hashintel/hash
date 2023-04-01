@@ -22,5 +22,6 @@ async fn main() -> Result<(), GraphError> {
             subcommand::completions(args);
             Ok(())
         }
+        Subcommand::Snapshot(args) => subcommand::snapshot(args).await,
     }
 }
