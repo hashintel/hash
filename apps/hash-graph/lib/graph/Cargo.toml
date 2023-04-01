@@ -16,7 +16,7 @@ clap = { version = "4.2.1", features = ["derive", "env"], optional = true }
 time = { version = "0.3.20", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
-futures = "0.3.27"
+futures = "0.3.28"
 hash-status = { path = "../../../../libs/@local/status/crate" }
 hyper = "0.14.25"
 mime = "0.3.17"
