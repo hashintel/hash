@@ -11,8 +11,8 @@ graph-test-data = { path = "../test_data" }
 error-stack = "0.3.1"
 futures = "0.3.27"
 rand = "0.8.5"
-serde = { version = "1.0.158", features = ["derive"] }
-serde_json = "1.0.94"
+serde = { version = "1.0.159", features = ["derive"] }
+serde_json = "1.0.95"
 time = "0.3.20"
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.8", default-features = false }
