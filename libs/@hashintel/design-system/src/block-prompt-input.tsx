@@ -62,6 +62,10 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
             computedStyles.getPropertyValue("padding-left"),
             10,
           );
+          const paddingRight = parseInt(
+            computedStyles.getPropertyValue("padding-right"),
+            10,
+          );
 
           const width = inputRef.current.offsetWidth;
 
@@ -80,7 +84,12 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
           document.body.removeChild(temp);
 
           const firstLineOverflowsButton =
-            width - paddingLeft - textWidth - 170 < 0;
+            width -
+              paddingLeft -
+              paddingRight -
+              textWidth -
+              (hasMultipleLines ? 170 : 0) <
+            0;
 
           const multipleLines = textHeight / lineHeight > 1;
 
@@ -132,7 +141,7 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                   fontSize: 16,
                   lineHeight: "21px",
                   paddingY: 2.125,
-                  paddingLeft: `${spacing(2.75)} !important`,
+                  paddingX: `${spacing(2.75)} !important`,
                   paddingBottom: hasMultipleLines ? 7.5 : 2.125,
                   transition: transitions.create("padding-bottom"),
                 },
@@ -184,7 +193,7 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                       maxWidth: 168,
                       minHeight: 51,
                       whiteSpace: "nowrap",
-                      position: "absolute",
+                      position: hasMultipleLines ? "absolute" : "relative",
                       right: 0,
                       [`&.${buttonBaseClasses.disabled}`]: {
                         color: palette.common.black,
