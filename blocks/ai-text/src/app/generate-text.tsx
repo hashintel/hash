@@ -102,12 +102,12 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     inputRef.current?.blur();
   }, [loading, model, promptText, serviceModule]);
 
-  const discard = () => {
+  const handleDiscard = () => {
     setAnimatingOut(true);
   };
 
   const regeneratePrompt = () => {
-    discard();
+    handleDiscard();
     void onSubmit();
   };
 
@@ -195,7 +195,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
         {generatedText && (
           <TextPreview
             onConfirm={confirm}
-            onDiscard={discard}
+            onDiscard={handleDiscard}
             onRegenerate={regeneratePrompt}
             prompt={promptText}
             text={generatedText}
