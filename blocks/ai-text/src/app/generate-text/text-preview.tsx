@@ -153,7 +153,7 @@ export const TextPreview = ({
             })}
           >
             Discard
-            <BroomWideIcon sx={{ fontSize: "Inherit", ml: 1.25 }} />
+            <BroomWideIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
           </Button>
         </Box>
 
