@@ -136,7 +136,7 @@ export const TextPreview = ({
             sx={{ fontSize: 14 }}
           >
             Regenerate output
-            <ArrowRotateLeftIcon sx={{ fontSize: "Inherit", ml: 1.25 }} />
+            <ArrowRotateLeftIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
           </Button>
 
           <Button
