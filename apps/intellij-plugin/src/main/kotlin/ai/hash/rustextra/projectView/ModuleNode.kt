@@ -1,9 +1,5 @@
 package ai.hash.rustextra.projectView
 
-import com.intellij.codeInsight.navigation.NavigationUtil
-import com.intellij.ide.projectView.NodeSortOrder
-import com.intellij.ide.projectView.NodeSortSettings
-import com.intellij.ide.projectView.ProjectView
 import com.intellij.ide.projectView.ViewSettings
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
@@ -11,23 +7,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
-import com.intellij.ui.DoubleClickListener
-import com.intellij.ui.tree.LeafState
-import com.intellij.util.ui.tree.TreeUtil
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
-import javax.swing.JTree
-import javax.swing.event.TreeExpansionEvent
-import javax.swing.event.TreeExpansionListener
-import javax.swing.event.TreeSelectionEvent
-import javax.swing.event.TreeSelectionListener
 
 class ModuleNode(
     project: Project,
-    value: PsiFile,
+    value: ModuleFile,
     viewSettings: ViewSettings?,
     private val children: Collection<AbstractTreeNode<*>>,
-    private var directory: PsiDirectory
 ) :
     PsiFileNode(project, value, viewSettings) {
 
@@ -49,6 +34,6 @@ class ModuleNode(
 
     companion object {
         fun fromPsiFileNode(node: AbstractTreeNode<PsiFile>, settings: ViewSettings?, children: Collection<AbstractTreeNode<*>>, directory: PsiDirectory) =
-            ModuleNode(node.project, node.value, settings, children, directory)
+            ModuleNode(node.project, ModuleFile(node.value, directory), settings, children)
     }
 }

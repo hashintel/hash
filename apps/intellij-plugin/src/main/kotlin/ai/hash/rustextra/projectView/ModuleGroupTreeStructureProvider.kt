@@ -74,4 +74,12 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
 
         return nodes
     }
+
+    override fun getData(selected: MutableCollection<out AbstractTreeNode<*>>, dataId: String): Any? {
+        return if (ModuleFile.DATA_KEY.`is`(dataId)) {
+            selected.filterIsInstance<ModuleNode>().map { node -> node.value }.filterIsInstance<ModuleFile>()
+        } else {
+            null
+        }
+    }
 }

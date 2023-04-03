@@ -3,6 +3,7 @@ package ai.hash.rustextra.projectView
 import com.intellij.lang.FileASTNode
 import com.intellij.lang.Language
 import com.intellij.navigation.ItemPresentation
+import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -15,7 +16,9 @@ import com.intellij.psi.search.PsiElementProcessor
 import com.intellij.psi.search.SearchScope
 import javax.swing.Icon
 
-class Module(private val file: PsiFile, private val directory: PsiDirectory): PsiFile {
+class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory): PsiFile {
+
+
     override fun <T : Any?> getUserData(key: Key<T>): T? {
         return file.getUserData(key)
     }
@@ -141,7 +144,7 @@ class Module(private val file: PsiFile, private val directory: PsiDirectory): Ps
     }
 
     override fun copy(): PsiElement {
-        return Module(file.copy().containingFile, directory)
+        return ModuleFile(file.copy().containingFile, directory)
     }
 
     override fun add(element: PsiElement): PsiElement {
@@ -254,7 +257,10 @@ class Module(private val file: PsiFile, private val directory: PsiDirectory): Ps
 
     // TODO: is this correct?
     override fun setName(name: String): PsiElement {
-        return file.setName(name)
+        val bareName = name.removeSuffix(".rs");
+        val fileName = "${bareName}.rs";
+
+        return ModuleFile(file.setName(fileName) as PsiFile, directory.setName(bareName) as PsiDirectory)
     }
 
     override fun checkSetName(name: String?) {
@@ -315,5 +321,9 @@ class Module(private val file: PsiFile, private val directory: PsiDirectory): Ps
 
     override fun subtreeChanged() {
         file.subtreeChanged();
+    }
+
+    companion object {
+        val DATA_KEY: DataKey<List<ModuleFile>> = DataKey.create("moduleFile.array")
     }
 }
