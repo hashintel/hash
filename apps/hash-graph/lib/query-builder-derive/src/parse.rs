@@ -1,6 +1,6 @@
-use proc_macro::{Literal, TokenStream};
+use proc_macro::TokenStream;
+use syn::spanned::Spanned;
 use virtue::{
-    parse::EnumBody,
     prelude::*,
     utils::{parse_tagged_attribute, ParsedAttribute},
 };
@@ -11,6 +11,9 @@ pub(crate) fn parse(input: TokenStream) -> Result<TokenStream> {
     let parse = Parse::new(input)?;
 
     let (mut generator, attributes, body) = parse.into_generator();
+
+    let input = QueryBuilderInput::try_from(body)?;
+    Ok(TokenStream::new())
 }
 
 impl TryFrom<Body> for QueryBuilderInput {
