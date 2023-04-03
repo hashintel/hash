@@ -3201,7 +3201,7 @@
     "@blockprotocol/core" "0.0.12"
     lit "^2.2.5"
 
-"@blockprotocol/graph@0.1.0", "@blockprotocol/graph@^0.1.0":
+"@blockprotocol/graph@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0.tgz#003632303956070fadcc16d271c7e7f683c815db"
   integrity sha512-FJKgMvRSpjP8bUwUxpxOG0YdDUmdZpR2W7oQl6znOPxdx/aZ4bgalqaxcPerL3c8rhmSbJEA5D4Lms2ItUTE2g==
@@ -9099,7 +9099,7 @@ block-scripts@0.1.0:
     webpack-dev-server "^4.11.1"
     yargs-parser "21.1.1"
 
-block-scripts@0.1.1, block-scripts@^0.1.0:
+block-scripts@0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.1.1.tgz#48d180271a0c489999ebffbaae90cab759569299"
   integrity sha512-3TSEe6z6+kWqHIWM4rCL9Tp0gmedT7FHFPjW/dD7K2Js88bBl+INg3jVJ8vYo9VGSwT4AGnOO3eHgfov6CQwNQ==
@@ -16787,7 +16787,7 @@ mock-block-dock@0.1.3:
     use-local-storage-state "^18.1.1"
     uuid "^8.3.2"
 
-mock-block-dock@0.1.4, mock-block-dock@^0.1.3:
+mock-block-dock@0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.4.tgz#558190c4fd21687483c12a3fc03e2cca25352f43"
   integrity sha512-rCqOW+rghHL1Sc/Ii8jldIx8fxLKPzJ2UUKEc+Oh5LQTTMvucv52bLK2mJdqWhtWQ+6EH9Gcod5bxN2syiHVBg==
