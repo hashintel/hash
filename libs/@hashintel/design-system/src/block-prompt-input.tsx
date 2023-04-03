@@ -15,6 +15,7 @@ import {
   forwardRef,
   FunctionComponent,
   ReactNode,
+  useCallback,
   useRef,
   useState,
 } from "react";
@@ -48,7 +49,7 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
       const inputRef = useRef<HTMLTextAreaElement | null>();
       const [hasMultipleLines, setHasMultipleLines] = useState(false);
 
-      const calculateMultipleLines = () => {
+      const calculateMultipleLines = useCallback(() => {
         if (inputRef.current) {
           const computedStyles = window.getComputedStyle(
             inputRef.current,
@@ -96,12 +97,15 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
 
           setHasMultipleLines(firstLineOverflowsButton || multipleLines);
         }
-      };
+      }, [hasMultipleLines]);
 
-      const submit = (event: FormEvent) => {
-        event.preventDefault();
-        onSubmit?.();
-      };
+      const submit = useCallback(
+        (event: FormEvent) => {
+          event.preventDefault();
+          onSubmit?.();
+        },
+        [onSubmit],
+      );
 
       return (
         <Box component="form" onSubmit={submit} sx={{ mb: 0 }}>
