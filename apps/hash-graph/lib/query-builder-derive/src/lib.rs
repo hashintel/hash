@@ -1,16 +1,11 @@
 mod input;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn ui() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/ui/fail/*rs");
+        t.pass("tests/ui/pass/*rs");
     }
 }

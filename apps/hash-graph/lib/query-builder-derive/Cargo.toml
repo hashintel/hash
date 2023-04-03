@@ -9,3 +9,6 @@ proc-macro = true
 [dependencies]
 darling = "0.14.4"
 syn = "2.0.11"
+
+[dev-dependencies]
+trybuild = "1.0.80"
