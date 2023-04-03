@@ -409,13 +409,14 @@ where
     A: Send + Sync,
     S: Read<R> + Send,
 {
+    type ReadStream = S::ReadStream;
     type Record = S::Record;
 
     async fn read(
         &self,
         query: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<Vec<R>, QueryError> {
+    ) -> Result<Self::ReadStream, QueryError> {
         self.store.read(query, temporal_axes).await
     }
 }
