@@ -135,20 +135,20 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                 width: 1,
                 [`& .${inputBaseClasses.root}`]: {
                   width: 1,
+                  [`& .${outlinedInputClasses.input}`]: {
+                    minHeight: "unset",
+                    fontSize: 16,
+                    lineHeight: "21px",
+                    paddingY: 2.125,
+                    paddingX: `${spacing(2.75)}`,
+                    paddingBottom: hasMultipleLines ? 7.5 : 2.125,
+                    transition: transitions.create("padding-bottom"),
+                  },
                 },
                 [`& .${inputBaseClasses.focused}, .${inputBaseClasses.disabled}`]:
                   {
                     boxShadow: "0px 1px 5px rgba(27, 33, 40, 0)",
                   },
-                [`& .${inputBaseClasses.input}`]: {
-                  minHeight: "unset",
-                  fontSize: 16,
-                  lineHeight: "21px",
-                  paddingY: 2.125,
-                  paddingX: `${spacing(2.75)} !important`,
-                  paddingBottom: hasMultipleLines ? 7.5 : 2.125,
-                  transition: transitions.create("padding-bottom"),
-                },
                 [`& .${inputBaseClasses.disabled}`]: {
                   background: palette.gray[10],
                   color: palette.gray[70],
