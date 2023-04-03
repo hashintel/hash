@@ -16,14 +16,13 @@ use crate::{
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    snapshot::{
+        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecord,
+    },
     store::{
         crud::Read,
         postgres::query::{Distinctness, PostgresRecord, SelectCompiler},
         query::{Filter, OntologyQueryPath},
-        test_graph::{
-            CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-            OntologyTypeRecord,
-        },
         AsClient, PostgresStore, QueryError, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,

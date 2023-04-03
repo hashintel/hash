@@ -25,6 +25,8 @@ pub mod subgraph;
 
 pub mod store;
 
+pub mod snapshot;
+
 pub mod logging;
 
 pub use self::shared::*;
