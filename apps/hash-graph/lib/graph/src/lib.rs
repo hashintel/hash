@@ -2,8 +2,6 @@
 
 // Not required, reason: code quality
 #![feature(lint_reasons)]
-// Not required, reason: Use `std` feature rather than external crate
-#![feature(once_cell)]
 // Not required, reason: Simpler than using blanket implementations
 #![feature(trait_alias)]
 // Not required, reason: much more simple bounds
