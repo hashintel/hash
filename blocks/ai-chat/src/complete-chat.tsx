@@ -42,6 +42,13 @@ import {
   propertyTypeBaseUrls,
 } from "./types/graph";
 
+/**
+ * The maximum width of the chat box, currently set to allow for
+ * 80 characters to be displayed on a single line in an AI generated
+ * code-block.
+ */
+const maximumWidth = 805;
+
 export type RequestId = `req_${string}`;
 
 export const createRequestId = (): RequestId => `req_${uuid()}`;
@@ -443,7 +450,7 @@ export const CompleteChat: FunctionComponent<{
       ref={blockRootRef}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
-      sx={{ maxWidth: 650 }}
+      sx={{ maxWidth: maximumWidth }}
     >
       <SizeMe>
         {({ size }) => {
