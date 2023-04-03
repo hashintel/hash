@@ -26,20 +26,6 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
     }
   }, [value]);
 
-  useEffect(() => {
-    const textarea = textareaEl.current;
-    if (!textarea) return;
-
-    const onKeyDown = ({ key }: KeyboardEvent) => {
-      if (key === "Enter") {
-        textarea.blur();
-      }
-    };
-
-    textarea.addEventListener("keydown", onKeyDown);
-    return () => textarea.removeEventListener("keydown", onKeyDown);
-  }, [onBlur]);
-
   const handleChange = (evt: ChangeEvent<HTMLDivElement>) => {
     if (!textareaEl.current) return;
 
@@ -51,10 +37,18 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
       <div
         ref={textareaEl}
         className="title-input"
-        {...(!readonly && { contentEditable: "true" })}
         placeholder="Event name"
         onInput={handleChange}
         onBlur={onBlur}
+        {...(!readonly && {
+          role: "textbox",
+          contentEditable: "true",
+          onKeyDown: ({ key }) => {
+            if (key === "Enter" || key === "Escape") {
+              textareaEl.current?.blur();
+            }
+          },
+        })}
       />
       {!readonly && (
         <button onClick={onBlur} type="button">
