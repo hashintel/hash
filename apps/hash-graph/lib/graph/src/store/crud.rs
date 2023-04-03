@@ -25,8 +25,6 @@ pub trait Read<R>: Sync {
     type Record: Record;
     type ReadStream: futures::Stream<Item = Result<R, QueryError>> + Send + Sync;
 
-    // TODO: Return a stream of `R` instead
-    //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
