@@ -323,7 +323,7 @@ class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory)
         file.subtreeChanged();
     }
 
-    companion object {
-        val DATA_KEY: DataKey<List<ModuleFile>> = DataKey.create("moduleFile.array")
-    }
+//    companion object {
+//        val DATA_KEY: DataKey<List<ModuleFile>> = DataKey.create("moduleFile.array")
+//    }
 }
