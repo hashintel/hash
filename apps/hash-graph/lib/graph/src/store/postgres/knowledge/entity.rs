@@ -58,7 +58,7 @@ impl<C: AsClient> PostgresStore<C> {
         {
             let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
-            for edge_entity in <Self as Read<Entity>>::read(
+            for edge_entity in <Self as Read<Entity>>::read_vec(
                 self,
                 &Filter::for_knowledge_graph_edge_by_entity_id(
                     entity_vertex_id.base_id,
@@ -152,7 +152,7 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
-                    for entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
+                    for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::for_shared_edge_by_entity_id(
                             entity_vertex_id.base_id,
@@ -455,7 +455,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entities = Read::<Entity>::read(self, filter, Some(&temporal_axes))
+        let entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))

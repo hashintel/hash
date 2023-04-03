@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use error_stack::Result;
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
@@ -167,20 +168,22 @@ pub trait TestStore:
 {
     async fn read_test_graph(&self) -> Result<TestData, QueryError> {
         let data_types =
-            Read::<OntologyTypeRecord<DataType>>::read(self, &Filter::All(vec![]), None).await?;
+            Read::<OntologyTypeRecord<DataType>>::read_vec(self, &Filter::All(vec![]), None)
+                .await?;
 
         let property_types =
-            Read::<OntologyTypeRecord<PropertyType>>::read(self, &Filter::All(vec![]), None)
+            Read::<OntologyTypeRecord<PropertyType>>::read_vec(self, &Filter::All(vec![]), None)
                 .await?;
 
         let entity_types =
-            Read::<OntologyTypeRecord<EntityType>>::read(self, &Filter::All(vec![]), None).await?;
+            Read::<OntologyTypeRecord<EntityType>>::read_vec(self, &Filter::All(vec![]), None)
+                .await?;
 
         let entities = Read::<Entity>::read(self, &Filter::All(vec![]), None)
             .await?
-            .into_iter()
-            .map(EntityRecord::from)
-            .collect();
+            .and_then(|entity| async move { Ok(EntityRecord::from(entity)) })
+            .try_collect()
+            .await?;
 
         Ok(TestData {
             block_protocol_module_versions: BlockProtocolModuleVersions {

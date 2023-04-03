@@ -63,12 +63,15 @@ where
 {
     type Record = T::WithMetadata;
 
+    type ReadStream =
+        impl futures::Stream<Item = Result<OntologyTypeRecord<T>, QueryError>> + Send + Sync;
+
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
         &self,
         filter: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<Vec<OntologyTypeRecord<T>>, QueryError> {
+    ) -> Result<Self::ReadStream, QueryError> {
         let base_url_path =
             <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::base_url();
         let version_path =
@@ -103,13 +106,14 @@ where
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
-        self.as_client()
+        let stream = self
+            .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
             .into_report()
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
-            .and_then(|row| async move {
+            .and_then(move |row| async move {
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
 
@@ -143,9 +147,8 @@ where
                         },
                     },
                 })
-            })
-            .try_collect()
-            .await
+            });
+        Ok(stream)
     }
 }
 
@@ -153,20 +156,22 @@ where
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     Self: Read<OntologyTypeRecord<T::OntologyType>, Record = T>,
-    T: OntologyTypeWithMetadata,
+    T: OntologyTypeWithMetadata + Send,
+    <T::OntologyType as OntologyType>::Representation: Send + Sync,
 {
     type Record = T;
+
+    type ReadStream = impl futures::Stream<Item = Result<T, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
         &self,
         filter: &Filter<T>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<Vec<T>, QueryError> {
-        Read::<OntologyTypeRecord<T::OntologyType>>::read(self, filter, temporal_axes)
+    ) -> Result<Self::ReadStream, QueryError> {
+        let stream = Read::<OntologyTypeRecord<T::OntologyType>>::read(self, filter, temporal_axes)
             .await?
-            .into_iter()
-            .map(|record| {
+            .and_then(|record| async move {
                 let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
                     unreachable!(
                         "`OntologyTypeRecord` should always have provenance metadata if it is \
@@ -208,7 +213,7 @@ where
                         .change_context(QueryError)?,
                     metadata,
                 ))
-            })
-            .collect()
+            });
+        Ok(stream)
     }
 }
