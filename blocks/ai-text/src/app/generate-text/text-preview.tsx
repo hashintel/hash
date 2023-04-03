@@ -146,8 +146,9 @@ export const TextPreview = ({
             sx={({ palette }) => ({
               fontSize: 14,
               color: palette.gray[50],
-              background: "transparent !important",
+              background: "transparent",
               ":hover": {
+                background: "transparent",
                 color: palette.gray[60],
               },
             })}
