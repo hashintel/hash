@@ -16,7 +16,7 @@ repositories {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2022.3.2")
+    version.set("2023.1")
     type.set("CL") // Target IDE Platform
 
     plugins.set(listOf())

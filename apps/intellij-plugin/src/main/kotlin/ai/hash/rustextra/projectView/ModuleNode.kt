@@ -9,8 +9,10 @@ import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 import com.intellij.ui.DoubleClickListener
+import com.intellij.ui.tree.LeafState
 import com.intellij.util.ui.tree.TreeUtil
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
@@ -25,8 +27,10 @@ class ModuleNode(
     value: PsiFile,
     viewSettings: ViewSettings?,
     private val children: Collection<AbstractTreeNode<*>>,
+    private var directory: PsiDirectory
 ) :
     PsiFileNode(project, value, viewSettings) {
+
 
 
     override fun getChildrenImpl(): Collection<AbstractTreeNode<*>> = children
@@ -44,7 +48,7 @@ class ModuleNode(
     override fun expandOnDoubleClick(): Boolean = true
 
     companion object {
-        fun fromPsiFileNode(node: AbstractTreeNode<PsiFile>, settings: ViewSettings?, children: Collection<AbstractTreeNode<*>>) =
-            ModuleNode(node.project, node.value, settings, children)
+        fun fromPsiFileNode(node: AbstractTreeNode<PsiFile>, settings: ViewSettings?, children: Collection<AbstractTreeNode<*>>, directory: PsiDirectory) =
+            ModuleNode(node.project, node.value, settings, children, directory)
     }
 }
