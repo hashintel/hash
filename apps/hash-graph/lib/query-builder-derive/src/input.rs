@@ -1,26 +1,25 @@
 use proc_macro::{Ident, TokenTree};
-use virtue::prelude::*;
 
 #[derive(Debug)]
-pub(crate) struct QueryBuilderInput {
+pub struct QueryBuilderInput {
     pub(crate) variants: Vec<QueryBuilderVariant>,
 }
 
 #[derive(Debug)]
-pub(crate) enum Next {
+pub enum Next {
     This,
     Nest,
     Properties,
 }
 
 #[derive(Debug)]
-pub(crate) enum Redirect {
+pub enum Redirect {
     Remote(Vec<TokenTree>),
     This,
 }
 
 #[derive(Debug)]
-pub(crate) enum QueryBuilderField {
+pub enum QueryBuilderField {
     Bottom,
     Redirect(Redirect),
     // TODO: EntityEdge, EntityTypeEdge
@@ -30,7 +29,7 @@ pub(crate) enum QueryBuilderField {
 }
 
 #[derive(Debug)]
-pub(crate) struct QueryBuilderVariant {
+pub struct QueryBuilderVariant {
     pub(crate) name: Ident,
     pub(crate) field: QueryBuilderField,
 }

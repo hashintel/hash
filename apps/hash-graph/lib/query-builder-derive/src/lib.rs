@@ -1,21 +1,15 @@
-use darling::FromDeriveInput;
 use proc_macro::TokenStream;
-use quote::ToTokens;
-use syn::{parse_macro_input, DeriveInput};
 
-use crate::input::QueryBuilderInput;
+use crate::parse::parse;
 
 // Derive macro that implements a query-builder and automatic deserialize implementation
 mod input;
-mod render;
 mod parse;
+mod render;
 
 #[proc_macro_derive(QueryBuilder, attributes(builder))]
 pub fn derive_query_builder(stream: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(stream as DeriveInput);
-    QueryBuilderInput::from_derive_input();
-
-    input.to_tokens()
+    parse(stream).unwrap_or_else(virtue::Error::into_token_stream)
 }
 
 #[cfg(test)]

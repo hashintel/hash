@@ -1,5 +1,4 @@
 use proc_macro::TokenStream;
-use syn::spanned::Spanned;
 use virtue::{
     prelude::*,
     utils::{parse_tagged_attribute, ParsedAttribute},
@@ -7,10 +6,10 @@ use virtue::{
 
 use crate::input::{QueryBuilderField, QueryBuilderInput, QueryBuilderVariant, Redirect};
 
-pub(crate) fn parse(input: TokenStream) -> Result<TokenStream> {
+pub fn parse(input: TokenStream) -> Result<TokenStream> {
     let parse = Parse::new(input)?;
 
-    let (mut generator, attributes, body) = parse.into_generator();
+    let (_, _, body) = parse.into_generator();
 
     let input = QueryBuilderInput::try_from(body)?;
     Ok(TokenStream::new())
@@ -26,7 +25,7 @@ impl TryFrom<Body> for QueryBuilderInput {
                 let variants: Result<Vec<_>> = body
                     .variants
                     .into_iter()
-                    .map(|variant| QueryBuilderVariant::try_from(variant))
+                    .map(QueryBuilderVariant::try_from)
                     .collect();
 
                 let variants = variants?;
@@ -51,13 +50,13 @@ impl TryFrom<EnumVariant> for QueryBuilderVariant {
         let skip = attributes
             .iter()
             .find_map(|attribute| match attribute {
-                ParsedAttribute::Tag("skip") => Some(true),
-                ParsedAttribute::Property(..) => None,
+                ParsedAttribute::Tag(tag) if tag.to_string() == "skip" => Some(true),
+                _ => None,
             })
             .unwrap_or(false);
 
         if skip {
-            return Ok(QueryBuilderVariant {
+            return Ok(Self {
                 name: value.name,
                 field: QueryBuilderField::Skip,
             });
@@ -71,25 +70,35 @@ impl TryFrom<EnumVariant> for QueryBuilderVariant {
                     // find out where we should go w/ the attribute set on variant
                     // can either be: Redirect or Properties
                     let next = attributes.iter().find_map(|attribute| match attribute {
-                        ParsedAttribute::Property("next", literal) => Some(literal),
+                        ParsedAttribute::Property(ident, literal)
+                            if ident.to_string() == "next" =>
+                        {
+                            Some(literal)
+                        }
                         _ => None,
                     });
 
-                    let redirect = match next {
+                    match next {
                         Some(literal) => match literal.to_string().as_str() {
-                            "remote" => Redirect::Remote(fields[0].r#type.clone()),
-                            "this" => Redirect::This,
-                            _ => {
+                            r#""remote""# => QueryBuilderField::Redirect(Redirect::Remote(
+                                fields[0].r#type.clone(),
+                            )),
+                            r#""this""# => QueryBuilderField::Redirect(Redirect::This),
+                            r#""properties""# => QueryBuilderField::Properties,
+                            received => {
                                 return Err(Error::custom_at(
-                                    "unrecognized `next` value, expected `remote` or `this`",
+                                    format!(
+                                        "unrecognized `next` value, expected `remote`, \
+                                         `properties` or `this`, received {received}"
+                                    ),
                                     literal.span(),
                                 ));
                             }
                         },
-                        None => Redirect::Remote(fields[0].r#type.clone()),
-                    };
-
-                    QueryBuilderField::Redirect(redirect)
+                        None => {
+                            QueryBuilderField::Redirect(Redirect::Remote(fields[0].r#type.clone()))
+                        }
+                    }
                 } else {
                     return Err(Error::custom(format!(
                         "unable to determine reference to `{}`, more than a single tuple element",
@@ -99,7 +108,7 @@ impl TryFrom<EnumVariant> for QueryBuilderVariant {
             }
         };
 
-        Ok(QueryBuilderVariant {
+        Ok(Self {
             name: value.name,
             field,
         })
