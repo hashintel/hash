@@ -28,7 +28,7 @@ export const ChatTextField: FunctionComponent<{
       disabled={loading}
       buttonLabel={
         <>
-          Submit Prompt{" "}
+          Submit
           <ArrowTurnDownLeftIcon
             sx={{
               ml: 1,
