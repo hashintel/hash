@@ -144,29 +144,27 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                     paddingBottom: hasMultipleLines ? 7.5 : 2.125,
                     transition: transitions.create("padding-bottom"),
                   },
-                },
-                [`& .${inputBaseClasses.focused}, .${inputBaseClasses.disabled}`]:
-                  {
-                    boxShadow: "0px 1px 5px rgba(27, 33, 40, 0)",
+
+                  [`&.${inputBaseClasses.disabled}`]: {
+                    background: palette.gray[10],
+                    color: palette.gray[70],
                   },
-                [`& .${inputBaseClasses.disabled}`]: {
-                  background: palette.gray[10],
-                  color: palette.gray[70],
-                },
-                [`& .${outlinedInputClasses.notchedOutline}`]: {
-                  border: `1px solid ${palette.gray[20]}`,
-                  transition: transitions.create("border-color"),
-                },
-                ":hover": {
+                  [`&.${inputBaseClasses.focused}, &.${inputBaseClasses.disabled}`]:
+                    {
+                      boxShadow: "0px 1px 5px rgba(27, 33, 40, 0)",
+                    },
                   [`& .${outlinedInputClasses.notchedOutline}`]: {
+                    border: `1px solid ${palette.gray[20]}`,
+                    transition: transitions.create("border-color"),
+                  },
+                  [`:hover .${outlinedInputClasses.notchedOutline}`]: {
                     borderColor: palette.gray[40],
                   },
-                },
-                [`& .${inputBaseClasses.focused}`]: {
-                  [`& .${outlinedInputClasses.notchedOutline}`]: {
-                    borderWidth: "1px !important",
-                    borderColor: `${palette.blue[70]} !important`,
-                  },
+                  [`&.${inputBaseClasses.focused} .${outlinedInputClasses.notchedOutline}, &.${inputBaseClasses.focused}:hover .${outlinedInputClasses.notchedOutline}`]:
+                    {
+                      borderWidth: "1px",
+                      borderColor: `${palette.blue[70]}`,
+                    },
                 },
               }),
               ...(Array.isArray(sx) ? sx : [sx]),
