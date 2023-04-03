@@ -1,4 +1,3 @@
-import { Button, CheckIcon, CopyIcon } from "@hashintel/design-system";
 import {
   Box,
   buttonClasses,
@@ -24,7 +23,7 @@ import {
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
-import { CodegenIcon } from "../icons/codegen";
+import { Button, CheckIcon, CodePenIcon, CopyIcon } from "../main";
 
 const supportedLanguages = lowlight.listLanguages();
 
@@ -125,7 +124,7 @@ const EditInCodePenButton = forwardRef<
     <CodeBlockButton
       onClick={handleSubmit}
       variant="tertiary"
-      endIcon={<CodegenIcon />}
+      endIcon={<CodePenIcon />}
       ref={ref}
     >
       Edit in CodePen

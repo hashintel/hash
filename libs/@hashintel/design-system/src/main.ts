@@ -1,3 +1,4 @@
+export * from "./ai-assistant-message";
 export * from "./autocomplete";
 export * from "./autocomplete-dropdown";
 export * from "./avatar";
