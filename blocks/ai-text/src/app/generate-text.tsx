@@ -95,7 +95,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
       return;
     }
 
-    setGeneratedText(textResponse.replace(/^\n\n/, ""));
+    setGeneratedText(textResponse.trim());
     setAnimatingIn(true);
 
     setLoading(false);
