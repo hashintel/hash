@@ -160,6 +160,10 @@ export const BlockPromptInput: FunctionComponent<BlockPromptInputProps> =
                   [`:hover .${outlinedInputClasses.notchedOutline}`]: {
                     borderColor: palette.gray[40],
                   },
+                  [`&.${inputBaseClasses.disabled} .${outlinedInputClasses.notchedOutline}`]:
+                    {
+                      borderColor: palette.gray[20],
+                    },
                   [`&.${inputBaseClasses.focused} .${outlinedInputClasses.notchedOutline}, &.${inputBaseClasses.focused}:hover .${outlinedInputClasses.notchedOutline}`]:
                     {
                       borderWidth: "1px",
