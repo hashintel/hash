@@ -144,6 +144,20 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
         )
 }
 
+pub fn openapi_only_router() -> Router {
+    let open_api_doc = OpenApiDocumentation::openapi();
+
+    Router::new()
+        .route(
+            "/api-doc/openapi.json",
+            get({
+                let doc = open_api_doc;
+                move || async { Json(doc) }
+            }),
+        )
+        .route("/api-doc/models/*path", get(serve_static_schema))
+}
+
 #[allow(
     clippy::unused_async,
     reason = "This route does not need async capabilities, but axum requires it in trait bounds."
