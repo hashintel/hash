@@ -37,6 +37,63 @@ pub enum SnapshotEntry {
     Entity(EntitySnapshotRecord),
 }
 
+impl SnapshotEntry {
+    pub fn install_error_stack_hook() {
+        error_stack::Report::install_debug_hook::<Self>(|entry, context| match entry {
+            Self::Snapshot(global_metadata) => {
+                context.push_body(format!(
+                    "graph version: {}",
+                    global_metadata.block_protocol_module_versions.graph
+                ));
+            }
+            Self::DataType(data_type) => {
+                context.push_body(format!("data type: {}", data_type.metadata.record_id));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(data_type) {
+                        context.push_appendix(format!("{}:\n{json}", data_type.metadata.record_id));
+                    }
+                }
+            }
+            Self::PropertyType(property_type) => {
+                context.push_body(format!(
+                    "property type: {}",
+                    property_type.metadata.record_id
+                ));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(property_type) {
+                        context.push_appendix(format!(
+                            "{}:\n{json}",
+                            property_type.metadata.record_id
+                        ));
+                    }
+                }
+            }
+            Self::EntityType(entity_type) => {
+                context.push_body(format!("entity type: {}", entity_type.metadata.record_id));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(entity_type) {
+                        context
+                            .push_appendix(format!("{}:\n{json}", entity_type.metadata.record_id));
+                    }
+                }
+            }
+            Self::Entity(entity) => {
+                let entity_id = format!(
+                    "{}%{}",
+                    entity.metadata.record_id.entity_id.owned_by_id,
+                    entity.metadata.record_id.entity_id.entity_uuid
+                );
+                context.push_body(format!("entity: {entity_id}"));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(entity) {
+                        context.push_appendix(format!("{entity_id}:\n{json}"));
+                    }
+                }
+            }
+        });
+    }
+}
+
 pub struct SnapshotStore<S>(S);
 
 impl<S> SnapshotStore<S> {
@@ -128,7 +185,9 @@ where
     ) -> Result<(), SnapshotRestoreError> {
         let mut snapshot = pin!(snapshot);
         while let Some(entry) = snapshot.next().await {
-            let entry = entry.change_context(InsertionError)?;
+            let entry = entry
+                .change_context(SnapshotRestoreError::Canceled)
+                .attach_printable("reading the records resulted in an error")?;
 
             match entry {
                 SnapshotEntry::Snapshot(global) => {

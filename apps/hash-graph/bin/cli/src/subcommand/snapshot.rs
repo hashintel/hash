@@ -1,8 +1,9 @@
 use clap::Parser;
 use error_stack::{Result, ResultExt};
+use futures::{SinkExt, TryStreamExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
-    snapshot::{codec, SnapshotStore},
+    snapshot::{codec, SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
 };
 use tokio::io;
@@ -38,6 +39,7 @@ pub struct SnapshotArgs {
 
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
+    SnapshotEntry::install_error_stack_hook();
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
@@ -57,23 +59,35 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     match args.command {
         SnapshotCommand::Dump(_) => {
             store
-                .dump_snapshot(FramedWrite::new(
-                    io::BufWriter::new(io::stdout()),
-                    codec::JsonLinesEncoder::default(),
-                ))
+                .dump_snapshot(
+                    FramedWrite::new(
+                        io::BufWriter::new(io::stdout()),
+                        codec::JsonLinesEncoder::default(),
+                    )
+                    .sink_map_err(|report| {
+                        report.attach_printable("Failed to write snapshot to stdout")
+                    }),
+                )
                 .await
-                .change_context(GraphError)?;
+                .change_context(GraphError)
+                .attach_printable("Failed to read snapshot from store")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
             store
-                .restore_snapshot(FramedRead::new(
-                    io::BufReader::new(io::stdin()),
-                    codec::JsonLinesDecoder::default(),
-                ))
+                .restore_snapshot(
+                    FramedRead::new(
+                        io::BufReader::new(io::stdin()),
+                        codec::JsonLinesDecoder::default(),
+                    )
+                    .map_err(|report| {
+                        report.attach_printable("Failed to read snapshot from stdin")
+                    }),
+                )
                 .await
-                .change_context(GraphError)?;
+                .change_context(GraphError)
+                .attach_printable("Failed to write snapshot to store")?;
 
             tracing::info!("Snapshot restored successfully");
         }
