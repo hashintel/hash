@@ -16,13 +16,19 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
   const textareaEl = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!textareaEl.current) return;
-    textareaEl.current.textContent = value ?? "";
+    const textarea = textareaEl.current;
+    if (!textarea) return;
+
+    // We only want to set textContent when the value changes externally because
+    // by setting it we lose the cursor position in some browsers (firefox, safari)
+    if (value !== textarea.textContent) {
+      textarea.textContent = value ?? "";
+    }
   }, [value]);
 
   const handleChange = (evt: ChangeEvent<HTMLDivElement>) => {
     if (!textareaEl.current) return;
-    textareaEl.current.textContent = evt.target.textContent;
+
     onChangeText(evt.currentTarget.textContent ?? "");
   };
 
@@ -31,10 +37,18 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
       <div
         ref={textareaEl}
         className="title-input"
-        {...(!readonly && { contentEditable: "true" })}
         placeholder="Event name"
         onInput={handleChange}
         onBlur={onBlur}
+        {...(!readonly && {
+          role: "textbox",
+          contentEditable: "true",
+          onKeyDown: ({ key }) => {
+            if (key === "Enter" || key === "Escape") {
+              textareaEl.current?.blur();
+            }
+          },
+        })}
       />
       {!readonly && (
         <button onClick={onBlur} type="button">
