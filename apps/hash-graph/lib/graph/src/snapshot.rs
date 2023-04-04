@@ -1,16 +1,18 @@
 mod entity;
+mod error;
 mod metadata;
 mod ontology;
 
-use std::{fmt::Debug, pin::pin};
+use std::pin::pin;
 
-use error_stack::{Context, Report, Result};
-use futures::{Sink, SinkExt, Stream, StreamExt, TryStreamExt};
+use error_stack::{ensure, Context, Report, Result};
+use futures::{try_join, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
     entity::EntitySnapshotRecord,
+    error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
     ontology::{
         CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
@@ -20,7 +22,7 @@ pub use self::{
 pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{
     knowledge::Entity,
-    store::{crud::Read, query::Filter, InsertionError, QueryError},
+    store::{crud::Read, query::Filter},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,49 +67,47 @@ where
     pub async fn dump_snapshot(
         &self,
         sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send,
-    ) -> Result<(), QueryError> {
-        futures::stream::once(async move {
+    ) -> Result<(), SnapshotDumpError> {
+        let data_type_filter = Filter::All(vec![]);
+        let property_type_filter = Filter::All(vec![]);
+        let entity_type_filter = Filter::All(vec![]);
+        let entity_filter = Filter::All(vec![]);
+
+        let data_types =
+            Read::<OntologyTypeSnapshotRecord<DataType>>::read(&self.0, &data_type_filter, None);
+        let property_types = Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(
+            &self.0,
+            &property_type_filter,
+            None,
+        );
+        let entity_types = Read::<OntologyTypeSnapshotRecord<EntityType>>::read(
+            &self.0,
+            &entity_type_filter,
+            None,
+        );
+        let entities = Read::<Entity>::read(&self.0, &entity_filter, None);
+
+        let (data_type_stream, property_type_stream, entity_type_stream, entity_stream) =
+            try_join!(data_types, property_types, entity_types, entities)
+                .map_err(|report| report.change_context(SnapshotDumpError::Query))?;
+
+        let metadata_stream = futures::stream::once(async move {
             Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
                 block_protocol_module_versions: BlockProtocolModuleVersions {
                     graph: semver::Version::new(0, 3, 0),
                 },
                 custom: CustomGlobalMetadata,
             }))
-        })
-        .chain(
-            Read::<OntologyTypeSnapshotRecord<DataType>>::read(&self.0, &Filter::All(vec![]), None)
-                .await?
-                .map_ok(SnapshotEntry::DataType),
-        )
-        .chain(
-            Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(
-                &self.0,
-                &Filter::All(vec![]),
-                None,
-            )
-            .await?
-            .map_ok(SnapshotEntry::PropertyType),
-        )
-        .chain(
-            Read::<OntologyTypeSnapshotRecord<EntityType>>::read(
-                &self.0,
-                &Filter::All(vec![]),
-                None,
-            )
-            .await?
-            .map_ok(SnapshotEntry::EntityType),
-        )
-        .chain(
-            Read::<Entity>::read(&self.0, &Filter::All(vec![]), None)
-                .await?
-                .map_ok(|entity| SnapshotEntry::Entity(entity.into())),
-        )
-        .forward(sink.sink_map_err(|report| {
-            report
-                .change_context(QueryError)
-                .attach_printable("failed to write record into sink")
-        }))
-        .await
+        });
+
+        metadata_stream
+            .chain(data_type_stream.map_ok(SnapshotEntry::DataType))
+            .chain(property_type_stream.map_ok(SnapshotEntry::PropertyType))
+            .chain(entity_type_stream.map_ok(SnapshotEntry::EntityType))
+            .chain(entity_stream.map_ok(|entity| SnapshotEntry::Entity(entity.into())))
+            .map_err(|report| report.change_context(SnapshotDumpError::Read))
+            .forward(sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)))
+            .await
     }
 
     /// Reads the snapshot from from the stream into the store.
@@ -123,14 +123,15 @@ where
     pub async fn restore_snapshot(
         &mut self,
         snapshot: impl Stream<Item = SnapshotEntry> + Send,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), SnapshotRestoreError> {
         let mut snapshot = pin!(snapshot);
         while let Some(entry) = snapshot.next().await {
             match entry {
                 SnapshotEntry::Snapshot(global) => {
-                    assert_eq!(
-                        global.block_protocol_module_versions.graph,
-                        semver::Version::new(0, 3, 0)
+                    ensure!(
+                        global.block_protocol_module_versions.graph
+                            == semver::Version::new(0, 3, 0),
+                        SnapshotRestoreError::Unsupported
                     );
                 }
                 SnapshotEntry::DataType(data_type) => {
