@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import Ajv2019 from "ajv/dist/2019.js";
 import { URL } from "node:url";
+import { inspect } from "node:util";
 import betterAjvErrors from "better-ajv-errors";
 
 const JSON_SCHEMA_DRAFT_URL = "https://json-schema.org/draft/2019-09/schema";
@@ -71,21 +72,29 @@ class TraversalContext {
 }
 
 /**
+ * @callback RecurseCallback
+ * @param {string} key
+ * @param {any} obj
+ * @param {any | null} parent
+ */
+
+/**
  * Recurse inside an object and call a callback for each non-object key/value pair
  * @param key
  * @param obj
- * @param callback
+ * @param {any | null} parent
+ * @param {RecurseCallback} callback
  * @param ignoreKeys
  */
-const recurseWithCallBack = (key, obj, callback, ignoreKeys) => {
+const recurseWithCallBack = (key, obj, parent, callback, ignoreKeys) => {
   if (typeof obj === "object") {
     for (const key in obj) {
       if (!ignoreKeys || !ignoreKeys.includes(key)) {
-        recurseWithCallBack(key, obj[key], callback);
+        recurseWithCallBack(key, obj[key], obj, callback, ignoreKeys);
       }
     }
   } else {
-    callback(key, obj);
+    callback(key, obj, parent);
   }
 };
 
@@ -120,7 +129,7 @@ const getUrls = (obj) => {
 
   // We don't want to look inside the `required` array, as it contains Base URLs which may not
   // return anything
-  recurseWithCallBack(null, obj, parseUrl, ["required"]);
+  recurseWithCallBack(null, obj, null, parseUrl, ["required"]);
   return { metaSchemaUrls, otherSchemaUrls };
 };
 
@@ -200,7 +209,7 @@ const generateCombinedMetaSchema = (root, schemas) => {
         );
       }
 
-      const remoteSchema = schemas[url];
+      const remoteSchema = JSON.parse(JSON.stringify(schemas[url]));
       if (!remoteSchema) {
         throw new Error(`Could not resolve remote reference: ${ref}`);
       }
@@ -221,29 +230,15 @@ const generateCombinedMetaSchema = (root, schemas) => {
     }
   };
 
-  const traverseSchema = (schema) => {
-    if (typeof schema !== "object" || schema === null) {
-      // Base case: schema is not an object
-      return schema;
-    }
-
-    if (schema.$ref && typeof schema.$ref === "string") {
-      // Replace remote reference with local reference
-      schema.$ref = resolveRef(schema.$ref);
-    }
-
-    // Traverse each property recursively
-    for (const key in schema) {
-      schema[key] = traverseSchema(schema[key]);
-    }
-
-    return schema;
-  };
-
-  // Traverse combined schema
-  traverseSchema(combinedSchema);
-  // Hacky but some of the sub schemas weren't being updated (depending on number of iterations) so we just do another pass
-  traverseSchema(combinedSchema);
+  // Hacky but as we insert 'remote' schemas, we then need to traverse inside them too. There are cleaner ways to do
+  // this but in a much more complicated fashion and for now the performance of this seems fine
+  for (let i = 0; i < 20; i++) {
+    recurseWithCallBack(null, combinedSchema, null, (key, obj, parent) => {
+      if (key === "$ref" && obj && typeof obj === "string") {
+        parent.$ref = resolveRef(obj);
+      }
+    });
+  }
 
   return combinedSchema;
 };
