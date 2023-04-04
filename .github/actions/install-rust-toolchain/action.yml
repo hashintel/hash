@@ -19,6 +19,7 @@ runs:
       run: |
         # regex for components that are only available on nightly and should not be installed on stable
         NIGHTLY_ONLY="miri|llvm-tools|llvm-tools-preview"
+        NIGHTLY_TOOLCHAIN="nightly-.*"
 
         # extract components from the rust-toolchain.toml 
         COMPONENTS=$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')
@@ -27,9 +28,9 @@ runs:
 
         for component in $COMPONENTS; do
           # depending on the toolchain we need to conditionally skip specific components
-          if [[ ! "${{ inputs.toolchain }}" =~ "nightly-.*" ]]; then
+          if [[ ! "${{ inputs.toolchain }}" =~ $NIGHTLY_TOOLCHAIN ]]; then
             # ensure that we only install components that are meant for stable
-            if [[ ! $component =~ "$NIGHTLY_ONLY" ]]; then
+            if [[ ! $component =~ $NIGHTLY_ONLY ]]; then
               rustup component add --toolchain "${{ inputs.toolchain }}" "$component"
             fi
           else
