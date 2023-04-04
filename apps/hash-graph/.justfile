@@ -33,11 +33,10 @@ deployment-down *arguments:
 
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-client:
-  @just deployment-up graph --wait
+  @just run server --openapi-only
   @just yarn workspace @local/hash-graph-client-generator generate
   @just yarn workspace @local/hash-graph-client prettier --write .
   @just yarn workspace @local/hash-graph-client fix:eslint
-  @just deployment-down
 
 [private]
 test *arguments:
