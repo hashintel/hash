@@ -11,6 +11,9 @@ import { TypeAnimation } from "react-type-animation";
 
 import { CodeBlock } from "./ai-assistant-message/code-block";
 
+export const codeBlockFormattingPrompt =
+  "Return code blocks as ```{language}{code...}```, with language being a supported highlight.js language name.";
+
 type MessageContentBlock = {
   kind: "text" | "code";
   content: string;
