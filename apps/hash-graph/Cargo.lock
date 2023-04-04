@@ -815,6 +815,7 @@ dependencies = [
  "hash-status",
  "hyper",
  "include_dir",
+ "memchr",
  "mime",
  "opentelemetry 0.18.0",
  "opentelemetry-otlp",

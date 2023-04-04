@@ -1,11 +1,12 @@
 use std::{
-    io::{self, BufRead, Write},
+    io::{self, Write},
     marker::PhantomData,
 };
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{BufMut, BytesMut};
 use derivative::Derivative;
 use error_stack::Report;
+use memchr::memchr;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -38,16 +39,12 @@ impl<T: DeserializeOwned> Decoder for JsonLines<T> {
     type Error = Report<io::Error>;
     type Item = T;
 
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<T>, Self::Error> {
-        let mut reader = src.reader();
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        if line.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(
-                serde_json::from_str::<T>(&line).map_err(io::Error::from)?,
-            ))
-        }
+    fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<T>, Self::Error> {
+        memchr(b'\n', buf)
+            .map(|offset| {
+                let line = buf.split_to(offset + 1);
+                Ok(serde_json::from_slice(&line).map_err(io::Error::from)?)
+            })
+            .transpose()
     }
 }
