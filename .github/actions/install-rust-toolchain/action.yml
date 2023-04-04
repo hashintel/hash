@@ -20,21 +20,20 @@ runs:
         # regex for components that are only available on nightly and should not be installed on stable
         NIGHTLY_ONLY="miri|llmv-cov-minimal"
 
-        # extract the toolchain version and components from the rust-toolchain.toml 
-        TOOLCHAIN=$(cat rust-toolchain.toml | yq -p toml '.toolchain.channel')
+        # extract components from the rust-toolchain.toml 
         COMPONENTS=$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')
 
-        rustup toolchain install $TOOLCHAIN
+        rustup toolchain install "${{ inputs.toolchain }}"
 
         for component in $COMPONENTS; do
           # depending on the toolchain we need to conditionally skip specific components
           if [[ ! "${{ inputs.toolchain }}" == nightly* ]]; then
             # ensure that we only install components that are meant for stable
             if [[ ! $component =~ "$NIGHTLY_ONLY" ]]; then
-              rustup component add "$component"
+              rustup component add --toolchain "${{ inputs.toolchain }}" "$component"
             fi
           else
-            rustup component add "$component"  
+            rustup component add --toolchain "${{ inputs.toolchain }}" "$component"  
           fi
         done
 
