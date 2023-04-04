@@ -42,7 +42,15 @@ generate-openapi-client:
   # `--openapi-only` flag
   trap 'kill $(pgrep -f -- '\''--openapi-only'\'')' EXIT
 
+  retries=0
+  max_retries=10
+
   while ! just run server --healthcheck 2> /dev/null; do
+    if [ $retries -ge $max_retries ]; then
+      echo "Max retries reached, exiting"
+      exit 1
+    fi
+    retries=$((retries+1))
     sleep 1
   done
 
