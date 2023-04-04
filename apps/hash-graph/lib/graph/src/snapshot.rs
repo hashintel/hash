@@ -7,7 +7,7 @@ mod ontology;
 
 use std::pin::pin;
 
-use error_stack::{ensure, Context, Report, Result};
+use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{try_join, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
@@ -124,10 +124,12 @@ where
     )]
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<Item = SnapshotEntry> + Send,
+        snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send,
     ) -> Result<(), SnapshotRestoreError> {
         let mut snapshot = pin!(snapshot);
         while let Some(entry) = snapshot.next().await {
+            let entry = entry.change_context(InsertionError)?;
+
             match entry {
                 SnapshotEntry::Snapshot(global) => {
                     ensure!(

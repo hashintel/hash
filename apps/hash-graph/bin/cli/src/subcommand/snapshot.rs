@@ -69,21 +69,10 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
         }
         SnapshotCommand::Restore(_) => {
             store
-                .restore_snapshot(
-                    FramedRead::new(
-                        io::BufReader::new(io::stdin()),
-                        codec::JsonLines::default(),
-                    )
-                    .filter_map(|value| async move {
-                        match value {
-                            Ok(value) => Some(value),
-                            Err(report) => {
-                                tracing::error!(error = ?report, "Failed to read snapshot record");
-                                None
-                            }
-                        }
-                    }),
-                )
+                .restore_snapshot(FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::JsonLines::default(),
+                ))
                 .await
                 .change_context(GraphError)?;
 
