@@ -18,7 +18,7 @@ runs:
       shell: bash
       run: |
         # regex for components that are only available on nightly and should not be installed on stable
-        NIGHTLY_ONLY="miri|llmv-cov-minimal"
+        NIGHTLY_ONLY="miri|llvm-tools"
 
         # extract components from the rust-toolchain.toml 
         COMPONENTS=$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')
