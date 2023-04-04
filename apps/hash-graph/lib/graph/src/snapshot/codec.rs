@@ -37,6 +37,24 @@ pub struct JsonLinesDecoder<T> {
     _marker: PhantomData<fn() -> T>,
 }
 
+impl<T> JsonLinesDecoder<T> {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            lines: LinesCodec::new(),
+            _marker: PhantomData,
+        }
+    }
+
+    #[must_use]
+    pub fn with_max_length(max_length: usize) -> Self {
+        Self {
+            lines: LinesCodec::new_with_max_length(max_length),
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     // `Decoder::Error` requires `From<io::Error>` so we need to use `Report<io::Error>` here.
     type Error = Report<io::Error>;
