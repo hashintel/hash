@@ -36,7 +36,7 @@ generate-openapi-client:
   #!/usr/bin/env bash
   set -euo pipefail
 
-  just run server --openapi-only & SERVER_PID=$!
+  just run server --openapi-only &
 
   # When the script exits, clean-up and kill the server by searching for running processes with commands containing the
   # `--openapi-only` flag
