@@ -3,7 +3,6 @@ package ai.hash.rustextra.projectView
 import com.intellij.lang.FileASTNode
 import com.intellij.lang.Language
 import com.intellij.navigation.ItemPresentation
-import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -16,9 +15,7 @@ import com.intellij.psi.search.PsiElementProcessor
 import com.intellij.psi.search.SearchScope
 import javax.swing.Icon
 
-class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory): PsiFile {
-
-
+class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory): PsiFile, PsiDirectory {
     override fun <T : Any?> getUserData(key: Key<T>): T? {
         return file.getUserData(key)
     }
@@ -255,7 +252,6 @@ class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory)
         return file.name
     }
 
-    // TODO: is this correct?
     override fun setName(name: String): PsiElement {
         val bareName = name.removeSuffix(".rs");
         val fileName = "${bareName}.rs";
@@ -295,6 +291,46 @@ class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory)
         return directory.processChildren(processor)
     }
 
+    override fun getParentDirectory(): PsiDirectory? {
+        return directory.parentDirectory
+    }
+
+    override fun getSubdirectories(): Array<PsiDirectory> {
+        return directory.subdirectories
+    }
+
+    override fun getFiles(): Array<PsiFile> {
+        return directory.files
+    }
+
+    override fun findSubdirectory(name: String): PsiDirectory? {
+        return directory.findSubdirectory(name)
+    }
+
+    override fun findFile(name: String): PsiFile? {
+        return directory.findFile(name)
+    }
+
+    override fun createSubdirectory(name: String): PsiDirectory {
+        return directory.createSubdirectory(name)
+    }
+
+    override fun checkCreateSubdirectory(name: String) {
+        return directory.checkCreateSubdirectory(name)
+    }
+
+    override fun createFile(name: String): PsiFile {
+        return directory.createFile(name)
+    }
+
+    override fun copyFileFrom(newName: String, originalFile: PsiFile): PsiFile {
+        return directory.copyFileFrom(newName, originalFile)
+    }
+
+    override fun checkCreateFile(name: String) {
+        return directory.checkCreateFile(name)
+    }
+
     override fun getContainingDirectory(): PsiDirectory {
         return file.containingDirectory
     }
@@ -322,8 +358,4 @@ class ModuleFile(private val file: PsiFile, private val directory: PsiDirectory)
     override fun subtreeChanged() {
         file.subtreeChanged();
     }
-
-//    companion object {
-//        val DATA_KEY: DataKey<List<ModuleFile>> = DataKey.create("moduleFile.array")
-//    }
 }

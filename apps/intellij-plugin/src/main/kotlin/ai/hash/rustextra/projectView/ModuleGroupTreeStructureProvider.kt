@@ -64,7 +64,7 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
                 // TODO: add a custom context menu
                 val (file, directory) = modules[value.virtualFile.nameWithoutExtension]!!
 
-                nodes.add(ModuleNode.fromPsiFileNode(file, settings, directory.children, directory.value))
+                nodes.add(ModuleNode.fromPsiFileNode(file, directory.value, settings))
 
                 continue
             }

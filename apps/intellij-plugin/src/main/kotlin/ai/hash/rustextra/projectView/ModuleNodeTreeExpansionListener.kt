@@ -12,18 +12,18 @@ import javax.swing.event.TreeExpansionListener
 // TODO: is there a way to have a doubleClick listener?
 class ModuleNodeTreeExpansionListener: TreeExpansionListener {
     override fun treeExpanded(event: TreeExpansionEvent?) {
-        if (event != null && event.source is JTree) {
-            val source = event.source;
+        if (event == null || event.source !is JTree) return
 
-            if (source is JTree) {
-                val navi = TreeUtil.getNavigatable(source, event.path);
+        val source = event.source;
 
-                if (navi is ModuleNode) {
-                    invokeLater {
-                        NavigationUtil.openFileWithPsiElement(navi.value, true, true)
-                    }
-                }
-            }
+        if (source !is JTree) return
+
+        val node = TreeUtil.getNavigatable(source, event.path);
+
+        if (node !is ModuleNode) return
+
+        invokeLater {
+            NavigationUtil.openFileWithPsiElement(node.value, true, true)
         }
     }
 
