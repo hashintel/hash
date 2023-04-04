@@ -1,15 +1,20 @@
 import { Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
+import { ArrowRotateLeftIcon } from "../../icons/arrow-rotate-left";
+import { BroomWideIcon } from "../../icons/broom-wide";
+import { CheckIcon } from "../../icons/check";
 import { TextIcon } from "../../icons/text";
 
 export const TextPreview = ({
   onConfirm,
+  onRegenerate,
   onDiscard,
   prompt,
   text,
 }: {
   onConfirm: () => void;
+  onRegenerate: () => void;
   onDiscard: () => void;
   prompt: string;
   text: string;
@@ -109,12 +114,11 @@ export const TextPreview = ({
           paddingX: 3.75,
         })}
       >
-        <Box display="flex" gap={1}>
+        <Box display="flex" gap={1} flexWrap="wrap">
           <Button
             size="small"
             onClick={onConfirm}
             sx={{
-              gap: 1,
               borderRadius: 1,
               fontSize: 14,
               fontWeight: 500,
@@ -122,15 +126,35 @@ export const TextPreview = ({
             }}
           >
             Insert Into Page
+            <CheckIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
           </Button>
 
           <Button
             variant="tertiary"
             size="small"
-            onClick={onDiscard}
+            onClick={onRegenerate}
             sx={{ fontSize: 14 }}
           >
-            Discard this
+            Regenerate output
+            <ArrowRotateLeftIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
+          </Button>
+
+          <Button
+            variant="tertiary_quiet"
+            size="small"
+            onClick={onDiscard}
+            sx={({ palette }) => ({
+              fontSize: 14,
+              color: palette.gray[50],
+              background: "transparent",
+              ":hover": {
+                background: "transparent",
+                color: palette.gray[60],
+              },
+            })}
+          >
+            Discard
+            <BroomWideIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
           </Button>
         </Box>
 
