@@ -1,3 +1,5 @@
+pub mod codec;
+
 mod entity;
 mod error;
 mod metadata;
