@@ -59,7 +59,7 @@ pub struct OntologyTypeMetadata {
         deserialize = "T::Representation: Deserialize<'de>"
     )
 )]
-pub struct OntologyTypeRecord<T: OntologyType> {
+pub struct OntologyTypeSnapshotRecord<T: OntologyType> {
     pub schema: T::Representation,
     pub metadata: OntologyTypeMetadata,
 }

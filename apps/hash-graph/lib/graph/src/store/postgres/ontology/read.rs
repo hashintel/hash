@@ -17,7 +17,8 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     snapshot::{
-        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecord,
+        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeSnapshotRecord,
     },
     store::{
         crud::Read,
@@ -55,15 +56,16 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 }
 
 #[async_trait]
-impl<C: AsClient, T> Read<OntologyTypeRecord<T>> for PostgresStore<C>
+impl<C: AsClient, T> Read<OntologyTypeSnapshotRecord<T>> for PostgresStore<C>
 where
     T: OntologyType<WithMetadata: PostgresRecord, Representation: Send>,
     for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath,
 {
     type Record = T::WithMetadata;
 
-    type ReadStream =
-        impl futures::Stream<Item = Result<OntologyTypeRecord<T>, QueryError>> + Send + Sync;
+    type ReadStream = impl futures::Stream<Item = Result<OntologyTypeSnapshotRecord<T>, QueryError>>
+        + Send
+        + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -127,7 +129,7 @@ where
                     AdditionalOntologyMetadata::External { fetched_at } => (None, Some(fetched_at)),
                 };
 
-                Ok(OntologyTypeRecord {
+                Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
                         .into_report()
                         .change_context(QueryError)?,
@@ -154,7 +156,7 @@ where
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    Self: Read<OntologyTypeRecord<T::OntologyType>, Record = T>,
+    Self: Read<OntologyTypeSnapshotRecord<T::OntologyType>, Record = T>,
     T: OntologyTypeWithMetadata + Send,
     <T::OntologyType as OntologyType>::Representation: Send + Sync,
 {
@@ -168,51 +170,53 @@ where
         filter: &Filter<T>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<OntologyTypeRecord<T::OntologyType>>::read(self, filter, temporal_axes)
-            .await?
-            .and_then(|record| async move {
-                let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
-                    unreachable!(
-                        "`OntologyTypeRecord` should always have provenance metadata if it is \
-                         read from the store"
-                    )
+        let stream =
+            Read::<OntologyTypeSnapshotRecord<T::OntologyType>>::read(self, filter, temporal_axes)
+                .await?
+                .and_then(|record| async move {
+                    let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
+                        unreachable!(
+                            "`OntologyTypeRecord` should always have provenance metadata if it is \
+                             read from the store"
+                        )
+                    });
+
+                    let metadata = match (
+                        record.metadata.custom.owned_by_id,
+                        record.metadata.custom.fetched_at,
+                    ) {
+                        (Some(owned_by_id), None) => {
+                            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                                record.metadata.record_id,
+                                provenance,
+                                owned_by_id,
+                            ))
+                        }
+                        (None, Some(fetched_at)) => {
+                            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+                                record.metadata.record_id,
+                                provenance,
+                                fetched_at,
+                            ))
+                        }
+                        (Some(_), Some(_)) => unreachable!(
+                            "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
+                        ),
+                        (None, None) => unreachable!(
+                            "Ontology type record has neither `owned_by_id` nor `fetched_at` \
+                             metadata"
+                        ),
+                    };
+
+                    Ok(T::new(
+                        record
+                            .schema
+                            .try_into()
+                            .into_report()
+                            .change_context(QueryError)?,
+                        metadata,
+                    ))
                 });
-
-                let metadata = match (
-                    record.metadata.custom.owned_by_id,
-                    record.metadata.custom.fetched_at,
-                ) {
-                    (Some(owned_by_id), None) => {
-                        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                            record.metadata.record_id,
-                            provenance,
-                            owned_by_id,
-                        ))
-                    }
-                    (None, Some(fetched_at)) => {
-                        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                            record.metadata.record_id,
-                            provenance,
-                            fetched_at,
-                        ))
-                    }
-                    (Some(_), Some(_)) => unreachable!(
-                        "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
-                    ),
-                    (None, None) => unreachable!(
-                        "Ontology type record has neither `owned_by_id` nor `fetched_at` metadata"
-                    ),
-                };
-
-                Ok(T::new(
-                    record
-                        .schema
-                        .try_into()
-                        .into_report()
-                        .change_context(QueryError)?,
-                    metadata,
-                ))
-            });
         Ok(stream)
     }
 }

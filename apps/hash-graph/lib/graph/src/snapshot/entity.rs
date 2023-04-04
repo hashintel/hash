@@ -36,14 +36,14 @@ pub struct EntityMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EntityRecord {
+pub struct EntitySnapshotRecord {
     pub properties: EntityProperties,
     pub metadata: EntityMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link_data: Option<LinkData>,
 }
 
-impl From<Entity> for EntityRecord {
+impl From<Entity> for EntitySnapshotRecord {
     fn from(entity: Entity) -> Self {
         Self {
             properties: entity.properties,

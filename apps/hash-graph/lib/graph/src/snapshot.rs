@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
-    entity::EntityRecord,
+    entity::EntitySnapshotRecord,
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
     ontology::{
-        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecord,
+        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeSnapshotRecord,
     },
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
@@ -26,10 +27,10 @@ use crate::{
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
-    DataType(OntologyTypeRecord<DataType>),
-    PropertyType(OntologyTypeRecord<PropertyType>),
-    EntityType(OntologyTypeRecord<EntityType>),
-    Entity(EntityRecord),
+    DataType(OntologyTypeSnapshotRecord<DataType>),
+    PropertyType(OntologyTypeSnapshotRecord<PropertyType>),
+    EntityType(OntologyTypeSnapshotRecord<EntityType>),
+    Entity(EntitySnapshotRecord),
 }
 
 pub struct SnapshotStore<S>(S);
@@ -46,9 +47,9 @@ impl<S> SnapshotStore<S> {
 )]
 impl<S> SnapshotStore<S>
 where
-    S: Read<OntologyTypeRecord<DataType>>
-        + Read<OntologyTypeRecord<PropertyType>>
-        + Read<OntologyTypeRecord<EntityType>>
+    S: Read<OntologyTypeSnapshotRecord<DataType>>
+        + Read<OntologyTypeSnapshotRecord<PropertyType>>
+        + Read<OntologyTypeSnapshotRecord<EntityType>>
         + Read<Entity>
         + Send,
 {
@@ -74,19 +75,27 @@ where
             }))
         })
         .chain(
-            Read::<OntologyTypeRecord<DataType>>::read(&self.0, &Filter::All(vec![]), None)
+            Read::<OntologyTypeSnapshotRecord<DataType>>::read(&self.0, &Filter::All(vec![]), None)
                 .await?
                 .map_ok(SnapshotEntry::DataType),
         )
         .chain(
-            Read::<OntologyTypeRecord<PropertyType>>::read(&self.0, &Filter::All(vec![]), None)
-                .await?
-                .map_ok(SnapshotEntry::PropertyType),
+            Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(
+                &self.0,
+                &Filter::All(vec![]),
+                None,
+            )
+            .await?
+            .map_ok(SnapshotEntry::PropertyType),
         )
         .chain(
-            Read::<OntologyTypeRecord<EntityType>>::read(&self.0, &Filter::All(vec![]), None)
-                .await?
-                .map_ok(SnapshotEntry::EntityType),
+            Read::<OntologyTypeSnapshotRecord<EntityType>>::read(
+                &self.0,
+                &Filter::All(vec![]),
+                None,
+            )
+            .await?
+            .map_ok(SnapshotEntry::EntityType),
         )
         .chain(
             Read::<Entity>::read(&self.0, &Filter::All(vec![]), None)
