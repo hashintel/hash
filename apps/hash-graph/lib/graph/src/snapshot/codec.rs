@@ -5,26 +5,14 @@ use std::{
 
 use bytes::{BufMut, BytesMut};
 use derivative::Derivative;
-use error_stack::Report;
-use memchr::memchr;
+use error_stack::{IntoReport, Report};
 use serde::{de::DeserializeOwned, Serialize};
-use tokio_util::codec::{Decoder, Encoder};
+use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 
-#[derive(Derivative)]
-#[derivative(
-    Debug(bound = ""),
-    Default(bound = ""),
-    Copy(bound = ""),
-    Clone(bound = ""),
-    Eq(bound = ""),
-    PartialEq(bound = ""),
-    Hash(bound = "")
-)]
-pub struct JsonLines<T> {
-    _marker: PhantomData<fn() -> T>,
-}
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct JsonLinesEncoder;
 
-impl<T: Serialize> Encoder<T> for JsonLines<T> {
+impl<T: Serialize> Encoder<T> for JsonLinesEncoder {
     type Error = Report<io::Error>;
 
     fn encode(&mut self, item: T, dst: &mut BytesMut) -> Result<(), Self::Error> {
@@ -35,16 +23,42 @@ impl<T: Serialize> Encoder<T> for JsonLines<T> {
     }
 }
 
-impl<T: DeserializeOwned> Decoder for JsonLines<T> {
+#[derive(Derivative)]
+#[derivative(
+    Debug(bound = ""),
+    Default(bound = ""),
+    Clone(bound = ""),
+    Eq(bound = ""),
+    PartialEq(bound = ""),
+    Hash(bound = "")
+)]
+pub struct JsonLinesDecoder<T> {
+    lines: LinesCodec,
+    _marker: PhantomData<fn() -> T>,
+}
+
+impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
+    // `Decoder::Error` requires `From<io::Error>` so we need to use `Report<io::Error>` here.
     type Error = Report<io::Error>;
     type Item = T;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<T>, Self::Error> {
-        memchr(b'\n', buf)
-            .map(|offset| {
-                let line = buf.split_to(offset + 1);
-                Ok(serde_json::from_slice(&line).map_err(io::Error::from)?)
-            })
+        self.lines
+            .decode(buf)
+            .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
+            .filter(|line| !line.is_empty())
+            .map(|line| serde_json::from_str(&line).map_err(io::Error::from))
             .transpose()
+            .into_report()
+    }
+
+    fn decode_eof(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        self.lines
+            .decode_eof(buf)
+            .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
+            .filter(|line| !line.is_empty())
+            .map(|line| serde_json::from_str(&line).map_err(io::Error::from))
+            .transpose()
+            .into_report()
     }
 }

@@ -59,7 +59,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             store
                 .dump_snapshot(FramedWrite::new(
                     io::BufWriter::new(io::stdout()),
-                    codec::JsonLines::default(),
+                    codec::JsonLinesEncoder::default(),
                 ))
                 .await
                 .change_context(GraphError)?;
@@ -70,7 +70,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             store
                 .restore_snapshot(FramedRead::new(
                     io::BufReader::new(io::stdin()),
-                    codec::JsonLines::default(),
+                    codec::JsonLinesDecoder::default(),
                 ))
                 .await
                 .change_context(GraphError)?;
