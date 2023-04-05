@@ -288,35 +288,34 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
-    let router = match args.openapi_only {
-        true => openapi_only_router(),
-        false => {
-            let pool = PostgresStorePool::new(&args.db_info, NoTls)
-                .await
-                .change_context(GraphError)
-                .map_err(|report| {
-                    tracing::error!(error = ?report, "Failed to connect to database");
-                    report
-                })?;
+    let router = if args.openapi_only {
+        openapi_only_router()
+    } else {
+        let pool = PostgresStorePool::new(&args.db_info, NoTls)
+            .await
+            .change_context(GraphError)
+            .map_err(|report| {
+                tracing::error!(error = ?report, "Failed to connect to database");
+                report
+            })?;
 
-            #[cfg(not(feature = "type-fetcher"))]
-            stop_gap_setup(&pool).await?;
+        #[cfg(not(feature = "type-fetcher"))]
+        stop_gap_setup(&pool).await?;
 
-            #[cfg(feature = "type-fetcher")]
-            let pool = FetchingPool::new(
-                pool,
-                (
-                    args.type_fetcher_address.type_fetcher_host,
-                    args.type_fetcher_address.type_fetcher_port,
-                ),
-                DomainValidator::new(args.allowed_url_domain.clone()),
-            );
+        #[cfg(feature = "type-fetcher")]
+        let pool = FetchingPool::new(
+            pool,
+            (
+                args.type_fetcher_address.type_fetcher_host,
+                args.type_fetcher_address.type_fetcher_port,
+            ),
+            DomainValidator::new(args.allowed_url_domain.clone()),
+        );
 
-            rest_api_router(RestRouterDependencies {
-                store: Arc::new(pool),
-                domain_regex: DomainValidator::new(args.allowed_url_domain),
-            })
-        }
+        rest_api_router(RestRouterDependencies {
+            store: Arc::new(pool),
+            domain_regex: DomainValidator::new(args.allowed_url_domain),
+        })
     };
 
     let api_address = format!(
