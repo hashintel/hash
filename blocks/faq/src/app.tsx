@@ -1,3 +1,4 @@
+import { EditableField, GetHelpLink } from "@blockprotocol/design-system";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   type BlockComponent,
@@ -6,10 +7,8 @@ import {
 } from "@blockprotocol/graph/react";
 import {
   Button,
-  EditableField,
   faPlus,
   FontAwesomeIcon,
-  GetHelpLink,
   theme,
 } from "@hashintel/design-system";
 import {

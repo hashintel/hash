@@ -1,12 +1,12 @@
-import { useGraphBlockModule } from "@blockprotocol/graph/react";
-import { useServiceBlockModule } from "@blockprotocol/service/react";
 import {
   BlockPromptInput,
   BlockSettingsButton,
   GetHelpLink,
-} from "@hashintel/design-system";
+} from "@blockprotocol/design-system";
+import { useGraphBlockModule } from "@blockprotocol/graph/react";
+import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse, Fade, Typography } from "@mui/material";
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { generatedLinkKey, urlKey } from "../app";
@@ -193,6 +193,7 @@ export const GenerateImage = ({
     >
       <Fade
         in={
+          true ||
           hovered ||
           inputFocused ||
           animatingIn ||

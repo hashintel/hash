@@ -2,7 +2,7 @@ import {
   DropdownSelector,
   DropdownSelectorProps,
   GroupedOptions,
-} from "@hashintel/design-system";
+} from "@blockprotocol/design-system";
 import { Box } from "@mui/material";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";

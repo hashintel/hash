@@ -26,6 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
+    "@blockprotocol/design-system": "0.0.1",
     "@blockprotocol/graph": "0.2.2",
     "@blockprotocol/hook": "0.1.3",
     "@blockprotocol/service": "0.1.3",

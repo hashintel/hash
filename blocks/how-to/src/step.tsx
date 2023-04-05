@@ -1,9 +1,5 @@
-import {
-  Button,
-  EditableField,
-  faTrash,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { EditableField } from "@blockprotocol/design-system";
+import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Fade, SxProps, Theme, Typography } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 

@@ -1,18 +1,16 @@
 import {
+  BlockErrorMessage,
+  BlockSettingsButton,
+  GetHelpLink,
+} from "@blockprotocol/design-system";
+import {
   type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  Autocomplete,
-  BlockErrorMessage,
-  BlockSettingsButton,
-  FontAwesomeIcon,
-  GetHelpLink,
-  theme,
-} from "@hashintel/design-system";
+import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,

@@ -2,7 +2,7 @@ import {
   DropdownSelector,
   DropdownSelectorProps,
   Option,
-} from "@hashintel/design-system";
+} from "@blockprotocol/design-system";
 import { Box, Typography } from "@mui/material";
 
 import { GridIcon } from "../../icons/grid";

@@ -1,4 +1,5 @@
-import { BlockErrorMessage, Button } from "@hashintel/design-system";
+import { BlockErrorMessage } from "@blockprotocol/design-system";
+import { Button } from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,
