@@ -44,7 +44,7 @@ generate-openapi-client:
 
   retries=10
 
-  while ! just run server --healthcheck 2> /dev/null; do
+  while ! just run server --healthcheck --openapi-only 2> /dev/null; do
     if [ $retries -eq 0 ]; then
       echo "Max retries reached, exiting"
       exit 1
