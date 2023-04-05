@@ -87,7 +87,7 @@ One way of thinking about structured data is the [Block Protocol type system](ht
 
 1. **Entites** (semantic 'things' in a database) have entity types.
   - **Entity types** describe the _properties_ and type(s) of any outgoing _link entities_ that can be associated with an entity.
-  - **Link entities** are the relationships, or 'things' that connect other entities. For example, one `Person` entity may be connected by a linked entity called `Spouse` to another `Person`.
+  - **Link entities** are the relationships, or 'things' that connect other entities. For example, one `Person` entity may be connected by a link entity called `Has Spouse` to another `Person`.
   - Right now, entities can only have one entity type, but we intend to support entities with multiple entity types in the specification soon.
 2. **Properties** contain data associated with some particular aspect of an entity.
   - **Property types** describe the possible values can be associated with a property, by way of reference to _data types_ and other properties.
