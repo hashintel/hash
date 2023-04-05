@@ -482,7 +482,7 @@ export const CompleteChat: FunctionComponent<{
                 <TransitionGroup>
                   {messageThread.map(({ id, message }) => (
                     <Collapse key={id}>
-                      <ChatMessage message={message} />
+                      <ChatMessage readonly={readonly} message={message} />
                     </Collapse>
                   ))}
                 </TransitionGroup>
