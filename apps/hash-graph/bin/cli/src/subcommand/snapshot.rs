@@ -1,6 +1,5 @@
 use clap::Parser;
 use error_stack::{Result, ResultExt};
-use futures::{SinkExt, TryStreamExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
     snapshot::{codec, SnapshotEntry, SnapshotStore},

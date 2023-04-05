@@ -183,9 +183,7 @@ where
     ) -> Result<(), SnapshotRestoreError> {
         let mut snapshot = pin!(snapshot);
         while let Some(entry) = snapshot.next().await {
-            let entry = entry
-                .change_context(SnapshotRestoreError::Canceled)
-                .attach_printable("reading the records resulted in an error")?;
+            let entry = entry.change_context(SnapshotRestoreError::Canceled)?;
 
             match entry {
                 SnapshotEntry::Snapshot(global) => {
