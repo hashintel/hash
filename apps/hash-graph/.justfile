@@ -65,8 +65,8 @@ test *arguments:
   cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
   @just deployment-up graph --wait
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
-  @just generate-openapi-client
   @just deployment-down
+  @just generate-openapi-client
 
 [private]
 coverage *arguments:
