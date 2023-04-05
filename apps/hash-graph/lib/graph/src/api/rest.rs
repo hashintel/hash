@@ -119,13 +119,7 @@ pub fn openapi_only_router() -> Router {
     Router::new().nest(
         "/api-doc",
         Router::new()
-            .route(
-                "/openapi.json",
-                get({
-                    let doc = open_api_doc;
-                    move || async { Json(doc) }
-                }),
-            )
+            .route("/openapi.json", get(|| async { Json(open_api_doc) }))
             .route("/models/*path", get(serve_static_schema)),
     )
 }
