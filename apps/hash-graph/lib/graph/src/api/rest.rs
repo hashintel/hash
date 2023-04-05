@@ -144,7 +144,7 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
         .merge(openapi_only_router())
 }
 
-#[allow(
+#[expect(
     clippy::unused_async,
     reason = "This route does not need async capabilities, but axum requires it in trait bounds."
 )]
