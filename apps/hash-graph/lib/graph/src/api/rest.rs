@@ -116,15 +116,18 @@ pub struct RestRouterDependencies<P: StorePool + Send + 'static> {
 pub fn openapi_only_router() -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
-    Router::new()
-        .route(
-            "/api-doc/openapi.json",
-            get({
-                let doc = open_api_doc;
-                move || async { Json(doc) }
-            }),
-        )
-        .route("/api-doc/models/*path", get(serve_static_schema))
+    Router::new().nest(
+        "/api-doc",
+        Router::new()
+            .route(
+                "/openapi.json",
+                get({
+                    let doc = open_api_doc;
+                    move || async { Json(doc) }
+                }),
+            )
+            .route("/models/*path", get(serve_static_schema)),
+    )
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the OpenAPI specification.
@@ -134,7 +137,7 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()
         .into_iter()
-        .fold(Router::new(), axum::Router::merge);
+        .fold(Router::new(), Router::merge);
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
@@ -144,7 +147,7 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
         .layer(Extension(dependencies.domain_regex))
         .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())
-        .nest("/api-doc", openapi_only_router())
+        .merge(openapi_only_router())
 }
 
 #[allow(
