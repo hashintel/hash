@@ -1,14 +1,13 @@
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
-
 use clap::Parser;
-use error_stack::{IntoReport, Report, Result, ResultExt};
-use futures::{SinkExt, StreamExt};
+use error_stack::{Result, ResultExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
-    snapshot::{SnapshotEntry, SnapshotStore},
+    snapshot::{codec, SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
 };
+use tokio::io;
 use tokio_postgres::NoTls;
+use tokio_util::codec::{FramedRead, FramedWrite};
 
 use crate::error::GraphError;
 
@@ -39,6 +38,7 @@ pub struct SnapshotArgs {
 
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
+    SnapshotEntry::install_error_stack_hook();
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
@@ -48,64 +48,35 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut store = SnapshotStore::new(
-        pool.acquire_owned()
-            .await
-            .change_context(GraphError)
-            .map_err(|report| {
-                tracing::error!(error = ?report, "Failed to acquire database connection");
-                report
-            })?,
-    );
-
-    // TODO: Use a thin wrapper around serde-json which implements `Sink` and `Stream` to avoid the
-    //       need for a separate thread.
-    let (sender, mut receiver) = futures::channel::mpsc::channel::<SnapshotEntry>(8);
-    let mut sender = sender.sink_map_err(Report::new);
+    let mut store = SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
+        |report| {
+            tracing::error!(error = ?report, "Failed to acquire database connection");
+            report
+        },
+    )?);
 
     match args.command {
         SnapshotCommand::Dump(_) => {
-            let reader = tokio::spawn(async move { store.dump_snapshot(sender).await });
-
-            let mut stdout = BufWriter::new(io::stdout());
-            while let Some(entry) = receiver.next().await {
-                serde_json::to_writer(&mut stdout, &entry)
-                    .into_report()
-                    .change_context(GraphError)?;
-                stdout
-                    .write(&[b'\n'])
-                    .into_report()
-                    .change_context(GraphError)?;
-            }
-
-            reader
+            store
+                .dump_snapshot(FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::JsonLinesEncoder::default(),
+                ))
                 .await
-                .into_report()
-                .change_context(GraphError)?
-                .change_context(GraphError)?;
+                .change_context(GraphError)
+                .attach_printable("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
-            let writer = tokio::spawn(async move { store.restore_snapshot(receiver).await });
-
-            for line in BufReader::new(io::stdin()).lines() {
-                let entry: SnapshotEntry =
-                    serde_json::from_str(&line.into_report().change_context(GraphError)?)
-                        .into_report()
-                        .change_context(GraphError)?;
-
-                sender.send(entry).await.change_context(GraphError)?;
-            }
-
-            // Close the channel to signal the writer that we are done.
-            sender.close().await.change_context(GraphError)?;
-
-            writer
+            store
+                .restore_snapshot(FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::JsonLinesDecoder::default(),
+                ))
                 .await
-                .into_report()
-                .change_context(GraphError)?
-                .change_context(GraphError)?;
+                .change_context(GraphError)
+                .attach_printable("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
         }

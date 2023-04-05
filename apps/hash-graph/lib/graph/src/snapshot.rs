@@ -1,3 +1,5 @@
+pub mod codec;
+
 mod entity;
 mod error;
 mod metadata;
@@ -5,7 +7,7 @@ mod ontology;
 
 use std::pin::pin;
 
-use error_stack::{ensure, Context, Report, Result};
+use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{try_join, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
@@ -33,6 +35,61 @@ pub enum SnapshotEntry {
     PropertyType(OntologyTypeSnapshotRecord<PropertyType>),
     EntityType(OntologyTypeSnapshotRecord<EntityType>),
     Entity(EntitySnapshotRecord),
+}
+
+impl SnapshotEntry {
+    pub fn install_error_stack_hook() {
+        error_stack::Report::install_debug_hook::<Self>(|entry, context| match entry {
+            Self::Snapshot(global_metadata) => {
+                context.push_body(format!(
+                    "graph version: {}",
+                    global_metadata.block_protocol_module_versions.graph
+                ));
+            }
+            Self::DataType(data_type) => {
+                context.push_body(format!("data type: {}", data_type.metadata.record_id));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(data_type) {
+                        context.push_appendix(format!("{}:\n{json}", data_type.metadata.record_id));
+                    }
+                }
+            }
+            Self::PropertyType(property_type) => {
+                context.push_body(format!(
+                    "property type: {}",
+                    property_type.metadata.record_id
+                ));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(property_type) {
+                        context.push_appendix(format!(
+                            "{}:\n{json}",
+                            property_type.metadata.record_id
+                        ));
+                    }
+                }
+            }
+            Self::EntityType(entity_type) => {
+                context.push_body(format!("entity type: {}", entity_type.metadata.record_id));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(entity_type) {
+                        context
+                            .push_appendix(format!("{}:\n{json}", entity_type.metadata.record_id));
+                    }
+                }
+            }
+            Self::Entity(entity) => {
+                context.push_body(format!("entity: {}", entity.metadata.record_id.entity_id));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(entity) {
+                        context.push_appendix(format!(
+                            "{}:\n{json}",
+                            entity.metadata.record_id.entity_id
+                        ));
+                    }
+                }
+            }
+        });
+    }
 }
 
 pub struct SnapshotStore<S>(S);
@@ -122,10 +179,12 @@ where
     )]
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<Item = SnapshotEntry> + Send,
+        snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send,
     ) -> Result<(), SnapshotRestoreError> {
         let mut snapshot = pin!(snapshot);
         while let Some(entry) = snapshot.next().await {
+            let entry = entry.change_context(SnapshotRestoreError::Canceled)?;
+
             match entry {
                 SnapshotEntry::Snapshot(global) => {
                     ensure!(
