@@ -59,35 +59,25 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     match args.command {
         SnapshotCommand::Dump(_) => {
             store
-                .dump_snapshot(
-                    FramedWrite::new(
-                        io::BufWriter::new(io::stdout()),
-                        codec::JsonLinesEncoder::default(),
-                    )
-                    .sink_map_err(|report| {
-                        report.attach_printable("Failed to write snapshot to stdout")
-                    }),
-                )
+                .dump_snapshot(FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::JsonLinesEncoder::default(),
+                ))
                 .await
                 .change_context(GraphError)
-                .attach_printable("Failed to read snapshot from store")?;
+                .attach_printable("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
             store
-                .restore_snapshot(
-                    FramedRead::new(
-                        io::BufReader::new(io::stdin()),
-                        codec::JsonLinesDecoder::default(),
-                    )
-                    .map_err(|report| {
-                        report.attach_printable("Failed to read snapshot from stdin")
-                    }),
-                )
+                .restore_snapshot(FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::JsonLinesDecoder::default(),
+                ))
                 .await
                 .change_context(GraphError)
-                .attach_printable("Failed to write snapshot to store")?;
+                .attach_printable("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
         }
