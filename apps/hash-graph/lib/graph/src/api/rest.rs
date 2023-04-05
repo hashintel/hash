@@ -111,7 +111,7 @@ pub struct RestRouterDependencies<P: StorePool + Send + 'static> {
     pub domain_regex: DomainValidator,
 }
 
-/// A [`Router`] that only serves the OpenAPI specification (JSON, and necessary subschemas) for
+/// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
 /// the REST API.
 pub fn openapi_only_router() -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
@@ -124,7 +124,7 @@ pub fn openapi_only_router() -> Router {
     )
 }
 
-/// A [`Router`] that serves all of the REST API routes, and the OpenAPI specification.
+/// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
 pub fn rest_api_router<P: StorePool + Send + 'static>(
     dependencies: RestRouterDependencies<P>,
 ) -> Router {
