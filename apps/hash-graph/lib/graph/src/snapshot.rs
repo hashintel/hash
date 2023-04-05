@@ -78,15 +78,13 @@ impl SnapshotEntry {
                 }
             }
             Self::Entity(entity) => {
-                let entity_id = format!(
-                    "{}%{}",
-                    entity.metadata.record_id.entity_id.owned_by_id,
-                    entity.metadata.record_id.entity_id.entity_uuid
-                );
-                context.push_body(format!("entity: {entity_id}"));
+                context.push_body(format!("entity: {}", entity.metadata.record_id.entity_id));
                 if context.alternate() {
                     if let Ok(json) = serde_json::to_string_pretty(entity) {
-                        context.push_appendix(format!("{entity_id}:\n{json}"));
+                        context.push_appendix(format!(
+                            "{}:\n{json}",
+                            entity.metadata.record_id.entity_id
+                        ));
                     }
                 }
             }
