@@ -6,6 +6,7 @@
   "license": "AGPL-3.0",
   "main": "index.ts",
   "scripts": {
+    "build": "echo this package is auto-generated and does not need a build step, this command is included to help orchestrate Turborepo and express its dependency on the `codegen:generate-openapi-client` step",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint ."
   },
@@ -13,6 +14,7 @@
     "axios": "0.27.2"
   },
   "devDependencies": {
+    "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.11.9",

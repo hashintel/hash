@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-client"],
+      "outputs": []
+    }
+  }
+}
