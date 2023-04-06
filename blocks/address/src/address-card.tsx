@@ -1,4 +1,4 @@
-import { EditableField } from "@blockprotocol/design-system";
+import { EditableField } from "@hashintel/block-design-system";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRotateLeft,

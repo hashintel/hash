@@ -1,4 +1,4 @@
-import { BlockPromptInput } from "@blockprotocol/design-system";
+import { BlockPromptInput } from "@hashintel/block-design-system";
 import { FunctionComponent, useCallback, useState } from "react";
 
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";

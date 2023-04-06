@@ -2,7 +2,7 @@ import {
   BlockErrorMessage,
   BlockSettingsButton,
   GetHelpLink,
-} from "@blockprotocol/design-system";
+} from "@hashintel/block-design-system";
 import {
   type BlockComponent,
   useEntitySubgraph,

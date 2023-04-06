@@ -3185,6 +3185,11 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
+"@blockprotocol/design-system@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/design-system/-/design-system-0.0.1.tgz#f6a98aa9c5fb95544ee7e444fa4601fa9eb14932"
+  integrity sha512-Jw5wq5ZL4KzMnmPuoWtqDUZwWoLQYt6ivzc6lDzLR9WbtfoFbNOWqwvuYSP2Li9dPyFd0qGKAt7S4i2ZgC5fwQ==
+
 "@blockprotocol/graph@0.0.13":
   version "0.0.13"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.13.tgz#28557aa66a4f1262f8d10b0569ac16d283490b44"
@@ -7456,6 +7461,13 @@
   version "17.0.3"
   resolved "https://registry.yarnpkg.com/@types/react-is/-/react-is-17.0.3.tgz#2d855ba575f2fc8d17ef9861f084acc4b90a137a"
   integrity "sha1-LYVbpXXy/I0X75hh8ISsxLkKE3o= sha512-aBTIWg1emtu95bLTLx0cpkxwGW3ueZv71nE2YFBpL8k/z5czEW8yYpOo8Dp+UUAFAtKwNaOsh/ioSeQnWlZcfw=="
+  dependencies:
+    "@types/react" "*"
+
+"@types/react-syntax-highlighter@15.5.6":
+  version "15.5.6"
+  resolved "https://registry.yarnpkg.com/@types/react-syntax-highlighter/-/react-syntax-highlighter-15.5.6.tgz#77c95e6b74d2be23208fcdcf187b93b47025f1b1"
+  integrity sha512-i7wFuLbIAFlabTeD2I1cLjEOrG/xdMa/rpx2zwzAoGHuXJDhSqp9BSfDlMHSh9JSuNfxHk9eEmMX6D55GiyjGg==
   dependencies:
     "@types/react" "*"
 

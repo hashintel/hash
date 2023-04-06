@@ -1,4 +1,4 @@
-import { EditableField } from "@blockprotocol/design-system";
+import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Fade } from "@mui/material";
 import { FunctionComponent, useState } from "react";

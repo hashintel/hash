@@ -1,4 +1,4 @@
-import { BlockPromptInput, GetHelpLink } from "@blockprotocol/design-system";
+import { BlockPromptInput, GetHelpLink } from "@hashintel/block-design-system";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse, Fade } from "@mui/material";

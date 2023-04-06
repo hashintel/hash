@@ -2,7 +2,7 @@ import {
   BlockPromptInput,
   BlockSettingsButton,
   GetHelpLink,
-} from "@blockprotocol/design-system";
+} from "@hashintel/block-design-system";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse, Fade, Typography } from "@mui/material";

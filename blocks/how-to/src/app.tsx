@@ -1,4 +1,4 @@
-import { EditableField, GetHelpLink } from "@blockprotocol/design-system";
+import { EditableField, GetHelpLink } from "@hashintel/block-design-system";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   type BlockComponent,

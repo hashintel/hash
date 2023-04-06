@@ -1,4 +1,4 @@
-import { BlockErrorMessage } from "@blockprotocol/design-system";
+import { BlockErrorMessage } from "@hashintel/block-design-system";
 import { Button } from "@hashintel/design-system";
 import {
   Box,
