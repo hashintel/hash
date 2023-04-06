@@ -160,13 +160,13 @@ jobs:
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
+      - name: Build external services
+        run: yarn external-services-test build
+
       - name: Launch external services
-        if: ${{ success() || failure() }}
-        run: |
-          yarn external-services-test up --detach
+        run: yarn external-services-test up --detach
 
       - run: yarn test:backend-integration
-        if: ${{ success() || failure() }}
         env:
           TEST_COVERAGE: true
 
@@ -218,10 +218,11 @@ jobs:
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
+      - name: Build external services
+        run: yarn external-services-test build
+
       - name: Launch external services
-        if: ${{ success() || failure() }}
-        run: |
-          yarn external-services up --build --detach
+        run: yarn external-services up --build --detach
 
       ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
       # - name: Seed data
