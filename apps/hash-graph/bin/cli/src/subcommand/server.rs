@@ -5,7 +5,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 #[cfg(feature = "type-fetcher")]
 use graph::store::FetchingPool;
 use graph::{
-    api::rest::{rest_api_router, RestRouterDependencies},
+    api::rest::{openapi_only_router, rest_api_router, RestRouterDependencies},
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     store::{DatabaseConnectionInfo, PostgresStorePool},
@@ -70,6 +70,10 @@ pub struct ServerArgs {
     /// Runs the healthcheck for the REST Server.
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
+
+    /// Starts a server that only serves the OpenAPI spec.
+    #[clap(long, default_value_t = false)]
+    pub openapi_only: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -284,31 +288,35 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let router = if args.openapi_only {
+        openapi_only_router()
+    } else {
+        let pool = PostgresStorePool::new(&args.db_info, NoTls)
+            .await
+            .change_context(GraphError)
+            .map_err(|report| {
+                tracing::error!(error = ?report, "Failed to connect to database");
+                report
+            })?;
 
-    #[cfg(not(feature = "type-fetcher"))]
-    stop_gap_setup(&pool).await?;
+        #[cfg(not(feature = "type-fetcher"))]
+        stop_gap_setup(&pool).await?;
 
-    #[cfg(feature = "type-fetcher")]
-    let pool = FetchingPool::new(
-        pool,
-        (
-            args.type_fetcher_address.type_fetcher_host,
-            args.type_fetcher_address.type_fetcher_port,
-        ),
-        DomainValidator::new(args.allowed_url_domain.clone()),
-    );
+        #[cfg(feature = "type-fetcher")]
+        let pool = FetchingPool::new(
+            pool,
+            (
+                args.type_fetcher_address.type_fetcher_host,
+                args.type_fetcher_address.type_fetcher_port,
+            ),
+            DomainValidator::new(args.allowed_url_domain.clone()),
+        );
 
-    let rest_router = rest_api_router(RestRouterDependencies {
-        store: Arc::new(pool),
-        domain_regex: DomainValidator::new(args.allowed_url_domain),
-    });
+        rest_api_router(RestRouterDependencies {
+            store: Arc::new(pool),
+            domain_regex: DomainValidator::new(args.allowed_url_domain),
+        })
+    };
 
     let api_address = format!(
         "{}:{}",
@@ -322,7 +330,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     tracing::info!("Listening on {api_address}");
     axum::Server::bind(&api_address)
-        .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
 
