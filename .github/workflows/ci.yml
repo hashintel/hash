@@ -161,7 +161,7 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Build external services
-        run: yarn external-services-test build
+        run: yarn external-services-test build graph
 
       - name: Launch external services
         run: yarn external-services-test up --detach
@@ -219,7 +219,7 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Build external services
-        run: yarn external-services-test build
+        run: yarn external-services-test build graph
 
       - name: Launch external services
         run: yarn external-services up --build --detach
