@@ -149,6 +149,12 @@ where
         }))
         .await?;
 
+        // TODO: Postgres does not allow to have multiple queries open at the same time. This means
+        //       that each stream needs to be fully processed before the next one can be created.
+        //       We might want to work around this by using a single stream that yields all the
+        //       entries or even use multiple connections to the database.
+        //   see https://app.asana.com/0/0/1204347352251098/f
+
         let data_type_stream = pin!(self.create_dump_stream().await?);
         sink.send_all(&mut data_type_stream.map_ok(SnapshotEntry::DataType))
             .await?;
