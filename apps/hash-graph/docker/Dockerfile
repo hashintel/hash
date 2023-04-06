@@ -2,6 +2,8 @@ FROM node:16.18.1-alpine AS rust
 
 WORKDIR /usr/local/
 
+RUN echo "REMOVE ME"
+
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=:$PATH:/usr/local/cargo/bin
