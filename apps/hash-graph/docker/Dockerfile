@@ -45,9 +45,9 @@ ARG TYPE_FETCHER=yes
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
 RUN apk add --no-cache make protobuf-dev
 
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/local/apps/hash-graph/target \
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,target=/usr/local/apps/hash-graph/target,sharing=locked \
     if [[ ${TYPE_FETCHER^^} == Y* || ${TYPE_FETCHER^^} == T* || $TYPE_FETCHER == 1 ]] ; then  \
       cargo install --path bin/cli --profile $PROFILE --features type-fetcher --locked; \
     else \
