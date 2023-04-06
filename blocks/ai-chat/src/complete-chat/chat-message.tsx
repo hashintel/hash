@@ -1,5 +1,6 @@
+import { AiAssistantMessage } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import { TypeAnimation } from "react-type-animation";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
@@ -9,12 +10,11 @@ import { IncompleteOpenAiAssistantMessage, OpenAIChatMessage } from "./types";
 export const ChatMessage: FunctionComponent<{
   message: OpenAIChatMessage | IncompleteOpenAiAssistantMessage;
 }> = ({ message }) => {
-  const [showCursor, setShowCursor] = useState(true);
-
   return (
     <Box
-      display="flex"
       sx={{
+        display: "flex",
+        width: "100%",
         padding: ({ spacing }) => spacing(2, 3),
         backgroundColor: ({ palette }) =>
           message.role === "user" ? "transparent" : palette.gray[10],
@@ -25,9 +25,6 @@ export const ChatMessage: FunctionComponent<{
         borderBottomStyle: "solid",
         borderBottomColor: ({ palette }) => palette.gray[20],
         borderBottomWidth: 1,
-        "& .type-animation::after": {
-          display: showCursor ? undefined : "none",
-        },
       }}
     >
       <Box sx={{ marginRight: 2 }}>
@@ -43,26 +40,24 @@ export const ChatMessage: FunctionComponent<{
           />
         )}
       </Box>
-      {message.role === "assistant" ? (
-        "content" in message ? (
-          <Typography>
-            <TypeAnimation
-              className="type-animation"
-              sequence={[message.content, () => setShowCursor(false)]}
-              speed={99}
-            />
-          </Typography>
+      <Box flexGrow={1} minWidth={0}>
+        {message.role === "assistant" ? (
+          "content" in message ? (
+            <AiAssistantMessage messageContent={message.content} />
+          ) : (
+            <Box display="flex">
+              <Typography>
+                <TypeAnimation sequence={[]} cursor />
+              </Typography>
+              <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
+                Thinking...
+              </Typography>
+            </Box>
+          )
         ) : (
-          <>
-            <TypeAnimation sequence={[]} speed={99} cursor={showCursor} />
-            <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
-              Thinking...
-            </Typography>
-          </>
-        )
-      ) : (
-        <Typography>{message.content}</Typography>
-      )}
+          <Typography>{message.content}</Typography>
+        )}
+      </Box>
     </Box>
   );
 };
