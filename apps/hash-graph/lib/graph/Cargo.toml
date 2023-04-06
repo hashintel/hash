@@ -45,7 +45,7 @@ utoipa = { version = "3.2.1", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
-tarpc = { version = "0.32", features = ["serde-transport", "tcp"], optional = true }
+tarpc = { version = "0.33", features = ["serde-transport", "tcp"], optional = true }
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 
 [dev-dependencies]
