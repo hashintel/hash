@@ -8,7 +8,7 @@ mod ontology;
 use std::pin::pin;
 
 use error_stack::{ensure, Context, Report, Result, ResultExt};
-use futures::{try_join, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
+use futures::{Sink, SinkExt, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
 
@@ -112,6 +112,19 @@ where
         + Read<Entity>
         + Send,
 {
+    /// Convenience function to create a stream of snapshot entries.
+    async fn create_dump_stream<T>(
+        &self,
+    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send, SnapshotDumpError>
+    where
+        S: Read<T>,
+    {
+        Ok(Read::<T>::read(&self.0, &Filter::All(vec![]), None)
+            .await
+            .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
+            .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
+    }
+
     /// Reads the snapshot from the store into the given sink.
     ///
     /// The sink is expected to be a `futures::Sink` that can be used to write the snapshot entries
@@ -125,46 +138,40 @@ where
         &self,
         sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send,
     ) -> Result<(), SnapshotDumpError> {
-        let data_type_filter = Filter::All(vec![]);
-        let property_type_filter = Filter::All(vec![]);
-        let entity_type_filter = Filter::All(vec![]);
-        let entity_filter = Filter::All(vec![]);
+        let mut sink =
+            pin!(sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)));
 
-        let data_types =
-            Read::<OntologyTypeSnapshotRecord<DataType>>::read(&self.0, &data_type_filter, None);
-        let property_types = Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(
-            &self.0,
-            &property_type_filter,
-            None,
-        );
-        let entity_types = Read::<OntologyTypeSnapshotRecord<EntityType>>::read(
-            &self.0,
-            &entity_type_filter,
-            None,
-        );
-        let entities = Read::<Entity>::read(&self.0, &entity_filter, None);
+        sink.send(SnapshotEntry::Snapshot(SnapshotMetadata {
+            block_protocol_module_versions: BlockProtocolModuleVersions {
+                graph: semver::Version::new(0, 3, 0),
+            },
+            custom: CustomGlobalMetadata,
+        }))
+        .await?;
 
-        let (data_type_stream, property_type_stream, entity_type_stream, entity_stream) =
-            try_join!(data_types, property_types, entity_types, entities)
-                .map_err(|report| report.change_context(SnapshotDumpError::Query))?;
+        // TODO: Postgres does not allow to have multiple queries open at the same time. This means
+        //       that each stream needs to be fully processed before the next one can be created.
+        //       We might want to work around this by using a single stream that yields all the
+        //       entries or even use multiple connections to the database.
+        //   see https://app.asana.com/0/0/1204347352251098/f
 
-        let metadata_stream = futures::stream::once(async move {
-            Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
-                block_protocol_module_versions: BlockProtocolModuleVersions {
-                    graph: semver::Version::new(0, 3, 0),
-                },
-                custom: CustomGlobalMetadata,
-            }))
-        });
+        let data_type_stream = pin!(self.create_dump_stream().await?);
+        sink.send_all(&mut data_type_stream.map_ok(SnapshotEntry::DataType))
+            .await?;
 
-        metadata_stream
-            .chain(data_type_stream.map_ok(SnapshotEntry::DataType))
-            .chain(property_type_stream.map_ok(SnapshotEntry::PropertyType))
-            .chain(entity_type_stream.map_ok(SnapshotEntry::EntityType))
-            .chain(entity_stream.map_ok(|entity| SnapshotEntry::Entity(entity.into())))
-            .map_err(|report| report.change_context(SnapshotDumpError::Read))
-            .forward(sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)))
-            .await
+        let property_type_stream = pin!(self.create_dump_stream().await?);
+        sink.send_all(&mut property_type_stream.map_ok(SnapshotEntry::PropertyType))
+            .await?;
+
+        let entity_type_stream = pin!(self.create_dump_stream().await?);
+        sink.send_all(&mut entity_type_stream.map_ok(SnapshotEntry::EntityType))
+            .await?;
+
+        let entity_stream = pin!(self.create_dump_stream::<Entity>().await?);
+        sink.send_all(&mut entity_stream.map_ok(|entity| SnapshotEntry::Entity(entity.into())))
+            .await?;
+
+        Ok(())
     }
 
     /// Reads the snapshot from from the stream into the store.
