@@ -1,7 +1,6 @@
 {
   "name": "@hashintel/block-design-system",
   "version": "0.0.1",
-  "private": true,
   "description": "Block Design System",
   "bugs": {
     "url": "https://github.com/hashintel/hash/issues"
