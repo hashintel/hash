@@ -3,5 +3,5 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "installCommand": "amazon-linux-extras install -y docker && yarn"
+  "installCommand": "amazon-linux-extras install -y docker && yarn add just-install -W && yarn"
 }
