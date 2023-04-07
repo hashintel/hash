@@ -2,5 +2,6 @@
   "github": {
     "silent": true,
     "autoJobCancelation": true
-  }
+  },
+  "installCommand": "amazon-linux-extras install -y docker && yarn"
 }
