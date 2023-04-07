@@ -60,9 +60,6 @@ miri *arguments:
 # Generates the OpenAPI client for the Graph REST API
 [private]
 generate-openapi-client-shared:
-  #!/usr/bin/env bash
-  set -euo pipefail
-
   just yarn workspace @local/hash-graph-client-generator generate
   just yarn workspace @local/hash-graph-client prettier --write .
   just yarn workspace @local/hash-graph-client fix:eslint
