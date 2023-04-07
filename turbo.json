@@ -2,26 +2,30 @@
   "$schema": "https://turborepo.org/schema.json",
   "pipeline": {
     "build": {
-      "outputs": ["./dist", "./.next"],
-      "dependsOn": ["codegen"]
+      "dependsOn": ["^build", "codegen"]
     },
-    "codegen": {
-      "outputs": ["./src/**/*.gen.*"]
-    },
-    "fix:eslint": {
-      "cache": false
+    "codegen": {},
+    "test": {
+      "dependsOn": ["^build", "codegen"]
     },
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "outputs": []
+      "dependsOn": ["^build", "codegen"]
     },
     "lint:tsc": {
-      "outputs": []
+      "dependsOn": ["^build", "codegen"]
     },
-    "@apps/hash-graph#build": {
+    "fix:eslint": {
       "cache": false,
-      "dependsOn": ["^build"],
-      "outputs": ["target/**"]
+      "dependsOn": ["^build", "codegen"]
+    },
+    "dev": {
+      "persistent": true,
+      "dependsOn": ["^build", "codegen"]
+    },
+    "start": {
+      "persistent": true,
+      "dependsOn": ["^build", "codegen"]
     }
   }
 }
