@@ -247,7 +247,7 @@ impl OpenApiDocumentation {
             io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
                     .into_report()
-                    .attach_printable("Could not write openapi.json")
+                    .attach_printable("could not write openapi.json")
                     .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
             ),
             &openapi,
@@ -259,7 +259,7 @@ impl OpenApiDocumentation {
             let schema_path_dir = path.join("components").join("schemas");
             fs::create_dir_all(&schema_path_dir)
                 .into_report()
-                .attach_printable("Could not create directory")
+                .attach_printable("could not create directory")
                 .attach_printable_lazy(|| schema_path_dir.display().to_string())?;
 
             for (schema_path, schema) in components.schemas {
@@ -280,7 +280,7 @@ impl OpenApiDocumentation {
         let model_path_dir = path.join("models");
         fs::create_dir_all(&model_path_dir)
             .into_report()
-            .attach_printable("Could not create directory")
+            .attach_printable("could not create directory")
             .attach_printable_lazy(|| model_path_dir.display().to_string())?;
 
         for file in STATIC_SCHEMAS.files() {
