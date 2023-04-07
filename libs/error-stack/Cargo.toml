@@ -23,6 +23,7 @@ anyhow = { version = "1.0.70", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 serde = { version = "1", default-features = false, optional = true }
 spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
+wasm-bindgen = { version = "0.2", optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.159", features = ["derive"] }
@@ -51,6 +52,7 @@ std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
 serde = ["dep:serde"]
 hooks = ['dep:spin']
+wasm = ['dep:wasm-bindgen']
 
 [package.metadata.docs.rs]
 all-features = true

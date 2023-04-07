@@ -1,3 +1,5 @@
+#[cfg(feature = "wasm")]
+use alloc::string::ToString;
 use alloc::{boxed::Box, vec, vec::Vec};
 #[cfg(nightly)]
 use core::error::Error;
@@ -11,6 +13,8 @@ use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
+#[cfg(feature = "wasm")]
+use wasm_bindgen::JsValue;
 
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
@@ -724,5 +728,12 @@ impl<Context> Extend<Self> for Report<Context> {
         for item in iter {
             self.extend_one(item);
         }
+    }
+}
+
+#[cfg(feature = "wasm")]
+impl<Context> From<Report<Context>> for JsValue {
+    fn from(report: Report<Context>) -> Self {
+        JsValue::from_str(&report.to_string())
     }
 }
