@@ -1,5 +1,3 @@
-#[cfg(feature = "wasm")]
-use alloc::string::ToString;
 use alloc::{boxed::Box, vec, vec::Vec};
 #[cfg(nightly)]
 use core::error::Error;
@@ -732,8 +730,8 @@ impl<Context> Extend<Self> for Report<Context> {
 }
 
 #[cfg(feature = "wasm")]
-impl<Context> From<Report<Context>> for JsValue {
-    fn from(report: Report<Context>) -> Self {
-        JsValue::from_str(&report.to_string())
+impl<C: Context> From<Report<C>> for JsValue {
+    fn from(report: Report<C>) -> Self {
+        serde_wasm_bindgen::to_value(&report).expect("Failed to serialize report")
     }
 }
