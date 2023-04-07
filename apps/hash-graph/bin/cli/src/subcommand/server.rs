@@ -1,11 +1,11 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{fs, net::SocketAddr, sync::Arc, time::Duration};
 
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
 #[cfg(feature = "type-fetcher")]
 use graph::store::FetchingPool;
 use graph::{
-    api::rest::{openapi_only_router, rest_api_router, RestRouterDependencies},
+    api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     store::{DatabaseConnectionInfo, PostgresStorePool},
@@ -73,7 +73,7 @@ pub struct ServerArgs {
 
     /// Starts a server that only serves the OpenAPI spec.
     #[clap(long, default_value_t = false)]
-    pub openapi_only: bool,
+    pub write_openapi_spec: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -288,35 +288,46 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
-    let router = if args.openapi_only {
-        openapi_only_router()
-    } else {
-        let pool = PostgresStorePool::new(&args.db_info, NoTls)
-            .await
+    if args.write_openapi_spec {
+        let path = std::path::Path::new("out").join("openapi");
+        if path.exists() {
+            fs::remove_dir_all(&path)
+                .into_report()
+                .change_context(GraphError)
+                .attach_printable("could not remove old OpenAPI directory")
+                .attach_printable_lazy(|| path.display().to_string())?;
+        }
+        OpenApiDocumentation::write_openapi(&path)
             .change_context(GraphError)
-            .map_err(|report| {
-                tracing::error!(error = ?report, "Failed to connect to database");
-                report
-            })?;
+            .attach_printable("could not write OpenAPI spec")?;
+        return Ok(());
+    }
 
-        #[cfg(not(feature = "type-fetcher"))]
-        stop_gap_setup(&pool).await?;
+    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+        .await
+        .change_context(GraphError)
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
+        })?;
 
-        #[cfg(feature = "type-fetcher")]
-        let pool = FetchingPool::new(
-            pool,
-            (
-                args.type_fetcher_address.type_fetcher_host,
-                args.type_fetcher_address.type_fetcher_port,
-            ),
-            DomainValidator::new(args.allowed_url_domain.clone()),
-        );
+    #[cfg(not(feature = "type-fetcher"))]
+    stop_gap_setup(&pool).await?;
 
-        rest_api_router(RestRouterDependencies {
-            store: Arc::new(pool),
-            domain_regex: DomainValidator::new(args.allowed_url_domain),
-        })
-    };
+    #[cfg(feature = "type-fetcher")]
+    let pool = FetchingPool::new(
+        pool,
+        (
+            args.type_fetcher_address.type_fetcher_host,
+            args.type_fetcher_address.type_fetcher_port,
+        ),
+        DomainValidator::new(args.allowed_url_domain.clone()),
+    );
+
+    let router = rest_api_router(RestRouterDependencies {
+        store: Arc::new(pool),
+        domain_regex: DomainValidator::new(args.allowed_url_domain),
+    });
 
     let api_address = format!(
         "{}:{}",

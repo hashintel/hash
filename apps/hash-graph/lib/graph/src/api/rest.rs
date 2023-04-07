@@ -14,7 +14,7 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fs, io, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -23,7 +23,7 @@ use axum::{
     routing::get,
     Extension, Json, Router,
 };
-use error_stack::Report;
+use error_stack::{IntoReport, Report, ResultExt};
 use include_dir::{include_dir, Dir};
 use serde::Serialize;
 use utoipa::{
@@ -223,7 +223,79 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         )
     ),
 )]
-struct OpenApiDocumentation;
+pub struct OpenApiDocumentation;
+
+impl OpenApiDocumentation {
+    /// Writes the `OpenAPI` specification to the given path.
+    ///
+    /// The path must be a directory, and the `OpenAPI` specification will be written to
+    /// `openapi.json` in that directory.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the path is not a directory, or if the files cannot be
+    /// written.
+    pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
+        let openapi = Self::openapi();
+        let path = path.as_ref();
+        fs::create_dir_all(path)
+            .into_report()
+            .attach_printable_lazy(|| path.display().to_string())?;
+
+        let openapi_json_path = path.join("openapi.json");
+        serde_json::to_writer_pretty(
+            io::BufWriter::new(
+                fs::File::create(&openapi_json_path)
+                    .into_report()
+                    .attach_printable("Could not write openapi.json")
+                    .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
+            ),
+            &openapi,
+        )
+        .map_err(io::Error::from)
+        .into_report()?;
+
+        if let Some(components) = openapi.components {
+            let schema_path_dir = path.join("components").join("schemas");
+            fs::create_dir_all(&schema_path_dir)
+                .into_report()
+                .attach_printable("Could not create directory")
+                .attach_printable_lazy(|| schema_path_dir.display().to_string())?;
+
+            for (schema_path, schema) in components.schemas {
+                let schema_path = schema_path_dir.join(&schema_path);
+                let schema = serde_json::to_string_pretty(&schema)
+                    .map_err(io::Error::from)
+                    .into_report()?;
+                fs::write(schema_path, schema)?;
+            }
+        }
+
+        let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("api")
+            .join("rest")
+            .join("json_schemas");
+
+        let model_path_dir = path.join("models");
+        fs::create_dir_all(&model_path_dir)
+            .into_report()
+            .attach_printable("Could not create directory")
+            .attach_printable_lazy(|| model_path_dir.display().to_string())?;
+
+        for file in STATIC_SCHEMAS.files() {
+            let model_path_source = model_def_path.join(file.path());
+            let model_path_target = model_path_dir.join(file.path());
+            fs::copy(&model_path_source, &model_path_target)
+                .into_report()
+                .attach_printable("could not copy file")
+                .attach_printable_lazy(|| model_path_source.display().to_string())
+                .attach_printable_lazy(|| model_path_target.display().to_string())?;
+        }
+
+        Ok(())
+    }
+}
 
 /// Addon to merge multiple [`OpenApi`] documents together.
 ///
