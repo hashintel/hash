@@ -11,6 +11,14 @@ import { TypeAnimation } from "react-type-animation";
 
 import { CodeBlock } from "./ai-assistant-message/code-block";
 
+/**
+ * A prompt for encouraging the AI model to generate code blocks
+ * in the expected format, which is equivalent to 25 OpenAI tokens
+ * according to this token calculator: https://platform.openai.com/tokenizer
+ */
+export const codeBlockFormattingPrompt =
+  "Return code blocks as ```{language}{code...}```, with language being a supported highlight.js language name.";
+
 type MessageContentBlock = {
   kind: "text" | "code";
   content: string;
@@ -63,8 +71,9 @@ const TextBlockTypeAnimation: FunctionComponent<{
 };
 
 export const AiAssistantMessage: FunctionComponent<{
+  disableEntranceAnimation?: boolean;
   messageContent: string;
-}> = ({ messageContent }) => {
+}> = ({ messageContent, disableEntranceAnimation }) => {
   const blocks = useMemo<MessageContentBlock[]>(() => {
     const sanitizedMessageContent = messageContent.trim();
 
@@ -89,29 +98,40 @@ export const AiAssistantMessage: FunctionComponent<{
 
   return (
     <Box sx={{ "& .type-animation": { whiteSpace: "pre-line" } }}>
-      {displayedBlocks.map(({ kind, content }, index) => {
-        const onAnimationEnd = () => {
-          if (blocks.length > index + 1) {
-            setDisplayedBlocks((prev) => [...prev, blocks[index + 1]!]);
-          }
-        };
-
-        return (
-          // eslint-disable-next-line react/no-array-index-key
-          <Fragment key={index}>
-            {kind === "text" ? (
-              <TextBlockTypeAnimation
-                text={content}
-                onAnimationEnd={onAnimationEnd}
-              />
-            ) : (
-              <ExpandOnMount onAnimationEnd={onAnimationEnd}>
+      {disableEntranceAnimation
+        ? blocks.map(({ kind, content }, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <Fragment key={index}>
+              {kind === "text" ? (
+                <Typography>{content}</Typography>
+              ) : (
                 <CodeBlock code={content} />
-              </ExpandOnMount>
-            )}
-          </Fragment>
-        );
-      })}
+              )}
+            </Fragment>
+          ))
+        : displayedBlocks.map(({ kind, content }, index) => {
+            const onAnimationEnd = () => {
+              if (blocks.length > index + 1) {
+                setDisplayedBlocks((prev) => [...prev, blocks[index + 1]!]);
+              }
+            };
+
+            return (
+              // eslint-disable-next-line react/no-array-index-key
+              <Fragment key={index}>
+                {kind === "text" ? (
+                  <TextBlockTypeAnimation
+                    text={content}
+                    onAnimationEnd={onAnimationEnd}
+                  />
+                ) : (
+                  <ExpandOnMount onAnimationEnd={onAnimationEnd}>
+                    <CodeBlock code={content} />
+                  </ExpandOnMount>
+                )}
+              </Fragment>
+            );
+          })}
     </Box>
   );
 };
