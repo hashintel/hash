@@ -16,7 +16,11 @@ class ModuleNode(
 ) :
     PsiFileNode(project, file, viewSettings) {
 
-    override fun getChildrenImpl(): Collection<AbstractTreeNode<*>> = ProjectViewDirectoryHelper.getInstance(myProject).getDirectoryChildren(file, settings, true, null);
+    override fun getChildrenImpl(): Collection<AbstractTreeNode<*>> {
+        println("getting all children!")
+
+        return ProjectViewDirectoryHelper.getInstance(myProject).getDirectoryChildren(file, settings, true, null)
+    };
 
     override fun contains(file: VirtualFile): Boolean = children.any { child ->
         val value = child.value

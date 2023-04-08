@@ -25,7 +25,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <treeStructureProvider implementation="ai.hash.rustextra.projectView.ModuleGroupTreeStructureProvider" order="last, after org.rust.lang"/>
+        <treeStructureProvider implementation="ai.hash.rustextra.projectView.ModuleGroupTreeStructureProvider" order="last, before org.rust.lang"/>
     </extensions>
     <projectListeners>
         <listener class="ai.hash.rustextra.projectView.ModuleNodeToolWindowListener" topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener" />
