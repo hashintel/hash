@@ -6,9 +6,9 @@ import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 
 class ModuleNodeToolWindowListener(project: Project) : ToolWindowManagerListener {
     init {
-        val currentProjectViewPane = ProjectView.getInstance(project)?.currentProjectViewPane;
-
-        currentProjectViewPane?.tree?.addTreeExpansionListener(ModuleNodeTreeExpansionListener());
+//        val currentProjectViewPane = ProjectView.getInstance(project)?.currentProjectViewPane;
+//
+//        currentProjectViewPane?.tree?.addTreeExpansionListener(ModuleNodeTreeExpansionListener());
     }
 
 

@@ -36,6 +36,7 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
             // as a direct dependency, this is bad, because that'd mean we would need to update our plugin
             // everytime the rust plugin is updated, with multiple versions etc.
             if (value is PsiFile && value.virtualFile.extension == "rs") {
+                println("Default Extension: ${value.virtualFile.fileType.defaultExtension}")
                 // Statement above checks that this is the case
                 @Suppress("UNCHECKED_CAST")
                 files[value.virtualFile.nameWithoutExtension] = child as AbstractTreeNode<PsiFile>
@@ -64,8 +65,9 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
                 // TODO: add a custom context menu
                 val (file, directory) = modules[value.virtualFile.nameWithoutExtension]!!
 
-                nodes.add(ModuleNode.fromPsiFileNode(file, directory.value, settings))
 
+                nodes.add(file);
+                nodes.add(ModuleDirectoryNode(directory.project, directory.value, settings))
                 continue
             }
 
