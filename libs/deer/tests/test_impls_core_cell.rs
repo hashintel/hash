@@ -1,4 +1,4 @@
-#![feature(sync_unsafe_cell)]
+#![cfg_attr(nightly, feature(sync_unsafe_cell))]
 use core::cell::{Cell, RefCell, UnsafeCell};
 #[cfg(nightly)]
 use core::cell::{OnceCell, SyncUnsafeCell};
