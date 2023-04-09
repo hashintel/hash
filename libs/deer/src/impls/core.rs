@@ -3,6 +3,7 @@ mod atomic;
 mod bool;
 mod floating;
 mod integral;
+mod marker;
 mod non_zero;
 mod string;
 mod unit;
