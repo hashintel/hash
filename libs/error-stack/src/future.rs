@@ -9,7 +9,7 @@ use core::{
     fmt::{Debug, Display},
     future::Future,
     pin::Pin,
-    task::{Context as TaskContext, Poll},
+    task::{ready, Context as TaskContext, Poll},
 };
 
 use crate::{Context, Result, ResultExt};
@@ -41,15 +41,9 @@ macro_rules! implement_future_adaptor {
                     (Pin::new_unchecked(future), inner)
                 };
 
-                // Can't use `map` as `#[track_caller]` is unstable on closures
-                match future.poll(cx) {
-                    Poll::Ready(value) => {
-                        Poll::Ready(value.$method({
-                            inner.take().expect("Cannot poll context after it resolves")
-                        }))
-                    }
-                    Poll::Pending => Poll::Pending,
-                }
+                Poll::Ready(ready!(future.poll(cx)).$method({
+                    inner.take().expect("Cannot poll context after it resolves")
+                }))
             }
         }
     };
@@ -83,15 +77,9 @@ macro_rules! implement_lazy_future_adaptor {
                     (Pin::new_unchecked(future), inner)
                 };
 
-                // Can't use `map` as `#[track_caller]` is unstable on closures
-                match future.poll(cx) {
-                    Poll::Ready(value) => {
-                        Poll::Ready(value.$method({
-                            inner.take().expect("Cannot poll context after it resolves")
-                        }))
-                    }
-                    Poll::Pending => Poll::Pending,
-                }
+                Poll::Ready(ready!(future.poll(cx)).$method({
+                    inner.take().expect("Cannot poll context after it resolves")
+                }))
             }
         }
     };
