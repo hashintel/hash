@@ -39,7 +39,7 @@ impl<'de, T: ?Sized> Deserialize<'de> for PhantomData<T> {
     type Reflection = PhantomDataReflection;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_null(PhantomDataVisitor(PhantomData))
+        de.deserialize_null(PhantomDataVisitor(Self))
             .change_context(DeserializeError)
     }
 }
