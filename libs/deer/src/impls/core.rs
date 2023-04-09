@@ -4,5 +4,6 @@ mod bool;
 mod floating;
 mod integral;
 mod non_zero;
+mod option;
 mod string;
 mod unit;
