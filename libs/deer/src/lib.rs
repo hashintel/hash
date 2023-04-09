@@ -4,7 +4,8 @@
         provide_any,
         error_in_core,
         error_generic_member_access,
-        integer_atomics
+        integer_atomics,
+        saturating_int_impl
     )
 )]
 #![cfg_attr(not(feature = "std"), no_std)]
