@@ -18,7 +18,7 @@
 
 - [ ] ...
 
-## 🔍 What does this change?
+## 🚧 What does this change?
 
 <!-- Use a bullet list to explain your changes in more detail, if it would be helpful. -->
 <!-- If applicable, link to the specific commit.-->
