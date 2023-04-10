@@ -29,7 +29,7 @@
     "@blockprotocol/graph": "0.2.2",
     "@blockprotocol/hook": "0.1.3",
     "@blockprotocol/service": "0.1.3",
-    "@hashintel/block-design-system": "0.0.1",
+    "@hashintel/block-design-system": "0.0.0",
     "@hashintel/design-system": "0.0.6",
     "@mui/material": "5.11.8"
   },
