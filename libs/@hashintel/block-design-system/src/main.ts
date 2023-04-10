@@ -5,3 +5,4 @@ export * from "./get-help-link";
 export * from "./block-prompt-input";
 export * from "./dropdown-selector";
 export * from "./icons/icons";
+export * from "./ai-assistant-message";

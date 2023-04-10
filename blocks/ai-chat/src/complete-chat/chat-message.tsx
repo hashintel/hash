@@ -1,4 +1,4 @@
-import { AiAssistantMessage } from "@hashintel/design-system";
+import { AiAssistantMessage } from "@hashintel/block-design-system";
 import { Box, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 import { TypeAnimation } from "react-type-animation";
