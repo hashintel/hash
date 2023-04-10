@@ -4,7 +4,7 @@
 use core::sync::Exclusive;
 
 use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{assert_tokens, assert_tokens_with_assertion, Token};
 use proptest::prelude::*;
 use serde::Serialize;
 use similar_asserts::assert_serde_eq;
@@ -13,9 +13,9 @@ use similar_asserts::assert_serde_eq;
 proptest! {
     #[test]
     fn exclusive_ok(value in any::<u8>()) {
-        let expected = Exclusive::new(value);
-
-        assert_tokens(&expected, &[Token::Number(Number::from(value))]);
+        assert_tokens_with_assertion(|mut received: Exclusive<u8>| {
+            assert_eq!(*received.get_mut(), value);
+        }, &[Token::Number(Number::from(value))]);
     }
 }
 
