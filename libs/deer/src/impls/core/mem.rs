@@ -2,7 +2,7 @@ use core::mem::ManuallyDrop;
 
 use error_stack::Result;
 
-use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
+use crate::{error::DeserializeError, Deserialize, Deserializer};
 
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for ManuallyDrop<T> {
     type Reflection = T::Reflection;
