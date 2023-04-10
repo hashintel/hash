@@ -82,7 +82,7 @@ where
     type Value = core::result::Result<T, E>;
 
     fn expecting(&self) -> Document {
-        todo!()
+        Self::Value::reflection()
     }
 
     fn visit_value<D>(
