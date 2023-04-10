@@ -39,13 +39,13 @@ tonic = "0.8.3"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "bd6a197" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "542836" }
 uuid = { version = "1.3.0", features = ["v4", "serde"] }
 utoipa = { version = "3.2.1", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
-tarpc = { version = "0.32", features = ["serde-transport", "tcp"], optional = true }
+tarpc = { version = "0.33", features = ["serde-transport", "tcp"], optional = true }
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 
 [dev-dependencies]

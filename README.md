@@ -92,7 +92,7 @@ Key projects within are summarized below.
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
 We're also [hiring] for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
 
@@ -102,7 +102,7 @@ The vast majority of this repository is published as free, open-source software.
 
 ## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
 
-Please see [SECURITY](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
+Please see [SECURITY](.github/SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 

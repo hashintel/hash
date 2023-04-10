@@ -1,4 +1,4 @@
-import { Button } from "@hashintel/design-system";
+import { AiAssistantMessage, Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
 import { ArrowRotateLeftIcon } from "../../icons/arrow-rotate-left";
@@ -87,15 +87,7 @@ export const TextPreview = ({
           Output
         </Typography>
 
-        <Typography
-          sx={{
-            color: ({ palette }) => palette.gray[90],
-            fontSize: 16,
-            lineHeight: 1.3,
-          }}
-        >
-          {text}
-        </Typography>
+        <AiAssistantMessage messageContent={text} />
       </Stack>
 
       <Box
