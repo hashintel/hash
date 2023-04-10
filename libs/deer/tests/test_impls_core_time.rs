@@ -4,6 +4,7 @@ use approx::assert_relative_eq;
 use deer_desert::{assert_tokens_with_assertion, Token};
 use proptest::prelude::*;
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn duration_ok(value in any::<Duration>()) {
