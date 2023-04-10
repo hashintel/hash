@@ -27,7 +27,6 @@
     "storybook": "storybook dev -p 6006",
     "test": "jest"
   },
-  "dependencies": {},
   "devDependencies": {
     "@babel/preset-env": "7.20.2",
     "@babel/preset-typescript": "7.18.6",
