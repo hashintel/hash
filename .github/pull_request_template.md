@@ -25,7 +25,7 @@
 
 - ...
 
-## 🔍 Has this modified a publishable library?
+## 🚀 Has this modified a publishable library?
 
 <!-- Confirm you have taken the necessary action to record a changeset or publish a change, as appropriate -->
 <!-- AT LEAST ONE box must be checked. Do not delete this section! see libs/README.md for info on publishing -->
