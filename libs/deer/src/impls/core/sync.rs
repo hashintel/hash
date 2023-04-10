@@ -1,6 +1,7 @@
 #[cfg(nightly)]
 use core::sync::Exclusive;
 
+#[cfg(nightly)]
 use crate::{error::DeserializeError, Deserialize, Deserializer};
 
 mod atomic;
