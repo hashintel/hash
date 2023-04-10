@@ -27,6 +27,11 @@
     "storybook": "storybook dev -p 6006",
     "test": "jest"
   },
+  "dependencies": {
+    "lowlight": "2.8.1",
+    "react-syntax-highlighter": "15.5.0",
+    "react-type-animation": "3.0.1"
+  },
   "devDependencies": {
     "@babel/preset-env": "7.20.2",
     "@babel/preset-typescript": "7.18.6",
