@@ -3185,11 +3185,6 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/design-system@0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/design-system/-/design-system-0.0.1.tgz#f6a98aa9c5fb95544ee7e444fa4601fa9eb14932"
-  integrity sha512-Jw5wq5ZL4KzMnmPuoWtqDUZwWoLQYt6ivzc6lDzLR9WbtfoFbNOWqwvuYSP2Li9dPyFd0qGKAt7S4i2ZgC5fwQ==
-
 "@blockprotocol/graph@0.0.13":
   version "0.0.13"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.13.tgz#28557aa66a4f1262f8d10b0569ac16d283490b44"
