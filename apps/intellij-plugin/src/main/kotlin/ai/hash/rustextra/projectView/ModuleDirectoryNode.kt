@@ -7,10 +7,10 @@ import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDirectory
 
-class ModuleDirectoryNode(project: Project?, value: PsiDirectory, viewSettings: ViewSettings?): PsiDirectoryNode(project, value, viewSettings) {
+class ModuleDirectoryNode(project: Project?, value: PsiDirectory, viewSettings: ViewSettings?) : PsiDirectoryNode(project, value, viewSettings) {
     // This is needed, as otherwise the `GroupByTypeComparator` won't fall back to the `AlphaComparator`
     override fun getTypeSortWeight(sortByType: Boolean): Int = 0
-  
+
     // This value is taken from `PsiFileNode`, which assigns a static value of `20`
     // we need to directly use the magic value of 20, as we're unable to invoke the method on `PsiFileNode`
     // directly.
@@ -24,7 +24,6 @@ class ModuleDirectoryNode(project: Project?, value: PsiDirectory, viewSettings: 
     @Suppress("UnstableApiUsage")
     override fun getSortOrder(settings: NodeSortSettings): NodeSortOrder =
         if (settings.isManualOrder) NodeSortOrder.MANUAL else NodeSortOrder.UNSPECIFIED
-
 
     // a bit of a hack, if the `SortKey` is the same the `GroupByTypeComparator` redirects to the `AlphaComparator`,
     // if the weights of both files are the same, the `AlphaComparator` uses the `FileNameComparator` with the `toString`
