@@ -1,9 +1,9 @@
 mod array;
-mod atomic;
 mod bool;
 mod cell;
 mod floating;
 mod integral;
 mod non_zero;
 mod string;
+mod sync;
 mod unit;
