@@ -6,4 +6,5 @@ mod floating;
 mod integral;
 mod non_zero;
 mod string;
+mod time;
 mod unit;
