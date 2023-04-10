@@ -38,9 +38,11 @@ pub struct OptionReflection<T: ?Sized>(PhantomData<fn() -> *const T>);
 
 impl<T: Reflection + ?Sized> Reflection for OptionReflection<T> {
     fn schema(doc: &mut Document) -> Schema {
-        // TODO: how?!
-        // needs to be oneOf null/none/T
-        todo!()
+        // TODO: an accurate reflection is not really possible right now
+        //  we need to do oneOf null/none/T and `Schema` does not support it right now
+        //  this needs to be fixed until `0.1`
+        // For now we just fallback to `T`
+        T::schema(doc)
     }
 }
 
