@@ -10,8 +10,11 @@ import com.intellij.psi.PsiDirectory
 class ModuleDirectoryNode(project: Project?, value: PsiDirectory, viewSettings: ViewSettings?): PsiDirectoryNode(project, value, viewSettings) {
     // This is needed, as otherwise the `GroupByTypeComparator` won't fall back to the `AlphaComparator`
     override fun getTypeSortWeight(sortByType: Boolean): Int = 0
-
-    // this is the same weight of a file, allows us to group them together
+  
+    // This value is taken from `PsiFileNode`, which assigns a static value of `20`
+    // we need to directly use the magic value of 20, as we're unable to invoke the method on `PsiFileNode`
+    // directly.
+    // This allows us to bypass the `AlphaComparator` and use the `FileNameComparator` for sorting.
     override fun getWeight(): Int = 20
 
     // this is the default `SortKey` of `RsFile`, using the same allows us to group those together
