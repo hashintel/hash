@@ -16,10 +16,6 @@ runs:
         node-version: 16 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
-    - uses: taiki-e/install-action@v2
-      with:
-        tool: just@1.13.0
-
     - run: yarn install
       shell: bash
       env:
