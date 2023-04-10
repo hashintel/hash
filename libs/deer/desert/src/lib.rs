@@ -11,7 +11,7 @@ pub(crate) mod tape;
 mod token;
 
 pub use assert::{
-    assert_tokens, assert_tokens_error, assert_tokens_with_context,
+    assert_tokens, assert_tokens_any_error, assert_tokens_error, assert_tokens_with_context,
     assert_tokens_with_context_error,
 };
 pub use token::Token;

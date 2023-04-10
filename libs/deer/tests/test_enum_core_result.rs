@@ -1,0 +1,49 @@
+use deer_desert::{assert_tokens, assert_tokens_any_error, Token};
+use proptest::prelude::*;
+
+#[cfg(not(miri))]
+proptest! {
+    #[test]
+    fn result_ok_ok(value in any::<u8>()) {
+        let expected = Result::<u8, bool>::Ok(value);
+
+        assert_tokens(&expected, &[
+            Token::Object { length: Some(1) },
+            Token::String("Ok"),
+            Token::Number(value.into()),
+            Token::ObjectEnd,
+        ]);
+    }
+
+    #[test]
+    fn result_ok_not_err(value in any::<bool>()) {
+        let _ = assert_tokens_any_error::<Result<u8, bool>>(&[
+            Token::Object { length: Some(1) },
+            Token::String("Ok"),
+            Token::Bool(value),
+            Token::ObjectEnd,
+        ]);
+    }
+
+    #[test]
+    fn result_err_ok(value in any::<bool>()) {
+        let expected = Result::<u8, bool>::Err(value);
+
+        assert_tokens(&expected, &[
+            Token::Object { length: Some(1) },
+            Token::String("Err"),
+            Token::Bool(value),
+            Token::ObjectEnd,
+        ]);
+    }
+
+    #[test]
+    fn result_err_not_ok(value in any::<u8>()) {
+        let _ = assert_tokens_any_error::<Result<u8, bool>>(&[
+            Token::Object { length: Some(1) },
+            Token::String("Err"),
+            Token::Number(value.into()),
+            Token::ObjectEnd,
+        ]);
+    }
+}

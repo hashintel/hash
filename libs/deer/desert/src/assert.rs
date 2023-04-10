@@ -1,6 +1,10 @@
 use core::fmt::Debug;
 
-use deer::{error::ReportExt, Context, Deserialize};
+use deer::{
+    error::{DeserializeError, ReportExt},
+    Context, Deserialize,
+};
+use error_stack::Report;
 use serde_json::to_value;
 #[cfg(feature = "pretty")]
 use similar_asserts::{assert_eq, assert_serde_eq};
@@ -58,4 +62,14 @@ where
     T: Deserialize<'de> + Debug,
 {
     assert_tokens_with_context_error::<T>(error, tokens, &Context::new());
+}
+
+pub fn assert_tokens_any_error<'de, T>(tokens: &'de [Token]) -> Report<DeserializeError>
+where
+    T: Deserialize<'de> + Debug,
+{
+    let context = Context::new();
+    let mut de = Deserializer::new(tokens, &context);
+
+    T::deserialize(&mut de).expect_err("value of type T should fail serialization")
 }
