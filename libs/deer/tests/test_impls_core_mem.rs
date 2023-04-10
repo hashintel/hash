@@ -6,6 +6,7 @@ use proptest::prelude::*;
 use serde::Serialize;
 use similar_asserts::assert_serde_eq;
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn manually_drop_ok(value in any::<u8>()) {
