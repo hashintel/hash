@@ -11,7 +11,7 @@ pub fn parse(input: TokenStream) -> Result<TokenStream> {
 
     let (_, _, body) = parse.into_generator();
 
-    let input = QueryBuilderInput::try_from(body)?;
+    let _input = QueryBuilderInput::try_from(body)?;
     Ok(TokenStream::new())
 }
 

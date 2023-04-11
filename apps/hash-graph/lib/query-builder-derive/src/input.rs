@@ -1,3 +1,6 @@
+// will be removed soon, unused because we're only parsing right now
+#![allow(dead_code)]
+
 use proc_macro::{Ident, TokenTree};
 
 #[derive(Debug)]
