@@ -34,12 +34,14 @@ use crate::{
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     type Record = Entity;
 
+    type ReadStream = impl futures::Stream<Item = Result<Self::Record, QueryError>> + Send + Sync;
+
     #[tracing::instrument(level = "info", skip(self))]
     async fn read(
         &self,
         filter: &Filter<Entity>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<Vec<Entity>, QueryError> {
+    ) -> Result<Self::ReadStream, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::EntityEdge {
             edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -112,13 +114,14 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
-        self.as_client()
+        let stream = self
+            .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
             .into_report()
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
-            .and_then(|row| async move {
+            .and_then(move |row| async move {
                 let properties: EntityProperties =
                     serde_json::from_value(row.get(properties_index))
                         .into_report()
@@ -190,8 +193,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         row.get(archived_index),
                     ),
                 })
-            })
-            .try_collect()
-            .await
+            });
+        Ok(stream)
     }
 }
