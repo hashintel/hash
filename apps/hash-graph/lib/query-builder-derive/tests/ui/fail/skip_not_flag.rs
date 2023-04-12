@@ -2,8 +2,8 @@ use query_builder_derive::QueryBuilder;
 
 #[derive(QueryBuilder)]
 pub enum QueryPath {
-    #[builder(next = "this")]
-    Nested(Box<Self>),
+    #[builder(skip = false)]
+    Nested,
 }
 
 fn main() {}
