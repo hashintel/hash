@@ -88,14 +88,14 @@ Inherently tied to the idea of structured data are _types_. Data may be of a cer
 The [Block Protocol type system](https://blockprotocol.org/docs/types) outlines three different kinds of types which can help us think about structured data: entity types, property types, and data types.
 
 1. **Entities** (semantic 'things' in a database) have entity types.
-  - **Entity types** describe the _properties_ and type(s) of any entity, including both _link entities_ and _normal entities_.
-  - **Link entities** are the relationships, or 'things' that connect other entities. For example, one `Person` entity may be connected by a link entity called `Has Spouse` to another `Person`.
-  - **Normal entities** is the term used to described all other entities.
-  - Right now, entities can only have one entity type, but support for entities with multiple entity types is coming soon.
-2. **Properties** contain data associated with some particular aspect of an entity.
-  - **Property types** describe the possible values that can be associated with a property, by way of reference to _data types_ and other property types.
-3. **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
-  - Support for defining "custom" data types (e.g. numbers within a certain range, or strings matching a certain pattern) which are not already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph) is planned.
+    - **Entity types** describe the _properties_ and type(s) of any entity, including both _link entities_ and _normal entities_.
+    - **Link entities** are the relationships, or 'things' that connect other entities. For example, one `Person` entity may be connected by a link entity called `Has Spouse` to another `Person`.
+    - **Normal entities** is the term used to described all other entities.
+    - Right now, entities can only have one entity type, but support for entities with multiple entity types is coming soon.
+1. **Properties** contain data associated with some particular aspect of an entity.
+    - **Property types** describe the possible values that can be associated with a property, by way of reference to _data types_ and other property types.
+1. **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
+    - Support for defining "custom" data types (e.g. numbers within a certain range, or strings matching a certain pattern) which are not already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph) is planned.
 
 The open-source [HASH type editor](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/type-editor) makes it easy to create and edit Block Protocol types.
 
