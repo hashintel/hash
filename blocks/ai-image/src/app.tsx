@@ -10,25 +10,25 @@ import { SizeMe } from "react-sizeme";
 import { GenerateImage } from "./app/generate-image";
 import { ImageTile } from "./shared/image-tile";
 import {
-  AIImageBlockLinksByLinkTypeId,
-  RootEntity,
-  RootEntityLinkedEntities,
-} from "./types";
+  AIImageBlockOutgoingLinksByLinkEntityTypeId,
+  BlockEntity,
+  BlockEntityOutgoingLinkAndTarget,
+} from "./types/generated/block-entity";
 
 export const descriptionKey: keyof RemoteFileEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 export const urlKey: keyof RemoteFileEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
 
-export const generatedLinkKey: keyof AIImageBlockLinksByLinkTypeId =
+export const generatedLinkKey: keyof AIImageBlockOutgoingLinksByLinkEntityTypeId =
   "https://blockprotocol.org/@hash/types/entity-type/generated/v/1";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
-    RootEntity,
-    RootEntityLinkedEntities
+    BlockEntity,
+    BlockEntityOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
   const fileEntity = linkedEntities.find(
