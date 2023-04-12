@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use proc_macro::TokenStream;
 use virtue::{
@@ -75,11 +75,20 @@ fn ensure_no_duplicate_attributes(attributes: &[ParsedAttribute]) -> Result {
     Ok(())
 }
 
+fn attribute_name(attribute: &ParsedAttribute) -> &Ident {
+    match attribute {
+        ParsedAttribute::Tag(ident) | ParsedAttribute::Property(ident, _) => ident,
+        _ => unimplemented!(),
+    }
+}
+
 fn find_attribute<'a>(
     attributes: &'a [ParsedAttribute],
     name: &str,
 ) -> Option<&'a ParsedAttribute> {
-    attributes.iter().find(|attribute| matches!(attribute, ParsedAttribute::Tag(ident) | ParsedAttribute::Property(ident, _) if ident.to_string() == name))
+    attributes
+        .iter()
+        .find(|attribute| attribute_name(attribute).to_string() == name)
 }
 
 enum Next {
@@ -105,11 +114,26 @@ fn parse_attributes(attributes: &[Attribute]) -> Result<Vec<ParsedAttribute>> {
     Ok(attributes)
 }
 
+fn deny_unknown_attributes(attributes: &[ParsedAttribute], allow: &[&'static str]) -> Result {
+    attributes
+        .iter()
+        .find(|attribute| !allow.contains(&attribute_name(attribute).to_string().as_str()))
+        .map_or(Ok(()), |attribute| {
+            let name = attribute_name(attribute);
+
+            Err(Error::custom_at(
+                format!("unrecognized attribute {name}"),
+                name.span(),
+            ))
+        })
+}
+
 // Variant Attributes that are valid:
 // * skip (tag)
 // * next (property), value oneOf remote, this, properties
 fn parse_variant_attributes(attributes: &[ParsedAttribute]) -> Result<VariantAttributes> {
     ensure_no_duplicate_attributes(attributes)?;
+    deny_unknown_attributes(attributes, &["skip", "allow"])?;
 
     let skip = find_attribute(attributes, "skip")
         .map(|attribute| match attribute {
