@@ -97,7 +97,7 @@ impl Stream for AccountReceiver {
 }
 
 /// Creates a new [`AccountSender`] and [`AccountReceiver`] pair.
-/// 
+///
 /// The `chunk_size` parameter determines the number of [`AccountId`]s that are sent in a single
 /// [`AccountRowBatch`].
 pub fn channel(chunk_size: usize) -> (AccountSender, AccountReceiver) {
