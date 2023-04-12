@@ -47,7 +47,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
+                    for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
@@ -82,7 +82,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
+                    for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
@@ -118,7 +118,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
+                    for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
@@ -154,7 +154,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
+                    for referenced_entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<EntityTypeWithMetadata>::for_ontology_edge_by_entity_type_vertex_id(
                             &entity_type_vertex_id,
@@ -253,11 +253,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entity_types = Read::<EntityTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
-            .await?
-            .into_iter()
-            .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect();
+        let entity_types =
+            Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
+                .await?
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,

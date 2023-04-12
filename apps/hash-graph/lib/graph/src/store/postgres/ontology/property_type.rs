@@ -47,7 +47,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for data_type in <Self as Read<DataTypeWithMetadata>>::read(
+                    for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                             &property_type_vertex_id,
@@ -82,7 +82,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
+                    for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                             &property_type_vertex_id,
@@ -183,7 +183,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let time_axis = temporal_axes.variable_time_axis();
 
         let property_types =
-            Read::<PropertyTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
+            Read::<PropertyTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                 .await?
                 .into_iter()
                 .map(|entity| (entity.vertex_id(time_axis), entity))

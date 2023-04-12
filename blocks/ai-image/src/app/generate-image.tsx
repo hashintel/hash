@@ -1,21 +1,11 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import {
-  BlockErrorMessage,
+  BlockPromptInput,
   BlockSettingsButton,
-  Button,
   GetHelpLink,
 } from "@hashintel/design-system";
-import {
-  Box,
-  buttonBaseClasses,
-  Collapse,
-  Fade,
-  inputBaseClasses,
-  outlinedInputClasses,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Collapse, Fade, Typography } from "@mui/material";
 import { FormEvent, useCallback, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -194,14 +184,6 @@ export const GenerateImage = ({
     [imageNumber, promptText, serviceModule, graphModule, images, loading],
   );
 
-  const onSubmit = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
-      await generateAndUploadImages();
-    },
-    [generateAndUploadImages],
-  );
-
   return (
     <Box
       ref={blockRootRef}
@@ -280,97 +262,39 @@ export const GenerateImage = ({
         onEntered={() => setAnimatingOut(false)}
         onExited={() => setAnimatingIn(false)}
       >
-        <form onSubmit={onSubmit}>
-          <TextField
-            autoFocus
-            multiline
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            onChange={(event) => setPromptText(event.target.value)}
-            onKeyDown={async (event) => {
-              const { shiftKey, code } = event;
-              if (!shiftKey && code === "Enter") {
-                await onSubmit(event);
-              }
-            }}
-            placeholder="Enter a prompt to generate image, and hit enter"
-            required
-            ref={inputRef}
-            disabled={!!loading}
-            sx={({ palette }) => ({
-              maxWidth: 580,
-              width: 1,
-              [`& .${inputBaseClasses.input}`]: {
-                minHeight: "unset",
-                fontSize: 16,
-                lineHeight: "21px",
-                paddingY: 2.125,
-                paddingLeft: 2.75,
-                paddingRight: 0,
-              },
-              [`& .${inputBaseClasses.disabled}`]: {
-                background: palette.gray[10],
-                color: palette.gray[70],
-              },
-              [`& .${outlinedInputClasses.notchedOutline}`]: {
-                border: `1px solid ${palette.gray[20]}`,
-              },
-            })}
-            InputProps={{
-              endAdornment: (
-                <Button
-                  type="submit"
-                  variant="tertiary_quiet"
-                  disabled={!!loading}
-                  sx={({ palette }) => ({
-                    alignSelf: "flex-end",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                    lineHeight: 1,
-                    color: palette.blue[70],
-                    textTransform: "uppercase",
-                    height: 55,
-                    width: 1,
-                    maxHeight: 55,
-                    maxWidth: 168,
-                    minHeight: 51,
-                    whiteSpace: "nowrap",
-                    [`&.${buttonBaseClasses.disabled}`]: {
-                      color: palette.common.black,
-                      background: "none",
-                    },
-                  })}
-                >
-                  {loading === "service" ? (
-                    <>
-                      GENERATING <BouncingDotsLoader />
-                    </>
-                  ) : loading === "upload" ? (
-                    <>
-                      UPLOADING <BouncingDotsLoader />
-                    </>
-                  ) : (
-                    <>
-                      Submit Prompt{" "}
-                      <ArrowTurnDownLeftIcon
-                        sx={{
-                          ml: 1,
-                          fontSize: 12,
-                        }}
-                      />
-                    </>
-                  )}
-                </Button>
-              ),
-            }}
-            value={promptText}
-          />
-
-          <Collapse in={!!errorMessage}>
-            <BlockErrorMessage apiName="OpenAI" sx={{ mt: 1 }} />
-          </Collapse>
-        </form>
+        <BlockPromptInput
+          value={promptText}
+          onSubmit={() => generateAndUploadImages()}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
+          onChange={(event) => setPromptText(event.target.value)}
+          placeholder="Enter a prompt to generate image, and hit enter"
+          ref={inputRef}
+          disabled={!!loading}
+          buttonLabel={
+            loading === "service" ? (
+              <>
+                GENERATING <BouncingDotsLoader />
+              </>
+            ) : loading === "upload" ? (
+              <>
+                UPLOADING <BouncingDotsLoader />
+              </>
+            ) : (
+              <>
+                Submit Prompt{" "}
+                <ArrowTurnDownLeftIcon
+                  sx={{
+                    ml: 1,
+                    fontSize: 12,
+                  }}
+                />
+              </>
+            )
+          }
+          error={!!errorMessage}
+          apiName="OpenAI"
+        />
       </Collapse>
 
       <Collapse

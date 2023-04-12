@@ -89,7 +89,7 @@ not-in-pr +command:
 [no-cd]
 in-ci +command:
   #!/usr/bin/env bash
-  set -euo pipefail
+  set -eo pipefail
   if [ -n "$CI" ]; then
     echo "{{command}}" >&2
     {{command}}

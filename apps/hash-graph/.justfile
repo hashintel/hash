@@ -33,11 +33,30 @@ deployment-down *arguments:
 
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-client:
-  @just deployment-up graph --wait
-  @just yarn workspace @local/hash-graph-client-generator generate
-  @just yarn workspace @local/hash-graph-client prettier --write .
-  @just yarn workspace @local/hash-graph-client fix:eslint
-  @just deployment-down
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  just run server --openapi-only &
+
+  # When the script exits, clean-up and kill the server by searching for running processes with commands containing the
+  # `--openapi-only` flag
+  trap 'kill $(pgrep -f -- '\''--openapi-only'\'')' EXIT
+
+  retries=10
+
+  while ! just run server --healthcheck --openapi-only 2> /dev/null; do
+    if [ $retries -eq 0 ]; then
+      echo "Max retries reached, exiting"
+      exit 1
+    fi
+
+    retries=$((retries-1))
+    sleep 1
+  done
+
+  just yarn workspace @local/hash-graph-client-generator generate
+  just yarn workspace @local/hash-graph-client prettier --write .
+  just yarn workspace @local/hash-graph-client fix:eslint
 
 [private]
 test *arguments:
@@ -46,8 +65,8 @@ test *arguments:
   cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
   @just deployment-up graph --wait
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
-  @just generate-openapi-client
   @just deployment-down
+  @just generate-openapi-client
 
 [private]
 coverage *arguments:

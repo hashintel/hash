@@ -1,15 +1,13 @@
-use std::io::Write;
-
 use clap::Parser;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
-    store::{
-        test_graph::{self, TestStore},
-        DatabaseConnectionInfo, PostgresStorePool, StorePool,
-    },
+    snapshot::{codec, SnapshotEntry, SnapshotStore},
+    store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
 };
+use tokio::io;
 use tokio_postgres::NoTls;
+use tokio_util::codec::{FramedRead, FramedWrite};
 
 use crate::error::GraphError;
 
@@ -40,6 +38,7 @@ pub struct SnapshotArgs {
 
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
+    SnapshotEntry::install_error_stack_hook();
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
@@ -49,36 +48,37 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut store = pool
-        .acquire()
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
+    let mut store = SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
+        |report| {
             tracing::error!(error = ?report, "Failed to acquire database connection");
             report
-        })?;
+        },
+    )?);
 
     match args.command {
         SnapshotCommand::Dump(_) => {
-            serde_json::to_writer(
-                &mut std::io::stdout(),
-                &store.read_test_graph().await.change_context(GraphError)?,
-            )
-            .into_report()
-            .change_context(GraphError)?;
-            writeln!(std::io::stdout())
-                .into_report()
-                .change_context(GraphError)?;
+            store
+                .dump_snapshot(FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::JsonLinesEncoder::default(),
+                ))
+                .await
+                .change_context(GraphError)
+                .attach_printable("Failed to produce snapshot dump")?;
+
+            tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
-            let snapshot: test_graph::TestData = serde_json::from_reader(std::io::stdin())
-                .into_report()
-                .change_context(GraphError)?;
-
             store
-                .write_test_graph(snapshot)
+                .restore_snapshot(FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::JsonLinesDecoder::default(),
+                ))
                 .await
-                .change_context(GraphError)?;
+                .change_context(GraphError)
+                .attach_printable("Failed to restore snapshot")?;
+
+            tracing::info!("Snapshot restored successfully");
         }
     }
 
