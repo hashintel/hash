@@ -133,7 +133,7 @@ fn deny_unknown_attributes(attributes: &[ParsedAttribute], allow: &[&'static str
 // * next (property), value oneOf remote, this, properties
 fn parse_variant_attributes(attributes: &[ParsedAttribute]) -> Result<VariantAttributes> {
     ensure_no_duplicate_attributes(attributes)?;
-    deny_unknown_attributes(attributes, &["skip", "allow"])?;
+    deny_unknown_attributes(attributes, &["skip", "next"])?;
 
     let skip = find_attribute(attributes, "skip")
         .map(|attribute| match attribute {

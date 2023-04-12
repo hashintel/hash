@@ -1,0 +1,5 @@
+error: expected skip attribute to be a tag, found property
+ --> tests/ui/fail/skip_not_flag.rs:5:15
+  |
+5 |     #[builder(skip = "false")]
+  |               ^^^^
