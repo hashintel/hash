@@ -1,19 +1,21 @@
+pub mod account;
 pub mod codec;
+pub mod entity;
 
-mod entity;
 mod error;
 mod metadata;
 mod ontology;
+mod restore;
 
 use std::pin::pin;
 
-use error_stack::{ensure, Context, Report, Result, ResultExt};
+use async_trait::async_trait;
+use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use futures::{Sink, SinkExt, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
-    entity::EntitySnapshotRecord,
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
     ontology::{
@@ -24,7 +26,8 @@ pub use self::{
 pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{
     knowledge::Entity,
-    store::{crud::Read, query::Filter},
+    snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
+    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,32 +95,28 @@ impl SnapshotEntry {
     }
 }
 
-pub struct SnapshotStore<S>(S);
+#[async_trait]
+trait WriteBatch<C> {
+    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+}
 
-impl<S> SnapshotStore<S> {
-    pub const fn new(store: S) -> Self {
+pub struct SnapshotStore<C>(PostgresStore<C>);
+
+impl<C> SnapshotStore<C> {
+    pub const fn new(store: PostgresStore<C>) -> Self {
         Self(store)
     }
 }
 
-#[expect(
-    clippy::trait_duplication_in_bounds,
-    reason = "False positive: the generics are different"
-)]
-impl<S> SnapshotStore<S>
-where
-    S: Read<OntologyTypeSnapshotRecord<DataType>>
-        + Read<OntologyTypeSnapshotRecord<PropertyType>>
-        + Read<OntologyTypeSnapshotRecord<EntityType>>
-        + Read<Entity>
-        + Send,
-{
+impl<C: AsClient> SnapshotStore<C> {
     /// Convenience function to create a stream of snapshot entries.
     async fn create_dump_stream<T>(
         &self,
     ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send, SnapshotDumpError>
     where
-        S: Read<T>,
+        PostgresStore<C>: Read<T>,
     {
         Ok(Read::<T>::read(&self.0, &Filter::All(vec![]), None)
             .await
@@ -155,15 +154,24 @@ where
         //       entries or even use multiple connections to the database.
         //   see https://app.asana.com/0/0/1204347352251098/f
 
-        let data_type_stream = pin!(self.create_dump_stream().await?);
+        let data_type_stream = pin!(
+            self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
+                .await?
+        );
         sink.send_all(&mut data_type_stream.map_ok(SnapshotEntry::DataType))
             .await?;
 
-        let property_type_stream = pin!(self.create_dump_stream().await?);
+        let property_type_stream = pin!(
+            self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
+                .await?
+        );
         sink.send_all(&mut property_type_stream.map_ok(SnapshotEntry::PropertyType))
             .await?;
 
-        let entity_type_stream = pin!(self.create_dump_stream().await?);
+        let entity_type_stream = pin!(
+            self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
+                .await?
+        );
         sink.send_all(&mut entity_type_stream.map_ok(SnapshotEntry::EntityType))
             .await?;
 
@@ -176,57 +184,92 @@ where
 
     /// Reads the snapshot from from the stream into the store.
     ///
+    /// The data emitted by the stream is read in a separate thread and is sent to different
+    /// channels for each record type. Each channel holds a buffer of `chunk_size` entries. The
+    /// receivers of the channels are then used to insert the records into the store. When a write
+    /// operation to the store succeeds, the next entry is read from the channel, even if the
+    /// buffer of the channel is not full yet. This ensures, that the store is continuously writing
+    /// to the database and does not wait for the buffer to be full.
+    ///
+    /// Writing to the store happens in three stages:
+    ///   1. The first stage is the `begin` stage. This stage is executed before any records are
+    ///      read from the stream. It is used to create a transaction, so a possible rollback is
+    ///      possible. For each data, which is inserted, a temporary table is created. This table
+    ///      is used to insert the data into the store without locking the store and avoiding
+    ///      yet unfulfilled foreign key constraints.
+    ///   2. The second stage is the `write` stage. This stage is executed for each record type. It
+    ///      reads the batch of records from the channels and inserts them into the temporary
+    ///      tables.
+    ///   3. The third stage is the `commit` stage. This stage is executed after all records have
+    ///      been read from the stream. It is used to insert the data from the temporary tables
+    ///      into the store and to drop the temporary tables. As foreign key constraints are now
+    ///      enabled, this stage might fail. In this case, the transaction is rolled back and the
+    ///      error is returned.
+    ///
+    /// If the input stream contains an `Err` value, the snapshot restore is aborted and the error
+    /// is returned.
+    ///
     /// # Errors
     ///
+    /// - If reading the record from the provided stream fails
     /// - If writing the record into the datastore fails
-    #[expect(
-        clippy::todo,
-        clippy::missing_panics_doc,
-        reason = "This will be done in a follow-up"
-    )]
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send,
+        snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
+        chunk_size: usize,
     ) -> Result<(), SnapshotRestoreError> {
-        let mut snapshot = pin!(snapshot);
-        while let Some(entry) = snapshot.next().await {
-            let entry = entry.change_context(SnapshotRestoreError::Canceled)?;
+        tracing::info!("snapshot restore started");
 
-            match entry {
-                SnapshotEntry::Snapshot(global) => {
-                    ensure!(
-                        global.block_protocol_module_versions.graph
-                            == semver::Version::new(0, 3, 0),
-                        SnapshotRestoreError::Unsupported
-                    );
-                }
-                SnapshotEntry::DataType(data_type) => {
-                    tracing::trace!(
-                        "Inserting data type: {:?}",
-                        data_type.metadata.record_id.base_url
-                    );
-                }
-                SnapshotEntry::PropertyType(property_type) => {
-                    tracing::trace!(
-                        "Inserting property type: {:?}",
-                        property_type.metadata.record_id.base_url
-                    );
-                }
-                SnapshotEntry::EntityType(entity_type) => {
-                    tracing::trace!(
-                        "Inserting entity type: {:?}",
-                        entity_type.metadata.record_id.base_url
-                    );
-                }
-                SnapshotEntry::Entity(entity) => {
-                    tracing::trace!(
-                        "Inserting entity: {:?}",
-                        entity.metadata.record_id.entity_id.entity_uuid
-                    );
-                }
-            }
-        }
+        let (snapshot_record_tx, snapshot_record_rx) = restore::channel(chunk_size);
 
-        todo!("https://app.asana.com/0/0/1204216809501006/f")
+        let read_thread = tokio::spawn(
+            snapshot
+                .map_err(|report| report.change_context(SnapshotRestoreError::Read))
+                .forward(
+                    snapshot_record_tx
+                        .sink_map_err(|report| report.change_context(SnapshotRestoreError::Buffer)),
+                ),
+        );
+
+        let client = self
+            .0
+            .transaction()
+            .await
+            .change_context(SnapshotRestoreError::Write)?;
+
+        SnapshotRecordBatch::begin(&client)
+            .await
+            .change_context(SnapshotRestoreError::Write)?;
+
+        let client = snapshot_record_rx
+            .fold(
+                Ok(client),
+                |client, records: SnapshotRecordBatch| async move {
+                    let client = client?;
+                    records
+                        .write(&client)
+                        .await
+                        .change_context(SnapshotRestoreError::Write)?;
+                    Ok::<_, Report<SnapshotRestoreError>>(client)
+                },
+            )
+            .await?;
+
+        tracing::info!("snapshot reading finished, committing...");
+
+        SnapshotRecordBatch::commit(&client)
+            .await
+            .change_context(SnapshotRestoreError::Write)?;
+
+        client
+            .commit()
+            .await
+            .change_context(SnapshotRestoreError::Write)
+            .attach_printable("unable to commit snapshot to the store")?;
+
+        read_thread
+            .await
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)?
     }
 }
