@@ -1727,7 +1727,7 @@ dependencies = [
 name = "query-builder-derive"
 version = "0.1.0"
 dependencies = [
- "syn 2.0.12",
+ "syn 2.0.13",
  "trybuild",
  "virtue",
 ]
