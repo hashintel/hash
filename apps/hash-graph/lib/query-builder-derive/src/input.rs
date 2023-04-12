@@ -9,13 +9,6 @@ pub struct QueryBuilderInput {
 }
 
 #[derive(Debug)]
-pub enum Next {
-    This,
-    Nest,
-    Properties,
-}
-
-#[derive(Debug)]
 pub enum Redirect {
     Remote(Vec<TokenTree>),
     This,
