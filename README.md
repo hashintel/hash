@@ -11,7 +11,6 @@
 
 <!-- markdownlint-disable link-fragments -->
 
-
 [github_banner]: #hash
 [github_star]: https://github.com/hashintel/hash#
 [gh-what-is-hash]: #--what-is-hash
