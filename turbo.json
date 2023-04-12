@@ -27,5 +27,12 @@
       "persistent": true,
       "dependsOn": ["^build", "codegen"]
     }
-  }
+  },
+  "globalDependencies": [
+    "**/turbo.json",
+    ".env",
+    ".justfile",
+    ".yarnrc",
+    "package.json"
+  ]
 }
