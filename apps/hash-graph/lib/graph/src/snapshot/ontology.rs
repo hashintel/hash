@@ -1,65 +1,22 @@
-use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
+mod batch;
+mod channel;
+mod data_type;
+mod entity_type;
+mod property_type;
+mod record;
+mod table;
 
-use crate::{
-    identifier::{
-        ontology::OntologyTypeRecordId,
-        time::{LeftClosedTemporalInterval, TransactionTime},
+pub use self::{
+    batch::OntologyTypeMetadataRowBatch,
+    channel::{metadata_channel, OntologyTypeMetadataReceiver, OntologyTypeMetadataSender},
+    data_type::{data_type_channel, DataTypeReceiver, DataTypeRowBatch, DataTypeSender},
+    entity_type::{entity_type_channel, EntityTypeReceiver, EntityTypeRowBatch, EntityTypeSender},
+    property_type::{
+        property_type_channel, PropertyTypeReceiver, PropertyTypeRowBatch, PropertyTypeSender,
     },
-    ontology::OntologyType,
-    provenance::{OwnedById, ProvenanceMetadata},
+    record::{
+        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeSnapshotRecord,
+    },
+    table::{DataTypeRow, OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OntologyTemporalMetadata {
-    pub transaction_time: Option<LeftClosedTemporalInterval<TransactionTime>>,
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CustomOntologyMetadata {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub provenance: Option<ProvenanceMetadata>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub temporal_versioning: Option<OntologyTemporalMetadata>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub owned_by_id: Option<OwnedById>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "time::serde::iso8601::option"
-    )]
-    pub fetched_at: Option<OffsetDateTime>,
-}
-
-impl CustomOntologyMetadata {
-    #[must_use]
-    const fn is_empty(&self) -> bool {
-        self.provenance.is_none()
-            && self.temporal_versioning.is_none()
-            && self.owned_by_id.is_none()
-            && self.fetched_at.is_none()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OntologyTypeMetadata {
-    pub record_id: OntologyTypeRecordId,
-    #[serde(default, skip_serializing_if = "CustomOntologyMetadata::is_empty")]
-    pub custom: CustomOntologyMetadata,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    rename_all = "camelCase",
-    bound(
-        serialize = "T::Representation: Serialize",
-        deserialize = "T::Representation: Deserialize<'de>"
-    )
-)]
-pub struct OntologyTypeSnapshotRecord<T: OntologyType> {
-    pub schema: T::Representation,
-    pub metadata: OntologyTypeMetadata,
-}
