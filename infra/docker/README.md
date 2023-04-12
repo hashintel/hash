@@ -2,7 +2,7 @@
 
 This directory contains production Docker configuration files.
 
-Production docker files may need to be revised further.
+Production Dockerfiles may need to be revised further.
 
 Images make use of [`--transpile-only`](https://github.com/TypeStrong/ts-node#transpilers) option of `ts-node` such that we skip typechecking to speed up execution time.
 See [this thread](https://github.com/TypeStrong/ts-node/issues/104) for more context.
