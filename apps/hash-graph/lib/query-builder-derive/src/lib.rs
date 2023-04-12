@@ -1,8 +1,9 @@
+/// Derive macro that implements a query-builder and automatic deserialize implementation
+
 use proc_macro::TokenStream;
 
 use crate::parse::parse;
 
-// Derive macro that implements a query-builder and automatic deserialize implementation
 mod input;
 mod parse;
 mod render;
