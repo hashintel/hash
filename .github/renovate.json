@@ -9,6 +9,7 @@
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
+  "semanticCommits": "disabled",
   "packageRules": [
     {
       "enabled": true,
