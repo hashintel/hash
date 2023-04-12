@@ -10,4 +10,5 @@
 
 This folder contains different kinds of infrastructure to deploy HASH.
 
+- `docker` - Contains production Docker assets.
 - `terraform` - A set of Terraform modules to spin up a HASH instance on AWS using ECS Fargate, RDS and Elasticache.
