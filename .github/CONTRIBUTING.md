@@ -10,7 +10,7 @@ We also have a community [Discord server](https://hash.ai/discord) where you can
 
 This repository is HASH's public monorepo. It contains [several different](README.md) projects, some of which are open-source. Each project has its own [license](LICENSE.md) and contribution policies which may vary slightly.
 
-To ascertain the license and contributor policy for a given project, check out the `LICENSE.md` and `CONTRIBUTOR.md` files in its root.
+To ascertain the license and contributor policy for a given project, check out the `LICENSE.md` and `CONTRIBUTING.md` files in its root.
 
 ## Common contribution processes
 
