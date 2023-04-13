@@ -169,7 +169,7 @@ impl Stream for OntologyTypeMetadataReceiver {
     }
 }
 
-pub fn metadata_channel(
+pub fn ontology_metadata_channel(
     chunk_size: usize,
     account_sender: AccountSender,
 ) -> (OntologyTypeMetadataSender, OntologyTypeMetadataReceiver) {

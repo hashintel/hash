@@ -120,11 +120,14 @@ impl Stream for SnapshotRecordReceiver {
 
 pub fn channel(chunk_size: usize) -> (SnapshotRecordSender, SnapshotRecordReceiver) {
     let (account_tx, account_rx) = account::channel(chunk_size);
-    let (ontology_tx, ontology_rx) = ontology::metadata_channel(chunk_size, account_tx.clone());
-    let (data_type_tx, data_type_rx) = ontology::data_type_channel(chunk_size, ontology_tx.clone());
+    let (ontology_metadata_tx, ontology_metadata_rx) =
+        ontology::ontology_metadata_channel(chunk_size, account_tx.clone());
+    let (data_type_tx, data_type_rx) =
+        ontology::data_type_channel(chunk_size, ontology_metadata_tx.clone());
     let (property_type_tx, property_type_rx) =
-        ontology::property_type_channel(chunk_size, ontology_tx.clone());
-    let (entity_type_tx, entity_type_rx) = ontology::entity_type_channel(chunk_size, ontology_tx);
+        ontology::property_type_channel(chunk_size, ontology_metadata_tx.clone());
+    let (entity_type_tx, entity_type_rx) =
+        ontology::entity_type_channel(chunk_size, ontology_metadata_tx);
     let (entity_tx, entity_rx) = entity::channel(chunk_size, account_tx);
 
     (
@@ -137,7 +140,9 @@ pub fn channel(chunk_size: usize) -> (SnapshotRecordSender, SnapshotRecordReceiv
         SnapshotRecordReceiver {
             stream: select_all(vec![
                 account_rx.map(SnapshotRecordBatch::Accounts).boxed(),
-                ontology_rx.map(SnapshotRecordBatch::OntologyTypes).boxed(),
+                ontology_metadata_rx
+                    .map(SnapshotRecordBatch::OntologyTypes)
+                    .boxed(),
                 data_type_rx.map(SnapshotRecordBatch::DataTypes).boxed(),
                 property_type_rx
                     .map(SnapshotRecordBatch::PropertyTypes)
