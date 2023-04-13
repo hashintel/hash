@@ -3,12 +3,13 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { useMemo, useRef } from "react";
+import { EditableField, theme } from "@hashintel/design-system";
+import { ThemeProvider } from "@mui/material";
+import { useMemo, useRef, useState } from "react";
 
 import { RootEntityKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { Board } from "./components/board/board";
-import { BoardTitle } from "./components/board-title/board-title";
 import { RootEntity, RootEntityLinkedEntities } from "./types";
 
 const titleKey: RootEntityKey =
@@ -46,18 +47,32 @@ export const App: BlockComponent<RootEntity> = ({
     [blockEntityId, blockEntityTypeId, blockEntity.properties, graphModule],
   );
 
-  const setTitle = async (val: string) => {
-    await updateEntity({ [titleKey]: val });
-  };
+  const [titleValue, setTitleValue] = useState(title);
 
   return (
-    <div className={styles.block} ref={blockRootRef}>
-      <BoardTitle title={title} onChange={setTitle} readonly={readonly} />
-      <Board
-        updateEntity={updateEntity}
-        blockEntity={blockEntity}
-        readonly={readonly}
-      />
-    </div>
+    <ThemeProvider theme={theme}>
+      <div className={styles.block} ref={blockRootRef}>
+        <EditableField
+          value={titleValue}
+          placeholder="Untitled Board"
+          onChange={(event) => setTitleValue(event.target.value)}
+          onBlur={(event) => updateEntity({ [titleKey]: event.target.value })}
+          readonly={readonly}
+          sx={{
+            fontWeight: 700,
+            fontSize: "21px !important",
+            lineHeight: "1.2 !important",
+            color: "black",
+          }}
+          wrapperSx={{ mb: 1.5 }}
+        />
+
+        <Board
+          updateEntity={updateEntity}
+          blockEntity={blockEntity}
+          readonly={readonly}
+        />
+      </div>
+    </ThemeProvider>
   );
 };
