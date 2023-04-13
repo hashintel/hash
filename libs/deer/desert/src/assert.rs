@@ -10,16 +10,31 @@ use crate::{deserializer::Deserializer, error::ErrorVec, token::Token};
 /// # Panics
 ///
 /// if there are any remaining tokens in the stream after deserialization
-pub fn assert_tokens_with_context<'de, T>(expected: &T, tokens: &'de [Token], context: &Context)
-where
-    T: Deserialize<'de> + PartialEq + Debug,
+pub fn assert_tokens_deserialize<'de, T>(
+    tokens: &'de [Token],
+    context: &Context,
+    assertion: impl FnOnce(T),
+) where
+    T: Deserialize<'de>,
 {
     let mut de = Deserializer::new(tokens, context);
     let received = T::deserialize(&mut de).expect("should deserialize");
 
     assert_eq!(de.remaining(), 0, "{} remaining tokens", de.remaining());
 
-    assert_eq!(received, *expected);
+    assertion(received);
+}
+
+/// # Panics
+///
+/// if there are any remaining tokens in the stream after deserialization
+pub fn assert_tokens_with_context<'de, T>(expected: &T, tokens: &'de [Token], context: &Context)
+where
+    T: Deserialize<'de> + PartialEq + Debug,
+{
+    assert_tokens_deserialize::<T>(tokens, context, |received| {
+        assert_eq!(received, *expected);
+    });
 }
 
 pub fn assert_tokens<'de, T>(value: &T, tokens: &'de [Token])
@@ -27,6 +42,13 @@ where
     T: Deserialize<'de> + PartialEq + Debug,
 {
     assert_tokens_with_context(value, tokens, &Context::new());
+}
+
+pub fn assert_tokens_with_assertion<'de, T>(assertion: impl FnOnce(T), tokens: &'de [Token])
+where
+    T: Deserialize<'de>,
+{
+    assert_tokens_deserialize::<T>(tokens, &Context::new(), assertion);
 }
 
 /// # Panics
