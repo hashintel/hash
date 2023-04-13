@@ -22,14 +22,18 @@ impl Error for SnapshotDumpError {}
 #[derive(Debug)]
 pub enum SnapshotRestoreError {
     Unsupported,
-    Canceled,
+    Read,
+    Buffer,
+    Write,
 }
 
 impl fmt::Display for SnapshotRestoreError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unsupported => write!(f, "The snapshot contains unsupported entries"),
-            Self::Canceled => write!(f, "The snapshot restore was canceled"),
+            Self::Read => write!(f, "could not read a snapshot entry"),
+            Self::Buffer => write!(f, "could not buffer a snapshot entry"),
+            Self::Write => write!(f, "could not write a snapshot entry into the store"),
         }
     }
 }
