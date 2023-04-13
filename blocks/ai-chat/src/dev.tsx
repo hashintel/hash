@@ -144,8 +144,10 @@ const DevApp = () => {
         min: 50,
         max: 200,
       }}
-      blockProtocolApiKey={process.env.BP_API_KEY}
-      blockProtocolSiteHost={process.env.BP_HOST ?? "https://blockprotocol.org"} // update this to a recent staging deployment when testing
+      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
+      blockProtocolSiteHost={
+        process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
+      } // update this to a recent staging deployment when testing
       // includeDefaultMockData // this seeds the datastore with sample entities and links, remove this to start with just the contents of `initialData`
       // hideDebugToggle <- uncomment this to disable the debug UI entirely
       // initialEntities={[]} <- customise the entities in the datastore (blockEntity is always added, if you provide it)

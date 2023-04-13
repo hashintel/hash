@@ -33,6 +33,11 @@ const App = () => (
     blockEntityRecordId={initialData.metadata.recordId}
     initialData={{ initialEntities: [initialData] }}
     blockInfo={packageJSON.blockprotocol}
+    simulateDatastoreLatency={{
+      // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+      min: 50,
+      max: 200,
+    }}
     debug
   />
 );

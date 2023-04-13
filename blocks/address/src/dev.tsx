@@ -28,8 +28,15 @@ const DevApp = () => {
       initialData={{
         initialEntities: [testEntity],
       }}
-      blockProtocolApiKey={undefined} // Set this to an API key when testing
-      blockProtocolSiteHost="https://blockprotocol.org" // update this to a recent staging deployment when testing
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
+      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
+      blockProtocolSiteHost={
+        process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
+      } // update this to a recent staging deployment when testing
       debug
     />
   );

@@ -68,6 +68,11 @@ const DevApp = () => {
       initialData={{
         initialEntities: [testEntity],
       }}
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
     />
   );
 };
