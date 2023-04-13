@@ -1,4 +1,11 @@
-// These values use the same logic as integral, but zero is an error!
+#![cfg_attr(nightly, feature(saturating_int_impl))]
+
+#[cfg(nightly)]
+use core::num::Saturating;
+use core::num::Wrapping;
+
+use deer_desert::assert_tokens;
+use proptest::prelude::*;
 
 mod common;
 
@@ -9,8 +16,11 @@ use core::num::{
 
 use deer::{Deserialize, Number};
 use deer_desert::{assert_tokens_error, error, Token};
+use serde::Serialize;
 use serde_json::json;
+use similar_asserts::assert_serde_eq;
 
+// These values use the same logic as integral, but zero is an error!
 macro_rules! test_zero {
     ($ty:ident) => {
         paste::paste! {
@@ -105,4 +115,47 @@ fn usize_err_zero() {
         },
         &[Token::USize(0)],
     );
+}
+
+#[cfg(not(miri))]
+proptest! {
+    #[test]
+    fn wrapping_ok(value in any::<u8>()) {
+        let expected = Wrapping(value);
+
+        assert_tokens(&expected, &[Token::Number(Number::from(value))]);
+    }
+
+    #[cfg(nightly)]
+    #[test]
+    fn saturating_ok(value in any::<u8>()) {
+        let expected = Saturating(value);
+
+        assert_tokens(&expected, &[Token::Number(Number::from(value))]);
+    }
+}
+
+fn assert_json(lhs: impl Serialize, rhs: impl Serialize) {
+    let lhs = serde_json::to_value(lhs).expect("should be able to serialize lhs");
+    let rhs = serde_json::to_value(rhs).expect("should be able to serialize rhs");
+
+    assert_serde_eq!(lhs, rhs);
+}
+
+// test that the `Reflection` of all types are the same as their underlying type
+#[test]
+fn wrapping_reflection_same() {
+    let lhs = Wrapping::<u8>::reflection();
+    let rhs = u8::reflection();
+
+    assert_json(lhs, rhs);
+}
+
+#[cfg(nightly)]
+#[test]
+fn saturating_reflection_same() {
+    let lhs = Saturating::<u8>::reflection();
+    let rhs = u8::reflection();
+
+    assert_json(lhs, rhs);
 }
