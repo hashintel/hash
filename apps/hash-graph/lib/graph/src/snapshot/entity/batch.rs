@@ -32,8 +32,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     CREATE TEMPORARY TABLE entity_editions_tmp (
                         entity_edition_id UUID PRIMARY KEY,
                         properties JSONB NOT NULL,
-                        left_to_right_order INT4,
-                        right_to_left_order INT4,
+                        left_to_right_order INTEGER,
+                        right_to_left_order INTEGER,
                         record_created_by_id UUID NOT NULL,
                         archived BOOLEAN NOT NULL,
                         entity_type_base_url TEXT NOT NULL,
