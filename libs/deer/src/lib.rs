@@ -5,7 +5,9 @@
         error_in_core,
         error_generic_member_access,
         integer_atomics,
-        saturating_int_impl
+        saturating_int_impl,
+        sync_unsafe_cell,
+        exclusive_wrapper
     )
 )]
 #![cfg_attr(not(feature = "std"), no_std)]

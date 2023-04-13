@@ -1,7 +1,7 @@
 [workspace]
 members = [".", "macros"]
 default-members = ["."]
-exclude = ["package.json"]
+exclude = ["package.json", ".config/lints.toml"]
 
 [package]
 name = "error-stack"

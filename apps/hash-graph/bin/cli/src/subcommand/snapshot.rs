@@ -70,10 +70,13 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
         }
         SnapshotCommand::Restore(_) => {
             store
-                .restore_snapshot(FramedRead::new(
-                    io::BufReader::new(io::stdin()),
-                    codec::JsonLinesDecoder::default(),
-                ))
+                .restore_snapshot(
+                    FramedRead::new(
+                        io::BufReader::new(io::stdin()),
+                        codec::JsonLinesDecoder::default(),
+                    ),
+                    10_000,
+                )
                 .await
                 .change_context(GraphError)
                 .attach_printable("Failed to restore snapshot")?;

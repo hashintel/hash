@@ -43,7 +43,7 @@ impl RoutedResource for AccountResource {
     path = "/accounts",
     tag = "Account",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created account", body = AccountId),
+        (status = 200, content_type = "application/json", description = "The schema of the created account", body = AccountId),
 
         (status = 500, description = "Store error occurred"),
     )
