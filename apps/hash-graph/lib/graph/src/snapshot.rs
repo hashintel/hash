@@ -242,17 +242,14 @@ impl<C: AsClient> SnapshotStore<C> {
             .change_context(SnapshotRestoreError::Write)?;
 
         let client = snapshot_record_rx
-            .fold(
-                Ok(client),
-                |client, records: SnapshotRecordBatch| async move {
-                    let client = client?;
-                    records
-                        .write(&client)
-                        .await
-                        .change_context(SnapshotRestoreError::Write)?;
-                    Ok::<_, Report<SnapshotRestoreError>>(client)
-                },
-            )
+            .map(Ok::<_, Report<SnapshotRestoreError>>)
+            .try_fold(client, |client, records: SnapshotRecordBatch| async move {
+                records
+                    .write(&client)
+                    .await
+                    .change_context(SnapshotRestoreError::Write)?;
+                Ok(client)
+            })
             .await?;
 
         tracing::info!("snapshot reading finished, committing...");
