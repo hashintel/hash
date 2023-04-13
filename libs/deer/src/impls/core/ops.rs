@@ -1,10 +1,14 @@
 use core::{marker::PhantomData, ops::Bound};
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::{DeserializeError, Location, VisitorError},
-    Deserialize, Deserializer, Document, FieldVisitor, Reflection, Schema, Visitor,
+    error::{
+        DeserializeError, ExpectedVariant, Location, ReceivedVariant, UnknownVariantError, Variant,
+        VisitorError,
+    },
+    schema::Reference,
+    Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, Reflection, Schema, Visitor,
 };
 
 enum BoundDiscriminant {
@@ -29,7 +33,37 @@ impl<'de> Visitor<'de> for BoundDiscriminantVisitor {
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        todo!()
+        match v {
+            "Included" => Ok(BoundDiscriminant::Included),
+            "Excluded" => Ok(BoundDiscriminant::Excluded),
+            "Unbounded" => Ok(BoundDiscriminant::Unbounded),
+            _ => Err(Report::new(UnknownVariantError.into_error())
+                .attach(ExpectedVariant::new("Included"))
+                .attach(ExpectedVariant::new("Excluded"))
+                .attach(ExpectedVariant::new("Unbounded"))
+                .attach(ReceivedVariant::new(v))
+                .change_context(VisitorError)),
+        }
+    }
+
+    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
+        match v {
+            b"Included" => Ok(BoundDiscriminant::Included),
+            b"Excluded" => Ok(BoundDiscriminant::Excluded),
+            b"Unbounded" => Ok(BoundDiscriminant::Unbounded),
+            _ => {
+                let mut error = Report::new(UnknownVariantError.into_error())
+                    .attach(ExpectedVariant::new("Included"))
+                    .attach(ExpectedVariant::new("Excluded"))
+                    .attach(ExpectedVariant::new("Unbounded"));
+
+                if let Ok(received) = core::str::from_utf8(v) {
+                    error = error.attach(ReceivedVariant::new(received));
+                }
+
+                Err(error.change_context(VisitorError))
+            }
+        }
     }
 }
 
@@ -37,24 +71,33 @@ impl<'de> Deserialize<'de> for BoundDiscriminant {
     type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        todo!()
+        de.deserialize_str(BoundDiscriminantVisitor)
+            .change_context(DeserializeError)
     }
 }
 
-struct BoundFieldVisitor<T>(PhantomData<fn() -> *const T>);
+struct BoundEnumVisitor<T>(PhantomData<fn() -> *const T>);
 
-impl<'de, T> FieldVisitor<'de> for BoundFieldVisitor<T>
+impl<'de, T> EnumVisitor<'de> for BoundEnumVisitor<T>
 where
     T: Deserialize<'de>,
 {
-    type Key = BoundDiscriminant;
+    type Discriminant = BoundDiscriminant;
     type Value = Bound<T>;
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn expecting(&self) -> Document {
+        Self::Value::reflection()
+    }
+
+    fn visit_value<D>(
+        self,
+        discriminant: Self::Discriminant,
+        deserializer: D,
+    ) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
-        match key {
+        match discriminant {
             BoundDiscriminant::Included => T::deserialize(deserializer)
                 .map(Bound::Included)
                 .attach(Location::Variant("Included"))
@@ -71,5 +114,41 @@ where
                 .attach(Location::Variant("Unbounded"))
                 .change_context(VisitorError),
         }
+    }
+}
+
+pub struct BoundReflection<T: ?Sized>(fn() -> *const T);
+
+impl<T> Reflection for BoundReflection<T>
+where
+    T: Reflection + ?Sized,
+{
+    fn schema(doc: &mut Document) -> Schema {
+        #[derive(serde::Serialize)]
+        enum BoundOneOf {
+            Included(Reference),
+            Excluded(Reference),
+            Unbounded(Reference),
+        }
+
+        // TODO: the case where "Unbounded" as a single value is possible cannot be
+        //  represented right now with deer Schema capabilities
+        Schema::new("object").with("oneOf", [
+            BoundOneOf::Included(doc.add::<T>()),
+            BoundOneOf::Excluded(doc.add::<T>()),
+            BoundOneOf::Unbounded(doc.add::<<() as Deserialize>::Reflection>()),
+        ])
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Bound<T>
+where
+    T: Deserialize<'de>,
+{
+    type Reflection = BoundReflection<T::Reflection>;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        de.deserialize_enum(BoundEnumVisitor(PhantomData))
+            .change_context(DeserializeError)
     }
 }
