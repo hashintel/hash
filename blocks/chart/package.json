@@ -33,9 +33,9 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
-    "block-scripts": "0.2.3",
+    "block-scripts": "0.0.14",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.4",
+    "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
