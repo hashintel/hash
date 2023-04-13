@@ -211,8 +211,8 @@ impl<C: AsClient> SnapshotStore<C> {
     ///
     /// # Errors
     ///
-    /// - If reading the record from the provided stream fails
-    /// - If writing the record into the datastore fails
+    /// - If reading a record from the provided stream fails
+    /// - If writing a record into the datastore fails
     pub async fn restore_snapshot(
         &mut self,
         snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
