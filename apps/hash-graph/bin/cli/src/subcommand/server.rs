@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{fmt, net::SocketAddr, sync::Arc, time::Duration};
 
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -28,6 +28,12 @@ pub struct ApiAddress {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+}
+
+impl fmt::Display for ApiAddress {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}:{}", self.api_host, self.api_port)
+    }
 }
 
 #[derive(Debug, Parser)]
