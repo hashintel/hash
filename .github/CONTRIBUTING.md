@@ -10,7 +10,7 @@ We also have a community [Discord server](https://hash.ai/discord) where you can
 
 This repository is HASH's public monorepo. It contains [several different](README.md) projects, some of which are open-source. Each project has its own [license](LICENSE.md) and contribution policies which may vary slightly.
 
-To ascertain the license and contributor policy for a given project, check out the `LICENSE.md` and `CONTRIBUTOR.md` files in its root.
+To ascertain the license and contributor policy for a given project, check out the `LICENSE.md` and `CONTRIBUTING.md` files in its root.
 
 ## Common contribution processes
 
@@ -21,6 +21,7 @@ These apply across all projects:
   - Always include a link to the issue or discussion proposing the change.
   - Write tests to accompany your PR, or ask for help/guidance if this is a blocker.
   - Make sure that your PR doesn’t break existing tests.
+  - The repository follows a set of linting rules. Many of them can be applied automatically by running `yarn install` and `yarn fix`.
   - Sign our _Contributor License Agreement_ at the CLA Assistant's prompting. (To learn more, read [why we have a CLA](https://hash.ai/legal/cla))
 - Once you have receive a pull request review, please bear the following in mind:
   - reviewers may make suggestions for _optional_ changes which are not required to get your code merged. It should be obvious which suggestions are optional, and which are required changes. If it is not obvious, ask for clarification.
