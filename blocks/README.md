@@ -5,7 +5,6 @@
 [`ai-chat`]: ai-chat
 [`ai-image`]: ai-image
 [`ai-text`]: ai-text
-[`calculation`]: calculation
 [`callout`]: callout
 [`chart`]: chart
 [`code`]: code
@@ -42,7 +41,6 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`ai-chat`]      | 0.3         | **Maintained** | [@hash/blocks/ai-chat](https://blockprotocol.org/@hash/blocks/ai-chat)                         |             |
 | [`ai-image`]     | 0.3         | **Maintained** | [@hash/blocks/ai-image](https://blockprotocol.org/@hash/blocks/ai-image)                       |             |
 | [`ai-text`]      | 0.3         | **Maintained** | [@hash/blocks/ai-text](https://blockprotocol.org/@hash/blocks/ai-text)                         |             |
-| [`calculation`]  | 0.2         | Deprecated     | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
 | [`callout`]      | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)                         |             |
 | [`chart`]        | 0.1         | Pending Update |                                                                                                |             |
 | [`code`]         | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                               |             |
