@@ -83,7 +83,6 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
                     .into_report()
-                    .attach_printable(line)
             })
             .transpose()
     }
@@ -97,7 +96,6 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
                     .into_report()
-                    .attach_printable(line)
             })
             .transpose()
     }
