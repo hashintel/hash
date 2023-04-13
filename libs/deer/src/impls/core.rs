@@ -1,5 +1,4 @@
 mod array;
-mod atomic;
 mod bool;
 mod cell;
 mod cmp;
@@ -10,5 +9,6 @@ mod mem;
 mod non_zero;
 mod option;
 mod string;
+mod sync;
 mod time;
 mod unit;
