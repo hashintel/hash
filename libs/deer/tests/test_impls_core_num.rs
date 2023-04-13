@@ -126,6 +126,7 @@ proptest! {
         assert_tokens(&expected, &[Token::Number(Number::from(value))]);
     }
 
+    #[cfg(nightly)]
     #[test]
     fn saturating_ok(value in any::<u8>()) {
         let expected = Saturating(value);
