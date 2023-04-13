@@ -33,6 +33,7 @@ macro_rules! all_the_tuples {
 macro_rules! impl_test_case {
     ($length:literal, $($types:ty),*) => {
         paste::paste! {
+            #[cfg(not(miri))]
             proptest! {
                 #[test]
                 fn [< tuple $length _ok >](value in any::<($($types,)*)>()) {
