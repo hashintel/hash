@@ -1,6 +1,7 @@
 mod array;
 mod atomic;
 mod bool;
+mod cmp;
 mod floating;
 mod integral;
 mod non_zero;
