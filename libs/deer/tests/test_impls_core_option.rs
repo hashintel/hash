@@ -1,5 +1,6 @@
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use proptest::prelude::*;
+use serde_json::json;
 
 #[cfg(not(miri))]
 proptest! {
@@ -12,4 +13,24 @@ proptest! {
 #[test]
 fn option_none_ok() {
     assert_tokens(&None::<u8>, &[Token::Null]);
+}
+
+#[test]
+fn option_error_location() {
+    assert_tokens_error::<Option<u8>>(
+        &error!([{
+            ns: "deer",
+            id: ["type"],
+            properties: {
+                "expected": u8::reflection(),
+                "received": bool::reflection(),
+                "location": [{"type": "variant", "value": "Some"}]
+            }
+        }]),
+        &[
+            Token::Object { length: Some(1) },
+            Token::Bool(true),
+            Token::ObjectEnd,
+        ],
+    );
 }
