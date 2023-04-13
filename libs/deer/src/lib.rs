@@ -37,6 +37,7 @@ pub mod error;
 mod impls;
 #[macro_use]
 mod macros;
+mod ext;
 mod number;
 pub mod schema;
 pub mod value;
