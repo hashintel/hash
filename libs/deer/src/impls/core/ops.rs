@@ -34,7 +34,7 @@ impl<'de> Visitor<'de> for BoundDiscriminantVisitor {
 }
 
 impl<'de> Deserialize<'de> for BoundDiscriminant {
-    type Reflection = ();
+    type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         todo!()

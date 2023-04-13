@@ -1,3 +1,4 @@
+use deer::Deserialize;
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use proptest::prelude::*;
 use serde_json::json;
@@ -27,10 +28,6 @@ fn option_error_location() {
                 "location": [{"type": "variant", "value": "Some"}]
             }
         }]),
-        &[
-            Token::Object { length: Some(1) },
-            Token::Bool(true),
-            Token::ObjectEnd,
-        ],
+        &[Token::Bool(true)],
     );
 }
