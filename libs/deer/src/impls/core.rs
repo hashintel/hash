@@ -1,9 +1,12 @@
 mod array;
 mod atomic;
 mod bool;
+mod cmp;
 mod floating;
 mod integral;
 mod marker;
+mod mem;
 mod non_zero;
+mod option;
 mod string;
 mod unit;
