@@ -4,7 +4,7 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        DeserializeError, ExpectedVariant, ReceivedVariant, UnknownVariantError, Variant,
+        DeserializeError, ExpectedVariant, Location, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
     schema::Reference,
@@ -96,9 +96,11 @@ where
         match discriminant {
             ResultDiscriminant::Ok => T::deserialize(deserializer)
                 .map(Ok)
+                .attach(Location::Variant("Ok"))
                 .change_context(VisitorError),
             ResultDiscriminant::Err => E::deserialize(deserializer)
                 .map(Err)
+                .attach(Location::Variant("Err"))
                 .change_context(VisitorError),
         }
     }
