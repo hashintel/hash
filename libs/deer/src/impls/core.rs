@@ -7,6 +7,7 @@ mod integral;
 mod marker;
 mod mem;
 mod non_zero;
+mod ops;
 mod option;
 mod string;
 mod sync;
