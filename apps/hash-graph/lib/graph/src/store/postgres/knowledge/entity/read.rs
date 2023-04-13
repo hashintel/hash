@@ -12,10 +12,7 @@ use crate::{
         account::AccountId,
         knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
     },
-    knowledge::{
-        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
-        LinkData,
-    },
+    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -122,10 +119,6 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(move |row| async move {
-                let properties: EntityProperties =
-                    serde_json::from_value(row.get(properties_index))
-                        .into_report()
-                        .change_context(QueryError)?;
                 let entity_type_id = VersionedUrl::from_str(row.get(type_id_index))
                     .into_report()
                     .change_context(QueryError)?;
@@ -174,7 +167,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     RecordCreatedById::new(row.get(record_created_by_id_index));
 
                 Ok(Entity {
-                    properties,
+                    properties: row.get(properties_index),
                     link_data,
                     metadata: EntityMetadata::new(
                         EntityRecordId {
