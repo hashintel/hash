@@ -1,16 +1,22 @@
 use core::{marker::PhantomData, ops::Bound};
 
-use error_stack::{FutureExt, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use crate::{
     error::{DeserializeError, Location, VisitorError},
-    Deserialize, Deserializer, Document, FieldVisitor, Visitor,
+    Deserialize, Deserializer, Document, FieldVisitor, Reflection, Schema, Visitor,
 };
 
 enum BoundDiscriminant {
     Included,
     Excluded,
     Unbounded,
+}
+
+impl Reflection for BoundDiscriminant {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("string").with("enum", ["Included", "Excluded", "Unbounded"])
+    }
 }
 
 struct BoundDiscriminantVisitor;
@@ -22,7 +28,7 @@ impl<'de> Visitor<'de> for BoundDiscriminantVisitor {
         Self::Value::reflection()
     }
 
-    fn visit_str(self, v: &str) -> error_stack::Result<Self::Value, VisitorError> {
+    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
         todo!()
     }
 }
