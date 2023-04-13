@@ -59,6 +59,11 @@ impl<A> TemporalTagged for Timestamp<A> {
 }
 
 impl<A> Timestamp<A> {
+    pub const UNIX_EPOCH: Self = Self {
+        axis: PhantomData,
+        time: OffsetDateTime::UNIX_EPOCH,
+    };
+
     #[must_use]
     pub fn now() -> Self {
         Self {
