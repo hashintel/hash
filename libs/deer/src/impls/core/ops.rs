@@ -1,9 +1,9 @@
 use core::{marker::PhantomData, ops::Bound};
 
-use error_stack::{Result, ResultExt};
+use error_stack::{FutureExt, Result, ResultExt};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
+    error::{DeserializeError, Location, VisitorError},
     Deserialize, Deserializer, Document, FieldVisitor, Visitor,
 };
 
@@ -51,15 +51,18 @@ where
         match key {
             BoundDiscriminant::Included => T::deserialize(deserializer)
                 .map(Bound::Included)
+                .attach(Location::Variant("Included"))
                 .change_context(VisitorError),
             BoundDiscriminant::Excluded => T::deserialize(deserializer)
-                .map(Bound::Included)
+                .map(Bound::Excluded)
+                .attach(Location::Variant("Excluded"))
                 .change_context(VisitorError),
             // unit variant, we need to make sure it is not there or null (or unit)
             // deserializing Option<()> is perfect, we don't care about the end result
             // just that it passed.
             BoundDiscriminant::Unbounded => Option::<()>::deserialize(deserializer)
                 .map(|_| Bound::Unbounded)
+                .attach(Location::Variant("Unbounded"))
                 .change_context(VisitorError),
         }
     }

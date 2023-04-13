@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use error_stack::{Result, ResultExt};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
+    error::{DeserializeError, Location, VisitorError},
     Deserialize, Deserializer, Document, OptionalVisitor, Reflection, Schema,
 };
 
@@ -29,8 +29,9 @@ impl<'de, T: Deserialize<'de>> OptionalVisitor<'de> for OptionVisitor<T> {
         D: Deserializer<'de>,
     {
         T::deserialize(deserializer)
-            .change_context(VisitorError)
             .map(Some)
+            .attach(Location::Variant("Some"))
+            .change_context(VisitorError)
     }
 }
 
