@@ -212,6 +212,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
             },
         },
+        #[cfg(not(test))]
         GraphResolveDepths {
             inherits_from: OutgoingEdgeResolveDepth {
                 outgoing: 1,

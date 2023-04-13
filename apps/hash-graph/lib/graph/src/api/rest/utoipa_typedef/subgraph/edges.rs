@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::{
-    openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
+    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
@@ -33,7 +33,7 @@ impl From<OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>> for OntologyOutward
     fn from(edge: OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>) -> Self {
         Self::ToOntology(OutwardEdge {
             kind: edge.kind,
-            reversed: edge.reversed,
+            direction: edge.direction,
             right_endpoint: OntologyTypeVertexId::EntityType(edge.right_endpoint),
         })
     }
@@ -43,7 +43,7 @@ impl From<OutwardEdge<OntologyEdgeKind, PropertyTypeVertexId>> for OntologyOutwa
     fn from(edge: OutwardEdge<OntologyEdgeKind, PropertyTypeVertexId>) -> Self {
         Self::ToOntology(OutwardEdge {
             kind: edge.kind,
-            reversed: edge.reversed,
+            direction: edge.direction,
             right_endpoint: OntologyTypeVertexId::PropertyType(edge.right_endpoint),
         })
     }
@@ -53,7 +53,7 @@ impl From<OutwardEdge<OntologyEdgeKind, DataTypeVertexId>> for OntologyOutwardEd
     fn from(edge: OutwardEdge<OntologyEdgeKind, DataTypeVertexId>) -> Self {
         Self::ToOntology(OutwardEdge {
             kind: edge.kind,
-            reversed: edge.reversed,
+            direction: edge.direction,
             right_endpoint: OntologyTypeVertexId::DataType(edge.right_endpoint),
         })
     }
@@ -105,7 +105,7 @@ impl From<OutwardEdge<SharedEdgeKind, EntityTypeVertexId>> for KnowledgeGraphOut
     fn from(edge: OutwardEdge<SharedEdgeKind, EntityTypeVertexId>) -> Self {
         Self::ToOntology(OutwardEdge {
             kind: edge.kind,
-            reversed: edge.reversed,
+            direction: edge.direction,
             right_endpoint: OntologyTypeVertexId::EntityType(edge.right_endpoint),
         })
     }
@@ -134,13 +134,13 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
     }
 }
 
-#[derive(Default, Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
     pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
-#[derive(Default, Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
     pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
@@ -222,13 +222,17 @@ impl ToSchema<'_> for Edges {
         (
             "Edges",
             ObjectBuilder::new()
-                .additional_properties(Some(Schema::from(
-                    ObjectBuilder::new().additional_properties(Some(Array::new(
-                        OneOfBuilder::new()
-                            .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
-                            .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0)),
+                .additional_properties(Some(AdditionalProperties::RefOr(RefOr::T(Schema::from(
+                    ObjectBuilder::new().additional_properties(Some(AdditionalProperties::RefOr(
+                        RefOr::T(Schema::from(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
+                                .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0))
+                                .to_array_builder()
+                                .build(),
+                        )),
                     ))),
-                )))
+                )))))
                 .into(),
         )
     }
@@ -250,7 +254,7 @@ mod tests {
         knowledge::EntityUuid,
         provenance::OwnedById,
         subgraph::{
-            edges::{KnowledgeGraphEdgeKind, SharedEdgeKind},
+            edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
             identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
         },
     };
@@ -271,7 +275,7 @@ mod tests {
         edges.entity_to_entity.insert(
             &vertex_id,
             KnowledgeGraphEdgeKind::HasRightEntity,
-            false,
+            EdgeDirection::Outgoing,
             EntityIdWithInterval {
                 entity_id: EntityId {
                     owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -287,7 +291,7 @@ mod tests {
         edges.entity_to_entity_type.insert(
             &vertex_id,
             SharedEdgeKind::IsOfType,
-            false,
+            EdgeDirection::Outgoing,
             EntityTypeVertexId {
                 base_id: BaseUrl::new("https://example.com/".to_owned())
                     .expect("should be valid URL"),

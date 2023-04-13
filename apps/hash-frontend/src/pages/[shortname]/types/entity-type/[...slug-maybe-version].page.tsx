@@ -69,7 +69,7 @@ const Page: NextPageWithLayout = () => {
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
           "base64",
-        ).toString("ascii"),
+        ).toString("utf8"),
       );
 
       const validationResult = validateEntityType(entityType);

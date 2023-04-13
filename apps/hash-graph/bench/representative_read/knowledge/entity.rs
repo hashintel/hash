@@ -9,7 +9,7 @@ use graph::{
         EntityStore,
     },
     subgraph::{
-        edges::GraphResolveDepths,
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -105,13 +105,15 @@ pub fn bench_get_link_by_target_by_property(
 ) {
     b.to_async(runtime).iter(|| async move {
         let mut filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                Box::new(EntityQueryPath::Properties(Some(
+            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path: Box::new(EntityQueryPath::Properties(Some(
                     JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
                         "https://blockprotocol.org/@alice/types/property-type/name/",
                     ))]),
                 ))),
-            ))),
+                direction: EdgeDirection::Outgoing,
+            })),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Alice",
             )))),

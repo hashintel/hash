@@ -9,7 +9,7 @@ use std::{
 };
 
 pub use self::{
-    edge::OutwardEdge,
+    edge::{EdgeDirection, OutwardEdge},
     kind::{
         EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
@@ -25,7 +25,7 @@ use crate::subgraph::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct EdgeData<K> {
     kind: K,
-    reversed: bool,
+    direction: EdgeDirection,
 }
 
 pub struct AdjacencyList<V, K, E>
@@ -47,7 +47,7 @@ where
         &mut self,
         vertex_id: &V,
         edge_kind: K,
-        reversed: bool,
+        direction: EdgeDirection,
         right_endpoint: E::EdgeEndpoint,
     ) where
         V::BaseId: Hash + Eq + Clone,
@@ -65,7 +65,7 @@ where
             .or_default()
             .entry(EdgeData {
                 kind: edge_kind,
-                reversed,
+                direction,
             })
             .or_default()
             .insert(right_endpoint);
@@ -93,7 +93,7 @@ where
                                     targets.into_iter().map(move |right_endpoint| {
                                         OutwardEdge {
                                             kind: edge.kind,
-                                            reversed: edge.reversed,
+                                            direction: edge.direction,
                                             right_endpoint,
                                         }
                                         .into()

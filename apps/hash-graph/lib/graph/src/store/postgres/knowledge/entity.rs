@@ -11,10 +11,11 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{DecisionTime, Timestamp},
+        time::{DecisionTime, LeftClosedTemporalInterval, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    ontology::EntityTypeWithMetadata,
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
@@ -23,48 +24,110 @@ use crate::{
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
-        edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
-        },
-        identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::{EntityIdWithInterval, EntityVertexId},
         query::StructuralQuery,
-        temporal_axes::QueryTemporalAxes,
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
         Subgraph,
     },
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    /// # Errors
+    ///
+    /// Returns an error if querying the entities with the specified edge fails.
+    #[expect(clippy::too_many_arguments)]
+    pub async fn traverse_knowledge_graph_edge(
+        &self,
+        entity_vertex_id: EntityVertexId,
+        entity_interval: LeftClosedTemporalInterval<VariableAxis>,
+        edge_kind: KnowledgeGraphEdgeKind,
+        edge_direction: EdgeDirection,
+        graph_resolve_depths: GraphResolveDepths,
+        temporal_axes: &QueryTemporalAxes,
+        _traversal_context: &mut TraversalContext,
+        subgraph: &mut Subgraph,
+    ) -> Result<
+        impl Iterator<Item = (EntityVertexId, GraphResolveDepths, QueryTemporalAxes)>,
+        QueryError,
+    > {
+        let mut items = vec![];
+
+        if let Some(new_graph_resolve_depths) =
+            graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
+        {
+            let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
+
+            for edge_entity in <Self as Read<Entity>>::read_vec(
+                self,
+                &Filter::for_knowledge_graph_edge_by_entity_id(
+                    entity_vertex_id.base_id,
+                    edge_kind,
+                    edge_direction.reversed(),
+                ),
+                Some(temporal_axes),
+            )
+            .await?
+            {
+                let edge_interval = edge_entity
+                    .metadata
+                    .temporal_versioning()
+                    .variable_time_interval(time_axis)
+                    .intersect(entity_interval)
+                    .unwrap_or_else(|| {
+                        unreachable!("The edge interval and the entity interval do not overlap")
+                    });
+
+                subgraph.insert_edge(
+                    &entity_vertex_id,
+                    edge_kind,
+                    edge_direction,
+                    EntityIdWithInterval {
+                        entity_id: edge_entity.metadata.record_id().entity_id,
+                        interval: edge_interval,
+                    },
+                );
+
+                let edge_entity_vertex_id = edge_entity.vertex_id(time_axis);
+                subgraph.insert_vertex(&edge_entity_vertex_id, edge_entity);
+
+                items.push((
+                    edge_entity_vertex_id,
+                    new_graph_resolve_depths,
+                    temporal_axes.clone(),
+                ));
+            }
+        }
+        Ok(items.into_iter())
+    }
+
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_entities(
         &self,
-        entity_vertex_ids: Vec<EntityVertexId>,
-        temporal_axes: QueryTemporalAxes,
-        graph_resolve_depths: GraphResolveDepths,
+        mut entity_queue: Vec<(EntityVertexId, GraphResolveDepths, QueryTemporalAxes)>,
         traversal_context: &mut TraversalContext,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let time_axis = temporal_axes.variable_time_axis();
+        let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
-        let mut queue = entity_vertex_ids
-            .into_iter()
-            .map(|id| (id, graph_resolve_depths, temporal_axes.clone()))
-            .collect::<Vec<_>>();
+        let mut entity_type_queue = Vec::new();
 
-        while !queue.is_empty() {
+        while !entity_queue.is_empty() {
             // TODO: We could re-use the memory here but we expect to batch the processing of this
             //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
-            for (entity_vertex_id, graph_resolve_depths, temporal_axes) in mem::take(&mut queue) {
-                let entity: &Entity = subgraph.get_vertex(&entity_vertex_id).unwrap_or_else(|| {
-                    // Entities are always inserted into the subgraph before they are resolved,
-                    // so this should never happen. If it does, it is a bug.
-                    unreachable!("entity should already be in the subgraph");
-                });
-
-                let entity_interval = entity
+            for (entity_vertex_id, graph_resolve_depths, temporal_axes) in
+                mem::take(&mut entity_queue)
+            {
+                let entity_interval = subgraph
+                    .get_vertex::<Entity>(&entity_vertex_id)
+                    .unwrap_or_else(|| {
+                        // Entities are always inserted into the subgraph before they are resolved,
+                        // so this should never happen. If it does, it is a bug.
+                        unreachable!("entity should already be in the subgraph");
+                    })
                     .metadata
                     .temporal_versioning()
                     .variable_time_interval(time_axis);
@@ -86,184 +149,75 @@ impl<C: AsClient> PostgresStore<C> {
                         );
                     });
 
-                if graph_resolve_depths.is_of_type.outgoing > 0 {
-                    let entity_type_id =
-                        EntityTypeVertexId::from(entity.metadata.entity_type_id().clone());
-                    subgraph.insert_edge(
-                        &entity_vertex_id,
-                        SharedEdgeKind::IsOfType,
-                        entity_type_id.clone(),
+                if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                    .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
+                {
+                    for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
+                        self,
+                        &Filter::for_shared_edge_by_entity_id(
+                            entity_vertex_id.base_id,
+                            SharedEdgeKind::IsOfType,
+                        ),
+                        Some(&temporal_axes),
+                    )
+                    .await?
+                    {
+                        let entity_type_vertex_id = entity_type.vertex_id(time_axis);
+
+                        subgraph.insert_edge(
+                            &entity_vertex_id,
+                            SharedEdgeKind::IsOfType,
+                            EdgeDirection::Outgoing,
+                            entity_type_vertex_id.clone(),
+                        );
+
+                        subgraph.insert_vertex(&entity_type_vertex_id, entity_type);
+
+                        entity_type_queue.push((
+                            entity_type_vertex_id,
+                            new_graph_resolve_depths,
+                            temporal_axes.clone(),
+                        ));
+                    }
+                }
+
+                for (edge_kind, edge_direction) in &[
+                    (
+                        KnowledgeGraphEdgeKind::HasLeftEntity,
+                        EdgeDirection::Incoming,
+                    ),
+                    (
+                        KnowledgeGraphEdgeKind::HasRightEntity,
+                        EdgeDirection::Incoming,
+                    ),
+                    (
+                        KnowledgeGraphEdgeKind::HasLeftEntity,
+                        EdgeDirection::Outgoing,
+                    ),
+                    (
+                        KnowledgeGraphEdgeKind::HasRightEntity,
+                        EdgeDirection::Outgoing,
+                    ),
+                ] {
+                    entity_queue.extend(
+                        self.traverse_knowledge_graph_edge(
+                            entity_vertex_id,
+                            entity_interval,
+                            *edge_kind,
+                            *edge_direction,
+                            graph_resolve_depths,
+                            &temporal_axes,
+                            traversal_context,
+                            subgraph,
+                        )
+                        .await?,
                     );
-
-                    self.traverse_entity_type(
-                        vec![entity_type_id],
-                        temporal_axes.clone(),
-                        GraphResolveDepths {
-                            is_of_type: OutgoingEdgeResolveDepth {
-                                outgoing: graph_resolve_depths.is_of_type.outgoing - 1,
-                                ..graph_resolve_depths.is_of_type
-                            },
-                            ..graph_resolve_depths
-                        },
-                        traversal_context,
-                        subgraph,
-                    )
-                    .await?;
-                }
-
-                if graph_resolve_depths.has_left_entity.incoming > 0 {
-                    for outgoing_link_entity in <Self as Read<Entity>>::read(
-                        self,
-                        &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id),
-                        &temporal_axes,
-                    )
-                    .await?
-                    {
-                        let link_entity_interval = outgoing_link_entity
-                            .metadata
-                            .temporal_versioning()
-                            .variable_time_interval(time_axis);
-
-                        // reversed `HasLeftEntity` is equivalent to an outgoing link `Entity`
-                        subgraph.insert_reversed_edge(
-                            &entity_vertex_id,
-                            KnowledgeGraphEdgeKind::HasLeftEntity,
-                            EntityIdWithInterval {
-                                entity_id: outgoing_link_entity.metadata.record_id().entity_id,
-                                interval: link_entity_interval,
-                            },
-                        );
-
-                        let outgoing_link_entity_vertex_id =
-                            outgoing_link_entity.vertex_id(time_axis);
-                        subgraph
-                            .insert_vertex(&outgoing_link_entity_vertex_id, outgoing_link_entity);
-
-                        queue.push((
-                            outgoing_link_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_left_entity: EdgeResolveDepths {
-                                    incoming: graph_resolve_depths.has_left_entity.incoming - 1,
-                                    ..graph_resolve_depths.has_left_entity
-                                },
-                                ..graph_resolve_depths
-                            },
-                            temporal_axes.clone(),
-                        ));
-                    }
-                }
-
-                if graph_resolve_depths.has_right_entity.incoming > 0 {
-                    for incoming_link_entity in <Self as Read<Entity>>::read(
-                        self,
-                        &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id),
-                        &temporal_axes,
-                    )
-                    .await?
-                    {
-                        let link_entity_interval = incoming_link_entity
-                            .metadata
-                            .temporal_versioning()
-                            .variable_time_interval(time_axis);
-
-                        // reversed `HasRightEntity` is equivalent to an incoming link `Entity`
-                        subgraph.insert_reversed_edge(
-                            &entity_vertex_id,
-                            KnowledgeGraphEdgeKind::HasRightEntity,
-                            EntityIdWithInterval {
-                                entity_id: incoming_link_entity.metadata.record_id().entity_id,
-                                interval: link_entity_interval,
-                            },
-                        );
-
-                        let incoming_link_entity_vertex_id =
-                            incoming_link_entity.vertex_id(time_axis);
-                        subgraph
-                            .insert_vertex(&incoming_link_entity_vertex_id, incoming_link_entity);
-
-                        queue.push((
-                            incoming_link_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_right_entity: EdgeResolveDepths {
-                                    incoming: graph_resolve_depths.has_right_entity.incoming - 1,
-                                    ..graph_resolve_depths.has_right_entity
-                                },
-                                ..graph_resolve_depths
-                            },
-                            temporal_axes.clone(),
-                        ));
-                    }
-                }
-
-                if graph_resolve_depths.has_left_entity.outgoing > 0 {
-                    for left_entity in <Self as Read<Entity>>::read(
-                        self,
-                        &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id),
-                        &temporal_axes,
-                    )
-                    .await?
-                    {
-                        subgraph.insert_edge(
-                            &entity_vertex_id,
-                            KnowledgeGraphEdgeKind::HasLeftEntity,
-                            EntityIdWithInterval {
-                                entity_id: left_entity.metadata.record_id().entity_id,
-                                interval: entity_interval,
-                            },
-                        );
-
-                        let left_entity_vertex_id = left_entity.vertex_id(time_axis);
-                        subgraph.insert_vertex(&left_entity_vertex_id, left_entity);
-
-                        queue.push((
-                            left_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_left_entity: EdgeResolveDepths {
-                                    outgoing: graph_resolve_depths.has_left_entity.outgoing - 1,
-                                    ..graph_resolve_depths.has_left_entity
-                                },
-                                ..graph_resolve_depths
-                            },
-                            temporal_axes.clone(),
-                        ));
-                    }
-                }
-
-                if graph_resolve_depths.has_right_entity.outgoing > 0 {
-                    for right_entity in <Self as Read<Entity>>::read(
-                        self,
-                        &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id),
-                        &temporal_axes,
-                    )
-                    .await?
-                    {
-                        subgraph.insert_edge(
-                            &entity_vertex_id,
-                            KnowledgeGraphEdgeKind::HasRightEntity,
-                            EntityIdWithInterval {
-                                entity_id: right_entity.metadata.record_id().entity_id,
-                                interval: entity_interval,
-                            },
-                        );
-
-                        let right_entity_vertex_id = right_entity.vertex_id(time_axis);
-                        subgraph.insert_vertex(&right_entity_vertex_id, right_entity);
-
-                        queue.push((
-                            right_entity_vertex_id,
-                            GraphResolveDepths {
-                                has_right_entity: EdgeResolveDepths {
-                                    outgoing: graph_resolve_depths.has_right_entity.outgoing - 1,
-                                    ..graph_resolve_depths.has_right_entity
-                                },
-                                ..graph_resolve_depths
-                            },
-                            temporal_axes.clone(),
-                        ));
-                    }
                 }
             }
         }
+
+        self.traverse_entity_types(entity_type_queue, traversal_context, subgraph)
+            .await?;
 
         Ok(())
     }
@@ -277,7 +231,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -291,10 +245,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_type_ontology_id = self
             .ontology_id_by_url(&entity_type_id)
             .await
-            .change_context(InsertionError)?;
-
-        let properties = serde_json::to_value(properties)
-            .into_report()
             .change_context(InsertionError)?;
 
         let row = self
@@ -326,7 +276,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &entity_id.owned_by_id,
                     &entity_id.entity_uuid,
                     &decision_time,
-                    &updated_by_id,
+                    &record_created_by_id,
                     &archived,
                     &entity_type_ontology_id,
                     &properties,
@@ -364,7 +314,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction_time: row.get(2),
             },
             entity_type_id,
-            ProvenanceMetadata::new(updated_by_id),
+            ProvenanceMetadata::new(record_created_by_id),
             archived,
         ))
     }
@@ -383,7 +333,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -501,7 +451,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entities = Read::<Entity>::read(self, filter, &temporal_axes)
+        let entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))
@@ -521,9 +471,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
         //       vertices and have to `.collect()` the keys.
         self.traverse_entities(
-            subgraph.vertices.entities.keys().copied().collect(),
-            subgraph.temporal_axes.resolved.clone(),
-            subgraph.depths,
+            subgraph
+                .vertices
+                .entities
+                .keys()
+                .map(|id| {
+                    (
+                        *id,
+                        subgraph.depths,
+                        subgraph.temporal_axes.resolved.clone(),
+                    )
+                })
+                .collect(),
             &mut TraversalContext,
             &mut subgraph,
         )
@@ -537,7 +496,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -546,10 +505,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_type_ontology_id = self
             .ontology_id_by_url(&entity_type_id)
             .await
-            .change_context(UpdateError)?;
-
-        let properties = serde_json::to_value(properties)
-            .into_report()
             .change_context(UpdateError)?;
 
         // The transaction is required to check if the update happened. If there is no returned
@@ -601,7 +556,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &entity_id.owned_by_id,
                     &entity_id.entity_uuid,
                     &decision_time,
-                    &updated_by_id,
+                    &record_created_by_id,
                     &archived,
                     &entity_type_ontology_id,
                     &properties,
@@ -631,7 +586,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction_time: row.get(2),
             },
             entity_type_id,
-            ProvenanceMetadata::new(updated_by_id),
+            ProvenanceMetadata::new(record_created_by_id),
             archived,
         ))
     }

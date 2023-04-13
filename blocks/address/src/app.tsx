@@ -4,14 +4,19 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
+import {
+  Autocomplete,
+  BlockErrorMessage,
+  BlockSettingsButton,
+  FontAwesomeIcon,
+  GetHelpLink,
+  theme,
+} from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,
   Fade,
-  Link,
   ThemeProvider,
   Typography,
 } from "@mui/material";
@@ -21,7 +26,7 @@ import Stack from "@mui/material/Stack";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
 
-import { AddressCard } from "./address-card";
+import { AddressCard, AddressCardLoading } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
@@ -104,6 +109,7 @@ export const App: BlockComponent<RootEntity> = ({
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [mobileSettingsExpanded, setMobileSettingsExpanded] = useState(false);
   const [animatingIn, setAnimatingIn] = useState<AutofillSuggestion | null>();
   const [animatingOut, setAnimatingOut] = useState(false);
 
@@ -347,6 +353,7 @@ export const App: BlockComponent<RootEntity> = ({
     fetchSuggestions,
     selectAddress,
     selectedAddress,
+    selectedAddressLoading,
   } = useMapbox(
     blockRootRef,
     zoomLevel,
@@ -389,7 +396,8 @@ export const App: BlockComponent<RootEntity> = ({
 
   const displayTitle = title ?? selectedAddress?.featureName;
   const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
-  const displayCard = !!(displayTitle && displayFullAddress);
+
+  const shouldDisplayCard = !!displayFullAddress || selectedAddressLoading;
 
   return (
     <>
@@ -403,7 +411,12 @@ export const App: BlockComponent<RootEntity> = ({
       <ThemeProvider theme={theme}>
         <SizeMe>
           {({ size }) => {
-            const isMobile = (size.width ?? 0) < 800;
+            const isMobile = (size.width ?? 0) < 620;
+            const inputPlaceholder =
+              (size.width ?? 0) < 400
+                ? "Enter an address"
+                : "Start typing to enter an address or location";
+
             return (
               <Box
                 ref={blockRootRef}
@@ -422,95 +435,91 @@ export const App: BlockComponent<RootEntity> = ({
                         hovered ||
                         autocompleteFocused ||
                         !!animatingIn ||
-                        animatingOut
+                        animatingOut ||
+                        (isMobile && mobileSettingsExpanded)
                       }
                     >
                       <Box
-                        sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}
+                        sx={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          mb: 1.5,
+                          columnGap: 3,
+                          rowGap: isMobile ? 0 : 1,
+                        }}
                       >
-                        <Link
-                          href="https://blockprotocol.org/@hash/blocks/address"
-                          target="_blank"
-                          variant="regularTextLabels"
-                          sx={({ palette }) => ({
-                            display: "inline-flex",
-                            alignItems: "center",
-                            fontSize: 15,
-                            lineHeight: 1,
-                            letterSpacing: -0.02,
-                            marginBottom: 1.5,
-                            whiteSpace: "nowrap",
-                            textDecoration: "none !important",
-                            color: `${palette.gray[50]} !important`,
-                            fill: palette.gray[40],
-                            ":hover": {
-                              color: palette.gray[60],
-                              fill: palette.gray[50],
-                            },
-                          })}
-                        >
-                          Get help{" "}
-                          <FontAwesomeIcon
-                            icon={faQuestionCircle}
-                            sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-                          />
-                        </Link>
+                        <GetHelpLink href="https://blockprotocol.org/@hash/blocks/address" />
 
-                        <Typography
-                          variant="regularTextLabels"
-                          sx={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            textDecoration: "none",
-                            fontSize: 15,
-                            lineHeight: 1,
-                            letterSpacing: -0.02,
-                            marginBottom: 1.5,
-                            flexWrap: "wrap",
-                            color: ({ palette }) => palette.gray[50],
-                          }}
-                        >
-                          <Box component="span" sx={{ mr: 1 }}>
-                            Using
-                          </Box>
-                          {!displayCard ? (
-                            <>
-                              <Box
-                                component="span"
-                                sx={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  color: ({ palette }) => palette.gray[60],
-                                  mr: 1,
-                                }}
-                              >
-                                <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                                Mapbox Address Autofill
-                              </Box>
-                              <Box component="span" sx={{ mr: 1 }}>
-                                and
-                              </Box>
-                            </>
-                          ) : null}
-                          <Box
-                            component="span"
+                        {isMobile ? (
+                          <BlockSettingsButton
+                            expanded={mobileSettingsExpanded}
+                            onClick={() =>
+                              setMobileSettingsExpanded(!mobileSettingsExpanded)
+                            }
+                          />
+                        ) : null}
+
+                        <Collapse in={!isMobile || mobileSettingsExpanded}>
+                          <Typography
+                            variant="regularTextLabels"
                             sx={{
+                              mt: isMobile ? 1 : 0,
                               display: "inline-flex",
                               alignItems: "center",
-                              color: ({ palette }) => palette.gray[60],
-                              mr: 1,
+                              textDecoration: "none",
+                              fontSize: 15,
+                              lineHeight: 1,
+                              letterSpacing: -0.02,
+                              flexWrap: "wrap",
+                              color: ({ palette }) => palette.gray[50],
                             }}
                           >
-                            <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                            Mapbox Static Images
-                          </Box>
-                          to render a fixed map
-                        </Typography>
+                            <Box component="span" sx={{ mr: 1 }}>
+                              Using
+                            </Box>
+                            {!shouldDisplayCard ? (
+                              <>
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    color: ({ palette }) => palette.gray[60],
+                                    mr: 1,
+                                  }}
+                                >
+                                  <MapboxIcon
+                                    sx={{ fontSize: 16, mr: 0.375 }}
+                                  />
+                                  Mapbox Address Autofill
+                                </Box>
+                                <Box component="span" sx={{ mr: 1 }}>
+                                  and
+                                </Box>
+                              </>
+                            ) : null}
+                            <Box
+                              component="span"
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                color: ({ palette }) => palette.gray[60],
+                                mr: 1,
+                              }}
+                            >
+                              <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                              Mapbox Static Images
+                            </Box>
+                            to render a fixed map
+                          </Typography>
+                        </Collapse>
                       </Box>
                     </Fade>
 
                     <Collapse
-                      in={(!displayCard && !animatingIn) || suggestionsError}
+                      in={
+                        (!shouldDisplayCard && !animatingIn) || suggestionsError
+                      }
                       onEntered={() => setAnimatingOut(false)}
                       onExited={() => {
                         if (animatingIn) {
@@ -536,11 +545,7 @@ export const App: BlockComponent<RootEntity> = ({
                             }
                           }}
                           filterOptions={(options) => options}
-                          inputPlaceholder={
-                            isMobile
-                              ? "Enter an address"
-                              : "Start typing to enter an address or location"
-                          }
+                          inputPlaceholder={inputPlaceholder}
                           inputProps={{
                             endAdornment: suggestionsError ? (
                               <TriangleExclamationIcon
@@ -620,6 +625,7 @@ export const App: BlockComponent<RootEntity> = ({
                             maxWidth: INPUT_MAX_WIDTH,
                             [`.${autocompleteClasses.input}`]: {
                               paddingLeft: "0 !important",
+                              fontSize: 16,
                               // Override WP Input styles
                               lineHeight: "24px",
                               minHeight: "unset",
@@ -634,43 +640,7 @@ export const App: BlockComponent<RootEntity> = ({
                         />
 
                         {suggestionsError ? (
-                          <Box
-                            display="flex"
-                            flexDirection="column"
-                            justifyContent="center"
-                            gap={1}
-                          >
-                            <Typography
-                              variant="smallTextLabels"
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: 13,
-                                lineHeight: 1,
-                                letterSpacing: "-0.02em",
-                                color: ({ palette }) => palette.black,
-                              }}
-                            >
-                              <Box
-                                component="span"
-                                sx={{ color: ({ palette }) => palette.red[60] }}
-                              >
-                                Error connecting
-                              </Box>{" "}
-                              to the Mapbox API
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontWeight: 500,
-                                fontSize: 15,
-                                lineHeight: 1,
-                                letterSpacing: "-0.02em",
-                                color: ({ palette }) => palette.gray[50],
-                              }}
-                            >
-                              Check your network connection or contact support
-                              if this issue persists.
-                            </Typography>
-                          </Box>
+                          <BlockErrorMessage apiName="Mapbox" />
                         ) : null}
                       </Box>
                     </Collapse>
@@ -678,11 +648,10 @@ export const App: BlockComponent<RootEntity> = ({
                 ) : null}
 
                 <Collapse
-                  in={displayCard && !animatingOut && !suggestionsError}
+                  in={shouldDisplayCard && !animatingOut && !suggestionsError}
                   onEntered={() => setAnimatingIn(null)}
-                  onExited={() => resetBlock()}
                 >
-                  {displayCard ? (
+                  {displayFullAddress ? (
                     <AddressCard
                       isMobile={isMobile}
                       title={displayTitle}
@@ -694,6 +663,9 @@ export const App: BlockComponent<RootEntity> = ({
                       readonly={readonly}
                       onClose={() => {
                         setAnimatingOut(true);
+                        setTimeout(() => {
+                          void resetBlock();
+                        }, 300);
                       }}
                       updateTitle={updateTitle}
                       updateDescription={updateDescription}
@@ -708,7 +680,9 @@ export const App: BlockComponent<RootEntity> = ({
                           : decrementZoomLevel
                       }
                     />
-                  ) : null}
+                  ) : (
+                    <AddressCardLoading isMobile={isMobile} />
+                  )}
                 </Collapse>
               </Box>
             );

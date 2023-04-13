@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 use crate::subgraph::{
     edges::{
         endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
-        AdjacencyList, Edges,
+        AdjacencyList, EdgeDirection, Edges,
     },
     identifier::{
         DataTypeVertexId, EdgeEndpoint, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
@@ -14,7 +14,7 @@ use crate::subgraph::{
     },
 };
 
-pub trait EdgeKind<L: VertexId, R: EdgeEndpoint, const REVERSED: bool>: Sized {
+pub trait EdgeKind<L: VertexId, R: EdgeEndpoint>: Sized {
     type EdgeSet: EdgeEndpointSet<EdgeEndpoint = R>;
 
     fn subgraph_entry_mut<'a>(
@@ -51,9 +51,7 @@ pub enum OntologyEdgeKind {
     ConstrainsLinkDestinationsOn,
 }
 
-impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, EntityTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<EntityTypeVertexId, EntityTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<EntityTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -64,9 +62,7 @@ impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, EntityTypeVertexId, REVE
     }
 }
 
-impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, PropertyTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<EntityTypeVertexId, PropertyTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<PropertyTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -77,9 +73,7 @@ impl<const REVERSED: bool> EdgeKind<EntityTypeVertexId, PropertyTypeVertexId, RE
     }
 }
 
-impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<PropertyTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -90,9 +84,7 @@ impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, PropertyTypeVertexId, 
     }
 }
 
-impl<const REVERSED: bool> EdgeKind<PropertyTypeVertexId, DataTypeVertexId, REVERSED>
-    for OntologyEdgeKind
-{
+impl EdgeKind<PropertyTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
     type EdgeSet = HashSet<DataTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -119,9 +111,7 @@ pub enum KnowledgeGraphEdgeKind {
     HasRightEntity,
 }
 
-impl<const REVERSED: bool> EdgeKind<EntityVertexId, EntityIdWithInterval, REVERSED>
-    for KnowledgeGraphEdgeKind
-{
+impl EdgeKind<EntityVertexId, EntityIdWithInterval> for KnowledgeGraphEdgeKind {
     type EdgeSet = EntityIdWithIntervalSet;
 
     fn subgraph_entry_mut<'a>(
@@ -142,7 +132,7 @@ pub enum SharedEdgeKind {
     IsOfType,
 }
 
-impl EdgeKind<EntityVertexId, EntityTypeVertexId, false> for SharedEdgeKind {
+impl EdgeKind<EntityVertexId, EntityTypeVertexId> for SharedEdgeKind {
     type EdgeSet = HashSet<EntityTypeVertexId>;
 
     fn subgraph_entry_mut<'a>(
@@ -220,7 +210,75 @@ pub struct GraphResolveDepths {
     pub has_right_entity: EdgeResolveDepths,
 }
 
+pub trait GraphResolveDepthIndex {
+    fn depth_mut(self, direction: EdgeDirection, dephts: &mut GraphResolveDepths) -> &mut u8;
+}
+
+impl GraphResolveDepthIndex for OntologyEdgeKind {
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
+        match self {
+            Self::InheritsFrom => match direction {
+                EdgeDirection::Incoming => &mut depths.inherits_from.incoming,
+                EdgeDirection::Outgoing => &mut depths.inherits_from.outgoing,
+            },
+            Self::ConstrainsValuesOn => match direction {
+                EdgeDirection::Incoming => &mut depths.constrains_values_on.incoming,
+                EdgeDirection::Outgoing => &mut depths.constrains_values_on.outgoing,
+            },
+            Self::ConstrainsPropertiesOn => match direction {
+                EdgeDirection::Incoming => &mut depths.constrains_properties_on.incoming,
+                EdgeDirection::Outgoing => &mut depths.constrains_properties_on.outgoing,
+            },
+            Self::ConstrainsLinksOn => match direction {
+                EdgeDirection::Incoming => &mut depths.constrains_links_on.incoming,
+                EdgeDirection::Outgoing => &mut depths.constrains_links_on.outgoing,
+            },
+            Self::ConstrainsLinkDestinationsOn => match direction {
+                EdgeDirection::Incoming => &mut depths.constrains_link_destinations_on.incoming,
+                EdgeDirection::Outgoing => &mut depths.constrains_link_destinations_on.outgoing,
+            },
+        }
+    }
+}
+
+impl GraphResolveDepthIndex for SharedEdgeKind {
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
+        match self {
+            Self::IsOfType => match direction {
+                EdgeDirection::Incoming => &mut depths.is_of_type.incoming,
+                EdgeDirection::Outgoing => &mut depths.is_of_type.outgoing,
+            },
+        }
+    }
+}
+
+impl GraphResolveDepthIndex for KnowledgeGraphEdgeKind {
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
+        match self {
+            Self::HasLeftEntity => match direction {
+                EdgeDirection::Incoming => &mut depths.has_left_entity.incoming,
+                EdgeDirection::Outgoing => &mut depths.has_left_entity.outgoing,
+            },
+            Self::HasRightEntity => match direction {
+                EdgeDirection::Incoming => &mut depths.has_right_entity.incoming,
+                EdgeDirection::Outgoing => &mut depths.has_right_entity.outgoing,
+            },
+        }
+    }
+}
+
 impl GraphResolveDepths {
+    #[must_use]
+    pub fn decrement_depth_for_edge(
+        mut self,
+        kind: impl GraphResolveDepthIndex,
+        direction: EdgeDirection,
+    ) -> Option<Self> {
+        let depths = kind.depth_mut(direction, &mut self);
+        *depths = depths.checked_sub(1)?;
+        Some(self)
+    }
+
     #[expect(
         clippy::useless_let_if_seq,
         reason = "Using a mutable variable is more readable"

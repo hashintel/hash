@@ -6,10 +6,10 @@ use type_system::DataType;
 
 use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::UpdatedById,
+    provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, AsClient, DataTypeStore, InsertionError,
-        PostgresStore, QueryError, Record, UpdateError,
+        crud::Read, postgres::TraversalContext, AsClient, ConflictBehavior, DataTypeStore,
+        InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
@@ -22,11 +22,9 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
-    pub(crate) async fn traverse_data_type(
+    pub(crate) async fn traverse_data_types(
         &self,
-        data_type_ids: Vec<DataTypeVertexId>,
-        temporal_axes: QueryTemporalAxes,
-        graph_resolve_depths: GraphResolveDepths,
+        queue: Vec<(DataTypeVertexId, GraphResolveDepths, QueryTemporalAxes)>,
         _traversal_context: &mut TraversalContext,
         _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
@@ -47,12 +45,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         for (schema, metadata) in data_types {
             transaction
-                .create(schema.clone(), metadata.borrow())
+                .create(schema.clone(), metadata.borrow(), on_conflict)
                 .await?;
         }
 
@@ -75,7 +74,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let data_types = Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes)
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))
@@ -94,10 +93,19 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
         //       vertices and have to `.collect()` the keys.
-        self.traverse_data_type(
-            subgraph.vertices.data_types.keys().cloned().collect(),
-            subgraph.temporal_axes.resolved.clone(),
-            subgraph.depths,
+        self.traverse_data_types(
+            subgraph
+                .vertices
+                .data_types
+                .keys()
+                .map(|id| {
+                    (
+                        id.clone(),
+                        subgraph.depths,
+                        subgraph.temporal_axes.resolved.clone(),
+                    )
+                })
+                .collect(),
             &mut TraversalContext,
             &mut subgraph,
         )
@@ -110,12 +118,12 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (_, metadata) = transaction
-            .update::<DataType>(data_type, updated_by_id)
+            .update::<DataType>(data_type, record_created_by_id)
             .await?;
 
         transaction.commit().await.change_context(UpdateError)?;

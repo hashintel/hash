@@ -18,11 +18,11 @@ error-stack = { version = "0.3.1", default_features = false }
 
 num-traits = { version = "0.2.15", default_features = false }
 
-serde = { version = "1.0.156", default_features = false, features = ['alloc', 'derive'] }
+serde = { version = "1.0.159", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.25", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = { version = "1.0.94", features = ['arbitrary_precision'] }
+serde_json = { version = "1.0.95", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.4.2", features = ['serde'] }
 deer-desert = { path = "./desert", features = ['pretty'] }
 proptest = "1.1.0"

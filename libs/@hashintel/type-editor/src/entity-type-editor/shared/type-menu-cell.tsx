@@ -1,6 +1,9 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
+import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
+  faCheck,
+  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   MenuItem,
@@ -26,6 +29,7 @@ import {
   TooltipProps,
   Typography,
 } from "@mui/material";
+import clsx from "clsx";
 import {
   bindMenu,
   bindTrigger,
@@ -44,7 +48,10 @@ import { useIsReadonly } from "../../shared/read-only-context";
 export const TYPE_MENU_CELL_WIDTH = 70;
 
 const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} classes={{ popper: className }} />
+  <Tooltip
+    {...props}
+    classes={{ popper: clsx(className, fluidFontClassName) }}
+  />
 ))({
   [`& .${tooltipClasses.tooltip}`]: {
     maxWidth: "none",
@@ -177,7 +184,11 @@ export const TypeMenuCell = ({
               </Typography>,
 
               editButtonDisabled ? (
-                <Tooltip key="edit" title={editButtonDisabled}>
+                <Tooltip
+                  key="edit"
+                  title={editButtonDisabled}
+                  classes={{ popper: fluidFontClassName }}
+                >
                   <Box>
                     <EditButton />
                   </Box>
@@ -206,19 +217,20 @@ export const TypeMenuCell = ({
             enterDelay={250}
             onOpen={handleTooltipOpen}
             title={
-              <>
-                <Typography
-                  sx={{
-                    display: "block",
-                    width: "100%",
-                  }}
-                  align="center"
-                  variant="smallTextLabels"
-                >
-                  {hasCopied ? "Copied" : "Click to copy"}
-                </Typography>
-                {ontology.domain}/{ontology.path}
-              </>
+              <Typography
+                sx={{
+                  display: "block",
+                  width: "100%",
+                }}
+                align="center"
+                variant="smallTextLabels"
+              >
+                <FontAwesomeIcon
+                  icon={{ icon: hasCopied ? faCheck : faCopy.icon }}
+                  sx={{ mr: 1 }}
+                />
+                {hasCopied ? "Copied" : "Click to copy"}
+              </Typography>
             }
             placement="bottom"
           >

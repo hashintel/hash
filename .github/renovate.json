@@ -9,6 +9,7 @@
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
+  "semanticCommits": "disabled",
   "packageRules": [
     {
       "enabled": true,
@@ -61,33 +62,56 @@
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/error-stack/**"],
-      "groupName": "error-stack",
-      "commitMessageTopic": "Rust toolchain for `error-stack`"
+      "matchPaths": ["libs/**"],
+      "groupName": "Rust libraries toolchains",
+      "commitMessageTopic": "Rust toolchains for `/libs`"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/deer/**"],
-      "groupName": "deer",
-      "commitMessageTopic": "Rust toolchain for `deer`"
+      "matchPaths": ["apps/**"],
+      "groupName": "Rust applications toolchains",
+      "commitMessageTopic": "Rust toolchains for `/apps`"
     },
     {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/antsi/**"],
-      "groupName": "antsi",
-      "commitMessageTopic": "Rust toolchain for `antsi`"
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^clap[-_]?"],
+      "groupName": "`clap` crates"
     },
     {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/hash-graph/**"],
-      "groupName": "graph",
-      "commitMessageTopic": "Rust toolchain for `graph`"
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^criterion[-_]?"],
+      "groupName": "`criterion` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^futures[-_]?"],
+      "groupName": "`futures` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": [
+        "^opentelemetry[-_]?",
+        "^tracing-opentelemetry$"
+      ],
+      "groupName": "`opentelemetry` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
+      "groupName": "`postgres` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^serde[-_]?"],
+      "groupName": "`serde` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^tracing[-_]?"],
+      "excludePackageNames": ["tracing-opentelemetry"],
+      "groupName": "`tracing` crates"
     }
   ],
   "regexManagers": [

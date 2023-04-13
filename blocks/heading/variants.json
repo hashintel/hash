@@ -4,31 +4,50 @@
     "description": "For the largest (top-level) section headings",
     "icon": "public/h1.svg",
     "properties": {
-      "level": 1
-    }
+      "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 1
+    },
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 1,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "I'm a top-level heading!"
+      }
+    ]
   },
   {
     "name": "Heading 2",
     "description": "For large section headings",
     "icon": "public/h2.svg",
     "properties": {
-      "level": 2
-    }
+      "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 2
+    },
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 2,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "I'm a large heading!"
+      }
+    ]
   },
   {
     "name": "Heading 3",
     "description": "For medium section headings",
     "icon": "public/h3.svg",
     "properties": {
-      "level": 3
-    }
+      "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 3
+    },
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 3,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "I'm a medium heading!"
+      }
+    ]
   },
   {
     "name": "Heading 4",
     "description": "For small section headings",
     "icon": "public/h4.svg",
     "properties": {
-      "level": 4
+      "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 4,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "I'm a small heading!"
     }
   }
 ]

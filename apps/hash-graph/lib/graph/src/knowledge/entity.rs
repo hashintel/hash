@@ -1,7 +1,9 @@
 mod query;
 
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, error::Error, fmt};
 
+use bytes::BytesMut;
+use postgres_types::{IsNull, Type};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::url::{BaseUrl, VersionedUrl};
@@ -77,6 +79,28 @@ impl LinkOrder {
 #[schema(value_type = Object)]
 pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
 
+impl ToSql for EntityProperties {
+    postgres_types::accepts!(JSON, JSONB);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        postgres_types::Json(&self).to_sql(ty, out)
+    }
+}
+
+impl<'a> FromSql<'a> for EntityProperties {
+    postgres_types::accepts!(JSON, JSONB);
+
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        let json = postgres_types::Json::from_sql(ty, raw)?;
+        Ok(json.0)
+    }
+}
+
 impl EntityProperties {
     #[must_use]
     pub fn empty() -> Self {
@@ -99,12 +123,14 @@ pub struct EntityLinkOrder {
         skip_serializing_if = "Option::is_none",
         rename = "leftToRightOrder"
     )]
+    #[schema(nullable = false)]
     pub left_to_right: Option<LinkOrder>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "rightToLeftOrder"
     )]
+    #[schema(nullable = false)]
     pub right_to_left: Option<LinkOrder>,
 }
 
@@ -185,6 +211,7 @@ impl EntityMetadata {
 pub struct Entity {
     pub properties: EntityProperties,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub link_data: Option<LinkData>,
     pub metadata: EntityMetadata,
 }

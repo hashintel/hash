@@ -10,6 +10,7 @@ import {
 import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
+import { fluidFontClassName } from "./fluid-fonts";
 import {
   Button,
   ButtonProps,
@@ -261,7 +262,11 @@ export const SelectorAutocomplete = <
         getOptionLabel={(opt) => optionToRenderData(opt).title}
         PaperComponent={TypeListSelectorDropdown}
         componentsProps={{
-          popper: { modifiers: allModifiers, anchorEl },
+          popper: {
+            modifiers: allModifiers,
+            anchorEl,
+            className: fluidFontClassName,
+          },
         }}
         {...rest}
       />

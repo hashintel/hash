@@ -5,6 +5,7 @@
 [antsi]: antsi
 [deer]: deer
 [error-stack]: error-stack
+[sarif]: sarif
 [@hashintel/type-editor]: @hashintel/type-editor
 [@hashintel/design-system]: @hashintel/design-system
 
@@ -21,12 +22,13 @@ Contains the source code for software development libraries which HASH has publi
 | [antsi]                    | Rust        | [Crates.io](https://crates.io/crates/antsi)                   | [Docs.rs](https://docs.rs/antsi/latest/antsi/)             | Supports coloring Select Graphic Rendition (as defined in ISO 6429) with no external dependencies                                                    |
 | [deer]                     | Rust        | [Crates.io](https://crates.io/crates/deer)                    | [Docs.rs](https://docs.rs/deer/latest/deer/)               | **Experimental** backend-agnostic deserialization framework, featuring meaningful error messages and context and fail-slow behavior by default       |
 | [error-stack]              | Rust        | [Crates.io](https://crates.io/crates/error-stack)             | [Docs.rs](https://docs.rs/error-stack/latest/error_stack/) | Context-aware error-handling library that supports arbitrary attached user data                                                                      |
+| [sarif]                    | Rust        | [Crates.io](https://crates.io/crates/sarif)                   | [Docs.rs](https://docs.rs/sarif/latest/sarif/)             | Representation of the SARIF specification in Rust                                                                                                    |
 | [@hashintel/design-system] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/design-system) | To be written                                              | Reusable UI primitives                                                                                                                               |
 | [@hashintel/type-editor]   | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)   | To be written                                              | A user interface for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types) |
 
 ## Contributing
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md).
+See [CONTRIBUTING.md](../.github/CONTRIBUTING.md).
 
 ## Publishing
 

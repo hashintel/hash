@@ -26,16 +26,16 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.1.0",
-    "@dnd-kit/core": "6.0.5",
-    "@dnd-kit/sortable": "7.0.1",
-    "@dnd-kit/utilities": "3.2.0",
-    "@hashintel/design-system": "0.0.5",
+    "@dnd-kit/core": "6.0.8",
+    "@dnd-kit/sortable": "7.0.2",
+    "@dnd-kit/utilities": "3.2.1",
+    "@hashintel/design-system": "0.0.6",
     "@mui/icons-material": "5.11.9",
     "@mui/material": "5.11.8",
     "immer": "9.0.6",
     "lodash.isequal": "4.5.0",
     "typescript": "4.9.4",
-    "uuid": "8.3.2"
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -23,12 +23,18 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 }
 
+impl fmt::Display for EntityId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}%{}", self.owned_by_id, self.entity_uuid)
+    }
+}
+
 impl Serialize for EntityId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{}%{}", self.owned_by_id, self.entity_uuid))
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -91,7 +97,19 @@ impl EntityTemporalMetadata {
 }
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    FromSql,
+    ToSql,
+    ToSchema,
 )]
 #[postgres(transparent)]
 #[repr(transparent)]
@@ -109,7 +127,7 @@ impl EntityEditionId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {
     pub entity_id: EntityId,

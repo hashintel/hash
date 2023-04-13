@@ -1,9 +1,9 @@
 # The HASH Graph Query Layer
 
-To run the HASH Graph Query Layer make sure `cargo-make` is installed:
+To run the HASH Graph Query Layer make sure `just` is installed:
 
 ```shell
-cargo install cargo-make
+cargo install just
 ```
 
 ## Run the Graph
@@ -17,7 +17,7 @@ cargo install cargo-make
 > It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
 
 ```shell
-cargo make deployment-up
+just deployment-up
 ```
 
 _It is possible to teardown the database with the equivalent `deployment-down` task_
@@ -25,7 +25,7 @@ _It is possible to teardown the database with the equivalent `deployment-down` t
 Then, the Graph Query Layer can be started:
 
 ```shell
-cargo make run -- server
+just run server
 ```
 
 ### Logging configuration
@@ -38,47 +38,68 @@ If you're interested in just increasing the logs for the Graph, we recommend spe
 In order to build run the following command:
 
 ```shell
-cargo make build
+just build
 ```
 
 In order to create an optimized build, run:
 
 ```shell
-cargo make --profile production build
+PROFILE=release just build
 ```
 
-Please see the list of all possible `cargo make` commands:
+Please see the list of all possible `just` commands:
 
 ```shell
-cargo make --list-all-steps
+just
 ```
 
 Every command line argument passed will also be forwarded to the subcommand, e.g. this will not only build the documentation but also open it in the browser:
 
 ```shell
-cargo make doc --open
+just doc --open
 ```
+
+### API Definitions
+
+The Graph's API is current exposed over REST with an accompanying OpenAPI spec.
+
+### Generate OpenAPI client
+
+The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
+
+```shell
+just generate-openapi-client
+```
+
+Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
+
+### Modifications
+
+The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`lib/graph/src/api/rest/json_schemas`](lib/graph/src/api/rest/json_schemas).
+
+As such, when modifying return values related to these types, it's important to update the accompanying schemas.
+
+#### Status
+
+Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
+
+The [`status.json`](lib/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
+JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./lib/graph/build.rs).
+
+To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
+
+New payloads can then be added in the `definitions` and `oneOf` of the `Status` schema.
+
+> Note: migrating to the above is in progress, and not all error responses currently satisfy the `Status` shape, consult the API spec to see.
 
 ---
 
 ## Test the code
 
-The code base has two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
+The code base has a few test suites. Except for the unit tests, every test suite requires an active database connection. The test setup uses `docker` to start the required services. To run all available tests, run:
 
 ```shell
-cargo make test
-```
-
-For the integration tests, the database needs to be deployed [as specified here](../README.md#running-the-database). Next, the integration test suite can be started:
-
-```shell
-cargo make test-integration
-```
-
-The REST API can be tested as well. Note, that this requires the Graph to run and does not clean up the database after running:
-
-```shell
-cargo make test-rest-api
+just test
 ```
 
 ## Migrations
@@ -94,25 +115,15 @@ The tool we are using, `refinery`, also supports Rust based (`.rs`) migration fi
 Migrations are run through the same binary as the server using the following command:
 
 ```shell
-cargo run -- migrate
+just run migrate
 ```
-
-## Generate OpenAPI client
-
-The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
-
-```shell
-cargo make generate-openapi-client
-```
-
-Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
 
 ## Benchmark the code
 
 The benchmark suite can be run with:
 
 ```shell
-cargo make bench
+just bench
 ```
 
 ### Note:

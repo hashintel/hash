@@ -5,6 +5,7 @@
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [block protocol]: https://github.com/blockprotocol/blockprotocol
+[block protocol types]: https://blockprotocol.org/docs/types?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [awesome hash]: https://github.com/hashintel/awesome-hash
 
@@ -59,6 +60,7 @@ This repository's contents is divided across four primary sections:
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
 - [**`/libs`**](/libs) contains [libraries](#libraries) including npm packages and Rust crates
+- [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs
 
 Key projects within are summarized below.
 
@@ -77,13 +79,21 @@ Key projects within are summarized below.
 
 ### Libraries
 
+#### Rust crates
+
 - [`antsi`](libs/antsi): Rust crate supporting Select Graphic Rendition (as defined in ISO 6429) without external dependencies
 - [`deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context
 - [`error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
+- [`sarif`](libs/sarif): representation of the SARIF specification in Rust
+
+#### npm packages
+
+- [`@hashintel/design-system`](libs/@hashintel/design-system): design system for [HASH] and new [hash.ai] website
+- [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
 We're also [hiring] for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
 
@@ -93,7 +103,7 @@ The vast majority of this repository is published as free, open-source software.
 
 ## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
 
-Please see [SECURITY](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
+Please see [SECURITY](.github/SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 
