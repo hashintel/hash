@@ -4,7 +4,8 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        ArrayLengthError, DeserializeError, ExpectedLength, ReceivedLength, Variant, VisitorError,
+        ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant,
+        VisitorError,
     },
     ext::TupleExt,
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
@@ -33,7 +34,7 @@ macro_rules! all_the_tuples {
 }
 
 macro_rules! impl_tuple {
-    ($expected:literal, $visitor:ident, $reflection:ident; $($elem:ident),*) => {
+    ($(#[$meta:meta])* $expected:literal, $visitor:ident, $reflection:ident; $($elem:ident),*) => {
         pub struct $reflection<$($elem: ?Sized,)*>($(PhantomData<fn() -> *const $elem>,)*);
 
         impl<$($elem,)*> Reflection for $reflection<$($elem,)*>
@@ -81,7 +82,7 @@ macro_rules! impl_tuple {
                             .attach(ReceivedLength::new(length))
                             .change_context(VisitorError));
                     }
-                    Some(value) => value,
+                    Some(value) => value.attach(Location::Tuple(length)),
                 };
 
                 length += 1;
@@ -96,6 +97,7 @@ macro_rules! impl_tuple {
             }
         }
 
+        $(#[$meta])*
         impl<'de, $($elem,)*> Deserialize<'de> for ($($elem,)*)
         where
             $($elem: Deserialize<'de>),*
