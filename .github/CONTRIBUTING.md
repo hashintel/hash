@@ -4,7 +4,10 @@ Thanks for taking the time to contribute! 🎉 We've established a set of [commu
 
 If you'd like to make a significant change or re-architecture to this repository or any project within, please first open a [discussion](https://github.com/hashintel/hash/discussions) or create an [issue](https://github.com/hashintel/hash/issues) to get feedback before spending too much time.
 
-We also have a community [Discord server](https://hash.ai/discord) where you can ask questions about contributing, and obtain helpful advice.
+We also have:
+- A community [Discord server](https://hash.ai/discord) where you can ask questions about contributing, and obtain helpful advice.
+- A developer website at [hash.dev](https://hash.dev/), containing developer tutorials, guides and other resources
+- A design website at [hash.design](https://hash.design/) containing our Storybook, brand and style guildelines
 
 ## About this repo
 
