@@ -199,7 +199,7 @@ impl<C: AsClient> SnapshotStore<C> {
     ///      yet unfulfilled foreign key constraints.
     ///   2. The second stage is the `write` stage. This stage is executed for each record type. It
     ///      reads the batch of records from the channels and inserts them into the temporary
-    ///      tables.
+    ///      tables, which were created above.
     ///   3. The third stage is the `commit` stage. This stage is executed after all records have
     ///      been read from the stream. It is used to insert the data from the temporary tables
     ///      into the store and to drop the temporary tables. As foreign key constraints are now
