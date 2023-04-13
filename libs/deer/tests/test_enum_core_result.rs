@@ -1,5 +1,7 @@
-use deer_desert::{assert_tokens, assert_tokens_any_error, Token};
+use deer::Deserialize;
+use deer_desert::{assert_tokens, assert_tokens_any_error, assert_tokens_error, error, Token};
 use proptest::prelude::*;
+use serde_json::json;
 
 #[cfg(not(miri))]
 proptest! {
@@ -46,4 +48,25 @@ proptest! {
             Token::ObjectEnd,
         ]);
     }
+}
+
+#[test]
+fn result_error_location() {
+    assert_tokens_error::<Result<u8, ()>>(
+        &error!([{
+            ns: "deer",
+            id: ["type"],
+            properties: {
+                "expected": u8::reflection(),
+                "received": bool::reflection(),
+                "location": [{"type": "variant", "value": "Ok"}]
+            }
+        }]),
+        &[
+            Token::Object { length: Some(1) },
+            Token::String("Ok"),
+            Token::Bool(true),
+            Token::ObjectEnd,
+        ],
+    );
 }
