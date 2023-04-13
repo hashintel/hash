@@ -5,7 +5,6 @@
 [`ai-chat`]: ai-chat
 [`ai-image`]: ai-image
 [`ai-text`]: ai-text
-[`calculation`]: calculation
 [`callout`]: callout
 [`chart`]: chart
 [`code`]: code
@@ -38,34 +37,33 @@ This directory contains the source code for all HASH-developed public [Block Pro
 
 You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
-| Directory        | Spec Target | Status         | Þ Hub URL                                                                                      | Description |
-| ---------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
-| [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)                         |             |
-| [`ai-chat`]      | 0.3         | **Maintained** | [@hash/blocks/ai-chat](https://blockprotocol.org/@hash/blocks/ai-chat)                         |             |
-| [`ai-image`]     | 0.3         | **Maintained** | [@hash/blocks/ai-image](https://blockprotocol.org/@hash/blocks/ai-image)                       |             |
-| [`ai-text`]      | 0.3         | **Maintained** | [@hash/blocks/ai-text](https://blockprotocol.org/@hash/blocks/ai-text)                         |             |
-| [`calculation`]  | 0.2         | Deprecated     | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
-| [`callout`]      | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)                         |             |
-| [`chart`]        | 0.1         | Pending Update |                                                                                                |             |
-| [`code`]         | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                               |             |
-| [`countdown`]    | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)                     |             |
-| [`divider`]      | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)                         |             |
-| [`embed`]        | 0.1         | Pending Update |                                                                                                |             |
-| [`faq`]          | 0.3         | **Maintained** | [@hash/blocks/faq](https://blockprotocol.org/@hash/blocks/faq)                                 |             |
-| [`heading`]      | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)                         |             |
-| [`html-para`]    | 0.1         | Deprecated     |                                                                                                |             |
-| [`how-to`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                             |             |
-| [`image`]        | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)                             |             |
-| [`kanban-board`] | 0.3         | **Maintained** | [@hash/blocks/kanban-board](https://blockprotocol.org/@hash/blocks/kanban-board)               |             |
-| [`minesweeper`]  | 0.3         | **Maintained** | [@hash/blocks/minesweeper](https://blockprotocol.org/@hash/blocks/minesweeper)                 |             |
-| [`paragraph`]    | 0.3         | **Maintained** | [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)                     |             |
-| [`person`]       | 0.2         | Pending Update |                                                                                                |             |
-| [`shuffle`]      | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)                         |             |
-| [`stopwatch`]    | 0.3         | Deprecated     | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)                     |             |
-| [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)                             |             |
-| [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)                             |             |
-| [`toggle-item`]  | 0.1         | Pending Update |                                                                                                |             |
-| [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)                             |             |
+| Directory        | Spec Target | Status         | Þ Hub URL                                                                        | Description |
+| ---------------- | ----------- | -------------- | -------------------------------------------------------------------------------- | ----------- |
+| [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)           |             |
+| [`ai-chat`]      | 0.3         | **Maintained** | [@hash/blocks/ai-chat](https://blockprotocol.org/@hash/blocks/ai-chat)           |             |
+| [`ai-image`]     | 0.3         | **Maintained** | [@hash/blocks/ai-image](https://blockprotocol.org/@hash/blocks/ai-image)         |             |
+| [`ai-text`]      | 0.3         | **Maintained** | [@hash/blocks/ai-text](https://blockprotocol.org/@hash/blocks/ai-text)           |             |
+| [`callout`]      | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)           |             |
+| [`chart`]        | 0.1         | Pending Update |                                                                                  |             |
+| [`code`]         | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                 |             |
+| [`countdown`]    | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)       |             |
+| [`divider`]      | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)           |             |
+| [`embed`]        | 0.1         | Pending Update |                                                                                  |             |
+| [`faq`]          | 0.3         | **Maintained** | [@hash/blocks/faq](https://blockprotocol.org/@hash/blocks/faq)                   |             |
+| [`heading`]      | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)           |             |
+| [`html-para`]    | 0.1         | Deprecated     |                                                                                  |             |
+| [`how-to`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)               |             |
+| [`image`]        | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)               |             |
+| [`kanban-board`] | 0.3         | **Maintained** | [@hash/blocks/kanban-board](https://blockprotocol.org/@hash/blocks/kanban-board) |             |
+| [`minesweeper`]  | 0.3         | **Maintained** | [@hash/blocks/minesweeper](https://blockprotocol.org/@hash/blocks/minesweeper)   |             |
+| [`paragraph`]    | 0.3         | **Maintained** | [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)       |             |
+| [`person`]       | 0.2         | Pending Update |                                                                                  |             |
+| [`shuffle`]      | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)           |             |
+| [`stopwatch`]    | 0.3         | Deprecated     | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)       |             |
+| [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)               |             |
+| [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
+| [`toggle-item`]  | 0.1         | Pending Update |                                                                                  |             |
+| [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |
 
 ## Running these blocks
 
