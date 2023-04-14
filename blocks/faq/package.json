@@ -17,10 +17,12 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
-    "format": "prettier --write --ignore-unknown .",
+    "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
@@ -34,6 +36,7 @@
     "uuid": "9.0.0"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
     "@types/react-dom": "18.0.9",
     "block-scripts": "0.2.3",
     "mock-block-dock": "0.1.4",

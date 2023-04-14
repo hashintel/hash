@@ -16,11 +16,12 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
@@ -108,6 +109,16 @@
     "image": "public/block-preview.png",
     "name": "@hash/kanban-board",
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@hash/types/entity-type/kanban-board-block/v/2"
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/kanban-board-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
   }
 }

@@ -14,11 +14,11 @@ import { render } from "react-dom";
 import packageJSON from "../package.json";
 import Component from "./index";
 import { linkIds, propertyIds } from "./property-ids";
-import { DisplaysMediaFile, RootEntity } from "./types";
+import { BlockEntity, DisplaysMediaFile } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const initialData: RootEntity = {
+const initialData: BlockEntity = {
   properties: {
     [propertyIds.caption]: "Placeholder image",
   },
@@ -27,7 +27,7 @@ const initialData: RootEntity = {
       entityId: "entity-image",
       editionId: "1",
     },
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
   },
 };
 

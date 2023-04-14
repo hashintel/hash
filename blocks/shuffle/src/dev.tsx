@@ -9,7 +9,10 @@ import { render } from "react-dom";
 import packageJSON from "../package.json";
 import Component from "./index";
 import { entityTypeIds, propertyIds } from "./property-ids";
-import { HasRepresentativeShuffleBlockItem, RootEntity } from "./types";
+import {
+  BlockEntity,
+  HasRepresentativeShuffleBlockItem,
+} from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
@@ -27,9 +30,9 @@ const personEntity: Entity = {
   },
 };
 
-const blockEntity: RootEntity = {
+const blockEntity: BlockEntity = {
   metadata: {
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
     recordId: {
       entityId: "entity-ordered-list",
       editionId: "1",

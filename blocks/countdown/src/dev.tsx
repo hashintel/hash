@@ -8,17 +8,17 @@ import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const initialData: RootEntity = {
+const initialData: BlockEntity = {
   metadata: {
     recordId: {
       entityId: "entity-countdown",
       editionId: "1",
     },
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {},
 };

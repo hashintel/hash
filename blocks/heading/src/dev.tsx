@@ -9,13 +9,13 @@ import { render } from "react-dom";
 import packageJSON from "../package.json";
 import Component from "./index";
 import { propertyIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const initialData: RootEntity = {
+const initialData: BlockEntity = {
   metadata: {
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
     recordId: {
       entityId: "entity-heading",
       editionId: "1",
