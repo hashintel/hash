@@ -18,7 +18,7 @@ import { List } from "@mui/material";
 import React, { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { propertyIds } from "../property-ids";
-import { ShuffleBlockItemPropertyValue } from "../types";
+import { ShuffleBlockItemPropertyValue } from "../types/generated/block-entity";
 import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";
 
