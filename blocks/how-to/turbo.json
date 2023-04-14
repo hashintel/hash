@@ -1,0 +1,28 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "schema": {
+      "inputs": ["./package.json"],
+      "outputs": ["./src/types.gen.ts"]
+    },
+    "build": {
+      "dependsOn": ["^build", "schema", "format"],
+      "outputs": ["./dist/**"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["schema"]
+    },
+    "format": {
+      "cache": false,
+      "dependsOn": ["schema"]
+    },
+    "dev": {
+      "persistent": true,
+      "dependsOn": ["^build", "schema"]
+    },
+    "serve": {
+      "persistent": true,
+      "dependsOn": ["build"]
+    }
+  }
+}

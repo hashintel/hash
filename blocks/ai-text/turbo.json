@@ -1,0 +1,25 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "codegen": {
+      "inputs": ["./package.json"],
+      "outputs": ["./src/types/generated/**"]
+    },
+    "build": {
+      "dependsOn": ["^build", "codegen"],
+      "outputs": ["./dist/**"]
+    },
+    "format": {
+      "cache": false,
+      "dependsOn": ["codegen"]
+    },
+    "dev": {
+      "persistent": true,
+      "dependsOn": ["^build", "codegen"]
+    },
+    "serve": {
+      "persistent": true,
+      "dependsOn": ["build"]
+    }
+  }
+}
