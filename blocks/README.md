@@ -13,7 +13,6 @@
 [`embed`]: embed
 [`faq`]: faq
 [`heading`]: heading
-[`html-para`]: html-para
 [`how-to`]: how-to
 [`image`]: image
 [`kanban-board`]: kanban-board
@@ -21,7 +20,6 @@
 [`paragraph`]: paragraph
 [`person`]: person
 [`shuffle`]: shuffle
-[`stopwatch`]: stopwatch
 [`table`]: table
 [`timer`]: timer
 [`video`]: video
@@ -50,7 +48,6 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`embed`]        | 0.1         | Pending Update |                                                                                  |             |
 | [`faq`]          | 0.3         | **Maintained** | [@hash/blocks/faq](https://blockprotocol.org/@hash/blocks/faq)                   |             |
 | [`heading`]      | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)           |             |
-| [`html-para`]    | 0.1         | Deprecated     |                                                                                  |             |
 | [`how-to`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)               |             |
 | [`image`]        | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)               |             |
 | [`kanban-board`] | 0.3         | **Maintained** | [@hash/blocks/kanban-board](https://blockprotocol.org/@hash/blocks/kanban-board) |             |
@@ -58,7 +55,6 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`paragraph`]    | 0.3         | **Maintained** | [@hash/blocks/paragraph](https://blockprotocol.org/@hash/blocks/paragraph)       |             |
 | [`person`]       | 0.2         | Pending Update |                                                                                  |             |
 | [`shuffle`]      | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)           |             |
-| [`stopwatch`]    | 0.3         | Deprecated     | [@hash/blocks/stopwatch](https://blockprotocol.org/@hash/blocks/stopwatch)       |             |
 | [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)               |             |
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |

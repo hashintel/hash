@@ -67,4 +67,6 @@ COPY --from=builder /out/ /
 
 USER nobody:nobody
 
+HEALTHCHECK --interval=2s --timeout=2s --retries=10 CMD ["/hash-graph", "server", "--healthcheck"]
+
 ENTRYPOINT ["/hash-graph"]

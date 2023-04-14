@@ -36,7 +36,7 @@ This PR:
 - [ ] modifies a **Cargo**-publishable library and **I have amended the version**
 - [ ] modifies a **Cargo**-publishable library, but **it is not yet ready to publish**
 - [ ] modifies a **block** that will need publishing via GitHub action once merged
-- [ ] does not modify any publishable blocks or libraries
+- [ ] does not modify any publishable blocks or libraries, or modifications do not need publishing
 - [ ] I am unsure / need advice
 
 ## 📜 Does this require a change to the docs?

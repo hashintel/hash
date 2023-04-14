@@ -1,7 +1,12 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    fmt,
+    net::{AddrParseError, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use clap::Parser;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 #[cfg(feature = "type-fetcher")]
 use graph::store::FetchingPool;
 use graph::{
@@ -28,6 +33,21 @@ pub struct ApiAddress {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+}
+
+impl fmt::Display for ApiAddress {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}:{}", self.api_host, self.api_port)
+    }
+}
+
+impl TryFrom<ApiAddress> for SocketAddr {
+    type Error = Report<AddrParseError>;
+
+    fn try_from(address: ApiAddress) -> Result<Self, AddrParseError> {
+        let address = address.to_string();
+        address.parse().into_report().attach_printable(address)
+    }
 }
 
 #[derive(Debug, Parser)]
@@ -318,18 +338,8 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         })
     };
 
-    let api_address = format!(
-        "{}:{}",
-        args.api_address.api_host, args.api_address.api_port
-    );
-    let api_address: SocketAddr = api_address
-        .parse()
-        .into_report()
-        .change_context(GraphError)
-        .attach_printable_lazy(|| api_address.clone())?;
-
-    tracing::info!("Listening on {api_address}");
-    axum::Server::bind(&api_address)
+    tracing::info!("Listening on {}", args.api_address);
+    axum::Server::bind(&args.api_address.try_into().change_context(GraphError)?)
         .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
