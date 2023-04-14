@@ -48,13 +48,6 @@ const DevApp = () => {
       blockProtocolSiteHost={
         process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
       } // update this to a recent staging deployment when testing
-      // includeDefaultMockData // this seeds the datastore with sample entities and links, remove this to start with just the contents of `initialData`
-      // hideDebugToggle <- uncomment this to disable the debug UI entirely
-      // initialEntities={[]} <- customise the entities in the datastore (blockEntity is always added, if you provide it)
-      // initialEntityTypes={[]} <- customise the entity types in the datastore
-      // initialLinks={[]} <- customise the links in the datastore
-      // initialLinkedQueries={[]} <- customise the linkedQueries in the datastore
-      // readonly <- uncomment this to start your block in readonly mode. You can also toggle it in the UI
     />
   );
 };
