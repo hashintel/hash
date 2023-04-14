@@ -22,7 +22,6 @@
 [`shuffle`]: shuffle
 [`table`]: table
 [`timer`]: timer
-[`toggle-item`]: toggle-item
 [`video`]: video
 
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a38c5f3-6474-4b6c-71e6-ecf01914f000/github)][github_banner]
@@ -58,7 +57,6 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`shuffle`]      | 0.3         | **Maintained** | [@hash/blocks/shuffle](https://blockprotocol.org/@hash/blocks/shuffle)           |             |
 | [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)               |             |
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
-| [`toggle-item`]  | 0.1         | Pending Update |                                                                                  |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |
 
 ## Running these blocks
