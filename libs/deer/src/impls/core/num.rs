@@ -1,6 +1,8 @@
+#[cfg(nightly)]
+use core::num::Saturating;
 use core::num::{
     NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
-    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
+    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize, Wrapping,
 };
 
 use error_stack::{Report, ResultExt};
@@ -69,3 +71,20 @@ impl_nonzero![
     NonZeroI128 <- i128,
     NonZeroIsize <- isize,
 ];
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
+    type Reflection = T::Reflection;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+        T::deserialize(de).map(Self)
+    }
+}
+
+#[cfg(nightly)]
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Saturating<T> {
+    type Reflection = T::Reflection;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+        T::deserialize(de).map(Self)
+    }
+}
