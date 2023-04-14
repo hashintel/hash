@@ -1,5 +1,6 @@
 mod array;
 mod bool;
+mod bytes;
 mod cell;
 mod cmp;
 mod floating;
