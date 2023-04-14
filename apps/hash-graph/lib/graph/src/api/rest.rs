@@ -255,22 +255,6 @@ impl OpenApiDocumentation {
         .map_err(io::Error::from)
         .into_report()?;
 
-        if let Some(components) = openapi.components {
-            let schema_path_dir = path.join("components").join("schemas");
-            fs::create_dir_all(&schema_path_dir)
-                .into_report()
-                .attach_printable("could not create directory")
-                .attach_printable_lazy(|| schema_path_dir.display().to_string())?;
-
-            for (schema_path, schema) in components.schemas {
-                let schema_path = schema_path_dir.join(&schema_path);
-                let schema = serde_json::to_string_pretty(&schema)
-                    .map_err(io::Error::from)
-                    .into_report()?;
-                fs::write(schema_path, schema)?;
-            }
-        }
-
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
             .join("api")
