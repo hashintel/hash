@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use futures::{SinkExt, StreamExt, TryStreamExt};
@@ -10,7 +12,7 @@ use tokio::io;
 use tokio_postgres::NoTls;
 use tokio_util::codec::{FramedRead, FramedWrite};
 
-use crate::error::GraphError;
+use crate::{error::GraphError, subcommand::server::ApiAddress};
 
 #[derive(Debug, Parser)]
 pub struct SnapshotDumpArgs;
@@ -19,9 +21,17 @@ pub struct SnapshotDumpArgs;
 pub struct SnapshotRestoreArgs;
 
 #[derive(Debug, Parser)]
+pub struct SnapshotServerArgs {
+    /// The address the REST client is listening at.
+    #[clap(flatten)]
+    pub api_address: ApiAddress,
+}
+
+#[derive(Debug, Parser)]
 pub enum SnapshotCommand {
     Dump(SnapshotDumpArgs),
     Restore(SnapshotRestoreArgs),
+    Server(SnapshotServerArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -49,51 +59,63 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut store = SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
-        |report| {
-            tracing::error!(error = ?report, "Failed to acquire database connection");
-            report
-        },
-    )?);
-
     match args.command {
         SnapshotCommand::Dump(_) => {
-            store
-                .dump_snapshot()
-                .map_err(|report| {
+            SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
+                |report| {
+                    tracing::error!(error = ?report, "Failed to acquire database connection");
+                    report
+                },
+            )?)
+            .dump_snapshot()
+            .map_err(|report| {
+                report
+                    .change_context(GraphError)
+                    .attach_printable("Failed to produce snapshot dump")
+            })
+            .forward(
+                FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::JsonLinesEncoder::default(),
+                )
+                .sink_map_err(|report| {
                     report
                         .change_context(GraphError)
-                        .attach_printable("Failed to produce snapshot dump")
-                })
-                .forward(
-                    FramedWrite::new(
-                        io::BufWriter::new(io::stdout()),
-                        codec::JsonLinesEncoder::default(),
-                    )
-                    .sink_map_err(|report| {
-                        report
-                            .change_context(GraphError)
-                            .attach_printable("Failed to write snapshot dump")
-                    }),
-                )
-                .await?;
+                        .attach_printable("Failed to write snapshot dump")
+                }),
+            )
+            .await?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
-            store
-                .restore_snapshot(
-                    FramedRead::new(
-                        io::BufReader::new(io::stdin()),
-                        codec::JsonLinesDecoder::default(),
-                    ),
-                    10_000,
-                )
-                .await
-                .change_context(GraphError)
-                .attach_printable("Failed to restore snapshot")?;
+            SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
+                |report| {
+                    tracing::error!(error = ?report, "Failed to acquire database connection");
+                    report
+                },
+            )?)
+            .restore_snapshot(
+                FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::JsonLinesDecoder::default(),
+                ),
+                10_000,
+            )
+            .await
+            .change_context(GraphError)
+            .attach_printable("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
+        }
+        SnapshotCommand::Server(args) => {
+            let router = graph::api::rest::snapshot::routes(pool);
+
+            tracing::info!("Listening on {}", args.api_address);
+            axum::Server::bind(&args.api_address.try_into().change_context(GraphError)?)
+                .serve(router.into_make_service_with_connect_info::<SocketAddr>())
+                .await
+                .expect("failed to start server");
         }
     }
 
