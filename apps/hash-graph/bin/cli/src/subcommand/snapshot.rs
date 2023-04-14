@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 
 use clap::Parser;
 use error_stack::{Result, ResultExt};
+use futures::{SinkExt, StreamExt, TryStreamExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
     snapshot::{codec, SnapshotEntry, SnapshotStore},
@@ -66,13 +67,24 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                     report
                 },
             )?)
-            .dump_snapshot(FramedWrite::new(
-                io::BufWriter::new(io::stdout()),
-                codec::JsonLinesEncoder::default(),
-            ))
-            .await
-            .change_context(GraphError)
-            .attach_printable("Failed to produce snapshot dump")?;
+            .dump_snapshot()
+            .map_err(|report| {
+                report
+                    .change_context(GraphError)
+                    .attach_printable("Failed to produce snapshot dump")
+            })
+            .forward(
+                FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::JsonLinesEncoder::default(),
+                )
+                .sink_map_err(|report| {
+                    report
+                        .change_context(GraphError)
+                        .attach_printable("Failed to write snapshot dump")
+                }),
+            )
+            .await?;
 
             tracing::info!("Snapshot dumped successfully");
         }
