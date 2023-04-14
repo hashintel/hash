@@ -163,6 +163,11 @@ services:
       RUST_BACKTRACE: 1
     ports:
       - "${HASH_GRAPH_API_PORT}:4000"
+    healthcheck:
+      test: ["CMD", "/hash-graph", "server", "--healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
   hash-dev-redis:
     image: redis:6.2
