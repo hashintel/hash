@@ -1,10 +1,18 @@
 {
   "extends": ["//"],
   "pipeline": {
-    // @todo - this introduces a dependency on building the graph in docker to `yarn install` this causes problems in Vercel deployment builds
-    //    "build": {
-    //      "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-client"],
-    //      "outputs": []
-    //    }
+    "build": {
+      // @todo - this introduces a dependency on building the graph to `yarn install` this causes problems in Vercel deployment builds
+      // "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-specs"]
+    },
+    "codegen": {
+      "outputs": [
+        "api.ts",
+        "base.ts",
+        "common.ts",
+        "configuration.ts",
+        "index.ts"
+      ]
+    }
   }
 }

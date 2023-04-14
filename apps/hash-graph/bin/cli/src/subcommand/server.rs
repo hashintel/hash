@@ -93,7 +93,7 @@ pub struct ServerArgs {
 
     /// Starts a server that only serves the OpenAPI spec.
     #[clap(long, default_value_t = false)]
-    pub write_openapi_spec: bool,
+    pub write_openapi_specs: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -308,8 +308,8 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
-    if args.write_openapi_spec {
-        let path = std::path::Path::new("out").join("openapi");
+    if args.write_openapi_specs {
+        let path = std::path::Path::new("openapi");
         if path.exists() {
             fs::remove_dir_all(&path)
                 .into_report()

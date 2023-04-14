@@ -1,0 +1,1962 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "graph",
+    "description": "HASH Graph API",
+    "license": {
+      "name": ""
+    },
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/accounts": {
+      "post": {
+        "tags": ["Graph", "Account"],
+        "operationId": "create_account_id",
+        "responses": {
+          "200": {
+            "description": "The schema of the created account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types": {
+      "post": {
+        "tags": ["Graph", "DataType"],
+        "operationId": "create_data_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the created data type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to create data type in the store as the base data type URL already exists"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Graph", "DataType"],
+        "operationId": "update_data_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated data type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base data type ID was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types/query": {
+      "post": {
+        "tags": ["Graph", "DataType"],
+        "operationId": "get_data_types_by_query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataTypeStructuralQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subgraph"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities": {
+      "post": {
+        "tags": ["Graph", "Entity"],
+        "operationId": "create_entity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the created entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity Type URL was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Graph", "Entity"],
+        "operationId": "update_entity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity ID or Entity Type URL was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "423": {
+            "description": "The entity that should be updated was unexpectedly updated at the same time"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entities/query": {
+      "post": {
+        "tags": ["Graph", "Entity"],
+        "operationId": "get_entities_by_query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityStructuralQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subgraph"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entity-types": {
+      "post": {
+        "tags": ["Graph", "EntityType"],
+        "operationId": "create_entity_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntityTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the created entity type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provided request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./models/status.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to create entity type in the datastore as the base entity type ID already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./models/status.json"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./models/status.json"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Graph", "EntityType"],
+        "operationId": "update_entity_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntityTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated entity type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base entity type ID was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entity-types/query": {
+      "post": {
+        "tags": ["Graph", "EntityType"],
+        "operationId": "get_entity_types_by_query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityTypeStructuralQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subgraph"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types": {
+      "post": {
+        "tags": ["Graph", "PropertyType"],
+        "operationId": "create_property_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePropertyTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the created property type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to create property type in the store as the base property type ID already exists"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Graph", "PropertyType"],
+        "operationId": "update_property_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePropertyTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated property type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base property type ID was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/query": {
+      "post": {
+        "tags": ["Graph", "PropertyType"],
+        "operationId": "get_property_types_by_query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyTypeStructuralQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subgraph"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "BaseUrl": {
+        "type": "string"
+      },
+      "ClosedTemporalBound": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "InclusiveBound",
+            "required": ["kind", "limit"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["inclusive"]
+              },
+              "limit": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "CreateDataTypeRequest": {
+        "type": "object",
+        "required": ["schema", "ownedById", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/data_type"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/data_type"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "CreateEntityRequest": {
+        "type": "object",
+        "required": ["properties", "entityTypeId", "ownedById", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "entityTypeId": {
+            "type": "string"
+          },
+          "entityUuid": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityUuid"
+              }
+            ]
+          },
+          "linkData": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkData"
+              }
+            ]
+          },
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/EntityProperties"
+          }
+        }
+      },
+      "CreateEntityTypeRequest": {
+        "type": "object",
+        "required": ["schema", "ownedById", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/entity_type"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/entity_type"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "CreatePropertyTypeRequest": {
+        "type": "object",
+        "required": ["schema", "ownedById", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/property_type"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/property_type"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "DataTypeQueryToken": {
+        "type": "string",
+        "description": "A single token in a [`DataTypeQueryPath`].",
+        "enum": [
+          "baseUrl",
+          "version",
+          "versionedUrl",
+          "ownedById",
+          "recordCreatedById",
+          "title",
+          "description",
+          "type"
+        ]
+      },
+      "DataTypeStructuralQuery": {
+        "type": "object",
+        "required": ["filter", "graphResolveDepths", "temporalAxes"],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        }
+      },
+      "DataTypeVertexId": {
+        "type": "object",
+        "required": ["baseId", "revisionId"],
+        "properties": {
+          "baseId": {
+            "$ref": "#/components/schemas/BaseUrl"
+          },
+          "revisionId": {
+            "$ref": "#/components/schemas/OntologyTypeVersion"
+          }
+        }
+      },
+      "DataTypeWithMetadata": {
+        "type": "object",
+        "required": ["schema", "metadata"],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/OntologyElementMetadata"
+          },
+          "schema": {
+            "$ref": "./models/data_type.json"
+          }
+        }
+      },
+      "DecisionTime": {
+        "type": "string",
+        "description": "Time axis for the decision time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
+        "enum": ["decisionTime"]
+      },
+      "EdgeResolveDepths": {
+        "type": "object",
+        "required": ["incoming", "outgoing"],
+        "properties": {
+          "incoming": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0.0
+          },
+          "outgoing": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "Edges": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/OntologyOutwardEdge"
+                },
+                {
+                  "$ref": "#/components/schemas/KnowledgeGraphOutwardEdge"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Entity": {
+        "type": "object",
+        "description": "A record of an [`Entity`] that has been persisted in the datastore, with its associated\nmetadata.",
+        "required": ["properties", "metadata"],
+        "properties": {
+          "linkData": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkData"
+              }
+            ]
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/EntityMetadata"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/EntityProperties"
+          }
+        }
+      },
+      "EntityEditionId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "EntityId": {
+        "type": "string"
+      },
+      "EntityIdWithInterval": {
+        "type": "object",
+        "required": ["entityId", "interval"],
+        "properties": {
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "interval": {
+            "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+          }
+        }
+      },
+      "EntityLinkOrder": {
+        "type": "object",
+        "properties": {
+          "leftToRightOrder": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkOrder"
+              }
+            ]
+          },
+          "rightToLeftOrder": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkOrder"
+              }
+            ]
+          }
+        }
+      },
+      "EntityMetadata": {
+        "type": "object",
+        "description": "The metadata of an [`Entity`] record.",
+        "required": [
+          "recordId",
+          "temporalVersioning",
+          "entityTypeId",
+          "provenance",
+          "archived"
+        ],
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "entityTypeId": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceMetadata"
+          },
+          "recordId": {
+            "$ref": "#/components/schemas/EntityRecordId"
+          },
+          "temporalVersioning": {
+            "$ref": "#/components/schemas/EntityTemporalMetadata"
+          }
+        }
+      },
+      "EntityProperties": {
+        "type": "object"
+      },
+      "EntityQueryToken": {
+        "type": "string",
+        "description": "A single token in an [`EntityQueryPath`].",
+        "enum": [
+          "uuid",
+          "editionId",
+          "archived",
+          "ownedById",
+          "recordCreatedById",
+          "type",
+          "properties",
+          "incomingLinks",
+          "outgoingLinks",
+          "leftEntity",
+          "rightEntity",
+          "leftToRightOrder",
+          "rightToLeftOrder"
+        ]
+      },
+      "EntityRecordId": {
+        "type": "object",
+        "required": ["entityId", "editionId"],
+        "properties": {
+          "editionId": {
+            "$ref": "#/components/schemas/EntityEditionId"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          }
+        }
+      },
+      "EntityStructuralQuery": {
+        "type": "object",
+        "required": ["filter", "graphResolveDepths", "temporalAxes"],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        }
+      },
+      "EntityTemporalMetadata": {
+        "type": "object",
+        "required": ["decisionTime", "transactionTime"],
+        "properties": {
+          "decisionTime": {
+            "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+          },
+          "transactionTime": {
+            "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+          }
+        }
+      },
+      "EntityTypeQueryToken": {
+        "type": "string",
+        "description": "A single token in a [`EntityTypeQueryPath`].",
+        "enum": [
+          "baseUrl",
+          "version",
+          "versionedUrl",
+          "ownedById",
+          "recordCreatedById",
+          "title",
+          "description",
+          "examples",
+          "properties",
+          "required",
+          "links",
+          "inheritsFrom"
+        ]
+      },
+      "EntityTypeStructuralQuery": {
+        "type": "object",
+        "required": ["filter", "graphResolveDepths", "temporalAxes"],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        }
+      },
+      "EntityTypeVertexId": {
+        "type": "object",
+        "required": ["baseId", "revisionId"],
+        "properties": {
+          "baseId": {
+            "$ref": "#/components/schemas/BaseUrl"
+          },
+          "revisionId": {
+            "$ref": "#/components/schemas/OntologyTypeVersion"
+          }
+        }
+      },
+      "EntityTypeWithMetadata": {
+        "type": "object",
+        "required": ["schema", "metadata"],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/OntologyElementMetadata"
+          },
+          "schema": {
+            "$ref": "./models/entity_type.json"
+          }
+        }
+      },
+      "EntityUuid": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "EntityVertexId": {
+        "type": "object",
+        "required": ["baseId", "revisionId"],
+        "properties": {
+          "baseId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "revisionId": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "ExternalOntologyElementMetadata": {
+        "type": "object",
+        "required": ["recordId", "provenance", "fetchedAt"],
+        "properties": {
+          "fetchedAt": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceMetadata"
+          },
+          "recordId": {
+            "$ref": "#/components/schemas/OntologyTypeRecordId"
+          }
+        }
+      },
+      "Filter": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "AllFilter",
+            "required": ["all"],
+            "properties": {
+              "all": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Filter"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AnyFilter",
+            "required": ["any"],
+            "properties": {
+              "any": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Filter"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "NotFilter",
+            "required": ["not"],
+            "properties": {
+              "not": {
+                "$ref": "#/components/schemas/Filter"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EqualFilter",
+            "required": ["equal"],
+            "properties": {
+              "equal": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "NotEqualFilter",
+            "required": ["notEqual"],
+            "properties": {
+              "notEqual": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          }
+        ]
+      },
+      "FilterExpression": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "PathExpression",
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/DataTypeQueryToken"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PropertyTypeQueryToken"
+                    },
+                    {
+                      "$ref": "#/components/schemas/EntityTypeQueryToken"
+                    },
+                    {
+                      "$ref": "#/components/schemas/EntityQueryToken"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Selector"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ParameterExpression",
+            "required": ["parameter"],
+            "properties": {
+              "parameter": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Any"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "GraphElementVertexId": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DataTypeVertexId"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyTypeVertexId"
+          },
+          {
+            "$ref": "#/components/schemas/EntityTypeVertexId"
+          },
+          {
+            "$ref": "#/components/schemas/EntityVertexId"
+          }
+        ]
+      },
+      "GraphResolveDepths": {
+        "type": "object",
+        "description": "TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>",
+        "required": [
+          "inheritsFrom",
+          "constrainsValuesOn",
+          "constrainsPropertiesOn",
+          "constrainsLinksOn",
+          "constrainsLinkDestinationsOn",
+          "isOfType",
+          "hasLeftEntity",
+          "hasRightEntity"
+        ],
+        "properties": {
+          "constrainsLinkDestinationsOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsLinksOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsPropertiesOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsValuesOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "hasLeftEntity": {
+            "$ref": "#/components/schemas/EdgeResolveDepths"
+          },
+          "hasRightEntity": {
+            "$ref": "#/components/schemas/EdgeResolveDepths"
+          },
+          "inheritsFrom": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "isOfType": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          }
+        }
+      },
+      "KnowledgeGraphEdgeKind": {
+        "type": "string",
+        "enum": ["HAS_LEFT_ENTITY", "HAS_RIGHT_ENTITY"]
+      },
+      "KnowledgeGraphOutwardEdge": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "KnowledgeGraphToKnowledgeGraphOutwardEdge",
+            "required": ["kind", "reversed", "rightEndpoint"],
+            "properties": {
+              "kind": {
+                "$ref": "#/components/schemas/KnowledgeGraphEdgeKind"
+              },
+              "reversed": {
+                "type": "boolean"
+              },
+              "rightEndpoint": {
+                "$ref": "#/components/schemas/EntityIdWithInterval"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "KnowledgeGraphToOntologyOutwardEdge",
+            "required": ["kind", "reversed", "rightEndpoint"],
+            "properties": {
+              "kind": {
+                "$ref": "#/components/schemas/SharedEdgeKind"
+              },
+              "reversed": {
+                "type": "boolean"
+              },
+              "rightEndpoint": {
+                "$ref": "#/components/schemas/OntologyTypeVertexId"
+              }
+            }
+          }
+        ]
+      },
+      "KnowledgeGraphVertex": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "EntityVertex",
+            "required": ["kind", "inner"],
+            "properties": {
+              "inner": {
+                "$ref": "#/components/schemas/Entity"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["entity"]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "KnowledgeGraphVertices": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/KnowledgeGraphVertex"
+          }
+        }
+      },
+      "LeftClosedTemporalInterval": {
+        "type": "object",
+        "required": ["start", "end"],
+        "properties": {
+          "end": {
+            "$ref": "#/components/schemas/OpenTemporalBound"
+          },
+          "start": {
+            "$ref": "#/components/schemas/ClosedTemporalBound"
+          }
+        }
+      },
+      "LimitedTemporalBound": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "InclusiveBound",
+            "required": ["kind", "limit"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["inclusive"]
+              },
+              "limit": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ExclusiveBound",
+            "required": ["kind", "limit"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["exclusive"]
+              },
+              "limit": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "LinkData": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EntityLinkOrder"
+          },
+          {
+            "type": "object",
+            "required": ["leftEntityId", "rightEntityId"],
+            "properties": {
+              "leftEntityId": {
+                "$ref": "#/components/schemas/EntityId"
+              },
+              "rightEntityId": {
+                "$ref": "#/components/schemas/EntityId"
+              }
+            }
+          }
+        ],
+        "description": "The associated information for 'Link' entities"
+      },
+      "LinkOrder": {
+        "type": "integer",
+        "format": "int32"
+      },
+      "MaybeListOfOntologyElementMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OntologyElementMetadata"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OntologyElementMetadata"
+            }
+          }
+        ]
+      },
+      "NullableTimestamp": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "OntologyEdgeKind": {
+        "type": "string",
+        "enum": [
+          "INHERITS_FROM",
+          "CONSTRAINS_VALUES_ON",
+          "CONSTRAINS_PROPERTIES_ON",
+          "CONSTRAINS_LINKS_ON",
+          "CONSTRAINS_LINK_DESTINATIONS_ON"
+        ]
+      },
+      "OntologyElementMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OwnedOntologyElementMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ExternalOntologyElementMetadata"
+          }
+        ]
+      },
+      "OntologyOutwardEdge": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "OntologyToOntologyOutwardEdge",
+            "required": ["kind", "reversed", "rightEndpoint"],
+            "properties": {
+              "kind": {
+                "$ref": "#/components/schemas/OntologyEdgeKind"
+              },
+              "reversed": {
+                "type": "boolean"
+              },
+              "rightEndpoint": {
+                "$ref": "#/components/schemas/OntologyTypeVertexId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "OntologyToKnowledgeGraphOutwardEdge",
+            "required": ["kind", "reversed", "rightEndpoint"],
+            "properties": {
+              "kind": {
+                "$ref": "#/components/schemas/SharedEdgeKind"
+              },
+              "reversed": {
+                "type": "boolean"
+              },
+              "rightEndpoint": {
+                "$ref": "#/components/schemas/EntityIdWithInterval"
+              }
+            }
+          }
+        ]
+      },
+      "OntologyTypeRecordId": {
+        "type": "object",
+        "required": ["baseUrl", "version"],
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "OntologyTypeVersion": {
+        "type": "integer",
+        "format": "int32",
+        "minimum": 0.0
+      },
+      "OntologyTypeVertexId": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DataTypeVertexId"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyTypeVertexId"
+          },
+          {
+            "$ref": "#/components/schemas/EntityTypeVertexId"
+          }
+        ]
+      },
+      "OntologyVertex": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "DataTypeVertex",
+            "required": ["kind", "inner"],
+            "properties": {
+              "inner": {
+                "$ref": "#/components/schemas/DataTypeWithMetadata"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["dataType"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "PropertyTypeVertex",
+            "required": ["kind", "inner"],
+            "properties": {
+              "inner": {
+                "$ref": "#/components/schemas/PropertyTypeWithMetadata"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["propertyType"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EntityTypeVertex",
+            "required": ["kind", "inner"],
+            "properties": {
+              "inner": {
+                "$ref": "#/components/schemas/EntityTypeWithMetadata"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["entityType"]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "OntologyVertices": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/OntologyVertex"
+          }
+        }
+      },
+      "OpenTemporalBound": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "ExclusiveBound",
+            "required": ["kind", "limit"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["exclusive"]
+              },
+              "limit": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "UnboundedBound",
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["unbounded"]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "OutgoingEdgeResolveDepth": {
+        "type": "object",
+        "required": ["outgoing"],
+        "properties": {
+          "outgoing": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0.0
+          }
+        }
+      },
+      "OwnedById": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "OwnedOntologyElementMetadata": {
+        "type": "object",
+        "required": ["recordId", "provenance", "ownedById"],
+        "properties": {
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceMetadata"
+          },
+          "recordId": {
+            "$ref": "#/components/schemas/OntologyTypeRecordId"
+          }
+        }
+      },
+      "PropertyTypeQueryToken": {
+        "type": "string",
+        "description": "A single token in a [`DataTypeQueryPath`].",
+        "enum": [
+          "baseUrl",
+          "version",
+          "versionedUrl",
+          "ownedById",
+          "recordCreatedById",
+          "title",
+          "description",
+          "dataTypes",
+          "propertyTypes"
+        ]
+      },
+      "PropertyTypeStructuralQuery": {
+        "type": "object",
+        "required": ["filter", "graphResolveDepths", "temporalAxes"],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "graphResolveDepths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        }
+      },
+      "PropertyTypeVertexId": {
+        "type": "object",
+        "required": ["baseId", "revisionId"],
+        "properties": {
+          "baseId": {
+            "$ref": "#/components/schemas/BaseUrl"
+          },
+          "revisionId": {
+            "$ref": "#/components/schemas/OntologyTypeVersion"
+          }
+        }
+      },
+      "PropertyTypeWithMetadata": {
+        "type": "object",
+        "required": ["schema", "metadata"],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/OntologyElementMetadata"
+          },
+          "schema": {
+            "$ref": "./models/property_type.json"
+          }
+        }
+      },
+      "ProvenanceMetadata": {
+        "type": "object",
+        "required": ["recordCreatedById"],
+        "properties": {
+          "recordCreatedById": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          }
+        }
+      },
+      "QueryTemporalAxes": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "QueryTemporalAxesDecisionTime",
+            "required": ["pinned", "variable"],
+            "properties": {
+              "pinned": {
+                "type": "object",
+                "required": ["axis", "timestamp"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/TransactionTime"
+                  },
+                  "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "variable": {
+                "type": "object",
+                "required": ["axis", "interval"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/DecisionTime"
+                  },
+                  "interval": {
+                    "$ref": "#/components/schemas/RightBoundedTemporalInterval"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "QueryTemporalAxesTransactionTime",
+            "required": ["pinned", "variable"],
+            "properties": {
+              "pinned": {
+                "type": "object",
+                "required": ["axis", "timestamp"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/DecisionTime"
+                  },
+                  "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "variable": {
+                "type": "object",
+                "required": ["axis", "interval"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/TransactionTime"
+                  },
+                  "interval": {
+                    "$ref": "#/components/schemas/RightBoundedTemporalInterval"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval"
+      },
+      "QueryTemporalAxesUnresolved": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "QueryTemporalAxesUnresolvedDecisionTime",
+            "required": ["pinned", "variable"],
+            "properties": {
+              "pinned": {
+                "type": "object",
+                "required": ["axis", "timestamp"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/TransactionTime"
+                  },
+                  "timestamp": {
+                    "$ref": "#/components/schemas/NullableTimestamp"
+                  }
+                }
+              },
+              "variable": {
+                "type": "object",
+                "required": ["axis", "interval"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/DecisionTime"
+                  },
+                  "interval": {
+                    "$ref": "#/components/schemas/UnresolvedRightBoundedTemporalInterval"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "QueryTemporalAxesUnresolvedTransactionTime",
+            "required": ["pinned", "variable"],
+            "properties": {
+              "pinned": {
+                "type": "object",
+                "required": ["axis", "timestamp"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/DecisionTime"
+                  },
+                  "timestamp": {
+                    "$ref": "#/components/schemas/NullableTimestamp"
+                  }
+                }
+              },
+              "variable": {
+                "type": "object",
+                "required": ["axis", "interval"],
+                "properties": {
+                  "axis": {
+                    "$ref": "#/components/schemas/TransactionTime"
+                  },
+                  "interval": {
+                    "$ref": "#/components/schemas/UnresolvedRightBoundedTemporalInterval"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
+      },
+      "RecordCreatedById": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "RightBoundedTemporalInterval": {
+        "type": "object",
+        "required": ["start", "end"],
+        "properties": {
+          "end": {
+            "$ref": "#/components/schemas/LimitedTemporalBound"
+          },
+          "start": {
+            "$ref": "#/components/schemas/TemporalBound"
+          }
+        }
+      },
+      "Selector": {
+        "type": "string",
+        "enum": ["*"]
+      },
+      "SharedEdgeKind": {
+        "type": "string",
+        "enum": ["IS_OF_TYPE"]
+      },
+      "Subgraph": {
+        "type": "object",
+        "required": ["roots", "vertices", "edges", "depths", "temporalAxes"],
+        "properties": {
+          "depths": {
+            "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "edges": {
+            "$ref": "#/components/schemas/Edges"
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphElementVertexId"
+            }
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/SubgraphTemporalAxes"
+          },
+          "vertices": {
+            "$ref": "#/components/schemas/Vertices"
+          }
+        }
+      },
+      "SubgraphTemporalAxes": {
+        "type": "object",
+        "required": ["initial", "resolved"],
+        "properties": {
+          "initial": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          },
+          "resolved": {
+            "$ref": "#/components/schemas/QueryTemporalAxes"
+          }
+        }
+      },
+      "TemporalBound": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "UnboundedBound",
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["unbounded"]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InclusiveBound",
+            "required": ["kind", "limit"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["inclusive"]
+              },
+              "limit": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ExclusiveBound",
+            "required": ["kind", "limit"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["exclusive"]
+              },
+              "limit": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "Timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "TransactionTime": {
+        "type": "string",
+        "description": "Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
+        "enum": ["transactionTime"]
+      },
+      "UnresolvedRightBoundedTemporalInterval": {
+        "type": "object",
+        "required": ["start", "end"],
+        "properties": {
+          "end": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LimitedTemporalBound"
+              }
+            ],
+            "nullable": true
+          },
+          "start": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TemporalBound"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "UpdateDataTypeRequest": {
+        "type": "object",
+        "required": ["schema", "typeToUpdate", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "schema": {
+            "$ref": "./models/update_data_type.json"
+          },
+          "typeToUpdate": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateEntityRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EntityLinkOrder"
+          },
+          {
+            "type": "object",
+            "required": [
+              "properties",
+              "entityId",
+              "entityTypeId",
+              "actorId",
+              "archived"
+            ],
+            "properties": {
+              "actorId": {
+                "$ref": "#/components/schemas/RecordCreatedById"
+              },
+              "archived": {
+                "type": "boolean"
+              },
+              "entityId": {
+                "$ref": "#/components/schemas/EntityId"
+              },
+              "entityTypeId": {
+                "type": "string"
+              },
+              "properties": {
+                "$ref": "#/components/schemas/EntityProperties"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateEntityTypeRequest": {
+        "type": "object",
+        "required": ["schema", "typeToUpdate", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "schema": {
+            "$ref": "./models/update_entity_type.json"
+          },
+          "typeToUpdate": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatePropertyTypeRequest": {
+        "type": "object",
+        "required": ["schema", "typeToUpdate", "actorId"],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "schema": {
+            "$ref": "./models/update_property_type.json"
+          },
+          "typeToUpdate": {
+            "type": "string"
+          }
+        }
+      },
+      "Vertex": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OntologyVertex"
+          },
+          {
+            "$ref": "#/components/schemas/KnowledgeGraphVertex"
+          }
+        ]
+      },
+      "Vertices": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KnowledgeGraphVertex"
+              },
+              {
+                "$ref": "#/components/schemas/OntologyVertex"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Graph",
+      "description": "HASH Graph API"
+    },
+    {
+      "name": "Account",
+      "description": "Account management API"
+    },
+    {
+      "name": "DataType",
+      "description": "Data Type management API"
+    },
+    {
+      "name": "PropertyType",
+      "description": "Property type management API"
+    },
+    {
+      "name": "EntityType",
+      "description": "Entity type management API"
+    },
+    {
+      "name": "Entity",
+      "description": "entity management API"
+    }
+  ]
+}

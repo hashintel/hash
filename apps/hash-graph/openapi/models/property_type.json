@@ -1,0 +1,158 @@
+{
+  "$id": "https://blockprotocol.org/type-system/0.2/schema/meta/property-type",
+  "description": "Specifies the structure of a Property Type",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+      ]
+    },
+    "kind": {
+      "enum": ["propertyType"]
+    },
+    "$id": {
+      "type": "string",
+      "format": "uri"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "oneOf": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/propertyValues"
+      }
+    }
+  },
+  "required": ["$schema", "kind", "$id", "title", "oneOf"],
+  "additionalProperties": false,
+  "$defs": {
+    "propertyValues": {
+      "$id": "propertyValues",
+      "title": "propertyValues",
+      "$comment": "The definition of potential property values, made up of a `oneOf` keyword which has a list of options of either references to Data Types, or objects made up of more Property Types",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/dataTypeReference"
+        },
+        {
+          "title": "propertyObjectValue",
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": ["object"]
+            },
+            "properties": {
+              "$ref": "propertyTypeObject"
+            }
+          },
+          "required": ["type", "properties"],
+          "additionalProperties": false
+        },
+        {
+          "title": "propertyArrayValue",
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": ["array"]
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "oneOf": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "propertyValues"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["oneOf"],
+              "additionalProperties": false
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["type", "items"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "propertyTypeObject": {
+      "$id": "propertyTypeObject",
+      "title": "propertyTypeObject",
+      "type": "object",
+      "propertyNames": {
+        "$comment": "Property names must be a valid URL to a Property Type",
+        "type": "string",
+        "format": "uri"
+      },
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/propertyTypeReference"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["array"]
+                },
+                "items": {
+                  "$ref": "#/$defs/propertyTypeReference"
+                },
+                "minItems": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxItems": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": ["type", "items"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "minimumProperties": 1
+    },
+    "propertyTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["$ref"]
+    },
+    "dataTypeReference": {
+      "title": "dataTypeReference",
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["$ref"]
+    }
+  }
+}

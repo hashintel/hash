@@ -32,11 +32,8 @@ deployment-down *arguments:
   @just yarn external-services down {{arguments}}
 
 # Generates the OpenAPI client for the Graph REST API
-generate-openapi-client:
-  just run server --write-openapi-spec
-  just yarn workspace @local/hash-graph-client-generator generate
-  just yarn workspace @local/hash-graph-client prettier --write .
-  just yarn workspace @local/hash-graph-client fix:eslint
+generate-openapi-specs:
+  @just run server --write-openapi-specs
 
 [private]
 test *arguments:
@@ -46,7 +43,7 @@ test *arguments:
   @just deployment-up graph --wait
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
   @just deployment-down
-  @just generate-openapi-client
+  @just generate-openapi-specs
 
 [private]
 coverage *arguments:

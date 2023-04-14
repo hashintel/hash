@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "echo to build the graph please follow the instructions in the README. This script is here to help orchestrate Turborepo.",
-    "codegen:generate-openapi-client": "just docker-generate-openapi-client",
+    "codegen:generate-openapi-specs": "just generate-openapi-specs",
     "exe": "ts-node"
   },
   "dependencies": {
