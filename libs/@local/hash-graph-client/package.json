@@ -6,9 +6,8 @@
   "license": "AGPL-3.0",
   "main": "index.ts",
   "scripts": {
-    "build": "openapi-generator-cli generate",
-    "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint ."
+    "build": "echo 'no build needed, this is here to orchestrate turborepo",
+    "codegen": "openapi-generator-cli generate"
   },
   "dependencies": {
     "axios": "0.27.2"

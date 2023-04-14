@@ -4,7 +4,7 @@
     // "build": {
     //   @todo - this introduces a dependency on building the graph to `yarn install` this causes problems in Vercel deployment builds
     //   "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-specs"]
-    //},
+    // },
     "codegen": {
       "outputs": [
         ".npmignore",
