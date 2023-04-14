@@ -1,6 +1,5 @@
 use core::time::Duration;
 
-use approx::assert_relative_eq;
 use deer_desert::{assert_tokens_with_assertion, Token};
 use proptest::prelude::*;
 
@@ -11,7 +10,10 @@ proptest! {
         let input = value.as_secs_f64();
 
         assert_tokens_with_assertion(|received: Duration| {
-            assert_relative_eq!(received.as_secs_f64(), value.as_secs_f64());
+            // due to the inherent imprecise nature of floats, we cannot use `assert_eq!`
+            // instead we need to check if the different between both values is <= ε
+            // (which is the upper bound on the relative approximation error)
+            assert!((received.as_secs_f64() - value.as_secs_f64()).abs() <= f64::EPSILON);
         }, &[Token::Number(input.into())]);
     }
 }
