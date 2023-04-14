@@ -48,6 +48,7 @@ impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
 )]
 pub struct JsonLinesDecoder<T> {
     lines: LinesCodec,
+    current_line: usize,
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -56,6 +57,7 @@ impl<T> JsonLinesDecoder<T> {
     pub fn new() -> Self {
         Self {
             lines: LinesCodec::new(),
+            current_line: 0,
             _marker: PhantomData,
         }
     }
@@ -64,6 +66,7 @@ impl<T> JsonLinesDecoder<T> {
     pub fn with_max_length(max_length: usize) -> Self {
         Self {
             lines: LinesCodec::new_with_max_length(max_length),
+            current_line: 0,
             _marker: PhantomData,
         }
     }
@@ -77,12 +80,17 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<T>, Self::Error> {
         self.lines
             .decode(buf)
+            .map(|line| {
+                self.current_line += 1;
+                line
+            })
             .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
             .filter(|line| !line.is_empty())
             .map(|line| {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
                     .into_report()
+                    .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
             })
             .transpose()
     }
@@ -90,12 +98,17 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     fn decode_eof(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         self.lines
             .decode_eof(buf)
+            .map(|line| {
+                self.current_line += 1;
+                line
+            })
             .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
             .filter(|line| !line.is_empty())
             .map(|line| {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
                     .into_report()
+                    .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
             })
             .transpose()
     }
