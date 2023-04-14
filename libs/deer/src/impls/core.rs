@@ -11,4 +11,5 @@ mod num;
 mod option;
 mod string;
 mod sync;
+mod time;
 mod unit;
