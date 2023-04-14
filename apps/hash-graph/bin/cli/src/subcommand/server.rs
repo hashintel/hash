@@ -1,4 +1,9 @@
-use std::{fs, net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    fmt, fs,
+    net::{AddrParseError, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use clap::Parser;
 use error_stack::{IntoReport, Report, Result, ResultExt};
