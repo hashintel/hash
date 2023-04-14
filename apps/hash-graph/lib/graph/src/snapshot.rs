@@ -10,7 +10,9 @@ mod restore;
 use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
+use hash_status::StatusCode;
 use serde::{Deserialize, Serialize};
+use tokio_postgres::error::SqlState;
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
@@ -245,7 +247,25 @@ impl<C: AsClient> SnapshotStore<C> {
 
         SnapshotRecordBatch::commit(&client)
             .await
-            .change_context(SnapshotRestoreError::Write)?;
+            .change_context(SnapshotRestoreError::Write)
+            .map_err(|report| {
+                if let Some(error) = report
+                    .downcast_ref()
+                    .and_then(tokio_postgres::Error::as_db_error)
+                {
+                    match *error.code() {
+                        SqlState::FOREIGN_KEY_VIOLATION => {
+                            report.attach_printable(StatusCode::NotFound)
+                        }
+                        SqlState::UNIQUE_VIOLATION => {
+                            report.attach_printable(StatusCode::AlreadyExists)
+                        }
+                        _ => report,
+                    }
+                } else {
+                    report
+                }
+            })?;
 
         client
             .commit()
@@ -256,6 +276,10 @@ impl<C: AsClient> SnapshotStore<C> {
         read_thread
             .await
             .into_report()
-            .change_context(SnapshotRestoreError::Read)?
+            .change_context(SnapshotRestoreError::Read)??;
+
+        tracing::info!("snapshot restore finished");
+
+        Ok(())
     }
 }
