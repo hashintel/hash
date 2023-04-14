@@ -60,6 +60,7 @@ This repository's contents is divided across four primary sections:
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
 - [**`/libs`**](/libs) contains [libraries](#libraries) including npm packages and Rust crates
+- [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs
 
 Key projects within are summarized below.
 

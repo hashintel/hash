@@ -13,7 +13,7 @@ time = { version = "0.3.20", features = ['serde'] }
 tracing = "0.1.37"
 
 futures = "0.3"
-tarpc = { version = "0.32", features = ["tokio1"] }
+tarpc = { version = "0.33", features = ["tokio1"] }
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }

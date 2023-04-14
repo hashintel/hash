@@ -8,8 +8,9 @@ import { UserIcon } from "../icons/user";
 import { IncompleteOpenAiAssistantMessage, OpenAIChatMessage } from "./types";
 
 export const ChatMessage: FunctionComponent<{
+  readonly: boolean;
   message: OpenAIChatMessage | IncompleteOpenAiAssistantMessage;
-}> = ({ message }) => {
+}> = ({ message, readonly }) => {
   return (
     <Box
       sx={{
@@ -43,7 +44,10 @@ export const ChatMessage: FunctionComponent<{
       <Box flexGrow={1} minWidth={0}>
         {message.role === "assistant" ? (
           "content" in message ? (
-            <AiAssistantMessage messageContent={message.content} />
+            <AiAssistantMessage
+              disableEntranceAnimation={readonly}
+              messageContent={message.content}
+            />
           ) : (
             <Box display="flex">
               <Typography>

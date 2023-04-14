@@ -6,13 +6,13 @@ import {
   GetHelpLink,
 } from "@hashintel/design-system";
 import { Box, Collapse, Fade, Typography } from "@mui/material";
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { generatedLinkKey, urlKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { RootEntity } from "../types";
+import { BlockEntity } from "../types/generated/block-entity";
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
 import {
   DEFAULT_IMAGE_NUMBER,
@@ -27,14 +27,14 @@ export type ImageObject = {
   date?: string;
 };
 
-const promptKey: keyof RootEntity["properties"] =
+const promptKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-image-model-prompt/";
 
 export const GenerateImage = ({
   blockEntity,
   isMobile,
 }: {
-  blockEntity: RootEntity;
+  blockEntity: BlockEntity;
   isMobile?: boolean;
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);

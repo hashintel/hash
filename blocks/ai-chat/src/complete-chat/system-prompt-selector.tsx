@@ -1,4 +1,5 @@
 import {
+  codeBlockFormattingPrompt,
   DropdownSelector,
   DropdownSelectorProps,
   GroupedOptions,
@@ -9,9 +10,6 @@ import { CardsIcon } from "../icons/cards";
 import { HeartIcon } from "../icons/heart";
 import { SkullCrossbonesIcon } from "../icons/skull-crossbones";
 import { TruckFastIcon } from "../icons/tuck-fast";
-
-const codeBlockFormattingPrompt =
-  "Return code blocks as ```{language}{code...}```, with language being a supported PrismJS language.";
 
 export const systemPrompts = {
   concise: [

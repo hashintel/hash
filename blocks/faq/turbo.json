@@ -1,0 +1,36 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "schema": {
+      "inputs": ["./package.json"],
+      "outputs": ["./src/types/generated/**"]
+    },
+    "build": {
+      "dependsOn": ["^build", "schema", "format"],
+      "outputs": ["./dist/**"]
+    },
+    "format": {
+      "cache": false,
+      "dependsOn": ["schema"]
+    },
+    "lint:eslint": {
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
+      "dependsOn": ["^build", "schema"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["^build", "schema"]
+    },
+    "fix:eslint": {
+      "cache": false,
+      "dependsOn": ["^build", "schema"]
+    },
+    "dev": {
+      "persistent": true,
+      "dependsOn": ["^build", "schema"]
+    },
+    "serve": {
+      "persistent": true,
+      "dependsOn": ["build"]
+    }
+  }
+}

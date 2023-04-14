@@ -1,12 +1,16 @@
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import { BlockPromptInput, GetHelpLink } from "@hashintel/design-system";
+import {
+  BlockPromptInput,
+  codeBlockFormattingPrompt,
+  GetHelpLink,
+} from "@hashintel/design-system";
 import { Box, Collapse, Fade } from "@mui/material";
 import { useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { RootEntity } from "../types";
+import { BlockEntity } from "../types/generated/block-entity";
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import {
   DEFAULT_MODEL_ID,
@@ -14,13 +18,20 @@ import {
 } from "./generate-text/model-selector";
 import { TextPreview } from "./generate-text/text-preview";
 
-export const promptKey: keyof RootEntity["properties"] =
+const completeChatSystemPrompt = [
+  "You are ChatGPT, a large language model trained by OpenAI.",
+  "Answer as concisely as possible.",
+  codeBlockFormattingPrompt,
+  `Current date: ${new Date().toISOString()}.`,
+].join(" ");
+
+export const promptKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-prompt/";
 
-export const modelKey: keyof RootEntity["properties"] =
+export const modelKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-name/";
 
-export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
+export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
 
   const initialPromptText = blockEntity.properties[promptKey];
@@ -52,6 +63,49 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
     },
   } = blockEntity;
 
+  const completeChat = useCallback(
+    (prompt: string) =>
+      serviceModule.openaiCompleteChat({
+        data: {
+          messages: [
+            {
+              role: "system",
+              content: completeChatSystemPrompt,
+            },
+            { role: "user", content: prompt },
+          ],
+          model: "gpt-3.5-turbo",
+        },
+      }),
+    [serviceModule],
+  );
+
+  const completeText = useCallback(
+    (prompt: string) => {
+      const promptWithFormatting = `${prompt} (${codeBlockFormattingPrompt})`;
+
+      /**
+       * This estimate is inaccurate, as character length does not equal
+       * token length for a given string. A browser-compatible implementation
+       * of the `gpt-3-encoder` package would be required to accurately determine
+       * the number of tokens in the string.
+       *
+       * @see https://www.npmjs.com/package/gpt-3-encoder
+       *
+       * @todo consider using a WASM, endpoint or other solution to accurately
+       * determine the number of tokens in the string.
+       */
+      const maxTokens =
+        (model === "text-davinci-003" ? 4000 : 2000) -
+        promptWithFormatting.length;
+
+      return serviceModule.openaiCompleteText({
+        data: { max_tokens: maxTokens, model, prompt: promptWithFormatting },
+      });
+    },
+    [serviceModule, model],
+  );
+
   const onSubmit = useCallback(async () => {
     if (loading || !promptText.trim()) {
       return;
@@ -62,21 +116,8 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
     const isTurbo = model === "gpt-3.5-turbo";
     const { data, errors } = await (isTurbo
-      ? serviceModule.openaiCompleteChat({
-          data: {
-            max_tokens: 4000 - promptText.length,
-            messages: [{ role: "user", content: promptText }],
-            model: "gpt-3.5-turbo",
-          },
-        })
-      : serviceModule.openaiCompleteText({
-          data: {
-            max_tokens:
-              (model === "text-davinci-003" ? 4000 : 2000) - promptText.length,
-            model,
-            prompt: promptText,
-          },
-        }));
+      ? completeChat(promptText)
+      : completeText(promptText));
 
     const choice = data?.choices[0];
 
@@ -100,7 +141,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
 
     setLoading(false);
     inputRef.current?.blur();
-  }, [loading, model, promptText, serviceModule]);
+  }, [loading, model, promptText, completeChat, completeText]);
 
   const handleDiscard = () => {
     setAnimatingOut(true);
