@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "main": "index.ts",
   "scripts": {
-    "build": "echo 'no build needed, this is here to orchestrate turborepo",
+    "build": "echo 'no build needed, this is here to orchestrate turborepo'",
     "codegen": "openapi-generator-cli generate"
   },
   "dependencies": {
