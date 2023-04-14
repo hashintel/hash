@@ -2,6 +2,8 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
+pub mod snapshot;
+
 mod api_resource;
 mod json;
 mod middleware;
