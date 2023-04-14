@@ -59,6 +59,19 @@ Every command line argument passed will also be forwarded to the subcommand, e.g
 just doc --open
 ```
 
+If you for some reason prefer to not use `just` please note, that for testing it's required to pass `--cfg hash_graph_test_environment` to `rustc`. As typically the invocation happens through `cargo` this can be done by setting the `RUSTFLAGS` environment variable:
+
+```shell
+export RUSTFLAGS="--cfg hash_graph_test_environment"
+```
+
+or by adding the following to your `~/.cargo/config`:
+
+```toml
+[target.'cfg(all())']
+rustflags = ["--cfg", "hash_graph_test_environment"]
+```
+
 ### API Definitions
 
 The Graph's API is current exposed over REST with an accompanying OpenAPI spec.

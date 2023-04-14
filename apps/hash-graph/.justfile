@@ -47,7 +47,7 @@ test *arguments:
   @just deployment-up graph --wait
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
   @just deployment-down
-  @just generate-openapi-client
+  @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-client
 
 [private]
 coverage *arguments:
