@@ -311,13 +311,13 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     if args.write_openapi_specs {
         let path = std::path::Path::new("openapi");
         if path.exists() {
-            fs::remove_dir_all(&path)
+            fs::remove_dir_all(path)
                 .into_report()
                 .change_context(GraphError)
                 .attach_printable("could not remove old OpenAPI directory")
                 .attach_printable_lazy(|| path.display().to_string())?;
         }
-        OpenApiDocumentation::write_openapi(&path)
+        OpenApiDocumentation::write_openapi(path)
             .change_context(GraphError)
             .attach_printable("could not write OpenAPI spec")?;
         return Ok(());
