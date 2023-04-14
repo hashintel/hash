@@ -7,8 +7,9 @@ use crate::{
         DeserializeError, ExpectedVariant, Location, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
+    impls::UnitVariantVisitor,
     schema::Reference,
-    Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, Reflection, Schema, Visitor,
+    Deserialize, Deserializer, Document, EnumVisitor, Reflection, Schema, Visitor,
 };
 
 enum BoundDiscriminant {
@@ -106,10 +107,8 @@ where
                 .map(Bound::Excluded)
                 .attach(Location::Variant("Excluded"))
                 .change_context(VisitorError),
-            // unit variant, we need to make sure it is not there or null (or unit)
-            // deserializing Option<()> is perfect, we don't care about the end result
-            // just that it passed.
-            BoundDiscriminant::Unbounded => Option::<()>::deserialize(deserializer)
+            BoundDiscriminant::Unbounded => deserializer
+                .deserialize_optional(UnitVariantVisitor)
                 .map(|_| Bound::Unbounded)
                 .attach(Location::Variant("Unbounded"))
                 .change_context(VisitorError),
@@ -152,3 +151,5 @@ where
             .change_context(DeserializeError)
     }
 }
+
+// TODO: Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive
