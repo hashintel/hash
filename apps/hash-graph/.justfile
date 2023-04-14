@@ -5,6 +5,7 @@ set dotenv-load
 
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
+test-env-flags := "--cfg hash_graph_test_environment"
 
 export HASH_GRAPH_PG_DATABASE := env_var('HASH_GRAPH_PG_DEV_DATABASE')
 export DOCKER_BUILDKIT := "1"
@@ -41,8 +42,8 @@ generate-openapi-client:
 [private]
 test *arguments:
   @just deployment-up
-  @just --justfile {{repo}}/.justfile test {{arguments}}
-  cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
+  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
+  RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
   @just deployment-up graph --wait
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
   @just deployment-down
@@ -51,13 +52,13 @@ test *arguments:
 [private]
 coverage *arguments:
   @just deployment-up
-  cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
   @just deployment-down
 
 [private]
 bench *arguments:
   @just deployment-up
-  @just --justfile {{repo}}/.justfile bench {{arguments}}
+  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile bench {{arguments}}
   @just deployment-down
 
 [private]
