@@ -70,6 +70,8 @@ export const App: BlockComponent<RootEntity> = ({
         padding: "0.5em",
         background: "#f9fafc",
         border: "1px solid #dee7f3",
+        display: "flex",
+        alignItems: "center",
       }}
       ref={blockRef}
     >
@@ -81,7 +83,7 @@ export const App: BlockComponent<RootEntity> = ({
       <div
         style={{
           minHeight: "1.5em",
-          paddingLeft: "1.5em",
+          paddingLeft: "1em",
         }}
         ref={editableRef}
       />
