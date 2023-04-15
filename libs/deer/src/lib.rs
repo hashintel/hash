@@ -293,13 +293,6 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(isize::reflection()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
     fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
             .attach(ReceivedType::new(u8::reflection()))
@@ -323,13 +316,6 @@ pub trait Visitor<'de>: Sized {
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(u128::reflection()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
-    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(usize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -408,20 +394,8 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
             .and_then(|number| self.visit_number(number))
     }
 
-    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        Number::from_isize(v)
-            .ok_or_else(|| self.value_error(v))
-            .and_then(|number| self.visit_number(number))
-    }
-
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
         Number::from_u128(v)
-            .ok_or_else(|| self.value_error(v))
-            .and_then(|number| self.visit_number(number))
-    }
-
-    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        Number::from_usize(v)
             .ok_or_else(|| self.value_error(v))
             .and_then(|number| self.visit_number(number))
     }
