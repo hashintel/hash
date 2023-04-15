@@ -2,8 +2,8 @@ mod common;
 
 use deer::{
     value::{
-        I16Deserializer, I32Deserializer, I64Deserializer, I8Deserializer, U16Deserializer,
-        U32Deserializer, U64Deserializer, U8Deserializer,
+        I128Deserializer, I16Deserializer, I32Deserializer, I64Deserializer, I8Deserializer,
+        U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer, U8Deserializer,
     },
     Context, Deserialize, Number,
 };
@@ -21,7 +21,7 @@ macro_rules! proptest_fit {
             #[cfg(not(miri))]
             proptest! {
                 #[test]
-                fn [< $primitive _fit _ $value _ok >](value in any::<$value>()) {
+                fn [< $primitive _fit _ $value >](value in any::<$value>()) {
                     let context = Context::new();
                     let deserializer = $deserializer::new(value, &context);
 
@@ -31,6 +31,40 @@ macro_rules! proptest_fit {
                         .expect("should be able to deserialize");
 
                     assert_eq!(received, expected);
+                }
+            }
+        }
+    };
+}
+
+macro_rules! proptest_try_fit {
+    ($primitive:ident | $value:ident:: $deserializer:ident) => {
+        paste::paste! {
+            #[cfg(not(miri))]
+            proptest! {
+                #[test]
+                fn [< $primitive _fit _ $value >](value in any::<$value>()) {
+                    let context = Context::new();
+                    let deserializer = $deserializer::new(value, &context);
+
+                    let expected = $primitive::try_from(value);
+                    let received = $primitive::deserialize(deserializer);
+
+                    match expected {
+                        Ok(expected) => {
+                            // we could convert value to $primitive, therefore we can
+                            // assume that the value should also correctly deserialize
+                            let received = received.expect("should be able to deserialize");
+
+                            assert_eq!(received, expected);
+                        },
+                        Err(_) => {
+                            // the value wasn't able to fit, we should expect an error
+                            // in that case the error should be a `ValueError`
+                            // for we do not test if that is the case
+                            let _error = received.expect_err("should have not accepted the value");
+                        }
+                    }
                 }
             }
         }
@@ -59,50 +93,60 @@ macro_rules! proptest_integral {
 
 proptest_integral!(
     Token::Number(u8);
+    proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(u16);
     proptest_fit!(u8 :: U8Deserializer);
+    proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(u32);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer);
+    proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(u64);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer);
+    proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::U128(u128);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer);
+    proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(i8);
+    proptest_try_fit!(i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(i16);
     proptest_fit!(i8 :: I8Deserializer);
+    proptest_try_fit!(i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(i32);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer);
+    proptest_try_fit!(i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::Number(i64);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer);
+    proptest_try_fit!(i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
     Token::I128(i128);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer);
+    proptest_try_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 // we're not testing the individual error messages, as those are tested at the
