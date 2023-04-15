@@ -1,6 +1,12 @@
 mod common;
 
-use deer::{Deserialize, Number};
+use deer::{
+    value::{
+        I16Deserializer, I32Deserializer, I64Deserializer, I8Deserializer, U16Deserializer,
+        U32Deserializer, U64Deserializer, U8Deserializer,
+    },
+    Context, Deserialize, Number,
+};
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use num_traits::cast::FromPrimitive;
 use proptest::prelude::*;
@@ -8,72 +14,96 @@ use serde_json::json;
 
 // we do not test atomics, as they only delegate to `Atomic*` and are not `PartialEq`
 
+// use the value deserializers to see if we can tolerate different `visit_` without any problems
+macro_rules! proptest_fit {
+    ($primitive:ident | $value:ident:: $deserializer:ident) => {
+        paste::paste! {
+            #[cfg(not(miri))]
+            proptest! {
+                #[test]
+                fn [< $primitive _fit _ $value _ok >](value in any::<$value>()) {
+                    let context = Context::new();
+                    let deserializer = $deserializer::new(value, &context);
+
+                    // ensures that we don't accidentally make a cast that might truncate
+                    let expected = $primitive::from(value);
+                    let received: $primitive = $primitive::deserialize(deserializer)
+                        .expect("should be able to deserialize");
+
+                    assert_eq!(received, expected);
+                }
+            }
+        }
+    };
+}
+
 macro_rules! proptest_integral {
-    ($primitive:ident) => {};
+    (
+        Token::
+        $token:ident($primitive:ident);
+        $($method:ident !($($val:ident:: $visit:ident),*);)*
+    ) => {
+        paste::paste! {
+            #[cfg(not(miri))]
+            proptest! {
+                #[test]
+                fn [< $primitive _ok >](value in any::<$primitive>()) {
+                    assert_tokens(&value, &[Token::$token(value.into())])
+                }
+            }
+        }
+
+        $($($method!($primitive | $val :: $visit);)*)*
+    };
 }
 
-#[cfg(not(miri))]
-proptest! {
-    #[test]
-    fn u8_ok(value in any::<u8>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(u8);
+);
 
-    #[test]
-    fn u16_ok(value in any::<u16>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(u16);
+    proptest_fit!(u8 :: U8Deserializer);
+);
 
-    #[test]
-    fn u32_ok(value in any::<u32>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(u32);
+    proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer);
+);
 
-    #[test]
-    fn u64_ok(value in any::<u64>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(u64);
+    proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer);
+);
 
-    #[test]
-    fn u128_ok(value in any::<u128>()) {
-        assert_tokens(&value, &[Token::U128(value)]);
-    }
+proptest_integral!(
+    Token::U128(u128);
+    proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer);
+);
 
-    #[test]
-    fn usize_ok(value in any::<usize>()) {
-        assert_tokens(&value, &[Token::USize(value)]);
-    }
+proptest_integral!(
+    Token::Number(i8);
+);
 
-    #[test]
-    fn i8_ok(value in any::<i8>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(i16);
+    proptest_fit!(i8 :: I8Deserializer);
+);
 
-    #[test]
-    fn i16_ok(value in any::<i16>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(i32);
+    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer);
+);
 
-    #[test]
-    fn i32_ok(value in any::<i32>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
+proptest_integral!(
+    Token::Number(i64);
+    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer);
+);
 
-    #[test]
-    fn i64_ok(value in any::<i64>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
-
-    #[test]
-    fn i128_ok(value in any::<i128>()) {
-        assert_tokens(&value, &[Token::I128(value)]);
-    }
-
-    #[test]
-    fn isize_ok(value in any::<isize>()) {
-        assert_tokens(&value, &[Token::ISize(value)]);
-    }
-}
+proptest_integral!(
+    Token::I128(i128);
+    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer);
+);
 
 // we're not testing the individual error messages, as those are tested at the
 // respective error variants and are separate from the returned errors
