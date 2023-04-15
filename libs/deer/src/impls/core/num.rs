@@ -88,3 +88,93 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Saturating<T> {
         T::deserialize(de).map(Self)
     }
 }
+
+macro_rules! impl_num {
+    (
+        $primitive:ident:: $deserialize:ident;
+        $reflection:ident;
+        $($method:ident !($($val:ident:: $visit:ident),*);)*
+    ) => {
+        $reflection!($primitive);
+
+        impl<'de> Deserialize<'de> for $primitive {
+            type Reflection = Self;
+
+            fn deserialize<D>(de: D) -> Result<Self, DeserializeError>
+            where
+                D: Deserializer<'de>,
+            {
+                struct PrimitiveVisitor;
+
+                impl<'de> Visitor<'de> for PrimitiveVisitor {
+                    type Value = $primitive;
+
+                    fn expecting(&self) -> Document {
+                        Self::Value::reflection()
+                    }
+
+                    $($($method!($val :: $visit);)*)*
+                }
+
+                de.$deserialize(PrimitiveVisitor).change_context(DeserializeError)
+            }
+        }
+    };
+}
+
+macro_rules! num_self {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(v)
+        }
+    };
+}
+
+macro_rules! num_from {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(Self::Value::from(v))
+        }
+    };
+}
+
+macro_rules! num_try_from {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
+            Self::Value::try_from(v)
+                .into_report()
+                .change_context(ValueError.into_error())
+                .attach(ExpectedType::new(self.expecting()))
+                .attach(ReceivedValue::new(v))
+                .change_context(VisitorError)
+        }
+    };
+}
+
+macro_rules! num_as_lossy {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(v as Self::Value)
+        }
+    };
+}
+
+macro_rules! num_number {
+    ($primitive:ident:: $to:ident) => {
+        fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
+            v.$to().ok_or_else(|| {
+                Report::new(ValueError.into_error())
+                    .attach(ExpectedType::new(self.expecting()))
+                    .attach(ReceivedValue::new(v))
+                    .change_context(VisitorError)
+            })
+        }
+    };
+}
+
+pub(super) use impl_num;
+pub(super) use num_as_lossy;
+pub(super) use num_from;
+pub(super) use num_number;
+pub(super) use num_self;
+pub(super) use num_try_from;
