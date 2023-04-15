@@ -71,7 +71,7 @@ macro_rules! proptest_try_fit {
     };
 }
 
-macro_rules! proptest_integral {
+macro_rules! proptest_primitive {
     (
         Token::
         $token:ident($primitive:ident);
@@ -91,62 +91,74 @@ macro_rules! proptest_integral {
     };
 }
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(u8);
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(u16);
     proptest_fit!(u8 :: U8Deserializer);
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(u32);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer);
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(u64);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer);
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::U128(u128);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer);
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(i8);
     proptest_try_fit!(i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(i16);
     proptest_fit!(i8 :: I8Deserializer);
     proptest_try_fit!(i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(i32);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer);
     proptest_try_fit!(i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::Number(i64);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer);
     proptest_try_fit!(i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
-proptest_integral!(
+proptest_primitive!(
     Token::I128(i128);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer);
     proptest_try_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
+);
+
+proptest_primitive!(
+    Token::Number(f32);
+    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer);
+    proptest_fit_lossy!(i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
+);
+
+proptest_primitive!(
+    Token::Number(f32);
+    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, i32 :: I32Deserializer, u32 :: U32Deserializer);
+    proptest_fit_lossy!(i64 :: I64Deserializer, i128 :: I128Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 // we're not testing the individual error messages, as those are tested at the
