@@ -14,6 +14,21 @@ use serde_json::json;
 
 // we do not test atomics, as they only delegate to `Atomic*` and are not `PartialEq`
 
+// super small compatability layer that delegates to a check of epsilon when using floats
+macro_rules! approx_eq {
+    (f32 | $lhs:ident, $rhs:ident) => {
+        assert!(($lhs - $rhs).abs() < f32::EPSILON);
+    };
+
+    (f64 | $lhs:ident, $rhs:ident) => {
+        assert!(($lhs - $rhs).abs() < f64::EPSILON);
+    };
+
+    ($primitive:ident | $lhs:ident, $rhs:ident) => {
+        assert_eq!($lhs, $rhs);
+    };
+}
+
 // use the value deserializers to see if we can tolerate different `visit_` without any problems
 macro_rules! proptest_fit {
     ($primitive:ident | $value:ident:: $deserializer:ident) => {
@@ -30,7 +45,7 @@ macro_rules! proptest_fit {
                     let received: $primitive = $primitive::deserialize(deserializer)
                         .expect("should be able to deserialize");
 
-                    assert_eq!(received, expected);
+                    approx_eq!($primitive | received, expected);
                 }
             }
         }
@@ -56,7 +71,7 @@ macro_rules! proptest_try_fit {
                             // assume that the value should also correctly deserialize
                             let received = received.expect("should be able to deserialize");
 
-                            assert_eq!(received, expected);
+                            approx_eq!($primitive | received, expected);
                         },
                         Err(_) => {
                             // the value wasn't able to fit, we should expect an error
@@ -65,6 +80,28 @@ macro_rules! proptest_try_fit {
                             let _error = received.expect_err("should have not accepted the value");
                         }
                     }
+                }
+            }
+        }
+    };
+}
+
+macro_rules! proptest_fit_lossy {
+    ($primitive:ident | $value:ident:: $deserializer:ident) => {
+        paste::paste! {
+            #[cfg(not(miri))]
+            proptest! {
+                #[test]
+                fn [< $primitive _fit _ $value >](value in any::<$value>()) {
+                    let context = Context::new();
+                    let deserializer = $deserializer::new(value, &context);
+
+                    // ensures that the lossy conversion that would take place is the same that
+                    // takes place when `as f64/f32` is called.
+                    let expected = value as $primitive;
+                    let received = $primitive::deserialize(deserializer).expect("should be able to deserializer");
+
+                    approx_eq!($primitive | received, expected);
                 }
             }
         }
@@ -156,7 +193,7 @@ proptest_primitive!(
 );
 
 proptest_primitive!(
-    Token::Number(f32);
+    Token::Number(f64);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, i32 :: I32Deserializer, u32 :: U32Deserializer);
     proptest_fit_lossy!(i64 :: I64Deserializer, i128 :: I128Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
