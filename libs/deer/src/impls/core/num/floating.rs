@@ -3,7 +3,6 @@ use num_traits::ToPrimitive;
 
 use crate::{
     error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
-    impls::core::num::{impl_num, num_as_lossy, num_from, num_number, num_self},
     Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
 };
 

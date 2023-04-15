@@ -1,7 +1,6 @@
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
-use super::num::{impl_num, num_from, num_number, num_self, num_try_from};
 use crate::{
     error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
     Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,

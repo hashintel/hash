@@ -172,9 +172,6 @@ macro_rules! num_number {
     };
 }
 
-pub(super) use impl_num;
-pub(super) use num_as_lossy;
-pub(super) use num_from;
-pub(super) use num_number;
-pub(super) use num_self;
-pub(super) use num_try_from;
+// these imports are down here as they make use of the macros declared above
+mod floating;
+mod integral;
