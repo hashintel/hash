@@ -628,14 +628,12 @@ pub trait Deserializer<'de>: Sized {
         deserialize_i32(to_i32: i32) -> visit_i32,
         deserialize_i64(to_i64: i64) -> visit_i64,
         deserialize_i128(to_i128: i128) -> visit_i128,
-        deserialize_isize(to_isize: isize) -> visit_isize,
 
         deserialize_u8(to_u8: u8) -> visit_u8,
         deserialize_u16(to_u16: u16) -> visit_u16,
         deserialize_u32(to_u32: u32) -> visit_u32,
         deserialize_u64(to_u64: u64) -> visit_u64,
         deserialize_u128(to_u128: u128) -> visit_u128,
-        deserialize_usize(to_usize: usize) -> visit_usize,
 
         deserialize_f32(to_f32: f32) -> visit_f32,
         deserialize_f64(to_f64: f64) -> visit_f64,
