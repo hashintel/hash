@@ -8,6 +8,10 @@ use serde_json::json;
 
 // we do not test atomics, as they only delegate to `Atomic*` and are not `PartialEq`
 
+macro_rules! proptest_integral {
+    ($primitive:ident) => {};
+}
+
 #[cfg(not(miri))]
 proptest! {
     #[test]
