@@ -1,9 +1,11 @@
 mod common;
 
+use approx::assert_relative_eq;
 use deer::{
     value::{
-        I128Deserializer, I16Deserializer, I32Deserializer, I64Deserializer, I8Deserializer,
-        U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer, U8Deserializer,
+        F32Deserializer, F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer,
+        I64Deserializer, I8Deserializer, U128Deserializer, U16Deserializer, U32Deserializer,
+        U64Deserializer, U8Deserializer,
     },
     Context, Deserialize, Number,
 };
@@ -14,14 +16,15 @@ use serde_json::json;
 
 // we do not test atomics, as they only delegate to `Atomic*` and are not `PartialEq`
 
-// super small compatability layer that delegates to a check of epsilon when using floats
+// super small compatability layer that delegates to the approx crate when using floats
+// we're using the approx crate here, because of `inf` checks.
 macro_rules! approx_eq {
     (f32 | $lhs:ident, $rhs:ident) => {
-        assert!(($lhs - $rhs).abs() < f32::EPSILON);
+        assert_relative_eq!($lhs, $rhs);
     };
 
     (f64 | $lhs:ident, $rhs:ident) => {
-        assert!(($lhs - $rhs).abs() < f64::EPSILON);
+        assert_relative_eq!($lhs, $rhs);
     };
 
     ($primitive:ident | $lhs:ident, $rhs:ident) => {
@@ -189,12 +192,12 @@ proptest_primitive!(
 proptest_primitive!(
     Token::Number(f32);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer);
-    proptest_fit_lossy!(i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
+    proptest_fit_lossy!(f64 :: F64Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_primitive!(
     Token::Number(f64);
-    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, i32 :: I32Deserializer, u32 :: U32Deserializer);
+    proptest_fit!(f32 :: F32Deserializer, i8 :: I8Deserializer, i16 :: I16Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, i32 :: I32Deserializer, u32 :: U32Deserializer);
     proptest_fit_lossy!(i64 :: I64Deserializer, i128 :: I128Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
