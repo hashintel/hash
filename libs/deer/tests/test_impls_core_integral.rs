@@ -74,7 +74,7 @@ macro_rules! proptest_try_fit {
 macro_rules! proptest_integral {
     (
         Token::
-        $token:ident($primitive:ident);
+        $token:ident($primitive:ident $(as $equivalent:ident)?);
         $($method:ident !($($val:ident:: $visit:ident),*);)*
     ) => {
         paste::paste! {
@@ -82,7 +82,7 @@ macro_rules! proptest_integral {
             proptest! {
                 #[test]
                 fn [< $primitive _ok >](value in any::<$primitive>()) {
-                    assert_tokens(&value, &[Token::$token(value.into())])
+                    assert_tokens(&value, &[Token::$token((value $(as $equivalent)?).into())]);
                 }
             }
         }
@@ -114,6 +114,18 @@ proptest_integral!(
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u128 :: U128Deserializer);
 );
 
+// the code for pointer width 16, 32, 128 is pretty much the same, the tests only differ
+// while we know that u32 and u64 will fit, there are no `From<T>` implementations, so we need
+// to fall back to `proptest_try_fit!` which uses `TryFrom<T>`
+// The reason we have no other use-cases for the other `target_pointer_width`s is because it is hard
+// to emulate those during testing.
+#[cfg(target_pointer_width = "64")]
+proptest_integral!(
+    Token::Number(usize as u64);
+    proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer);
+    proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u128 :: U128Deserializer);
+);
+
 proptest_integral!(
     Token::U128(u128);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer);
@@ -141,6 +153,14 @@ proptest_integral!(
     Token::Number(i64);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer);
     proptest_try_fit!(i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
+);
+
+// for reason of cfg guard please refer to `usize` tests
+#[cfg(target_pointer_width = "64")]
+proptest_integral!(
+    Token::Number(isize as i64);
+    proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer);
+    proptest_try_fit!(i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
 );
 
 proptest_integral!(
