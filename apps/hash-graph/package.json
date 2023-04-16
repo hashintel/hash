@@ -13,6 +13,9 @@
   },
   "scripts": {
     "build": "echo to build the graph please follow the instructions in the README. This script is here to help orchestrate Turborepo.",
+    "build:docker": "DOCKER_BUILDKIT=1 docker build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker:offline": "DOCKER_BUILDKIT=1 docker build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker:test": "DOCKER_BUILDKIT=1 docker build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --file docker/Dockerfile ../../",
     "codegen:generate-openapi-client": "just docker-generate-openapi-client",
     "exe": "ts-node"
   },
