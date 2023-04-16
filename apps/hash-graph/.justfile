@@ -18,16 +18,6 @@ run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
 
-# Spins up the deployment environment
-deployment-up *arguments:
-  @just yarn external-services up postgres type-fetcher --wait
-  @just in-ci docker builder prune --force
-  @just yarn external-services up graph-migrate {{arguments}}
-
-# Tears down the deployment environment
-deployment-down *arguments:
-  @just yarn external-services down {{arguments}}
-
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-client:
   just run server --write-openapi-spec
@@ -37,24 +27,18 @@ generate-openapi-client:
 
 [private]
 test *arguments:
-  @just deployment-up graph --wait
   @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
   RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
-  @just deployment-down
   @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-client
 
 [private]
 coverage *arguments:
-  @just deployment-up
   RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
-  @just deployment-down
 
 [private]
 bench *arguments:
-  @just deployment-up
   @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile bench {{arguments}}
-  @just deployment-down
 
 [private]
 miri *arguments:

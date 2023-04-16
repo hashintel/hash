@@ -17,6 +17,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build images
+        uses: ./.github/actions/build-docker-images
+
   linting:
     name: Linting
     runs-on: ubuntu-latest
@@ -154,6 +163,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
+    needs: build-deployment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -163,18 +173,17 @@ jobs:
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+
       - name: Launch external services
-        if: ${{ success() || failure() }}
-        run: |
-          yarn external-services:test up --detach
+        run: yarn workspace @apps/hash-external-services deploy up --detach
 
       - run: yarn test:backend-integration
-        if: ${{ success() || failure() }}
         env:
           TEST_COVERAGE: true
 
       - uses: codecov/codecov-action@v3
-        if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           ## Temporarily disabled until https://github.com/codecov/codecov-action/issues/720 is resolved, and/or we rely
@@ -202,6 +211,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
+    needs: build-deployment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -221,10 +231,11 @@ jobs:
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+
       - name: Launch external services
-        if: ${{ success() || failure() }}
-        run: |
-          yarn external-services up --detach
+        run: yarn workspace @apps/hash-external-services deploy up --detach
 
       ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
       # - name: Seed data
@@ -233,20 +244,17 @@ jobs:
       #     yarn seed-data
 
       - name: Launch backend
-        if: ${{ success() || failure() }}
         run: |
           yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
           yarn wait-on --timeout 60000 http://0.0.0.0:5001
 
       - name: Build and launch frontend
-        if: ${{ success() || failure() }}
         run: |
           yarn workspace @apps/hash-frontend next build
           yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run Playwright tests
-        if: ${{ success() || failure() }}
         run: |
           yarn test:playwright
 

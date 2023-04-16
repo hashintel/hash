@@ -1,0 +1,20 @@
+name: Load docker images
+description: "Load docker images"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Download hash-graph image
+      uses: actions/download-artifact@v3
+      with:
+        name: hash-graph
+        path: /tmp
+
+    - name: Load hash-graph image
+      shell: bash
+      run: |
+        docker load --input /tmp/hash-graph.tar
+        docker image ls -a
