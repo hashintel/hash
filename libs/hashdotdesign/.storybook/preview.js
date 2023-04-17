@@ -1,6 +1,6 @@
-// import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 
-// import { theme } from "../../../libs/@hashintel/design-system";
+import { theme } from "@hashintel/design-system";
 
 export const parameters = {
   actions: { argTypesRegex: "^on[A-Z].*" },
@@ -13,10 +13,10 @@ export const parameters = {
 };
 
 export const withMuiTheme = (Story) => (
-  // <ThemeProvider theme={theme}>
-  //   <CssBaseline />
-  <Story />
-  // </ThemeProvider>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <Story />
+  </ThemeProvider>
 );
 
 export const decorators = [withMuiTheme];

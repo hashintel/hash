@@ -1,9 +1,9 @@
 module.exports = {
   stories: [
-    // "../../../libs/@hashintel/design-system/src/**/*.mdx",
-    // "../../../libs/@hashintel/design-system/src/**/*.stories.@(js|jsx|ts|tsx)",
-    "../../../libs/@hashintel/block-design-system/src/**/*.mdx",
-    "../../../libs/@hashintel/block-design-system/src/**/*.stories.@(js|jsx|ts|tsx)",
+    "../../@hashintel/design-system/src/**/*.mdx",
+    "../../@hashintel/design-system/src/**/*.stories.@(js|jsx|ts|tsx)",
+    "../../@hashintel/block-design-system/src/**/*.mdx",
+    "../../@hashintel/block-design-system/src/**/*.stories.@(js|jsx|ts|tsx)",
   ],
   addons: [
     "@storybook/addon-links",
