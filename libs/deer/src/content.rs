@@ -454,7 +454,102 @@ impl<'de> Deserializer<'de> for ContentDeserializer<'_, 'de> {
 
 struct ContentRefDeserializer<'a, 'de: 'a> {
     content: &'a Content<'de>,
-    context: Context,
+    context: &'a mut Context,
 }
 
-impl<'de> Deserializer<'de> for ContentRefDeserializer<'_, 'de> {}
+impl<'de> Deserializer<'de> for ContentRefDeserializer<'_, 'de> {
+    fn context(&self) -> &Context {
+        &self.context
+    }
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        todo!()
+    }
+}
