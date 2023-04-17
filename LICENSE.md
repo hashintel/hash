@@ -5,7 +5,7 @@ The HASH monorepo relies upon multiple different licenses. Source code in this r
 - the [GNU Affero General Public License 3.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md); or
 - the [Elastic License 2.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-ELASTIC.md).
 
-Written content, illustrations and graphics published under the `apps/hashdotai` and `apps/hashdotdev` directories are made available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md) license.
+Written content, illustrations and graphics published under the `apps/hashdotai`, `apps/hashdotdesign`, and `apps/hashdotdev` directories are made available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md) license.
 
 ## License Determination
 
