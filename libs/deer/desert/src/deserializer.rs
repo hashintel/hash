@@ -1,7 +1,7 @@
 use alloc::borrow::ToOwned;
 
 use deer::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    error::{DeserializerError, ExpectedType, MissingError, ReceivedType, TypeError, Variant},
     value::NoneDeserializer,
     Context, EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
@@ -152,7 +152,6 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             Token::Object { length } => visitor
                 .visit_object(ObjectAccess::new(self, length))
                 .change_context(DeserializerError),
-            Token::Null => visitor.visit_null().change_context(DeserializerError),
             other => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
                 .attach(ReceivedType::new(other.schema()))
@@ -254,6 +253,8 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
     where
         V: StructVisitor<'de>,
     {
-        visitor.visit_none().change_context(DeserializerError)
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }

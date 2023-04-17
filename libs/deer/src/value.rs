@@ -11,7 +11,8 @@ pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
 use crate::{
     error::{DeserializerError, ExpectedType, TypeError, Variant},
-    Context, Deserializer, EnumVisitor, Number, OptionalVisitor, StructVisitor, Visitor,
+    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, StructVisitor,
+    Visitor,
 };
 
 macro_rules! impl_owned {
@@ -120,6 +121,8 @@ macro_rules! impl_owned {
 
 use impl_owned;
 
+use crate::error::{MissingError, ReceivedType};
+
 pub trait IntoDeserializer<'de> {
     type Deserializer<'a>: Deserializer<'de>
     where
@@ -225,7 +228,9 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
     where
         V: StructVisitor<'de>,
     {
-        visitor.visit_none().change_context(DeserializerError)
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }
 
@@ -283,7 +288,10 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     where
         V: StructVisitor<'de>,
     {
-        visitor.visit_null().change_context(DeserializerError)
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .attach(ReceivedType::new(<()>::reflection()))
+            .change_context(DeserializerError))
     }
 }
 
