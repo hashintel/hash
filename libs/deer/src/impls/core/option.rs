@@ -49,8 +49,9 @@ impl<T: Reflection + ?Sized> Reflection for OptionReflection<T> {
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Option<T> {
     type Reflection = OptionReflection<T::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_optional(OptionVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_optional(OptionVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

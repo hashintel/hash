@@ -32,8 +32,8 @@ impl Reflection for [u8] {
 impl<'de> Deserialize<'de> for &'de [u8] {
     type Reflection = [u8];
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_bytes(BytesVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
+        deserializer.deserialize_bytes(BytesVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

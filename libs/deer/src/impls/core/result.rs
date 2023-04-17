@@ -65,8 +65,8 @@ impl Reflection for ResultDiscriminant {
 impl<'de> Deserialize<'de> for ResultDiscriminant {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(ResultDiscriminantVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer.deserialize_str(ResultDiscriminantVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -148,8 +148,8 @@ where
 {
     type Reflection = ResultReflection<T::Reflection, E::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(ResultEnumVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer.deserialize_enum(ResultEnumVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

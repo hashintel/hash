@@ -47,8 +47,9 @@ impl Reflection for Discriminant {
 impl<'de> Deserialize<'de> for Discriminant {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(DiscriminantVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_str(DiscriminantVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -85,8 +86,9 @@ enum UnitEnum {
 impl<'de> Deserialize<'de> for UnitEnum {
     type Reflection = Discriminant;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(UnitEnumVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(UnitEnumVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -177,8 +179,9 @@ impl<'de> Deserialize<'de> for NewtypeEnum {
     // TODO: this is wrong
     type Reflection = Discriminant;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(NewtypeEnumVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(NewtypeEnumVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -310,8 +313,11 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                 impl<'de> Deserialize<'de> for VariantFieldIdent {
                     type Reflection = Self;
 
-                    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-                        de.deserialize_str(VariantFieldVisitor)
+                    fn deserialize<D: Deserializer<'de>>(
+                        deserializer: D,
+                    ) -> Result<Self, DeserializeError> {
+                        deserializer
+                            .deserialize_str(VariantFieldVisitor)
                             .change_context(DeserializeError)
                     }
                 }
@@ -417,8 +423,9 @@ impl<'de> EnumVisitor<'de> for StructEnumIdentVisitor {
 impl<'de> Deserialize<'de> for StructEnum {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(StructEnumIdentVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(StructEnumIdentVisitor)
             .change_context(DeserializeError)
     }
 }

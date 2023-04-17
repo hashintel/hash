@@ -663,7 +663,9 @@ pub trait Deserialize<'de>: Sized {
     /// # Errors
     ///
     /// Deserialization was unsuccessful
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError>;
+    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: Deserializer<'de>;
 
     #[must_use]
     fn reflection() -> Document {

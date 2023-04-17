@@ -381,7 +381,9 @@ impl Reflection for Number {
 impl<'de> Deserialize<'de> for Number {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
         struct Visitor;
 
         impl<'de> crate::Visitor<'de> for Visitor {
@@ -399,7 +401,8 @@ impl<'de> Deserialize<'de> for Number {
             // to use!
         }
 
-        de.deserialize_number(Visitor)
+        deserializer
+            .deserialize_number(Visitor)
             .change_context(DeserializeError)
     }
 }

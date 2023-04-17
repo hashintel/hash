@@ -140,8 +140,8 @@ pub enum Token {
     /// impl<'de> Deserialize<'de> for LogLevel {
     ///     type Reflection = Self;
     ///
-    ///     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-    ///         de.deserialize_str(LogLevelVisitor)
+    ///     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
+    ///         deserializer.deserialize_str(LogLevelVisitor)
     ///             .change_context(DeserializeError)
     ///     }
     /// }

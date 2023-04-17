@@ -33,9 +33,9 @@ macro_rules! impl_integral {
             type Reflection = Self;
 
             fn deserialize<D: Deserializer<'de>>(
-                de: D,
+                deserializer: D,
             ) -> error_stack::Result<Self, DeserializeError> {
-                de.$deser($name).change_context(DeserializeError)
+                deserializer.$deser($name).change_context(DeserializeError)
             }
         }
     };

@@ -13,8 +13,8 @@ use crate::{
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Reverse<T> {
     type Reflection = T::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        T::deserialize(de).map(Reverse)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        T::deserialize(deserializer).map(Reverse)
     }
 }
 
@@ -72,8 +72,8 @@ impl Reflection for Ordering {
 impl<'de> Deserialize<'de> for Ordering {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(OrderingVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer.deserialize_str(OrderingVisitor)
             .change_context(DeserializeError)
     }
 }

@@ -28,8 +28,11 @@ impl Reflection for f32 {
 impl<'de> Deserialize<'de> for f32 {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_f32(F32Visitor)
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_f32(F32Visitor)
             .change_context(DeserializeError)
     }
 }
@@ -57,8 +60,11 @@ impl Reflection for f64 {
 impl<'de> Deserialize<'de> for f64 {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_f64(F64Visitor)
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_f64(F64Visitor)
             .change_context(DeserializeError)
     }
 }

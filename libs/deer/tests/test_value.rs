@@ -124,8 +124,9 @@ impl<'de> Visitor<'de> for ChoiceVisitor {
 impl<'de> Deserialize<'de> for Choice {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(ChoiceVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_str(ChoiceVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -155,8 +156,9 @@ impl<'de> Visitor<'de> for NullVisitor {
 impl<'de> Deserialize<'de> for Null {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_null(NullVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_null(NullVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -310,8 +312,9 @@ impl<'de> Visitor<'de> for BytesVisitor {
 impl<'de: 'a, 'a> Deserialize<'de> for Bytes<'a> {
     type Reflection = Bytes<'static>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bytes(BytesVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes(BytesVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -341,8 +344,9 @@ impl<'de> Visitor<'de> for BytesLengthVisitor {
 impl<'de> Deserialize<'de> for BytesLength {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bytes(BytesLengthVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes(BytesLengthVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -372,8 +376,9 @@ impl<'de> Visitor<'de> for ByteBufferVisitor {
 impl<'de> Deserialize<'de> for ByteBuffer {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bytes_buffer(ByteBufferVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes_buffer(ByteBufferVisitor)
             .change_context(DeserializeError)
     }
 }

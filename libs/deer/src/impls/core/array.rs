@@ -158,8 +158,8 @@ impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N
 impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
     type Reflection = ArrayReflection<T::Reflection, N>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_array(ArrayVisitor(PhantomData::default()))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer.deserialize_array(ArrayVisitor(PhantomData::default()))
             .change_context(DeserializeError)
     }
 }

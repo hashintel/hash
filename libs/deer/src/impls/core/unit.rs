@@ -33,8 +33,8 @@ impl Reflection for UnitReflection {
 impl<'de> Deserialize<'de> for () {
     type Reflection = UnitReflection;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_null(UnitVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
+        deserializer.deserialize_null(UnitVisitor)
             .change_context(DeserializeError)
     }
 }
