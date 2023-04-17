@@ -245,3 +245,8 @@ impl Token {
         }
     }
 }
+
+// TODO: maybe number
+// TODO: IdentifierVisitor (u8, u64, str, borrowed_str, string,
+//  bytes, bytes_buf, borrowed_bytes)
+// TODO: test
