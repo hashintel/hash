@@ -10,7 +10,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
-import { RootEntity } from "../types";
+import { BlockEntity } from "../types/generated/block-entity";
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import {
   DEFAULT_MODEL_ID,
@@ -25,13 +25,13 @@ const completeChatSystemPrompt = [
   `Current date: ${new Date().toISOString()}.`,
 ].join(" ");
 
-export const promptKey: keyof RootEntity["properties"] =
+export const promptKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-prompt/";
 
-export const modelKey: keyof RootEntity["properties"] =
+export const modelKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-text-model-name/";
 
-export const GenerateText = ({ blockEntity }: { blockEntity: RootEntity }) => {
+export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
 
   const initialPromptText = blockEntity.properties[promptKey];

@@ -9,16 +9,16 @@ import { createRoot } from "react-dom/client";
 import packageJSON from "../package.json";
 import Component from "./index";
 import { propertyIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
 /**
  * @type {{content: string; language: import("./utils").LanguageType;}}
  */
-const initialEntity: RootEntity = {
+const initialEntity: BlockEntity = {
   metadata: {
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
     recordId: {
       entityId: "entity-code",
       editionId: new Date().toISOString(),
@@ -37,6 +37,11 @@ const DevApp = () => {
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={initialEntity.metadata.recordId}
       initialData={{ initialEntities: [initialEntity] }}
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
       blockInfo={packageJSON.blockprotocol}
       debug
     />

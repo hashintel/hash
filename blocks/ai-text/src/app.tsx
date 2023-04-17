@@ -7,12 +7,12 @@ import { theme } from "@hashintel/design-system";
 import { ThemeProvider } from "@mui/material";
 
 import { GenerateText } from "./app/generate-text";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
-export const contentKey: keyof RootEntity["properties"] =
+export const contentKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);

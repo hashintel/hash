@@ -5,11 +5,11 @@ import { setup, tw } from "twind";
 
 import { Media } from "./components/media";
 import { linkIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 setup({ preflight: false });
 
-export const Image: BlockComponent<RootEntity> = (props) => {
+export const Image: BlockComponent<BlockEntity> = (props) => {
   const { graph } = props;
   const { blockEntitySubgraph } = graph;
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);

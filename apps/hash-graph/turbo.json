@@ -1,0 +1,16 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "codegen:generate-openapi-client": {
+      "outputs": [
+        "../../libs/@local/hash-graph-client/*.ts",
+        "../../libs/@local/hash-graph-client/*.sh",
+        "../../libs/@local/hash-graph-client/.eslintrc.cjs",
+        "../../libs/@local/hash-graph-client/.gitattributes",
+        "../../libs/@local/hash-graph-client/.gitignore",
+        "../../libs/@local/hash-graph-client/.npmignore",
+        "../../libs/@local/hash-graph-client/.openapi-generator"
+      ]
+    }
+  }
+}

@@ -17,15 +17,16 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/graph": "0.2.2",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"
   },
@@ -33,9 +34,9 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-datepicker": "^4.8.0",
-    "block-scripts": "0.1.1",
+    "block-scripts": "0.2.3",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0",
+    "mock-block-dock": "0.1.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -64,6 +65,16 @@
     "icon": "public/icon.svg",
     "image": "public/preview.svg",
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@hash/types/entity-type/countdown-block/v/2"
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/countdown-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
   }
 }

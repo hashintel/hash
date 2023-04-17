@@ -17,10 +17,12 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
-    "format": "prettier --write --ignore-unknown .",
+    "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
@@ -28,7 +30,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/graph": "0.2.2",
     "@hashintel/block-design-system": "0.0.0",
     "@hashintel/design-system": "0.0.6",
     "@mui/material": "5.11.8",
@@ -36,9 +38,10 @@
     "uuid": "9.0.0"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.1.1",
-    "mock-block-dock": "0.1.0",
+    "block-scripts": "0.2.3",
+    "mock-block-dock": "0.1.4",
     "prettier": "2.8.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -65,6 +68,16 @@
     "image": "public/block-preview.png",
     "name": "@hash/how-to",
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@hash/types/entity-type/how-to-block/v/2"
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/how-to-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
   }
 }

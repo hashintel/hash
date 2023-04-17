@@ -247,10 +247,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let properties = serde_json::to_value(properties)
-            .into_report()
-            .change_context(InsertionError)?;
-
         let row = self
             .as_client()
             .query_one(
@@ -509,10 +505,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_type_ontology_id = self
             .ontology_id_by_url(&entity_type_id)
             .await
-            .change_context(UpdateError)?;
-
-        let properties = serde_json::to_value(properties)
-            .into_report()
             .change_context(UpdateError)?;
 
         // The transaction is required to check if the update happened. If there is no returned

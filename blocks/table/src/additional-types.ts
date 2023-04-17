@@ -1,4 +1,7 @@
-import { RootEntity, TableLocalColumnPropertyValue } from "./types";
+import {
+  BlockEntity,
+  TableLocalColumnPropertyValue,
+} from "./types/generated/block-entity";
 
-export type RootKey = keyof RootEntity["properties"];
+export type RootKey = keyof BlockEntity["properties"];
 export type ColumnKey = Readonly<keyof TableLocalColumnPropertyValue>;

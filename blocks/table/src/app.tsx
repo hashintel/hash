@@ -1,3 +1,4 @@
+import { JsonValue } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -21,7 +22,10 @@ import { Grid, ROW_HEIGHT } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
 import { Settings } from "./components/settings/settings";
 import { TableTitle } from "./components/table-title/table-title";
-import { RootEntity, RootEntityLinkedEntities } from "./types";
+import {
+  BlockEntity,
+  TableBlockOutgoingLinkAndTarget,
+} from "./types/generated/block-entity";
 
 const titleKey: RootKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
@@ -46,15 +50,15 @@ const emptySelection = {
   rows: CompactSelection.empty(),
 };
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const { rootEntity: blockEntity } = useEntitySubgraph<
-    RootEntity,
-    RootEntityLinkedEntities
+    BlockEntity,
+    TableBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
   const {
@@ -86,7 +90,7 @@ export const App: BlockComponent<RootEntity> = ({
     bounds: Rectangle;
   }>();
 
-  const updateEntity = async (newProperties: RootEntity["properties"]) => {
+  const updateEntity = async (newProperties: BlockEntity["properties"]) => {
     await graphModule.updateEntity({
       data: {
         entityId: blockEntityId,
@@ -258,7 +262,8 @@ export const App: BlockComponent<RootEntity> = ({
             };
           }
 
-          const value = rows[rowIndex]?.[key] ?? "";
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
+          const value = ((rows[rowIndex] as any)?.[key] ?? "") as JsonValue;
 
           return {
             kind: GridCellKind.Text,

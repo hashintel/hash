@@ -55,12 +55,11 @@ const DevApp = () => {
       initialData={{
         initialEntities: [testEntity],
       }}
-      // hideDebugToggle <- uncomment this to disable the debug UI entirely
-      // initialEntities={[]} <- customise the entities in the datastore (blockEntity is always added, if you provide it)
-      // initialEntityTypes={[]} <- customise the entity types in the datastore
-      // initialLinks={[]} <- customise the links in the datastore
-      // initialLinkedQueries={[]} <- customise the linkedQueries in the datastore
-      // readonly <- uncomment this to start your block in readonly mode. You can also toggle it in the UI
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
     />
   );
 };
