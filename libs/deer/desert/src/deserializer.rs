@@ -1,9 +1,9 @@
 use alloc::borrow::ToOwned;
 
 use deer::{
-    error::{DeserializerError, TypeError, Variant},
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     value::NoneDeserializer,
-    Context, EnumVisitor, OptionalVisitor, Visitor,
+    Context, EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -138,6 +138,23 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 
         Ok(value)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        let token = self.next();
+
+        match token {
+            Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
+            Token::Object { length } => visitor.visit_object(ArrayAccess::new(self, length)),
+            Token::Null => visitor.visit_null(),
+            other => Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(other.schema()))),
+        }
+        .change_context(DeserializerError)
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -227,5 +244,12 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
         visitor
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
     }
 }

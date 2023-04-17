@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
 
-use deer::Number;
+use deer::{Document, Number, Reflection, Schema};
 
 // TODO: test
 // TODO: this should be `Copy`, but `Number` has no &'static constructor
@@ -204,5 +204,44 @@ pub enum Token {
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Debug::fmt(self, f)
+    }
+}
+
+struct AnyArray;
+
+impl Reflection for AnyArray {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("array")
+    }
+}
+
+struct AnyObject;
+
+impl Reflection for AnyObject {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("object")
+    }
+}
+
+impl Token {
+    pub(crate) fn schema(&self) -> Document {
+        match self {
+            Token::Bool(_) => Document::new::<bool>(),
+            Token::Number(_) => Document::new::<Number>(),
+            Token::U128(_) => Document::new::<u128>(),
+            Token::I128(_) => Document::new::<i128>(),
+            Token::USize(_) => Document::new::<usize>(),
+            Token::ISize(_) => Document::new::<isize>(),
+            Token::Char(_) => Document::new::<char>(),
+            Token::Str(_) => Document::new::<str>(),
+            Token::BorrowedStr(_) => Document::new::<str>(),
+            Token::String(_) => Document::new::<str>(),
+            Token::Bytes(_) => Document::new::<[u8]>(),
+            Token::BorrowedBytes(_) => Document::new::<[u8]>(),
+            Token::BytesBuf(_) => Document::new::<[u8]>(),
+            Token::Array { .. } | Token::ArrayEnd => Document::new::<AnyArray>(),
+            Token::Object { .. } | Token::ObjectEnd => Document::new::<AnyObject>(),
+            Token::Null => Document::new::<()>(),
+        }
     }
 }
