@@ -36,7 +36,7 @@
     "immer": "9.0.6",
     "lodash.uniqueid": "4.0.1",
     "react-laag": "2.0.5",
-    "rooks": "7.4.3"
+    "rooks": "7.11.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
