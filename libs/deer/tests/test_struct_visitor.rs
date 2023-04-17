@@ -307,3 +307,33 @@ impl<'de> Deserialize<'de> for Example {
             .change_context(DeserializeError)
     }
 }
+
+#[test]
+fn struct_object_ok() {}
+
+#[test]
+fn struct_object_missing_err() {}
+
+#[test]
+fn struct_object_too_many_err() {}
+
+#[test]
+fn struct_object_too_few_err() {}
+
+#[test]
+#[ignore]
+fn struct_object_duplicate_err() {
+    // for now we cannot test this because there's no error for us to use
+}
+
+#[test]
+fn struct_array_ok() {}
+
+#[test]
+fn struct_array_missing_err() {}
+
+#[test]
+fn struct_array_too_many_err() {}
+
+#[test]
+fn struct_array_too_few_err() {}
