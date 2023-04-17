@@ -1,4 +1,8 @@
-# OpenAI GPT Experiments - Python Template
+# HASH-agents
+
+## Description
+
+This is a collection of agents that are being used in HASH. The agents are defined in the [`agents/`](./agents) directory and are organized as modules. The top-level module is able to run the different agents.
 
 ## Requirements
 
@@ -52,7 +56,23 @@ Some potential candidates for `PYTHON_CMD`
 
 ## Running
 
-> **Warning:** This section has not been written, yet. 🙃
+To run the agent orchestrator, pass the agent name alongside the input you want to pass to the agent:
+
+```bash
+python -m agents <AGENT_NAME> <INPUT>
+```
+
+## Development
+
+### Adding a new agent
+
+To add a new agent, you need to create a new module in the [`agents/`](./agents) directory. For this, it's recommended to copy the `template` module and rename it to the name of your agent.
+
+To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
+
+```bash
+python -m agents.my_agents
+```
 
 ### Logging
 
