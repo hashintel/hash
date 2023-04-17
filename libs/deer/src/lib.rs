@@ -375,6 +375,33 @@ pub trait OptionalVisitor<'de>: Sized {
     }
 }
 
+#[allow(unused_variables)]
+pub trait StructVisitor<'de>: Sized {
+    type Value;
+
+    fn expecting(&self) -> Document;
+
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    where
+        A: ArrayAccess<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(visitor::ArraySchema::document()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
+    where
+        A: ObjectAccess<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(visitor::ObjectSchema::document()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+}
+
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
 // `deserialize_u*` methods.
 struct NumberVisitor<T: Reflection>(PhantomData<fn() -> *const T>);
@@ -621,6 +648,10 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>;
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,
