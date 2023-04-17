@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { argv } from "node:process";
 import { mkdir, writeFile } from "node:fs/promises";
 
+import dedent from "dedent";
 import execa from "execa";
 import yargs from "yargs";
 
@@ -51,13 +52,20 @@ const postProcess = async (files: string[]) => {
     ]),
   );
 
-  const typeReexport = `export type AgentTypes = {\n  ${outputMapping(
-    aliasedExports,
-    ": ",
-    "\n  ",
-  )}\n}`;
+  const agentNames = dedent`
+    export const agents = ["${names
+      .map(({ name }) => name)
+      .join('", "')}"] as const
+    export type Agent = (typeof agents)[number];
+    `;
 
-  const result = importLines + "\n\n" + typeReexport;
+  const typeReexport = dedent`
+    export type AgentTypes = {
+      ${outputMapping(aliasedExports, ": ", "\n  ")}
+    }
+    `;
+
+  const result = importLines + "\n\n" + agentNames + "\n\n" + typeReexport;
 
   await mkdir("./src/", { recursive: true });
   const sharedModule = "./src/agents.ts";

@@ -9,6 +9,7 @@
     "fix:prettier": "prettier --write  --ignore-unknown ."
   },
   "dependencies": {
+    "dedent": "0.7.0",
     "execa": "5.1.1",
     "quicktype": "^23.0.19",
     "typescript": "4.9.4",
