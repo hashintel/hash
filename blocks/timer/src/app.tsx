@@ -21,7 +21,10 @@ import { DurationInput } from "./app/duration-input";
 import { TimerStatus } from "./app/timer-status";
 import { useAutoRefresh } from "./app/use-auto-refresh";
 import { propertyIds } from "./property-ids";
-import { RootEntity, TimerBlockProgressPropertyValue } from "./types";
+import {
+  BlockEntity,
+  TimerBlockProgressPropertyValue,
+} from "./types/generated/block-entity";
 
 type TimerState = {
   initialDurationInMs: number;
@@ -93,7 +96,7 @@ const getTargetDateTime = (timerProgress?: TimerBlockProgressPropertyValue) => {
   }
 };
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);

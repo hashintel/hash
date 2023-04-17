@@ -1,10 +1,7 @@
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntityTypesFunction,
-  BlockProtocolCreateEntitiesFunction,
-  BlockProtocolUpdateEntitiesFunction,
-  JSONObject,
-} from "blockprotocol";
+  GraphEmbedderMessageCallbacks,
+  JsonObject,
+} from "@blockprotocol/graph/temporal";
 
 import { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
 
@@ -20,20 +17,20 @@ export type MessageFromFramedBlock = {
       payload: Parameters<FetchEmbedCodeFn>;
     }
   | {
-      type: "updateEntities";
-      payload: Parameters<BlockProtocolUpdateEntitiesFunction>;
+      type: "updateEntity";
+      payload: Parameters<GraphEmbedderMessageCallbacks["updateEntity"]>;
     }
   | {
-      type: "createEntities";
-      payload: Parameters<BlockProtocolCreateEntitiesFunction>;
+      type: "createEntity";
+      payload: Parameters<GraphEmbedderMessageCallbacks["createEntity"]>;
     }
   | {
       type: "queryEntities";
-      payload: Parameters<BlockProtocolAggregateEntitiesFunction>;
+      payload: Parameters<GraphEmbedderMessageCallbacks["queryEntities"]>;
     }
   | {
       type: "queryEntityTypes";
-      payload: Parameters<BlockProtocolAggregateEntityTypesFunction>;
+      payload: Parameters<GraphEmbedderMessageCallbacks["queryEntityTypes"]>;
     }
 );
 
@@ -42,7 +39,7 @@ export type MessageFromBlockFramer = {
 } & (
   | {
       type: "newData";
-      payload: JSONObject;
+      payload: JsonObject;
     }
   | {
       type: "response";
