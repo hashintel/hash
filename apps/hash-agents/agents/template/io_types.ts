@@ -5,5 +5,5 @@ export type Input = {
 
 export type Output = {
   /** Math expression result */
-  result: string;
+  result: number;
 };
