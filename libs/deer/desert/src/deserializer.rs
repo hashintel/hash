@@ -146,14 +146,18 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         let token = self.next();
 
         match token {
-            Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
-            Token::Object { length } => visitor.visit_object(ArrayAccess::new(self, length)),
-            Token::Null => visitor.visit_null(),
+            Token::Array { length } => visitor
+                .visit_array(ArrayAccess::new(self, length))
+                .change_context(DeserializerError),
+            Token::Object { length } => visitor
+                .visit_object(ObjectAccess::new(self, length))
+                .change_context(DeserializerError),
+            Token::Null => visitor.visit_null().change_context(DeserializerError),
             other => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(other.schema()))),
+                .attach(ReceivedType::new(other.schema()))
+                .change_context(DeserializerError)),
         }
-        .change_context(DeserializerError)
     }
 }
 

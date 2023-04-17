@@ -226,22 +226,18 @@ impl Reflection for AnyObject {
 impl Token {
     pub(crate) fn schema(&self) -> Document {
         match self {
-            Token::Bool(_) => Document::new::<bool>(),
-            Token::Number(_) => Document::new::<Number>(),
-            Token::U128(_) => Document::new::<u128>(),
-            Token::I128(_) => Document::new::<i128>(),
-            Token::USize(_) => Document::new::<usize>(),
-            Token::ISize(_) => Document::new::<isize>(),
-            Token::Char(_) => Document::new::<char>(),
-            Token::Str(_) => Document::new::<str>(),
-            Token::BorrowedStr(_) => Document::new::<str>(),
-            Token::String(_) => Document::new::<str>(),
-            Token::Bytes(_) => Document::new::<[u8]>(),
-            Token::BorrowedBytes(_) => Document::new::<[u8]>(),
-            Token::BytesBuf(_) => Document::new::<[u8]>(),
-            Token::Array { .. } | Token::ArrayEnd => Document::new::<AnyArray>(),
-            Token::Object { .. } | Token::ObjectEnd => Document::new::<AnyObject>(),
-            Token::Null => Document::new::<<() as Deserialize>::Reflection>(),
+            Self::Bool(_) => Document::new::<bool>(),
+            Self::Number(_) => Document::new::<Number>(),
+            Self::U128(_) => Document::new::<u128>(),
+            Self::I128(_) => Document::new::<i128>(),
+            Self::USize(_) => Document::new::<usize>(),
+            Self::ISize(_) => Document::new::<isize>(),
+            Self::Char(_) => Document::new::<char>(),
+            Self::Str(_) | Self::BorrowedStr(_) | Self::String(_) => Document::new::<str>(),
+            Self::Bytes(_) | Self::BorrowedBytes(_) | Self::BytesBuf(_) => Document::new::<[u8]>(),
+            Self::Array { .. } | Self::ArrayEnd => Document::new::<AnyArray>(),
+            Self::Object { .. } | Self::ObjectEnd => Document::new::<AnyObject>(),
+            Self::Null => Document::new::<<() as Deserialize>::Reflection>(),
         }
     }
 }

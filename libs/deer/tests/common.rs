@@ -3,7 +3,7 @@
 
 use error_stack::{Context, Report};
 
-pub trait TupleExt {
+pub(crate) trait TupleExt {
     type Context: Context;
     type Ok;
 

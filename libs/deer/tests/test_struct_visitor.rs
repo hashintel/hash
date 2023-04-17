@@ -1,13 +1,14 @@
 use deer::{
     error::{
-        ArrayAccessError, ArrayLengthError, DeserializeError, DeserializerError, ExpectedLength,
-        ReceivedLength, Variant, VisitorError,
+        ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, ReceivedLength,
+        Variant, VisitorError,
     },
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
 };
-use error_stack::{FutureExt, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde_json::json;
 
 mod common;
 
@@ -19,8 +20,9 @@ use deer::{
     },
     schema::Reference,
 };
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 
+#[derive(Debug, Eq, PartialEq)]
 struct Example {
     a: u8,
     b: u16,
@@ -57,19 +59,6 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 Self::Value::reflection()
             }
 
-            fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
-                match v {
-                    0 => Ok(ExampleFieldDiscriminator::A),
-                    1 => Ok(ExampleFieldDiscriminator::B),
-                    2 => Ok(ExampleFieldDiscriminator::C),
-                    // TODO: accommodate for numeric identifier, bytes identifier
-                    n => {
-                        Err(Report::new(UnknownFieldError.into_error())
-                            .change_context(VisitorError))
-                    }
-                }
-            }
-
             fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
                 match v {
                     "a" => Ok(ExampleFieldDiscriminator::A),
@@ -100,6 +89,19 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                         }
 
                         Err(error.change_context(VisitorError))
+                    }
+                }
+            }
+
+            fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
+                match v {
+                    0 => Ok(ExampleFieldDiscriminator::A),
+                    1 => Ok(ExampleFieldDiscriminator::B),
+                    2 => Ok(ExampleFieldDiscriminator::C),
+                    // TODO: accommodate for numeric identifier, bytes identifier
+                    _ => {
+                        Err(Report::new(UnknownFieldError.into_error())
+                            .change_context(VisitorError))
                     }
                 }
             }
@@ -144,7 +146,7 @@ impl<'de> FieldVisitor<'de> for ExampleFieldVisitor {
 
 struct ExampleVisitor;
 
-impl<'de> StructVisitor<'de> for Example {
+impl<'de> StructVisitor<'de> for ExampleVisitor {
     type Value = Example;
 
     fn expecting(&self) -> Document {
@@ -195,7 +197,7 @@ impl<'de> StructVisitor<'de> for Example {
             .fold_reports()
             .change_context(VisitorError)?;
 
-        Ok(Self { a, b, c })
+        Ok(Example { a, b, c })
     }
 
     fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
@@ -218,17 +220,17 @@ impl<'de> StructVisitor<'de> for Example {
                     }
                     errors => *errors = Err(error),
                 },
-                Ok(ExampleField::A(value)) => match a {
+                Ok(ExampleField::A(value)) => match &mut a {
                     // we have no error type for this!
-                    Some(_) => todo!(),
+                    Some(_) => unimplemented!("planned in follow up PR"),
                     a => *a = Some(value),
                 },
-                Ok(ExampleField::B(value)) => match b {
-                    Some(_) => todo!(),
+                Ok(ExampleField::B(value)) => match &mut b {
+                    Some(_) => unimplemented!("planned in follow up PR"),
                     b => *b = Some(value),
                 },
-                Ok(ExampleField::C(value)) => match c {
-                    Some(_) => todo!(),
+                Ok(ExampleField::C(value)) => match &mut c {
+                    Some(_) => unimplemented!("planned in follow up PR"),
                     c => *c = Some(value),
                 },
             }
@@ -256,24 +258,24 @@ impl<'de> StructVisitor<'de> for Example {
         });
 
         let (a, b, c, ..) = (a, b, c, errors, object.end())
-            .fold_results()
+            .fold_reports()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
     }
 }
 
-struct Properties(&'static [(&'static str, Reference)]);
+struct Properties<const N: usize>([(&'static str, Reference); N]);
 
-impl Serialize for Properties {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+impl<const N: usize> Serialize for Properties<N> {
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.0.len()))?;
 
         for (key, value) in self.0 {
-            map.serialize_entry(key, value)?;
+            map.serialize_entry(key, &value)?;
         }
 
         map.end()
@@ -287,7 +289,7 @@ impl Reflection for Example {
         //  blueprint must support "struct"
         Schema::new("object").with(
             "properties",
-            Properties(&[
+            Properties([
                 ("a", doc.add::<u8>()),
                 ("b", doc.add::<u16>()),
                 ("c", doc.add::<u32>()),
@@ -320,7 +322,7 @@ fn struct_object_ok() {
         Token::Str("c"),
         Token::Number(4.into()),
         Token::ObjectEnd,
-    ])
+    ]);
 }
 
 #[test]
@@ -334,32 +336,188 @@ fn struct_object_out_of_order_ok() {
         Token::Str("a"),
         Token::Number(2.into()),
         Token::ObjectEnd,
-    ])
+    ]);
+}
+
+// TODO: key missing instead of value missing (or discriminant missing) ~> only possible with
+//  IdentifierVisitor?
+#[test]
+fn struct_object_missing_err() {
+    assert_tokens_error::<Example>(
+        &error!([{
+            ns: "deer",
+            id: ["value", "missing"],
+            properties: {
+                "expected": u16::reflection(),
+                "location": [{"type": "field", "value": "b"}]
+            }
+        }, {
+            ns: "deer",
+            // TODO: this should be key/discriminator missing! (or should this just silently fail?)
+            id: ["value", "missing"],
+            properties: {
+                "expected": ExampleFieldDiscriminator::reflection(),
+                "location": []
+            }
+        }]),
+        &[
+            Token::Object { length: Some(2) },
+            Token::Str("a"),
+            Token::Number(2.into()),
+            Token::Str("c"),
+            Token::Number(4.into()),
+            Token::ObjectEnd,
+        ],
+    );
 }
 
 #[test]
-fn struct_object_missing_err() {}
+fn struct_object_missing_multiple_err() {
+    assert_tokens_error::<Example>(
+        &error!([{
+            ns: "deer",
+            id: ["value", "missing"],
+            properties: {
+                "expected": u16::reflection(),
+                "location": [{"type": "field", "value": "b"}]
+            }
+        },{
+            ns: "deer",
+            id: ["value", "missing"],
+            properties: {
+                "expected": u32::reflection(),
+                "location": [{"type": "field", "value": "c"}]
+            }
+        },{
+            ns: "deer",
+            id: ["value", "missing"],
+            properties: {
+                "expected": ExampleFieldDiscriminator::reflection(),
+                "location": []
+            }
+        },{
+            ns: "deer",
+            id: ["value", "missing"],
+            properties: {
+                "expected": ExampleFieldDiscriminator::reflection(),
+                "location": []
+            }
+        }]),
+        &[
+            Token::Object { length: Some(1) },
+            Token::Str("a"),
+            Token::Number(2.into()),
+            Token::ObjectEnd,
+        ],
+    );
+}
 
 #[test]
-fn struct_object_too_many_err() {}
+fn struct_object_too_many_err() {
+    assert_tokens_error::<Example>(
+        &error!([{
+            ns: "deer",
+            id: ["object", "length"],
+            properties: {
+                "expected": 3,
+                "received": 4,
+                "location": []
+            }
+        }]),
+        &[
+            Token::Object { length: Some(4) },
+            Token::Str("a"),
+            Token::Number(2.into()),
+            Token::Str("b"),
+            Token::Number(3.into()),
+            Token::Str("c"),
+            Token::Number(4.into()),
+            Token::Str("d"),
+            Token::Number(5.into()),
+            Token::ObjectEnd,
+        ],
+    );
+}
 
 #[test]
-fn struct_object_too_few_err() {}
-
-#[test]
-#[ignore]
+#[ignore = "not yet implemented"]
 fn struct_object_duplicate_err() {
     // for now we cannot test this because there's no error for us to use
+
+    // this will fail (this is on purpose)
+    assert_tokens_error::<Example>(
+        &error!([{
+            ns: "deer",
+            id: ["object", "length"],
+            properties: {
+                "expected": 3,
+                "received": 4,
+                "location": []
+            }
+        }]),
+        &[
+            Token::Object { length: Some(3) },
+            Token::Str("a"),
+            Token::Number(2.into()),
+            Token::Str("b"),
+            Token::Number(3.into()),
+            Token::Str("b"),
+            Token::Number(4.into()),
+            Token::ObjectEnd,
+        ],
+    );
 }
 
 #[test]
-fn struct_array_ok() {}
+fn struct_array_ok() {
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(2.into()),
+        Token::Number(3.into()),
+        Token::Number(4.into()),
+        Token::ArrayEnd,
+    ]);
+}
 
 #[test]
-fn struct_array_missing_err() {}
+fn struct_array_missing_err() {
+    assert_tokens_error::<Example>(
+        &error!([{
+            ns: "deer",
+            id: ["value", "missing"],
+            properties: {
+                "expected": u32::reflection(),
+                "location": [{"type": "tuple", "value": 2}]
+            }
+        }]),
+        &[
+            Token::Array { length: Some(2) },
+            Token::Number(2.into()),
+            Token::Number(3.into()),
+            Token::ArrayEnd,
+        ],
+    );
+}
 
 #[test]
-fn struct_array_too_many_err() {}
-
-#[test]
-fn struct_array_too_few_err() {}
+fn struct_array_too_many_err() {
+    assert_tokens_error::<Example>(
+        &error!([{
+            ns: "deer",
+            id: ["array", "length"],
+            properties: {
+                "expected": 3,
+                "received": 4,
+                "location": []
+            }
+        }]),
+        &[
+            Token::Array { length: Some(4) },
+            Token::Number(2.into()),
+            Token::Number(3.into()),
+            Token::Number(4.into()),
+            Token::Number(5.into()),
+            Token::ArrayEnd,
+        ],
+    );
+}

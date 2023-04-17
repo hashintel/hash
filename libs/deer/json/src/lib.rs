@@ -433,16 +433,16 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         V: StructVisitor<'de>,
     {
         match self.value {
-            None => visitor.visit_none(),
-            Some(Value::Object(object)) => {
-                visitor.visit_object(ObjectAccess::new(object, self.context))
-            }
+            None => visitor.visit_none().change_context(DeserializerError),
+            Some(Value::Object(object)) => visitor
+                .visit_object(ObjectAccess::new(object, self.context))
+                .change_context(DeserializerError),
             // we do not allow arrays as struct, only objects are allowed for structs
             Some(value) => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(into_document(&value)))),
+                .attach(ReceivedType::new(into_document(&value)))
+                .change_context(DeserializerError)),
         }
-        .change_context(DeserializerError)
     }
 }
 

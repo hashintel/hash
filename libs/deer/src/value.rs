@@ -10,9 +10,8 @@ pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
 use crate::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
-    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, StructVisitor,
-    Visitor,
+    error::{DeserializerError, ExpectedType, TypeError, Variant},
+    Context, Deserializer, EnumVisitor, Number, OptionalVisitor, StructVisitor, Visitor,
 };
 
 macro_rules! impl_owned {
