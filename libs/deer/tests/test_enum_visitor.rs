@@ -23,12 +23,12 @@ impl<'de> Visitor<'de> for DiscriminantVisitor {
     }
 
     // usually we'd also check for bytes, but meh :shrug:
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "Variant" => Ok(Discriminant::Variant),
             _ => Err(Report::new(UnknownVariantError.into_error())
                 .attach(ExpectedVariant::new("Variant"))
-                .attach(ReceivedVariant::new(v))
+                .attach(ReceivedVariant::new(value))
                 .change_context(VisitorError)),
         }
     }
@@ -266,9 +266,9 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
         Self::Value::reflection()
     }
 
-    fn visit_object<T>(self, mut v: T) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
     where
-        T: ObjectAccess<'de>,
+        A: ObjectAccess<'de>,
     {
         match self.field {
             Discriminant::Variant => {
@@ -295,8 +295,8 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                         Self::Value::reflection()
                     }
 
-                    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-                        match v {
+                    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+                        match value {
                             "id" => Ok(VariantFieldIdent::Id),
                             _ => Err(Report::new(UnknownVariantError.into_error())
                                 .attach(ExpectedVariant::new("id"))
@@ -338,12 +338,12 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     }
                 }
 
-                v.set_bounded(1).change_context(VisitorError)?;
+                object.set_bounded(1).change_context(VisitorError)?;
 
                 let mut id = None;
                 let mut errors: Result<(), VisitorError> = Ok(());
 
-                match v.field(VariantFieldAccess) {
+                match object.field(VariantFieldAccess) {
                     None => {
                         // not enough items
                         let error = Report::new(ObjectLengthError.into_error())
@@ -376,7 +376,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
 
                 errors?;
 
-                v.end().change_context(VisitorError)?;
+                object.end().change_context(VisitorError)?;
 
                 Ok(StructEnum::Variant {
                     id: id.expect("should be infallible"),

@@ -109,8 +109,8 @@ impl<'de> Visitor<'de> for ChoiceVisitor {
         Self::Value::document()
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "yes" => Ok(Choice::Yes),
             "no" => Ok(Choice::No),
             other => Err(Report::new(ValueError.into_error())
@@ -302,8 +302,8 @@ impl<'de> Visitor<'de> for BytesVisitor {
         Bytes::document()
     }
 
-    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
-        Ok(Bytes(v))
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, VisitorError> {
+        Ok(Bytes(value))
     }
 }
 
@@ -333,8 +333,8 @@ impl<'de> Visitor<'de> for BytesLengthVisitor {
         Self::Value::document()
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        Ok(BytesLength(v.len()))
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+        Ok(BytesLength(value.len()))
     }
 }
 
@@ -364,8 +364,8 @@ impl<'de> Visitor<'de> for ByteBufferVisitor {
         Self::Value::document()
     }
 
-    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
-        Ok(ByteBuffer(v))
+    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        Ok(ByteBuffer(value))
     }
 }
 

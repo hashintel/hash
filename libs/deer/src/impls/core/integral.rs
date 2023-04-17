@@ -16,8 +16,8 @@ macro_rules! impl_integral {
                 <$typ>::reflection()
             }
 
-            fn $visit(self, v: $typ) -> error_stack::Result<Self::Value, VisitorError> {
-                Ok(v)
+            fn $visit(self, value: $typ) -> error_stack::Result<Self::Value, VisitorError> {
+                Ok(value)
             }
         }
 

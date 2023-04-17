@@ -14,8 +14,8 @@ impl<'de> Visitor<'de> for BoolVisitor {
         bool::document()
     }
 
-    fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_bool(self, value: bool) -> Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 

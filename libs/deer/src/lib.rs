@@ -399,8 +399,8 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
         T::document()
     }
 
-    fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 
     fn visit_i128(self, value: i128) -> Result<Self::Value, VisitorError> {

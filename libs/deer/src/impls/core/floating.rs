@@ -14,8 +14,8 @@ impl<'de> Visitor<'de> for F32Visitor {
         Document::new::<f32>()
     }
 
-    fn visit_f32(self, v: f32) -> error_stack::Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_f32(self, value: f32) -> error_stack::Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 
@@ -43,8 +43,8 @@ impl<'de> Visitor<'de> for F64Visitor {
         Document::new::<f64>()
     }
 
-    fn visit_f64(self, v: f64) -> error_stack::Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_f64(self, value: f64) -> error_stack::Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 

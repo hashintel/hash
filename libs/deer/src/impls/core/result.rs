@@ -25,20 +25,20 @@ impl<'de> Visitor<'de> for ResultDiscriminantVisitor {
         ResultDiscriminant::reflection()
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "Ok" => Ok(ResultDiscriminant::Ok),
             "Err" => Ok(ResultDiscriminant::Err),
             _ => Err(Report::new(UnknownVariantError.into_error())
                 .attach(ExpectedVariant::new("Err"))
                 .attach(ExpectedVariant::new("Ok"))
-                .attach(ReceivedVariant::new(v))
+                .attach(ReceivedVariant::new(value))
                 .change_context(VisitorError)),
         }
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+        match value {
             b"Ok" => Ok(ResultDiscriminant::Ok),
             b"Err" => Ok(ResultDiscriminant::Err),
             _ => {
@@ -46,7 +46,7 @@ impl<'de> Visitor<'de> for ResultDiscriminantVisitor {
                     .attach(ExpectedVariant::new("Err"))
                     .attach(ExpectedVariant::new("Ok"));
 
-                if let Ok(received) = core::str::from_utf8(v) {
+                if let Ok(received) = core::str::from_utf8(value) {
                     error = error.attach(ReceivedVariant::new(received));
                 }
 

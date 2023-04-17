@@ -16,8 +16,8 @@ impl<'de> Visitor<'de> for BytesVisitor<'de> {
         Self::Value::reflection()
     }
 
-    fn visit_borrowed_bytes(self, v: &'de [u8]) -> error_stack::Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> error_stack::Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 

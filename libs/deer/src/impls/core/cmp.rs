@@ -27,13 +27,13 @@ impl<'de> Visitor<'de> for OrderingVisitor {
         Ordering::reflection()
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "Less" => Ok(Ordering::Less),
             "Equal" => Ok(Ordering::Equal),
             "Greater" => Ok(Ordering::Greater),
             _ => Err(Report::new(UnknownVariantError.into_error())
-                .attach(ReceivedVariant::new(v))
+                .attach(ReceivedVariant::new(value))
                 .attach(ExpectedVariant::new("Less"))
                 .attach(ExpectedVariant::new("Equal"))
                 .attach(ExpectedVariant::new("Greater"))
@@ -41,8 +41,8 @@ impl<'de> Visitor<'de> for OrderingVisitor {
         }
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+        match value {
             b"Less" => Ok(Ordering::Less),
             b"Equal" => Ok(Ordering::Equal),
             b"Greater" => Ok(Ordering::Greater),
@@ -52,7 +52,7 @@ impl<'de> Visitor<'de> for OrderingVisitor {
                     .attach(ExpectedVariant::new("Equal"))
                     .attach(ExpectedVariant::new("Greater"));
 
-                if let Ok(received) = core::str::from_utf8(v) {
+                if let Ok(received) = core::str::from_utf8(value) {
                     error = error.attach(ReceivedVariant::new(received));
                 }
 

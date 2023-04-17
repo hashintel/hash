@@ -391,8 +391,8 @@ impl<'de> Deserialize<'de> for Number {
                 Number::reflection()
             }
 
-            fn visit_number(self, v: Number) -> error_stack::Result<Self::Value, VisitorError> {
-                Ok(v)
+            fn visit_number(self, value: Number) -> error_stack::Result<Self::Value, VisitorError> {
+                Ok(value)
             }
 
             // TODO: visit_object, needs `deserialize_any`, first need to make decision which token

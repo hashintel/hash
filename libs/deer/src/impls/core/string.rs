@@ -16,8 +16,8 @@ impl<'de: 'a, 'a> Visitor<'de> for StrVisitor<'a> {
         <&str>::reflection()
     }
 
-    fn visit_borrowed_str(self, v: &'de str) -> error_stack::Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_borrowed_str(self, value: &'de str) -> error_stack::Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 
@@ -45,8 +45,8 @@ impl<'de> Visitor<'de> for CharVisitor {
         Document::new::<char>()
     }
 
-    fn visit_char(self, v: char) -> error_stack::Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_char(self, value: char) -> error_stack::Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 
