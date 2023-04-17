@@ -1,7 +1,7 @@
-import { Button } from "@hashintel/design-system";
-import { buttonClasses, ButtonProps } from "@mui/material";
+import { Button, buttonClasses, ButtonProps } from "@mui/material";
 import { FunctionComponent } from "react";
-import { GearIcon, ChevronRightIcon } from "./icons/icons";
+
+import { ChevronRightIcon, GearIcon } from "./icons/icons";
 
 export type BlockSettingsButtonProps = {
   expanded?: boolean;

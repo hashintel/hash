@@ -10,6 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
+
 import { PenIcon, PenToSquareIcon } from "./icons/icons";
 
 export const EditableField = ({
@@ -191,7 +192,7 @@ export const EditableField = ({
             }}
           >
             <PenToSquareIcon
-              sx={{ fontSize: `${editIconFontSize}px !important` }}
+              sx={{ fontSize: `${editIconFontSize ?? 0}px !important` }}
             />
           </IconButton>
         </Fade>

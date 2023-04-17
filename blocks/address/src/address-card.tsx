@@ -1,10 +1,10 @@
-import { EditableField } from "@hashintel/block-design-system";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRotateLeft,
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
+import { EditableField } from "@hashintel/block-design-system";
 import { Button, FontAwesomeIcon, Skeleton } from "@hashintel/design-system";
 import {
   Box,

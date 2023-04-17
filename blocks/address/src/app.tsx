@@ -1,15 +1,15 @@
 import {
+  useEntitySubgraph,
+  useGraphBlockModule,
+  type BlockComponent,
+} from "@blockprotocol/graph/react";
+import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import {
   BlockErrorMessage,
   BlockSettingsButton,
   GetHelpLink,
 } from "@hashintel/block-design-system";
-import {
-  type BlockComponent,
-  useEntitySubgraph,
-  useGraphBlockModule,
-} from "@blockprotocol/graph/react";
-import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
-import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
 import {
   CircularProgress,

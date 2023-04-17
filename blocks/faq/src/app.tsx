@@ -1,10 +1,10 @@
-import { EditableField, GetHelpLink } from "@hashintel/block-design-system";
 import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
-  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
+  type BlockComponent,
 } from "@blockprotocol/graph/react";
+import { EditableField, GetHelpLink } from "@hashintel/block-design-system";
 import {
   Button,
   faPlus,

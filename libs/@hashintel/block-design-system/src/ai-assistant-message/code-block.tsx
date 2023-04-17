@@ -24,7 +24,7 @@ import {
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
-import { CheckIcon, CodePenIcon, CopyIcon } from "../main";
+import { CheckIcon, CodePenIcon, CopyIcon } from "../icons/icons";
 
 const supportedLanguages = lowlight.listLanguages();
 
