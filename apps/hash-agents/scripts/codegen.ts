@@ -60,7 +60,7 @@ const postProcess = async (files: string[]) => {
   const result = importLines + "\n\n" + typeReexport;
 
   await mkdir("./src/", { recursive: true });
-  const sharedModule = "./src/types.ts";
+  const sharedModule = "./src/agents.ts";
   await writeFile(sharedModule, result);
   console.log(`Wrote shared type definitions to ${sharedModule}`);
 };
