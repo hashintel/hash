@@ -1,7 +1,0 @@
-.toggle-item-base-paragraph {
-  font-size: var(--font-size-3);
-  line-height: var(--line-height-base);
-  margin-bottom: var(--space-4);
-  font-family: var(--font-family);
-  color: var(--primary-text-base);
-}

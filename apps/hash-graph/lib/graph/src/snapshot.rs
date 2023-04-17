@@ -7,12 +7,12 @@ mod metadata;
 mod ontology;
 mod restore;
 
-use std::pin::pin;
-
 use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
-use futures::{Sink, SinkExt, Stream, StreamExt, TryStreamExt};
+use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
+use hash_status::StatusCode;
 use serde::{Deserialize, Serialize};
+use tokio_postgres::error::SqlState;
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
@@ -133,53 +133,44 @@ impl<C: AsClient> SnapshotStore<C> {
     ///
     /// - If reading a record from the datastore fails
     /// - If writing a record into the sink fails
-    pub async fn dump_snapshot(
+    pub fn dump_snapshot(
         &self,
-        sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send,
-    ) -> Result<(), SnapshotDumpError> {
-        let mut sink =
-            pin!(sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)));
-
-        sink.send(SnapshotEntry::Snapshot(SnapshotMetadata {
-            block_protocol_module_versions: BlockProtocolModuleVersions {
-                graph: semver::Version::new(0, 3, 0),
-            },
-            custom: CustomGlobalMetadata,
-        }))
-        .await?;
-
+    ) -> impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + '_ {
         // TODO: Postgres does not allow to have multiple queries open at the same time. This means
         //       that each stream needs to be fully processed before the next one can be created.
         //       We might want to work around this by using a single stream that yields all the
         //       entries or even use multiple connections to the database.
         //   see https://app.asana.com/0/0/1204347352251098/f
 
-        let data_type_stream = pin!(
+        stream::once(async {
+            SnapshotEntry::Snapshot(SnapshotMetadata {
+                block_protocol_module_versions: BlockProtocolModuleVersions {
+                    graph: semver::Version::new(0, 3, 0),
+                },
+                custom: CustomGlobalMetadata,
+            })
+        })
+        .map(Ok)
+        .chain(
             self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
-                .await?
-        );
-        sink.send_all(&mut data_type_stream.map_ok(SnapshotEntry::DataType))
-            .await?;
-
-        let property_type_stream = pin!(
+                .try_flatten_stream()
+                .map_ok(SnapshotEntry::DataType),
+        )
+        .chain(
             self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
-                .await?
-        );
-        sink.send_all(&mut property_type_stream.map_ok(SnapshotEntry::PropertyType))
-            .await?;
-
-        let entity_type_stream = pin!(
+                .try_flatten_stream()
+                .map_ok(SnapshotEntry::PropertyType),
+        )
+        .chain(
             self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
-                .await?
-        );
-        sink.send_all(&mut entity_type_stream.map_ok(SnapshotEntry::EntityType))
-            .await?;
-
-        let entity_stream = pin!(self.create_dump_stream::<Entity>().await?);
-        sink.send_all(&mut entity_stream.map_ok(|entity| SnapshotEntry::Entity(entity.into())))
-            .await?;
-
-        Ok(())
+                .try_flatten_stream()
+                .map_ok(SnapshotEntry::EntityType),
+        )
+        .chain(
+            self.create_dump_stream::<Entity>()
+                .try_flatten_stream()
+                .map_ok(|entity| SnapshotEntry::Entity(entity.into())),
+        )
     }
 
     /// Reads the snapshot from from the stream into the store.
@@ -256,7 +247,25 @@ impl<C: AsClient> SnapshotStore<C> {
 
         SnapshotRecordBatch::commit(&client)
             .await
-            .change_context(SnapshotRestoreError::Write)?;
+            .change_context(SnapshotRestoreError::Write)
+            .map_err(|report| {
+                if let Some(error) = report
+                    .downcast_ref()
+                    .and_then(tokio_postgres::Error::as_db_error)
+                {
+                    match *error.code() {
+                        SqlState::FOREIGN_KEY_VIOLATION => {
+                            report.attach_printable(StatusCode::NotFound)
+                        }
+                        SqlState::UNIQUE_VIOLATION => {
+                            report.attach_printable(StatusCode::AlreadyExists)
+                        }
+                        _ => report,
+                    }
+                } else {
+                    report
+                }
+            })?;
 
         client
             .commit()
@@ -267,6 +276,10 @@ impl<C: AsClient> SnapshotStore<C> {
         read_thread
             .await
             .into_report()
-            .change_context(SnapshotRestoreError::Read)?
+            .change_context(SnapshotRestoreError::Read)??;
+
+        tracing::info!("snapshot restore finished");
+
+        Ok(())
     }
 }

@@ -29,6 +29,8 @@ type RemoteBlockProps = {
     | "queryPropertyTypes"
     | "updatePropertyType"
     | "getPropertyType"
+    | "getDataType"
+    | "queryDataTypes"
     | "createEntityType"
     | "queryEntityTypes"
     | "updateEntityType"

@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   BlockEntity,
@@ -197,7 +198,7 @@ export class ComponentView implements NodeView {
                     | EntityId
                     | undefined
                 } // @todo make this always defined
-                blockEntityTypeId={this.block.meta.schema}
+                blockEntityTypeId={this.block.meta.schema as VersionedUrl}
                 blockMetadata={this.block.meta}
                 // @todo uncomment this when sandbox is fixed
                 // shouldSandbox={!this.editable}

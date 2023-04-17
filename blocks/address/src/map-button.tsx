@@ -25,6 +25,7 @@ export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
             paddingY: 1.5,
             paddingX: 2.5,
           }),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO why is this inferred as any?
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >
