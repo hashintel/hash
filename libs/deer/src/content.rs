@@ -5,7 +5,7 @@ use error_stack::{Report, Result, ResultExt};
 use crate::{
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, Error, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedValue, ValueError, Variant, VisitorError,
+        ObjectAccessError, ReceivedValue, TypeError, ValueError, Variant, VisitorError,
     },
     ArrayAccess, Context, Deserialize, Deserializer, Document, EnumVisitor, Number, ObjectAccess,
     OptionalVisitor, Reflection, Visitor,
@@ -232,18 +232,18 @@ fn invalid_type<T: Reflection + ?Sized>(received: Content) -> Report<Error> {
     }
 }
 
-struct ContentDeserializer<'de> {
+struct ContentDeserializer<'a, 'de> {
     content: Content<'de>,
-    context: Context,
+    context: &'a mut Context,
 }
 
-impl<'de> ContentDeserializer<'de> {
-    pub fn new(content: Content<'de>, context: Context) -> Self {
+impl<'a, 'de> ContentDeserializer<'a, 'de> {
+    pub fn new(content: Content<'de>, context: &'a mut Context) -> Self {
         Self { content, context }
     }
 }
 
-impl<'de> Deserializer<'de> for ContentDeserializer<'de> {
+impl<'de> Deserializer<'de> for ContentDeserializer<'_, 'de> {
     fn context(&self) -> &Context {
         &self.context
     }
@@ -406,18 +406,23 @@ impl<'de> Deserializer<'de> for ContentDeserializer<'de> {
     where
         V: EnumVisitor<'de>,
     {
-        let errors: Result<(), DeserializerError> = Ok(());
+        let mut errors: Result<(), DeserializerError> = Ok(());
 
         let (discriminant, value) = match self.content {
             Content::Object(value) => {
-                // TODO: ensure map with a single key
                 let length = value.len();
 
                 match length {
                     0 => (Content::None, Content::None),
                     1 => value[0],
-                    // TODO: add to errors
-                    n => value[0],
+                    n => {
+                        // TODO: better error
+                        errors =
+                            Err(Report::new(TypeError.into_error())
+                                .change_context(DeserializerError));
+
+                        value[0]
+                    }
                 }
             }
             other => (other, Content::None),
@@ -426,13 +431,24 @@ impl<'de> Deserializer<'de> for ContentDeserializer<'de> {
         let context = self.context;
 
         let discriminant =
-            visitor.visit_discriminant(ContentDeserializer::new(discriminant, context))?;
+            visitor.visit_discriminant(ContentDeserializer::new(discriminant, context));
 
-        // todo: add to errors, but abort if any errors in discriminant
+        match discriminant {
+            Ok(discriminant) => {
+                let value = visitor
+                    .visit_value(discriminant, ContentDeserializer::new(value, context))
+                    .change_context(DeserializerError);
 
-        let value = visitor.visit_value(discriminant, ContentDeserializer::new(value, context))?;
-
-        Ok(value)
+                (value, errors).fold_reports().map(|(value, _)| value)
+            }
+            Err(error) => match errors {
+                Err(mut errors) => {
+                    errors.extend_one(error.change_context(DeserializerError));
+                    Err(errors)
+                }
+                _ => Err(error.change_context(DeserializerError)),
+            },
+        }
     }
 }
 
