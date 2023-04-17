@@ -3,7 +3,7 @@ from .io_types import *
 
 
 def main(agent_input: Input):
-    llm = OpenAI(temperature=0)
+    llm = OpenAI(model_name="gpt-3.5-turbo", temperature=0)
     llm_math = LLMMathChain(llm=llm, verbose=True)
     result = llm_math.run(agent_input.expression)
     # ltrim "Answer: " from result
@@ -18,5 +18,5 @@ if __name__ == '__main__':
     from .. import setup, get_logger
     setup()
 
-    output = main(Input(expression="1 + 2"))
+    output = main(Input(expression="round(pi * 13.37)"))
     get_logger().info(f"output: {output.result}")
