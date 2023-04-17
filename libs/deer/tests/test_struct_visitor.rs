@@ -19,6 +19,7 @@ use deer::{
     },
     schema::Reference,
 };
+use deer_desert::{assert_tokens, Token};
 
 struct Example {
     a: u8,
@@ -309,7 +310,32 @@ impl<'de> Deserialize<'de> for Example {
 }
 
 #[test]
-fn struct_object_ok() {}
+fn struct_object_ok() {
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Object { length: Some(3) },
+        Token::Str("a"),
+        Token::Number(2.into()),
+        Token::Str("b"),
+        Token::Number(3.into()),
+        Token::Str("c"),
+        Token::Number(4.into()),
+        Token::ObjectEnd,
+    ])
+}
+
+#[test]
+fn struct_object_out_of_order_ok() {
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Object { length: Some(3) },
+        Token::Str("c"),
+        Token::Number(4.into()),
+        Token::Str("b"),
+        Token::Number(3.into()),
+        Token::Str("a"),
+        Token::Number(2.into()),
+        Token::ObjectEnd,
+    ])
+}
 
 #[test]
 fn struct_object_missing_err() {}

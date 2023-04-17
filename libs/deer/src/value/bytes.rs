@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::DeserializerError,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     value::{impl_owned, EnumUnitDeserializer, IntoDeserializer},
-    Context, Deserializer, EnumVisitor, OptionalVisitor, Visitor,
+    Context, Deserializer, EnumVisitor, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -38,7 +38,7 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -47,7 +47,7 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
             .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
     {
@@ -59,6 +59,16 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(<[u8]>::document()))
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }
 
@@ -103,7 +113,7 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -112,7 +122,7 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
             .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
     {
@@ -124,6 +134,16 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(<[u8]>::document()))
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }
 

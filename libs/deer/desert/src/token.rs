@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
 
-use deer::{Document, Number, Reflection, Schema};
+use deer::{Deserialize, Document, Number, Reflection, Schema};
 
 // TODO: test
 // TODO: this should be `Copy`, but `Number` has no &'static constructor
@@ -241,7 +241,7 @@ impl Token {
             Token::BytesBuf(_) => Document::new::<[u8]>(),
             Token::Array { .. } | Token::ArrayEnd => Document::new::<AnyArray>(),
             Token::Object { .. } | Token::ObjectEnd => Document::new::<AnyObject>(),
-            Token::Null => Document::new::<()>(),
+            Token::Null => Document::new::<<() as Deserialize>::Reflection>(),
         }
     }
 }

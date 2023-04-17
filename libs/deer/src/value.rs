@@ -5,12 +5,14 @@ mod string;
 
 pub use array::ArrayAccessDeserializer;
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
 use crate::{
-    error::DeserializerError, Context, Deserializer, EnumVisitor, Number, OptionalVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, StructVisitor,
+    Visitor,
 };
 
 macro_rules! impl_owned {
@@ -74,6 +76,20 @@ macro_rules! impl_owned {
                 V: EnumVisitor<'de>,
             {
                 $crate::value::EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+            }
+
+            fn deserialize_struct<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+            where
+                V: StructVisitor<'de>
+            {
+                Err(
+                    Report::new(TypeError.into_error())
+                        .attach(ExpectedType::new(visitor.expecting()))
+                        // TODO: enable once String and Vec<u8> have reflection
+                        //  (or we rework this macro c:)
+                        // .attach(ReceivedType::new(<$ty>::reflection()))
+                        .change_context(DeserializerError)
+                )
             }
         }
 
@@ -205,6 +221,13 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -255,6 +278,13 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        visitor.visit_null().change_context(DeserializerError)
     }
 }
 
