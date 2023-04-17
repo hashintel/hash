@@ -28,7 +28,7 @@
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",
     "material-ui-popup-state": "4.0.2",
-    "rooks": "7.4.3",
+    "rooks": "7.11.1",
     "setimmediate": "1.0.5"
   },
   "devDependencies": {
