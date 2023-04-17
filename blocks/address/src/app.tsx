@@ -1,7 +1,7 @@
 import {
+  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
-  type BlockComponent,
 } from "@blockprotocol/graph/react";
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
