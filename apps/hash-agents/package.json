@@ -1,0 +1,17 @@
+{
+  "name": "@apps/hash-agents",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "HASH LLM Agents",
+  "type": "module",
+  "exports": {
+    "./*": {
+      "types": "./*.ts",
+      "default": "./*.ts",
+      "node": "./*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {}
+}
