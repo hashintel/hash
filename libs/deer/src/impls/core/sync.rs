@@ -13,7 +13,9 @@ where
 {
     type Reflection = T::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
         T::deserialize(deserializer).map(Self::new)
     }
 }

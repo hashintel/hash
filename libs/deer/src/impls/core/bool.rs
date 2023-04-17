@@ -29,7 +29,8 @@ impl<'de> Deserialize<'de> for bool {
     type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
-        deserializer.deserialize_bool(BoolVisitor)
+        deserializer
+            .deserialize_bool(BoolVisitor)
             .change_context(DeserializeError)
     }
 }

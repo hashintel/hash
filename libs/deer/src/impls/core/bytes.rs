@@ -16,7 +16,10 @@ impl<'de> Visitor<'de> for BytesVisitor<'de> {
         Self::Value::reflection()
     }
 
-    fn visit_borrowed_bytes(self, value: &'de [u8]) -> error_stack::Result<Self::Value, VisitorError> {
+    fn visit_borrowed_bytes(
+        self,
+        value: &'de [u8],
+    ) -> error_stack::Result<Self::Value, VisitorError> {
         Ok(value)
     }
 }
@@ -32,8 +35,11 @@ impl Reflection for [u8] {
 impl<'de> Deserialize<'de> for &'de [u8] {
     type Reflection = [u8];
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
-        deserializer.deserialize_bytes(BytesVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes(BytesVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

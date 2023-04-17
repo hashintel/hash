@@ -73,7 +73,8 @@ impl<'de> Deserialize<'de> for Ordering {
     type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
-        deserializer.deserialize_str(OrderingVisitor)
+        deserializer
+            .deserialize_str(OrderingVisitor)
             .change_context(DeserializeError)
     }
 }
