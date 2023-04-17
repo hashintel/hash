@@ -1,4 +1,0 @@
-
-inp = input()
-
-print(inp)

@@ -1,3 +1,8 @@
-import { Input as MathInput, Output as MathOutput } from "../agents/math/types";
+import {
+  Input as MathInput,
+  Output as MathOutput,
+} from ".././agents/math/io_types";
 
-export type AgentTypes = { Math: { Input: MathInput; Output: MathOutput } };
+export type AgentTypes = {
+  Math: { Input: MathInput; Output: MathOutput };
+};

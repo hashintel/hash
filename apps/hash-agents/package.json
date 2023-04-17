@@ -4,12 +4,11 @@
   "private": true,
   "description": "HASH LLM Agents",
   "scripts": {
-    "build": "yarn exe ./scripts/codegen.ts agents/**/*.ts",
+    "codegen": "yarn exe ./scripts/codegen.ts './agents/**/*.ts'",
     "exe": "ts-node --transpile-only"
   },
   "dependencies": {
     "execa": "5.1.1",
-    "glob": "^9.3.5",
     "quicktype": "^16.0.43",
     "typescript": "4.9.4",
     "yargs": "^17.7.1"

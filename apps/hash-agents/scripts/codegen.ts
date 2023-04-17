@@ -1,6 +1,6 @@
 /** @todo - This code shares a lot of similarities with the `status` package's codegen. These should be consolidated. */
 
-import { glob } from "glob";
+import glob from "fast-glob";
 import * as path from "node:path";
 import { argv } from "node:process";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -28,18 +28,21 @@ const postProcess = async (files: string[]) => {
   const outputMapping = (
     objectMapping: Record<string, string>,
     delimiter: string,
+    postDelimiter: string = ", ",
   ) =>
     Object.entries(objectMapping)
       .map(([name, alias]) => `${name}${delimiter}${alias}`)
-      .join(", ");
+      .join(postDelimiter);
 
-  const importLines = names.map(
-    ({ importMapping, importPath }) =>
-      `import {${outputMapping(
-        importMapping,
-        " as ",
-      )}} from "../${importPath}";`,
-  );
+  const importLines = names
+    .map(
+      ({ importMapping, importPath }) =>
+        `import {${outputMapping(
+          importMapping,
+          " as ",
+        )}} from "../${importPath}";`,
+    )
+    .join("\n");
 
   const aliasedExports = Object.fromEntries(
     names.map(({ name, importMapping }) => [
@@ -48,15 +51,18 @@ const postProcess = async (files: string[]) => {
     ]),
   );
 
-  const typeReexport = `export type AgentTypes = { ${outputMapping(
+  const typeReexport = `export type AgentTypes = {\n  ${outputMapping(
     aliasedExports,
     ": ",
-  )} }`;
+    "\n  ",
+  )}\n}`;
 
   const result = importLines + "\n\n" + typeReexport;
 
   await mkdir("./src/", { recursive: true });
-  await writeFile("./src/types.ts", result);
+  const sharedModule = "./src/types.ts";
+  await writeFile(sharedModule, result);
+  console.log(`Wrote shared type definitions to ${sharedModule}`);
 };
 
 /**
@@ -65,7 +71,9 @@ const postProcess = async (files: string[]) => {
  */
 const codegen = async ({ globPattern }: { globPattern: string }) => {
   const files = await glob(globPattern);
-  for (const filePath of files) {
+
+  for await (const filePath of files) {
+    console.log("Generating types from ", filePath);
     const fileName = path.parse(filePath).name;
     const fileExtension = path.extname(filePath);
 
@@ -84,7 +92,7 @@ const codegen = async ({ globPattern }: { globPattern: string }) => {
     }
   }
 
-  await postProcess(files);
+  await postProcess(files.sort());
 };
 
 void (async () => {
