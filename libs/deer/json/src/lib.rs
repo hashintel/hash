@@ -19,9 +19,9 @@ use std::any::Demand;
 use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
-        DeserializerError, ExpectedLength, ExpectedType, ObjectAccessError, ObjectItemsExtraError,
-        ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant,
+        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
+        ObjectItemsExtraError, ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType,
+        ReceivedValue, TypeError, ValueError, Variant,
     },
     value::NoneDeserializer,
     Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
@@ -433,7 +433,9 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         V: StructVisitor<'de>,
     {
         match self.value {
-            None => visitor.visit_none().change_context(DeserializerError),
+            None => Err(Report::new(MissingError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .change_context(DeserializerError)),
             Some(Value::Object(object)) => visitor
                 .visit_object(ObjectAccess::new(object, self.context))
                 .change_context(DeserializerError),
