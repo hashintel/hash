@@ -7,23 +7,26 @@ import { EditableField, theme } from "@hashintel/design-system";
 import { ThemeProvider } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 
-import { RootEntityKey } from "./additional-types";
+import { BlockEntityKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { Board } from "./components/board/board";
-import { RootEntity, RootEntityLinkedEntities } from "./types";
+import {
+  BlockEntity,
+  KanbanBoardBlockOutgoingLinkAndTarget,
+} from "./types/generated/block-entity";
 
-const titleKey: RootEntityKey =
+const titleKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const { rootEntity: blockEntity } = useEntitySubgraph<
-    RootEntity,
-    RootEntityLinkedEntities
+    BlockEntity,
+    KanbanBoardBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
   const {
@@ -35,7 +38,7 @@ export const App: BlockComponent<RootEntity> = ({
   } = blockEntity;
 
   const updateEntity = useMemo(
-    () => async (newProperties: RootEntity["properties"]) => {
+    () => async (newProperties: BlockEntity["properties"]) => {
       await graphModule.updateEntity({
         data: {
           entityId: blockEntityId,

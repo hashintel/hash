@@ -54,7 +54,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         left_entity_uuid UUID NOT NULL,
                         right_owned_by_id UUID NOT NULL,
                         right_entity_uuid UUID NOT NULL
-                    );
+                    ) ON COMMIT DROP;
                 ",
             )
             .await

@@ -21,22 +21,22 @@ import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
 import { propertyIds } from "./property-ids";
 import {
-  RootEntity,
-  RootEntityLinkedEntities,
+  BlockEntity,
   ShuffleBlockItemPropertyValue,
-} from "./types";
+  ShuffleBlockOutgoingLinkAndTarget,
+} from "./types/generated/block-entity";
 
 const initialItems: ShuffleBlockItemPropertyValue[] = [
   { [propertyIds.id]: "1", [propertyIds.value]: "Thing 1" },
   { [propertyIds.id]: "2", [propertyIds.value]: "Thing 2" },
 ];
 
-export const Shuffle: BlockComponent<RootEntity> = ({
+export const Shuffle: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity } = useEntitySubgraph<
-    RootEntity,
-    RootEntityLinkedEntities
+    BlockEntity,
+    ShuffleBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
   const items = rootEntity.properties[propertyIds.list];

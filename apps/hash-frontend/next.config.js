@@ -11,6 +11,7 @@ const withTM = require("next-transpile-modules")([
   "@local/hash-graphql-shared",
   "@local/hash-isomorphic-utils",
   "@local/hash-subgraph",
+  "react-syntax-highlighter",
 ]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",

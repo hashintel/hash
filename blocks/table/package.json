@@ -17,11 +17,12 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
@@ -29,7 +30,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0",
+    "@blockprotocol/graph": "0.2.2",
     "@glideapps/glide-data-grid": "5.2.1",
     "@hashintel/design-system": "0.0.6",
     "@mui/material": "5.11.8",
@@ -43,9 +44,9 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.1.0",
+    "block-scripts": "0.2.3",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0",
+    "mock-block-dock": "0.1.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -94,6 +95,16 @@
     "image": "public/block-preview.png",
     "name": "@hash/table",
     "protocol": "0.3",
-    "schema": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/3"
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/3",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
   }
 }
