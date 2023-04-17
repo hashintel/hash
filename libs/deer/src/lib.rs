@@ -381,6 +381,19 @@ pub trait StructVisitor<'de>: Sized {
 
     fn expecting(&self) -> Document;
 
+    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(<()>::reflection()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
     fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
     where
         A: ArrayAccess<'de>,
