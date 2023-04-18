@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a collection of agents that are being used in HASH. The agents are defined in the [`agents/`](./agents) directory and are organized as modules. The top-level module is able to run the different agents.
+This is a collection of agents that are being used in HASH. The agents are defined in the [`agents/`](app/agents) directory and are organized as modules. The top-level module is able to run the different agents.
 
 ## Requirements
 
@@ -66,7 +66,7 @@ python -m agents <AGENT_NAME> <INPUT>
 
 ### Adding a new agent
 
-To add a new agent, you need to create a new module in the [`agents/`](./agents) directory. For this, it's recommended to copy the `template` module and rename it to the name of your agent.
+To add a new agent, you need to create a new module in the [`agents/`](app/agents) directory. For this, it's recommended to copy the `template` module and rename it to the name of your agent.
 
 To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
 

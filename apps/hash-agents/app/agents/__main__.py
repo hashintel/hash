@@ -1,6 +1,8 @@
 import json
 import sys
-from . import setup, call_agent
+
+from .. import setup
+from . import call_agent
 
 
 def main():
@@ -15,5 +17,5 @@ def main():
     print(json.dumps(agent_output))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

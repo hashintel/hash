@@ -5,7 +5,7 @@
   "description": "HASH LLM Agents",
   "main": "./src/agents.ts",
   "scripts": {
-    "codegen": "yarn exe ./scripts/codegen.ts './agents/**/*.ts'",
+    "codegen": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
     "exe": "ts-node --transpile-only"
   },
   "dependencies": {
