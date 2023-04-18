@@ -13,6 +13,6 @@ export const callAgentResolver: ResolverFn<
     throw new Error("Agents are unavilable.");
   }
 
-  const result = await agentRunner.executeAgent(payload.Agent, payload.Input);
+  const result = await agentRunner.runAgent(payload.Agent, payload.Input);
   return { Agent: payload.Agent, Output: result };
 };
