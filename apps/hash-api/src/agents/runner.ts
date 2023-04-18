@@ -10,10 +10,10 @@ export type AgentRunner = ReturnType<typeof setupAgentRunner> & DataSource;
 
 export const setupAgentRunner = () => {
   return {
-    runAgent: async <T extends AgentType>(
-      agent: T["Agent"],
-      input: T["Input"],
-    ): Promise<T["Output"]> => {
+    runAgent: async <T extends AgentType["Agent"]>(
+      agent: T,
+      input: Extract<AgentType, { Agent: T }>["Input"],
+    ): Promise<Extract<AgentType, { Agent: T }>["Output"]> => {
       const { url } = withEnabledAgentRunner();
       const endpoint = `${url}agents/${agent}`;
       return (
