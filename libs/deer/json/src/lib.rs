@@ -2,6 +2,7 @@
 #![cfg_attr(nightly, feature(provide_any, error_in_core))]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![deny(unsafe_code)]
+mod deserializer;
 mod error;
 
 extern crate alloc;
