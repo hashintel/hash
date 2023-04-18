@@ -32,7 +32,7 @@
   "dependencies": {
     "@blockprotocol/graph": "0.2.2",
     "@glideapps/glide-data-grid": "5.2.1",
-    "@hashintel/design-system": "0.0.6",
+    "@hashintel/block-design-system": "0.0.0",
     "@mui/material": "5.11.8",
     "clsx": "1.2.1",
     "immer": "9.0.6",

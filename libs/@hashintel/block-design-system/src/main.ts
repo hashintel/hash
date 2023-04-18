@@ -1,3 +1,4 @@
+export { theme } from "@hashintel/design-system";
 export * from "./ai-assistant-message";
 export * from "./block-error-message";
 export * from "./block-prompt-input";

@@ -33,7 +33,7 @@
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
-    "@hashintel/design-system": "0.0.6",
+    "@hashintel/block-design-system": "0.0.0",
     "@mui/material": "5.11.8",
     "clsx": "1.2.1",
     "lodash.clonedeep": "4.5.0",

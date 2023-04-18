@@ -1,8 +1,8 @@
 import { JsonValue } from "@blockprotocol/graph";
 import {
-  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
+  type BlockComponent,
 } from "@blockprotocol/graph/react";
 import {
   CompactSelection,
@@ -12,7 +12,7 @@ import {
   GridSelection,
   Rectangle,
 } from "@glideapps/glide-data-grid";
-import { EditableField, theme } from "@hashintel/design-system";
+import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import produce from "immer";
 import { useCallback, useRef, useState } from "react";

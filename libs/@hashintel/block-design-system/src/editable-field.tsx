@@ -195,7 +195,11 @@ export const EditableField = ({
             }}
           >
             <PenToSquareIcon
-              sx={{ fontSize: `${editIconFontSize ?? 0}px !important` }}
+              sx={
+                editIconFontSize
+                  ? { fontSize: `${editIconFontSize}px !important` }
+                  : {}
+              }
             />
           </IconButton>
         </Fade>

@@ -3,7 +3,7 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { EditableField, theme } from "@hashintel/design-system";
+import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 
