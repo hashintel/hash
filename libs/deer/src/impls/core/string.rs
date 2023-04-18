@@ -50,6 +50,8 @@ impl<'de> Visitor<'de> for CharVisitor {
     }
 }
 
+// TODO: visit_str!
+
 impl Reflection for char {
     fn schema(_: &mut Document) -> Schema {
         Schema::new("string")

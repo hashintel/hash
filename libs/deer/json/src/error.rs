@@ -14,7 +14,7 @@ pub(crate) struct BytesUnsupportedError;
 
 impl Display for BytesUnsupportedError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("deer-json does not support deserialization of bytes")
+        f.write_str("JSON does not support bytes")
     }
 }
 
