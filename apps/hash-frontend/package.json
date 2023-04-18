@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
+    "@apps/hash-agents": "0.0.0-private",
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/graph": "0.2.2",
     "@blockprotocol/hook": "0.1.3",

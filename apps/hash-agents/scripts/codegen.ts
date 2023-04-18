@@ -26,31 +26,24 @@ const postProcess = async (files: string[]) => {
     };
   });
 
-  const outputMapping = (
-    objectMapping: Record<string, string>,
+  const objectMapping = (
+    mapping: Record<string, string>,
     delimiter: string,
     postDelimiter: string = ", ",
   ) =>
-    Object.entries(objectMapping)
+    Object.entries(mapping)
       .map(([name, alias]) => `${name}${delimiter}${alias}`)
       .join(postDelimiter);
 
   const importLines = names
     .map(
       ({ importMapping, importPath }) =>
-        `import {${outputMapping(
+        `import {${objectMapping(
           importMapping,
           " as ",
         )}} from "../${importPath}";`,
     )
     .join("\n");
-
-  const exportUnionVariants = names
-    .map(
-      ({ name, importMapping }) =>
-        `{ ${outputMapping({ Agent: `"${name}"`, ...importMapping }, ": ")} }`,
-    )
-    .join("\n| ");
 
   const agentNames = dedent`
     export const agents = ["${names
@@ -59,13 +52,23 @@ const postProcess = async (files: string[]) => {
     export type Agent = (typeof agents)[number];
     `;
 
-  const typeReexport = dedent`
-    export type AgentTypes =
-      ${exportUnionVariants}
+  const ioMapping = names
+    .map(
+      ({ name, importMapping }) =>
+        `{ ${objectMapping({ Agent: `"${name}"`, ...importMapping }, ": ")} }`,
+    )
+    .join("\n| ");
+
+  const typeExport = dedent`
+    export type AgentType =
+      ${ioMapping}
     ;
+
+    export type AgentTypeInput = Omit<AgentType, "Output">;
+    export type AgentTypeOutput = Omit<AgentType, "Input">;
     `;
 
-  const result = importLines + "\n\n" + agentNames + "\n\n" + typeReexport;
+  const result = importLines + "\n\n" + agentNames + "\n\n" + typeExport;
 
   await mkdir("./src/", { recursive: true });
   const sharedModule = "./src/agents.ts";

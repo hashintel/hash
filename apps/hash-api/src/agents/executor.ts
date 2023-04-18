@@ -1,11 +1,11 @@
-import { AgentTypes } from "@apps/hash-agents";
+import { AgentType } from "@apps/hash-agents";
 import fetch from "node-fetch";
 
 import { withEnabledAgentRunner } from "./config";
 
 export { agents } from "@apps/hash-agents";
 
-export const executeAgent = async <T extends AgentTypes>(
+export const executeAgent = async <T extends AgentType>(
   agent: T["Agent"],
   input: T["Input"],
   { url } = withEnabledAgentRunner(),
