@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import { AgentType } from "@apps/hash-agents";
-import { useMemo } from "react";
 
 import {
   CallAgentQuery,
@@ -30,10 +29,10 @@ export const useAgentRunner = <T extends AgentType["Agent"]>(
 
   const { callAgent: agentResponse } = data ?? {};
 
- const output = agentResponse?.Output;
+  const output = agentResponse?.Output;
 
- return {
-   loading,
-   output,
- };
+  return {
+    loading,
+    output,
+  };
 };
