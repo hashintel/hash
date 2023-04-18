@@ -45,12 +45,12 @@ const postProcess = async (files: string[]) => {
     )
     .join("\n");
 
-  const aliasedExports = Object.fromEntries(
-    names.map(({ name, importMapping }) => [
-      name,
-      `{ ${outputMapping(importMapping, ": ")} }`,
-    ]),
-  );
+  const exportUnionVariants = names
+    .map(
+      ({ name, importMapping }) =>
+        `{ ${outputMapping({ Agent: `"${name}"`, ...importMapping }, ": ")} }`,
+    )
+    .join("\n| ");
 
   const agentNames = dedent`
     export const agents = ["${names
@@ -60,9 +60,9 @@ const postProcess = async (files: string[]) => {
     `;
 
   const typeReexport = dedent`
-    export type AgentTypes = {
-      ${outputMapping(aliasedExports, ": ", "\n  ")}
-    }
+    export type AgentTypes =
+      ${exportUnionVariants}
+    ;
     `;
 
   const result = importLines + "\n\n" + agentNames + "\n\n" + typeReexport;

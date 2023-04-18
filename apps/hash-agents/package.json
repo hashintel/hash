@@ -3,6 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "HASH LLM Agents",
+  "main": "./src/agents.ts",
   "scripts": {
     "codegen": "yarn exe ./scripts/codegen.ts './agents/**/*.ts'",
     "exe": "ts-node --transpile-only"
