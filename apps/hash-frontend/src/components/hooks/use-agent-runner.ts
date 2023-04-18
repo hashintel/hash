@@ -30,21 +30,10 @@ export const useAgentRunner = <T extends AgentType["Agent"]>(
 
   const { callAgent: agentResponse } = data ?? {};
 
-  const output = useMemo(() => {
-    if (!agentResponse) {
-      return undefined;
-    }
+ const output = agentResponse?.Output;
 
-    // This cast is not ideal, it confuses the types that are named `Output`
-    // which are somehow composed for the type expectation (perhaps in `Extract`?)
-    return agentResponse.Output as Extract<
-      AgentType,
-      { Agent: T }
-    >["Output"] as any;
-  }, [agentResponse]);
-
-  return {
-    loading,
-    output,
-  };
+ return {
+   loading,
+   output,
+ };
 };
