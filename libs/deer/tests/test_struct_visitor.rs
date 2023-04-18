@@ -254,7 +254,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         }
 
         // TODO: instead of doing this we need to use `NoneDeserializer`, this means that access
-        //  needs to expose context!
+        //  needs to expose context! no it doesn't you doo doo head
         let a = a.ok_or_else(|| {
             Report::new(MissingError.into_error())
                 .attach(ExpectedType::new(u8::reflection()))
@@ -371,8 +371,9 @@ fn struct_object_missing_err() {
                 "location": [{"type": "field", "value": "b"}]
             }
         }, {
+            // TODO: this is the wrong error, it should be `key`.`missing` detailing the key we
+            //  expected. This will be changed in a follow up PR
             ns: "deer",
-            // TODO: this should be key/discriminator missing! (or should this just silently fail?)
             id: ["value", "missing"],
             properties: {
                 "expected": ExampleFieldDiscriminator::reflection(),
@@ -408,6 +409,8 @@ fn struct_object_missing_multiple_err() {
                 "location": [{"type": "field", "value": "c"}]
             }
         },{
+            // TODO: this is the wrong error, it should be `key`.`missing` detailing the key we
+            //  expected. This will be changed in a follow up PR
             ns: "deer",
             id: ["value", "missing"],
             properties: {
@@ -415,6 +418,8 @@ fn struct_object_missing_multiple_err() {
                 "location": []
             }
         },{
+            // TODO: this is the wrong error, it should be `key`.`missing` detailing the key we
+            //  expected. This will be changed in a follow up PR
             ns: "deer",
             id: ["value", "missing"],
             properties: {
