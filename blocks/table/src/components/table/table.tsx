@@ -14,6 +14,7 @@ import { ColumnKey, RootKey } from "../../additional-types";
 import { BlockEntity } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 import { HeaderMenu } from "../header-menu/header-menu";
+import { RowActions } from "./row-actions";
 import styles from "./table.module.scss";
 
 const localColumnsKey: RootKey =
@@ -116,34 +117,31 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     return true;
   };
 
-  const getRowThemeOverride: DataEditorProps["getRowThemeOverride"] = (row) =>
-    row % 2 ? { bgCell: "#f9f9f9" } : undefined;
+  const getRowThemeOverride: DataEditorProps["getRowThemeOverride"] = (row) => {
+    if (!isStriped) {
+      return undefined;
+    }
+
+    return row % 2 ? { bgCell: "#f9f9f9" } : undefined;
+  };
 
   return (
     <>
       {!!selectedRowCount && !readonly && (
-        <div className={styles.rowActions}>
-          <div>{`${selectedRowCount} ${
-            selectedRowCount > 1 ? "rows" : "row"
-          } selected`}</div>
-          <button
-            type="button"
-            onClick={() => {
-              const selectedRows = selection.rows.toArray();
+        <RowActions
+          selectedRowCount={selectedRowCount}
+          onDelete={() => {
+            const selectedRows = selection.rows.toArray();
 
-              void updateEntity({
-                [localRowsKey]: rows.filter(
-                  (_, index) => !selectedRows.includes(index),
-                ),
-              });
+            void updateEntity({
+              [localRowsKey]: rows.filter(
+                (_, index) => !selectedRows.includes(index),
+              ),
+            });
 
-              setSelection(emptySelection);
-            }}
-            className={styles.danger}
-          >
-            Delete
-          </button>
-        </div>
+            setSelection(emptySelection);
+          }}
+        />
       )}
 
       <Grid
@@ -161,7 +159,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
             </button>
           )
         }
-        getRowThemeOverride={isStriped ? getRowThemeOverride : undefined}
+        getRowThemeOverride={getRowThemeOverride}
         onPaste
         onHeaderMenuClick={handleHeaderMenuClick}
         onCellsEdited={handleCellsEdited}
