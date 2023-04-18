@@ -24,7 +24,7 @@ Some potential candidates for `PYTHON_CMD`
 ### First-Time Pre-Setup
 
 - Acquire and set the OpenAI API key, either:
-  - Create a `.env` file, and set the `OPENAI_API_KEY` environment variable in it, or
+  - Create a `apps/hash-agents/.env` file, and set the `OPENAI_API_KEY` environment variable in it, or
   - Set the `OPENAI_API_KEY` environment variable in your shell
 - Create a virtual environment:
   - `<PYTHON_CMD> -m venv venv`
