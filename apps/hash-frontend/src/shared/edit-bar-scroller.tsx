@@ -23,7 +23,7 @@ export const EditBarScroller = ({
 
   return (
     <EditBarContext.Provider value={value}>
-      <Box sx={{ minHeight: "100%" }} ref={setPage}>
+      <Box sx={{ minHeight: "100%", height: "100%" }} ref={setPage}>
         {children}
       </Box>
     </EditBarContext.Provider>
