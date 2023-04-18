@@ -44,4 +44,10 @@ COPY --from=builder /usr/local/src/apps/hash-agents .
 ENTRYPOINT ["gunicorn"]
 CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app(base_logger='gunicorn.error')"]
 
+
+RUN addgroup -S appuser && \
+    adduser -S appuser -G appuser && \
+    install -d -m 0755 -o appuser -g appuser /log
+USER appuser
+
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost/health || exit 1
