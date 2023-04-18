@@ -15,11 +15,14 @@ export const setupAgentRunner = () => {
       input: T["Input"],
     ): Promise<T["Output"]> => {
       const { url } = withEnabledAgentRunner();
-      const endpoint = `${url}/agents/${agent}`;
+      const endpoint = `${url}agents/${agent}`;
       return (
         await fetch(endpoint, {
           method: "POST",
-          body: JSON.stringify({ agent, input }),
+          body: JSON.stringify(input),
+          headers: {
+            "Content-Type": "application/json",
+          },
         })
       ).json();
     },

@@ -13,14 +13,17 @@ const postProcess = async (files: string[]) => {
   const names = files.map((filePath) => {
     const parsedPath = path.parse(filePath);
     // Capitalize first letter
-    let name = parsedPath.dir.split(path.sep).pop()!;
-    name = name.charAt(0).toUpperCase() + name.slice(1);
+    const name = parsedPath.dir.split(path.sep).pop()!;
+    const pascalName = name.charAt(0).toUpperCase() + name.slice(1);
 
     // Remove extension from path for relative import
     const importPath = `${parsedPath.dir}/${parsedPath.name}`;
 
     return {
-      importMapping: { Input: `${name}Input`, Output: `${name}Output` },
+      importMapping: {
+        Input: `${pascalName}Input`,
+        Output: `${pascalName}Output`,
+      },
       name,
       importPath,
     };

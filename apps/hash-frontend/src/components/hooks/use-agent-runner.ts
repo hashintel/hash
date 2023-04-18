@@ -8,10 +8,13 @@ import {
 } from "../../graphql/api-types.gen";
 import { callAgentQuery } from "../../graphql/queries/agents.queries";
 
-export const useAgent = <T extends AgentType>(
-  agent: T["Agent"],
-  input: T["Input"],
-): { loading: boolean; output: T["Output"] | undefined } => {
+export const useAgentRunner = <T extends AgentType["Agent"]>(
+  agent: T,
+  input: Extract<AgentType, { Agent: T }>["Input"],
+): {
+  loading: boolean;
+  output: Extract<AgentType, { Agent: T }>["Output"] | undefined;
+} => {
   const { data, loading } = useQuery<CallAgentQuery, CallAgentQueryVariables>(
     callAgentQuery,
     {
@@ -32,7 +35,12 @@ export const useAgent = <T extends AgentType>(
       return undefined;
     }
 
-    return agentResponse.Output;
+    // This cast is not ideal, it confuses the types that are named `Output`
+    // which are somehow composed for the type expectation (perhaps in `Extract`?)
+    return agentResponse.Output as Extract<
+      AgentType,
+      { Agent: T }
+    >["Output"] as any;
   }, [agentResponse]);
 
   return {
