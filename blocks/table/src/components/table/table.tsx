@@ -9,7 +9,6 @@ import {
 } from "@glideapps/glide-data-grid";
 import produce from "immer";
 import { useCallback, useRef, useState } from "react";
-import { useLayer } from "react-laag";
 
 import { ColumnKey, RootKey } from "../../additional-types";
 import { BlockEntity } from "../../types/generated/block-entity";
@@ -76,30 +75,6 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     justClickedHeaderRef.current = true;
     setHeaderMenu({ col, bounds });
   }, []);
-
-  const { layerProps, renderLayer } = useLayer({
-    isOpen: !!headerMenu,
-    auto: true,
-    placement: "bottom-end",
-    triggerOffset: 2,
-    onOutsideClick: () => {
-      if (justClickedHeaderRef.current) {
-        justClickedHeaderRef.current = false;
-        return;
-      }
-      setHeaderMenu(undefined);
-    },
-    trigger: {
-      getBounds: () => ({
-        left: headerMenu?.bounds.x ?? 0,
-        top: headerMenu?.bounds.y ?? 0,
-        width: headerMenu?.bounds.width ?? 0,
-        height: headerMenu?.bounds.height ?? 0,
-        right: (headerMenu?.bounds.x ?? 0) + (headerMenu?.bounds.width ?? 0),
-        bottom: (headerMenu?.bounds.y ?? 0) + (headerMenu?.bounds.height ?? 0),
-      }),
-    },
-  });
 
   const selectedRowCount = selection.rows.length;
 
@@ -235,32 +210,38 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
         gridSelection={selection}
         onGridSelectionChange={(newSelection) => setSelection(newSelection)}
       />
-      {!!headerMenu &&
-        renderLayer(
-          <HeaderMenu
-            key={headerMenu.col}
-            layerProps={layerProps}
-            title={columns[headerMenu.col]?.title ?? ""}
-            onDelete={() => {
-              void updateEntity({
-                [localColumnsKey]: localColumns.filter(
-                  (_, index) => index !== headerMenu.col,
-                ),
-              });
-              setHeaderMenu(undefined);
-            }}
-            onClose={() => setHeaderMenu(undefined)}
-            updateTitle={(newTitle) => {
-              void updateEntity({
-                [localColumnsKey]: localColumns.map((col, index) =>
-                  index === headerMenu.col
-                    ? { ...col, [columnTitleKey]: newTitle }
-                    : col,
-                ),
-              });
-            }}
-          />,
-        )}
+      {!!headerMenu && (
+        <HeaderMenu
+          key={headerMenu.col}
+          title={columns[headerMenu.col]?.title ?? ""}
+          bounds={headerMenu.bounds}
+          onOutsideClick={() => {
+            if (justClickedHeaderRef.current) {
+              justClickedHeaderRef.current = false;
+              return;
+            }
+            setHeaderMenu(undefined);
+          }}
+          onDelete={() => {
+            void updateEntity({
+              [localColumnsKey]: localColumns.filter(
+                (_, index) => index !== headerMenu.col,
+              ),
+            });
+            setHeaderMenu(undefined);
+          }}
+          onClose={() => setHeaderMenu(undefined)}
+          updateTitle={(newTitle) => {
+            void updateEntity({
+              [localColumnsKey]: localColumns.map((col, index) =>
+                index === headerMenu.col
+                  ? { ...col, [columnTitleKey]: newTitle }
+                  : col,
+              ),
+            });
+          }}
+        />
+      )}
     </>
   );
 };
