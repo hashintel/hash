@@ -17,11 +17,11 @@ publish = false
 [dependencies]
 error-stack = { version = "0.3.1", default_features = false }
 
-serde_json = { version = "1.0.95", default_features = false, features = ['alloc'] }
-
 deer = { path = "..", default_features = false }
+
+justjson = "0.2.3"
 
 [features]
 default = ['std']
-std = ["serde_json/std", "deer/std"]
-arbitrary-precision = ['deer/arbitrary-precision', 'serde_json/arbitrary_precision']
+std = ["justjson/std", "deer/std"]
+arbitrary-precision = ['deer/arbitrary-precision']
