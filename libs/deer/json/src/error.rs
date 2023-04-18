@@ -4,6 +4,8 @@ use deer::{
     error::{ErrorProperties, ErrorProperty, Id, Location, Namespace, ReceivedValue, Variant},
     id,
 };
+use error_stack::Report;
+use justjson::ErrorKind;
 
 const NAMESPACE: Namespace = Namespace::new("deer-json");
 
@@ -84,18 +86,20 @@ impl ErrorProperty for Position {
 pub enum SyntaxError {
     InvalidUtf8Sequence,
     UnexpectedEof,
-    ExpectedObjectKey,
     ExpectedColon,
     ExpectedExponent,
     ExpectedDecimalDigit,
+    ExpectedDigit,
     ExpectedString,
     ExpectedNumber,
     UnexpectedByte(u8),
     ObjectKeyMustBeString,
     InvalidHexadecimal,
     InvalidEscape,
-    UnclosedObject,
-    UnclosedArray,
+    // we need to create those ourselves!
+    // UnclosedObject,
+    // UnclosedArray,
+    // TODO: trailing non whitespace?
     UnclosedString,
 }
 
@@ -104,10 +108,11 @@ impl Display for SyntaxError {
         match self {
             SyntaxError::InvalidUtf8Sequence => f.write_str("invalid utf-8 sequence"),
             SyntaxError::UnexpectedEof => f.write_str("unexpected end of file"),
-            SyntaxError::ExpectedObjectKey => f.write_str("expected object key"),
             SyntaxError::ExpectedColon => f.write_str("expected color (`:`)"),
             SyntaxError::ExpectedExponent => f.write_str("expected exponent sign or digit"),
             SyntaxError::ExpectedDecimalDigit => f.write_str("expected decimal digit"),
+            SyntaxError::ExpectedDigit => f.write_str("expected decimal digit"),
+            // TODO: do those even matter?
             SyntaxError::ExpectedString => f.write_str("expected string"),
             SyntaxError::ExpectedNumber => f.write_str("expected number"),
             SyntaxError::UnexpectedByte(character) => {
@@ -118,8 +123,6 @@ impl Display for SyntaxError {
                 f.write_str("invalid hexadecimal in unicode escape sequence")
             }
             SyntaxError::InvalidEscape => f.write_str("invalid escape character"),
-            SyntaxError::UnclosedObject => f.write_str("expected end of object (`}`)"),
-            SyntaxError::UnclosedArray => f.write_str("expected end of array (`]`)"),
             SyntaxError::UnclosedString => f.write_str(r#"expected end of string (`"`)"#),
         }
     }
@@ -150,4 +153,45 @@ impl Variant for SyntaxError {
 #[derive(Debug, Clone)]
 pub struct NativeError(justjson::ErrorKind);
 
-pub(crate) fn convert_justjson_error(error: justjson::Error) {}
+impl Display for NativeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Variant for NativeError {
+    type Properties = (Location,);
+
+    const ID: Id = id!["syntax", "native"];
+    const NAMESPACE: Namespace = NAMESPACE;
+
+    fn message(
+        &self,
+        fmt: &mut Formatter,
+        _: &<Self::Properties as ErrorProperties>::Value<'_>,
+    ) -> core::fmt::Result {
+        Display::fmt(&self, fmt)
+    }
+}
+
+pub(crate) fn convert_tokenizer_error(error: justjson::Error) -> Report<deer::error::Error> {
+    let offset = error.offset();
+
+    let error = match error.kind() {
+        ErrorKind::Utf8 => SyntaxError::InvalidUtf8Sequence.into_error(),
+        ErrorKind::UnexpectedEof => SyntaxError::UnexpectedEof.into_error(),
+        ErrorKind::ExpectedColon => SyntaxError::ExpectedColon.into_error(),
+        ErrorKind::Unexpected(v) => SyntaxError::UnexpectedByte(*v).into_error(),
+        ErrorKind::ExpectedExponent => SyntaxError::ExpectedExponent.into_error(),
+        ErrorKind::ExpectedDecimalDigit => SyntaxError::ExpectedDecimalDigit.into_error(),
+        ErrorKind::ExpectedDigit => SyntaxError::ExpectedDigit.into_error(),
+        ErrorKind::InvalidHexadecimal => SyntaxError::InvalidHexadecimal.into_error(),
+        ErrorKind::InvalidEscape => SyntaxError::InvalidEscape.into_error(),
+        ErrorKind::UnclosedString => SyntaxError::UnclosedString.into_error(),
+        ErrorKind::ExpectedString => SyntaxError::ExpectedString.into_error(),
+        ErrorKind::ExpectedNumber => SyntaxError::ExpectedNumber.into_error(),
+        kind => NativeError(kind.clone()).into_error(),
+    };
+
+    Report::new(error).attach(Position { offset })
+}
