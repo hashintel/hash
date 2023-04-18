@@ -21,7 +21,7 @@ def setup_logging():
         ],
     )
 
-    log_level = os.getenv("LOG_LEVEL")
+    log_level = os.getenv("HASH_AGENT_RUNNER_LOG_LEVEL")
 
     logger = get_logger()
     logger.setLevel(log_level if log_level else logging.WARNING)
