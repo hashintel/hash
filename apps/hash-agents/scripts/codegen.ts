@@ -4,6 +4,7 @@ import glob from "fast-glob";
 import * as path from "node:path";
 import { argv } from "node:process";
 import { mkdir, writeFile } from "node:fs/promises";
+import pascalcase from "pascalcase";
 
 import dedent from "dedent";
 import execa from "execa";
@@ -14,7 +15,7 @@ const postProcess = async (files: string[]) => {
     const parsedPath = path.parse(filePath);
     // Capitalize first letter
     const name = parsedPath.dir.split(path.sep).pop()!;
-    const pascalName = name.charAt(0).toUpperCase() + name.slice(1);
+    const pascalName = pascalcase(name);
 
     // Remove extension from path for relative import
     const importPath = `${parsedPath.dir}/${parsedPath.name}`;

@@ -7288,6 +7288,11 @@
   resolved "https://registry.yarnpkg.com/@types/parse-json/-/parse-json-4.0.0.tgz#2f8bb441434d163b35fb8ffdccd7138927ffb8c0"
   integrity "sha1-L4u0QUNNFjs1+4/9zNcTiSf/uMA= sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA=="
 
+"@types/pascalcase@1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@types/pascalcase/-/pascalcase-1.0.1.tgz#2466c1e23713c1681320e49449643e3f16c84f33"
+  integrity sha512-JYPox1hbKw66Sv9HtvTp0r5jJkaz6k+V8XjEnZUb7B+4ffIoS+3sjiAtwkX6IMO68UQtQWe9QcAjugn9VR4GJg==
+
 "@types/pluralize@0.0.29":
   version "0.0.29"
   resolved "https://registry.yarnpkg.com/@types/pluralize/-/pluralize-0.0.29.tgz#6ffa33ed1fc8813c469b859681d09707eb40d03c"
@@ -17508,6 +17513,11 @@ pascal-case@^3.1.2:
   dependencies:
     no-case "^3.0.4"
     tslib "^2.0.3"
+
+pascalcase@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/pascalcase/-/pascalcase-1.0.0.tgz#d2fd7d73f2969606d2b56e17f5261be41c43c381"
+  integrity sha512-BSExi0rRnCHReJys6NocaK+cfTXNinAegfWBvr0JD3hiaEG7Nuc7r0CIdOJunXrs8gU/sbHQ9dxVAtiVQisjmg==
 
 pascalcase@^0.1.1:
   version "0.1.1"
