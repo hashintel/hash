@@ -29,7 +29,11 @@ struct Example {
     c: u32,
 }
 
-struct ExampleFieldVisitor;
+struct ExampleFieldVisitor<'a> {
+    a: &'a mut Option<u8>,
+    b: &'a mut Option<u16>,
+    c: &'a mut Option<u32>,
+}
 
 enum ExampleFieldDiscriminator {
     A,
@@ -113,33 +117,54 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
     }
 }
 
-enum ExampleField {
-    A(u8),
-    B(u16),
-    C(u32),
-}
-
-impl<'de> FieldVisitor<'de> for ExampleFieldVisitor {
+impl<'de> FieldVisitor<'de> for ExampleFieldVisitor<'_> {
     type Key = ExampleFieldDiscriminator;
-    type Value = ExampleField;
+    type Value = ();
 
     fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
+        // doing this instead of using an enum as return value resolves the issue that the enum
+        // would take always take the size of the biggest element in the enum itself,
+        // which is not ideal.
         match key {
-            ExampleFieldDiscriminator::A => u8::deserialize(deserializer)
-                .map(ExampleField::A)
-                .attach(Location::Field("a"))
-                .change_context(VisitorError),
-            ExampleFieldDiscriminator::B => u16::deserialize(deserializer)
-                .map(ExampleField::B)
-                .attach(Location::Field("b"))
-                .change_context(VisitorError),
-            ExampleFieldDiscriminator::C => u32::deserialize(deserializer)
-                .map(ExampleField::C)
-                .attach(Location::Field("c"))
-                .change_context(VisitorError),
+            ExampleFieldDiscriminator::A => {
+                let value = u8::deserialize(deserializer)
+                    .attach(Location::Field("a"))
+                    .change_context(VisitorError)?;
+
+                match self.a {
+                    Some(_) => unimplemented!("planned in follow up PR"),
+                    other => *other = Some(value),
+                };
+
+                Ok(())
+            }
+            ExampleFieldDiscriminator::B => {
+                let value = u16::deserialize(deserializer)
+                    .attach(Location::Field("b"))
+                    .change_context(VisitorError)?;
+
+                match self.b {
+                    Some(_) => unimplemented!("planned in follow up PR"),
+                    other => *other = Some(value),
+                }
+
+                Ok(())
+            }
+            ExampleFieldDiscriminator::C => {
+                let value = u32::deserialize(deserializer)
+                    .attach(Location::Field("c"))
+                    .change_context(VisitorError)?;
+
+                match self.c {
+                    Some(_) => unimplemented!("panned in follow up PR"),
+                    other => *other = Some(value),
+                }
+
+                Ok(())
+            }
         }
     }
 }
@@ -163,6 +188,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         // due to set_bounded we make sure that even if implementations are not correct we are still
         // correct but doing `unwrap_or_else`.
         // TODO: we might be able to expose that through the type system?
+        // TODO: instead of doing this we need to use `NoneDeserializer`
         let a = array
             .next()
             .unwrap_or_else(|| {
@@ -212,30 +238,23 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
 
         let mut errors: Result<(), ObjectAccessError> = Ok(());
 
-        while let Some(field) = object.field(ExampleFieldVisitor) {
-            match field {
-                Err(error) => match &mut errors {
+        while let Some(field) = object.field(ExampleFieldVisitor {
+            a: &mut a,
+            b: &mut b,
+            c: &mut c,
+        }) {
+            if let Err(error) = field {
+                match &mut errors {
                     Err(errors) => {
                         errors.extend_one(error);
                     }
                     errors => *errors = Err(error),
-                },
-                Ok(ExampleField::A(value)) => match &mut a {
-                    // we have no error type for this!
-                    Some(_) => unimplemented!("planned in follow up PR"),
-                    a => *a = Some(value),
-                },
-                Ok(ExampleField::B(value)) => match &mut b {
-                    Some(_) => unimplemented!("planned in follow up PR"),
-                    b => *b = Some(value),
-                },
-                Ok(ExampleField::C(value)) => match &mut c {
-                    Some(_) => unimplemented!("planned in follow up PR"),
-                    c => *c = Some(value),
-                },
+                }
             }
         }
 
+        // TODO: instead of doing this we need to use `NoneDeserializer`, this means that access
+        //  needs to expose context!
         let a = a.ok_or_else(|| {
             Report::new(MissingError.into_error())
                 .attach(ExpectedType::new(u8::reflection()))
