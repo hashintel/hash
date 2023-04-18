@@ -1,5 +1,4 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap");
-$fontFamily: Inter, Helvetica, Arial, sans-serif;
 
 .block {
   position: relative;
@@ -131,8 +130,7 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
   --line-height-loose: 1.75;
 
   /* font family */
-  --font-family: system-ui, "Inter", "Open Sans", "Helvetica Neue", "Arial",
-    sans-serif;
+  --font-family: Inter, Helvetica, Arial, sans-serif;
 
   /* border radius */
   --border-radius-1: 0.25rem;
@@ -246,56 +244,6 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
     border: var(--border-color-light) solid var(--border-weight-thin);
     border-radius: var(--border-radius-2);
     box-shadow: var(--shadow-1);
-  }
-}
-
-.addColumnButton {
-  padding: 0 10px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  font-size: 13px;
-  color: #0f172a !important;
-
-  &:hover {
-    background-color: #ddd;
-  }
-}
-
-.rowActions {
-  position: absolute;
-  background: white;
-  height: 40px;
-  border-radius: 6px;
-  left: 32px;
-  overflow: hidden;
-
-  z-index: 100;
-  box-shadow: 0px 0px 1px rgba(62, 65, 86, 0.7),
-    0px 6px 12px rgba(62, 65, 86, 0.35);
-
-  display: flex;
-  align-items: center;
-  padding-left: 8px;
-  gap: 8px;
-
-  font-size: 13px;
-  font-family: $fontFamily;
-
-  .danger {
-    font-weight: 600;
-    padding: 0 8px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-
-    color: rgba(255, 40, 40, 0.8);
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-      color: rgba(255, 40, 40, 1);
-    }
   }
 }
 

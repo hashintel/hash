@@ -1,4 +1,3 @@
-$fontFamily: Inter, Helvetica, Arial, sans-serif;
 $colorGrayLight: #dde7f0;
 
 .wrapper {
@@ -14,7 +13,7 @@ $colorGrayLight: #dde7f0;
   background-color: white;
   font-size: 13px;
   font-weight: 600;
-  font-family: $fontFamily;
+  font-family: var(--font-family);
 
   .danger {
     color: rgba(255, 40, 40, 0.8);
@@ -27,7 +26,7 @@ $colorGrayLight: #dde7f0;
     padding: 6px 8px;
     margin: 0 8px 6px;
     border: 1px solid $colorGrayLight;
-    font-family: $fontFamily;
+    font-family: var(--font-family);
   }
 
   > button {
