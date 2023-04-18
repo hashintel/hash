@@ -8,17 +8,17 @@ import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const initialData: RootEntity = {
+const initialData: BlockEntity = {
   metadata: {
     recordId: {
       entityId: "entity-countdown",
       editionId: "1",
     },
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {},
 };
@@ -30,6 +30,11 @@ const App = () => {
       blockEntityRecordId={initialData.metadata.recordId}
       initialData={{ initialEntities: [initialData] }}
       blockInfo={packageJSON.blockprotocol}
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
       debug
     />
   );

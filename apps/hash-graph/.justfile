@@ -33,27 +33,7 @@ deployment-down *arguments:
 
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-client:
-  #!/usr/bin/env bash
-  set -euo pipefail
-
-  just run server --openapi-only &
-
-  # When the script exits, clean-up and kill the server by searching for running processes with commands containing the
-  # `--openapi-only` flag
-  trap 'kill $(pgrep -f -- '\''--openapi-only'\'')' EXIT
-
-  retries=10
-
-  while ! just run server --healthcheck --openapi-only 2> /dev/null; do
-    if [ $retries -eq 0 ]; then
-      echo "Max retries reached, exiting"
-      exit 1
-    fi
-
-    retries=$((retries-1))
-    sleep 1
-  done
-
+  just run server --write-openapi-spec
   just yarn workspace @local/hash-graph-client-generator generate
   just yarn workspace @local/hash-graph-client prettier --write .
   just yarn workspace @local/hash-graph-client fix:eslint

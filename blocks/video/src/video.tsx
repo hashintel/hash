@@ -3,11 +3,11 @@ import { useRef } from "react";
 import { setup } from "twind";
 
 import { Media } from "./components/media";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 setup({ preflight: false });
 
-export const Video: BlockComponent<RootEntity> = (props) => {
+export const Video: BlockComponent<BlockEntity> = (props) => {
   const blockRef = useRef<HTMLDivElement>(null);
 
   return (

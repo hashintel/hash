@@ -10,12 +10,13 @@ import {
 import { Ref, useCallback, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import { FontAwesomeIcon, TextField } from "./main";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
 } from "./popper-placement-modifier";
+import { TextField } from "./text-field";
 
 type AutocompleteProps<
   T,

@@ -12,17 +12,17 @@ import {
   columnTitleKey,
 } from "./components/board/board";
 import Component from "./index";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const testEntity: RootEntity = {
+const testEntity: BlockEntity = {
   metadata: {
     recordId: {
       entityId: "test-entity",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJson.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {
     [columnsKey]: [
@@ -67,6 +67,11 @@ const DevApp = () => {
       debug
       initialData={{
         initialEntities: [testEntity],
+      }}
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
       }}
     />
   );

@@ -20,21 +20,22 @@ import { v4 as uuid } from "uuid";
 
 import { Step } from "./step";
 import {
+  BlockEntity,
   HasHowToBlockIntroduction,
   HowToBlockIntroduction,
-  HowToBlockLinksByLinkTypeId,
+  HowToBlockOutgoingLinkAndTarget,
+  HowToBlockOutgoingLinksByLinkEntityTypeId,
   HowToBlockStep,
   HowToBlockStepProperties,
-  RootEntity,
-} from "./types";
+} from "./types/generated/block-entity";
 
-type RootEntityKey = keyof RootEntity["properties"];
-type LinkType = keyof HowToBlockLinksByLinkTypeId;
+type BlockEntityKey = keyof BlockEntity["properties"];
+type LinkType = keyof HowToBlockOutgoingLinksByLinkEntityTypeId;
 
 // Property types
-export const titleKey: RootEntityKey =
+export const titleKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
-export const descriptionKey: RootEntityKey =
+export const descriptionKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
 
 // Relevant Entity Types
@@ -54,13 +55,15 @@ export type EntityType =
   | typeof howToBlockIntroductionType
   | typeof howToBlockStepType;
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
-  const { rootEntity: blockEntity, linkedEntities } =
-    useEntitySubgraph(blockEntitySubgraph);
+  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
+    BlockEntity,
+    HowToBlockOutgoingLinkAndTarget[]
+  >(blockEntitySubgraph);
 
   const {
     metadata: {
@@ -72,7 +75,9 @@ export const App: BlockComponent<RootEntity> = ({
 
   const { [titleKey]: title, [descriptionKey]: description } = properties;
 
-  const introLinkedEntity: LinkEntityAndRightEntity | undefined = useMemo(
+  const introLinkedEntity:
+    | HowToBlockOutgoingLinksByLinkEntityTypeId["https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1"]
+    | undefined = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) =>
@@ -95,8 +100,8 @@ export const App: BlockComponent<RootEntity> = ({
         )
         .sort(
           (a, b) =>
-            (a.linkEntity.linkData?.leftToRightOrder ?? 0) -
-            (b.linkEntity.linkData?.leftToRightOrder ?? 0),
+            (a.linkEntity.linkData.leftToRightOrder ?? 0) -
+            (b.linkEntity.linkData.leftToRightOrder ?? 0),
         ),
     [linkedEntities],
   );
