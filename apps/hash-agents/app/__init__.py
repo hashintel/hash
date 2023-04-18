@@ -7,7 +7,9 @@ from .logger import setup_logging
 from .agents import call_agent
 
 
-def create_app():
+def create_app(base_logger=None):
+    setup(base_logger)
+
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("HASH_AGENT_SECRET_KEY"),
@@ -24,6 +26,6 @@ def create_app():
     return app
 
 
-def setup():
-    setup_logging()
+def setup(base_logger=None):
+    setup_logging(base_logger)
     load_dotenv()
