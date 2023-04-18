@@ -42,6 +42,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY --from=builder /usr/local/src/apps/hash-agents .
 
 ENTRYPOINT ["gunicorn"]
-CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app()"]
+CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app(base_logger='gunicorn.error')"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost/health || exit 1
