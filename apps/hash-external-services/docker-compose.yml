@@ -229,6 +229,7 @@ services:
       - no-new-privileges:true
     volumes:
       - log:/log
+      # Mount the agents folder from the host so that we can edit the agents without having to rebuild the image.
       - ../../apps/hash-agents/app/agents:/usr/local/src/apps/hash-agents/app/agents
     tmpfs:
       - /tmp
