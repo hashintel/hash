@@ -8,12 +8,13 @@ export { agents } from "@apps/hash-agents";
 
 export type AgentRunner = ReturnType<typeof setupAgentRunner> & DataSource;
 
-export const setupAgentRunner = ({ url } = withEnabledAgentRunner()) => {
+export const setupAgentRunner = () => {
   return {
     executeAgent: async <T extends AgentType>(
       agent: T["Agent"],
       input: T["Input"],
     ): Promise<T["Output"]> => {
+      const { url } = withEnabledAgentRunner();
       const endpoint = `${url}/agents/${agent}`;
       return (
         await fetch(endpoint, {
