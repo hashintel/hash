@@ -13,6 +13,10 @@ def create_app():
         SECRET_KEY=os.environ.get("HASH_AGENT_SECRET_KEY"),
     )
 
+    @app.route("/health", methods=["GET"])
+    def health():
+        return ""
+
     @app.route("/agents/<string:agent_name>", methods=["POST"])
     def agent(agent_name):
         return call_agent(agent_name, **request.json)

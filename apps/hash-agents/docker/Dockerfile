@@ -31,7 +31,7 @@ RUN yarn build
 
 FROM python:3.11-alpine as runner
 
-RUN apk add --no-cache g++ musl-dev python3-dev libffi-dev make
+RUN apk add --no-cache g++ musl-dev python3-dev libffi-dev make curl
 
 WORKDIR /usr/local/src/apps/hash-agents
 
@@ -43,3 +43,5 @@ COPY --from=builder /usr/local/src/apps/hash-agents .
 
 ENTRYPOINT ["gunicorn"]
 CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app()"]
+
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost/health || exit 1
