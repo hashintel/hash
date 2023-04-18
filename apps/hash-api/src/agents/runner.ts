@@ -6,9 +6,9 @@ import { withEnabledAgentRunner } from "./config";
 
 export { agents } from "@apps/hash-agents";
 
-export type AgentExecutor = ReturnType<typeof setupAgentExecutor> & DataSource;
+export type AgentRunner = ReturnType<typeof setupAgentRunner> & DataSource;
 
-export const setupAgentExecutor = ({ url } = withEnabledAgentRunner()) => {
+export const setupAgentRunner = ({ url } = withEnabledAgentRunner()) => {
   return {
     executeAgent: async <T extends AgentType>(
       agent: T["Agent"],

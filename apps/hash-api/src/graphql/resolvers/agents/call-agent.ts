@@ -8,11 +8,11 @@ export const callAgentResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryCallAgentArgs
-> = async (_, { payload }, { dataSources: { agentExecutor } }, __) => {
-  if (!agentExecutor) {
+> = async (_, { payload }, { dataSources: { agentRunner } }, __) => {
+  if (!agentRunner) {
     throw new Error("Agents are unavilable.");
   }
 
-  const result = await agentExecutor.executeAgent(payload.Agent, payload.Input);
+  const result = await agentRunner.executeAgent(payload.Agent, payload.Input);
   return { Agent: payload.Agent, Output: result };
 };
