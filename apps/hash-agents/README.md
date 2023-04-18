@@ -72,20 +72,6 @@ The server will read the `HASH_AGENT_RUNNER_HOST` and `HASH_AGENT_RUNNER_PORT` e
 
 The server will be run from the external services directory. Please note, that this will not use the `OPENAI_API_KEY` specified in `.env` but requires the `OPENAI_API_KEY` environment variable to be set.
 
-## Development
-
-### Adding a new agent
-
-To add a new agent, you need to create a new module in the [`app/agents/`](app/agents) directory. For this, it's recommended to copy the `template` module and rename it to the name of your agent.
-
-To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
-
-```bash
-python -m app.agents.my_agents
-```
-
-When the server is running as an external service, the `agents` directory is mounted, so it's possible to add new agents or modify agents without restarting the server.
-
 ### Logging
 
 You can configure the logging level with the `HASH_AGENT_RUNNER_LOG_LEVEL` environment variable.
@@ -95,3 +81,62 @@ The possible values are those accepted by [Python's `logging` library](https://d
 The level defaults to `WARNING` if the environment variable is not set.
 
 All logs will be output to a `$HASH_AGENT_RUNNER_LOG_FOLDER/run-TIMESTAMP.log` file, where `TIMESTAMP` is the time the module was started. If the environment variable is not set, the logs will be output to the `logs` directory.
+
+## Development
+
+### Adding a new agent
+
+To add a new agent, you need to create a new module in the [`app/agents/`](app/agents) directory. For this, it's recommended to copy the `template` module and rename it to the name of your agent.
+
+You should have an `io_types.ts` file in this newly copied directory, this folder contains your `Input` and `Output` types. These types are the shape of the data your agent expects to receive and the shape of the data your agent will return to callers in JSON format. **Be sure keep the type names** as other parts of the system expect them to exist. You can make the types the empty object `{}` if no input or output is required.
+
+To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
+
+```bash
+python -m app.agents.my_agents
+```
+
+When the server is running as an external service, the `agents` directory is mounted, so it's possible to add new agents or modify agents without restarting the server.
+
+### Calling from HASH frontend
+
+Once you've added your new agent, you will be able to trivially call them from the frontend and backend using their directory names and defined input types.
+
+In the frontend, you can run an agent by using the `useAgentRunner` hook from [`apps/hash-frontend/src/components/hooks/use-agent-runner.ts`](/apps/hash-frontend/src/components/hooks/use-agent-runner.ts) and calling it with the agent name and input.
+
+In the backend, we provide a `agentRunner` DataSouce which exposes a `runAgent` function that will call the agent runner server using the agent name and input.
+
+Both approaches are fully typed and use the provided type information to ensure each agent call is properly typed/type narrowed.
+
+Example frontend page using the agent runner:
+
+```tsx
+const Page = () => {
+  const [prompt, setPrompt] = useState("What is 23 times 2?");
+
+  const [expression, setExpression] = useState(prompt);
+  const { loading, output } = useAgentRunner("template", { expression });
+
+  return (
+    <Container sx={{ paddingTop: 5 }}>
+      <Typography variant="h3">Test the math agent!</Typography>
+
+      <input
+        type="text"
+        value={prompt}
+        onChange={(event) => setPrompt(event.target.value)}
+      />
+
+      <Button
+        onClick={() => {
+          setExpression(prompt);
+        }}
+      >
+        Create
+      </Button>
+
+      {loading && output ? <p>Loading...</p> : <p>{output?.result}</p>}
+    </Container>
+  );
+};
+```
