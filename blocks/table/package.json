@@ -1,6 +1,6 @@
 {
   "name": "@blocks/table",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
@@ -32,6 +32,8 @@
   "dependencies": {
     "@blockprotocol/graph": "0.2.2",
     "@glideapps/glide-data-grid": "5.2.1",
+    "@hashintel/design-system": "0.0.6",
+    "@mui/material": "5.11.8",
     "clsx": "1.2.1",
     "immer": "9.0.6",
     "lodash.uniqueid": "4.0.1",
