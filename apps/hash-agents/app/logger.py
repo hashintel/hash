@@ -9,8 +9,9 @@ def get_logger():
 
 
 def setup_logging():
-    if not os.path.exists("./logs"):
-        os.mkdir("./logs")
+    log_folder = os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs")
+    if not os.path.exists(log_folder):
+        os.mkdir(log_folder)
     logging.basicConfig(
         format="%(levelname)-8s [%(asctime)s] %(message)s",
         handlers=[

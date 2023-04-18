@@ -217,3 +217,22 @@ services:
     ports:
       - "4436:4436"
       - "4437:4437"
+
+  hash-agents:
+    init: true
+    build:
+      dockerfile: apps/hash-agents/docker/Dockerfile
+      context: ../../
+    image: hash-agents
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - log:/log
+    tmpfs:
+      - /tmp
+    environment:
+      HASH_AGENT_RUNNER_LOG_FOLDER: "/log/hash-agents"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    ports:
+      - "${HASH_AGENT_RUNNER_PORT}:80"
