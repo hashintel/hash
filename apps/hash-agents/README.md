@@ -82,13 +82,15 @@ The level defaults to `WARNING` if the environment variable is not set.
 
 All logs will be output to a `$HASH_AGENT_RUNNER_LOG_FOLDER/run-TIMESTAMP.log` file, where `TIMESTAMP` is the time the module was started. If the environment variable is not set, the logs will be output to the `logs` directory.
 
-## Development
+## Developing agents
+
+> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn build` command to ensure the python typings are up to date.
 
 ### Adding a new agent
 
 To add a new agent, you need to create a new module in the [`app/agents/`](app/agents) directory. For this, it's recommended to copy the `template` module and rename it to the name of your agent.
 
-You should have an `io_types.ts` file in this newly copied directory, this folder contains your `Input` and `Output` types. These types are the shape of the data your agent expects to receive and the shape of the data your agent will return to callers in JSON format. **Be sure keep the type names** as other parts of the system expect them to exist. You can make the types the empty object `{}` if no input or output is required.
+You should have an `io_types.ts` file in this newly copied directory, this folder contains your `Input` and `Output` types. These types are the shape of the data your agent expects to receive and the shape of the data your agent will return to callers in JSON format. **Be sure to keep the type names** as other parts of the system expect them to exist. You can make the types the empty object `{}` if no input or output is required.
 
 To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
 
