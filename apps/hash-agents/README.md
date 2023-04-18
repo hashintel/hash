@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a collection of agents that are being used in HASH. The agents are defined in the [`app/agents/`](app/agents) directory and are organized as modules. The top-level module is able to run the different agents.
+This is a collection of LLM agents that are being used in HASH. The agents are defined in the [`app/agents/`](app/agents) directory and are organized as modules. The top-level module is able to run the different agents.
 
 ## Requirements
 
