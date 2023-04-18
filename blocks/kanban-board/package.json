@@ -1,6 +1,6 @@
 {
   "name": "@blocks/kanban-board",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Capture information in cards, and drag cards flexibly between customizable columns",
   "keywords": [
     "blockprotocol",
@@ -33,6 +33,8 @@
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
+    "@hashintel/design-system": "0.0.6",
+    "@mui/material": "5.11.8",
     "clsx": "1.2.1",
     "lodash.clonedeep": "4.5.0",
     "lodash.debounce": "4.0.8",

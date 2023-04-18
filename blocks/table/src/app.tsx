@@ -12,6 +12,8 @@ import {
   GridSelection,
   Rectangle,
 } from "@glideapps/glide-data-grid";
+import { EditableField, theme } from "@hashintel/design-system";
+import { ThemeProvider } from "@mui/material";
 import produce from "immer";
 import { useCallback, useRef, useState } from "react";
 import { useLayer } from "react-laag";
@@ -21,7 +23,6 @@ import styles from "./base.module.scss";
 import { Grid, ROW_HEIGHT } from "./components/grid/grid";
 import { HeaderMenu } from "./components/header-menu/header-menu";
 import { Settings } from "./components/settings/settings";
-import { TableTitle } from "./components/table-title/table-title";
 import {
   BlockEntity,
   TableBlockOutgoingLinkAndTarget,
@@ -138,10 +139,6 @@ export const App: BlockComponent<BlockEntity> = ({
     return true;
   };
 
-  const setTitle = async (val: string) => {
-    await updateEntity({ [titleKey]: val });
-  };
-
   const justClickedHeaderRef = useRef(false);
   const handleHeaderMenuClick = useCallback<
     NonNullable<DataEditorProps["onHeaderMenuClick"]>
@@ -179,129 +176,150 @@ export const App: BlockComponent<BlockEntity> = ({
   const getRowThemeOverride: DataEditorProps["getRowThemeOverride"] = (row) =>
     row % 2 ? { bgCell: "#f9f9f9" } : undefined;
 
+  const [titleValue, setTitleValue] = useState(title);
+
   return (
-    <div className={styles.block} ref={blockRootRef}>
-      <div className={styles.titleWrapper}>
-        <TableTitle onChange={setTitle} title={title} readonly={readonly} />
-        {!readonly && (
-          <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
-        )}
-      </div>
-      {!!selectedRowCount && !readonly && (
-        <div className={styles.rowActions}>
-          <div>{`${selectedRowCount} ${
-            selectedRowCount > 1 ? "rows" : "row"
-          } selected`}</div>
-          <button
-            type="button"
-            onClick={() => {
-              const selectedRows = selection.rows.toArray();
-
-              void updateEntity({
-                [localRowsKey]: rows.filter(
-                  (_, index) => !selectedRows.includes(index),
-                ),
-              });
-
-              setSelection(emptySelection);
-            }}
-            className={styles.danger}
-          >
-            Delete
-          </button>
+    <ThemeProvider theme={theme}>
+      <div className={styles.block} ref={blockRootRef}>
+        <div className={styles.titleWrapper}>
+          <div>
+            <EditableField
+              value={titleValue}
+              placeholder="Untitled Board"
+              onChange={(event) => setTitleValue(event.target.value)}
+              onBlur={(event) =>
+                updateEntity({ [titleKey]: event.target.value })
+              }
+              readonly={readonly}
+              sx={{
+                fontWeight: 700,
+                fontSize: "21px !important",
+                lineHeight: "1.2 !important",
+                color: "black",
+              }}
+              wrapperSx={{ mb: 1.5 }}
+            />
+          </div>
+          {!readonly && (
+            <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
+          )}
         </div>
-      )}
-      <Grid
-        rowMarkerWidth={32}
-        rows={rows.length}
-        columns={columns}
-        rightElement={
-          readonly || hideHeaderRow ? null : (
+        {!!selectedRowCount && !readonly && (
+          <div className={styles.rowActions}>
+            <div>{`${selectedRowCount} ${
+              selectedRowCount > 1 ? "rows" : "row"
+            } selected`}</div>
             <button
               type="button"
-              className={styles.addColumnButton}
-              onClick={addNewColumn}
-            >
-              Add a Column +
-            </button>
-          )
-        }
-        getRowThemeOverride={isStriped ? getRowThemeOverride : undefined}
-        onPaste
-        onHeaderMenuClick={handleHeaderMenuClick}
-        onCellsEdited={handleCellsEdited}
-        rightElementProps={{ fill: true }}
-        trailingRowOptions={{
-          hint: "New row...",
-          sticky: true,
-          tint: true,
-        }}
-        onRowAppended={
-          readonly
-            ? undefined
-            : () => {
-                /**
-                 * @todo this should be async, but making it async makes grid place the overlay with a weird offset
-                 * needs debugging
-                 */
-                void addNewRow();
-              }
-        }
-        headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
-        rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
-        rowSelectionMode="multi"
-        getCellContent={([colIndex, rowIndex]) => {
-          const key = columns[colIndex]?.id;
+              onClick={() => {
+                const selectedRows = selection.rows.toArray();
 
-          if (!key) {
+                void updateEntity({
+                  [localRowsKey]: rows.filter(
+                    (_, index) => !selectedRows.includes(index),
+                  ),
+                });
+
+                setSelection(emptySelection);
+              }}
+              className={styles.danger}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+        <Grid
+          rowMarkerWidth={32}
+          rows={rows.length}
+          columns={columns}
+          rightElement={
+            readonly || hideHeaderRow ? null : (
+              <button
+                type="button"
+                className={styles.addColumnButton}
+                onClick={addNewColumn}
+              >
+                Add a Column +
+              </button>
+            )
+          }
+          getRowThemeOverride={isStriped ? getRowThemeOverride : undefined}
+          onPaste
+          onHeaderMenuClick={handleHeaderMenuClick}
+          onCellsEdited={handleCellsEdited}
+          rightElementProps={{ fill: true }}
+          trailingRowOptions={{
+            hint: "New row...",
+            sticky: true,
+            tint: true,
+          }}
+          onRowAppended={
+            readonly
+              ? undefined
+              : () => {
+                  /**
+                   * @todo this should be async, but making it async makes grid place the overlay with a weird offset
+                   * needs debugging
+                   */
+                  void addNewRow();
+                }
+          }
+          headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
+          rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
+          rowSelectionMode="multi"
+          getCellContent={([colIndex, rowIndex]) => {
+            const key = columns[colIndex]?.id;
+
+            if (!key) {
+              return {
+                kind: GridCellKind.Text,
+                displayData: "",
+                data: "",
+                allowOverlay: false,
+              };
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
+            const value = ((rows[rowIndex] as any)?.[key] ?? "") as JsonValue;
+
             return {
               kind: GridCellKind.Text,
-              displayData: "",
-              data: "",
-              allowOverlay: false,
+              displayData: String(value),
+              data: String(value),
+              allowOverlay: !readonly,
             };
-          }
+          }}
+          gridSelection={selection}
+          onGridSelectionChange={(newSelection) => setSelection(newSelection)}
+        />
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
-          const value = ((rows[rowIndex] as any)?.[key] ?? "") as JsonValue;
-
-          return {
-            kind: GridCellKind.Text,
-            displayData: String(value),
-            data: String(value),
-            allowOverlay: !readonly,
-          };
-        }}
-        gridSelection={selection}
-        onGridSelectionChange={(newSelection) => setSelection(newSelection)}
-      />
-
-      {!!headerMenu &&
-        renderLayer(
-          <HeaderMenu
-            key={headerMenu.col}
-            layerProps={layerProps}
-            title={columns[headerMenu.col]?.title ?? ""}
-            onDelete={() => {
-              void updateEntity({
-                [localColumnsKey]: localColumns.filter(
-                  (_, index) => index !== headerMenu.col,
-                ),
-              });
-              setHeaderMenu(undefined);
-            }}
-            onClose={() => setHeaderMenu(undefined)}
-            updateTitle={(newTitle) => {
-              void updateEntity({
-                [localColumnsKey]: localColumns.map((col, index) =>
-                  index === headerMenu.col
-                    ? { ...col, [columnTitleKey]: newTitle }
-                    : col,
-                ),
-              });
-            }}
-          />,
-        )}
-    </div>
+        {!!headerMenu &&
+          renderLayer(
+            <HeaderMenu
+              key={headerMenu.col}
+              layerProps={layerProps}
+              title={columns[headerMenu.col]?.title ?? ""}
+              onDelete={() => {
+                void updateEntity({
+                  [localColumnsKey]: localColumns.filter(
+                    (_, index) => index !== headerMenu.col,
+                  ),
+                });
+                setHeaderMenu(undefined);
+              }}
+              onClose={() => setHeaderMenu(undefined)}
+              updateTitle={(newTitle) => {
+                void updateEntity({
+                  [localColumnsKey]: localColumns.map((col, index) =>
+                    index === headerMenu.col
+                      ? { ...col, [columnTitleKey]: newTitle }
+                      : col,
+                  ),
+                });
+              }}
+            />,
+          )}
+      </div>
+    </ThemeProvider>
   );
 };
