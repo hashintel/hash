@@ -3,19 +3,24 @@ use deer::{
     Context, EnumVisitor, OptionalVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
-use justjson::AnyStr;
-use justjson::parser::{Token, Tokenizer};
+use justjson::{
+    parser::{Token, Tokenizer},
+    AnyStr,
+};
 
-use crate::error::{convert_tokenizer_error, Position, SyntaxError};
+use crate::{
+    error::{convert_tokenizer_error, Position, SyntaxError},
+    number::try_convert_number,
+};
 
 macro_rules! next {
     ($self:ident) => {{
         let offset = $self.tokenizer.offset();
         let Some(token) = $self.tokenizer.next() else {
-                            return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
-                                .attach(Position::new(offset))
-                                .change_context(DeserializerError))
-                        };
+                                    return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
+                                        .attach(Position::new(offset))
+                                        .change_context(DeserializerError))
+                                };
 
         token
             .map_err(convert_tokenizer_error)
@@ -25,13 +30,13 @@ macro_rules! next {
 
 pub struct Stack {
     limit: usize,
-    depth: usize
+    depth: usize,
 }
 
 pub struct Deserializer<'a, 'b> {
     tokenizer: Tokenizer<'a, false>,
     context: &'b Context,
-    stack: Stack
+    stack: Stack,
 }
 
 impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
@@ -52,14 +57,20 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
                 AnyStr::Owned(value) => visitor.visit_string(value),
                 AnyStr::Borrowed(value) => visitor.visit_borrowed_str(value),
             },
-            Token::Number(value) => value.as_f64()
+            Token::Number(value) => {
+                let value = try_convert_number(value).change_context(DeserializerError)?;
+
+                visitor.visit_number(value)
+            }
             Token::Object => {}
+            // TODO: UnexpectedToken error
             Token::ObjectEnd => {}
             Token::Array => {}
             Token::ArrayEnd => {}
             Token::Colon => {}
             Token::Comma => {}
-        }.change_context()
+        }
+        .change_context(DeserializerError)
     }
 
     fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

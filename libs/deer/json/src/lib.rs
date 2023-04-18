@@ -5,5 +5,6 @@
 mod deserializer;
 mod error;
 mod number;
+mod schema;
 
 extern crate alloc;

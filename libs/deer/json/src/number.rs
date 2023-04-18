@@ -12,7 +12,7 @@ use lexical::{parse_float_options::JSON, parse_integer_options::STANDARD, FromLe
 use crate::error::NumberError;
 
 #[cfg(not(feature = "arbitrary-precision"))]
-fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
+pub(crate) fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
     let number = number.source();
     let negative = number.as_bytes().get(0).copied() == Some(b'-');
 
@@ -47,7 +47,7 @@ fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
 }
 
 #[cfg(feature = "arbitrary-precision")]
-fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
+pub(crate) fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
     #[allow(unsafe_code)]
     // SAFETY: `justjson` ensures that the contained source is a valid JSON number, these are
     // accepted by the parse algorithm of Rust
