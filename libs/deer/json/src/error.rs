@@ -34,20 +34,26 @@ impl Variant for BytesUnsupportedError {
 }
 
 #[derive(Debug)]
-pub(crate) struct OverflowError;
+pub enum NumberError {
+    Overflow,
+    Underflow,
+    Unknown,
+}
 
-impl Display for OverflowError {
+impl Display for NumberError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str(
-            "received a number that was either too large or too small and could not be processed",
-        )
+        match self {
+            Self::Overflow => f.write_str("number too large"),
+            Self::Underflow => f.write_str("number too small"),
+            Self::Unknown => f.write_str("unable to parse number"),
+        }
     }
 }
 
-impl Variant for OverflowError {
+impl Variant for NumberError {
     type Properties = (Location, ReceivedValue);
 
-    const ID: Id = id!["number", "overflow"];
+    const ID: Id = id!["number"];
     const NAMESPACE: Namespace = NAMESPACE;
 
     fn message(
@@ -68,6 +74,12 @@ impl Variant for OverflowError {
 
 pub struct Position {
     offset: usize,
+}
+
+impl Position {
+    pub(crate) const fn new(offset: usize) -> Self {
+        Self { offset }
+    }
 }
 
 impl ErrorProperty for Position {
@@ -193,5 +205,5 @@ pub(crate) fn convert_tokenizer_error(error: justjson::Error) -> Report<deer::er
         kind => NativeError(kind.clone()).into_error(),
     };
 
-    Report::new(error).attach(Position { offset })
+    Report::new(error).attach(Position::new(offset))
 }

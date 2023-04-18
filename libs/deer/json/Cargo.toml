@@ -19,7 +19,9 @@ error-stack = { version = "0.3.1", default-features = false }
 
 deer = { path = "..", default-features = false }
 
-justjson = { version = "0.2.3", default-features = false }
+justjson = { version = "0.2.3", default-features = false, features = ['alloc'] }
+lexical = { version = "6.1.1", default-features = false, features = ['parse-floats', 'parse-integers'] }
+memchr = "2.5.0"
 
 [features]
 default = ['std']

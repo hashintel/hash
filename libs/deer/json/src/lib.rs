@@ -4,5 +4,6 @@
 #![deny(unsafe_code)]
 mod deserializer;
 mod error;
+mod number;
 
 extern crate alloc;

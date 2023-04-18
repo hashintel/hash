@@ -1,10 +1,37 @@
-use deer::{error::DeserializerError, Context, EnumVisitor, OptionalVisitor, Visitor};
-use error_stack::Result;
-use justjson::parser::Tokenizer;
+use deer::{
+    error::{DeserializerError, Variant},
+    Context, EnumVisitor, OptionalVisitor, Visitor,
+};
+use error_stack::{Report, Result, ResultExt};
+use justjson::AnyStr;
+use justjson::parser::{Token, Tokenizer};
+
+use crate::error::{convert_tokenizer_error, Position, SyntaxError};
+
+macro_rules! next {
+    ($self:ident) => {{
+        let offset = $self.tokenizer.offset();
+        let Some(token) = $self.tokenizer.next() else {
+                            return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
+                                .attach(Position::new(offset))
+                                .change_context(DeserializerError))
+                        };
+
+        token
+            .map_err(convert_tokenizer_error)
+            .change_context(DeserializerError)?
+    }};
+}
+
+pub struct Stack {
+    limit: usize,
+    depth: usize
+}
 
 pub struct Deserializer<'a, 'b> {
     tokenizer: Tokenizer<'a, false>,
     context: &'b Context,
+    stack: Stack
 }
 
 impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
@@ -16,9 +43,23 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        let Some(token) = self.tokenizer.next() else {
-            todo!()
-        };
+        let token = next!(self);
+
+        match token {
+            Token::Null => visitor.visit_null(),
+            Token::Bool(value) => visitor.visit_bool(value),
+            Token::String(value) => match value.decode_if_needed() {
+                AnyStr::Owned(value) => visitor.visit_string(value),
+                AnyStr::Borrowed(value) => visitor.visit_borrowed_str(value),
+            },
+            Token::Number(value) => value.as_f64()
+            Token::Object => {}
+            Token::ObjectEnd => {}
+            Token::Array => {}
+            Token::ArrayEnd => {}
+            Token::Colon => {}
+            Token::Comma => {}
+        }.change_context()
     }
 
     fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
