@@ -8,10 +8,15 @@ import {
   Rectangle,
 } from "@glideapps/glide-data-grid";
 import produce from "immer";
-import { useCallback, useRef, useState } from "react";
+import debounce from "lodash.debounce";
+import isEqual from "lodash.isequal";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { ColumnKey, RootKey } from "../../additional-types";
-import { BlockEntity } from "../../types/generated/block-entity";
+import {
+  BlockEntity,
+  TableLocalColumnPropertyValue,
+} from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 import { HeaderMenu } from "../header-menu/header-menu";
 import { RowActions } from "./row-actions";
@@ -45,15 +50,23 @@ const emptySelection = {
 };
 
 export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
+  const updateEntityQueue = useRef<number[]>([]);
+  const isDebounceQueued = useRef(false);
+  const justClickedHeaderRef = useRef(false);
+
   const {
     properties: {
-      [localColumnsKey]: localColumns = [],
-      [localRowsKey]: localRows = [],
+      [localColumnsKey]: entityLocalColumns = [],
+      [localRowsKey]: entityLocalRows = [],
       [isStripedKey]: isStriped = false,
       [hideHeaderRowKey]: hideHeaderRow = false,
       [hideRowNumbersKey]: hideRowNumbers = false,
     },
   } = blockEntity;
+
+  const [localColumns, setLocalColumns] = useState(entityLocalColumns);
+  const [localRows, setLocalRows] = useState(entityLocalRows);
+  const [prevBlockEntity, setPrevBlockEntity] = useState(blockEntity);
 
   const [selection, setSelection] = useState<GridSelection>(emptySelection);
   const [headerMenu, setHeaderMenu] = useState<{
@@ -69,7 +82,38 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     hasMenu: !readonly,
   }));
 
-  const justClickedHeaderRef = useRef(false);
+  const debouncedUpdateEntity = useMemo(
+    () =>
+      debounce(async (newProperties: BlockEntity["properties"]) => {
+        isDebounceQueued.current = false;
+
+        const updateId = Date.now();
+        updateEntityQueue.current.push(updateId);
+        await updateEntity(newProperties);
+        updateEntityQueue.current = updateEntityQueue.current.filter(
+          (id) => id !== updateId,
+        );
+      }, 1000),
+    [updateEntity],
+  );
+
+  const updateStateAndEntity = ({
+    newLocalColumns,
+    newLocalRows,
+  }: {
+    newLocalColumns?: TableLocalColumnPropertyValue[];
+    newLocalRows?: Object[];
+  }) => {
+    if (newLocalColumns) setLocalColumns(newLocalColumns);
+    if (newLocalRows) setLocalRows(newLocalRows);
+
+    isDebounceQueued.current = true;
+    void debouncedUpdateEntity({
+      [localColumnsKey]: newLocalColumns ?? localColumns,
+      [localRowsKey]: newLocalRows ?? localRows,
+    });
+  };
+
   const handleHeaderMenuClick = useCallback<
     NonNullable<DataEditorProps["onHeaderMenuClick"]>
   >((col, bounds) => {
@@ -80,8 +124,8 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
   const selectedRowCount = selection.rows.length;
 
   const addNewColumn = () => {
-    return updateEntity({
-      [localColumnsKey]: [
+    updateStateAndEntity({
+      newLocalColumns: [
         ...localColumns,
         {
           [columnIdKey]: String(Date.now()),
@@ -91,15 +135,13 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     });
   };
 
-  const addNewRow = async () => {
-    const newRows = [...rows, { rowId: `${rows.length}` }];
-
-    return updateEntity({ [localRowsKey]: newRows });
+  const addNewRow = () => {
+    const newLocalRows = [...rows, { rowId: `${rows.length}` }];
+    updateStateAndEntity({ newLocalRows });
   };
 
-  // this should definitely be a sync function
   const handleCellsEdited: DataEditorProps["onCellsEdited"] = (newValues) => {
-    const newRows = produce(rows, (draftRows) => {
+    const newLocalRows = produce(rows, (draftRows) => {
       for (const { value, location } of newValues) {
         const [colIndex, rowIndex] = location;
 
@@ -112,7 +154,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
       }
     });
 
-    void updateEntity({ [localRowsKey]: newRows });
+    updateStateAndEntity({ newLocalRows });
 
     return true;
   };
@@ -125,6 +167,24 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     return row % 2 ? { bgCell: "#f9f9f9" } : undefined;
   };
 
+  const isUpdatingEntity = updateEntityQueue.current.length > 0;
+  const shouldOverrideLocalState =
+    !isDebounceQueued.current && !isUpdatingEntity;
+
+  if (blockEntity !== prevBlockEntity && shouldOverrideLocalState) {
+    setPrevBlockEntity(blockEntity);
+
+    const localColumnsChanged = !isEqual(entityLocalColumns, localColumns);
+    if (localColumnsChanged) {
+      setLocalColumns(entityLocalColumns);
+    }
+
+    const localRowsChanged = !isEqual(entityLocalRows, localRows);
+    if (localRowsChanged) {
+      setLocalRows(entityLocalRows);
+    }
+  }
+
   return (
     <>
       {!!selectedRowCount && !readonly && (
@@ -133,8 +193,8 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
           onDelete={() => {
             const selectedRows = selection.rows.toArray();
 
-            void updateEntity({
-              [localRowsKey]: rows.filter(
+            updateStateAndEntity({
+              newLocalRows: rows.filter(
                 (_, index) => !selectedRows.includes(index),
               ),
             });
@@ -173,11 +233,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
           readonly
             ? undefined
             : () => {
-                /**
-                 * @todo this should be async, but making it async makes grid place the overlay with a weird offset
-                 * needs debugging
-                 */
-                void addNewRow();
+                addNewRow();
               }
         }
         headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
@@ -221,8 +277,8 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
             setHeaderMenu(undefined);
           }}
           onDelete={() => {
-            void updateEntity({
-              [localColumnsKey]: localColumns.filter(
+            updateStateAndEntity({
+              newLocalColumns: localColumns.filter(
                 (_, index) => index !== headerMenu.col,
               ),
             });
@@ -230,8 +286,8 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
           }}
           onClose={() => setHeaderMenu(undefined)}
           updateTitle={(newTitle) => {
-            void updateEntity({
-              [localColumnsKey]: localColumns.map((col, index) =>
+            updateStateAndEntity({
+              newLocalColumns: localColumns.map((col, index) =>
                 index === headerMenu.col
                   ? { ...col, [columnTitleKey]: newTitle }
                   : col,
