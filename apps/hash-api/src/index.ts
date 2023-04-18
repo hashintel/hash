@@ -19,6 +19,7 @@ import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
+import { setupAgentExecutor } from "./agents/executor";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import {
@@ -203,12 +204,15 @@ const main = async () => {
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
 
+  const agentExecutor = setupAgentExecutor();
+
   const apolloServer = createApolloServer({
     graphApi,
     search,
     uploadProvider,
     cache: redis,
     taskExecutor,
+    agentExecutor,
     emailTransporter,
     logger,
     statsd,
