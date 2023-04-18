@@ -1,5 +1,7 @@
 flask==2.2.3
 langchain==0.0.137
+gevent==22.10.2
+gunicorn==20.1.0
 openai==0.27.4
 python-dotenv==1.0.0
 tiktoken==0.3.3

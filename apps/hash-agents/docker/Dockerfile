@@ -31,7 +31,7 @@ RUN yarn build
 
 FROM python:3.11-alpine as runner
 
-RUN apk add --no-cache g++ musl-dev
+RUN apk add --no-cache g++ musl-dev python3-dev libffi-dev make
 
 WORKDIR /usr/local/src/apps/hash-agents
 
@@ -41,5 +41,5 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY --from=builder /usr/local/src/apps/hash-agents .
 
-ENTRYPOINT ["python3"]
-CMD ["-m", "app"]
+ENTRYPOINT ["gunicorn"]
+CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app()"]
