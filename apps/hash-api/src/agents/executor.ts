@@ -10,8 +10,9 @@ export const executeAgent = async <T extends AgentTypes>(
   input: T["Input"],
   { url } = withEnabledAgentRunner(),
 ): Promise<T["Output"]> => {
+  const endpoint = `${url}/agents/${agent}`;
   return (
-    await fetch(url, {
+    await fetch(endpoint, {
       method: "POST",
       body: JSON.stringify({ agent, input }),
     })
