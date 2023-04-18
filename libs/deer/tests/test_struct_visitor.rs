@@ -188,7 +188,8 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         // due to set_bounded we make sure that even if implementations are not correct we are still
         // correct but doing `unwrap_or_else`.
         // TODO: we might be able to expose that through the type system?
-        // TODO: instead of doing this we need to use `NoneDeserializer`
+        // TODO: instead of doing this we need to use `NoneDeserializer`,
+        //  this needs `.context()` on access rules to ensure proper ownership
         let a = array
             .next()
             .unwrap_or_else(|| {
@@ -254,7 +255,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         }
 
         // TODO: instead of doing this we need to use `NoneDeserializer`, this means that access
-        //  needs to expose context! no it doesn't you doo doo head
+        //  needs to expose context!
         let a = a.ok_or_else(|| {
             Report::new(MissingError.into_error())
                 .attach(ExpectedType::new(u8::reflection()))
