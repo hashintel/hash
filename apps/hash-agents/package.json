@@ -4,14 +4,13 @@
   "private": true,
   "description": "HASH LLM Agents",
   "scripts": {
-    "codegen": "yarn exe ./scripts/codegen.ts './agents/**/*.ts' && yarn fix:prettier",
-    "exe": "ts-node --transpile-only",
-    "fix:prettier": "prettier --write  --ignore-unknown ."
+    "codegen": "yarn exe ./scripts/codegen.ts './agents/**/*.ts'",
+    "exe": "ts-node --transpile-only"
   },
   "dependencies": {
     "dedent": "0.7.0",
     "execa": "5.1.1",
-    "quicktype": "^23.0.19",
+    "quicktype": "^16.0.43",
     "typescript": "4.9.4",
     "yargs": "^17.7.1"
   },

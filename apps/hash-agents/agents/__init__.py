@@ -26,7 +26,6 @@ def setup_logging():
     logger.setLevel(log_level if log_level else logging.WARNING)
 
 
-
 def setup():
     setup_logging()
     load_dotenv()
