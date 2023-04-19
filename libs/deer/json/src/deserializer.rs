@@ -10,10 +10,10 @@ use justjson::{
 };
 
 use crate::{
-    array,
     error::{convert_tokenizer_error, BytesUnsupportedError, Position, SyntaxError},
     number::try_convert_number,
-    object,
+    skip,
+    skip::skip_tokens,
     token::ValueToken,
 };
 
@@ -50,8 +50,8 @@ impl<'a, 'b> Deserializer<'a, 'b> {
 
     fn recover(&mut self, token: &ValueToken<'a>) {
         match token {
-            ValueToken::Object => object::recover(&mut self.tokenizer),
-            ValueToken::Array => array::recover(&mut self.tokenizer),
+            ValueToken::Object => skip_tokens(&mut self.tokenizer, &Token::Object),
+            ValueToken::Array => skip_tokens(&mut self.tokenizer, &Token::Array),
             _ => {}
         }
     }
