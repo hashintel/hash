@@ -58,8 +58,8 @@ impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
 
 impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     fn is_dirty(&self) -> bool {
-		 self.expected > 0
-	}
+        self.dirty
+    }
 
     fn context(&self) -> &Context {
         self.deserializer.context()
