@@ -26,7 +26,7 @@ import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
-type BlockLoaderProps = {
+export type BlockLoaderProps = {
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeId: VersionedUrl;
   blockMetadata: HashBlockMeta;

@@ -33,6 +33,7 @@ import Head from "next/head";
 import { Router, useRouter } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
+import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
 // import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
@@ -46,6 +47,7 @@ import {
   PageSectionContainerProps,
 } from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
+import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -294,8 +296,10 @@ const Page: NextPageWithLayout<PageProps> = ({
 }) => {
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
-  const { query } = useRouter();
+  const { asPath, query } = useRouter();
   const canvasPage = query.canvas;
+
+  const routeHash = asPath.split("#")[1] ?? "";
 
   const { data: accountPages } = useAccountPages(pageOwnedById);
 
@@ -488,23 +492,27 @@ const Page: NextPageWithLayout<PageProps> = ({
         </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
-          {canvasPage ? (
-            <CanvasPageBlock
-              accountId={pageWorkspace.accountId}
-              contents={contents}
-              blocks={blocksMap}
-              pageComments={pageComments}
-              entityId={pageEntityId}
-            />
-          ) : (
-            <PageBlock
-              accountId={pageWorkspace.accountId}
-              contents={contents}
-              blocks={blocksMap}
-              pageComments={pageComments}
-              entityId={pageEntityId}
-            />
-          )}
+          <UserBlocksProvider value={blocksMap}>
+            <BlockLoadedProvider routeHash={routeHash}>
+              {canvasPage ? (
+                <CanvasPageBlock
+                  accountId={pageWorkspace.accountId}
+                  contents={contents}
+                  blocks={blocksMap}
+                  pageComments={pageComments}
+                  entityId={pageEntityId}
+                />
+              ) : (
+                <PageBlock
+                  accountId={pageWorkspace.accountId}
+                  contents={contents}
+                  blocks={blocksMap}
+                  pageComments={pageComments}
+                  entityId={pageEntityId}
+                />
+              )}
+            </BlockLoadedProvider>
+          </UserBlocksProvider>
         </CollabPositionProvider>
       </PageContextProvider>
     </>

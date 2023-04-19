@@ -72,6 +72,7 @@ export const Suggester = <T,>({
           gridTemplateRows: "1fr auto",
           overflow: "hidden",
           textAlign: "left",
+          zIndex: 2000,
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
