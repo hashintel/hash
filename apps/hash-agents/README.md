@@ -24,7 +24,7 @@ Some potential candidates for `PYTHON_CMD`
 ### First-Time Pre-Setup
 
 - Acquire and set the OpenAI API key, either:
-  - Create a `apps/hash-agents/.env` file, and set the `OPENAI_API_KEY` environment variable in it, or
+  - Set the `OPENAI_API_KEY` environment variable in `.env.local` (this folder or any parent folder), or
   - Set the `OPENAI_API_KEY` environment variable in your shell
 - Create a virtual environment:
   - `<PYTHON_CMD> -m venv venv`
@@ -70,12 +70,12 @@ python -m app
 
 The server will read the `HASH_AGENT_RUNNER_HOST` and `HASH_AGENT_RUNNER_PORT` environment variables to determine the host and port to run on. If these are not set, the server will run on `localhost:5000`.
 
-The server will be run from the external services directory. Please note, that this will not use the `OPENAI_API_KEY` specified in `.env` but requires the `OPENAI_API_KEY` environment variable to be set.
+The server will be run as external service. Please refer to the [HASH Readme](../hash/README.md) for more information on how to run the external services.
 
 ### Logging
 
 You can configure the logging level with the `HASH_AGENT_RUNNER_LOG_LEVEL` environment variable.
-This can be set either in the `.env` or within the environment when you run the module.
+This can be set either in the `.env.local` or within the environment when you run the module.
 The possible values are those accepted by [Python's `logging` library](https://docs.python.org/3/library/logging.html#levels).
 
 The level defaults to `WARNING` if the environment variable is not set.

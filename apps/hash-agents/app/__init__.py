@@ -4,7 +4,7 @@ import json
 
 from logging import getLogger
 from flask import Flask, request
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 from .logger import setup_logging
 from .agents import call_agent
@@ -46,3 +46,4 @@ def create_app(base_logger=None):
 def setup(base_logger=None):
     setup_logging(base_logger)
     load_dotenv()
+    load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
