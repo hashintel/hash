@@ -70,6 +70,8 @@ type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>
 pub trait ObjectAccess<'de>: Sized {
     fn is_dirty(&self) -> bool;
 
+    fn context(&self) -> &Context;
+
     /// This enables bounds-checking for [`ObjectAccess`].
     ///
     /// After calling this [`ObjectAccess`] will
@@ -126,6 +128,8 @@ pub trait FieldVisitor<'de> {
 
 pub trait ArrayAccess<'de>: Sized {
     fn is_dirty(&self) -> bool;
+
+    fn context(&self) -> &Context;
 
     /// Enables bound-checking for [`ArrayAccess`].
     ///

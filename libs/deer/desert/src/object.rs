@@ -3,7 +3,7 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
-    Deserializer as _, FieldVisitor,
+    Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -59,7 +59,11 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
 
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     fn is_dirty(&self) -> bool {
-        self.dirty
+       self.dirty
+	}
+
+    fn context(&self) -> &Context {
+        self.deserializer.context()
     }
 
     fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
