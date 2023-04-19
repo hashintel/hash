@@ -9,6 +9,7 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     deserializer::{Deserializer, DeserializerNone},
+    skip::skip_tokens,
     token::Token,
 };
 
@@ -27,31 +28,6 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
             length,
             remaining: None,
             consumed: 0,
-        }
-    }
-
-    fn scan_end(&self) -> Option<usize> {
-        let mut objects: usize = 0;
-        let mut arrays: usize = 0;
-
-        let mut n = 0;
-
-        loop {
-            let token = self.deserializer.peek_n(n)?;
-
-            match token {
-                Token::Array { .. } => arrays += 1,
-                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
-                Token::Object { .. } => objects += 1,
-                Token::ObjectEnd if arrays == 0 && objects == 0 => {
-                    // we're at the outer layer, meaning we can know where we end
-                    return Some(n);
-                }
-                Token::ObjectEnd => objects = objects.saturating_sub(1),
-                _ => {}
-            }
-
-            n += 1;
         }
     }
 }
@@ -115,6 +91,12 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         } else {
             let key = access.visit_key(&mut *self.deserializer);
 
+            if key.is_err() {
+                // the key is an error, we need to swallow the value
+                let next = self.deserializer.next();
+                skip_tokens(self.deserializer, &next);
+            }
+
             key.and_then(|key| access.visit_value(key, &mut *self.deserializer))
         };
 
@@ -141,11 +123,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         };
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!
-        let bump = self
-            .scan_end()
-            .unwrap_or_else(|| self.deserializer.tape().remaining());
-
-        self.deserializer.tape_mut().bump_n(bump + 1);
+        skip_tokens(self.deserializer, &Token::Object { length: None });
 
         if let Some(remaining) = self.remaining {
             if remaining > 0 {
