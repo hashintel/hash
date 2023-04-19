@@ -24,7 +24,7 @@ use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
 use crate::{
-    bound::BoundArrayAccess,
+    bound::{BoundArrayAccess, BoundObjectAccess},
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
         ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
@@ -67,12 +67,14 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
 type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
 
-pub trait ObjectAccess<'de> {
-    /// This enables bound-checking for [`ObjectAccess`].
+pub trait ObjectAccess<'de>: Sized {
+    fn is_dirty(&self) -> bool;
+
+    /// This enables bounds-checking for [`ObjectAccess`].
     ///
     /// After calling this [`ObjectAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
-    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
+    /// are not enough items present [`ObjectAccess`] will call [`Visitor::visit_none`].
     ///
     /// This is best suited for types where the length/amount of keys is already predetermined, like
     /// structs or enum variants.
@@ -81,7 +83,9 @@ pub trait ObjectAccess<'de> {
     ///
     /// This will error if a call to [`Self::next`] has been made before calling this function or
     /// this function has been called repeatably.
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
+    fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+        todo!()
+    }
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
@@ -91,7 +95,7 @@ pub trait ObjectAccess<'de> {
         self.field(GenericFieldVisitor(PhantomData))
     }
 
-    fn field<F>(&mut self, access: F) -> FieldResult<'de, F>
+    fn field<F>(&mut self, visitor: F) -> FieldResult<'de, F>
     where
         F: FieldVisitor<'de>;
 

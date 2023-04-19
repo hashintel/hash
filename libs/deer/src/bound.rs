@@ -1,8 +1,77 @@
-use crate::{error::ArrayAccessError, ArrayAccess, Deserialize, Result};
+use error_stack::Result;
+
+use crate::{
+    error::{ArrayAccessError, ObjectAccessError},
+    ArrayAccess, Deserialize, FieldResult, FieldVisitor, ObjectAccess,
+};
 
 struct If<const B: bool>;
 trait True {}
 impl True for If<true> {}
+
+pub struct BoundObjectAccess<A> {
+    access: A,
+    length: usize,
+
+    remaining: usize,
+    exhausted: bool,
+}
+
+impl<A> BoundObjectAccess<A> {
+    pub(crate) fn new(access: A, length: usize, remaining: usize, exhausted: bool) -> Self {
+        Self {
+            access,
+            length,
+            remaining,
+            exhausted,
+        }
+    }
+}
+
+impl<'de, A> ObjectAccess<'de> for BoundObjectAccess<A>
+where
+    A: ObjectAccess<'de>,
+{
+    fn is_dirty(&self) -> bool {
+        self.access.is_dirty()
+    }
+
+    fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+        todo!("should error out")
+    }
+
+    fn field<F>(&mut self, visitor: F) -> FieldResult<'de, F>
+    where
+        F: FieldVisitor<'de>,
+    {
+        self.remaining = self.remaining.saturating_sub(1);
+
+        if self.remaining == 0 {
+            return None;
+        }
+
+        if self.exhausted {
+            todo!("needs context PR")
+        }
+
+        match self.access.field(visitor) {
+            None => {
+                self.exhausted = true;
+
+                todo!("needs context PR")
+            }
+            Some(value) => Some(value),
+        }
+    }
+
+    fn size_hint(&self) -> Option<usize> {
+        self.access.size_hint()
+    }
+
+    fn end(self) -> Result<(), ObjectAccessError> {
+        self.access.end()
+    }
+}
 
 pub struct BoundArrayAccess<A> {
     access: A,
@@ -40,6 +109,8 @@ where
     where
         T: Deserialize<'de>,
     {
+        self.remaining = self.remaining.saturating_sub(1);
+
         if self.remaining == 0 {
             return None;
         }
@@ -47,8 +118,6 @@ where
         if self.exhausted {
             todo!("needs context for NoneDeserializer")
         }
-
-        self.remaining -= 1;
 
         match self.access.next() {
             None => {
