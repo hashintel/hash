@@ -58,10 +58,10 @@ impl<'a, 'b> Deserializer<'a, 'b> {
 
     fn error_invalid_type(
         &mut self,
-        received: ValueToken<'a>,
+        received: &ValueToken<'a>,
         expected: Document,
     ) -> Report<DeserializerError> {
-        self.recover(&received);
+        self.recover(received);
 
         Report::new(TypeError.into_error())
             .attach(ExpectedType::new(expected))
@@ -113,7 +113,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
 
         match token {
             ValueToken::Null => visitor.visit_null().change_context(DeserializerError),
-            token => Err(self.error_invalid_type(token, <()>::reflection())),
+            token => Err(self.error_invalid_type(&token, <()>::reflection())),
         }
     }
 
@@ -125,7 +125,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
 
         match token {
             ValueToken::Bool(value) => visitor.visit_bool(value).change_context(DeserializerError),
-            token => Err(self.error_invalid_type(token, bool::reflection())),
+            token => Err(self.error_invalid_type(&token, bool::reflection())),
         }
     }
 
@@ -139,7 +139,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
             ValueToken::Number(value) => visitor
                 .visit_number(try_convert_number(value).change_context(DeserializerError)?)
                 .change_context(DeserializerError),
-            token => Err(self.error_invalid_type(token, Number::reflection())),
+            token => Err(self.error_invalid_type(&token, Number::reflection())),
         }
     }
 
@@ -169,7 +169,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
                 AnyStr::Borrowed(value) => visitor.visit_borrowed_str(value),
             }
             .change_context(DeserializerError),
-            token => Err(self.error_invalid_type(token, str::document())),
+            token => Err(self.error_invalid_type(&token, str::document())),
         }
     }
 
