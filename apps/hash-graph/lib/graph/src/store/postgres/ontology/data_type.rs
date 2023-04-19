@@ -1,15 +1,18 @@
 use std::borrow::Borrow;
 
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, AsClient, ConflictBehavior, DataTypeStore,
-        InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        crud::Read,
+        error::DeletionError,
+        postgres::{ontology::OntologyId, TraversalContext},
+        AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
@@ -31,6 +34,34 @@ impl<C: AsClient> PostgresStore<C> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
         //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_data_types(&mut self) -> Result<(), DeletionError> {
+        let transaction = self.transaction().await.change_context(DeletionError)?;
+
+        let data_types = transaction
+            .as_client()
+            .query(
+                r"
+                    DELETE FROM data_types
+                    RETURNING ontology_id
+                ",
+                &[],
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?
+            .into_iter()
+            .filter_map(|row| row.get(0))
+            .collect::<Vec<OntologyId>>();
+
+        transaction.delete_ontology_ids(&data_types).await?;
+
+        transaction.commit().await.change_context(DeletionError)?;
 
         Ok(())
     }

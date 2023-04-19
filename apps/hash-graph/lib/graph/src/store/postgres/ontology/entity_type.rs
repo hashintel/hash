@@ -1,15 +1,19 @@
 use std::{borrow::Borrow, mem};
 
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use type_system::EntityType;
 
 use crate::{
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, query::Filter, AsClient, ConflictBehavior,
-        EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        crud::Read,
+        error::DeletionError,
+        postgres::{ontology::OntologyId, TraversalContext},
+        query::Filter,
+        AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -188,6 +192,48 @@ impl<C: AsClient> PostgresStore<C> {
 
         self.traverse_property_types(property_type_queue, traversal_context, subgraph)
             .await?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_entity_types(&mut self) -> Result<(), DeletionError> {
+        let transaction = self.transaction().await.change_context(DeletionError)?;
+
+        transaction
+            .as_client()
+            .simple_query(
+                r"
+                    DELETE FROM entity_type_inherits_from;
+                    DELETE FROM entity_type_constrains_link_destinations_on;
+                    DELETE FROM entity_type_constrains_links_on;
+                    DELETE FROM entity_type_constrains_properties_on;
+                ",
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
+
+        let entity_types = transaction
+            .as_client()
+            .query(
+                r"
+                    DELETE FROM entity_types
+                    RETURNING ontology_id
+                ",
+                &[],
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?
+            .into_iter()
+            .filter_map(|row| row.get(0))
+            .collect::<Vec<OntologyId>>();
+
+        transaction.delete_ontology_ids(&entity_types).await?;
+
+        transaction.commit().await.change_context(DeletionError)?;
 
         Ok(())
     }

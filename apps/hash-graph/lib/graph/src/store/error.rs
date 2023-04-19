@@ -51,6 +51,18 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
+pub struct DeletionError;
+
+impl fmt::Display for DeletionError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Could not delete from the store")
+    }
+}
+
+impl Context for DeletionError {}
+
+#[derive(Debug)]
+#[must_use]
 pub struct BaseUrlAlreadyExists;
 
 impl fmt::Display for BaseUrlAlreadyExists {

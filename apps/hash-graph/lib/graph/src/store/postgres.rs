@@ -26,7 +26,10 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
-        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+        error::{
+            DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+            VersionedUrlAlreadyExists,
+        },
         postgres::ontology::{OntologyDatabaseType, OntologyId},
         AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError,
         StoreError, UpdateError,
@@ -963,6 +966,21 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)
             .attach_printable(account_id)?;
+
+        Ok(())
+    }
+}
+
+impl<C: AsClient> PostgresStore<C> {
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_accounts(&mut self) -> Result<(), DeletionError> {
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM accounts;")
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
 
         Ok(())
     }

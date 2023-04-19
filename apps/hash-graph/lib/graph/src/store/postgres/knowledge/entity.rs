@@ -18,7 +18,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
+        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::TraversalContext,
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
@@ -218,6 +218,28 @@ impl<C: AsClient> PostgresStore<C> {
 
         self.traverse_entity_types(entity_type_queue, traversal_context, subgraph)
             .await?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
+        self.as_client()
+            .client()
+            .simple_query(
+                r"
+                    DELETE FROM entity_has_left_entity;
+                    DELETE FROM entity_has_right_entity;
+                    DELETE FROM entity_is_of_type;
+                    DELETE FROM entity_temporal_metadata;
+                    DELETE FROM entity_editions;
+                    DELETE FROM entity_ids;
+                ",
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
 
         Ok(())
     }
