@@ -26,9 +26,9 @@ pub use schema::{Document, Reflection, Schema};
 use crate::{
     bound::{BoundArrayAccess, BoundObjectAccess},
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
-        VisitorError,
+        ArrayAccessError, BoundedContractViolationError, DeserializeError, DeserializerError,
+        ExpectedType, MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError,
+        ValueError, Variant, VisitorError,
     },
     schema::visitor,
 };
@@ -84,7 +84,10 @@ pub trait ObjectAccess<'de>: Sized {
     /// this function has been called repeatably.
     fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
         if self.is_dirty() {
-            todo!("error out")
+            Err(
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ObjectAccessError),
+            )
         } else {
             Ok(BoundObjectAccess::new(self, length))
         }
@@ -155,7 +158,10 @@ pub trait ArrayAccess<'de>: Sized {
     /// [`Self::into_bound`] or [`Self::into_bound`] was called repeatedly.
     fn into_bound(self, length: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
         if self.is_dirty() {
-            todo!()
+            Err(
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ArrayAccessError),
+            )
         } else {
             Ok(BoundArrayAccess::new(self, length))
         }

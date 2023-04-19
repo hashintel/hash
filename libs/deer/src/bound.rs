@@ -1,7 +1,7 @@
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::{ArrayAccessError, ObjectAccessError},
+    error::{ArrayAccessError, BoundedContractViolationError, ObjectAccessError, Variant},
     value::NoneDeserializer,
     ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
 };
@@ -61,8 +61,11 @@ where
         self.access.context()
     }
 
-    fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
-        todo!("should error out")
+    fn into_bound(self, _: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+        Err(
+            Report::new(BoundedContractViolationError::SetCalledMultipleTimes.into_error())
+                .change_context(ObjectAccessError),
+        )
     }
 
     fn try_field<F>(
@@ -97,7 +100,19 @@ where
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
-        self.access.end()
+        let mut result = self.access.end();
+
+        if self.remaining > 0 {
+            let error = Report::new(BoundedContractViolationError::EndRemainingItems.into_error())
+                .change_context(ObjectAccessError);
+
+            match &mut result {
+                Err(result) => result.extend_one(error),
+                result => *result = Err(error),
+            }
+        }
+
+        result
     }
 }
 
@@ -134,7 +149,10 @@ where
     }
 
     fn into_bound(self, _: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
-        todo!("should error out")
+        Err(
+            Report::new(BoundedContractViolationError::SetCalledMultipleTimes.into_error())
+                .change_context(ArrayAccessError),
+        )
     }
 
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
@@ -172,7 +190,19 @@ where
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
-        self.access.end()
+        let mut result = self.access.end();
+
+        if self.remaining > 0 {
+            let error = Report::new(BoundedContractViolationError::EndRemainingItems.into_error())
+                .change_context(ArrayAccessError);
+
+            match &mut result {
+                Err(result) => result.extend_one(error),
+                result => *result = Err(error),
+            }
+        }
+
+        result
     }
 }
 
@@ -242,17 +272,3 @@ where
         self.access.end()
     }
 }
-
-// TODO:
-// end(self) should also include:
-// if let Some(remaining) = self.remaining {
-//             if remaining > 0 {
-//                 let error =
-//                     Report::new(BoundedContractViolationError::EndRemainingItems.into_error());
-//
-//                 match &mut result {
-//                     Err(result) => result.extend_one(error),
-//                     result => *result = Err(error),
-//                 }
-//             }
-//         }
