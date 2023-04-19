@@ -1,5 +1,6 @@
 import os
 import secrets
+import json
 
 from logging import getLogger
 from flask import Flask, request
@@ -29,7 +30,10 @@ def create_app(base_logger=None):
 
     @app.route("/agents/<string:agent_name>", methods=["POST"])
     def agent(agent_name):
-        return call_agent(agent_name, **request.json)
+        try:
+            return call_agent(agent_name, **request.json)
+        except Exception as e:
+            return json.dumps({"error": str(e)})
 
     return app
 
