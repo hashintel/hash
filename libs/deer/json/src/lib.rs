@@ -18,10 +18,9 @@ use std::any::Demand;
 
 use deer::{
     error::{
-        ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
-        DeserializerError, ExpectedLength, ExpectedType, ObjectAccessError, ObjectItemsExtraError,
-        ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant,
+        ArrayAccessError, ArrayLengthError, DeserializeError, DeserializerError, ExpectedLength,
+        ExpectedType, ObjectAccessError, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
+        ReceivedLength, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
     },
     value::NoneDeserializer,
     Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
@@ -201,13 +200,6 @@ impl<'a> Deserializer<'a> {
     const fn new(value: Value, context: &'a Context) -> Self {
         Self {
             value: Some(value),
-            context,
-        }
-    }
-
-    const fn empty(context: &'a Context) -> Self {
-        Self {
-            value: None,
             context,
         }
     }
@@ -530,7 +522,9 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
     {
         self.dirty = true;
 
-        let (key, value) = self.inner.next().ok_or(visitor)?;
+        let Some((key, value)) = self.inner.next() else {
+            return Err(visitor);
+        };
 
         let key = visitor.visit_key(Deserializer::new(Value::String(key), self.context));
         let value =
@@ -546,12 +540,14 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
-        if self.inner.count() == 0 {
+        let remaining: Vec<_> = self.inner.map(|(key, _)| key).collect();
+
+        if remaining.is_empty() {
             Ok(())
         } else {
             let mut report = Report::new(ObjectItemsExtraError.into_error());
 
-            for key in self.inner.into_iter().map(|(key, _)| key) {
+            for key in remaining {
                 report = report.attach(ReceivedKey::new(key));
             }
 
