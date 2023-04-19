@@ -40,7 +40,8 @@ RUN yarn workspace @apps/hash-graph install --frozen-lockfile --ignore-scripts -
 WORKDIR /usr/local/apps/hash-graph
 
 ARG PROFILE=production
-ARG TYPE_FETCHER=yes
+ARG ENABLE_TYPE_FETCHER=no
+ARG ENABLE_TEST_SERVER=no
 
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
 RUN apk add --no-cache make protobuf-dev
@@ -48,11 +49,16 @@ RUN apk add --no-cache make protobuf-dev
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/apps/hash-graph/target,sharing=locked \
-    if [[ ${TYPE_FETCHER^^} == Y* || ${TYPE_FETCHER^^} == T* || $TYPE_FETCHER == 1 ]] ; then  \
-      cargo install --path bin/cli --profile $PROFILE --features type-fetcher --locked; \
-    else \
-      cargo install --path bin/cli --profile $PROFILE --locked;  \
-    fi
+    FEATURES=(); \
+    if [[ ${ENABLE_TYPE_FETCHER^^} == Y* || ${ENABLE_TYPE_FETCHER^^} == T* || $ENABLE_TYPE_FETCHER == 1 ]]; then \
+      FEATURES+=("type-fetcher"); \
+    fi; \
+    if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
+      export RUSTFLAGS="$RUSTFLAGS --cfg hash_graph_test_environment"; \
+      FEATURES+=("test-server"); \
+    fi; \
+    FEATURES=${FEATURES[@]}; \
+    cargo install --path bin/cli --features "${FEATURES// /,}" --profile $PROFILE --locked;
 
 RUN mkdir -p /out/etc/ \
  && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \

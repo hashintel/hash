@@ -14,6 +14,10 @@ services:
     environment:
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
 
+  graph-test-server:
+    environment:
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
+
   kratos-migrate:
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_TEST_DATABASE}

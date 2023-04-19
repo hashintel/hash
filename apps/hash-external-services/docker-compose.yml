@@ -78,7 +78,7 @@ services:
       context: ../../
       args:
         PROFILE: dev
-        TYPE_FETCHER: no
+        ENABLE_TEST_SERVER: yes
     image: hash-graph
     read_only: true
     security_opt:
@@ -87,7 +87,7 @@ services:
       - log:/log
     command: migrate
     environment:
-      # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
+      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
       HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
       HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
       HASH_GRAPH_PG_HOST: "postgres"
@@ -125,6 +125,49 @@ services:
       # - 4318:4318
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+
+  graph-test-server:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      graph-migrate:
+        condition: service_completed_successfully
+    build: *graph-build
+    image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - log:/log
+    command: test-server
+    environment:
+      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FOLDER: "/log/graph-test-service"
+      HASH_GRAPH_API_HOST: "0.0.0.0"
+      HASH_GRAPH_API_PORT: "4000"
+      RUST_LOG: "info"
+      RUST_BACKTRACE: 1
+    ports:
+      - "${HASH_GRAPH_TEST_API_PORT}:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/hash-graph",
+          "test-server",
+          "--healthcheck",
+          "--api-port",
+          "4000",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
   graph:
     init: true
@@ -164,7 +207,8 @@ services:
     ports:
       - "${HASH_GRAPH_API_PORT}:4000"
     healthcheck:
-      test: ["CMD", "/hash-graph", "server", "--healthcheck"]
+      test:
+        ["CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "4000"]
       interval: 2s
       timeout: 2s
       retries: 10
