@@ -1,6 +1,8 @@
 import { QueryEntitiesData } from "@blockprotocol/graph";
-import { fluidFontClassName, theme } from "@hashintel/design-system";
 import { Box, ThemeProvider } from "@mui/material";
+
+import { fluidFontClassName } from "../fluid-fonts";
+import { theme } from "../theme";
 
 export interface EntityQueryEditorProps {
   defaultValue?: QueryEntitiesData;
