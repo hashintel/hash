@@ -115,9 +115,17 @@ Example frontend page using the agent runner:
 ```tsx
 const Page = () => {
   const [prompt, setPrompt] = useState("What is 23 times 2?");
-
   const [expression, setExpression] = useState(prompt);
-  const { loading, output } = useAgentRunner("template", { expression });
+  const [output, setOutput] = useState("");
+  const [callAgentRunner, { loading }] = useAgentRunner("template");
+
+  useEffect(() => {
+    void callAgentRunner({ expression }).then((data) => {
+      if (data) {
+        setOutput(data.result.toString());
+      }
+    });
+  }, [callAgentRunner, expression]);
 
   return (
     <Container sx={{ paddingTop: 5 }}>
@@ -137,7 +145,7 @@ const Page = () => {
         Create
       </Button>
 
-      {loading && output ? <p>Loading...</p> : <p>{output?.result}</p>}
+      {loading ? <p>Loading...</p> : <p>{output}</p>}
     </Container>
   );
 };
