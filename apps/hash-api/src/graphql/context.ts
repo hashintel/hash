@@ -1,6 +1,7 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 
+import { AgentRunner } from "../agents/runner";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
@@ -19,6 +20,7 @@ export interface GraphQLContext {
     uploadProvider: UploadableStorageProvider;
     search?: SearchAdapter;
     taskExecutor?: TaskExecutor;
+    agentRunner?: AgentRunner;
   };
   emailTransporter: EmailTransporter;
   logger: Logger;

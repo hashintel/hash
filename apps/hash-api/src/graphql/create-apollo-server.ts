@@ -7,6 +7,7 @@ import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-co
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
 
+import { AgentRunner } from "../agents/runner";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
@@ -22,6 +23,7 @@ export interface CreateApolloServerParams {
   uploadProvider: UploadableStorageProvider;
   search?: SearchAdapter;
   taskExecutor?: TaskExecutor;
+  agentRunner?: AgentRunner;
   emailTransporter: EmailTransporter;
   logger: Logger;
   statsd?: StatsD;
@@ -32,6 +34,7 @@ export const createApolloServer = ({
   cache,
   search,
   taskExecutor,
+  agentRunner,
   emailTransporter,
   uploadProvider,
   logger,
@@ -54,6 +57,9 @@ export const createApolloServer = ({
     }
     if (taskExecutor) {
       sources.taskExecutor = taskExecutor;
+    }
+    if (agentRunner) {
+      sources.agentRunner = agentRunner;
     }
     return sources;
   };
