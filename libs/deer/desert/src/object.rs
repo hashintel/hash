@@ -66,22 +66,25 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         self.deserializer.context()
     }
 
-    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>,
     {
         self.dirty = true;
 
         if self.deserializer.peek() == Token::ObjectEnd {
-            return None;
+            return Ok(visitor);
         }
 
-        let key = access.visit_key(&mut *self.deserializer);
-        let value = key.and_then(|key| access.visit_value(key, &mut *self.deserializer));
+        let key = visitor.visit_key(&mut *self.deserializer);
+        let value = key.and_then(|key| visitor.visit_value(key, &mut *self.deserializer));
 
         self.expected += 1;
 
-        Some(value.change_context(ObjectAccessError))
+        Ok(value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {

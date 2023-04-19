@@ -1,8 +1,9 @@
-use error_stack::Result;
+use error_stack::{Result, ResultExt};
 
 use crate::{
     error::{ArrayAccessError, ObjectAccessError},
-    ArrayAccess, Deserialize, FieldResult, FieldVisitor, ObjectAccess,
+    value::NoneDeserializer,
+    ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
 };
 
 struct If<const B: bool>;
@@ -28,6 +29,26 @@ impl<A> BoundObjectAccess<A> {
     }
 }
 
+impl<'de, A> BoundObjectAccess<A>
+where
+    A: ObjectAccess<'de>,
+{
+    // TODO: in struct derive, have option for none! (or should we just not use bounded in that
+    //  case?)
+    fn visit_none<F>(&mut self, visitor: F) -> Result<F::Value, ObjectAccessError>
+    where
+        F: FieldVisitor<'de>,
+    {
+        let key = visitor
+            .visit_key(NoneDeserializer::new(self.context()))
+            .change_context(ObjectAccessError)?;
+
+        visitor
+            .visit_value(key, NoneDeserializer::new(self.context()))
+            .change_context(ObjectAccessError)
+    }
+}
+
 impl<'de, A> ObjectAccess<'de> for BoundObjectAccess<A>
 where
     A: ObjectAccess<'de>,
@@ -36,31 +57,38 @@ where
         self.access.is_dirty()
     }
 
+    fn context(&self) -> &Context {
+        self.access.context()
+    }
+
     fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
         todo!("should error out")
     }
 
-    fn field<F>(&mut self, visitor: F) -> FieldResult<'de, F>
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>,
     {
         self.remaining = self.remaining.saturating_sub(1);
 
         if self.remaining == 0 {
-            return None;
+            return Err(visitor);
         }
 
         if self.exhausted {
-            todo!("needs context PR")
+            return Ok(self.visit_none(visitor));
         }
 
-        match self.access.field(visitor) {
-            None => {
+        match self.access.try_field(visitor) {
+            Err(visitor) => {
                 self.exhausted = true;
 
-                todo!("needs context PR")
+                Ok(self.visit_none(visitor))
             }
-            Some(value) => Some(value),
+            Ok(value) => Ok(value),
         }
     }
 
@@ -97,12 +125,16 @@ impl<'de, A> ArrayAccess<'de> for BoundArrayAccess<A>
 where
     A: ArrayAccess<'de>,
 {
-    fn into_bound(self, _: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
-        todo!("should error out")
-    }
-
     fn is_dirty(&self) -> bool {
         self.access.is_dirty()
+    }
+
+    fn context(&self) -> &Context {
+        self.access.context()
+    }
+
+    fn into_bound(self, _: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
+        todo!("should error out")
     }
 
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
@@ -116,13 +148,20 @@ where
         }
 
         if self.exhausted {
-            todo!("needs context for NoneDeserializer")
+            return Some(
+                T::deserialize(NoneDeserializer::new(self.context()))
+                    .change_context(ArrayAccessError),
+            );
         }
 
         match self.access.next() {
             None => {
                 self.exhausted = true;
-                todo!("needs context for NoneDeserializer")
+
+                return Some(
+                    T::deserialize(NoneDeserializer::new(self.context()))
+                        .change_context(ArrayAccessError),
+                );
             }
             Some(value) => Some(value),
         }

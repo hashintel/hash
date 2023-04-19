@@ -64,9 +64,6 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
     }
 }
 
-type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
-type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
-
 pub trait ObjectAccess<'de>: Sized {
     fn is_dirty(&self) -> bool;
 
@@ -101,7 +98,17 @@ pub trait ObjectAccess<'de>: Sized {
         self.field(GenericFieldVisitor(PhantomData))
     }
 
-    fn field<F>(&mut self, visitor: F) -> FieldResult<'de, F>
+    fn field<F>(&mut self, visitor: F) -> Option<Result<F::Value, ObjectAccessError>>
+    where
+        F: FieldVisitor<'de>,
+    {
+        self.try_field(visitor).ok()
+    }
+
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>;
 
