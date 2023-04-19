@@ -269,7 +269,7 @@ const main = async () => {
   });
 
   // Connect to Redis queue for collab
-  const collabRedisClient = setupRedisClient({
+  const collabRedisClient = setupRedisClient(logger, {
     host: getRequiredEnv("HASH_REDIS_HOST"),
     port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
   });

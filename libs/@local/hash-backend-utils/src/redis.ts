@@ -1,6 +1,8 @@
 import { DataSource } from "apollo-datasource";
 import { Redis } from "ioredis";
 
+import { Logger } from "./logger";
+
 export type RedisConfig = {
   host: string;
   port: number;
@@ -8,7 +10,10 @@ export type RedisConfig = {
 
 export type RedisClient = Redis & DataSource;
 
-export const setupRedisClient = (cfg: RedisConfig): RedisClient => {
+export const setupRedisClient = (
+  _logger: Logger,
+  cfg: RedisConfig,
+): RedisClient => {
   const client = new Redis({
     host: cfg.host,
     port: cfg.port,

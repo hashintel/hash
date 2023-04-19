@@ -20,9 +20,9 @@ export class RedisCache extends DataSource implements CacheAdapter {
 
   rpush: (key: string, ...values: string[]) => Promise<number>;
 
-  constructor(_logger: Logger, cfg: RedisConfig) {
+  constructor(logger: Logger, cfg: RedisConfig) {
     super();
-    this.client = setupRedisClient(cfg);
+    this.client = setupRedisClient(logger, cfg);
     this.get = (key) => this.client.get(key);
     this.set = (key, value) => this.client.set(key, value).then();
     this.setExpiring = (key, value, expiry) =>
