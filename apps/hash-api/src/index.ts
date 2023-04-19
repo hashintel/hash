@@ -7,8 +7,7 @@ import {
   monorepoRootDir,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import { setupRedisClient } from "@local/hash-backend-utils/redis";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { json } from "body-parser";
@@ -270,16 +269,12 @@ const main = async () => {
   });
 
   // Connect to Redis queue for collab
-  const collabRedisClient = new AsyncRedisClient(logger, {
+  const collabRedisClient = setupRedisClient({
     host: getRequiredEnv("HASH_REDIS_HOST"),
     port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
   });
   shutdown.addCleanup("collabRedisClient", async () =>
-    collabRedisClient.close(),
-  );
-  const collabRedisQueue = new RedisQueueExclusiveConsumer(collabRedisClient);
-  shutdown.addCleanup("collabRedisQueue", async () =>
-    collabRedisQueue.release(),
+    collabRedisClient.quit().then(() => undefined),
   );
 };
 

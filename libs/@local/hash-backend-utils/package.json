@@ -25,7 +25,7 @@
     "@opensearch-project/opensearch": "1.1.0",
     "apollo-datasource": "3.3.2",
     "dotenv-flow": "3.2.0",
-    "redis": "3.1.2",
+    "ioredis": "5.3.2",
     "slonik": "24.1.2",
     "wait-on": "6.0.1",
     "winston": "3.3.3"
@@ -35,7 +35,6 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
     "@types/node": "18.11.9",
-    "@types/redis": "2.8.32",
     "@types/wait-on": "5.3.1",
     "eslint": "8.33.0",
     "typescript": "4.9.4"
