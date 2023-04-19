@@ -1,13 +1,13 @@
 import { AgentTypeOutput } from "@apps/hash-agents";
 
-import { QueryCallAgentArgs, ResolverFn } from "../../api-types.gen";
+import { MutationCallAgentRunnerArgs, ResolverFn } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const callAgentResolver: ResolverFn<
+export const callAgentRunnerResolver: ResolverFn<
   Promise<AgentTypeOutput>,
   {},
   LoggedInGraphQLContext,
-  QueryCallAgentArgs
+  MutationCallAgentRunnerArgs
 > = async (_, { payload }, { dataSources: { agentRunner } }, __) => {
   if (!agentRunner) {
     throw new Error("Agents are unavilable.");

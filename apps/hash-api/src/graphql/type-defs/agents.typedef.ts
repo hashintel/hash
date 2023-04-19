@@ -4,7 +4,7 @@ export const agentsTypedef = gql`
   scalar AgentTypeInput
   scalar AgentTypeOutput
 
-  extend type Query {
-    callAgent(payload: AgentTypeInput!): AgentTypeOutput!
+  extend type Mutation {
+    callAgentRunner(payload: AgentTypeInput!): AgentTypeOutput!
   }
 `;
