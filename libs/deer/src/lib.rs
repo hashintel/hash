@@ -23,8 +23,8 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
-pub use crate::{context::Context, number::Number};
 use crate::{
+    bound::BoundArrayAccess,
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
         ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
@@ -32,12 +32,14 @@ use crate::{
     },
     schema::visitor,
 };
+pub use crate::{context::Context, number::Number};
 
 mod context;
 pub mod error;
 mod impls;
 #[macro_use]
 mod macros;
+mod bound;
 mod number;
 pub mod schema;
 pub mod value;
@@ -114,14 +116,16 @@ pub trait FieldVisitor<'de> {
         D: Deserializer<'de>;
 }
 
-pub trait ArrayAccess<'de> {
+pub trait ArrayAccess<'de>: Sized {
+    fn is_dirty(&self) -> bool;
+
     /// Enables bound-checking for [`ArrayAccess`].
     ///
     /// After calling this [`ArrayAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
     /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
     ///
-    /// One should still invoke [`Self::end`] to ensure that not too many items are supplied!
+    /// One must still invoke [`Self::end`] to ensure that not too many items are supplied!
     ///
     /// This is best suited for types where the length is already predetermined, like arrays or
     /// tuples, and should not be set on types like [`Vec`]!
@@ -129,8 +133,14 @@ pub trait ArrayAccess<'de> {
     /// # Errors
     ///
     /// This will error if a call to [`Self::next`] has been made before setting
-    /// [`Self::set_bounded`] or [`Self::set_bounded`] was called repeatedly.
-    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError>;
+    /// [`Self::into_bound`] or [`Self::into_bound`] was called repeatedly.
+    fn into_bound(self, length: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
+        if self.is_dirty() {
+            todo!()
+        } else {
+            Ok(BoundArrayAccess::new(self, length))
+        }
+    }
 
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
