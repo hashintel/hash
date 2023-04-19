@@ -1,6 +1,6 @@
 use crate::{deserializer::Deserializer, Token};
 
-fn scan_object(deserializer: &Deserializer, stop: Token) -> usize {
+fn scan_object(deserializer: &Deserializer, stop: &Token) -> usize {
     let mut objects: usize = 0;
     let mut arrays: usize = 0;
 
@@ -34,8 +34,8 @@ fn scan_object(deserializer: &Deserializer, stop: Token) -> usize {
 /// on the tape
 pub(crate) fn skip_tokens(deserializer: &mut Deserializer, start: &Token) {
     let n = match start {
-        Token::Array { .. } => scan_object(&*deserializer, Token::ArrayEnd),
-        Token::Object { .. } => scan_object(&*deserializer, Token::ObjectEnd),
+        Token::Array { .. } => scan_object(&*deserializer, &Token::ArrayEnd),
+        Token::Object { .. } => scan_object(&*deserializer, &Token::ObjectEnd),
         _ => 0,
     };
 
