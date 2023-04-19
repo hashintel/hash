@@ -18,12 +18,12 @@ pub struct BoundObjectAccess<A> {
 }
 
 impl<A> BoundObjectAccess<A> {
-    pub(crate) fn new(access: A, length: usize, remaining: usize, exhausted: bool) -> Self {
+    pub(crate) fn new(access: A, length: usize) -> Self {
         Self {
             access,
             length,
-            remaining,
-            exhausted,
+            remaining: length,
+            exhausted: false,
         }
     }
 }

@@ -84,7 +84,11 @@ pub trait ObjectAccess<'de>: Sized {
     /// This will error if a call to [`Self::next`] has been made before calling this function or
     /// this function has been called repeatably.
     fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
-        todo!()
+        if self.is_dirty() {
+            todo!("error out")
+        } else {
+            Ok(BoundObjectAccess::new(self, length))
+        }
     }
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
