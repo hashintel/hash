@@ -120,6 +120,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           {...attributes}
         >
           <IconButton
+            data-testid="page-tree-item-expand-button"
             onClick={(event) => {
               stopEvent(event);
               onCollapse?.();

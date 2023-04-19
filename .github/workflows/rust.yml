@@ -65,6 +65,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
+    env:
+      RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
