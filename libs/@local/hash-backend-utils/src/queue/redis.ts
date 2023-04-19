@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { AsyncRedisClient } from "../redis";
+import { RedisClient } from "../redis";
 import { sleep } from "../utils";
 import { QueueExclusiveConsumer, QueueProducer } from "./adapter";
 
@@ -15,11 +15,7 @@ const QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS = 5_000;
  * An implementation of the `QueueProducer` interface based on Redis.
  */
 export class RedisQueueProducer implements QueueProducer {
-  private client: AsyncRedisClient;
-
-  constructor(client: AsyncRedisClient) {
-    this.client = client;
-  }
+  constructor(private client: RedisClient) {}
 
   push(name: string, ...items: string[]): Promise<number> {
     return this.client.lpush(name, ...items);
@@ -30,8 +26,6 @@ export class RedisQueueProducer implements QueueProducer {
  * An implementation of the `QueueExclusiveConsumer` interface based on Redis.
  */
 export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
-  private client: AsyncRedisClient;
-
   // A unique identifier for this consumer. Used to signify ownership of the queue.
   private consumerId: string;
 
@@ -42,8 +36,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     interval: NodeJS.Timer;
   };
 
-  constructor(client: AsyncRedisClient) {
-    this.client = client;
+  constructor(private client: RedisClient) {
     this.consumerId = randomUUID();
   }
 
@@ -178,9 +171,9 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     let item = await this.client.rpoplpush(processingName, processingName);
 
     // Otherwise, pop from the main queue and push onto the processing queue.
-    if (!item) {
+    if (item) {
       item =
-        timeoutMs === null
+        (timeoutMs === null
           ? // Non-blocking
             await this.client.rpoplpush(name, processingName)
           : // Block indefinitely
@@ -191,7 +184,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
               name,
               processingName,
               timeoutMs / 1000,
-            );
+            )) ?? item;
     }
 
     if (!item) {
