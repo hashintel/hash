@@ -62,6 +62,9 @@ To run HASH locally, please follow these steps:
     
     docker --version
     ## ≥ 20.10
+    
+    docker compose version
+    ## ≥ 2.17.2
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
