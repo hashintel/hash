@@ -94,4 +94,8 @@ export const typography: ThemeOptions["typography"] = {
     color: customColors.gray[80],
     lineHeight: 1.2,
   },
+  hashCode: {
+    lineHeight: 1.5,
+    color: customColors.gray[80],
+  },
 };
