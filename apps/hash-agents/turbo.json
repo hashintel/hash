@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "build": {
+      "outputs": ["./agents/**/*.py", "./src/agents.ts"],
+      "dependsOn": ["^build"]
+    },
+    "build:docker": {
+      "cache": false
+    }
+  }
+}
