@@ -6,8 +6,11 @@
       "outputs": ["./src/types/generated/**"]
     },
     "build": {
-      "dependsOn": ["^build", "codegen"],
+      "dependsOn": ["^build", "codegen", "format"],
       "outputs": ["./dist/**"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["codegen"]
     },
     "format": {
       "cache": false,

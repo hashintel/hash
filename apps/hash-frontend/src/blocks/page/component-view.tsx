@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   BlockEntity,
@@ -139,7 +140,7 @@ export class ComponentView implements NodeView {
 
     /**
      * Prosemirror will sometimes call `update` on your `NodeView` with a new
-     * node to see if it is compatible with your `NdoeView`, so that it can be
+     * node to see if it is compatible with your `NodeView`, so that it can be
      * reused. If you return `false` from the `update` function, it will call
      * `destroy` on your `NodeView` and create a new one instead. So this means
      * in theory we could get `update` called with a component node representing
@@ -197,7 +198,7 @@ export class ComponentView implements NodeView {
                     | EntityId
                     | undefined
                 } // @todo make this always defined
-                blockEntityTypeId={this.block.meta.schema}
+                blockEntityTypeId={this.block.meta.schema as VersionedUrl}
                 blockMetadata={this.block.meta}
                 // @todo uncomment this when sandbox is fixed
                 // shouldSandbox={!this.editable}

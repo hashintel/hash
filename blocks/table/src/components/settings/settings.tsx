@@ -3,7 +3,7 @@ import { useLayer } from "react-laag";
 import { useKey } from "rooks";
 
 import { RootKey } from "../../additional-types";
-import { RootEntity } from "../../types";
+import { BlockEntity } from "../../types/generated/block-entity";
 import styles from "./styles.module.scss";
 
 const isStripedKey: RootKey =
@@ -14,8 +14,8 @@ const hideRowNumbersKey: RootKey =
   "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
 interface SettingsProps {
-  blockEntity: RootEntity;
-  updateEntity: (newProperties: RootEntity["properties"]) => Promise<void>;
+  blockEntity: BlockEntity;
+  updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
 }
 
 export const Settings = ({ blockEntity, updateEntity }: SettingsProps) => {

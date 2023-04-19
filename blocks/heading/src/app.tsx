@@ -3,9 +3,9 @@ import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef } from "react";
 
 import { propertyIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph },
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);

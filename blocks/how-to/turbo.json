@@ -1,24 +1,24 @@
 {
   "extends": ["//"],
   "pipeline": {
-    "schema": {
+    "codegen": {
       "inputs": ["./package.json"],
-      "outputs": ["./src/types.gen.ts"]
+      "outputs": ["./src/types/generated/**"]
     },
     "build": {
-      "dependsOn": ["^build", "schema", "format"],
+      "dependsOn": ["^build", "codegen", "format"],
       "outputs": ["./dist/**"]
     },
     "lint:tsc": {
-      "dependsOn": ["schema"]
+      "dependsOn": ["codegen"]
     },
     "format": {
       "cache": false,
-      "dependsOn": ["schema"]
+      "dependsOn": ["codegen"]
     },
     "dev": {
       "persistent": true,
-      "dependsOn": ["^build", "schema"]
+      "dependsOn": ["^build", "codegen"]
     },
     "serve": {
       "persistent": true,
