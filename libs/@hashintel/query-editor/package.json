@@ -1,0 +1,38 @@
+{
+  "name": "@hashintel/query-editor",
+  "version": "0.0.1",
+  "description": "A visual editor for Block Protocol entity queries",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/query-editor"
+  },
+  "license": "AGPL-3.0",
+  "sideEffects": false,
+  "main": "src/main.ts",
+  "types": "src/main.ts",
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.2.2",
+    "@fortawesome/free-regular-svg-icons": "6.0.0",
+    "@fortawesome/free-solid-svg-icons": "6.0.0",
+    "@hashintel/design-system": "0.0.6",
+    "clsx": "1.2.1"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private"
+  },
+  "peerDependencies": {
+    "@mui/material": "^5.11.0",
+    "@mui/system": "^5.11.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-hook-form": "^7.37.0"
+  }
+}
