@@ -320,7 +320,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
