@@ -424,7 +424,6 @@ fn struct_object_too_many_err() {
             Token::Number(3.into()),
             Token::Str("c"),
             Token::Number(4.into()),
-            // TODO: the token deserializer does not skip correctly :/
             Token::Str("d"),
             Token::Number(5.into()),
             Token::ObjectEnd,

@@ -12,7 +12,7 @@ fn scan_object(deserializer: &Deserializer, stop: &Token) -> usize {
             return n;
         };
 
-        if token == stop && arrays == 0 && objects == 0 {
+        if token == *stop && arrays == 0 && objects == 0 {
             // we're at the outer layer, meaning we can know where we end
             // need to increment by one as we want to also skip the ObjectEnd
             return n + 1;
