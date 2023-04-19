@@ -23,5 +23,7 @@ async fn main() -> Result<(), GraphError> {
             Ok(())
         }
         Subcommand::Snapshot(args) => subcommand::snapshot(args).await,
+        #[cfg(all(hash_graph_test_environment, feature = "test_server"))]
+        Subcommand::TestServer(args) => subcommand::test_server(args).await,
     }
 }
