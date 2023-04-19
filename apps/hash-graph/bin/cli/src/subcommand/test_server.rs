@@ -25,7 +25,7 @@ pub struct TestServerArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
-    /// The address the REST client is listening at.
+    /// The address the REST server is listening at.
     #[clap(flatten)]
     pub api_address: ApiAddress,
 
