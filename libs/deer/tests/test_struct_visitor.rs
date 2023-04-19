@@ -1,8 +1,5 @@
 use deer::{
-    error::{
-        ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, ReceivedLength,
-        Variant, VisitorError,
-    },
+    error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
 };
@@ -14,11 +11,9 @@ mod common;
 
 use common::TupleExt;
 use deer::{
-    error::{
-        ExpectedField, ExpectedType, Location, MissingError, ObjectAccessError, ReceivedField,
-        UnknownFieldError,
-    },
+    error::{ExpectedField, Location, ObjectAccessError, ReceivedField, UnknownFieldError},
     schema::Reference,
+    value::NoneDeserializer,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 
@@ -193,30 +188,27 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         let a = array
             .next()
             .unwrap_or_else(|| {
-                Err(Report::new(ArrayLengthError.into_error())
-                    .attach(ExpectedLength::new(3))
-                    .attach(ReceivedLength::new(0))
-                    .change_context(ArrayAccessError))
+                Deserialize::deserialize(NoneDeserializer::new(array.context()))
+                    .attach(Location::Tuple(0))
+                    .change_context(ArrayAccessError)
             })
             .attach(Location::Tuple(0));
 
         let b = array
             .next()
             .unwrap_or_else(|| {
-                Err(Report::new(ArrayLengthError.into_error())
-                    .attach(ExpectedLength::new(3))
-                    .attach(ReceivedLength::new(1))
-                    .change_context(ArrayAccessError))
+                Deserialize::deserialize(NoneDeserializer::new(array.context()))
+                    .attach(Location::Tuple(1))
+                    .change_context(ArrayAccessError)
             })
             .attach(Location::Tuple(1));
 
         let c = array
             .next()
             .unwrap_or_else(|| {
-                Err(Report::new(ArrayLengthError.into_error())
-                    .attach(ExpectedLength::new(3))
-                    .attach(ReceivedLength::new(2))
-                    .change_context(ArrayAccessError))
+                Deserialize::deserialize(NoneDeserializer::new(array.context()))
+                    .attach(Location::Tuple(2))
+                    .change_context(ArrayAccessError)
             })
             .attach(Location::Tuple(2));
 
@@ -231,8 +223,6 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
     where
         A: ObjectAccess<'de>,
     {
-        object.set_bounded(3).change_context(VisitorError)?;
-
         let mut a = None;
         let mut b = None;
         let mut c = None;
@@ -254,28 +244,32 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             }
         }
 
-        // TODO: instead of doing this we need to use `NoneDeserializer`, this means that access
-        //  needs to expose context!
-        let a = a.ok_or_else(|| {
-            Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(u8::reflection()))
-                .attach(Location::Field("a"))
-                .change_context(ObjectAccessError)
-        });
+        let a = a.map_or_else(
+            || {
+                Deserialize::deserialize(NoneDeserializer::new(object.context()))
+                    .attach(Location::Field("a"))
+                    .change_context(ObjectAccessError)
+            },
+            Ok,
+        );
 
-        let b = b.ok_or_else(|| {
-            Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(u16::reflection()))
-                .attach(Location::Field("b"))
-                .change_context(ObjectAccessError)
-        });
+        let b = b.map_or_else(
+            || {
+                Deserialize::deserialize(NoneDeserializer::new(object.context()))
+                    .attach(Location::Field("b"))
+                    .change_context(ObjectAccessError)
+            },
+            Ok,
+        );
 
-        let c = c.ok_or_else(|| {
-            Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(u32::reflection()))
-                .attach(Location::Field("c"))
-                .change_context(ObjectAccessError)
-        });
+        let c = c.map_or_else(
+            || {
+                Deserialize::deserialize(NoneDeserializer::new(object.context()))
+                    .attach(Location::Field("c"))
+                    .change_context(ObjectAccessError)
+            },
+            Ok,
+        );
 
         let (a, b, c, ..) = (a, b, c, errors, object.end())
             .fold_reports()
@@ -371,15 +365,6 @@ fn struct_object_missing_err() {
                 "expected": u16::reflection(),
                 "location": [{"type": "field", "value": "b"}]
             }
-        }, {
-            // TODO: this is the wrong error, it should be `key`.`missing` detailing the key we
-            //  expected. This will be changed in a follow up PR
-            ns: "deer",
-            id: ["value", "missing"],
-            properties: {
-                "expected": ExampleFieldDiscriminator::reflection(),
-                "location": []
-            }
         }]),
         &[
             Token::Object { length: Some(2) },
@@ -409,24 +394,6 @@ fn struct_object_missing_multiple_err() {
                 "expected": u32::reflection(),
                 "location": [{"type": "field", "value": "c"}]
             }
-        },{
-            // TODO: this is the wrong error, it should be `key`.`missing` detailing the key we
-            //  expected. This will be changed in a follow up PR
-            ns: "deer",
-            id: ["value", "missing"],
-            properties: {
-                "expected": ExampleFieldDiscriminator::reflection(),
-                "location": []
-            }
-        },{
-            // TODO: this is the wrong error, it should be `key`.`missing` detailing the key we
-            //  expected. This will be changed in a follow up PR
-            ns: "deer",
-            id: ["value", "missing"],
-            properties: {
-                "expected": ExampleFieldDiscriminator::reflection(),
-                "location": []
-            }
         }]),
         &[
             Token::Object { length: Some(1) },
@@ -442,10 +409,10 @@ fn struct_object_too_many_err() {
     assert_tokens_error::<Example>(
         &error!([{
             ns: "deer",
-            id: ["object", "length"],
+            id: ["unknown", "field"],
             properties: {
-                "expected": 3,
-                "received": 4,
+                "expected": ["a", "b", "c"],
+                "received": ["d"],
                 "location": []
             }
         }]),
@@ -457,6 +424,7 @@ fn struct_object_too_many_err() {
             Token::Number(3.into()),
             Token::Str("c"),
             Token::Number(4.into()),
+            // TODO: the token deserializer does not skip correctly :/
             Token::Str("d"),
             Token::Number(5.into()),
             Token::ObjectEnd,
@@ -473,10 +441,10 @@ fn struct_object_duplicate_err() {
     assert_tokens_error::<Example>(
         &error!([{
             ns: "deer",
-            id: ["object", "length"],
+            id: ["unknown", "field"],
             properties: {
-                "expected": 3,
-                "received": 4,
+                "expected": ["a", "b", "c"],
+                "received": ["d"],
                 "location": []
             }
         }]),
