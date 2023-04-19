@@ -12,7 +12,6 @@ use justjson::{
 use crate::{
     error::{convert_tokenizer_error, BytesUnsupportedError, Position, SyntaxError},
     number::try_convert_number,
-    skip,
     skip::skip_tokens,
     token::ValueToken,
 };
