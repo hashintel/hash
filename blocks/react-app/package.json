@@ -40,6 +40,7 @@
     "@blockprotocol/graph": "0.2.2",
     "@hashintel/design-system": "0.0.6",
     "@mui/material": "5.11.8",
+    "react-live": "4.0.0",
     "uuid": "9.0.0"
   },
   "devDependencies": {
