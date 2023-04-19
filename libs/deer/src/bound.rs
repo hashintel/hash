@@ -6,23 +6,17 @@ use crate::{
     ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
 };
 
-struct If<const B: bool>;
-trait True {}
-impl True for If<true> {}
-
 pub struct BoundObjectAccess<A> {
     access: A,
-    length: usize,
 
     remaining: usize,
     exhausted: bool,
 }
 
 impl<A> BoundObjectAccess<A> {
-    pub(crate) fn new(access: A, length: usize) -> Self {
+    pub(crate) const fn new(access: A, length: usize) -> Self {
         Self {
             access,
-            length,
             remaining: length,
             exhausted: false,
         }
@@ -118,17 +112,15 @@ where
 
 pub struct BoundArrayAccess<A> {
     access: A,
-    length: usize,
 
     remaining: usize,
     exhausted: bool,
 }
 
 impl<A> BoundArrayAccess<A> {
-    pub(crate) fn new(access: A, length: usize) -> Self {
+    pub(crate) const fn new(access: A, length: usize) -> Self {
         Self {
             access,
-            length,
 
             remaining: length,
             exhausted: false,
