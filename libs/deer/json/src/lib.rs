@@ -7,6 +7,7 @@ mod deserializer;
 mod error;
 mod number;
 mod object;
+mod skip;
 mod token;
 
 extern crate alloc;
