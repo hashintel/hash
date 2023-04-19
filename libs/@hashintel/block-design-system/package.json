@@ -27,6 +27,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@hashintel/design-system": "0.0.6",
     "lowlight": "2.8.1",
     "react-syntax-highlighter": "15.5.0",
     "react-type-animation": "3.0.1"

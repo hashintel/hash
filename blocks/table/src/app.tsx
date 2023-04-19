@@ -1,8 +1,8 @@
 import { JsonValue } from "@blockprotocol/graph";
 import {
+  type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
-  type BlockComponent,
 } from "@blockprotocol/graph/react";
 import {
   CompactSelection,
