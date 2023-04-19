@@ -2,7 +2,9 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-pub mod snapshot;
+#[cfg(all(hash_graph_test_environment, feature = "test_server"))]
+#[doc(hidden)]
+pub mod test_server;
 
 mod api_resource;
 mod json;

@@ -3,7 +3,7 @@ use deer::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, ExpectedLength,
         ReceivedLength, Variant,
     },
-    Deserialize, Deserializer as _,
+    Context, Deserialize, Deserializer as _,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -57,6 +57,10 @@ impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
 }
 
 impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
+    fn context(&self) -> &Context {
+        self.deserializer.context()
+    }
+
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
         if self.consumed > 0 {
             return Err(
