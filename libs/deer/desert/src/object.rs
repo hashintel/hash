@@ -15,18 +15,19 @@ use crate::{
 pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
+    dirty: bool,
     length: Option<usize>,
-    remaining: Option<usize>,
-    consumed: usize,
+    expected: usize,
 }
 
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
         Self {
             deserializer,
+
+            dirty: false,
             length,
-            remaining: None,
-            consumed: 0,
+            expected: 0,
         }
     }
 
@@ -57,64 +58,26 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
 }
 
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
-        if self.consumed > 0 {
-            return Err(
-                Report::new(BoundedContractViolationError::SetDirty.into_error())
-                    .change_context(ObjectAccessError),
-            );
-        }
-
-        if self.remaining.is_some() {
-            return Err(Report::new(
-                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
-            )
-            .change_context(ObjectAccessError));
-        }
-
-        self.remaining = Some(length);
-
-        Ok(())
+    fn is_dirty(&self) -> bool {
+        self.dirty
     }
 
     fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
     where
         F: FieldVisitor<'de>,
     {
-        if self.remaining == Some(0) {
+        self.dirty = true;
+
+        if self.deserializer.peek() == Token::ObjectEnd {
             return None;
         }
 
-        self.consumed += 1;
+        let key = access.visit_key(&mut *self.deserializer);
+        let value = key.and_then(|key| access.visit_value(key, &mut *self.deserializer));
 
-        if let Some(remaining) = &mut self.remaining {
-            *remaining = remaining.saturating_sub(1);
-        }
+        self.expected += 1;
 
-        let key_value = if self.deserializer.peek() == Token::ObjectEnd {
-            // we're not in bounded mode, which means we need to signal that we're done
-            self.remaining?;
-
-            if self.remaining.is_some() {
-                let key = access.visit_key(DeserializerNone {
-                    context: self.deserializer.context(),
-                });
-
-                key.and_then(|key| {
-                    access.visit_value(key, DeserializerNone {
-                        context: self.deserializer.context(),
-                    })
-                })
-            } else {
-                return None;
-            }
-        } else {
-            let key = access.visit_key(&mut *self.deserializer);
-
-            key.and_then(|key| access.visit_value(key, &mut *self.deserializer))
-        };
-
-        Some(key_value.change_context(ObjectAccessError))
+        Some(value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {
@@ -127,7 +90,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             Ok(())
         } else {
             let mut error = Report::new(ObjectLengthError.into_error())
-                .attach(ExpectedLength::new(self.consumed));
+                .attach(ExpectedLength::new(self.expected));
 
             if let Some(length) = self.size_hint() {
                 error = error.attach(ReceivedLength::new(length));
@@ -142,18 +105,6 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             .unwrap_or_else(|| self.deserializer.tape().remaining());
 
         self.deserializer.tape_mut().bump_n(bump + 1);
-
-        if let Some(remaining) = self.remaining {
-            if remaining > 0 {
-                let error =
-                    Report::new(BoundedContractViolationError::EndRemainingItems.into_error());
-
-                match &mut result {
-                    Err(result) => result.extend_one(error),
-                    result => *result = Err(error),
-                }
-            }
-        }
 
         result.change_context(ObjectAccessError)
     }

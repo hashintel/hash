@@ -203,3 +203,17 @@ where
         self.access.end()
     }
 }
+
+// TODO:
+// end(self) should also include:
+// if let Some(remaining) = self.remaining {
+//             if remaining > 0 {
+//                 let error =
+//                     Report::new(BoundedContractViolationError::EndRemainingItems.into_error());
+//
+//                 match &mut result {
+//                     Err(result) => result.extend_one(error),
+//                     result => *result = Err(error),
+//                 }
+//             }
+//         }
