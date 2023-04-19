@@ -58,7 +58,7 @@ where
         visitor.visit_some(self).change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>,
     {

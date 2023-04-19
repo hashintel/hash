@@ -1,16 +1,10 @@
 use deer::{
-    error::{
-        ArrayAccessError, ArrayLengthError, BoundedContractViolationError, ExpectedLength,
-        ReceivedLength, Variant,
-    },
+    error::{ArrayAccessError, ArrayLengthError, ExpectedLength, ReceivedLength, Variant},
     Context, Deserialize, Deserializer as _,
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{
-    deserializer::{Deserializer, DeserializerNone},
-    token::Token,
-};
+use crate::{deserializer::Deserializer, token::Token};
 
 pub(crate) struct ArrayAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
@@ -87,7 +81,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
 
     fn end(self) -> Result<(), ArrayAccessError> {
         // ensure that we consume the last token, if it is the wrong token error out
-        let mut result = if self.deserializer.peek() == Token::ArrayEnd {
+        let result = if self.deserializer.peek() == Token::ArrayEnd {
             Ok(())
         } else {
             let mut error = Report::new(ArrayLengthError.into_error())

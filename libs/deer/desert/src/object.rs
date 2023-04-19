@@ -1,16 +1,10 @@
 use deer::{
-    error::{
-        BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
-        ReceivedLength, Variant,
-    },
+    error::{ExpectedLength, ObjectAccessError, ObjectLengthError, ReceivedLength, Variant},
     Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{
-    deserializer::{Deserializer, DeserializerNone},
-    token::Token,
-};
+use crate::{deserializer::Deserializer, token::Token};
 
 pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
@@ -76,7 +70,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         self.dirty = true;
 
         if self.deserializer.peek() == Token::ObjectEnd {
-            return Ok(visitor);
+            return Err(visitor);
         }
 
         let key = visitor.visit_key(&mut *self.deserializer);
@@ -93,7 +87,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
 
     fn end(self) -> Result<(), ObjectAccessError> {
         // ensure that we consume the last token, if it is the wrong token error out
-        let mut result = if self.deserializer.peek() == Token::ObjectEnd {
+        let result = if self.deserializer.peek() == Token::ObjectEnd {
             Ok(())
         } else {
             let mut error = Report::new(ObjectLengthError.into_error())

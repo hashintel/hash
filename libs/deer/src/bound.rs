@@ -69,11 +69,11 @@ where
     where
         F: FieldVisitor<'de>,
     {
-        self.remaining = self.remaining.saturating_sub(1);
-
         if self.remaining == 0 {
             return Err(visitor);
         }
+
+        self.remaining = self.remaining.saturating_sub(1);
 
         if self.exhausted {
             return Ok(self.visit_none(visitor));
@@ -151,11 +151,11 @@ where
     where
         T: Deserialize<'de>,
     {
-        self.remaining = self.remaining.saturating_sub(1);
-
         if self.remaining == 0 {
             return None;
         }
+
+        self.remaining = self.remaining.saturating_sub(1);
 
         if self.exhausted {
             return Some(
