@@ -11,7 +11,8 @@ export const MdxTalkSlide: FunctionComponent<
     video?: boolean;
   }
 > = ({ children, src, video = false, width, height }) => {
-  const { post } = useBlogPostPhotos();
+  const { body } = useBlogPostPhotos();
+  const details = body[src];
 
   return (
     <Box
@@ -32,7 +33,7 @@ export const MdxTalkSlide: FunctionComponent<
           <Box component="video" width="100%" src={src} controls />
         ) : (
           <Image
-            {...post}
+            {...details}
             src={src}
             width={width}
             height={height}
