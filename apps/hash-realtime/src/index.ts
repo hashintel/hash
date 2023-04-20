@@ -11,6 +11,8 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import {
   Entity,
   entityFromWalJsonMsg,
+  entityTypeFromWalJsonMsg,
+  propertyTypeFromWalJsonMsg,
 } from "@local/hash-backend-utils/pg-tables";
 import {
   createPostgresConnPool,
@@ -18,6 +20,8 @@ import {
 } from "@local/hash-backend-utils/postgres";
 import {
   isSupportedRealtimeEntityTable,
+  isSupportedRealtimeEntityTypeTable,
+  isSupportedRealtimePropertyTypeTable,
   SupportedRealtimeTable,
 } from "@local/hash-backend-utils/realtime";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
@@ -226,6 +230,10 @@ const pollChanges = async (
       if (entity !== null) {
         await QUEUES.entityStream.push(entity);
       }
+    } else if (isSupportedRealtimeEntityTypeTable(change.table)) {
+      await QUEUES.entityTypeStream.push(entityTypeFromWalJsonMsg(change));
+    } else if (isSupportedRealtimePropertyTypeTable(change.table)) {
+      await QUEUES.propertyTypeStream.push(propertyTypeFromWalJsonMsg(change));
     }
   }
 };

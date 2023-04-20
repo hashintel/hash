@@ -74,3 +74,34 @@ export const entityFromWalJsonMsg = (
   ...entityEditionFromWalJsonMsg(entityEdition),
   ...entityTemporalMetadataFromWalJsonMsg(entityTemporalMetadata),
 });
+
+type OntologyType = {
+  ontology_id: string;
+  schema: Record<string, unknown>;
+};
+
+const ontologyTypeFromWalJsonMsg =
+  (table: SupportedRealtimeTable) =>
+  (msg: Wal2JsonMsg<SupportedRealtimeTable>): OntologyType => {
+    if (msg.table !== table) {
+      throw new Error(`invalid table "${msg.table}" for '${table}' parsing`);
+    }
+    const obj = Object.fromEntries(
+      msg.columns.map(({ name, value }) => [name, value]),
+    );
+
+    return {
+      ontology_id: obj.ontology_id as string,
+      schema: obj.schema as Record<string, unknown>,
+    };
+  };
+
+export type EntityType = OntologyType;
+export const entityTypeFromWalJsonMsg: (
+  msg: Wal2JsonMsg<SupportedRealtimeTable>,
+) => EntityType = ontologyTypeFromWalJsonMsg("entity_types");
+
+export type PropertyType = OntologyType;
+export const propertyTypeFromWalJsonMsg: (
+  msg: Wal2JsonMsg<SupportedRealtimeTable>,
+) => PropertyType = ontologyTypeFromWalJsonMsg("property_types");

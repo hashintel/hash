@@ -7,7 +7,7 @@ import { StreamConsumer, StreamProducer } from "./adapter";
 /**
  * An implementation of the `StreamProducer` interface based on Redis streams.
  */
-export class RedisStreamProducer implements StreamProducer {
+export class RedisStreamProducer<T> implements StreamProducer<T> {
   constructor(
     private _logger: Logger,
     private client: RedisClient,
@@ -19,7 +19,7 @@ export class RedisStreamProducer implements StreamProducer {
    * @param payload The JSON payload to add to the stream
    * @param id The ID of the payload. If not specified, a random ID will be generated.
    */
-  async push<T>(payload: T, id: string = "*"): Promise<void> {
+  async push(payload: T, id: string = "*"): Promise<void> {
     await this.client.xadd(
       this.streamName,
       id,
