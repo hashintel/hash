@@ -30,6 +30,7 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
+    POETRY_VERSION=1.4.2 \
     WORKDIR="/usr/local/src/hash/apps/hash-agents"
 ENV VENV_DIR="$WORKDIR/.venv"
 ENV PATH="$POETRY_HOME/bin:$VENV_DIR/bin:$PATH"
