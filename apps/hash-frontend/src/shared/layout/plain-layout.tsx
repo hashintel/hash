@@ -3,7 +3,7 @@ import { Autocomplete, Box, Modal, useTheme } from "@mui/material";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import Head from "next/head";
 import NextNProgress from "nextjs-progressbar";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { useKeys } from "rooks";
 
 import { isProduction } from "../../lib/config";
@@ -59,8 +59,4 @@ export const PlainLayout: FunctionComponent<{
       {children}
     </>
   );
-};
-
-export const getPlainLayout = (page: ReactElement) => {
-  return <PlainLayout>{page}</PlainLayout>;
 };
