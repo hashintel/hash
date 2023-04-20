@@ -20,8 +20,8 @@ services:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
-      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+      HASH_REALTIME_PG_USER: "${HASH_REALTIME_PG_USER}"
+      HASH_REALTIME_PG_PASSWORD: "${HASH_REALTIME_PG_PASSWORD}"
     # Note this isn't a complete security measure, we'd have to restrict
     # `listen_addresses` and other postgres config to lock down access.
     # The database port isn't forwarded outside the docker network.
