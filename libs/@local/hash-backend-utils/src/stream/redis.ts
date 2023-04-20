@@ -7,10 +7,12 @@ import { StreamConsumer, StreamProducer } from "./adapter";
 /**
  * An implementation of the `StreamProducer` interface based on Redis streams.
  */
-export class RedisStreamProducer<StreamName extends string>
-  implements StreamProducer<StreamName>
-{
-  constructor(private client: RedisClient, private streamName: StreamName) {}
+export class RedisStreamProducer implements StreamProducer {
+  constructor(
+    private _logger: Logger,
+    private client: RedisClient,
+    private streamName: string,
+  ) {}
 
   /**
    * Add payload to the stream
@@ -25,15 +27,13 @@ export class RedisStreamProducer<StreamName extends string>
 /**
  * An implementation of the `StreamConsumer` interface based on Redis streams.
  */
-export class RedisStreamConsumer<StreamName extends string>
-  implements StreamConsumer<StreamName>
-{
+export class RedisStreamConsumer implements StreamConsumer {
   private lastId: string | null = null;
 
   constructor(
     private logger: Logger,
     private client: RedisClient,
-    private streamName: StreamName,
+    private streamName: string,
   ) {}
 
   async readNext(): Promise<JsonObject[]> {

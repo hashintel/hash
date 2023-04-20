@@ -1,7 +1,7 @@
 import { JsonObject } from "@blockprotocol/core/.";
 
 /** QueueProducer represents a resource which adds items to a queue. */
-export interface StreamProducer<_StreamName extends string> {
+export interface StreamProducer {
   /**
    * Push one or more items onto a stream.
    * @param payload - an object to JSON Serialize and add to the stream
@@ -14,7 +14,7 @@ export interface StreamProducer<_StreamName extends string> {
 /**
  * StreamConsumer represents a stream consumer which does not belong to a consumer group
  */
-export interface StreamConsumer<_StreamName extends string> {
+export interface StreamConsumer {
   /**
    * Reads an item from the stream. This will block until an item is available.
    * @returns The next items in the stream
