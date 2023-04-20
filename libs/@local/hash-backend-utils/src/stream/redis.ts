@@ -4,6 +4,8 @@ import { Logger } from "../logger";
 import { RedisClient } from "../redis";
 import { StreamConsumer, StreamProducer } from "./adapter";
 
+/** @todo consider if we want to use msgpack or something instead of JSON */
+
 /**
  * An implementation of the `StreamProducer` interface based on Redis streams.
  */
@@ -19,9 +21,15 @@ export class RedisStreamProducer<T> implements StreamProducer<T> {
    * @param payload The JSON payload to add to the stream
    * @param id The ID of the payload. If not specified, a random ID will be generated.
    */
-  async push(payload: T, id: string = "*"): Promise<void> {
+  async push(
+    payload: T,
+    id: string = "*",
+    maxStreamLength: number = 4096,
+  ): Promise<void> {
     await this.client.xadd(
       this.streamName,
+      "MAXLEN",
+      maxStreamLength,
       id,
       "payload",
       JSON.stringify(payload),
@@ -41,8 +49,10 @@ export class RedisStreamConsumer implements StreamConsumer {
     private streamName: string,
   ) {}
 
-  async readNext(): Promise<JsonObject[]> {
+  async readNext(maxReadCount: number = 100): Promise<JsonObject[]> {
     const msg = await this.client.xread(
+      "COUNT",
+      maxReadCount,
       "BLOCK",
       0,
       "STREAMS",

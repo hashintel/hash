@@ -8,7 +8,7 @@ export interface StreamProducer<T> {
    * @param id - an entry id, can be auto-generated
    * @returns The number of items in the queue after the operation
    * */
-  push(payload: T, id: string): Promise<void>;
+  push(payload: T): Promise<void>;
 }
 
 /**
