@@ -7,14 +7,12 @@ import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-man
 import { AccountId, EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
-import { useRouter } from "next/router";
 import { EditorView } from "prosemirror-view";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
-import { BlockLoadedProvider } from "../on-block-loaded";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
 import { CommentThread } from "./comments/comment-thread";
@@ -121,7 +119,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   ]);
 
   return (
-    <BlockLoadedProvider routeHash={routeHash}>
+    <>
       {isReadonlyMode ? null : (
         <PageSectionContainer
           pageComments={pageComments}
@@ -199,6 +197,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
           Restart Collab Instance
         </Button>
       ) : null}
-    </BlockLoadedProvider>
+    </>
   );
 };

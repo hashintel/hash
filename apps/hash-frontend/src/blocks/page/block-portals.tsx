@@ -1,9 +1,8 @@
-import { EntityRootType, Subgraph } from "@blockprotocol/graph/temporal";
-import { Fragment, ReactNode, useCallback, useMemo, useState } from "react";
+import { Fragment, ReactNode, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 
-import { BlockContext, BlockContextType } from "./block-context";
+import { BlockContextProvider } from "./block-context";
 
 export interface PortalProps {
   draftId: string;
@@ -17,28 +16,12 @@ export interface PortalProps {
  * @param portals the pairings of nodes and elements needed to create the portals
  */
 export const BlockPortals = ({ draftId, portals }: PortalProps) => {
-  const [error, setError] = useState(false);
-  const [blockSubgraph, setBlockSubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
-  >();
-
-  const context = useMemo<BlockContextType>(
-    () => ({
-      id: draftId,
-      error,
-      setError,
-      blockSubgraph,
-      setBlockSubgraph,
-    }),
-    [draftId, error, setError, blockSubgraph, setBlockSubgraph],
-  );
-
   return (
-    <BlockContext.Provider key={draftId} value={context}>
+    <BlockContextProvider key={draftId}>
       {portals.map(([target, { key, reactNode }]) => {
         return <Fragment key={key}>{createPortal(reactNode, target)}</Fragment>;
       })}
-    </BlockContext.Provider>
+    </BlockContextProvider>
   );
 };
 
