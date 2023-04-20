@@ -359,10 +359,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 }
 
 pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
-    let request_url = format!(
-        "http://{}:{}/api-doc/openapi.json",
-        address.api_host, address.api_port
-    );
+    let request_url = format!("http://{address}/api-doc/openapi.json");
 
     timeout(
         Duration::from_secs(10),
