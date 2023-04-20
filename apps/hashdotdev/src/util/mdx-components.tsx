@@ -1,5 +1,11 @@
 import { faLink } from "@fortawesome/free-solid-svg-icons";
-import { Box, styled, Typography, TypographyProps } from "@mui/material";
+import {
+  Box,
+  styled,
+  Tooltip,
+  Typography,
+  TypographyProps,
+} from "@mui/material";
 import dynamic from "next/dynamic";
 import {
   ComponentType,
@@ -55,28 +61,30 @@ const HeadingAnchor: FunctionComponent<{
       : "";
 
   return (
-    <Link
-      href={`#${anchor}`}
-      onClick={() => navigator.clipboard.writeText(urlToCopy)}
-      sx={{
-        display: "inline-block",
-        verticalAlign: "middle",
-        position: "relative",
-        marginLeft: 2,
-        height: size,
-        width: size,
-      }}
-    >
-      <FontAwesomeIcon
-        icon={faLink}
-        className="link-icon"
+    <Tooltip title="Copy link to this section">
+      <Link
+        href={`#${anchor}`}
+        onClick={() => navigator.clipboard.writeText(urlToCopy)}
         sx={{
-          fontSize: size,
+          display: "inline-block",
           position: "absolute",
-          lineHeight: size,
+          marginTop: "0.3em",
+          marginLeft: 2,
+          height: size,
+          width: size,
         }}
-      />
-    </Link>
+      >
+        <FontAwesomeIcon
+          icon={faLink}
+          className="link-icon"
+          sx={{
+            fontSize: size,
+            position: "absolute",
+            lineHeight: size,
+          }}
+        />
+      </Link>
+    </Tooltip>
   );
 };
 
