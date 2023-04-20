@@ -83,7 +83,7 @@ const acquireReplicationSlot = async (
   `);
 
   if (slotExists) {
-    logger.info(`Replication slot '${slotName}' exists.`);
+    logger.debug(`Replication slot '${slotName}' exists.`);
   } else {
     logger.warn(`Could not create replication slot '${slotName}'. Retrying..`);
     return false;
@@ -131,7 +131,7 @@ const updateSlotOwnership = async (pool: PgPool, slotName: string) => {
       } * interval '1 second'
     where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.debug(`Updated ownership of slot "${slotName}"`);
+  logger.silly(`Updated ownership of slot "${slotName}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
@@ -215,19 +215,22 @@ const pollChanges = async (
   // Push each row change onto the queues
   for (const change of rows) {
     logger.debug({ message: "change", change });
-    if (change.action !== "T") {
+    if (change.action !== "I") {
       continue;
     }
 
     if (isSupportedRealtimeEntityTable(change.table)) {
-      await QUEUES.entityStream.push(handleEntityTableChange(change, state));
+      const entity = handleEntityTableChange(change, state);
+      if (entity !== null) {
+        await QUEUES.entityStream.push(entity);
+      }
     }
   }
 };
 
 const createHttpServer = () => {
   const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health-check") {
+    if (req.method === "GET" && req.url === "/health") {
       res.setHeader("Content-Type", "application/json");
       res.writeHead(200);
       res.end(
@@ -267,20 +270,20 @@ const main = async () => {
     });
   });
 
-  const pgHost = process.env.HASH_GRAPH_PG_HOST ?? "localhost";
-  const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT ?? "5432", 10);
+  const pgHost = process.env.HASH_REALTIME_PG_HOST ?? "localhost";
+  const pgPort = parseInt(process.env.HASH_REALTIME_PG_PORT ?? "5432", 10);
   await waitOnResource(`tcp:${pgHost}:${pgPort}`, logger);
 
   const pool = createPostgresConnPool(logger, {
-    user: getRequiredEnv("HASH_GRAPH_REALTIME_PG_USER"),
+    user: getRequiredEnv("HASH_REALTIME_PG_USER"),
     host: pgHost,
     port: pgPort,
     /**
      * @todo: update how the database is set once realtime if realtime is run in the testing environment.
      *   See https://app.asana.com/0/0/1203046447168483/f
      */
-    database: getRequiredEnv("HASH_GRAPH_PG_DEV_DATABASE"),
-    password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
+    database: getRequiredEnv("HASH_REALTIME_PG_DATABASE"),
+    password: getRequiredEnv("HASH_REALTIME_PG_PASSWORD"),
     maxPoolSize: 1,
   });
 

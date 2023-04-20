@@ -19,7 +19,7 @@ export const generateQueues = (logger: Logger) => {
         host: getRequiredEnv("HASH_REDIS_HOST"),
         port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
       }),
-      getRequiredEnv("HASH_ENTITY_STREAM_NAME"),
+      getRequiredEnv("HASH_REALTIME_ENTITY_STREAM_PREFIX"),
     ),
     typeStream: new RedisStreamProducer(
       logger,
@@ -27,7 +27,7 @@ export const generateQueues = (logger: Logger) => {
         host: getRequiredEnv("HASH_REDIS_HOST"),
         port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
       }),
-      getRequiredEnv("HASH_TYPE_STREAM_NAME"),
+      getRequiredEnv("HASH_REALTIME_TYPE_STREAM_PREFIX"),
     ),
   } as const;
 };

@@ -12,14 +12,17 @@ The `realtime` service uses the following environment variables:
 
 - `NODE_ENV`: controls the logging level & formatting. Must be either "development"
   or "production".
-- `HASH_PG_DATABASE`: Postgres database name.
-- `HASH_PG_PASSWORD`: Postgres user password.
-- `HASH_PG_USER`: Postgres username.
-- `HASH_PG_HOST`: Postgres hostname.
-- `HASH_PG_PORT`: Postgres connection port.
+- `HASH_REDIS_HOST`: Redis connection hostname.
+- `HASH_REDIS_PORT`: Redis connection port.
+- `HASH_REALTIME_PG_HOST`: Postgres hostname.
+- `HASH_REALTIME_PG_PORT`: Postgres connection port.
+- `HASH_REALTIME_PG_DATABASE`: Postgres database name.
+- `HASH_REALTIME_PG_USER`: Postgres username.
+- `HASH_REALTIME_PG_PASSWORD`: Postgres user password.
+- `HASH_REALTIME_SLOT_NAME`: The name of the logical replication slot to use/create.
 - `HASH_REALTIME_PORT`: (default: 3333) Service listening port.
-- `HASH_ENTITY_STREAM_NAME`: The name of the main entity stream.
-- `HASH_TYPE_STREAM_NAME`: The name of the main type stream.
+- `HASH_REALTIME_ENTITY_STREAM_NAME`: The name of the main entity stream.
+- `HASH_REALTIME_TYPE_STREAM_NAME`: The name of the main type stream.
 
 Configuration for the tables to monitor and the queues to push messages to is defined
 in [`src/config.ts`](./src/config.ts). The service will push all insert/update/delete
@@ -41,7 +44,7 @@ yarn start
 ```
 
 For health checks, the service listens on port `3333` by default at the path
-`/health-check`. The port number may be overridden by setting
+`/health`. The port number may be overridden by setting
 `HASH_REALTIME_PORT`.
 
 ## High Availability

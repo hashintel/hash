@@ -47,7 +47,7 @@ export type EntityTemporalMetadata = {
 export const entityTemporalMetadataFromWalJsonMsg = (
   msg: Wal2JsonMsg<SupportedRealtimeTable>,
 ): EntityTemporalMetadata => {
-  if (msg.table !== "entity_editions") {
+  if (msg.table !== "entity_temporal_metadata") {
     throw new Error(
       `invalid table "${msg.table}" for 'entity_temporal_metadata' parsing`,
     );

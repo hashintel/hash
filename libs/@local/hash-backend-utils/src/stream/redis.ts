@@ -20,7 +20,12 @@ export class RedisStreamProducer implements StreamProducer {
    * @param id The ID of the payload. If not specified, a random ID will be generated.
    */
   async push<T>(payload: T, id: string = "*"): Promise<void> {
-    await this.client.xadd(this.streamName, id, JSON.stringify(payload));
+    await this.client.xadd(
+      this.streamName,
+      id,
+      "payload",
+      JSON.stringify(payload),
+    );
   }
 }
 

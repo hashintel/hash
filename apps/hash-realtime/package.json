@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@local/hash-backend-utils": "0.0.0-private",
+    "cross-env": "7.0.3",
     "set-interval-async": "2.0.3",
     "slonik": "24.1.2",
     "ts-node": "10.9.1",
