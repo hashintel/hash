@@ -8,7 +8,6 @@ profile := env_var_or_default('PROFILE', "dev")
 test-env-flags := "--cfg hash_graph_test_environment"
 
 export HASH_GRAPH_PG_DATABASE := env_var('HASH_GRAPH_PG_DEV_DATABASE')
-export DOCKER_BUILDKIT := "1"
 
 [private]
 default:
@@ -18,14 +17,11 @@ default:
 run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
-[private]
-docker-build:
-  @just yarn external-services build graph
-  @just in-ci docker builder prune --force
 
 # Spins up the deployment environment
-deployment-up *arguments: docker-build
+deployment-up *arguments:
   @just yarn external-services up postgres type-fetcher --wait
+  @just in-ci docker builder prune --force
   @just yarn external-services up graph-migrate {{arguments}}
 
 # Tears down the deployment environment
@@ -41,10 +37,9 @@ generate-openapi-client:
 
 [private]
 test *arguments:
-  @just deployment-up
+  @just deployment-up graph --wait
   @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
   RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
-  @just deployment-up graph --wait
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
   @just deployment-down
   @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-client

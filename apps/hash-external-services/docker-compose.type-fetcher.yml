@@ -1,20 +1,8 @@
 version: "3.9"
 
 services:
-  graph-migrate:
-    build:
-      args:
-        ENABLE_TYPE_FETCHER: yes
-
   type-fetcher:
     init: true
-    build:
-      dockerfile: apps/hash-graph/docker/Dockerfile
-      context: ../../
-      args:
-        PROFILE: dev
-        ENABLE_TYPE_FETCHER: yes
-        ENABLE_TEST_SERVER: yes
     image: hash-graph
     read_only: true
     security_opt:
@@ -37,15 +25,7 @@ services:
       timeout: 2s
       retries: 10
 
-  graph-test-server:
-    build:
-      args:
-        ENABLE_TYPE_FETCHER: yes
-
   graph:
     depends_on:
       type-fetcher:
         condition: service_healthy
-    build:
-      args:
-        ENABLE_TYPE_FETCHER: yes

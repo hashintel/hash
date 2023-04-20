@@ -73,12 +73,6 @@ services:
         condition: service_healthy
       telemetry-collector:
         condition: service_healthy
-    build: &graph-build
-      dockerfile: apps/hash-graph/docker/Dockerfile
-      context: ../../
-      args:
-        PROFILE: dev
-        ENABLE_TEST_SERVER: yes
     image: hash-graph
     read_only: true
     security_opt:
@@ -133,7 +127,6 @@ services:
         condition: service_healthy
       graph-migrate:
         condition: service_completed_successfully
-    build: *graph-build
     image: hash-graph
     read_only: true
     security_opt:
@@ -178,7 +171,6 @@ services:
         condition: service_completed_successfully
       telemetry-collector:
         condition: service_healthy
-    build: *graph-build
     image: hash-graph
     read_only: true
     security_opt:
@@ -241,7 +233,8 @@ services:
         ENV: dev
         SECRET: "${KRATOS_API_KEY}"
     depends_on:
-      - kratos-migrate
+      kratos-migrate:
+        condition: service_completed_successfully
     ports:
       - "4433:4433" # public
       - "4434:4434" # admin
