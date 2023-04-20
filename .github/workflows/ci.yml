@@ -35,6 +35,15 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
 
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: poetry
+
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
         run: |
@@ -68,6 +77,18 @@ jobs:
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try resetting yarn.lock to its previous state and then run `yarn install`.'
             echo 'If your `~/.npmrc` mentions a custom registry, you should remove this setting first.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:lock-files
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:lock-files; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:lock-files` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
