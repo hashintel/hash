@@ -6,14 +6,17 @@
     },
     "deploy": {
       "cache": false,
+      "persistent": true,
       "dependsOn": ["@apps/hash-graph#build:docker", "codegen"]
     },
     "deploy:test": {
       "cache": false,
+      "persistent": true,
       "dependsOn": ["@apps/hash-graph#build:docker:test", "codegen"]
     },
     "deploy:offline": {
       "cache": false,
+      "persistent": true,
       "dependsOn": ["@apps/hash-graph#build:docker:offline", "codegen"]
     }
   }
