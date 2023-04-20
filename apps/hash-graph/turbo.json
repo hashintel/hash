@@ -1,6 +1,15 @@
 {
   "extends": ["//"],
   "pipeline": {
+    "build:docker": {
+      "cache": false
+    },
+    "build:docker:test": {
+      "cache": false
+    },
+    "build:docker:offline": {
+      "cache": false
+    },
     "codegen:generate-openapi-client": {
       "outputs": [
         "../../libs/@local/hash-graph-client/*.ts",

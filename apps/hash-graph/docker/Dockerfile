@@ -42,7 +42,7 @@ FROM installer AS builder
 WORKDIR /usr/local/src/apps/hash-graph
 
 ARG PROFILE=production
-ARG ENABLE_TYPE_FETCHER=no
+ARG ENABLE_TYPE_FETCHER=yes
 ARG ENABLE_TEST_SERVER=no
 
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
