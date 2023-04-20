@@ -16,9 +16,7 @@ def setup_logging(base_logger=None):
     log_level = os.getenv("HASH_AGENT_RUNNER_LOG_LEVEL")
 
     handlers = [
-        logging.FileHandler(
-            f"{log_folder}/run-{datetime.now().isoformat()}.log", mode="w"
-        ),
+        logging.FileHandler(f"{log_folder}/run-{datetime.now().isoformat()}.log", mode="w"),
     ]
 
     if base_logger:

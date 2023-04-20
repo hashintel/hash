@@ -19,6 +19,13 @@ gunicorn = { version = "^20.1.0", extras = ["gevent"], optional = true }
 [tool.poetry.extras]
 production = ["gunicorn"]
 
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

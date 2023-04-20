@@ -24,6 +24,7 @@
     "external-services:test": "turbo run deploy:test --filter='@apps/hash-external-services' --",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
+    "fix:black": "turbo fix:black",
     "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo run --continue fix:eslint",
     "fix:lock-files": "turbo fix:lock-files",
@@ -32,6 +33,7 @@
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
+    "lint:black": "turbo lint:black",
     "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "lint:eslint": "turbo run --continue lint:eslint",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
@@ -53,6 +55,9 @@
     "**": [
       "suppress-exit-code markdownlint --fix",
       "suppress-exit-code prettier --write"
+    ],
+    "**.py": [
+      "suppress-exit-code yarn fix:black"
     ]
   },
   "prettier": {
