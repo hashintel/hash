@@ -5,7 +5,7 @@ volumes:
   log:
 
 services:
-  hash-dev-opensearch:
+  hash-opensearch:
     deploy:
       restart_policy:
         condition: on-failure
@@ -221,14 +221,6 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
-
-  hash-dev-redis:
-    image: redis:6.2
-    deploy:
-      restart_policy:
-        condition: on-failure
-    ports:
-      - 6379:6379
 
   kratos-migrate:
     build:

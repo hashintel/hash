@@ -8,7 +8,10 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { entityFromWalJsonMsg } from "@local/hash-backend-utils/pg-tables";
+import {
+  Entity,
+  entityFromWalJsonMsg,
+} from "@local/hash-backend-utils/pg-tables";
 import {
   createPostgresConnPool,
   PgPool,
@@ -159,7 +162,7 @@ const findColumn = (columns: ChangeType["columns"], name: string): string =>
 const handleEntityTableChange = (
   change: ChangeType,
   state: EntityPollState,
-): string | null => {
+): Entity | null => {
   const entityEditionId = findColumn(change.columns, "entity_edition_id");
   let entity = null;
 
@@ -190,7 +193,6 @@ const handleEntityTableChange = (
   if (entity) {
     state.seenTemporalMetadata.delete(entityEditionId);
     state.seenEntityEdition.delete(entityEditionId);
-    entity = JSON.stringify(entity);
   }
   return entity;
 };

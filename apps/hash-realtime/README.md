@@ -21,8 +21,8 @@ The `realtime` service uses the following environment variables:
 - `HASH_REALTIME_PG_PASSWORD`: Postgres user password.
 - `HASH_REALTIME_SLOT_NAME`: The name of the logical replication slot to use/create.
 - `HASH_REALTIME_PORT`: (default: 3333) Service listening port.
-- `HASH_REALTIME_ENTITY_STREAM_NAME`: The name of the main entity stream.
-- `HASH_REALTIME_TYPE_STREAM_NAME`: The name of the main type stream.
+- `HASH_REALTIME_ENTITY_STREAM_PREFIX`: The entity stream name prefix.
+- `HASH_REALTIME_TYPE_STREAM_PREFIX`: The type stream name prefix.
 
 Configuration for the tables to monitor and the queues to push messages to is defined
 in [`src/config.ts`](./src/config.ts). The service will push all insert/update/delete
