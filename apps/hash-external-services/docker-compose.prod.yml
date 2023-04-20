@@ -240,3 +240,31 @@ services:
 
     ports:
       - "3000:3000"
+
+  hash-realtime:
+    build:
+      context: ../../
+      dockerfile: infra/docker/realtime/prod/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hash-redis:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      HASH_REDIS_HOST: "hash-redis"
+      HASH_REDIS_PORT: "6379"
+      HASH_REALTIME_PG_HOST: "postgres"
+      HASH_REALTIME_PG_PORT: "5432"
+      HASH_REALTIME_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
+      HASH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+      HASH_REALTIME_SLOT_NAME: "realtime"
+      HASH_REALTIME_PORT: "3333"
+      HASH_REALTIME_ENTITY_STREAM_PREFIX: entities
+      HASH_REALTIME_TYPE_STREAM_PREFIX: types
+      NODE_ENV: development
+    ports:
+      - "3333:3333"

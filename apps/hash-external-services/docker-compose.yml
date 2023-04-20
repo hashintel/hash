@@ -35,6 +35,23 @@ services:
     # volumes:
     #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
 
+  hash-redis:
+    image: redis/redis-stack:6.2.6-v6
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - 6379:6379
+      # Redisinsight is a GUI for Redis which is at port 8011
+      - 8011:8001
+
   postgres:
     build:
       context: ./postgres
