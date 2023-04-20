@@ -2,7 +2,7 @@
 name = "hash-agents"
 version = "0.0.0"
 description = ""
-license = "GNU Affero General Public License v3.0"
+license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
 packages = [{include = "app"}]
