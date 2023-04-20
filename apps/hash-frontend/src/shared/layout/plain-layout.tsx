@@ -1,7 +1,10 @@
-import { useTheme } from "@mui/material";
+import { TextField } from "@hashintel/design-system";
+import { Autocomplete, Box, Modal, useTheme } from "@mui/material";
+import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import Head from "next/head";
 import NextNProgress from "nextjs-progressbar";
-import { FunctionComponent, ReactElement, ReactNode } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import { useKeys } from "rooks";
 
 import { isProduction } from "../../lib/config";
 
@@ -9,6 +12,14 @@ export const PlainLayout: FunctionComponent<{
   children?: ReactNode;
 }> = ({ children }) => {
   const { palette } = useTheme();
+  const popupState = usePopupState({
+    popupId: "kbar",
+    variant: "popover",
+  });
+
+  useKeys(["Meta", "k"], () => {
+    popupState.toggle();
+  });
 
   return (
     <>
@@ -22,6 +33,29 @@ export const PlainLayout: FunctionComponent<{
         options={{ showSpinner: false }}
         showOnShallow
       />
+      <Modal {...bindPopover(popupState)}>
+        <Box
+          maxWidth={560}
+          width="100vw"
+          height="100vh"
+          display="flex"
+          alignItems="center"
+          margin="0 auto"
+        >
+          <Autocomplete
+            options={[]}
+            openOnFocus
+            sx={{ width: "100%" }}
+            renderInput={(props) => (
+              <TextField
+                onBlur={() => popupState.close()}
+                autoFocus
+                {...props}
+              />
+            )}
+          />
+        </Box>
+      </Modal>
       {children}
     </>
   );
