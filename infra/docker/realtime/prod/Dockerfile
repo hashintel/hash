@@ -1,36 +1,38 @@
-FROM node:16.18.1-alpine AS builder
+FROM node:16.18.1-alpine AS base
 
 WORKDIR /app
 
-# Ensure that the node module layer can be cached
-COPY package.json .
-COPY yarn.lock .
-RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
+RUN yarn global add turbo
+COPY . .
+RUN turbo prune --scope='@apps/hash-realtime' --docker
 
-# Also ensure that api node modules can be cached
-COPY apps/hash-realtime/package.json apps/hash-realtime/
-COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
-COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
-COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-RUN yarn workspace @apps/hash-realtime install --frozen-lockfile --ignore-scripts --prefer-offline
+FROM node:16.18.1-alpine as installer
 
-COPY libs/@local/eslint-config libs/@local/eslint-config
-COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
-COPY libs/@local/tsconfig libs/@local/tsconfig
-COPY apps/hash-realtime apps/hash-realtime
 
-#########################################################################################
+WORKDIR /usr/local/src/
 
-FROM node:16.18.1-alpine
+COPY --from=base /app/out/json/ .
+COPY --from=base /app/out/yarn.lock ./yarn.lock
+COPY --from=base /app/out/full/turbo.json turbo.json
+
+RUN yarn install --frozen-lockfile --prefer-offline \
+    && yarn cache clean
+
+COPY --from=base /app/out/full/ .
+
+FROM node:16.18.1-alpine as runner
+
+COPY --from=installer /usr/local/src /usr/local/src
+WORKDIR /usr/local/src/apps/hash-realtime
+
+ENTRYPOINT [ "yarn" ]
+CMD ["start"]
 
 # Run as a non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-COPY --from=builder --chown=appgroup:appuser /app /app
+RUN addgroup --system --gid 60000 hash \
+    && adduser --system realtime -G hash
 
-WORKDIR /app
-
-USER appuser
+USER realtime:hash
 ENV NODE_ENV production
 
-CMD ["yarn", "workspace","@apps/hash-realtime", "start"]
-
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost${HASH_REALTIME_PORT:-3333}/health || exit 1
