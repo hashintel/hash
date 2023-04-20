@@ -26,7 +26,7 @@ FROM installer AS builder
 
 WORKDIR /usr/local/src/apps/hash-agents
 
-RUN yarn turbo build --filter '@apps/hash-agents'
+RUN yarn turbo codegen --filter '@apps/hash-agents'
 
 
 FROM python:3.11-alpine as runner
