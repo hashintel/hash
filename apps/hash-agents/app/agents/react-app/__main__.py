@@ -12,10 +12,14 @@ def main(input: Input) -> Output:
     """
     chat = ChatOpenAI(model="gpt-3.5-turbo", streaming=True, callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]), verbose=True, temperature=0)
     resp = chat([SystemMessage(content="You are ChatGPT, a large language model trained by OpenAI."), 
-                SystemMessage(content="Answer as concisely as possible."),
-                SystemMessage(content="Return only code blocks as ```{code:jsx}{code...}```."),
-                SystemMessage(content="Generate a react component using MUI components."), 
+                SystemMessage(content="Answer as concisely as possible with react code only."),
                 SystemMessage(content="Do NOT include an explanation or any text that is not part of the code block you are generating."),
+                SystemMessage(content="Return code blocks as ```{code:jsx}{code...}```."),
+                SystemMessage(content="Do not include imports or exports in the code."),
+                SystemMessage(content="Import all React dependencies from the object React. For example, useState should be React.useState."),
+                SystemMessage(content="Import all MUI components from the object MUI. For example, Button should be MUI.Button."),
+                SystemMessage(content="End the code block with the following line: render(<Component />)"), 
+                SystemMessage(content="Generate a react component using MUI components."), 
                 HumanMessage(content=input.user_prompt)])
     return Output(result=resp.content)
 
