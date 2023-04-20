@@ -6,7 +6,7 @@
   "main": "./src/agents.ts",
   "scripts": {
     "build": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
-    "build:docker": "DOCKER_BUILDKIT=1 docker build --tag hash-agents --file docker/Dockerfile ../../",
+    "build:docker": "docker buildx build --tag hash-agents --file docker/Dockerfile ../../",
     "exe": "ts-node --transpile-only"
   },
   "dependencies": {

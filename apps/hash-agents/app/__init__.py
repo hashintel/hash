@@ -1,3 +1,7 @@
+from .monkey import monkey_patch
+
+monkey_patch()
+
 import os
 import secrets
 import json

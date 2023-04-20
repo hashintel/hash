@@ -23,49 +23,32 @@ Some potential candidates for `PYTHON_CMD`
 
 ### First-Time Pre-Setup
 
+- Install poetry:
+  - Please refer to the [poetry documentation](https://python-poetry.org/docs/#installation) for installation instructions
 - Acquire and set the OpenAI API key, either:
   - Set the `OPENAI_API_KEY` environment variable in `.env.local` (this folder or any parent folder), or
   - Set the `OPENAI_API_KEY` environment variable in your shell
-- Create a virtual environment:
-  - `<PYTHON_CMD> -m venv venv`
-- Activate the virtual environment:
-  - On **Linux/MacOS**
-    - `. venv/bin/activate` (if that doesn't work try `source venv/bin/activate`)
-  - On **Windows** (`cmd` or Powershell):
-    - `venv\Scripts\activate.bat`
-- Check that your environment has activated correctly, after this point you can just use `python` instead of `<PYTHON_CMD>`:
-  - On **Linux/MacOS**
-    - `which python` should point to `venv/bin/python`
-  - On **Windows** (`cmd` or Powershell):
-    - `where python` should point to `venv\Scripts\python.exe`
 - Install dependencies:
-  - `pip install --upgrade pip`
-  - `pip install -r requirements.txt`
+  - `poetry install`
 
 ### Subsequent Runs (or after Pre-Setup)
 
 - Ensure the OpenAI API key is available
-- Activate the virtual environment:
-  - On **Linux/MacOS**
-    - `. venv/bin/activate` (if that doesn't work try `source venv/bin/activate`)
-  - On **Windows** (`cmd` or Powershell):
-    - `venv\Scripts\activate.bat`
 - If the requirements has been changed:
-  - `pip install --upgrade pip`
-  - `pip install -r requirements.txt`
+  - `poetry install`
 
 ## Running
 
 To run the agent orchestrator, pass the agent name alongside the input you want to pass to the agent:
 
 ```bash
-python -m app.agents <AGENT_NAME> <INPUT>
+poetry run python -m app.agents <AGENT_NAME> <INPUT>
 ```
 
 A server is available to run the agents. To run the server, use the following command:
 
 ```bash
-python -m app
+poetry run python -m app
 ```
 
 The server will read the `HASH_AGENT_RUNNER_HOST` and `HASH_AGENT_RUNNER_PORT` environment variables to determine the host and port to run on. If these are not set, the server will run on `localhost:5000`.
@@ -95,7 +78,7 @@ You should have an `io_types.ts` file in this newly copied directory, this folde
 To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
 
 ```bash
-python -m app.agents.my_agents
+poetry run python -m app.agents.my_agents
 ```
 
 When the server is running as an external service, the `agents` directory is mounted, so it's possible to add new agents or modify agents without restarting the server.
