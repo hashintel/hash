@@ -97,7 +97,7 @@ To run HASH locally, please follow these steps:
 
     1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
-    1.  When using `yarn external-services-offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+    1.  When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
 
 1.  Launch app services:
 
@@ -124,7 +124,7 @@ This is useful for situations where the database is used for tests that modify t
 To make use of this test mode, the external services can be started as follows:
 
 ```sh
-yarn external-services-test up
+yarn external-services:test up
 ```
 
 </details>
