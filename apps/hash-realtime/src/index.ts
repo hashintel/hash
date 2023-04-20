@@ -8,11 +8,17 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { entityFromWalJsonMsg } from "@local/hash-backend-utils/pg-tables";
 import {
   createPostgresConnPool,
   PgPool,
 } from "@local/hash-backend-utils/postgres";
+import {
+  isSupportedRealtimeEntityTable,
+  SupportedRealtimeTable,
+} from "@local/hash-backend-utils/realtime";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import {
   clearIntervalAsync,
   setIntervalAsync,
@@ -140,10 +146,63 @@ const releaseSlotOwnership = async (pool: PgPool, slotName: string) => {
   }
 };
 
-const pollChanges = async (pool: PgPool, slotName: string) => {
+type ChangeType = Wal2JsonMsg<SupportedRealtimeTable>;
+type EntityEditionId = string;
+type EntityPollState = {
+  seenTemporalMetadata: Map<EntityEditionId, ChangeType>;
+  seenEntityEdition: Map<EntityEditionId, ChangeType>;
+};
+
+const findColumn = (columns: ChangeType["columns"], name: string): string =>
+  columns.find((col) => col.name === name)?.value as string;
+
+const handleEntityTableChange = (
+  change: ChangeType,
+  state: EntityPollState,
+): string | null => {
+  const entityEditionId = findColumn(change.columns, "entity_edition_id");
+  let entity = null;
+
+  if (change.table === "entity_editions") {
+    const metadataChange = state.seenTemporalMetadata.get(entityEditionId);
+    if (!metadataChange) {
+      // Save edition for later
+      state.seenEntityEdition.set(entityEditionId, change);
+      return null;
+    }
+
+    // We have all the data we need to create the entity
+    entity = entityFromWalJsonMsg(change, metadataChange);
+  }
+
+  if (change.table === "entity_temporal_metadata") {
+    const editionChange = state.seenEntityEdition.get(entityEditionId);
+    if (!editionChange) {
+      // Save metadata for later
+      state.seenTemporalMetadata.set(entityEditionId, change);
+      return null;
+    }
+
+    // We have all the data we need to create the entity
+    entity = entityFromWalJsonMsg(editionChange, change);
+  }
+
+  if (entity) {
+    state.seenTemporalMetadata.delete(entityEditionId);
+    state.seenEntityEdition.delete(entityEditionId);
+    entity = JSON.stringify(entity);
+  }
+  return entity;
+};
+
+const pollChanges = async (
+  pool: PgPool,
+  slotName: string,
+  state: EntityPollState,
+) => {
   // Note: setting 'include-transaction' to 'false' here removes the transaction begin
   // & end messages with action types "B" and "C", respectively. We don't need these.
-  const rows = await pool.anyFirst(sql`
+  const rows = await pool.anyFirst<ChangeType>(sql`
     select data::jsonb from pg_logical_slot_get_changes(
       ${slotName},
       null,
@@ -156,14 +215,13 @@ const pollChanges = async (pool: PgPool, slotName: string) => {
   // Push each row change onto the queues
   for (const change of rows) {
     logger.debug({ message: "change", change });
-    // @ts-expect-error -- Ignore TRUNCATE changes (absent in types), see Wal2JsonMsg
-    if (change?.action === "T") {
+    if (change.action !== "T") {
       continue;
     }
-    const changeStr = JSON.stringify(change);
-    await Promise.all(
-      QUEUES.map(({ name, producer }) => producer.push(name, changeStr)),
-    );
+
+    if (isSupportedRealtimeEntityTable(change.table)) {
+      await QUEUES.entityStream.push(handleEntityTableChange(change, state));
+    }
   }
 };
 
@@ -265,6 +323,11 @@ const main = async () => {
     await clearIntervalAsync(slotInterval);
   });
 
+  const state: EntityPollState = {
+    seenEntityEdition: new Map(),
+    seenTemporalMetadata: new Map(),
+  };
+
   // Poll the replication slot for new data
   // We are using set-interval-async/dynamic as the built-in setInterval might
   // call the callback in an overlapping manner if the promise takes longer
@@ -280,7 +343,7 @@ const main = async () => {
     }
     try {
       await Promise.all([
-        pollChanges(pool, slotName),
+        pollChanges(pool, slotName, state),
         updateSlotOwnership(pool, slotName),
       ]);
     } catch (error) {

@@ -5,15 +5,15 @@
  * Note: We ignore transaction begin / end messages (i.e. those with action "B" / "C"),
  * and TRUNCATE messages (action "T").
  */
-export type Wal2JsonMsg = {
+export type Wal2JsonMsg<T = string> = {
   /** The table the change is coming from. */
-  table: string;
+  table: T;
 
   /** The schema namespace the `table` belongs to. */
   schema: string;
 
-  /** The type of change: "I" (insert), "U" (update) or "D" (delete). */
-  action: "I" | "U" | "D";
+  /** The type of change: "I" (insert), "U" (update), "D" (delete) or "T" (truncate) */
+  action: "I" | "U" | "D" | "T";
 
   /** Each column in the table row. */
   columns: {
