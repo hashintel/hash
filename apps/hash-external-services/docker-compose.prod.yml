@@ -166,6 +166,8 @@ services:
       interval: 2s
       timeout: 2s
       retries: 5
+    tmpfs:
+      - /data
     security_opt:
       - no-new-privileges:true
 
@@ -245,6 +247,7 @@ services:
     build:
       context: ../../
       dockerfile: infra/docker/realtime/prod/Dockerfile
+    read_only: true
     depends_on:
       postgres:
         condition: service_healthy

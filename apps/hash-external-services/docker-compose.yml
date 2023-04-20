@@ -1,6 +1,7 @@
 version: "3.9"
 
 volumes:
+  hash-redis-data:
   hash-postgres-data:
   log:
 
@@ -37,6 +38,7 @@ services:
 
   hash-redis:
     image: redis/redis-stack:6.2.6-v6
+    read_only: true
     deploy:
       restart_policy:
         condition: on-failure
@@ -45,6 +47,10 @@ services:
       interval: 2s
       timeout: 2s
       retries: 5
+    volumes:
+      - hash-redis-data:/data
+    tmpfs:
+      - /redisinsight
     security_opt:
       - no-new-privileges:true
     ports:
