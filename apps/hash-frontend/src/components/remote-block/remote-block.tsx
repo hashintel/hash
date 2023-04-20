@@ -147,7 +147,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   };
 
   return (
-    <div ref={wrapperRef}>
+    <div ref={wrapperRef} style={{ maxHeight: "100%", maxWidth: "100%" }}>
       <BlockRenderer
         blockSource={blockSource}
         blockType={blockMetadata.blockType}

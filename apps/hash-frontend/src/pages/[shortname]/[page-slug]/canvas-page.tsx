@@ -7,13 +7,15 @@ import {
 } from "@blockprotocol/graph/dist/cjs/temporal/main";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { AccountId, EntityId } from "@local/hash-subgraph";
-import { TldrawEditorConfig } from "@tldraw/editor";
+import { TldrawEditorConfig, useApp } from "@tldraw/editor";
+import { TLShapeUtilFlag } from "@tldraw/editor/src/lib/app/shapeutils/TLShapeUtil";
 import { getEmbedInfo } from "@tldraw/editor/src/lib/utils";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
   App,
   createShapeId,
   defineShape,
+  HTMLContainer,
   MenuGroup,
   menuItem,
   TLBaseShape,
@@ -22,14 +24,18 @@ import {
   Tldraw,
   TLOpacityType,
   toolbarItem,
+  useDefaultHelpers,
 } from "@tldraw/tldraw";
 import { TLEmbedShape } from "@tldraw/tlschema";
 import { defineMigrations } from "@tldraw/tlstore";
-import { useMemo, useState } from "react";
+import { useDialogs } from "@tldraw/ui";
+import { createRef, useMemo, useRef, useState } from "react";
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 import {
   BlockContext,
+  BlockContextProvider,
   BlockContextType,
 } from "../../../blocks/page/block-context";
 import { BlocksMap } from "../../../blocks/page/create-editor-view";
@@ -57,8 +63,22 @@ type BlockShape = TLBaseShape<
   } & Partial<BlockLoaderProps>
 >;
 
-class BlockComponent extends TLBoxUtil<BlockShape> {
+const WrappedBlockSuggester = () => {
+  const app = useApp();
+
+  return <BlockSuggester onChange={(blockMeta) => console.log(blockMeta)} />;
+};
+
+class BlockUtil extends TLBoxUtil<BlockShape> {
   static type = "bpBlock";
+
+  override canUnmount = () => false;
+  override canResize = (shape: TLEmbedShape) => true;
+
+  override hideSelectionBoundsBg = (shape) => !this.canResize(shape);
+  override hideSelectionBoundsFg = (shape) => !this.canResize(shape);
+
+  override canEdit = () => true;
 
   defaultProps() {
     return {
@@ -74,76 +94,56 @@ class BlockComponent extends TLBoxUtil<BlockShape> {
       <rect
         width={toDomPrecision(shape.props.w)}
         height={toDomPrecision(shape.props.h)}
+        color="red"
       />
     );
   }
 
-  render(shape) {
+  render(shape: BlockShape) {
     console.log("THIS", this);
 
     const bounds = this.bounds(shape);
 
     const { opacity: _opacity, w, h, ...blockLoaderProps } = shape.props;
 
-    const [error, setError] = useState(false);
-    const [blockSubgraph, setBlockSubgraph] = useState<
-      Subgraph<EntityRootType> | undefined
-    >();
-
-    const blockContext = useMemo<BlockContextType>(
-      () => ({
-        id: blockLoaderProps.blockEntityId,
-        error,
-        setError,
-        blockSubgraph,
-        setBlockSubgraph,
-      }),
-      [
-        blockLoaderProps.blockEntityId,
-        error,
-        setError,
-        blockSubgraph,
-        setBlockSubgraph,
-      ],
-    );
+    console.log(this.getEditingBounds(shape));
 
     console.log({ shape });
 
-    // this.app.updateShapes([
-    //   {
-    //     id: shape.id,
-    //     ...shape,
-    //     props: {
-    //       ...shape.props,
-    //       newProp: 100,
-    //     },
-    //   },
-    // ]);
-
     return (
-      <div
-        style={{
-          height: h,
-          width: w,
-          outline: "3px solid blue",
-        }}
-      >
-        {/* <BlockSuggester */}
-        {/*  onChange={(...args) => { */}
-        {/*    console.log(args); */}
-        {/*  }} */}
-        {/* /> */}
-        <BlockContext.Provider value={blockContext}>
-          <BlockLoader {...blockLoaderProps} />
-        </BlockContext.Provider>
-      </div>
+      <HTMLContainer id={shape.id} style={{ pointerEvents: "all" }}>
+        {blockLoaderProps.blockMetadata ? (
+          <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
+            <BlockLoader
+              {...blockLoaderProps}
+              onBlockLoaded={() =>
+                console.log(`Loaded block ${blockLoaderProps.wrappingEntityId}`)
+              }
+            />
+          </BlockContextProvider>
+        ) : (
+          <BlockSuggester
+            onChange={(_variant, blockMeta) => {
+              this.app.updateShapes([
+                {
+                  ...shape,
+                  props: {
+                    ...shape.props,
+                    blockMetadata: blockMeta,
+                  },
+                },
+              ]);
+            }}
+          />
+        )}
+      </HTMLContainer>
     );
   }
 }
 
-const BpBlockShapeDef = defineShape<BlockShape, BlockComponent>({
+const BlockShapeDef = defineShape<BlockShape, BlockUtil>({
   type: "bpBlock",
-  getShapeUtil: () => BlockComponent,
+  getShapeUtil: () => BlockUtil,
 });
 
 class BlockTool extends TLBoxTool {
@@ -154,13 +154,21 @@ class BlockTool extends TLBoxTool {
 }
 
 const config = new TldrawEditorConfig({
-  shapes: [BpBlockShapeDef],
+  shapes: [BlockShapeDef],
   allowUnknownShapes: true,
   tools: [BlockTool],
 });
 
 export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
+  const [showBlockSelector, setShowBlockSelector] = useState(false);
   const handleMount = (app: App) => {
+    for (const page of app.pages) {
+      const shapes = app.getShapesInPage(page.id);
+      app.deleteShapes(shapes.map((shape) => shape.id));
+    }
+
+    console.log({ contents });
+
     app.createShapes(
       contents.map((blockEntity, index) => ({
         id: createShapeId(),
@@ -171,23 +179,30 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
           blockEntityId:
             blockEntity.blockChildEntity.metadata.recordId.entityId,
           blockEntityTypeId: blockEntity.blockChildEntity.metadata.entityTypeId,
-          // editableRef: () => null,
-          // onBlockLoader: () => null,
           wrappingEntityId: blockEntity.metadata.recordId.entityId,
           blockMetadata: blocks[blockEntity.componentId]!.meta,
           readonly: false,
         },
       })),
     );
+    //
+    // app.enableReadOnlyMode();
   };
 
   return (
     <div style={{ height: "100%" }}>
+      {/* {showBlockSelector && ( */}
+      {/*  <BlockSuggester */}
+      {/*    onChange={(block) => { */}
+      {/*      console.log(block); */}
+      {/*    }} */}
+      {/*  /> */}
+      {/* )} */}
       <Tldraw
         config={config}
         onMount={handleMount}
         overrides={{
-          tools(app, tools) {
+          tools(app, tools, { addDialog }) {
             // In order for our custom tool to show up in the UI...
             // We need to add it to the tools list. This "toolItem"
             // has information about its icon, label, keyboard shortcut,
@@ -197,26 +212,20 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
               id: "bpBlock",
               icon: "twitter",
               label: "Block" as any,
-              kbd: "c",
+              kbd: "b",
               readonlyOk: false,
               onSelect: () => {
-                app.setSelectedTool("bpBlock", {
-                  props: { props: { bar: 10 } },
-                });
+                addDialog({ component: WrappedBlockSuggester });
               },
             };
+
             return tools;
           },
           toolbar(_app, toolbar, { tools }) {
-            // The toolbar is an array of items. We can add it to the
-            // end of the array or splice it in, then return the array.
-            toolbar.splice(4, 0, toolbarItem(tools.bpBlock!));
+            toolbar.splice(1, 0, toolbarItem(tools.bpBlock!));
             return toolbar;
           },
           keyboardShortcutsMenu(_app, keyboardShortcutsMenu, { tools }) {
-            // Same for the keyboard shortcuts menu, but this menu contains
-            // both items and groups. We want to find the "Tools" group and
-            // add it to that before returning the array.
             const toolsGroup = keyboardShortcutsMenu.find(
               (group) => group.id === "shortcuts-dialog.tools",
             ) as MenuGroup;
