@@ -54,7 +54,6 @@ WORKDIR $WORKDIR
 
 COPY --from=builder $VENV_DIR $VENV_DIR
 COPY --from=installer $WORKDIR/app app
-COPY --from=installer $WORKDIR/pyproject.toml ./
 
 ENTRYPOINT ["gunicorn"]
 CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app(base_logger='gunicorn.error')"]
