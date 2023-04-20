@@ -166,7 +166,7 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          yarn external-services-test up --detach
+          yarn external-services:test up --detach
 
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
@@ -224,7 +224,7 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          yarn external-services up --build --detach
+          yarn external-services up --detach
 
       ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
       # - name: Seed data

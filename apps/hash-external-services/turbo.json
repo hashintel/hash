@@ -1,0 +1,20 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "codegen": {
+      "cache": false
+    },
+    "deploy": {
+      "cache": false,
+      "dependsOn": ["@apps/hash-graph#build:docker", "codegen"]
+    },
+    "deploy:test": {
+      "cache": false,
+      "dependsOn": ["@apps/hash-graph#build:docker:test", "codegen"]
+    },
+    "deploy:offline": {
+      "cache": false,
+      "dependsOn": ["@apps/hash-graph#build:docker:offline", "codegen"]
+    }
+  }
+}
