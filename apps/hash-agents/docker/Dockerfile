@@ -27,13 +27,14 @@ FROM python:3.11-alpine as base-env
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
+    POETRY_ACTIVE=1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
     POETRY_VERSION=1.4.2 \
     WORKDIR="/usr/local/src/hash/apps/hash-agents"
-ENV VENV_DIR="$WORKDIR/.venv"
-ENV PATH="$POETRY_HOME/bin:$VENV_DIR/bin:$PATH"
+ENV VIRTUAL_ENV="$WORKDIR/.venv"
+ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR $WORKDIR
 
@@ -44,8 +45,7 @@ COPY --from=installer $WORKDIR/poetry.lock $WORKDIR/pyproject.toml ./
 
 RUN apk add --no-cache --virtual .build-deps g++ musl-dev libffi-dev make curl && \
     curl -sSL https://install.python-poetry.org | python && \
-    poetry install --no-root --only main && \
-    poetry add 'gunicorn[gevent]' && \
+    poetry install --no-root --only main -E production && \
     apk del .build-deps
 
 
@@ -53,7 +53,7 @@ FROM base-env AS runner
 
 WORKDIR $WORKDIR
 
-COPY --from=builder $VENV_DIR $VENV_DIR
+COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY --from=installer $WORKDIR/app app
 
 ENTRYPOINT ["gunicorn"]
