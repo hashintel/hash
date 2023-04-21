@@ -1,0 +1,31 @@
+name: Build docker images
+description: "Build docker images"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build images
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: apps/hash-graph/docker/Dockerfile
+        tags: hash-graph
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=docker,dest=/tmp/hash-graph.tar
+        # `dev` is large (~400 MB), slow, and fast to build
+        # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
+        # `release` is a compromise between the two (~30 MB, no LTO)
+        build-args: |
+          PROFILE=release
+          ENABLE_TYPE_FETCHER=yes
+          ENABLE_TEST_SERVER=yes
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: hash-graph
+        path: /tmp/hash-graph.tar

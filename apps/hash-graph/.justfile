@@ -5,9 +5,9 @@ set dotenv-load
 
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
+test-env-flags := "--cfg hash_graph_test_environment"
 
 export HASH_GRAPH_PG_DATABASE := env_var('HASH_GRAPH_PG_DEV_DATABASE')
-export DOCKER_BUILDKIT := "1"
 
 [private]
 default:
@@ -17,19 +17,6 @@ default:
 run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
-[private]
-docker-build:
-  @just yarn external-services build graph
-  @just in-ci docker builder prune --force
-
-# Spins up the deployment environment
-deployment-up *arguments: docker-build
-  @just yarn external-services up postgres type-fetcher --wait
-  @just yarn external-services up graph-migrate {{arguments}}
-
-# Tears down the deployment environment
-deployment-down *arguments:
-  @just yarn external-services down {{arguments}}
 
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-client:
@@ -40,25 +27,18 @@ generate-openapi-client:
 
 [private]
 test *arguments:
-  @just deployment-up
-  @just --justfile {{repo}}/.justfile test {{arguments}}
-  cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
-  @just deployment-up graph --wait
+  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
+  RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
-  @just deployment-down
-  @just generate-openapi-client
+  @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-client
 
 [private]
 coverage *arguments:
-  @just deployment-up
-  cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
-  @just deployment-down
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
 
 [private]
 bench *arguments:
-  @just deployment-up
-  @just --justfile {{repo}}/.justfile bench {{arguments}}
-  @just deployment-down
+  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile bench {{arguments}}
 
 [private]
 miri *arguments:
