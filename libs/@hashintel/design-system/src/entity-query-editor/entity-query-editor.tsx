@@ -20,10 +20,14 @@ export const EntityQueryEditor = ({
 
   const handleAddCondition = () => {
     fieldArray.append({
+      type: "Type",
       operator: "is",
-      type: "property",
-      value: "Sass Company",
+      value: "",
     });
+  };
+
+  const onSubmit = (data: FormValues) => {
+    console.log("submit", data);
   };
 
   return (
@@ -70,10 +74,12 @@ export const EntityQueryEditor = ({
         </Box>
 
         <Stack direction="row" gap={1}>
-          <Button onClick={() => onSave()}>Save and run query</Button>
+          <Button onClick={() => form.handleSubmit(onSubmit)}>
+            Save and run query
+          </Button>
           <Button
             sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
-            onClick={() => onSave()}
+            onClick={() => form.handleSubmit(onSubmit)}
           >
             Save as draft
           </Button>

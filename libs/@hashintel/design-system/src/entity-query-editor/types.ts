@@ -1,20 +1,31 @@
 import { MultiFilterOperatorType } from "@blockprotocol/graph";
 
+export type FilterType = "Type" | "Property";
+
+export type TypeOperator = "is";
+
 interface TypeFilter {
-  type: "type";
-  operator: "is";
+  type: "Type";
+  operator: TypeOperator;
   value: string;
 }
 
-interface PropertyFilter {
-  type: "property";
-  operator:
-    | "is"
-    | "is not"
-    | "is empty"
-    | "is not empty"
-    | "contains"
-    | "does not contain";
+export type PropertyOperator =
+  | "is"
+  | "is not"
+  | "is empty"
+  | "is not empty"
+  | "contains"
+  | "does not contain";
+
+interface PropertyFilter extends FilterBase {
+  type: "Property";
+  operator: PropertyOperator;
+  value: string;
+}
+
+interface FilterBase {
+  type: FilterType;
   value: string;
 }
 
