@@ -8,7 +8,10 @@
     "build:docker": "docker buildx build --tag hash-agents --file docker/Dockerfile ../../",
     "codegen": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
     "exe": "ts-node --transpile-only",
+    "fix:black": "poetry run black app",
     "fix:lock-files": "poetry lock --no-update",
+    "install:tools": "poetry install --no-root --no-interaction --only dev",
+    "lint:black": "poetry run black --check --diff --color app",
     "lint:lock-files": "poetry lock --check"
   },
   "dependencies": {

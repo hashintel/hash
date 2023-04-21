@@ -44,6 +44,9 @@ jobs:
           python-version: "3.11"
           cache: poetry
 
+      - name: Install dependencies
+        run: yarn turbo install:tools
+
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
         run: |
@@ -128,6 +131,18 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:black
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:black; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:black` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi

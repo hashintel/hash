@@ -42,7 +42,9 @@ def create_app(base_logger=None):
             return call_agent(agent_name, **request.json)
         except Exception as e:
             getLogger(__name__).error(e, exc_info=True)
-            return json.dumps({"error": "Could not execute agent. Look in logs for cause."})
+            return json.dumps(
+                {"error": "Could not execute agent. Look in logs for cause."}
+            )
 
     return app
 
