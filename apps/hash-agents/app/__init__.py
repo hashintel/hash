@@ -13,7 +13,7 @@ from flask import Flask, request, Response, jsonify
 from dotenv import load_dotenv, find_dotenv
 
 from .logger import setup_logging
-from .agents import call_agent, InvalidAgentNameError, InvalidAgentOutputError
+from .agents import call_agent
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +42,11 @@ def create_app(base_logger: str | None = None) -> Flask:
 
     @app.route("/agents/<string:agent_name>", methods=["POST"])
     def agent(agent_name: str) -> dict:
+        # noinspection PyBroadException
         try:
             return call_agent(agent_name, **request.json)
-        except (InvalidAgentNameError, InvalidAgentOutputError) as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception("Unable to run agent")
             return {"error": "Could not execute agent. Look in logs for cause."}
 
     return app
