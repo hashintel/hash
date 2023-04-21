@@ -8,7 +8,7 @@ def get_logger() -> logging.Logger:
     return logger
 
 
-def setup_logging(base_logger: str | None = None) -> None:
+def setup_logging(base_logger: logging.Logger | None = None) -> None:
     log_folder = os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs")
     if not os.path.exists(log_folder):
         os.mkdir(log_folder)
@@ -22,7 +22,6 @@ def setup_logging(base_logger: str | None = None) -> None:
     ]
 
     if base_logger:
-        base_logger = logging.getLogger(base_logger)
         handlers += base_logger.handlers
         if not log_level:
             log_level = base_logger.level

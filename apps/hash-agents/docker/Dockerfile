@@ -57,10 +57,11 @@ COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY --from=installer $WORKDIR/app app
 
 ENTRYPOINT ["gunicorn"]
-CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app(base_logger='gunicorn.error')"]
+CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "app:create_app('gunicorn.error')"]
 EXPOSE 80
 
-RUN addgroup --system --gid 60000 hash && \
+RUN apk add --no-cache curl && \
+    addgroup --system --gid 60000 hash && \
     adduser --system agents -G hash && \
     install -d -m 0775 -o agents -g hash /log
 
