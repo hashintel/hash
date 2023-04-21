@@ -1,16 +1,19 @@
 import json
 import sys
-from typing import Self
+
+from beartype import beartype
 
 from .. import setup
 from . import call_agent
 
 
 class InvalidArgumentError(RuntimeError):
-    def __init__(self: Self, program_name: str) -> None:
+    @beartype
+    def __init__(self, program_name: str) -> None:
         super().__init__(f"Usage: {program_name} <AGENT_NAME> [INPUT]")
 
 
+@beartype
 def main() -> None:
     setup()
 
