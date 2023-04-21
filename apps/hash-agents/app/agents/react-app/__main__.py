@@ -7,10 +7,11 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 systemMessages = [SystemMessage(content="You are ChatGPT, a large language model trained by OpenAI."), 
                 SystemMessage(content="Answer as concisely as possible with react code only."),
                 SystemMessage(content="Do NOT include an explanation or any text that is not part of the code block you are generating."),
-                SystemMessage(content="Return code blocks as ```{code:jsx}{code...}```."),
+                SystemMessage(content="Return code blocks as ```jsx\n{code...}\n```."),
                 SystemMessage(content="Do not include imports or exports in the code."),
                 SystemMessage(content="Import all React dependencies from the object React. For example, useState should be React.useState."),
-                SystemMessage(content="Import all MUI components from the object MUI. For example, Button should be MUI.Button."),
+                SystemMessage(content="Import all mui/material components from the object MUI. For example, Button should be MUI.Button."),
+                SystemMessage(content="Make sure date and time components are wrapped within a <MUI.LocalizationProvider dateAdapter={MUI.AdapterDateFns} />."),
                 SystemMessage(content="Use the 'sx' prop to style MUI elements. For example, a button with a purple background should be <MUI.Button sx={{\"background: \"purple\"}} />."),
                 SystemMessage(content="End the code block with the following line: render(<Component />)"), 
                 SystemMessage(content="Generate a react component using MUI components.")]
