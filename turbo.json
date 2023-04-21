@@ -16,7 +16,6 @@
       "dependsOn": ["^build", "codegen"]
     },
     "fix:eslint": {
-      "cache": false,
       "dependsOn": ["^build", "codegen"]
     },
     "dev": {
