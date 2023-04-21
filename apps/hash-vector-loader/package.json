@@ -1,0 +1,26 @@
+{
+  "name": "@apps/hash-vector-loader",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Loads changes from hash-realtime stream into a vector store",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "clear-qdrant": "yarn ts-node ./src/scripts/clear-qdrant.ts",
+    "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
+  },
+  "dependencies": {
+    "@local/hash-backend-utils": "0.0.0-private",
+    "ts-node": "10.9.1",
+    "typescript": "4.9.4"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/node": "18.11.9",
+    "eslint": "8.33.0"
+  }
+}
