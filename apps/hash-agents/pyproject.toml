@@ -22,6 +22,7 @@ setuptools = "^67.7.1"
 [tool.poetry.group.tools.dependencies]
 black = "^23.3.0"
 ruff = "^0.0.262"
+isort = {extras = ["colors"], version = "^5.12.0"}
 
 [tool.poetry.group.production.dependencies]
 gunicorn = { extras = ["gevent"], version = "^20.1.0" }
@@ -33,6 +34,10 @@ preview = true
 
 [tool.ruff]
 select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "TRY"]
+
+[tool.isort]
+profile = "black"
+
 
 [build-system]
 requires = ["poetry-core"]

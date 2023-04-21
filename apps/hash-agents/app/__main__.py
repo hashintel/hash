@@ -1,6 +1,6 @@
 import os
 
-from . import setup, create_app
+from . import create_app, setup
 
 if __name__ == "__main__":
     setup()

@@ -1,7 +1,9 @@
+import logging
+
 from langchain import LLMMathChain
 from langchain.chat_models import ChatOpenAI
+
 from .io_types import Input, Output
-import logging
 
 logger = logging.getLogger(__name__)
 
