@@ -56,13 +56,16 @@ def call_agent(agent: str, **kwargs: dict) -> dict:
             "IN": io_types.input_from_dict(kwargs),
         },
     ).get("OUT")
+
+    try:
+        agent_output = io_types.output_to_dict(out)
+    except AssertionError as e:
+        raise InvalidAgentOutputError(agent, out) from e
+
     logger.debug(
         "Agent output",
         agent=agent,
-        output=io_types.output_to_dict(out),
+        output=agent_output,
     )
 
-    try:
-        return io_types.output_to_dict(out)
-    except AssertionError as e:
-        raise InvalidAgentOutputError(agent, out) from e
+    return agent_output
