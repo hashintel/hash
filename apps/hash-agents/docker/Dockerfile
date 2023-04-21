@@ -14,14 +14,13 @@ WORKDIR /usr/local/src/hash/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN yarn install --frozen-lockfile --prefer-offline && \
     yarn cache clean
 
 COPY --from=base /app/out/full/ .
 
-RUN yarn turbo codegen --filter '@apps/hash-agents'
+RUN yarn turbo build --filter '@apps/hash-agents'
 
 
 FROM python:3.11-alpine as base-env
