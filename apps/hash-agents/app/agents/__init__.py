@@ -3,7 +3,10 @@ import os
 import runpy
 from typing import Any
 
+import structlog
 from beartype import beartype
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 @beartype
@@ -45,6 +48,7 @@ def call_agent(agent: str, **kwargs: dict) -> dict:
 
     io_types = importlib.import_module(f"{module}.io_types")
 
+    logger.debug("Calling agent", agent=agent, kwargs=kwargs)
     out = runpy.run_module(
         module,
         run_name="HASH",
@@ -52,6 +56,7 @@ def call_agent(agent: str, **kwargs: dict) -> dict:
             "IN": io_types.input_from_dict(kwargs),
         },
     ).get("OUT")
+    logger.debug("Agent output", agent=agent, output=out)
 
     try:
         return io_types.output_to_dict(out)
