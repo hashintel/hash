@@ -1,5 +1,3 @@
-import os
-
 import structlog.stdlib
 from asgi_correlation_id import CorrelationIdMiddleware
 from beartype import beartype
@@ -17,7 +15,6 @@ def setup(environment: Environment) -> None:
     load_dotenv()
     load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
 
-    print(os.environ.get("HASH_AGENT_RUNNER_LOG_LEVEL"))
     setup_logging(environment)
 
 

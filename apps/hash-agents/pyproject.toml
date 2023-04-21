@@ -38,7 +38,7 @@ target-version = ['py311']
 preview = true
 
 [tool.ruff]
-select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "TRY"]
+select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "T20", "TRY"]
 ignore = ["ANN101"]
 
 [tool.isort]
