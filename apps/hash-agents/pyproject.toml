@@ -23,8 +23,8 @@ production = ["gunicorn"]
 black = "^23.3.0"
 
 [tool.black]
-line-length = 100
 target-version = ['py311']
+preview = true
 
 [build-system]
 requires = ["poetry-core"]
