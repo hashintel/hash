@@ -176,7 +176,7 @@ jobs:
       - name: Run yarn lint:ruff
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:ruff; then
+          if ! yarn turbo lint:ruff; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
