@@ -22,6 +22,7 @@ asgi-correlation-id = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"
+rich = "^13.3.4"
 
 [tool.poetry.group.tools.dependencies]
 black = "^23.3.0"
