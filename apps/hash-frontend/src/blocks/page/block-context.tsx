@@ -30,7 +30,7 @@ export const useBlockContext = () => {
   return blockContext;
 };
 
-export const BlockContextProvider = (props: PropsWithChildren) => {
+export const BlockContextProvider = ({ children }: PropsWithChildren) => {
   const [error, setError] = useState(false);
   const [blockSubgraph, setBlockSubgraph] = useState<
     Subgraph<EntityRootType> | undefined
@@ -47,8 +47,6 @@ export const BlockContextProvider = (props: PropsWithChildren) => {
   );
 
   return (
-    <BlockContext.Provider value={context}>
-      {props.children}
-    </BlockContext.Provider>
+    <BlockContext.Provider value={context}>{children}</BlockContext.Provider>
   );
 };

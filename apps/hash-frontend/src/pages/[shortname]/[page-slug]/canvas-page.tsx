@@ -34,7 +34,6 @@ import {
   BlockLoader,
   BlockLoaderProps,
 } from "../../../components/block-loader/block-loader";
-import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
@@ -70,10 +69,9 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
   const [creatingEntity, setCreatingEntity] = useState(false);
 
   const app = useApp();
+
   const { authenticatedUser } = useAuthenticatedUser();
-  console.log({ authenticatedUser });
   const { routeNamespace } = useRouteNamespace();
-  console.log({ routeNamespace });
 
   const { accountId } = routeNamespace ?? {};
 
@@ -179,6 +177,22 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
 
   override canEdit = () => true;
 
+  // i.e. moving its position
+  override onTranslateEnd = (_previous: BlockShape, current: BlockShape) => {
+    console.log("Translate end");
+    console.log({ current });
+  };
+
+  override onResizeEnd = (_previous: BlockShape, current: BlockShape) => {
+    console.log("Resize end");
+    console.log({ current });
+  };
+
+  override onRotateEnd = (_previous: BlockShape, current: BlockShape) => {
+    console.log("Rotate end");
+    console.log({ current });
+  };
+
   defaultProps() {
     return {
       opacity: "1" as const,
@@ -205,7 +219,11 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
     const { opacity: _opacity, w, h, blockLoaderProps } = shape.props;
 
     const onBlockLoaded = () => {
+      return;
+
       // @todo the intention of this is to set the width and height of the block based on its rendered size
+      //    but the outer element of the block might be smaller than the content,
+      //    if the block doesn't respect its container – needs more work
       if (shape.props.firstCreation) {
         const blockWrapper = document.getElementById(
           blockLoaderProps.wrappingEntityId,
@@ -228,6 +246,8 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
         ]);
       }
     };
+
+    console.log({ blockLoaderProps });
 
     return (
       <HTMLContainer id={shape.id} style={{ pointerEvents: "all" }}>
@@ -285,6 +305,8 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
       })),
     );
   };
+
+  console.log({ blocks, contents });
 
   return (
     <div style={{ height: "100%" }}>
