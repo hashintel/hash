@@ -3,44 +3,65 @@ import * as MUI from "@mui/material";
 import { useState } from "react";
 import { useAgentRunner } from "../components/hooks/use-agent-runner";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { DEFAULT_OUTPUT, DEFAULT_PROMPT } from "./react-app-generator/defaults";
 import { DemoLiveEditor } from "./react-app-generator/demo-live-editor";
+import { BlockPromptInput } from "@hashintel/design-system";
+import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
 
 export const ReactAppGenerator: NextPageWithLayout = () => {
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
-  const [output, setOutput] = useState(DEFAULT_OUTPUT);
+  const [prompt, setPrompt] = useState("");
+  const [output, setOutput] = useState("");
   const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
-  const { Container, Typography, Button } = MUI;
+  const { Container, Typography, Box } = MUI;
 
   const callAgent = (user_prompt: string) => {
     void callAgentRunner({ user_prompt }).then((data) => {
-      console.log(data);
       if (data) {
         const result = data.result.toString();
+        const codeBlock = result.match(
+          "(?<=(```{code:jsx}\n))(.|\n)+?(?=(```))",
+        );
 
-        setOutput(result);
+        if (codeBlock?.length) {
+          setOutput(codeBlock[0]);
+        }
       }
     });
   };
 
-  console.log(output.match("(?<=(```{code:jsx}\n))(.|\n)+?(?=(```))"));
-
   return (
-    <Container sx={{ paddingTop: 5 }}>
-      <Typography variant="h3">Create a React Application!</Typography>
+    <Container
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        paddingY: 5,
+        maxHeight: "100vh",
+      }}
+    >
+      <Box mb={2}>
+        <Typography variant="h3" mb={1}>
+          Create a React Application!
+        </Typography>
 
-      <input
-        type="text"
-        value={prompt}
-        onChange={(event) => setPrompt(event.target.value)}
-      />
+        <BlockPromptInput
+          value={prompt}
+          placeholder="Describe your application"
+          onChange={(event) => setPrompt(event.target.value)}
+          onSubmit={() => callAgent(prompt)}
+          buttonLabel={
+            loading ? (
+              <>
+                GENERATING <BouncingDotsLoader />
+              </>
+            ) : (
+              <>Submit Prompt</>
+            )
+          }
+          disabled={loading}
+        />
+      </Box>
 
-      <Button onClick={() => callAgent(prompt)}>Create</Button>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
+      {!loading && output ? (
         <DemoLiveEditor
           code={output}
           scope={{
@@ -49,7 +70,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
           }}
           noInline
         />
-      )}
+      ) : null}
     </Container>
   );
 };
