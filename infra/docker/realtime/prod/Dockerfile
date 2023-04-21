@@ -20,6 +20,8 @@ RUN yarn install --frozen-lockfile --prefer-offline \
 
 COPY --from=base /app/out/full/ .
 
+RUN yarn turbo build --filter '@apps/hash-realtime'
+
 FROM node:16.18.1-alpine as runner
 
 COPY --from=installer /usr/local/src /usr/local/src
