@@ -45,7 +45,7 @@ COPY --from=installer $WORKDIR/poetry.lock $WORKDIR/pyproject.toml ./
 
 RUN apk add --no-cache --virtual .build-deps g++ musl-dev libffi-dev make curl && \
     curl -sSL https://install.python-poetry.org | python && \
-    poetry install --no-root --only main -E production && \
+    poetry install --no-root --only main --only production && \
     apk del .build-deps
 
 
