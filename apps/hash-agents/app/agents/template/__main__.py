@@ -1,6 +1,9 @@
 from langchain import LLMMathChain
 from langchain.chat_models import ChatOpenAI
 from .io_types import Input, Output
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 def main(agent_input: Input) -> Output:
@@ -21,14 +24,13 @@ if __name__ == "HASH":
 
     # `IN` and `OUT` are defined by the agent orchestrator
     global IN, OUT
-    OUT = main(IN) # noqa
+    OUT = main(IN)  # noqa
 
 if __name__ == "__main__":
     """This is used when running the agent from the command line"""
     from ... import setup
-    from logging import getLogger
 
     setup()
 
     output = main(Input(expression="round(pi * 13.37)"))
-    getLogger().info(f"output: {output.result}")
+    LOG.info(f"output: {output.result}")

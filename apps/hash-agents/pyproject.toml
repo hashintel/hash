@@ -28,6 +28,9 @@ setuptools = "^67.7.1"
 target-version = ['py311']
 preview = true
 
+[tool.ruff]
+select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "TRY"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

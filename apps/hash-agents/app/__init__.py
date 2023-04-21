@@ -7,26 +7,25 @@ monkey_patch()
 
 import os
 import secrets
-import json
+import logging
 
-from logging import getLogger
-from flask import Flask, request
+from flask import Flask, request, Response, jsonify
 from dotenv import load_dotenv, find_dotenv
 
 from .logger import setup_logging
-from .agents import call_agent
+from .agents import call_agent, InvalidAgentNameError, InvalidAgentOutputError
+
+LOG = logging.getLogger(__name__)
 
 
-def create_app(base_logger=None):
+def create_app(base_logger: str | None = None) -> Flask:
     setup(base_logger)
 
     app = Flask(__name__, instance_relative_config=True)
     secret_key = os.environ.get("HASH_AGENT_RUNNER_SECRET_KEY")
     if not secret_key:
-        getLogger(__name__).warning(
-            "No secret key set for HASH-Agent-Runner, generating a random key!"
-        )
-        getLogger(__name__).info(
+        LOG.warning("No secret key set for HASH-Agent-Runner, generating a random key!")
+        LOG.info(
             "Set the `HASH_AGENT_RUNNER_SECRET_KEY` variable to specify a secret key."
         )
         secret_key = secrets.token_hex(32)
@@ -36,23 +35,21 @@ def create_app(base_logger=None):
     )
 
     @app.route("/health", methods=["GET"])
-    def health():
-        return ""
+    def health() -> Response:
+        return jsonify(True)
 
     @app.route("/agents/<string:agent_name>", methods=["POST"])
-    def agent(agent_name):
+    def agent(agent_name: str) -> dict:
         try:
             return call_agent(agent_name, **request.json)
-        except Exception as e:
-            getLogger(__name__).error(e, exc_info=True)
-            return json.dumps(
-                {"error": "Could not execute agent. Look in logs for cause."}
-            )
+        except (InvalidAgentNameError, InvalidAgentOutputError) as e:
+            LOG.exception(e)
+            return {"error": "Could not execute agent. Look in logs for cause."}
 
     return app
 
 
-def setup(base_logger=None):
+def setup(base_logger: str | None = None) -> None:
     setup_logging(base_logger)
     load_dotenv()
     load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)

@@ -1,4 +1,4 @@
-def monkey_patch():
+def monkey_patch() -> None:
     try:
         from gevent import monkey
 
