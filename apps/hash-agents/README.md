@@ -48,7 +48,7 @@ poetry run python -m app.agents <AGENT_NAME> <INPUT>
 A server is available to run the agents. To run the server, use the following command:
 
 ```bash
-poetry run python -m app
+yarn dev
 ```
 
 The server will read the `HASH_AGENT_RUNNER_HOST` and `HASH_AGENT_RUNNER_PORT` environment variables to determine the host and port to run on. If these are not set, the server will run on `localhost:5000`.
