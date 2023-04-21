@@ -685,7 +685,7 @@ qdrant = ["qdrant-client (>=1.1.2,<2.0.0)"]
 name = "markdown-it-py"
 version = "2.2.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -746,7 +746,7 @@ marshmallow = ">=2.0.0"
 name = "mdurl"
 version = "0.1.2"
 description = "Markdown URL utilities"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1023,7 +1023,7 @@ email = ["email-validator (>=1.0.3)"]
 name = "pygments"
 version = "2.15.1"
 description = "Pygments is a syntax highlighting package written in Python."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1195,7 +1195,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 name = "rich"
 version = "13.3.4"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7.0"
 files = [
@@ -1614,4 +1614,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "01eb2bed34ceb986839cec6b64bb6f921e9df64e4c1dcce8ab7147505491b11d"
+content-hash = "d8cfaea9db213681a05060a31021ff3f96577be003cdf15fc6fb25a74c7f9128"

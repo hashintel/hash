@@ -28,10 +28,6 @@ def setup_logging(environment: Environment = "dev") -> None:
         # If the "stack_info" key in the event dict is true, remove it and
         # render the current stack trace in the "stack" key.
         structlog.processors.StackInfoRenderer(),
-        # If the "exc_info" key in the event dict is either true or a
-        # sys.exc_info() tuple, remove "exc_info" and render the exception
-        # with traceback into the "exception" key.
-        structlog.processors.format_exc_info,
         # If some value is in bytes, decode it to a unicode str.
         structlog.processors.UnicodeDecoder(),
         # Add callsite parameters.
@@ -47,12 +43,8 @@ def setup_logging(environment: Environment = "dev") -> None:
 
     match environment:
         case "dev":
-            # Use a nice console renderer (utilizing rich) for development.
-            processor = structlog.dev.ConsoleRenderer()
             default_log_level = logging.DEBUG
         case "prod":
-            # Render the final event dict as JSON (if in production).
-            processor = structlog.processors.JSONRenderer()
             default_log_level = logging.WARNING
         case _:
             assert_never(environment)
@@ -72,6 +64,7 @@ def setup_logging(environment: Environment = "dev") -> None:
                 "file": {
                     "()": structlog.stdlib.ProcessorFormatter,
                     "processors": [
+                        structlog.processors.dict_tracebacks,
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                         structlog.processors.JSONRenderer(),
                     ],
@@ -81,7 +74,7 @@ def setup_logging(environment: Environment = "dev") -> None:
                     "()": structlog.stdlib.ProcessorFormatter,
                     "processors": [
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                        processor,
+                        structlog.dev.ConsoleRenderer(),
                     ],
                     "foreign_pre_chain": shared,
                 },
