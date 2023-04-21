@@ -181,6 +181,14 @@ def setup_logging(environment: Environment = 'dev') -> None:
     # Disable uvicorn access, as otherwise we have duplicate events
     logging.getLogger('uvicorn.access').handlers.clear()
 
+    if logger := logging.getLogger('gunicorn.error'):
+        # propagate errors from gunicorn
+        logger.propagate = True
+
+    if logger := logging.getLogger('uvicorn.error'):
+        # propagate errors from uvicorn
+        logger.propagate = True
+
     structlog.configure(
         processors=[
             *shared,
