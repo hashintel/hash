@@ -1,5 +1,4 @@
 # Rust artifacts
 target/
-out/openapi
 
 log/
