@@ -2,8 +2,9 @@ import logging
 import logging.config
 import os
 import time
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, Literal, assert_never
+from typing import Literal, assert_never
 
 import structlog
 from asgi_correlation_id import correlation_id
@@ -45,9 +46,11 @@ async def logging_middleware(request: Request, call_next: Callable) -> Response:
         http_method = request.method
         http_version = request.scope["http_version"]
 
-        # Recreate the Uvicorn access log format, but add all parameters as structured information
+        # Recreate the Uvicorn access log format,
+        # but add all parameters as structured information
+        client = f"{client_host}:{client_port}"
         access_logger.info(
-            f"""{client_host}:{client_port} - "{http_method} {url} HTTP/{http_version}" {status_code}""",
+            f"""{client} - "{http_method} {url} HTTP/{http_version}" {status_code}""",
             http={
                 "url": str(request.url),
                 "status_code": status_code,
@@ -59,10 +62,12 @@ async def logging_middleware(request: Request, call_next: Callable) -> Response:
             duration=process_time,
         )
 
-        return response
+        return response  # noqa: B012
 
 
-def extract_from_record(_, __, event_dict: dict):
+def extract_from_record(
+    _logger: logging.Logger, _method_name: str, event_dict: dict
+) -> dict:
     """
     Extract thread and process names and add them to the event dict.
     """
@@ -75,7 +80,7 @@ def extract_from_record(_, __, event_dict: dict):
 
 def setup_logging(environment: Environment = 'dev') -> None:
     # we're using the most ambitious approach outlined in
-    # https://www.structlog.org/en/stable/standard-library.html#rendering-using-structlog-based-formatters-within-logging
+    # https://www.structlog.org/en/stable/standard-library.html
 
     shared = [
         # Add the name of the logger to event dict.
