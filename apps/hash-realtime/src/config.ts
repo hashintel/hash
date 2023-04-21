@@ -7,7 +7,10 @@ import {
 } from "@local/hash-backend-utils/pg-tables";
 import { supportedRealtimeTables } from "@local/hash-backend-utils/realtime";
 import { RedisConfig, setupRedisClient } from "@local/hash-backend-utils/redis";
-import { RedisStreamProducer } from "@local/hash-backend-utils/stream/redis";
+import {
+  RedisStreamConsumer,
+  RedisStreamProducer,
+} from "@local/hash-backend-utils/stream/redis";
 
 // The tables to monitor for changes
 export const MONITOR_TABLES = supportedRealtimeTables.map(
@@ -45,6 +48,27 @@ export const generateStreamProducers = (logger: Logger) => {
       streams.entityTypeStream,
     ),
     propertyTypeStream: new RedisStreamProducer<PgPropertyType>(
+      logger,
+      setupRedisClient(logger, redisConfig),
+      streams.propertyTypeStream,
+    ),
+  } as const;
+};
+
+export const generateStreamConsumers = (logger: Logger) => {
+  const streams = getStreams();
+  return {
+    entityStream: new RedisStreamConsumer<Entity>(
+      logger,
+      setupRedisClient(logger, redisConfig),
+      streams.entityStream,
+    ),
+    entityTypeStream: new RedisStreamConsumer<EntityType>(
+      logger,
+      setupRedisClient(logger, redisConfig),
+      streams.entityTypeStream,
+    ),
+    propertyTypeStream: new RedisStreamProducer<PropertyType>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.propertyTypeStream,

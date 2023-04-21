@@ -1,5 +1,3 @@
-import { JsonObject } from "@blockprotocol/core/.";
-
 import { Logger } from "../logger";
 import { RedisClient } from "../redis";
 import { StreamConsumer, StreamProducer } from "./adapter";
@@ -40,7 +38,7 @@ export class RedisStreamProducer<T> implements StreamProducer<T> {
 /**
  * An implementation of the `StreamConsumer` interface based on Redis streams.
  */
-export class RedisStreamConsumer implements StreamConsumer {
+export class RedisStreamConsumer<T> implements StreamConsumer<T> {
   private lastId: string | null = null;
 
   constructor(
@@ -49,43 +47,47 @@ export class RedisStreamConsumer implements StreamConsumer {
     private streamName: string,
   ) {}
 
-  async readNext(maxReadCount: number = 100): Promise<JsonObject[]> {
-    const msg = await this.client.xread(
-      "COUNT",
-      maxReadCount,
-      "BLOCK",
-      0,
-      "STREAMS",
-      this.streamName,
-      this.lastId === null ? "$" : this.lastId,
-    );
+  async *readNext(maxReadCount: number = 100): AsyncGenerator<T> {
+    const msg =
+      (await this.client.xread(
+        "COUNT",
+        maxReadCount,
+        "BLOCK",
+        0,
+        "STREAMS",
+        this.streamName,
+        this.lastId === null ? "$" : this.lastId,
+      )) ?? [];
 
     // Reduce all messages from the specific stream of this class into a list,
     // dropping their key names, saving the last stream entry id.
-    const msgs = msg?.reduce<{
-      lastEntryId: string;
-      payloads: JsonObject[];
-    } | null>((acc, [stream, messages]) => {
-      if (stream === this.streamName) {
-        // eslint-disable-next-line no-param-reassign
-        acc = acc ?? { lastEntryId: "", payloads: [] };
-        for (const [id, [_, payload]] of messages) {
-          if (payload) {
-            acc.payloads.push(JSON.parse(payload) as JsonObject);
-            acc.lastEntryId = id;
-          } else {
-            this.logger.debug(
-              "Received unknown stream entry in payload: ",
-              messages,
-            );
+    const msgs = msg.reduce<{
+      lastEntryId: string | null;
+      payloads: T[];
+    }>(
+      (acc, [stream, messages]) => {
+        if (stream === this.streamName) {
+          for (const [id, [_, payload]] of messages) {
+            if (payload) {
+              acc.payloads.push(JSON.parse(payload) as T);
+              acc.lastEntryId = id;
+            } else {
+              this.logger.debug(
+                "Received unknown stream entry in payload: ",
+                messages,
+              );
+            }
           }
         }
-      }
-      return acc;
-    }, null);
+        return acc;
+      },
+      { lastEntryId: this.lastId, payloads: [] },
+    );
 
-    this.lastId = msgs?.lastEntryId ?? this.lastId;
+    this.lastId = msgs.lastEntryId ?? this.lastId;
 
-    return msgs?.payloads ?? [];
+    for (const payload of msgs.payloads) {
+      yield payload;
+    }
   }
 }
