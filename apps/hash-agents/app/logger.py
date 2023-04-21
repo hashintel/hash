@@ -65,19 +65,6 @@ async def logging_middleware(request: Request, call_next: Callable) -> Response:
         return response  # noqa: B012
 
 
-def extract_from_record(
-    _logger: logging.Logger, _method_name: str, event_dict: dict
-) -> dict:
-    """
-    Extract thread and process names and add them to the event dict.
-    """
-    record = event_dict["_record"]
-    event_dict["thread_name"] = record.threadName
-    event_dict["process_name"] = record.processName
-
-    return event_dict
-
-
 def setup_logging(environment: Environment = 'dev') -> None:
     # we're using the most ambitious approach outlined in
     # https://www.structlog.org/en/stable/standard-library.html
@@ -146,7 +133,6 @@ def setup_logging(environment: Environment = 'dev') -> None:
                 "stdout": {
                     "()": structlog.stdlib.ProcessorFormatter,
                     "processors": [
-                        extract_from_record,
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                         structlog.stdlib.ExtraAdder(),
                         processor,
