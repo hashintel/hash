@@ -18,6 +18,7 @@ def main(input: Input) -> Output:
                 SystemMessage(content="Do not include imports or exports in the code."),
                 SystemMessage(content="Import all React dependencies from the object React. For example, useState should be React.useState."),
                 SystemMessage(content="Import all MUI components from the object MUI. For example, Button should be MUI.Button."),
+                SystemMessage(content="Use the 'sx' prop to style MUI elements. For example, a button with a purple background should be <MUI.Button sx={{\"background: \"purple\"}} />."),
                 SystemMessage(content="End the code block with the following line: render(<Component />)"), 
                 SystemMessage(content="Generate a react component using MUI components."), 
                 HumanMessage(content=input.user_prompt)])
