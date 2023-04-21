@@ -78,8 +78,6 @@ def setup_logging(environment: Environment = 'dev') -> None:
     # https://www.structlog.org/en/stable/standard-library.html#rendering-using-structlog-based-formatters-within-logging
 
     shared = [
-        # If log level is too low, abort pipeline and throw away log entry.
-        structlog.stdlib.filter_by_level,
         # Add the name of the logger to event dict.
         structlog.stdlib.add_logger_name,
         # Add log level to event dict.
@@ -117,33 +115,6 @@ def setup_logging(environment: Environment = 'dev') -> None:
         case _:
             assert_never(environment)
 
-    structlog.configure(
-        processors=[*shared, structlog.stdlib.ProcessorFormatter.wrap_for_formatter],
-        # `wrapper_class` is the bound logger that you get back from
-        # get_logger(). This one imitates the API of `logging.Logger`.
-        # we also use the typings of this one
-        wrapper_class=structlog.stdlib.BoundLogger,
-        # `logger_factory` is used to create wrapped loggers that are used for
-        # OUTPUT. This one returns a `logging.Logger`. The final value (a JSON
-        # string) from the final processor (`JSONRenderer`) will be passed to
-        # the method of the same name as that you've called on the bound logger.
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        # Effectively freeze configuration after creating the first bound
-        # logger.
-        cache_logger_on_first_use=True,
-    )
-
-    formatter = structlog.stdlib.ProcessorFormatter(
-        # These run ONLY on `logging` entries that do NOT originate within
-        # structlog.
-        foreign_pre_chain=shared,
-        # These run on ALL entries after the pre_chain is done.
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            processor,
-        ],
-    )
-
     log_level = os.getenv("HASH_AGENT_RUNNER_LOG_LEVEL")
     log_level = log_level or logging.WARNING
 
@@ -154,11 +125,12 @@ def setup_logging(environment: Environment = 'dev') -> None:
     logging.config.dictConfig(
         {
             "version": 1,
-            "disable_existing_loggers": True,
+            "disable_existing_loggers": False,
             "formatters": {
                 "file": {
                     "()": structlog.stdlib.ProcessorFormatter,
                     "processors": [
+                        structlog.stdlib.ExtraAdder(),
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                         structlog.processors.JSONRenderer(),
                     ],
@@ -169,6 +141,7 @@ def setup_logging(environment: Environment = 'dev') -> None:
                     "processors": [
                         extract_from_record,
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                        structlog.stdlib.ExtraAdder(),
                         processor,
                     ],
                     "foreign_pre_chain": shared,
@@ -184,23 +157,15 @@ def setup_logging(environment: Environment = 'dev') -> None:
             },
             "handlers": {
                 "default": {
-                    "level": "DEBUG",
+                    "level": logging.getLevelName(log_level),
                     "class": "logging.StreamHandler",
                     "formatter": "stdout",
                 },
                 "file": {
-                    "level": "DEBUG",
+                    "level": logging.getLevelName(log_level),
                     "class": "logging.handlers.WatchedFileHandler",
                     "filename": f"{log_folder}/run-{datetime.now().isoformat()}.log",
                     "formatter": "file",
-                },
-                "uvicorn_default": {
-                    "formatter": "uvicorn_default",
-                    "class": "logging.NullHandler",
-                },
-                "uvicorn_access": {
-                    "formatter": "uvicorn_access",
-                    "class": "logging.NullHandler",
                 },
             },
             "loggers": {
@@ -208,17 +173,31 @@ def setup_logging(environment: Environment = 'dev') -> None:
                     "handlers": ["default", "file"],
                     "level": "DEBUG",
                     "propagate": True,
-                },
-                "uvicorn.error": {
-                    "level": "INFO",
-                    "handlers": ["uvicorn_default"],
-                    "propagate": False,
-                },
-                "uvicorn.access": {
-                    "level": "INFO",
-                    "handlers": ["uvicorn_access"],
-                    "propagate": False,
-                },
+                }
             },
         }
+    )
+
+    # Disable uvicorn access, as otherwise we have duplicate events
+    logging.getLogger('uvicorn.access').handlers.clear()
+
+    structlog.configure(
+        processors=[
+            *shared,
+            # If log level is too low, abort pipeline and throw away log entry.
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        # `wrapper_class` is the bound logger that you get back from
+        # get_logger(). This one imitates the API of `logging.Logger`.
+        # we also use the typings of this one
+        wrapper_class=structlog.stdlib.BoundLogger,
+        # `logger_factory` is used to create wrapped loggers that are used for
+        # OUTPUT. This one returns a `logging.Logger`. The final value (a JSON
+        # string) from the final processor (`JSONRenderer`) will be passed to
+        # the method of the same name as that you've called on the bound logger.
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        # Effectively freeze configuration after creating the first bound
+        # logger.
+        cache_logger_on_first_use=True,
     )

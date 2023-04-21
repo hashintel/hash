@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 @beartype
 def setup(base_logger: logging.Logger | None = None) -> None:
-    setup_logging('prod')
+    setup_logging('dev')
 
-    logger.info("hi ;-;")
+    logger.info("Hello world!")
 
     load_dotenv()
     load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
@@ -27,7 +27,7 @@ def create_app(base_logger_name: str | None = None) -> FastAPI:
 
     app = FastAPI()
     app.include_router(router)
-    app.middleware(logging_middleware)
+    app.middleware('http')(logging_middleware)
     app.add_middleware(CorrelationIdMiddleware)
 
     return app
