@@ -12,10 +12,10 @@ logger = structlog.stdlib.get_logger(__name__)
 
 @beartype
 def setup(environment: Environment) -> None:
-    setup_logging(environment)
-
     load_dotenv()
     load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
+
+    setup_logging(environment)
 
 
 @beartype
