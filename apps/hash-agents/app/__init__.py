@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 
 @beartype
 def setup(base_logger: logging.Logger | None = None) -> None:
-    setup_logging(base_logger)
+    setup_logging('prod')
+
+    logger.info("hi ;-;")
+
     load_dotenv()
     load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
 
