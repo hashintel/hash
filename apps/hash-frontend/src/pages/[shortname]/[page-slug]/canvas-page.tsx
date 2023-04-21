@@ -1,20 +1,19 @@
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
-import {
-  EntityRootType,
-  Subgraph,
-} from "@blockprotocol/graph/dist/cjs/temporal/main";
+import { useMutation } from "@apollo/client";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { updatePageContents } from "@local/hash-graphql-shared/queries/page.queries";
+import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { AccountId, EntityId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { TldrawEditorConfig, useApp } from "@tldraw/editor";
-import { TLShapeUtilFlag } from "@tldraw/editor/src/lib/app/shapeutils/TLShapeUtil";
-import { getEmbedInfo } from "@tldraw/editor/src/lib/utils";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
   App,
   createShapeId,
   defineShape,
+  DialogProps,
   HTMLContainer,
   MenuGroup,
   menuItem,
@@ -24,35 +23,34 @@ import {
   Tldraw,
   TLOpacityType,
   toolbarItem,
-  useDefaultHelpers,
 } from "@tldraw/tldraw";
-import { TLEmbedShape } from "@tldraw/tlschema";
-import { defineMigrations } from "@tldraw/tlstore";
-import { useDialogs } from "@tldraw/ui";
-import { createRef, useMemo, useRef, useState } from "react";
-import * as React from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useState } from "react";
 
-import {
-  BlockContext,
-  BlockContextProvider,
-  BlockContextType,
-} from "../../../blocks/page/block-context";
+import { BlockContextProvider } from "../../../blocks/page/block-context";
 import { BlocksMap } from "../../../blocks/page/create-editor-view";
 import { BlockSuggester } from "../../../blocks/page/create-suggester/block-suggester";
+import { usePageContext } from "../../../blocks/page/page-context";
 import {
   BlockLoader,
   BlockLoaderProps,
 } from "../../../components/block-loader/block-loader";
-import { PageThread } from "../../../components/hooks/use-page-comments";
+import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+import {
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
+} from "../../../graphql/api-types.gen";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { useRouteNamespace } from "../shared/use-route-namespace";
 
 type CanvasPageBlockProps = {
   contents: BlockEntity[];
   blocks: BlocksMap;
-  pageComments: PageThread[];
-  accountId: AccountId;
-  entityId: EntityId;
 };
+
+type JsonSerializableBlockLoaderProps = Omit<
+  BlockLoaderProps,
+  "onBlockLoaded" | "editableRef"
+>;
 
 type BlockShape = TLBaseShape<
   "bpBlock",
@@ -60,32 +58,134 @@ type BlockShape = TLBaseShape<
     w: number;
     h: number;
     opacity: TLOpacityType;
-  } & Partial<BlockLoaderProps>
+    firstCreation: boolean;
+    blockLoaderProps: Partial<JsonSerializableBlockLoaderProps>;
+  }
 >;
 
-const WrappedBlockSuggester = () => {
-  const app = useApp();
+const defaultWidth = 600;
+const defaultHeight = 200;
 
-  return <BlockSuggester onChange={(blockMeta) => console.log(blockMeta)} />;
+const BlockCreationDialog = ({ onClose }: DialogProps) => {
+  const [creatingEntity, setCreatingEntity] = useState(false);
+
+  const app = useApp();
+  const { authenticatedUser } = useAuthenticatedUser();
+  console.log({ authenticatedUser });
+  const { routeNamespace } = useRouteNamespace();
+  console.log({ routeNamespace });
+
+  const { accountId } = routeNamespace ?? {};
+
+  const { pageEntityId } = usePageContext();
+
+  const [updatePageContentsFn, { loading }] = useMutation<
+    UpdatePageContentsMutation,
+    UpdatePageContentsMutationVariables
+  >(updatePageContents);
+
+  const createBlock = useCallback(
+    async (blockMeta: HashBlockMeta) => {
+      const position = 0;
+
+      const blockEntityTypeId = blockMeta.schema as VersionedUrl;
+
+      const { data } = await updatePageContentsFn({
+        variables: {
+          entityId: pageEntityId,
+          actions: [
+            {
+              insertBlock: {
+                componentId: blockMeta.componentId,
+                entity: {
+                  // @todo this should be 'blockEntityTypeId' above but external types not fully supported
+                  entityTypeId:
+                    "http://localhost:3000/@system-user/types/entity-type/text/v/1",
+                  entityProperties: {},
+                },
+                ownedById: accountId as OwnedById,
+                position,
+              },
+            },
+          ],
+        },
+      });
+
+      if (!data) {
+        throw new Error("No data returned from updatePageContents");
+      }
+
+      const { page } = data.updatePageContents;
+
+      const newBlock = page.contents[position];
+
+      const wrappingEntityId = newBlock!.metadata.recordId.entityId;
+      const blockEntityId =
+        newBlock!.blockChildEntity.metadata.recordId.entityId;
+
+      const blockId = createShapeId();
+
+      const width = defaultWidth;
+      const height = defaultHeight;
+
+      const blockShape = {
+        id: blockId,
+        type: "bpBlock",
+        x: app.viewportPageCenter.x - width / 2,
+        y: app.viewportPageCenter.y - height / 2,
+        props: {
+          w: width,
+          h: height,
+          firstCreation: true,
+          opacity: "1" as const,
+          blockLoaderProps: {
+            blockEntityId,
+            blockEntityTypeId,
+            blockMetadata: blockMeta,
+            readonly: false,
+            wrappingEntityId,
+          } satisfies JsonSerializableBlockLoaderProps,
+        },
+      };
+
+      app.createShapes([blockShape]);
+      onClose();
+    },
+    [accountId, app, onClose, pageEntityId, updatePageContentsFn],
+  );
+
+  return creatingEntity ? (
+    "Creating entity..."
+  ) : (
+    <BlockSuggester
+      onChange={async (_variant, blockMeta) => {
+        setCreatingEntity(true);
+        try {
+          await createBlock(blockMeta);
+        } catch (err) {
+          console.log({ err });
+          setCreatingEntity(false);
+        }
+        // app.setSelectedTool("bpBlock", { blockMeta });
+      }}
+    />
+  );
 };
 
 class BlockUtil extends TLBoxUtil<BlockShape> {
   static type = "bpBlock";
 
   override canUnmount = () => false;
-  override canResize = (shape: TLEmbedShape) => true;
-
-  override hideSelectionBoundsBg = (shape) => !this.canResize(shape);
-  override hideSelectionBoundsFg = (shape) => !this.canResize(shape);
 
   override canEdit = () => true;
 
   defaultProps() {
     return {
       opacity: "1" as const,
-      w: 600,
+      w: defaultWidth,
       h: 150,
-      blockComponentId: undefined,
+      firstCreation: true,
+      blockLoaderProps: {},
     };
   }
 
@@ -100,42 +200,40 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
   }
 
   render(shape: BlockShape) {
-    console.log("THIS", this);
-
     const bounds = this.bounds(shape);
 
-    const { opacity: _opacity, w, h, ...blockLoaderProps } = shape.props;
+    const { opacity: _opacity, w, h, blockLoaderProps } = shape.props;
 
-    console.log(this.getEditingBounds(shape));
-
-    console.log({ shape });
+    const onBlockLoaded = () => {
+      // @todo the intention of this is to set the width and height of the block based on its rendered size
+      if (shape.props.firstCreation) {
+        const blockWrapper = document.getElementById(
+          blockLoaderProps.wrappingEntityId,
+        );
+        if (!blockWrapper) {
+          throw new Error(
+            `No block element with id ${blockLoaderProps.wrappingEntityId} found in DOM`,
+          );
+        }
+        this.app.updateShapes([
+          {
+            ...shape,
+            props: {
+              ...shape.props,
+              w: blockWrapper.clientWidth,
+              h: blockWrapper.clientHeight,
+              firstCreation: false,
+            },
+          } satisfies BlockShape,
+        ]);
+      }
+    };
 
     return (
       <HTMLContainer id={shape.id} style={{ pointerEvents: "all" }}>
-        {blockLoaderProps.blockMetadata ? (
-          <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
-            <BlockLoader
-              {...blockLoaderProps}
-              onBlockLoaded={() =>
-                console.log(`Loaded block ${blockLoaderProps.wrappingEntityId}`)
-              }
-            />
-          </BlockContextProvider>
-        ) : (
-          <BlockSuggester
-            onChange={(_variant, blockMeta) => {
-              this.app.updateShapes([
-                {
-                  ...shape,
-                  props: {
-                    ...shape.props,
-                    blockMetadata: blockMeta,
-                  },
-                },
-              ]);
-            }}
-          />
-        )}
+        <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
+          <BlockLoader {...blockLoaderProps} onBlockLoaded={onBlockLoaded} />
+        </BlockContextProvider>
       </HTMLContainer>
     );
   }
@@ -160,53 +258,41 @@ const config = new TldrawEditorConfig({
 });
 
 export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
-  const [showBlockSelector, setShowBlockSelector] = useState(false);
   const handleMount = (app: App) => {
     for (const page of app.pages) {
       const shapes = app.getShapesInPage(page.id);
       app.deleteShapes(shapes.map((shape) => shape.id));
     }
 
-    console.log({ contents });
-
     app.createShapes(
       contents.map((blockEntity, index) => ({
         id: createShapeId(),
         type: "bpBlock",
         x: 50,
-        y: index * 200 + 50,
+        y: index * defaultHeight + 50,
         props: {
-          blockEntityId:
-            blockEntity.blockChildEntity.metadata.recordId.entityId,
-          blockEntityTypeId: blockEntity.blockChildEntity.metadata.entityTypeId,
-          wrappingEntityId: blockEntity.metadata.recordId.entityId,
-          blockMetadata: blocks[blockEntity.componentId]!.meta,
-          readonly: false,
+          blockLoaderProps: {
+            blockEntityId:
+              blockEntity.blockChildEntity.metadata.recordId.entityId,
+            blockEntityTypeId:
+              blockEntity.blockChildEntity.metadata.entityTypeId,
+            wrappingEntityId: blockEntity.metadata.recordId.entityId,
+            blockMetadata: blocks[blockEntity.componentId]!.meta,
+            readonly: false,
+          },
+          firstCreation: false,
         },
       })),
     );
-    //
-    // app.enableReadOnlyMode();
   };
 
   return (
     <div style={{ height: "100%" }}>
-      {/* {showBlockSelector && ( */}
-      {/*  <BlockSuggester */}
-      {/*    onChange={(block) => { */}
-      {/*      console.log(block); */}
-      {/*    }} */}
-      {/*  /> */}
-      {/* )} */}
       <Tldraw
         config={config}
         onMount={handleMount}
         overrides={{
-          tools(app, tools, { addDialog }) {
-            // In order for our custom tool to show up in the UI...
-            // We need to add it to the tools list. This "toolItem"
-            // has information about its icon, label, keyboard shortcut,
-            // and what to do when it's selected.
+          tools(_app, tools, { addDialog }) {
             // eslint-disable-next-line no-param-reassign
             tools.bpBlock = {
               id: "bpBlock",
@@ -215,7 +301,7 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
               kbd: "b",
               readonlyOk: false,
               onSelect: () => {
-                addDialog({ component: WrappedBlockSuggester });
+                addDialog({ component: BlockCreationDialog });
               },
             };
 

@@ -63,15 +63,12 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   useEffect(() => {
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
       (newBlockSubgraph) => {
-        console.log({ newBlockSubgraph });
         setBlockSubgraph(
           newBlockSubgraph as unknown as Subgraph<EntityRootType>,
         );
       },
     );
   }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
-
-  console.log({ blockMetadata, blockSubgraph });
 
   const functions = useMemo(
     () => ({

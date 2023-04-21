@@ -89,12 +89,16 @@ export const createBlock: ImpureGraphFunction<
       componentId,
   };
 
+  console.log(" GOt here ");
+
   const entity = await createEntity(ctx, {
     ownedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.block.schema.$id,
     actorId,
   });
+
+  console.log({ entity });
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
