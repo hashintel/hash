@@ -13,9 +13,9 @@ import { CountdownTitle } from "./countdown-title";
 import { DatePickerInput } from "./date-picker-input";
 import { Display } from "./display";
 import { propertyIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity: blockEntity } = useEntitySubgraph(blockEntitySubgraph);

@@ -2,17 +2,16 @@ import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
-import { theme } from "@hashintel/design-system";
+import { AiAssistantMessage, theme } from "@hashintel/design-system";
 import { ThemeProvider } from "@mui/material";
 
-import { ConfirmedText } from "./app/confirmed-text";
 import { GenerateText } from "./app/generate-text";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
-export const contentKey: keyof RootEntity["properties"] =
+export const contentKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
@@ -22,9 +21,13 @@ export const App: BlockComponent<RootEntity> = ({
   return (
     <ThemeProvider theme={theme}>
       {textContent ? (
-        <ConfirmedText
-          entityId={rootEntity.metadata.recordId.entityId}
-          text={textContent}
+        /**
+         * @todo: use a combination of paragraph and code blocks
+         * to render the text in the EA
+         */
+        <AiAssistantMessage
+          messageContent={textContent}
+          disableEntranceAnimation
         />
       ) : !readonly ? (
         <GenerateText blockEntity={rootEntity} />

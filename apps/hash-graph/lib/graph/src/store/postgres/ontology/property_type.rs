@@ -1,15 +1,19 @@
 use std::{borrow::Borrow, mem};
 
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use type_system::PropertyType;
 
 use crate::{
     ontology::{DataTypeWithMetadata, OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::RecordCreatedById,
     store::{
-        crud::Read, postgres::TraversalContext, query::Filter, AsClient, ConflictBehavior,
-        InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record, UpdateError,
+        crud::Read,
+        error::DeletionError,
+        postgres::{ontology::OntologyId, TraversalContext},
+        query::Filter,
+        AsClient, ConflictBehavior, InsertionError, PostgresStore, PropertyTypeStore, QueryError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -47,7 +51,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for data_type in <Self as Read<DataTypeWithMetadata>>::read(
+                    for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<DataTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                             &property_type_vertex_id,
@@ -82,7 +86,7 @@ impl<C: AsClient> PostgresStore<C> {
                         EdgeDirection::Outgoing,
                     )
                 {
-                    for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read(
+                    for referenced_property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::<PropertyTypeWithMetadata>::for_ontology_edge_by_property_type_vertex_id(
                             &property_type_vertex_id,
@@ -117,6 +121,46 @@ impl<C: AsClient> PostgresStore<C> {
 
         self.traverse_data_types(data_type_queue, traversal_context, subgraph)
             .await?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_property_types(&mut self) -> Result<(), DeletionError> {
+        let transaction = self.transaction().await.change_context(DeletionError)?;
+
+        transaction
+            .as_client()
+            .simple_query(
+                r"
+                    DELETE FROM property_type_constrains_properties_on;
+                    DELETE FROM property_type_constrains_values_on;
+                ",
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
+
+        let property_types = transaction
+            .as_client()
+            .query(
+                r"
+                    DELETE FROM property_types
+                    RETURNING ontology_id
+                ",
+                &[],
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?
+            .into_iter()
+            .filter_map(|row| row.get(0))
+            .collect::<Vec<OntologyId>>();
+
+        transaction.delete_ontology_ids(&property_types).await?;
+
+        transaction.commit().await.change_context(DeletionError)?;
 
         Ok(())
     }
@@ -183,7 +227,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let time_axis = temporal_axes.variable_time_axis();
 
         let property_types =
-            Read::<PropertyTypeWithMetadata>::read(self, filter, Some(&temporal_axes))
+            Read::<PropertyTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                 .await?
                 .into_iter()
                 .map(|entity| (entity.vertex_id(time_axis), entity))

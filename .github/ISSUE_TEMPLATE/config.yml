@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security Bug Bounty
-    url: https://github.com/hashintel/hash/blob/main/SECURITY.md
+    url: https://github.com/hashintel/hash/blob/main/.github/SECURITY.md
     about: Please see our security policy
   - name: Twitter
     url: https://twitter.com/hashintel

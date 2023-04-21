@@ -40,7 +40,7 @@ impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
 pub type MaybeListOfDataType = ListOrValue<repr::DataType>;
 impl ToSchema<'_> for MaybeListOfDataType {
     fn schema() -> (&'static str, RefOr<Schema>) {
-        ("MaybeListOf", Self::generate_schema("DataType"))
+        ("MaybeListOf", Self::generate_schema("data_type"))
     }
 }
 
@@ -49,7 +49,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfPropertyType",
-            Self::generate_schema("PropertyType"),
+            Self::generate_schema("property_type"),
         )
     }
 }
@@ -57,7 +57,10 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
 pub type MaybeListOfEntityType = ListOrValue<repr::EntityType>;
 impl ToSchema<'_> for MaybeListOfEntityType {
     fn schema() -> (&'static str, RefOr<Schema>) {
-        ("MaybeListOfEntityType", Self::generate_schema("EntityType"))
+        (
+            "MaybeListOfEntityType",
+            Self::generate_schema("entity_type"),
+        )
     }
 }
 

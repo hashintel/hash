@@ -1,7 +1,6 @@
 pub mod crud;
 pub mod error;
 pub mod query;
-pub mod test_graph;
 
 mod account;
 mod config;

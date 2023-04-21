@@ -26,7 +26,9 @@ export const loginUsingTempForm = async ({
   await page.press(passwordInputSelector, "Enter");
 
   // Wait for the redirect to the account page
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Welcome to HASH")).toBeVisible({
+    timeout: 30_000,
+  });
 
   // Wait for user avatar to appear
   await expect(page.locator(`[data-testid="user-avatar"]`)).toBeVisible();

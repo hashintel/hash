@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    // @todo - this introduces a dependency on building the graph in docker to `yarn install` this causes problems in Vercel deployment builds
+    //    "build": {
+    //      "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-client"],
+    //      "outputs": []
+    //    }
+  }
+}

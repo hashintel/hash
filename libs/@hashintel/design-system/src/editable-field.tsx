@@ -19,6 +19,7 @@ export const EditableField = ({
   editIconFontSize,
   readonly,
   placeholderSx = {},
+  wrapperSx = {},
   value,
   placeholder,
   sx,
@@ -28,6 +29,7 @@ export const EditableField = ({
   editIconFontSize?: number;
   readonly?: boolean;
   placeholderSx?: SxProps<Theme>;
+  wrapperSx?: SxProps<Theme>;
 } & InputBaseProps) => {
   const { palette } = useTheme();
 
@@ -75,6 +77,7 @@ export const EditableField = ({
         alignItems: "center",
         gap: 1.5,
         width: 1,
+        ...wrapperSx,
       }}
     >
       <Box

@@ -4,17 +4,17 @@ import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
-const testEntity: RootEntity = {
+const blockEntity: BlockEntity = {
   metadata: {
     recordId: {
       entityId: "test-entity",
       editionId: new Date().toISOString(),
     },
-    entityTypeId: packageJSON.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJSON.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {},
 };
@@ -35,13 +35,19 @@ const DevApp = () => {
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
       blockInfo={packageJSON.blockprotocol}
-      // @todo add dot-env support
-      blockProtocolApiKey={undefined} // Set this to an API key when testing
-      blockProtocolSiteHost="https://blockprotocol.org" // update this to a recent staging deployment when testing
       debug
       initialData={{
-        initialEntities: [testEntity],
+        initialEntities: [blockEntity],
       }}
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
+      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
+      blockProtocolSiteHost={
+        process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
+      } // update this to a recent staging deployment when testing
     />
   );
 };

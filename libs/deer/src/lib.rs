@@ -4,7 +4,10 @@
         provide_any,
         error_in_core,
         error_generic_member_access,
-        integer_atomics
+        integer_atomics,
+        saturating_int_impl,
+        sync_unsafe_cell,
+        exclusive_wrapper
     )
 )]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -63,6 +66,8 @@ type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
+    fn context(&self) -> &Context;
+
     /// This enables bound-checking for [`ObjectAccess`].
     ///
     /// After calling this [`ObjectAccess`] will
@@ -112,6 +117,8 @@ pub trait FieldVisitor<'de> {
 }
 
 pub trait ArrayAccess<'de> {
+    fn context(&self) -> &Context;
+
     /// Enables bound-checking for [`ArrayAccess`].
     ///
     /// After calling this [`ArrayAccess`] will

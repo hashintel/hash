@@ -13,12 +13,11 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
-  TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
@@ -32,6 +31,7 @@ jobs:
       test: ${{ steps.crates.outputs.test }}
       coverage: ${{ steps.crates.outputs.coverage }}
       publish: ${{ steps.crates.outputs.publish }}
+      build: ${{ steps.crates.outputs.build }}
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
@@ -58,6 +58,21 @@ jobs:
             echo "samples=10" >> $GITHUB_OUTPUT
           fi
 
+  build:
+    name: build
+    needs: setup
+    if: needs.setup.outputs.build != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.build) }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Build images
+        uses: ./.github/actions/build-docker-images
+
   lint:
     name: lint
     needs: setup
@@ -66,6 +81,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
+    env:
+      RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -149,8 +166,8 @@ jobs:
 
   test:
     name: test
-    needs: setup
-    if: needs.setup.outputs.test != '{}'
+    needs: [setup, build]
+    if: always() && needs.setup.outputs.test != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -166,6 +183,14 @@ jobs:
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
+
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+        if: matrix.directory == 'apps/hash-graph'
+
+      - name: Launch external services
+        if: matrix.directory == 'apps/hash-graph'
+        run: yarn workspace @apps/hash-external-services deploy up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -230,8 +255,8 @@ jobs:
 
   coverage:
     name: coverage
-    needs: setup
-    if: needs.setup.outputs.coverage != '{}'
+    needs: [setup, build]
+    if: always() && needs.setup.outputs.coverage != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -243,6 +268,14 @@ jobs:
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
+
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+        if: matrix.directory == 'apps/hash-graph'
+
+      - name: Launch external services
+        if: matrix.directory == 'apps/hash-graph'
+        run: yarn workspace @apps/hash-external-services deploy up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain

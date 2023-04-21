@@ -409,13 +409,14 @@ where
     A: Send + Sync,
     S: Read<R> + Send,
 {
+    type ReadStream = S::ReadStream;
     type Record = S::Record;
 
     async fn read(
         &self,
         query: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<Vec<R>, QueryError> {
+    ) -> Result<Self::ReadStream, QueryError> {
         self.store.read(query, temporal_axes).await
     }
 }
@@ -631,7 +632,8 @@ where
             .await
     }
 
-    #[cfg(feature = "__internal_bench")]
+    #[doc(hidden)]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<

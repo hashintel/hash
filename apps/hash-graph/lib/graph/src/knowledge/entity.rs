@@ -1,7 +1,9 @@
 mod query;
 
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, error::Error, fmt};
 
+use bytes::BytesMut;
+use postgres_types::{IsNull, Type};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::url::{BaseUrl, VersionedUrl};
@@ -76,6 +78,28 @@ impl LinkOrder {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
 pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
+
+impl ToSql for EntityProperties {
+    postgres_types::accepts!(JSON, JSONB);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        postgres_types::Json(&self).to_sql(ty, out)
+    }
+}
+
+impl<'a> FromSql<'a> for EntityProperties {
+    postgres_types::accepts!(JSON, JSONB);
+
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        let json = postgres_types::Json::from_sql(ty, raw)?;
+        Ok(json.0)
+    }
+}
 
 impl EntityProperties {
     #[must_use]

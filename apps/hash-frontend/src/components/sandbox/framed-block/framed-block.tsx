@@ -1,13 +1,10 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
 
-import * as Sentry from "@sentry/react";
 import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntityTypesFunction,
-  BlockProtocolCreateEntitiesFunction,
-  BlockProtocolEntity,
-  BlockProtocolUpdateEntitiesFunction,
-} from "blockprotocol";
+  Entity,
+  GraphEmbedderMessageCallbacks,
+} from "@blockprotocol/graph/temporal";
+import * as Sentry from "@sentry/react";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 
 import { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
@@ -27,13 +24,16 @@ export const FramedBlock: FunctionComponent = () => {
 
   const initialData = properties ? JSON.parse(properties) : undefined;
 
-  const [blockProperties, setBlockProperties] = useState<
-    BlockProtocolEntity | undefined
-  >(initialData);
+  const [blockProperties, setBlockProperties] = useState<Entity | undefined>(
+    initialData,
+  );
 
   const _beforeCapture = useCallback(
     (scope: Sentry.Scope) => {
-      scope.setTag("block", blockProperties?.entityId as string);
+      scope.setTag(
+        "block",
+        blockProperties?.metadata.recordId.entityId as string,
+      );
     },
     [blockProperties],
   );
@@ -42,7 +42,7 @@ export const FramedBlock: FunctionComponent = () => {
     const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
       switch (data.type) {
         case "newData":
-          setBlockProperties(data.payload as BlockProtocolEntity);
+          setBlockProperties(data.payload as Entity);
           break;
         case "response":
           settlePromiseFromResponse(data);
@@ -70,13 +70,15 @@ export const FramedBlock: FunctionComponent = () => {
    * @todo set loading / error states based on promise status and pass into block.
    *    in order to provide aggregateLoading, aggregateError, etc
    */
-  const queryEntities: BlockProtocolAggregateEntitiesFunction = (...payload) =>
+  const queryEntities: GraphEmbedderMessageCallbacks["queryEntities"] = (
+    ...payload
+  ) =>
     sendMessage({
       payload,
       type: "queryEntities",
     });
 
-  const queryEntityTypes: BlockProtocolAggregateEntityTypesFunction = (
+  const queryEntityTypes: GraphEmbedderMessageCallbacks["queryEntityTypes"] = (
     ...payload
   ) =>
     sendMessage({
@@ -84,28 +86,31 @@ export const FramedBlock: FunctionComponent = () => {
       type: "queryEntityTypes",
     });
 
-  const createEntities: BlockProtocolCreateEntitiesFunction = (...payload) =>
+  const createEntity: GraphEmbedderMessageCallbacks["createEntity"] = (
+    ...payload
+  ) =>
     sendMessage({
       payload,
-      type: "createEntities",
+      type: "createEntity",
     });
 
-  const updateEntities: BlockProtocolUpdateEntitiesFunction = (...payload) =>
-    sendMessage({ payload, type: "updateEntities" });
+  const updateEntity: GraphEmbedderMessageCallbacks["updateEntity"] = (
+    ...payload
+  ) => sendMessage({ payload, type: "updateEntity" });
 
   const getEmbedBlock: FetchEmbedCodeFn = (...payload) =>
     sendMessage({ payload, type: "getEmbedBlock" });
 
-  if (typeof blockProperties.entityId !== "string") {
+  if (typeof blockProperties.metadata.recordId.entityId !== "string") {
     throw new Error("No entityId present in block properties.");
   }
 
   const _blockFunctions = {
     queryEntities,
     queryEntityTypes,
-    createEntities,
+    createEntity,
     getEmbedBlock,
-    updateEntities,
+    updateEntity,
   };
 
   // @todo fix sandbox for 0.2

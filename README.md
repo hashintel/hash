@@ -60,6 +60,7 @@ This repository's contents is divided across four primary sections:
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
 - [**`/libs`**](/libs) contains [libraries](#libraries) including npm packages and Rust crates
+- [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs
 
 Key projects within are summarized below.
 
@@ -74,6 +75,7 @@ Key projects within are summarized below.
 
 ### Infrastructure
 
+- [`docker`](infra/docker): Docker assets relating to HASH
 - [`terraform`](infra/terraform): Terraform modules for deploying HASH on AWS
 
 ### Libraries
@@ -92,7 +94,7 @@ Key projects within are summarized below.
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
 We're also [hiring] for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
 
@@ -102,7 +104,7 @@ The vast majority of this repository is published as free, open-source software.
 
 ## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
 
-Please see [SECURITY](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
+Please see [SECURITY](.github/SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 

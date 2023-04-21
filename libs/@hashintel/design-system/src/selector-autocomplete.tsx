@@ -10,21 +10,18 @@ import {
 import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
+import { Button, ButtonProps } from "./button";
+import { Chip } from "./chip";
 import { fluidFontClassName } from "./fluid-fonts";
-import {
-  Button,
-  ButtonProps,
-  Chip,
-  FontAwesomeIcon,
-  StyledPlusCircleIcon,
-  TextField,
-} from "./main";
+import { FontAwesomeIcon } from "./fontawesome-icon";
+import { StyledPlusCircleIcon } from "./icon-circle-plus";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
 } from "./popper-placement-modifier";
 import { SelectorAutocompleteOption } from "./selector-autocomplete/selector-autocomplete-option";
+import { TextField } from "./text-field";
 
 export const TYPE_SELECTOR_HEIGHT = 57;
 

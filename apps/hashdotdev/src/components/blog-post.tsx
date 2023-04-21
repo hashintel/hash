@@ -71,7 +71,7 @@ export const BlogPostHead: FunctionComponent<{
 }) => {
   const photos = useBlogPostPhotos();
 
-  const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH for Developers`;
+  const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH Developer Blog`;
 
   const date = dateInput ? new Date(dateInput) : null;
   const dateIso = date ? date.toISOString() : null;

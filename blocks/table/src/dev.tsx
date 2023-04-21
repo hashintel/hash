@@ -4,15 +4,15 @@ import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
 const node = document.getElementById("app");
 
 // @todo make type blockprotocol.org/[etc]/ExampleEntity when we can host new types there
-const testEntity: RootEntity = {
+const testEntity: BlockEntity = {
   metadata: {
     recordId: { entityId: "test-entity", editionId: new Date().toISOString() },
-    entityTypeId: packageJson.blockprotocol.schema as VersionedUrl,
+    entityTypeId: packageJson.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
@@ -67,13 +67,11 @@ const DevApp = () => {
       blockInfo={packageJson.blockprotocol}
       debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       initialData={{ initialEntities: [testEntity] }}
-
-      // hideDebugToggle <- uncomment this to disable the debug UI entirely
-      // initialEntities={[]} <- customise the entities in the datastore (blockEntity is always added, if you provide it)
-      // initialEntityTypes={[]} <- customise the entity types in the datastore
-      // initialLinks={[]} <- customise the links in the datastore
-      // initialLinkedAggregations={[]} <- customise the linkedAggregations in the datastore
-      // readonly <- uncomment this to start your block in readonly mode. You can also toggle it in the UI
+      simulateDatastoreLatency={{
+        // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
+        min: 50,
+        max: 200,
+      }}
     />
   );
 };

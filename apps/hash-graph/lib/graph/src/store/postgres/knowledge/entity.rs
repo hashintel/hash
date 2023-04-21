@@ -18,7 +18,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
+        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::TraversalContext,
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
@@ -58,7 +58,7 @@ impl<C: AsClient> PostgresStore<C> {
         {
             let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
-            for edge_entity in <Self as Read<Entity>>::read(
+            for edge_entity in <Self as Read<Entity>>::read_vec(
                 self,
                 &Filter::for_knowledge_graph_edge_by_entity_id(
                     entity_vertex_id.base_id,
@@ -152,7 +152,7 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
-                    for entity_type in <Self as Read<EntityTypeWithMetadata>>::read(
+                    for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
                         self,
                         &Filter::for_shared_edge_by_entity_id(
                             entity_vertex_id.base_id,
@@ -221,6 +221,28 @@ impl<C: AsClient> PostgresStore<C> {
 
         Ok(())
     }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
+        self.as_client()
+            .client()
+            .simple_query(
+                r"
+                    DELETE FROM entity_has_left_entity;
+                    DELETE FROM entity_has_right_entity;
+                    DELETE FROM entity_is_of_type;
+                    DELETE FROM entity_temporal_metadata;
+                    DELETE FROM entity_editions;
+                    DELETE FROM entity_ids;
+                ",
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -245,10 +267,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_type_ontology_id = self
             .ontology_id_by_url(&entity_type_id)
             .await
-            .change_context(InsertionError)?;
-
-        let properties = serde_json::to_value(properties)
-            .into_report()
             .change_context(InsertionError)?;
 
         let row = self
@@ -324,7 +342,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
@@ -455,7 +473,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entities = Read::<Entity>::read(self, filter, Some(&temporal_axes))
+        let entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))
@@ -509,10 +527,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_type_ontology_id = self
             .ontology_id_by_url(&entity_type_id)
             .await
-            .change_context(UpdateError)?;
-
-        let properties = serde_json::to_value(properties)
-            .into_report()
             .change_context(UpdateError)?;
 
         // The transaction is required to check if the update happened. If there is no returned

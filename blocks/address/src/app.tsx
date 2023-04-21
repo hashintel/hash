@@ -31,14 +31,16 @@ import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
+  AddressBlock,
   AddressBlockHasAddressLinks,
   AddressBlockHasMapImageLinks,
-  AddressBlockLinksByLinkTypeId,
+  AddressBlockOutgoingLinkAndTarget,
+  AddressBlockOutgoingLinksByLinkEntityTypeId,
+  BlockEntity,
   HasAddress,
   HasMapImage,
   RemoteFile,
-  RootEntity,
-} from "./types";
+} from "./types/generated/block-entity";
 import { Address, useMapbox } from "./use-mapbox";
 
 const INPUT_MAX_WIDTH = 420;
@@ -47,19 +49,19 @@ const ZOOM_LEVEL_STEP_SIZE = 2;
 const MAX_ZOOM_LEVEL = 20;
 const MIN_ZOOM_LEVEL = 10;
 
-type RootEntityKey = keyof RootEntity["properties"];
+type BlockEntityKey = keyof BlockEntity["properties"];
 type AddressEntityKey = keyof AddressEntity["properties"];
 type FileUrlEntityKey = keyof RemoteFile["properties"];
-type LinkType = keyof AddressBlockLinksByLinkTypeId;
+type LinkType = keyof AddressBlockOutgoingLinksByLinkEntityTypeId;
 
 // Root entity property types
-export const titleKey: RootEntityKey =
+export const titleKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
-export const descriptionKey: RootEntityKey =
+export const descriptionKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
-export const addressIdKey: RootEntityKey =
+export const addressIdKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-address-id/";
-export const zoomLevelKey: RootEntityKey =
+export const zoomLevelKey: BlockEntityKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/mapbox-static-image-zoom-level/";
 
 // Address entity property types
@@ -81,8 +83,8 @@ export const fileUrlKey: FileUrlEntityKey =
 // Link entity types
 export const hasAddressLink: LinkType =
   "https://blockprotocol.org/@hash/types/entity-type/has-address/v/1";
-export const hasAddressMapLink: LinkType =
-  "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/1";
+export const hasMapImageLink: LinkType =
+  "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/2";
 
 // Relevant Entity types
 export const addressTypeId =
@@ -91,13 +93,15 @@ export const addressTypeId =
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
-  const { rootEntity: blockEntity, linkedEntities } =
-    useEntitySubgraph(blockEntitySubgraph);
+  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
+    AddressBlock,
+    AddressBlockOutgoingLinkAndTarget[]
+  >(blockEntitySubgraph);
 
   const {
     metadata: {
@@ -125,7 +129,7 @@ export const App: BlockComponent<RootEntity> = ({
     () =>
       linkedEntities.find(
         ({ linkEntity }) => linkEntity.metadata.entityTypeId === hasAddressLink,
-      ) as AddressBlockHasAddressLinks[0] | undefined,
+      ) as AddressBlockHasAddressLinks | undefined,
     [linkedEntities],
   );
 
@@ -140,11 +144,11 @@ export const App: BlockComponent<RootEntity> = ({
     () =>
       linkedEntities.find(({ linkEntity }) => {
         return (
-          linkEntity.metadata.entityTypeId === hasAddressMapLink &&
-          linkEntity.properties[zoomLevelKey] === zoomLevel &&
-          linkEntity.properties[addressIdKey] === addressId
+          linkEntity.metadata.entityTypeId === hasMapImageLink &&
+          (linkEntity as HasMapImage).properties[zoomLevelKey] === zoomLevel &&
+          (linkEntity as HasMapImage).properties[addressIdKey] === addressId
         );
-      }) as AddressBlockHasMapImageLinks[0] | undefined,
+      }) as AddressBlockHasMapImageLinks | undefined,
     [linkedEntities, zoomLevel, addressId],
   );
 
@@ -157,11 +161,14 @@ export const App: BlockComponent<RootEntity> = ({
     return linkedEntities
       .filter(({ linkEntity }) => {
         return (
-          linkEntity.metadata.entityTypeId === hasAddressMapLink &&
-          linkEntity.properties[addressIdKey] === addressId
+          linkEntity.metadata.entityTypeId === hasMapImageLink &&
+          (linkEntity as HasMapImage).properties[addressIdKey] === addressId
         );
       })
-      .map(({ linkEntity }) => linkEntity.properties[zoomLevelKey]);
+      .map(
+        ({ linkEntity }) =>
+          (linkEntity as HasMapImage).properties[zoomLevelKey],
+      );
   }, [linkedEntities, addressId]);
 
   const updateBlockAddress = async (address?: Address) => {
@@ -270,7 +277,7 @@ export const App: BlockComponent<RootEntity> = ({
         if (!mapLinkEntity && mapAddressId && fileEntityId) {
           await graphModule.createEntity({
             data: {
-              entityTypeId: hasAddressMapLink,
+              entityTypeId: hasMapImageLink,
               properties: {
                 [zoomLevelKey]: zoomLevel,
                 [addressIdKey]: mapAddressId,

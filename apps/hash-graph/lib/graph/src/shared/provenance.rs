@@ -67,7 +67,7 @@ define_provenance_id!(RecordCreatedById);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
-    record_created_by_id: RecordCreatedById,
+    pub record_created_by_id: RecordCreatedById,
 }
 
 impl ProvenanceMetadata {

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -23,12 +23,18 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 }
 
+impl fmt::Display for EntityId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}%{}", self.owned_by_id, self.entity_uuid)
+    }
+}
+
 impl Serialize for EntityId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{}%{}", self.owned_by_id, self.entity_uuid))
+        serializer.serialize_str(&self.to_string())
     }
 }
 
