@@ -1,71 +1,18 @@
 import logging
 import logging.config
 import os
-import time
-from collections.abc import Callable
 from datetime import datetime
 from typing import Literal, assert_never
 
 import structlog
-from asgi_correlation_id import correlation_id
-from starlette.requests import Request
-from starlette.responses import Response
-from uvicorn.protocols.utils import get_path_with_query_string
+from langchain import callbacks
 
-Environment = Literal['dev', 'prod']
+from app.logger.langchain import LoggingCallbackHandler
 
-access_logger = structlog.stdlib.get_logger("api.access")
+Environment = Literal["dev", "prod"]
 
 
-async def logging_middleware(request: Request, call_next: Callable) -> Response:
-    """
-    Adapted from https://gist.github.com/nymous/f138c7f06062b7c43c060bf03759c29e
-    """
-
-    structlog.contextvars.clear_contextvars()
-    # These context vars will be added to all log entries emitted during the request
-    request_id = correlation_id.get()
-    structlog.contextvars.bind_contextvars(request_id=request_id)
-
-    start_time = time.perf_counter_ns()
-    # If the call_next raises an error, we still want to return our own 500 response,
-    # so we can add headers to it (process time, request ID...)
-    response = Response(status_code=500)
-    try:
-        response = await call_next(request)
-    except Exception:
-        structlog.stdlib.get_logger("api.error").exception("Uncaught exception")
-        raise
-    finally:
-        process_time = time.perf_counter_ns() - start_time
-
-        status_code = response.status_code
-        url = get_path_with_query_string(request.scope)
-        client_host = request.client.host
-        client_port = request.client.port
-        http_method = request.method
-        http_version = request.scope["http_version"]
-
-        # Recreate the Uvicorn access log format,
-        # but add all parameters as structured information
-        client = f"{client_host}:{client_port}"
-        access_logger.info(
-            f"""{client} - "{http_method} {url} HTTP/{http_version}" {status_code}""",
-            http={
-                "url": str(request.url),
-                "status_code": status_code,
-                "method": http_method,
-                "request_id": request_id,
-                "version": http_version,
-            },
-            network={"client": {"ip": client_host, "port": client_port}},
-            duration=process_time,
-        )
-
-        return response  # noqa: B012
-
-
-def setup_logging(environment: Environment = 'dev') -> None:
+def setup_logging(environment: Environment = "dev") -> None:
     # we're using the most ambitious approach outlined in
     # https://www.structlog.org/en/stable/standard-library.html
 
@@ -171,13 +118,13 @@ def setup_logging(environment: Environment = 'dev') -> None:
     )
 
     # Disable uvicorn access, as otherwise we have duplicate events
-    logging.getLogger('uvicorn.access').handlers.clear()
+    logging.getLogger("uvicorn.access").handlers.clear()
 
-    if logger := logging.getLogger('gunicorn.error'):
+    if logger := logging.getLogger("gunicorn.error"):
         # propagate errors from gunicorn
         logger.propagate = True
 
-    if logger := logging.getLogger('uvicorn.error'):
+    if logger := logging.getLogger("uvicorn.error"):
         # propagate errors from uvicorn
         logger.propagate = True
 
@@ -201,3 +148,5 @@ def setup_logging(environment: Environment = 'dev') -> None:
         # logger.
         cache_logger_on_first_use=True,
     )
+
+    callbacks.set_handler(LoggingCallbackHandler())
