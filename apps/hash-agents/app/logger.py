@@ -95,6 +95,7 @@ def setup_logging(environment: Environment = 'dev') -> None:
                 structlog.processors.CallsiteParameter.LINENO,
             }
         ),
+        structlog.stdlib.ExtraAdder(),
     ]
 
     match environment:
@@ -124,7 +125,6 @@ def setup_logging(environment: Environment = 'dev') -> None:
                 "file": {
                     "()": structlog.stdlib.ProcessorFormatter,
                     "processors": [
-                        structlog.stdlib.ExtraAdder(),
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                         structlog.processors.JSONRenderer(),
                     ],
@@ -134,7 +134,6 @@ def setup_logging(environment: Environment = 'dev') -> None:
                     "()": structlog.stdlib.ProcessorFormatter,
                     "processors": [
                         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                        structlog.stdlib.ExtraAdder(),
                         processor,
                     ],
                     "foreign_pre_chain": shared,
