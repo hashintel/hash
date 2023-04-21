@@ -1,9 +1,10 @@
 import runpy
 import os
 import importlib
+from typing import Any, Self
 
 
-def find_allowed_agents():
+def find_allowed_agents() -> list[str]:
     agents_dir = os.path.dirname(__file__)
     allowed_agents = []
     for agent in os.listdir(agents_dir):
@@ -17,10 +18,22 @@ def find_allowed_agents():
     return allowed_agents
 
 
-def call_agent(agent: str, **kwargs) -> dict:
+class InvalidAgentNameError(ValueError):
+    def __init__(self: Self, agent_name: str, allowed_agents: list[str]) -> None:
+        super().__init__(
+            f"Invalid agent name: {agent_name}. Allowed agents: {allowed_agents}"
+        )
+
+
+class InvalidAgentOutputError(ValueError):
+    def __init__(self: Self, agent_name: str, output: Any) -> None:  # noqa: ANN401
+        super().__init__(f"Unexpected output for agent {agent_name}: {output}")
+
+
+def call_agent(agent: str, **kwargs: dict) -> dict:
     allowed_agents = find_allowed_agents()
     if agent not in allowed_agents:
-        raise Exception(f"Invalid agent name, allowed agents are: {allowed_agents}")
+        raise InvalidAgentNameError(agent, allowed_agents)
 
     module = f"{__name__}.{agent}"
 
@@ -30,8 +43,11 @@ def call_agent(agent: str, **kwargs) -> dict:
         module,
         run_name="HASH",
         init_globals={
-            "IN": io_types.input_from_dict(dict(kwargs)),
+            "IN": io_types.input_from_dict(kwargs),
         },
     ).get("OUT")
 
-    return io_types.output_to_dict(out)
+    try:
+        return io_types.output_to_dict(out)
+    except AssertionError as e:
+        raise InvalidAgentOutputError(agent, out) from e

@@ -21,10 +21,15 @@ production = ["gunicorn"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
+ruff = "^0.0.262"
+setuptools = "^67.7.1"
 
 [tool.black]
 target-version = ['py311']
 preview = true
+
+[tool.ruff]
+select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "TRY"]
 
 [build-system]
 requires = ["poetry-core"]

@@ -3,12 +3,12 @@ import os
 from datetime import datetime
 
 
-def get_logger():
+def get_logger() -> logging.Logger:
     logger = logging.getLogger("base_logger")
     return logger
 
 
-def setup_logging(base_logger=None):
+def setup_logging(base_logger: str | None = None) -> None:
     log_folder = os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs")
     if not os.path.exists(log_folder):
         os.mkdir(log_folder)

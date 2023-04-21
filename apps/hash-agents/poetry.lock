@@ -1305,15 +1305,42 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
-name = "setuptools"
-version = "67.7.0"
-description = "Easily download, build, install, upgrade, and uninstall Python packages"
-category = "main"
-optional = true
+name = "ruff"
+version = "0.0.262"
+description = "An extremely fast Python linter, written in Rust."
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "setuptools-67.7.0-py3-none-any.whl", hash = "sha256:888be97fde8cc3afd60f7784e678fa29ee13c4e5362daa7104a93bba33646c50"},
-    {file = "setuptools-67.7.0.tar.gz", hash = "sha256:b7e53a01c6c654d26d2999ee033d8c6125e5fa55f03b7b193f937ae7ac999f22"},
+    {file = "ruff-0.0.262-py3-none-macosx_10_7_x86_64.whl", hash = "sha256:c26c1abd420d041592d05d63aee8c6a18feb24aed4deb6e91129e9f2c7b4914a"},
+    {file = "ruff-0.0.262-py3-none-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:b379e9765afa679316e52288a942df085e590862f8945088936a7bce3116d8f3"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9b7e0ca6821aafbd2b059df3119fcd5881250721ca8e825789fd2c471f7c59be"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:4cca35e2aeddff72bb4379a1dabc134e0c0d25ebc754a2cb733a1f8d4dbbb5e0"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:15bf5533ce169aebbafa00017987f673e879f60a625d932b464b8cdaf32a4fce"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:3909e249d984c4517194005a1c30eaa0c3a6d906c789d9fc0c9c7e007fb3e759"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:4e2813013a19b3e147e840bdb2e42db5825b53b47364e58e7b467c5fa47ffda2"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:d25a94996b2037e566c2a801c8b324c0a826194d5d4d90ad7c1ccb8cf06521fa"},
+    {file = "ruff-0.0.262-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:85ca04348372efc59f6ee808d903d35e0d352cf2c78e487757cd48b65104b83e"},
+    {file = "ruff-0.0.262-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:24f989363e9bb5d0283490298102a5218682e49ebf300e445d69e24bee03ac83"},
+    {file = "ruff-0.0.262-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:3c24e678e43ca4b67e29cc9a7a54eea05f31a5898cbf17bfec47b68f08d32a60"},
+    {file = "ruff-0.0.262-py3-none-musllinux_1_2_i686.whl", hash = "sha256:0baff3c9a22227358ea109c165efe62dbdd0f2b9fd5256567dda8682b444fe23"},
+    {file = "ruff-0.0.262-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:083bac6e238d8b7d5ac3618666ea63b7ac661cf94c5da160070a58e190082831"},
+    {file = "ruff-0.0.262-py3-none-win32.whl", hash = "sha256:15bbfa2d15c137717627e0d56b0e535ae297b734551e34e03fcc25d7642cf43a"},
+    {file = "ruff-0.0.262-py3-none-win_amd64.whl", hash = "sha256:973ac29193f718349cf5746b7d86dfeaf7d40e9651ed97790a9b9327305888b9"},
+    {file = "ruff-0.0.262-py3-none-win_arm64.whl", hash = "sha256:f102904ebe395acd2a181d295b98120acd7a63f732b691672977fc688674f4af"},
+    {file = "ruff-0.0.262.tar.gz", hash = "sha256:faea54231c265f5349975ba6f3d855b71881a01f391b2000c47740390c6d5f68"},
+]
+
+[[package]]
+name = "setuptools"
+version = "67.7.1"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "setuptools-67.7.1-py3-none-any.whl", hash = "sha256:6f0839fbdb7e3cfef1fc38d7954f5c1c26bf4eebb155a55c9bf8faf997b9fb67"},
+    {file = "setuptools-67.7.1.tar.gz", hash = "sha256:bb16732e8eb928922eabaa022f881ae2b7cdcfaf9993ef1f5e841a96d32b8e0c"},
 ]
 
 [package.extras]
@@ -1702,4 +1729,4 @@ production = ["gunicorn"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "17e2a7310771f90dde9a1e3443ea5a43fb760f067008e35f85a337154603142c"
+content-hash = "ba0d41db2f4d3dd1897cdb0fbabcd2d00a666977c786bc7fa5cb8f228f8309b5"

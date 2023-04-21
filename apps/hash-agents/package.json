@@ -10,9 +10,11 @@
     "exe": "ts-node --transpile-only",
     "fix:black": "poetry run black app",
     "fix:lock-files": "poetry lock --no-update",
+    "fix:ruff": "poetry run ruff app --fix",
     "install:tools": "poetry install --no-root --no-interaction --only dev",
     "lint:black": "poetry run black --check --diff --color app",
-    "lint:lock-files": "poetry lock --check"
+    "lint:lock-files": "poetry lock --check",
+    "lint:ruff": "poetry run ruff app"
   },
   "dependencies": {
     "dedent": "0.7.0",
