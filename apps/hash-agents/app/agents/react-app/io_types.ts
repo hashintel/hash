@@ -6,12 +6,17 @@
  * These types MUST be called `Input` and `Output`
  */
 
+type Message = {
+  type: "AIMessage" | "HumanMessage";
+  content: string;
+};
+
 export type Input = {
   /** React app prompt to generate */
-  user_prompt: string;
+  messages: Message[];
 };
 
 export type Output = {
   /** Generated code result */
-  result: string;
+  messages: Message[];
 };
