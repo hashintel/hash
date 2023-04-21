@@ -29,7 +29,7 @@ import {
 import { unstable_batchedUpdates } from "react-dom";
 
 import { linkIds, propertyIds } from "../property-ids";
-import { RootEntity } from "../types";
+import { BlockEntity } from "../types/generated/block-entity";
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
@@ -69,7 +69,7 @@ const useDefaultState = <
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
 export const Media: FunctionComponent<
-  BlockGraphProperties<RootEntity> & {
+  BlockGraphProperties<BlockEntity> & {
     blockRef: RefObject<HTMLDivElement>;
   }
 > = ({ blockRef, graph: { blockEntitySubgraph, readonly } }) => {

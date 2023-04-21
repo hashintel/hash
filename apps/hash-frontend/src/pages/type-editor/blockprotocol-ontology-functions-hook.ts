@@ -54,6 +54,8 @@ export type GraphMessageCallbacks = Omit<
   | "getPropertyType"
   | "uploadFile"
   | "updateEntity"
+  | "getDataType"
+  | "queryDataTypes"
 > &
   OntologyCallbacks &
   KnowledgeCallbacks & { uploadFile: UploadFileRequestCallback };

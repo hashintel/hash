@@ -1,5 +1,6 @@
 mod array;
 mod bool;
+mod bytes;
 mod cell;
 mod cmp;
 mod floating;
@@ -8,6 +9,8 @@ mod marker;
 mod mem;
 mod num;
 mod option;
+mod result;
 mod string;
 mod sync;
+mod time;
 mod unit;

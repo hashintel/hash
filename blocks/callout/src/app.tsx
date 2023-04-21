@@ -8,9 +8,9 @@ import { useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
 import { propertyIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);

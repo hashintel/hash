@@ -1,0 +1,19 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "build": {
+      "outputs": ["./agents/**/*.py", "./src/agents.ts"],
+      "dependsOn": ["^build"]
+    },
+    "build:docker": {
+      "cache": false
+    },
+    "fix:lock-files": {
+      "inputs": ["poetry.lock", "pyproject.toml"],
+      "outputs": ["poetry.lock"]
+    },
+    "lint:lock-files": {
+      "inputs": ["poetry.lock", "pyproject.toml"]
+    }
+  }
+}

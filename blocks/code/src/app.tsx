@@ -9,10 +9,10 @@ import styles from "./app.module.css";
 import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
 import { propertyIds } from "./property-ids";
-import { RootEntity } from "./types";
+import { BlockEntity } from "./types/generated/block-entity";
 import { languages, LanguageType } from "./utils";
 
-export const App: BlockComponent<RootEntity> = ({
+export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const { rootEntity: blockEntity } = useEntitySubgraph(blockEntitySubgraph);
@@ -52,7 +52,7 @@ export const App: BlockComponent<RootEntity> = ({
     });
   }, [caption, content, language]);
 
-  const updateLocalData = (newData: Partial<RootEntity["properties"]>) => {
+  const updateLocalData = (newData: Partial<BlockEntity["properties"]>) => {
     if (readonly) {
       return;
     }
@@ -62,7 +62,7 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const updateRemoteData = (properties: RootEntity["properties"]) => {
+  const updateRemoteData = (properties: BlockEntity["properties"]) => {
     if (readonly) {
       return;
     }

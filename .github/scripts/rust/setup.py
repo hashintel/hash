@@ -37,6 +37,11 @@ PUBLISH_PATTERNS = [
     "libs/sarif**",
 ]
 
+# Run the dependency building job for these crates
+BUILD_DEPS_PATTERNS = [
+    "apps/hash-graph**",
+]
+
 # Build a coverage report for these crates
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
@@ -165,6 +170,20 @@ def filter_for_publishable_crates(crates):
     ]
 
 
+def filter_for_build_deps_crates(crates):
+    """
+    Returns the crates for which the dependency building job will be run
+    :param crates: a list of paths to crates
+    :return: a list of crate paths which are allowed to be published
+    """
+    return [
+        crate
+        for crate in crates
+        for pattern in BUILD_DEPS_PATTERNS
+        if fnmatch(crate, pattern)
+    ]
+
+
 def filter_for_coverage_crates(crates):
     """
     Returns the crates for which a coverage report will be created
@@ -250,10 +269,12 @@ def main():
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
     coverage_crates = filter_for_coverage_crates(changed_parent_crates)
+    build_crates = filter_for_build_deps_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
 
     output_matrix("lint", github_output_file, changed_parent_crates)
+    output_matrix("build", github_output_file, build_crates)
     if IS_PULL_REQUEST_EVENT:
         output_matrix("test", github_output_file, changed_parent_crates, profile=["dev"])
     else:

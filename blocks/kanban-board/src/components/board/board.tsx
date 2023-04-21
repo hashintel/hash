@@ -22,11 +22,14 @@ import isEqual from "lodash.isequal";
 import { useMemo, useRef, useState } from "react";
 
 import {
+  BlockEntityKey,
   BoardCardKey,
   BoardColumnKey,
-  RootEntityKey,
 } from "../../additional-types";
-import { KanbanBoardColumnPropertyValue, RootEntity } from "../../types";
+import {
+  BlockEntity,
+  KanbanBoardColumnPropertyValue,
+} from "../../types/generated/block-entity";
 import { PlusIcon } from "../icons/plus-icon";
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
@@ -46,7 +49,7 @@ import {
 
 const generateId = () => Date.now().toString();
 
-export const columnsKey: RootEntityKey =
+export const columnsKey: BlockEntityKey =
   "https://blockprotocol.org/@hash/types/property-type/kanban-board-column/";
 
 export const columnIdKey: BoardColumnKey =
@@ -104,8 +107,8 @@ const transformColumnsStateToEntityColumns = (
 };
 
 interface BoardProps {
-  blockEntity: RootEntity;
-  updateEntity: (newProperties: RootEntity["properties"]) => Promise<void>;
+  blockEntity: BlockEntity;
+  updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
   readonly?: boolean;
 }
 
@@ -129,7 +132,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const debouncedUpdateEntity = useMemo(
     () =>
-      debounce(async (newProperties: RootEntity["properties"]) => {
+      debounce(async (newProperties: BlockEntity["properties"]) => {
         isDebounceQueued.current = false;
 
         const updateId = Date.now();
