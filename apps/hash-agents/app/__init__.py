@@ -24,7 +24,9 @@ def create_app(base_logger: str | None = None) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     secret_key = os.environ.get("HASH_AGENT_RUNNER_SECRET_KEY")
     if not secret_key:
-        logger.warning("No secret key set for HASH-Agent-Runner, generating a random key!")
+        logger.warning(
+            "No secret key set for HASH-Agent-Runner, generating a random key!"
+        )
         logger.info(
             "Set the `HASH_AGENT_RUNNER_SECRET_KEY` variable to specify a secret key."
         )
