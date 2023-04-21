@@ -13,7 +13,6 @@ WORKDIR /usr/local/src/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean
