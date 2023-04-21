@@ -19,6 +19,7 @@ import {
   PgPool,
 } from "@local/hash-backend-utils/postgres";
 import {
+  generateStreamProducers,
   isSupportedRealtimeEntityTable,
   isSupportedRealtimeEntityTypeTable,
   isSupportedRealtimePropertyTypeTable,
@@ -33,7 +34,7 @@ import {
 } from "set-interval-async/dynamic";
 import { sql } from "slonik";
 
-import { generateStreamProducers, MONITOR_TABLES } from "./config";
+import { MONITOR_TABLES, redisConfig } from "./config";
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;
@@ -56,7 +57,7 @@ const logger = new Logger({
   metadata: { instanceId: INSTANCE_ID },
 });
 
-const STREAMS = generateStreamProducers(logger);
+const STREAMS = generateStreamProducers(logger, redisConfig);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
