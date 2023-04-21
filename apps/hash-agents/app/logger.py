@@ -114,14 +114,16 @@ def setup_logging(environment: Environment = 'dev') -> None:
         case "dev":
             # Use a nice console renderer (utilizing rich) for development.
             processor = structlog.dev.ConsoleRenderer()
+            default_log_level = logging.DEBUG
         case "prod":
             # Render the final event dict as JSON (if in production).
             processor = structlog.processors.JSONRenderer()
+            default_log_level = logging.WARNING
         case _:
             assert_never(environment)
 
     log_level = os.getenv("HASH_AGENT_RUNNER_LOG_LEVEL")
-    log_level = log_level or logging.WARNING
+    log_level = log_level or default_log_level
 
     log_folder = os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs")
     if not os.path.exists(log_folder):
