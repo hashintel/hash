@@ -170,6 +170,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
+  console.log({ entityDefinition, actorId, ownedById });
 
   if (existingEntityId) {
     entity = await getLatestEntityById(context, {
@@ -193,9 +194,13 @@ export const getOrCreateEntity: ImpureGraphFunction<
       );
     }
 
+    console.log("Looking for entity type");
+
     const entityType = await getEntityTypeById(context, {
       entityTypeId,
     });
+
+    console.log({ entityType });
 
     entity = await createEntity(context, {
       ownedById,
@@ -208,6 +213,8 @@ export const getOrCreateEntity: ImpureGraphFunction<
       `entityType and one of entityId OR entityProperties must be provided`,
     );
   }
+
+  console.log({ entity });
 
   return entity;
 };

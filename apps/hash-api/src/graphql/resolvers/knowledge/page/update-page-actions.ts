@@ -52,6 +52,7 @@ export const createEntityWithPlaceholdersFn =
         actorId: entityActorId,
       });
     } else {
+      console.log("Creating with links");
       return await createEntityWithLinks(context, {
         ownedById: entityActorId as OwnedById,
         entityTypeId: entityDefinition.entityTypeId!,
@@ -195,11 +196,15 @@ export const handleInsertNewBlock = async (
       placeholderResults,
     } = params;
 
+    console.log("Working");
+
     const blockData = await createEntityWithPlaceholders(
       entity,
       // assume that the "block entity" is in the same account as the block itself
       blockOwnedById,
     );
+
+    console.log({ blockData });
 
     placeholderResults.set(entityPlaceholderId, {
       entityId: blockData.metadata.recordId.entityId,
@@ -246,7 +251,7 @@ export const handleInsertNewBlock = async (
       throw new UserInputError(`action ${params.index}: ${error}`);
     }
     throw new Error(
-      `insertBlock: Could not create insert new or existing block: ${JSON.stringify(
+      `insertBlock: Could not insert new or existing block: ${JSON.stringify(
         error,
       )}`,
     );

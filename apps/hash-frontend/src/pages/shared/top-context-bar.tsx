@@ -22,6 +22,12 @@ export const TopContextBar = ({
   sx = [],
 }: Props) => {
   const { sidebarOpen } = useSidebarContext();
+
+  const setPageType = (
+    type: "canvas" | "document",
+    editingCanvas: boolean,
+  ) => {};
+
   return (
     <Box
       sx={[
