@@ -17,10 +17,14 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
     void callAgentRunner({ user_prompt }).then((data) => {
       console.log(data);
       if (data) {
-        setOutput(data.result.toString());
+        const result = data.result.toString();
+
+        setOutput(result);
       }
     });
   };
+
+  console.log(output.match("(?<=(```{code:jsx}\n))(.|\n)+?(?=(```))"));
 
   return (
     <Container sx={{ paddingTop: 5 }}>

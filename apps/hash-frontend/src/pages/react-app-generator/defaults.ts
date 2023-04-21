@@ -1,4 +1,4 @@
-export const DEFAULT_PROMPT = "A calculator";
+export const DEFAULT_PROMPT = "A login form";
 
 export const DEFAULT_OUTPUT = `
   const LoginForm = () => {
