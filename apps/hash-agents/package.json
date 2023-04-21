@@ -6,8 +6,10 @@
   "main": "./src/agents.ts",
   "scripts": {
     "build": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
-    "build:docker": "DOCKER_BUILDKIT=1 docker build --tag hash-agents --file docker/Dockerfile ../../",
-    "exe": "ts-node --transpile-only"
+    "build:docker": "docker buildx build --tag hash-agents --file docker/Dockerfile ../../",
+    "exe": "ts-node --transpile-only",
+    "fix:lock-files": "poetry lock --no-update",
+    "lint:lock-files": "poetry lock --check"
   },
   "dependencies": {
     "dedent": "0.7.0",
