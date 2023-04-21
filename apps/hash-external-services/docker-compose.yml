@@ -257,9 +257,6 @@ services:
 
   hash-agents:
     init: true
-    build:
-      dockerfile: apps/hash-agents/docker/Dockerfile
-      context: ../../
     image: hash-agents
     read_only: true
     security_opt:

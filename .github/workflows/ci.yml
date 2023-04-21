@@ -17,14 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-deployment:
+  build-hash-graph:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build images
+      - name: Build image
         uses: ./.github/actions/build-docker-images
+        with:
+          hash-graph: true
+
+  build-hash-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          hash-agents: true
 
   linting:
     name: Linting
@@ -199,7 +212,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    needs: build-deployment
+    needs: [build-hash-graph, build-hash-agents]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -211,6 +224,9 @@ jobs:
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-agents: true
 
       - name: Launch external services
         run: yarn workspace @apps/hash-external-services deploy up --detach
@@ -247,7 +263,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    needs: build-deployment
+    needs: [build-hash-graph, build-hash-agents]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -269,6 +285,9 @@ jobs:
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-agents: true
 
       - name: Launch external services
         run: yarn workspace @apps/hash-external-services deploy up --detach
