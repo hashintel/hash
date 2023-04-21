@@ -15,7 +15,7 @@ from dotenv import load_dotenv, find_dotenv
 from .logger import setup_logging
 from .agents import call_agent, InvalidAgentNameError, InvalidAgentOutputError
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def create_app(base_logger: str | None = None) -> Flask:
@@ -24,8 +24,8 @@ def create_app(base_logger: str | None = None) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     secret_key = os.environ.get("HASH_AGENT_RUNNER_SECRET_KEY")
     if not secret_key:
-        LOG.warning("No secret key set for HASH-Agent-Runner, generating a random key!")
-        LOG.info(
+        logger.warning("No secret key set for HASH-Agent-Runner, generating a random key!")
+        logger.info(
             "Set the `HASH_AGENT_RUNNER_SECRET_KEY` variable to specify a secret key."
         )
         secret_key = secrets.token_hex(32)
@@ -43,7 +43,7 @@ def create_app(base_logger: str | None = None) -> Flask:
         try:
             return call_agent(agent_name, **request.json)
         except (InvalidAgentNameError, InvalidAgentOutputError) as e:
-            LOG.exception(e)
+            logger.exception(e)
             return {"error": "Could not execute agent. Look in logs for cause."}
 
     return app

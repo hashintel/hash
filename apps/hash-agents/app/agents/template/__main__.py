@@ -3,7 +3,7 @@ from langchain.chat_models import ChatOpenAI
 from .io_types import Input, Output
 import logging
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def main(agent_input: Input) -> Output:
@@ -33,4 +33,4 @@ if __name__ == "__main__":
     setup()
 
     output = main(Input(expression="round(pi * 13.37)"))
-    LOG.info(f"output: {output.result}")
+    logger.info(f"output: {output.result}")
