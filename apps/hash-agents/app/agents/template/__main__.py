@@ -1,6 +1,6 @@
 from langchain import LLMMathChain
 from langchain.chat_models import ChatOpenAI
-from .io_types import *
+from .io_types import Input, Output
 
 
 def main(agent_input: Input) -> Output:
@@ -21,7 +21,7 @@ if __name__ == "HASH":
 
     # `IN` and `OUT` are defined by the agent orchestrator
     global IN, OUT
-    OUT = main(IN)
+    OUT = main(IN) # noqa
 
 if __name__ == "__main__":
     """This is used when running the agent from the command line"""

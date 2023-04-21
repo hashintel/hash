@@ -173,6 +173,18 @@ jobs:
             exit 1
           fi
 
+      - name: Run yarn lint:ruff
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:ruff; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:ruff` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
         ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
         ## https://yarnpkg.com/cli/dedupe
         ## https://github.com/yarnpkg/berry/issues/2297

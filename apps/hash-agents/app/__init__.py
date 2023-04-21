@@ -1,3 +1,6 @@
+# Module level import not at top of file, required for monkey patching
+# ruff: noqa: E402
+
 from .monkey import monkey_patch
 
 monkey_patch()

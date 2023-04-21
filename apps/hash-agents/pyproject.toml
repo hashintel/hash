@@ -21,6 +21,8 @@ production = ["gunicorn"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
+ruff = "^0.0.262"
+setuptools = "^67.7.1"
 
 [tool.black]
 target-version = ['py311']
