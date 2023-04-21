@@ -24,7 +24,7 @@ if __name__ == "HASH":
 
     # `IN` and `OUT` are defined by the agent orchestrator
     global IN, OUT
-    OUT = main(IN)  # noqa
+    OUT = main(IN)  # noqa: F821
 
 if __name__ == "__main__":
     """This is used when running the agent from the command line"""
