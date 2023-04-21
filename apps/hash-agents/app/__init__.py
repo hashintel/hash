@@ -3,17 +3,19 @@
 
 from .monkey import monkey_patch
 
+# isort: off
 monkey_patch()
+# isort: on
 
+import logging
 import os
 import secrets
-import logging
 
-from flask import Flask, request, Response, jsonify
-from dotenv import load_dotenv, find_dotenv
+from dotenv import find_dotenv, load_dotenv
+from flask import Flask, Response, jsonify, request
 
-from .logger import setup_logging
 from .agents import call_agent
+from .logger import setup_logging
 
 logger = logging.getLogger(__name__)
 
