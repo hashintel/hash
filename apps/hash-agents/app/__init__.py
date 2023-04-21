@@ -1,29 +1,26 @@
-import logging
-
+import structlog.stdlib
 from asgi_correlation_id import CorrelationIdMiddleware
 from beartype import beartype
 from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI
 
-from app.logger import logging_middleware, setup_logging
+from app.logger import Environment, logging_middleware, setup_logging
 from app.routes import router
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 @beartype
-def setup(base_logger: logging.Logger | None = None) -> None:
-    setup_logging('dev')
-
-    logger.info("Hello world!")
+def setup(environment: Environment) -> None:
+    setup_logging(environment)
 
     load_dotenv()
     load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
 
 
 @beartype
-def create_app(base_logger_name: str | None = None) -> FastAPI:
-    setup(logging.getLogger(base_logger_name or "uvicorn"))
+def create_app(environment: Environment | None = None) -> FastAPI:
+    setup(environment or 'dev')
 
     app = FastAPI()
     app.include_router(router)

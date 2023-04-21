@@ -1,11 +1,10 @@
-import logging
-
+import structlog
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
 
 from app.agents import call_agent
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter()
 
