@@ -17,7 +17,7 @@ export interface StreamConsumer<T> {
    * Reads an item from the stream. This will block until an item is available.
    * @returns The next items in the stream
    */
-  readNext(): AsyncGenerator<T>;
+  [Symbol.asyncIterator](): AsyncGenerator<T>;
 
   /** @todo consider adding something like `readNextFromStart`? */
 }
