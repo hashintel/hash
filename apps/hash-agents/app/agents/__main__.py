@@ -27,7 +27,7 @@ def main() -> None:
         agent_output = call_agent(agent_name, **agent_input)
     except Exception as e:
         agent_output = {"error": str(e)}
-    print(json.dumps(agent_output))
+    print(json.dumps(agent_output))  # noqa: T201
 
 
 if __name__ == "__main__":

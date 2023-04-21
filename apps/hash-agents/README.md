@@ -61,7 +61,7 @@ You can configure the logging level with the `HASH_AGENT_RUNNER_LOG_LEVEL` envir
 This can be set either in the `.env.local` or within the environment when you run the module.
 The possible values are those accepted by [Python's `logging` library](https://docs.python.org/3/library/logging.html#levels).
 
-The level defaults to `WARNING` if the environment variable is not set.
+If the environment variable is not set, it will default to `DEBUG` in a development environment and `WARNING` in a production environment.
 
 All logs will be output to a `$HASH_AGENT_RUNNER_LOG_FOLDER/run-TIMESTAMP.log` file, where `TIMESTAMP` is the time the module was started. If the environment variable is not set, the logs will be output to the `logs` directory.
 
