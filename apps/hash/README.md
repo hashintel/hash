@@ -47,7 +47,7 @@ This folder contains only the _HASH_ project README. The application is split ac
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/).
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
     Run each of these version commands and make sure the output is expected:
 
     ```sh
@@ -65,6 +65,9 @@ To run HASH locally, please follow these steps:
     
     docker compose version
     ## ≥ 2.17.2
+    
+    docker buildx version
+    ## ≥ 0.10.4
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.

@@ -17,14 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-deployment:
+  build-hash-graph:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build images
+      - name: Build image
         uses: ./.github/actions/build-docker-images
+        with:
+          hash-graph: true
+
+  build-hash-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          hash-agents: true
 
   linting:
     name: Linting
@@ -34,6 +47,18 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Install dependencies
+        run: yarn turbo install:tools
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
@@ -68,6 +93,18 @@ jobs:
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try resetting yarn.lock to its previous state and then run `yarn install`.'
             echo 'If your `~/.npmrc` mentions a custom registry, you should remove this setting first.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:lock-files
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:lock-files; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:lock-files` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -107,6 +144,18 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:black
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:black; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:black` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -163,7 +212,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    needs: build-deployment
+    needs: [build-hash-graph, build-hash-agents]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -175,6 +224,9 @@ jobs:
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-agents: true
 
       - name: Launch external services
         run: yarn workspace @apps/hash-external-services deploy up --detach
@@ -211,7 +263,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    needs: build-deployment
+    needs: [build-hash-graph, build-hash-agents]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -233,6 +285,9 @@ jobs:
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-agents: true
 
       - name: Launch external services
         run: yarn workspace @apps/hash-external-services deploy up --detach
