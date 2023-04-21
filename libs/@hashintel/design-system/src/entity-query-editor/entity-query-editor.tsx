@@ -1,25 +1,87 @@
-import { QueryEntitiesData } from "@blockprotocol/graph";
-import { Box, ThemeProvider } from "@mui/material";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { Box, Stack } from "@mui/material";
+import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 
-import { fluidFontClassName } from "../fluid-fonts";
-import { theme } from "../theme";
-
-export interface EntityQueryEditorProps {
-  defaultValue?: QueryEntitiesData;
-  onSave: (query: QueryEntitiesData) => void;
-  onClose: () => void;
-}
+import { Button } from "../button";
+import { FontAwesomeIcon } from "../fontawesome-icon";
+import { FilterRow } from "./filter-row/filter-row";
+import { EditorTitle } from "./title";
+import { EntityQueryEditorProps, FormValues } from "./types";
 
 export const EntityQueryEditor = ({
   onClose,
   onSave,
-  defaultValue,
 }: EntityQueryEditorProps) => {
+  const form = useForm<FormValues>({
+    defaultValues: { operator: "AND", filters: [] },
+  });
+
+  const fieldArray = useFieldArray({ control: form.control, name: "filters" });
+
+  const handleAddCondition = () => {
+    fieldArray.append({
+      operator: "is",
+      type: "property",
+      value: "Sass Company",
+    });
+  };
+
   return (
-    <ThemeProvider theme={theme}>
-      <Box className={fluidFontClassName}>
-        <h1>QUERY FOR ENTITIES</h1>
-      </Box>
-    </ThemeProvider>
+    <FormProvider {...form}>
+      <Stack
+        gap={2.5}
+        sx={{
+          border: ({ palette }) => `1px solid ${palette.gray[30]}`,
+          p: 2.5,
+          borderRadius: 2,
+          background: "white",
+        }}
+      >
+        <EditorTitle />
+
+        {fieldArray.fields.map((field, index) => (
+          <FilterRow
+            index={index}
+            key={field.id}
+            value={field}
+            onRemove={() => fieldArray.remove(index)}
+          />
+        ))}
+
+        <Box>
+          <Button
+            onClick={handleAddCondition}
+            variant="tertiary_quiet"
+            size="xs"
+            startIcon={
+              <FontAwesomeIcon
+                icon={faPlus}
+                sx={{ color: ({ palette }) => palette.gray[80] }}
+              />
+            }
+            sx={{
+              color: ({ palette }) => palette.gray[80],
+              fontSize: 13,
+              fontWeight: "500",
+            }}
+          >
+            ADD CONDITION
+          </Button>
+        </Box>
+
+        <Stack direction="row" gap={1}>
+          <Button onClick={() => onSave()}>Save and run query</Button>
+          <Button
+            sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
+            onClick={() => onSave()}
+          >
+            Save as draft
+          </Button>
+          <Button variant="tertiary" onClick={onClose}>
+            Discard draft
+          </Button>
+        </Stack>
+      </Stack>
+    </FormProvider>
   );
 };
