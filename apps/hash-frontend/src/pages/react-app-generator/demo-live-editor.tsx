@@ -23,7 +23,7 @@ export const DemoLiveEditor = ({ noInline = false, code, scope }: Props) => {
         <Box sx={{ flex: 1, overflowY: "scroll" }}>
           <LiveEditor className="font-mono" />
         </Box>
-        <Box sx={{ flex: 1, overflow: "scorll" }}>
+        <Box sx={{ flex: 1, overflow: "scroll" }}>
           <LivePreview />
         </Box>
       </Box>
