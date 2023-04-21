@@ -56,7 +56,16 @@ def call_agent(agent: str, **kwargs: dict) -> dict:
             "IN": io_types.input_from_dict(kwargs),
         },
     ).get("OUT")
-    logger.debug("Agent output", agent=agent, output=out)
+    logger.debug(
+        "Agent output",
+        agent=agent,
+        output=(
+            # ensure that `to_dict` is present and is a callable
+            out.to_dict()
+            if hasattr(out, 'to_dict') and callable(out.to_dict)
+            else out
+        ),
+    )
 
     try:
         return io_types.output_to_dict(out)
