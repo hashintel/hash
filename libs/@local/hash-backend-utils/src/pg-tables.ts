@@ -37,7 +37,7 @@ export const entityEditionFromWalJsonMsg = (
 
 export type PgEntityTemporalMetadata = {
   owned_by_id: string;
-  entity_uuid: Record<string, unknown>;
+  entity_uuid: string;
   entity_edition_id: string;
   decision_time: string;
   transaction_time: string;
@@ -57,7 +57,7 @@ export const entityTemporalMetadataFromWalJsonMsg = (
 
   return {
     owned_by_id: obj.owned_by_id as string,
-    entity_uuid: obj.entity_uuid as Record<string, unknown>,
+    entity_uuid: obj.entity_uuid as string,
     entity_edition_id: obj.entity_edition_id as string,
     decision_time: obj.decision_time as string,
     transaction_time: obj.transaction_time as string,

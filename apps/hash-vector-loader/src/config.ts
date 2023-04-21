@@ -12,8 +12,7 @@ if (!["development", "production"].includes(NODE_ENV)) {
 
 // Configure the logger
 export const logger = new Logger({
-  serviceName: "search-loader",
+  serviceName: "vector-loader",
   mode: process.env.NODE_ENV === "development" ? "dev" : "prod",
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
-  metadata: { instanceId: INSTANCE_ID },
 });

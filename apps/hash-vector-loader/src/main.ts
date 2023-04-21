@@ -2,18 +2,15 @@ import { createServer } from "node:http";
 import { promisify } from "node:util";
 
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Entity } from "@local/hash-backend-utils/pg-tables";
 import { generateStreamConsumers } from "@local/hash-backend-utils/realtime";
 import { RedisConfig } from "@local/hash-backend-utils/redis";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import dedent from "dedent";
+import { Configuration, OpenAIApi } from "openai";
 
 import { INSTANCE_ID, logger } from "./config";
-
-const OPENSEARCH_ENABLED = process.env.HASH_OPENSEARCH_ENABLED === "true";
-if (!OPENSEARCH_ENABLED) {
-  // eslint-disable-next-line no-console
-  console.log("Opensearch is not enabled. Shutting down search-loader");
-  process.exit(0);
-}
+import { QdrantDb } from "./vector/qdrant";
 
 // Environment variables
 const PORT = process.env.HASH_VECTOR_LOADER_PORT ?? 3434;
@@ -46,6 +43,21 @@ const createHttpServer = () => {
   return server;
 };
 
+const stringifyEntity = (entity: Entity) => {
+  const properties = Object.entries(entity).map(
+    ([key, value]) => `${key}: ${JSON.stringify(value)}`,
+  );
+
+  return dedent`
+An entity instance with the ID: ${entity.owned_by_id}%${
+    entity.entity_uuid
+  } at decision time ${entity.decision_time}
+
+has the following properties:
+${properties.join("\n")}
+`;
+};
+
 const main = async () => {
   logger.info("STARTED");
 
@@ -58,6 +70,23 @@ const main = async () => {
     await promisify(httpServer.close).bind(httpServer)();
   });
 
+  const indexName = "entities";
+
+  const qdrantClient = new QdrantDb(logger, {
+    host: QDRANT_HOST,
+    port: QDRANT_PORT,
+  });
+
+  // Create index
+  // OAI ADA embeddings are 1536-dimensional
+  await qdrantClient.createIndex(indexName, 1536, "Cosine");
+
+  // Prepare OpenAI connection
+  const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  const openai = new OpenAIApi(configuration);
+
   // Connect to Redis
   const redisConfig: RedisConfig = {
     host: REDIS_HOST,
@@ -66,8 +95,19 @@ const main = async () => {
 
   const { entityStream } = generateStreamConsumers(logger, redisConfig);
 
-  for await (const entity of entityStream.readNext()) {
-    console.log(entity);
+  for await (const entity of entityStream) {
+    const embedding = await openai.createEmbedding({
+      input: stringifyEntity(entity),
+      model: "text-embedding-ada-002",
+    });
+    await qdrantClient.indexVectors(indexName, [
+      {
+        id: entity.entity_uuid,
+        payload: entity,
+        vector: embedding.data.data[0]!.embedding,
+      },
+    ]);
+    logger.info("Indexed ", entity.entity_uuid);
   }
 };
 
