@@ -13,6 +13,7 @@ import { getEntities } from "@local/hash-subgraph/stdlib";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
+import { CanvasPositionInput } from "../../../graphql/api-types.gen";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
@@ -478,12 +479,19 @@ export const addBlockToPage: ImpureGraphFunction<
   {
     page: Page;
     block: Block;
+    canvasPosition?: CanvasPositionInput;
     position?: number;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { position: specifiedPosition, actorId, page, block } = params;
+  const {
+    position: specifiedPosition,
+    canvasPosition,
+    actorId,
+    page,
+    block,
+  } = params;
 
   await createLinkEntity(ctx, {
     leftEntityId: page.entity.metadata.recordId.entityId,
@@ -497,6 +505,7 @@ export const addBlockToPage: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       page.entity.metadata.recordId.entityId,
     ),
+    properties: canvasPosition ?? {},
     actorId,
   });
 };

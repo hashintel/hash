@@ -141,6 +141,7 @@ export const updatePageContents: ResolverFn<
         await addBlockToPage(context, {
           page,
           block: insertedBlocks[insertCount]!,
+          canvasPosition: action.insertBlock.canvasPosition,
           position: action.insertBlock.position,
           actorId: user.accountId,
         });
