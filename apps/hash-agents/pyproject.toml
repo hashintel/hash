@@ -14,15 +14,18 @@ langchain = "^0.0.137"
 openai = "^0.27.4"
 python-dotenv = "^1.0.0"
 tiktoken = "^0.3.3"
-gunicorn = { version = "^20.1.0", extras = ["gevent"], optional = true }
 
-[tool.poetry.extras]
-production = ["gunicorn"]
 
 [tool.poetry.group.dev.dependencies]
+setuptools = "^67.7.1"
+
+[tool.poetry.group.tools.dependencies]
 black = "^23.3.0"
 ruff = "^0.0.262"
-setuptools = "^67.7.1"
+
+[tool.poetry.group.production.dependencies]
+gunicorn = { extras = ["gevent"], version = "^20.1.0" }
+
 
 [tool.black]
 target-version = ['py311']
