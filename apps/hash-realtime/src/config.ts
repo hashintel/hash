@@ -19,24 +19,35 @@ const redisConfig: RedisConfig = {
   port: parseInt(process.env.HASH_REDIS_PORT ?? "6379", 10),
 };
 
+const getStreams = () => {
+  return {
+    entityStream: getRequiredEnv("HASH_REALTIME_ENTITY_STREAM_NAME"),
+    entityTypeStream: getRequiredEnv("HASH_REALTIME_ENTITY_TYPE_STREAM_NAME"),
+    propertyTypeStream: getRequiredEnv(
+      "HASH_REALTIME_PROPERTY_TYPE_STREAM_NAME",
+    ),
+  };
+};
+
 // The realtime service will push all updates from the Postgres changestream to the
 // following queues.
-export const generateQueues = (logger: Logger) => {
+export const generateStreamProducers = (logger: Logger) => {
+  const streams = getStreams();
   return {
     entityStream: new RedisStreamProducer<PgEntity>(
       logger,
       setupRedisClient(logger, redisConfig),
-      getRequiredEnv("HASH_REALTIME_ENTITY_STREAM_NAME"),
+      streams.entityStream,
     ),
     entityTypeStream: new RedisStreamProducer<PgEntityType>(
       logger,
       setupRedisClient(logger, redisConfig),
-      getRequiredEnv("HASH_REALTIME_ENTITY_TYPE_STREAM_NAME"),
+      streams.entityTypeStream,
     ),
     propertyTypeStream: new RedisStreamProducer<PgPropertyType>(
       logger,
       setupRedisClient(logger, redisConfig),
-      getRequiredEnv("HASH_REALTIME_PROPERTY_TYPE_STREAM_NAME"),
+      streams.propertyTypeStream,
     ),
   } as const;
 };
