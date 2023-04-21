@@ -11,6 +11,7 @@ import logging
 import os
 import secrets
 
+from beartype import beartype
 from dotenv import find_dotenv, load_dotenv
 from flask import Flask, Response, jsonify, request
 
@@ -20,6 +21,7 @@ from .logger import setup_logging
 logger = logging.getLogger(__name__)
 
 
+@beartype
 def create_app(base_logger: str | None = None) -> Flask:
     setup(base_logger)
 
@@ -39,10 +41,12 @@ def create_app(base_logger: str | None = None) -> Flask:
     )
 
     @app.route("/health", methods=["GET"])
+    @beartype
     def health() -> Response:
         return jsonify(True)
 
     @app.route("/agents/<string:agent_name>", methods=["POST"])
+    @beartype
     def agent(agent_name: str) -> dict:
         # noinspection PyBroadException
         try:
@@ -54,6 +58,7 @@ def create_app(base_logger: str | None = None) -> Flask:
     return app
 
 
+@beartype
 def setup(base_logger: str | None = None) -> None:
     setup_logging(base_logger)
     load_dotenv()

@@ -12,8 +12,10 @@ python = "^3.11"
 flask = "^2.2.3"
 langchain = "^0.0.137"
 openai = "^0.27.4"
+pydantic = "^1.10.7"
 python-dotenv = "^1.0.0"
 tiktoken = "^0.3.3"
+beartype = "^0.13.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -34,6 +36,7 @@ preview = true
 
 [tool.ruff]
 select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "TRY"]
+ignore = ["ANN101"]
 
 [tool.isort]
 profile = "black"

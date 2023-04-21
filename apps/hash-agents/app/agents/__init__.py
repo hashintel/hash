@@ -1,9 +1,12 @@
 import importlib
 import os
 import runpy
-from typing import Any, Self
+from typing import Any
+
+from beartype import beartype
 
 
+@beartype
 def find_allowed_agents() -> list[str]:
     agents_dir = os.path.dirname(__file__)
     allowed_agents = []
@@ -19,17 +22,20 @@ def find_allowed_agents() -> list[str]:
 
 
 class InvalidAgentNameError(ValueError):
-    def __init__(self: Self, agent_name: str, allowed_agents: list[str]) -> None:
+    @beartype
+    def __init__(self, agent_name: str, allowed_agents: list[str]) -> None:
         super().__init__(
             f"Invalid agent name: {agent_name}. Allowed agents: {allowed_agents}"
         )
 
 
 class InvalidAgentOutputError(ValueError):
-    def __init__(self: Self, agent_name: str, output: Any) -> None:  # noqa: ANN401
+    @beartype
+    def __init__(self, agent_name: str, output: Any) -> None:  # noqa: ANN401
         super().__init__(f"Unexpected output for agent {agent_name}: {output}")
 
 
+@beartype
 def call_agent(agent: str, **kwargs: dict) -> dict:
     allowed_agents = find_allowed_agents()
     if agent not in allowed_agents:

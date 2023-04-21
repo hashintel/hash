@@ -1,5 +1,6 @@
 import logging
 
+from beartype import beartype
 from langchain import LLMMathChain
 from langchain.chat_models import ChatOpenAI
 
@@ -8,6 +9,7 @@ from .io_types import Input, Output
 logger = logging.getLogger(__name__)
 
 
+@beartype
 def main(agent_input: Input) -> Output:
     """
     Main function of the agent
