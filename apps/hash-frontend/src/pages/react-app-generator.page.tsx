@@ -1,26 +1,28 @@
 import * as React from "react";
-import * as MUI from "@mui/material";
+import * as MUICore from "@mui/material";
+import * as MUILab from "@mui/lab";
+import * as MUIDatePickers from "@mui/x-date-pickers";
+import * as MUIDataGrid from "@mui/x-data-grid";
 import { useState } from "react";
 import { useAgentRunner } from "../components/hooks/use-agent-runner";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { DemoLiveEditor } from "./react-app-generator/demo-live-editor";
 import { BlockPromptInput } from "@hashintel/design-system";
 import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 export const ReactAppGenerator: NextPageWithLayout = () => {
   const [prompt, setPrompt] = useState("");
   const [output, setOutput] = useState("");
   const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
-  const { Container, Typography, Box } = MUI;
+  const { Container, Typography, Box } = MUICore;
 
   const callAgent = (user_prompt: string) => {
     void callAgentRunner({ user_prompt }).then((data) => {
       if (data) {
         const result = data.result.toString();
-        const codeBlock = result.match(
-          "(?<=(```{code:jsx}\n))(.|\n)+?(?=(```))",
-        );
+        const codeBlock = result.match("(?<=(```jsx\n))(.|\n)+?(?=(```))");
 
         if (codeBlock?.length) {
           setOutput(codeBlock[0]);
@@ -66,7 +68,13 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
           code={output}
           scope={{
             React,
-            MUI,
+            MUI: {
+              ...MUICore,
+              ...MUILab,
+              ...MUIDatePickers,
+              ...MUIDataGrid,
+              AdapterDateFns,
+            },
           }}
           noInline
         />
