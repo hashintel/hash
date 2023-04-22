@@ -86,6 +86,8 @@ macro_rules! deserialize_enum {
     };
 }
 
+// TODO: we should always first try the smaller number?
+// TODO: possibility for borrowed values vs. borrowed by "just normal"
 macro_rules! deserialize_identifier {
     ($name:ident, $primitive:ty, !) => {
         fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

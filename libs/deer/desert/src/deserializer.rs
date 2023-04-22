@@ -268,4 +268,11 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        todo!()
+    }
 }

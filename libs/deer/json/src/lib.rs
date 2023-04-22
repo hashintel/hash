@@ -24,8 +24,8 @@ use deer::{
         ValueError, Variant,
     },
     value::NoneDeserializer,
-    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
-    Reflection, Schema, Visitor,
+    Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, IdentifierVisitor,
+    OptionalVisitor, Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -425,6 +425,20 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
                     context,
                 })
                 .change_context(DeserializerError)
+        }
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        match self.value {
+            None => todo!("missing value"),
+            Some(Value::String(value)) => {
+                visitor.visit_str(&value).change_context(DeserializerError)
+            }
+            Some(Value::Number(value)) => todo!("too lazy"),
+            _ => todo!("too lazy"),
         }
     }
 }
