@@ -93,7 +93,19 @@ macro_rules! deserialize_identifier {
         {
             Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$primitive>::reflection()))
+                .attach(ReceivedType::new(<$primitive>::document()))
+                .change_context(DeserializerError))
+        }
+    };
+
+    ($name:ident, $primitive:ty, ! , $reflection:ty) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(<$reflection>::document()))
                 .change_context(DeserializerError))
         }
     };
@@ -409,6 +421,15 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -460,6 +481,16 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(<()>::reflection()))
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
+    }
 }
 
 // down here so that they can make use of the macros
@@ -472,3 +503,5 @@ pub use array::ArrayAccessDeserializer;
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
+
+use crate::error::MissingError;

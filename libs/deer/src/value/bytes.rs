@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
@@ -150,5 +150,5 @@ impl_deserializer!(
     deserialize_any!(visit_bytes_buffer);
     deserialize_optional!();
     deserialize_enum!();
-    deserialize_identifier!(!);
+    deserialize_identifier!(!, [u8]);
 );
