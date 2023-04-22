@@ -52,6 +52,7 @@ where
     }
 }
 
+// TODO: split into 2 PRs!
 macro_rules! deserialize_any {
     ($name:ident, $primitive:ty, $visit:ident) => {
         fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

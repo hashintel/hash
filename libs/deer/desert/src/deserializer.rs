@@ -3,7 +3,7 @@ use alloc::borrow::ToOwned;
 use deer::{
     error::{DeserializerError, TypeError, Variant},
     value::NoneDeserializer,
-    Context, EnumVisitor, OptionalVisitor, Visitor,
+    Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -137,6 +137,46 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
 
         Ok(value)
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        let token = self.next();
+
+        match token {
+            Token::Number(number) => {
+                // todo: try to convert to u8, then u64
+                todo!()
+            }
+            Token::U128(_) => {
+                // todo: try_from
+                todo!()
+            }
+            Token::I128(_) => {
+                // todo: try_from
+                todo!()
+            }
+            Token::USize(_) => {
+                // todo: try_from
+                todo!()
+            }
+            Token::ISize(_) => {
+                // todo: try_from
+                todo!()
+            }
+            Token::Char(value) => {
+                let mut buffer = [0; 4];
+                let value = value.encode_utf8(&mut buffer);
+
+                visitor.visit_str(&*value).change_context(DeserializerError)
+            }
+            Token::Str(value) => visitor.visit_str(value).change_context(DeserializerError),
+            Token::BorrowedStr(value) => visitor.visit_str(value).change_context(DeserializerError),
+            Token::String(value) => visitor.visit_str(value).change_context(DeserializerError),
+            _ => todo!(),
+        }
     }
 }
 
