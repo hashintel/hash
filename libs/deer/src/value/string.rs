@@ -1,11 +1,11 @@
 use alloc::string::String;
 
-use error_stack::ResultExt;
+use error_stack::{Result, ResultExt};
 
 use crate::{
     error::DeserializerError,
-    value::{impl_owned, EnumUnitDeserializer, IntoDeserializer, NoneDeserializer},
-    Context, Deserializer, EnumVisitor, OptionalVisitor, Visitor,
+    value::{EnumUnitDeserializer, IntoDeserializer, NoneDeserializer},
+    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Visitor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -38,7 +38,7 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -47,14 +47,14 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
             .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>,
     {
@@ -66,6 +66,15 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
 
         visitor
             .visit_value(discriminant, NoneDeserializer::new(context))
+            .change_context(DeserializerError)
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        visitor
+            .visit_str(self.value)
             .change_context(DeserializerError)
     }
 }
@@ -111,7 +120,7 @@ impl<'de> Deserializer<'de> for BorrowedStrDeserializer<'_, 'de> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -120,19 +129,34 @@ impl<'de> Deserializer<'de> for BorrowedStrDeserializer<'_, 'de> {
             .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        visitor
+            .visit_str(self.value)
+            .change_context(DeserializerError)
+    }
 }
 
-impl_owned!(!copy: String, StringDeserializer, visit_string);
+impl_deserializer! {
+    #[derive(Clone)] StringDeserializer(String);
+    deserialize_any!(visit_string);
+    deserialize_optional!();
+    deserialize_enum!();
+    deserialize_identifier!(deref, visit_str);
+}

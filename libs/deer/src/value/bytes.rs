@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 
 use crate::{
-    error::DeserializerError,
-    value::{impl_owned, EnumUnitDeserializer, IntoDeserializer},
-    Context, Deserializer, EnumVisitor, OptionalVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    value::{EnumUnitDeserializer, IntoDeserializer},
+    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection, Visitor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -59,6 +59,15 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        visitor
+            .visit_bytes(self.value)
+            .change_context(DeserializerError)
     }
 }
 
@@ -125,6 +134,21 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        visitor
+            .visit_bytes(self.value)
+            .change_context(DeserializerError)
+    }
 }
 
-impl_owned!(!copy: Vec<u8>, BytesBufferDeserializer, visit_bytes_buffer);
+impl_deserializer!(
+    #[derive(Clone)] BytesBufferDeserializer(Vec<u8>);
+    deserialize_any!(visit_bytes_buffer);
+    deserialize_optional!();
+    deserialize_enum!();
+    deserialize_identifier!(!);
+);

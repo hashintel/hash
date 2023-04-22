@@ -2,9 +2,12 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        DeserializerError, ExpectedLength, ObjectLengthError, ReceivedLength, Variant, VisitorError,
+        DeserializerError, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedLength,
+        ReceivedType, TypeError, Variant, VisitorError,
     },
-    Context, Deserializer, EnumVisitor, FieldVisitor, ObjectAccess, OptionalVisitor, Visitor,
+    schema::visitor::ObjectSchema,
+    Context, Deserializer, EnumVisitor, FieldVisitor, IdentifierVisitor, ObjectAccess,
+    OptionalVisitor, Reflection, Visitor,
 };
 
 // TODO: MapDeserializer/IteratorDeserializer
@@ -108,5 +111,15 @@ where
         // TODO: fold_results
         self.value.end().change_context(DeserializerError)?;
         value.change_context(DeserializerError)
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .attach(ReceivedType::new(ObjectSchema::document()))
+            .change_context(DeserializerError))
     }
 }
