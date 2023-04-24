@@ -56,6 +56,7 @@ type Option = {
   href?: string;
   selected?: (option: Option) => ReactNode;
   options?: Option[];
+  command?: (option: Option) => void;
 };
 
 const getSelectedOptions = (
@@ -133,7 +134,10 @@ const options: Option[] = [
   {
     group: "Blocks",
     label: "Generate new block with AI…",
-    href: "/",
+    command(option) {
+      // eslint-disable-next-line no-alert
+      alert(`You picked option ${option.label}`);
+    },
   },
   {
     group: "Entities",
@@ -329,20 +333,23 @@ export const CommandBar = () => {
                   if (details && reason === "selectOption") {
                     const option = details.option;
 
-                    if (option.href) {
-                      closeBar("immediate");
-                      if (option.href.startsWith("https:")) {
-                        window.open(option.href, "_blank", "noopener");
-                      } else {
-                        void router.push(option.href);
-                      }
-                    } else if (option.options || option.selected) {
+                    if (option.options || option.selected) {
                       setSelectedOptionPath([
                         ...selectedOptionPath,
                         option.label,
                       ]);
                     } else {
                       closeBar("immediate");
+
+                      if (option.href) {
+                        if (option.href.startsWith("https:")) {
+                          window.open(option.href, "_blank", "noopener");
+                        } else {
+                          void router.push(option.href);
+                        }
+                      } else if (option.command) {
+                        option.command(option);
+                      }
                     }
                   }
                 }}
