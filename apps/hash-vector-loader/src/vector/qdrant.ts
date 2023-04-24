@@ -59,4 +59,16 @@ export class QdrantDb implements VectorDb {
       body: JSON.stringify({ points }),
     }).catch((err) => this.logger.error("Could not insert entity: ", err));
   }
+
+  async deleteIndex(indexName: string) {
+    // https://qdrant.tech/documentation/collections/#delete-collection
+    await fetch(`${this.url}/collections/${indexName}`, {
+      method: "DELETE",
+    })
+      .then((data) => this.logger.debug("Deleted collection: ", data))
+      .catch((err) => this.logger.error("Could not create index: ", err));
+    this.logger.info("Deleted index: ", {
+      name: indexName,
+    });
+  }
 }

@@ -8,4 +8,5 @@ export interface VectorDb {
       vector: number[];
     }[],
   ) => Promise<void>;
+  deleteIndex: (name: string) => Promise<void>;
 }

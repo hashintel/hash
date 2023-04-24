@@ -23,6 +23,8 @@ const QDRANT_PORT = parseInt(getRequiredEnv("HASH_QDRANT_PORT"), 10);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
+export const VECTORDB_INDEX_NAME = "entities";
+
 const createHttpServer = () => {
   const server = createServer((req, res) => {
     if (req.method === "GET" && req.url === "/health") {
@@ -44,17 +46,13 @@ const createHttpServer = () => {
 };
 
 const stringifyEntity = (entity: Entity) => {
-  const properties = Object.entries(entity).map(
-    ([key, value]) => `${key}: ${JSON.stringify(value)}`,
-  );
-
   return dedent`
 An entity instance with the ID: ${entity.owned_by_id}%${
     entity.entity_uuid
   } at decision time ${entity.decision_time}
 
 has the following properties:
-${properties.join("\n")}
+${JSON.stringify(entity.properties)}
 `;
 };
 
@@ -70,8 +68,6 @@ const main = async () => {
     await promisify(httpServer.close).bind(httpServer)();
   });
 
-  const indexName = "entities";
-
   const qdrantClient = new QdrantDb(logger, {
     host: QDRANT_HOST,
     port: QDRANT_PORT,
@@ -79,7 +75,7 @@ const main = async () => {
 
   // Create index
   // OAI ADA embeddings are 1536-dimensional
-  await qdrantClient.createIndex(indexName, 1536, "Cosine");
+  await qdrantClient.createIndex(VECTORDB_INDEX_NAME, 1536, "Cosine");
 
   // Prepare OpenAI connection
   const configuration = new Configuration({
@@ -101,7 +97,7 @@ const main = async () => {
       input: contents,
       model: "text-embedding-ada-002",
     });
-    await qdrantClient.indexVectors(indexName, [
+    await qdrantClient.indexVectors(VECTORDB_INDEX_NAME, [
       {
         id: entity.entity_uuid,
         payload: { contents, metadata: entity },
