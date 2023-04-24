@@ -16,6 +16,7 @@ SYSTEM_MESSAGE_CONTENT = ' '.join([
 ])
 
 def main(agent_input: Input) -> Output:
+    # TODO - add support for querying existing property types so that they can be re-used
     chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
     messages = [
