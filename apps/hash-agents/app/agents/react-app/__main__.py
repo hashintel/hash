@@ -50,11 +50,11 @@ if __name__ == "__main__":
     setup()
     print("Describe your application:")
     IN = input("")
-    message = Message(type="HumanMessage", content=IN)
+    message = Message(type=TypeEnum.HUMAN_MESSAGE, content=IN)
     output = main((Input(messages=[message])))
     getLogger().info(f"output: {output.messages}")
 
     while(True):
         print("Anything else?")
         IN = input("")
-        output = main(Input(messages=output.messages + [Message(type="HumanMessage", content=IN)]))
+        output = main(Input(messages=output.messages + [Message(type=TypeEnum.HUMAN_MESSAGE, content=IN)]))
