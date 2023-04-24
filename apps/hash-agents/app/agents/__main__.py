@@ -11,6 +11,11 @@ from . import Agent, call_agent
 app = ArgParser()
 
 
+@app.command()
+def help():
+    print("use --help for help")
+
+
 @beartype
 def register_command(name: str, agent: Agent):
     @app.command(name, singleton=True)
