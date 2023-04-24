@@ -3,6 +3,7 @@ import json
 
 import anyio
 from beartype import beartype
+from rich.pretty import pprint
 from typer import Typer
 
 from .. import setup
@@ -32,14 +33,12 @@ def register_command(name: str, agent: Agent):
         except Exception as e:
             agent_output = {"error": str(e)}
 
-        print(json.dumps(agent_output))  # noqa: T201
+        pprint(agent_output)
 
     signature = inspect.signature(invoke)
     invoke.__signature__ = signature.replace(
         parameters=[
-            inspect.Parameter(
-                name=k, kind=inspect.Parameter.POSITIONAL_ONLY, annotation=v
-            )
+            inspect.Parameter(name=k, kind=inspect.Parameter.KEYWORD_ONLY, annotation=v)
             for k, v in args
         ]
     )

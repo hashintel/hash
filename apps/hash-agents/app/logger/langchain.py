@@ -44,7 +44,7 @@ class LoggingCallbackHandler(BaseCallbackHandler):
     def on_chain_error(
         self, error: Exception | KeyboardInterrupt, **kwargs: Any
     ) -> Any:
-        self.logger.error("chain_error", error=error, kwargs=kwargs)
+        self.logger.error("chain_error", error=error, kwargs=kwargs, stack=True)
 
     def on_tool_start(
         self, serialized: dict[str, Any], input_str: str, **kwargs: Any
