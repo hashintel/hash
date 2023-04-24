@@ -1,5 +1,4 @@
 import inspect
-import json
 
 import anyio
 from beartype import beartype
