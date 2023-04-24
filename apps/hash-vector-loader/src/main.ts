@@ -96,18 +96,19 @@ const main = async () => {
   const { entityStream } = generateStreamConsumers(logger, redisConfig);
 
   for await (const entity of entityStream) {
+    const contents = stringifyEntity(entity);
     const embedding = await openai.createEmbedding({
-      input: stringifyEntity(entity),
+      input: contents,
       model: "text-embedding-ada-002",
     });
     await qdrantClient.indexVectors(indexName, [
       {
         id: entity.entity_uuid,
-        payload: entity,
+        payload: { contents, metadata: entity },
         vector: embedding.data.data[0]!.embedding,
       },
     ]);
-    logger.info("Indexed ", entity.entity_uuid);
+    logger.info(`Indexed ${entity.entity_uuid}`);
   }
 };
 
