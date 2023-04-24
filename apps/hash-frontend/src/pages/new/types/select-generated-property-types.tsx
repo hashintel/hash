@@ -120,15 +120,15 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
           entityTypeTitle: string;
           entityTypeDescription: string;
         }) => {
-          const result = await generatePropertyTypes(params);
+          const { output } = await generatePropertyTypes(params);
 
-          if (result) {
+          if (output) {
             const propertyTypeDefinitions: (
               | PropertyTypeDefinition
               | PropertyType
             )[] = [];
 
-            for (const definition of result.propertyTypeDefinitions) {
+            for (const definition of output.propertyTypeDefinitions) {
               const { baseUrl: propertyTypeBaseUrl } = generateTypeUrlsForUser({
                 kind: "property-type",
                 title: definition.title,
