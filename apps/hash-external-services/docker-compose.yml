@@ -284,6 +284,7 @@ services:
       - /tmp
     environment:
       HASH_AGENT_RUNNER_LOG_FOLDER: "/log/hash-agents"
+      HASH_AGENT_RUNNER_LOG_LEVEL: "${HASH_AGENT_RUNNER_LOG_LEVEL}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     ports:
       - "${HASH_AGENT_RUNNER_PORT}:80"

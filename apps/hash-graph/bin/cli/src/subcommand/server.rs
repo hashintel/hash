@@ -93,7 +93,7 @@ pub struct ServerArgs {
 
     /// Starts a server that only serves the OpenAPI spec.
     #[clap(long, default_value_t = false)]
-    pub write_openapi_spec: bool,
+    pub write_openapi_specs: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -308,16 +308,29 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
-    if args.write_openapi_spec {
-        let path = std::path::Path::new("out").join("openapi");
-        if path.exists() {
-            fs::remove_dir_all(&path)
-                .into_report()
-                .change_context(GraphError)
-                .attach_printable("could not remove old OpenAPI directory")
-                .attach_printable_lazy(|| path.display().to_string())?;
+    if args.write_openapi_specs {
+        let openapi_path = std::path::Path::new("openapi");
+        let openapi_models_path = openapi_path.join("models");
+        let openapi_json_path = openapi_path.join("openapi.json");
+        for path in [openapi_models_path, openapi_json_path] {
+            if !path.exists() {
+                continue;
+            }
+            if path.is_file() {
+                fs::remove_file(&path)
+                    .into_report()
+                    .change_context(GraphError)
+                    .attach_printable("could not remove old OpenAPI file")
+                    .attach_printable_lazy(|| path.display().to_string())?;
+            } else {
+                fs::remove_dir_all(&path)
+                    .into_report()
+                    .change_context(GraphError)
+                    .attach_printable("could not remove old OpenAPI file")
+                    .attach_printable_lazy(|| path.display().to_string())?;
+            }
         }
-        OpenApiDocumentation::write_openapi(&path)
+        OpenApiDocumentation::write_openapi(openapi_path)
             .change_context(GraphError)
             .attach_printable("could not write OpenAPI spec")?;
         return Ok(());

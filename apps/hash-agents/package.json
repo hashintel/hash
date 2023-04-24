@@ -5,14 +5,21 @@
   "description": "HASH LLM Agents",
   "main": "./src/agents.ts",
   "scripts": {
-    "build": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
     "build:docker": "docker buildx build --tag hash-agents --file docker/Dockerfile ../../",
+    "codegen": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
+    "dev": "poetry run uvicorn --factory app:create_app --port 7123 --reload",
     "exe": "ts-node --transpile-only",
+    "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:black": "poetry run black app",
+    "fix:isort": "poetry run isort app",
     "fix:lock-files": "poetry lock --no-update",
-    "install:tools": "poetry install --no-root --no-interaction --only dev",
+    "fix:ruff": "poetry run ruff app --fix",
+    "install:tools": "poetry install --no-root --no-interaction --only tools",
+    "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:black": "poetry run black --check --diff --color app",
-    "lint:lock-files": "poetry lock --check"
+    "lint:isort": "poetry run isort app --check --diff --color",
+    "lint:lock-files": "poetry lock --check",
+    "lint:ruff": "poetry run ruff app"
   },
   "dependencies": {
     "dedent": "0.7.0",

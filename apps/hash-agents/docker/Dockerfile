@@ -14,12 +14,13 @@ WORKDIR /usr/local/src/hash/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN yarn install --frozen-lockfile --prefer-offline && \
     yarn cache clean
 
 COPY --from=base /app/out/full/ .
+
+RUN yarn turbo build --filter '@apps/hash-agents'
 
 
 FROM python:3.11-alpine as base-env
@@ -38,14 +39,13 @@ ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR $WORKDIR
 
-
 FROM base-env AS builder
 
 COPY --from=installer $WORKDIR/poetry.lock $WORKDIR/pyproject.toml ./
 
 RUN apk add --no-cache --virtual .build-deps g++ musl-dev libffi-dev make curl && \
     curl -sSL https://install.python-poetry.org | python && \
-    poetry install --no-root --only main -E production && \
+    poetry install --no-root --only main --only production && \
     apk del .build-deps
 
 
@@ -57,10 +57,11 @@ COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY --from=installer $WORKDIR/app app
 
 ENTRYPOINT ["gunicorn"]
-CMD ["-k", "gevent", "-b", "0.0.0.0:80", "app:create_app(base_logger='gunicorn.error')"]
+CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "app:create_app('prod')"]
 EXPOSE 80
 
-RUN addgroup --system --gid 60000 hash && \
+RUN apk add --no-cache curl && \
+    addgroup --system --gid 60000 hash && \
     adduser --system agents -G hash && \
     install -d -m 0775 -o agents -g hash /log
 

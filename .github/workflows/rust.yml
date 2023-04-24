@@ -194,7 +194,9 @@ jobs:
 
       - name: Launch external services
         if: matrix.directory == 'apps/hash-graph'
-        run: yarn workspace @apps/hash-external-services deploy up graph --wait
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          yarn workspace @apps/hash-external-services deploy up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -281,7 +283,9 @@ jobs:
 
       - name: Launch external services
         if: matrix.directory == 'apps/hash-graph'
-        run: yarn workspace @apps/hash-external-services deploy up graph --wait
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          yarn workspace @apps/hash-external-services deploy up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
