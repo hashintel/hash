@@ -27,6 +27,45 @@ const CustomPaperComponent = ({
   </Paper>
 );
 
+const options = [
+  {
+    group: "Blocks",
+    label: "Find a block…",
+  },
+  {
+    group: "Blocks",
+    label: "Generate new block with AI…",
+  },
+  {
+    group: "Entities",
+    label: "Search for an entity…",
+  },
+  {
+    group: "Entities",
+    label: "Insert a link to an entity…",
+  },
+  {
+    group: "Entities",
+    label: "Create new entity…",
+  },
+  {
+    group: "Types",
+    label: "Create new type…",
+  },
+  {
+    group: "Apps",
+    label: "Find an app…",
+  },
+  {
+    group: "Apps",
+    label: "Create an app…",
+  },
+  {
+    group: "Apps",
+    label: "Generate new app…",
+  },
+];
+
 export const CommandBar = () => {
   const popupState = usePopupState({
     popupId: "kbar",
@@ -55,44 +94,8 @@ export const CommandBar = () => {
           margin="0 auto"
         >
           <Autocomplete
-            options={[
-              {
-                group: "Blocks",
-                label: "Find a block…",
-              },
-              {
-                group: "Blocks",
-                label: "Generate new block with AI…",
-              },
-              {
-                group: "Entities",
-                label: "Search for an entity…",
-              },
-              {
-                group: "Entities",
-                label: "Insert a link to an entity…",
-              },
-              {
-                group: "Entities",
-                label: "Create new entity…",
-              },
-              {
-                group: "Types",
-                label: "Create new type…",
-              },
-              {
-                group: "Apps",
-                label: "Find an app…",
-              },
-              {
-                group: "Apps",
-                label: "Create an app…",
-              },
-              {
-                group: "Apps",
-                label: "Generate new app…",
-              },
-            ]}
+            autoHighlight
+            options={options}
             open
             onClose={() => popupState.close()}
             sx={{ width: "100%" }}
