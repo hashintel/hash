@@ -1,7 +1,7 @@
 import importlib
 import os.path
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Any, Coroutine, Generic, Self, TypeAlias, TypeVar
+from typing import Any, Coroutine, Generic, TypeVar
 
 import structlog.stdlib
 from pydantic import BaseModel
