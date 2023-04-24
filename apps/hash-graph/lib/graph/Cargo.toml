@@ -54,6 +54,6 @@ graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
 [features]
-test_server = []
+test-server = []
 clap = ["dep:clap"]
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]

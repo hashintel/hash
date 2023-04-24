@@ -2,7 +2,7 @@
   "name": "@blocks/shuffle",
   "version": "0.1.1",
   "private": true,
-  "description": "Create a list and set it into a random order",
+  "description": "Create a list and (re-)arrange it in a random order",
   "keywords": [
     "blockprotocol",
     "blocks",
@@ -60,7 +60,7 @@
       "entryPoint": "react"
     },
     "name": "@hash/shuffle",
-    "displayName": "shuffle",
+    "displayName": "Shuffle",
     "examples": [
       {
         "https://blockprotocol.org/@hash/types/property-type/shuffle-block-item/": [

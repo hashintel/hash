@@ -7,7 +7,7 @@
       "dependsOn": ["^build"]
     },
     "build": {
-      "outputs": ["./.next"],
+      "outputs": ["./.next/**"],
       "dependsOn": ["^build", "codegen"]
     }
   }
