@@ -38,6 +38,30 @@ type Option = {
   options?: Option[];
 };
 
+const getSelectedOptions = (
+  selectedOptionPath: string[],
+  options: Option[],
+) => {
+  let selectedOptions = options;
+  let selectedOption = null;
+  for (const path of selectedOptionPath) {
+    const next = selectedOptions.find((option) => option.label === path);
+
+    if (next) {
+      if (next.options) {
+        selectedOptions = next.options;
+      } else if (next.selected) {
+        selectedOption = next.label;
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  return [selectedOptions, selectedOption] as const;
+};
+
 export const CommandBar = () => {
   const options: Option[] = [
     {
@@ -109,15 +133,12 @@ export const CommandBar = () => {
   const router = useRouter();
 
   const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
-  const selectedOptions =
-    selectedOptionPath.reduce<Option[] | null>((acc, path) => {
-      return acc?.find((option) => option.label === path)?.options ?? null;
-    }, options) ?? options;
-
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedOptions, selectedOption] = getSelectedOptions(
+    selectedOptionPath,
+    options,
+  );
 
   const closeBar = () => {
-    setSelectedOption(null);
     setSelectedOptionPath([]);
     popupState.close();
   };
@@ -195,10 +216,8 @@ export const CommandBar = () => {
                   } else {
                     void router.push(option.href);
                   }
-                } else if (option.options) {
+                } else if (option.options || option.selected) {
                   setSelectedOptionPath([...selectedOptionPath, option.label]);
-                } else if (option.selected) {
-                  setSelectedOption(option.label);
                 } else {
                   closeBar();
                 }
