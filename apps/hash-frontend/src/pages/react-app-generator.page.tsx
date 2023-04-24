@@ -10,22 +10,37 @@ import { DemoLiveEditor } from "./react-app-generator/demo-live-editor";
 import { BlockPromptInput } from "@hashintel/design-system";
 import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { Message } from "@apps/hash-agents/app/agents/react-app/io_types";
 
 export const ReactAppGenerator: NextPageWithLayout = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState("");
   const [output, setOutput] = useState("");
   const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
   const { Container, Typography, Box } = MUICore;
 
-  const callAgent = (user_prompt: string) => {
-    void callAgentRunner({ user_prompt }).then((data) => {
-      if (data) {
-        const result = data.result.toString();
-        const codeBlock = result.match("(?<=(```jsx\n))(.|\n)+?(?=(```))");
+  const callAgent = (userPrompt: string) => {
+    const newMessage: Message = {
+      type: "HumanMessage",
+      content: userPrompt,
+    };
+    const newMessages = [...messages, newMessage];
 
-        if (codeBlock?.length) {
-          setOutput(codeBlock[0]);
+    console.log({ messages: newMessages });
+
+    void callAgentRunner({ messages: newMessages }).then((data) => {
+      if (data) {
+        const result =
+          data.messages[data.messages.length - 1]?.content.toString();
+
+        if (result) {
+          const codeBlock = result.match("(?<=(```jsx\n))(.|\n)+?(?=(\n```))");
+
+          if (codeBlock?.length) {
+            setOutput(codeBlock[0]);
+            setMessages(data.messages);
+          }
         }
       }
     });

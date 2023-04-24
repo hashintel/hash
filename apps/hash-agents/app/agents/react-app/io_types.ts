@@ -6,7 +6,7 @@
  * These types MUST be called `Input` and `Output`
  */
 
-type Message = {
+export type Message = {
   type: "AIMessage" | "HumanMessage";
   content: string;
 };
