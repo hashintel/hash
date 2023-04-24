@@ -232,20 +232,6 @@ export const CommandBar = () => {
                   </>
                 );
               }}
-              renderOption={(props, option) => {
-                if (selectedOption) {
-                  if (option.label === selectedOption) {
-                    if (!option.selected) {
-                      throw new Error("Cannot render selected option");
-                    }
-
-                    return option.selected(props, option);
-                  }
-                  return null;
-                }
-
-                return <li {...props}>{option.label}</li>;
-              }}
               onChange={(_, __, reason, details) => {
                 if (details && reason === "selectOption") {
                   const option = details.option;
