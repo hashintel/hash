@@ -1,10 +1,7 @@
-use error_stack::{IntoReport, Report, Result, ResultExt};
-use num_traits::ToPrimitive;
+use error_stack::{Result, ResultExt};
 
 use crate::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
-    Context, Deserialize, Deserializer, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
-    Reflection, Visitor,
+    error::DeserializerError, Context, Deserializer, EnumVisitor, Number, OptionalVisitor, Visitor,
 };
 
 pub trait IntoDeserializer<'de> {
@@ -52,7 +49,6 @@ where
     }
 }
 
-// TODO: split into 2 PRs!
 macro_rules! deserialize_any {
     ($name:ident, $primitive:ty, $visit:ident) => {
         fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
@@ -82,90 +78,6 @@ macro_rules! deserialize_enum {
             V: EnumVisitor<'de>,
         {
             $crate::value::EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
-        }
-    };
-}
-
-// TODO: we should always first try the smaller number?
-// TODO: possibility for borrowed values vs. borrowed by "just normal"
-macro_rules! deserialize_identifier {
-    ($name:ident, $primitive:ty, !) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$primitive>::document()))
-                .change_context(DeserializerError))
-        }
-    };
-
-    ($name:ident, $primitive:ty, ! , $reflection:ty) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$reflection>::document()))
-                .change_context(DeserializerError))
-        }
-    };
-
-    ($name:ident, $primitive:ty,deref, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            visitor
-                .$visit(&*self.value)
-                .change_context(DeserializerError)
-        }
-    };
-
-    ($name:ident, $primitive:ty,to, $to:ident, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            let value = self.value.$to().ok_or_else(|| {
-                Report::new(TypeError.into_error())
-                    .attach(ExpectedType::new(visitor.expecting()))
-                    .attach(ReceivedType::new(<$primitive>::reflection()))
-                    .change_context(DeserializerError)
-            })?;
-
-            visitor.$visit(value).change_context(DeserializerError)
-        }
-    };
-
-    ($name:ident, $primitive:ty,visit, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            visitor
-                .$visit(self.value.into())
-                .change_context(DeserializerError)
-        }
-    };
-
-    ($name:ident, $primitive:ty,try, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            let value = self
-                .value
-                .try_into()
-                .into_report()
-                .change_context(TypeError.into_error())
-                .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$primitive>::document()))
-                .change_context(DeserializerError)?;
-
-            visitor.$visit(value).change_context(DeserializerError)
         }
     };
 }
@@ -280,7 +192,6 @@ impl_deserializer!(
     deserialize_any!(visit_bool);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(!);
 );
 
 impl_deserializer!(
@@ -288,7 +199,6 @@ impl_deserializer!(
     deserialize_any!(visit_char);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(!);
 );
 
 impl_deserializer!(
@@ -296,7 +206,6 @@ impl_deserializer!(
     deserialize_any!(visit_u8);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(visit, visit_u8);
 );
 
 impl_deserializer!(
@@ -304,7 +213,6 @@ impl_deserializer!(
     deserialize_any!(visit_u16);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -312,7 +220,6 @@ impl_deserializer!(
     deserialize_any!(visit_u32);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -320,7 +227,6 @@ impl_deserializer!(
     deserialize_any!(visit_u64);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -328,7 +234,6 @@ impl_deserializer!(
     deserialize_any!(visit_u128);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -336,7 +241,6 @@ impl_deserializer!(
     deserialize_any!(visit_usize);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -344,7 +248,6 @@ impl_deserializer!(
     deserialize_any!(visit_i8);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u8);
 );
 
 impl_deserializer!(
@@ -352,7 +255,6 @@ impl_deserializer!(
     deserialize_any!(visit_i16);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -360,7 +262,6 @@ impl_deserializer!(
     deserialize_any!(visit_i32);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -368,7 +269,6 @@ impl_deserializer!(
     deserialize_any!(visit_i64);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -376,7 +276,6 @@ impl_deserializer!(
     deserialize_any!(visit_i128);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -384,7 +283,6 @@ impl_deserializer!(
     deserialize_any!(visit_isize);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(try, visit_u64);
 );
 
 impl_deserializer!(
@@ -392,7 +290,6 @@ impl_deserializer!(
     deserialize_any!(visit_f32);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(!);
 );
 
 impl_deserializer!(
@@ -400,7 +297,6 @@ impl_deserializer!(
     deserialize_any!(visit_f64);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(!);
 );
 
 impl_deserializer!(
@@ -408,7 +304,6 @@ impl_deserializer!(
     deserialize_any!(visit_number);
     deserialize_enum!();
     deserialize_optional!();
-    deserialize_identifier!(to, to_u64, visit_u64);
 );
 
 #[derive(Debug, Copy, Clone)]
@@ -466,15 +361,6 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
     }
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: IdentifierVisitor<'de>,
-    {
-        Err(Report::new(MissingError.into_error())
-            .attach(ExpectedType::new(visitor.expecting()))
-            .change_context(DeserializerError))
-    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -526,16 +412,6 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: IdentifierVisitor<'de>,
-    {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(<()>::reflection()))
-            .attach(ExpectedType::new(visitor.expecting()))
-            .change_context(DeserializerError))
-    }
 }
 
 // down here so that they can make use of the macros
@@ -548,5 +424,3 @@ pub use array::ArrayAccessDeserializer;
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
-
-use crate::error::MissingError;

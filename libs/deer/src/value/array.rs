@@ -1,11 +1,8 @@
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use crate::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
-    schema::visitor::ArraySchema,
-    value::EnumUnitDeserializer,
-    ArrayAccess, Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor,
-    Reflection, Visitor,
+    error::DeserializerError, value::EnumUnitDeserializer, ArrayAccess, Context, Deserializer,
+    EnumVisitor, OptionalVisitor, Visitor,
 };
 
 // TODO: SliceDeserializer/IteratorDeserializer
@@ -64,15 +61,5 @@ where
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
-    }
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: IdentifierVisitor<'de>,
-    {
-        Err(Report::new(TypeError.into_error())
-            .attach(ExpectedType::new(visitor.expecting()))
-            .attach(ReceivedType::new(ArraySchema::document()))
-            .change_context(DeserializerError))
     }
 }

@@ -173,51 +173,6 @@ pub trait EnumVisitor<'de>: Sized {
         D: Deserializer<'de>;
 }
 
-/// Provides a strict subset of visitors that could be used for identifiers, this allows for
-/// implementations to:
-///
-/// A) know which identifier types might be used
-/// B) limits misuse, by not allowing any borrowed data
-///     ~> an identifier should be clearly defined in e.g. an enum and should not allow
-///        any arbitrary value, by allowing borrowed strings or bytes implementations might
-///        be declined to use it as a replacement of `Visitor`, in that case just `Visitor`
-///        should be used.
-///
-/// The `'de` bounds are here for future compatability and also to stay consistent with
-/// all other visitors.
-#[allow(unused_variables)]
-pub trait IdentifierVisitor<'de>: Sized {
-    type Value;
-
-    fn expecting(&self) -> Document;
-
-    fn visit_u8(self, value: u8) -> Result<Self::Value, VisitorError> {
-        self.visit_u64(u64::from(value))
-            .attach(ReceivedType::new(u8::document()))
-    }
-
-    fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(u64::reflection()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(str::document()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(<[u8]>::document()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-}
-
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
 #[allow(unused_variables)]
@@ -666,10 +621,6 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>;
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: IdentifierVisitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,
