@@ -3,10 +3,11 @@ import {
   Autocomplete,
   autocompleteClasses,
   Box,
+  createFilterOptions,
   Modal,
   Paper,
 } from "@mui/material";
-import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
+import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import {
   createContext,
@@ -72,71 +73,94 @@ const getSelectedOptions = (
   return [selectedOptions, selectedOption] as const;
 };
 
-export const CommandBar = () => {
-  const options: Option[] = [
-    {
-      group: "Blocks",
-      label: "Find a block…",
-      options: [
-        {
-          group: "General",
-          label: "Option A",
-          selected: ({ label }) => <div>You selected {label}</div>,
-        },
-        {
-          group: "General",
-          label: "Option B",
-          selected: ({ label }) => <div>You selected {label}</div>,
-        },
-        {
-          group: "Other",
-          label: "Option C",
-          href: "https://google.com/",
-        },
-      ],
-    },
-    {
-      group: "Blocks",
-      label: "Generate new block with AI…",
-      href: "/",
-    },
-    {
-      group: "Entities",
-      label: "Search for an entity…",
-      href: "/",
-    },
-    {
-      group: "Entities",
-      label: "Insert a link to an entity…",
-      href: "/",
-    },
-    {
-      group: "Entities",
-      label: "Create new entity…",
-      href: "/",
-    },
-    {
-      group: "Types",
-      label: "Create new type…",
-      href: "/",
-    },
-    {
-      group: "Apps",
-      label: "Find an app…",
-      href: "/",
-    },
-    {
-      group: "Apps",
-      label: "Create an app…",
-      href: "/",
-    },
-    {
-      group: "Apps",
-      label: "Generate new app…",
-      href: "/",
-    },
-  ];
+type OptionWithPath = Option & { path: string[] };
 
+const flattenOptions = (
+  options: Option[],
+  parentOption?: OptionWithPath,
+): OptionWithPath[] => {
+  return options.flatMap((option) => {
+    const nextOption = {
+      ...option,
+      path: parentOption ? [...parentOption.path, parentOption.label] : [],
+    };
+
+    return [
+      nextOption,
+      ...flattenOptions(nextOption.options ?? [], nextOption),
+    ];
+  });
+};
+
+const defaultFilterOptions = createFilterOptions<OptionWithPath>();
+
+const options: Option[] = [
+  {
+    group: "Blocks",
+    label: "Find a block…",
+    options: [
+      {
+        group: "General",
+        label: "Option A",
+        selected: ({ label }) => <div>You selected {label}</div>,
+      },
+      {
+        group: "General",
+        label: "Option B",
+        selected: ({ label }) => <div>You selected {label}</div>,
+      },
+      {
+        group: "Other",
+        label: "Option C",
+        href: "https://google.com/",
+      },
+    ],
+  },
+  {
+    group: "Blocks",
+    label: "Generate new block with AI…",
+    href: "/",
+  },
+  {
+    group: "Entities",
+    label: "Search for an entity…",
+    href: "/",
+  },
+  {
+    group: "Entities",
+    label: "Insert a link to an entity…",
+    href: "/",
+  },
+  {
+    group: "Entities",
+    label: "Create new entity…",
+    href: "/",
+  },
+  {
+    group: "Types",
+    label: "Create new type…",
+    href: "/",
+  },
+  {
+    group: "Apps",
+    label: "Find an app…",
+    href: "/",
+  },
+  {
+    group: "Apps",
+    label: "Create an app…",
+    href: "/",
+  },
+  {
+    group: "Apps",
+    label: "Generate new app…",
+    href: "/",
+  },
+];
+
+const flattenedOptions = flattenOptions(options);
+
+export const CommandBar = () => {
   const popupState = usePopupState({
     popupId: "kbar",
     variant: "popover",
@@ -170,8 +194,10 @@ export const CommandBar = () => {
   );
   const selectedOptionValue = selected?.selected?.(selected);
 
+  const [inputValue, setInputValue] = useState("");
+
   return (
-    <Modal {...bindPopover(popupState)}>
+    <Modal open={popupState.isOpen} onClose={closeBar}>
       <Box
         width="100vw"
         height="100vh"
@@ -189,12 +215,23 @@ export const CommandBar = () => {
         >
           <CustomScreenContext.Provider value={selectedOptionValue}>
             <Autocomplete
-              // This forces the autocomplete to be recreated when the options
-              // change, which clears the input value.
-              key={selectedOptionPath.length}
+              inputValue={inputValue}
+              onInputChange={(_, value, reason) => {
+                setInputValue(reason === "reset" ? "" : value);
+              }}
               disableCloseOnSelect
               autoHighlight
-              options={selectedOptions}
+              options={flattenedOptions}
+              filterOptions={(allOptions, state) =>
+                defaultFilterOptions(
+                  allOptions.filter(
+                    (option) =>
+                      JSON.stringify(option.path) ===
+                      JSON.stringify(selectedOptionPath),
+                  ),
+                  state,
+                )
+              }
               open
               onClose={() => closeBar()}
               sx={{ width: "100%" }}
