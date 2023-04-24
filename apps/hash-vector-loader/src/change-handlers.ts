@@ -47,7 +47,7 @@ ${entity.properties}
         vector: embedding.data.data[0]!.embedding,
       },
     ]);
-    logger.info(`Indexed ${entity.entity_uuid}`);
+    logger.info(`Indexed entity: ${entity.entity_uuid}`);
   });
 };
 
@@ -81,7 +81,7 @@ ${entityType}
         vector: embedding.data.data[0]!.embedding,
       },
     ]);
-    logger.info(`Indexed ${entityType.ontology_id}`);
+    logger.info(`Indexed entity type: ${entityType.ontology_id}`);
   });
 };
 
@@ -115,6 +115,6 @@ ${propertyType}
         vector: embedding.data.data[0]!.embedding,
       },
     ]);
-    logger.info(`Indexed ${propertyType.ontology_id}`);
+    logger.info(`Indexed property type: ${propertyType.ontology_id}`);
   });
 };

@@ -1,23 +1,20 @@
 import { createServer } from "node:http";
 import { promisify } from "node:util";
 
-import { EntityType } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { Entity } from "@local/hash-backend-utils/pg-tables";
 import { generateStreamConsumers } from "@local/hash-backend-utils/realtime";
 import { RedisConfig } from "@local/hash-backend-utils/redis";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
-import dedent from "dedent";
 import { Configuration, OpenAIApi } from "openai";
 
-import { INSTANCE_ID, logger } from "./config";
-import { QdrantDb } from "./vector/qdrant";
 import {
-  HandlerParameters,
   handleEntityChange,
   handleEntityTypeChange,
   handlePropertyTypeChange,
+  HandlerParameters,
 } from "./change-handlers";
+import { INSTANCE_ID, logger, VECTORDB_INDEX_NAMES } from "./config";
+import { QdrantDb } from "./vector/qdrant";
 
 // Environment variables
 const PORT = process.env.HASH_VECTOR_LOADER_PORT ?? 3434;
