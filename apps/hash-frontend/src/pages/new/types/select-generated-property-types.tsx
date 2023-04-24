@@ -1,5 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system";
-import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
+import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph/.";
+import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
 import {
   Checkbox,
   CircularProgress,
@@ -13,9 +14,15 @@ import {
 } from "@mui/material";
 import { Box } from "@mui/system";
 import { debounce } from "lodash";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import { useBlockProtocolGetPropertyType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
+import { useBlockProtocolQueryPropertyTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { useAgentRunner } from "../../../components/hooks/use-agent-runner";
 import { useGenerateTypeUrlsForUser } from "../../shared/use-generate-type-urls-for-user";
 
@@ -40,7 +47,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   entityTypeDescription,
   setSelectedPropertyDefinitions,
 }) => {
-  const { getPropertyType } = useBlockProtocolGetPropertyType();
+  const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
 
   const [generatePropertyTypes, { loading }] = useAgentRunner(
@@ -54,6 +61,57 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   const [selectedPropertyTypeTitles, setSelectedPropertyTypeTitles] = useState<
     string[]
   >([]);
+
+  const [allPropertyTypes, setAllPropertyTypes] = useState<Subgraph>();
+
+  const fetchAllPropertyTypes = useCallback(async () => {
+    const { data: propertyTypesSubgraph } = await queryPropertyTypes({
+      data: {},
+    });
+
+    if (!propertyTypesSubgraph) {
+      throw new Error(
+        "Could not query property types to get all property types.",
+      );
+    }
+
+    setAllPropertyTypes(propertyTypesSubgraph);
+  }, [queryPropertyTypes]);
+
+  useEffect(() => {
+    if (!allPropertyTypes) {
+      void fetchAllPropertyTypes();
+    }
+  }, [allPropertyTypes, fetchAllPropertyTypes]);
+
+  const getLatestPropertyType = useCallback(
+    (params: {
+      propertyTypeBaseUrl: PropertyTypeWithMetadata["metadata"]["recordId"]["baseUrl"];
+    }): PropertyType | null => {
+      if (!allPropertyTypes) {
+        throw new Error("All property types need to be fetched");
+      }
+
+      const propertyTypes = getPropertyTypesByBaseUrl(
+        allPropertyTypes,
+        params.propertyTypeBaseUrl,
+      );
+
+      if (!propertyTypes[0]) {
+        return null;
+      }
+
+      return propertyTypes.reduce<PropertyTypeWithMetadata>(
+        (latest, propertyType) =>
+          propertyType.metadata.recordId.version >
+          latest.metadata.recordId.version
+            ? propertyType
+            : latest,
+        propertyTypes[0],
+      ).schema;
+    },
+    [allPropertyTypes],
+  );
 
   const debouncedGeneratePropertyTypes = useMemo(
     () =>
@@ -71,23 +129,17 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
             )[] = [];
 
             for (const definition of result.propertyTypeDefinitions) {
-              const { versionedUrl: propertyTypeId } = generateTypeUrlsForUser({
+              const { baseUrl: propertyTypeBaseUrl } = generateTypeUrlsForUser({
                 kind: "property-type",
                 title: definition.title,
                 version: 1,
               });
 
-              const { data: propertyTypeSubgraph } = await getPropertyType({
-                data: { propertyTypeId },
+              const existingPropertyType = getLatestPropertyType({
+                propertyTypeBaseUrl,
               });
 
-              const propertyType = propertyTypeSubgraph
-                ? getPropertyTypeById(propertyTypeSubgraph, propertyTypeId)
-                : undefined;
-
-              /** @todo: get the latest type */
-
-              propertyTypeDefinitions.push(propertyType?.schema ?? definition);
+              propertyTypeDefinitions.push(existingPropertyType ?? definition);
             }
 
             setGeneratedPropertyTypeDefinitions(propertyTypeDefinitions);
@@ -95,7 +147,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
         },
         1000,
       ),
-    [generateTypeUrlsForUser, generatePropertyTypes, getPropertyType],
+    [generateTypeUrlsForUser, generatePropertyTypes, getLatestPropertyType],
   );
 
   useEffect(() => {
