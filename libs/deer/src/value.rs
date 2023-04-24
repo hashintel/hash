@@ -171,29 +171,59 @@ macro_rules! deserialize_identifier {
 }
 
 macro_rules! impl_deserializer {
-    (@derive Copy, $name:ident, $primitive:ty) => {
+    (@derive Copy, $name:ident, $primitive:ty $(, $lifetime:lifetime)?) => {
         #[derive(Debug, Copy, Clone)]
-        pub struct $name<'a> {
+        pub struct $name<'a $(, $lifetime)?> {
             context: &'a Context,
-            value: $primitive
+            value: $(& $lifetime)? $primitive
         }
     };
 
-    (@derive Clone, $name:ident, $primitive:ty) => {
+    (@derive Clone, $name:ident, $primitive:ty $(, $lifetime:lifetime)?) => {
         #[derive(Debug, Clone)]
-        pub struct $name<'a> {
+        pub struct $name<'a $(, $lifetime)?> {
             context: &'a Context,
-            value: $primitive
+            value: $(& $lifetime)? $primitive
         }
     };
 
-    (
-        #[derive($mode:ident)]
-        $name:ident($primitive:ty);
-        $($extra:ident!($($arg1:tt $(, $arg2:tt $(, $arg3:tt)?)?)?);)*
-    ) => {
-        impl_deserializer!(@derive $mode, $name, $primitive);
+    (@impl $name:ident, $primitive:ty, 'de { $($body:tt)* }) => {
+        impl<'a, 'de> $name<'a, 'de> {
+            #[must_use]
+            pub const fn new(value: &'de $primitive, context: &'a Context) -> Self {
+                Self { context, value }
+            }
+        }
 
+        impl<'de> Deserializer<'de> for $name<'_, 'de> {
+            $($body)*
+        }
+    };
+
+    (@impl $name:ident, $primitive:ty, $lifetime:lifetime { $($body:tt)* }) => {
+        impl<'a, $lifetime> $name<'a, $lifetime> {
+            #[must_use]
+            pub const fn new(value: &$lifetime $primitive, context: &'a Context) -> Self {
+                Self { context, value }
+            }
+        }
+
+        impl<'de> Deserializer<'de> for $name<'_, '_> {
+            $($body)*
+        }
+
+        impl<'de, $lifetime> IntoDeserializer<'de> for &$lifetime $primitive {
+            type Deserializer<'a> = $name<'a, $lifetime> where Self: 'a;
+
+            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+            where
+                Self: 'a {
+                $name::new(self, context)
+            }
+        }
+    };
+
+    (@impl $name:ident, $primitive:ty { $($body:tt)* }) => {
         impl<'a> $name<'a> {
             #[must_use]
             pub const fn new(value: $primitive, context: &'a Context) -> Self {
@@ -201,7 +231,29 @@ macro_rules! impl_deserializer {
             }
         }
 
-        impl<'de, 'a> Deserializer<'de> for $name<'a> {
+        impl<'de> Deserializer<'de> for $name<'_> {
+            $($body)*
+        }
+
+        impl<'de> IntoDeserializer<'de> for $primitive {
+            type Deserializer<'a> = $name<'a> where Self: 'a;
+
+            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+            where
+                Self: 'a {
+                $name::new(self, context)
+            }
+        }
+    };
+
+    (
+        #[derive($mode:ident)]
+        $name:ident$(<$lifetime:lifetime>)?($primitive:ty);
+        $($extra:ident!($($arg1:tt $(, $arg2:tt $(, $arg3:tt)?)?)?);)*
+    ) => {
+        impl_deserializer!(@derive $mode, $name, $primitive $(, $lifetime)?);
+
+        impl_deserializer!(@impl $name, $primitive $(, $lifetime)? {
             forward_to_deserialize_any!(
                 null
                 bool
@@ -219,17 +271,7 @@ macro_rules! impl_deserializer {
             }
 
             $($extra!($name, $primitive$(, $arg1 $(, $arg2 $(, $arg3)?)?)?);)*
-        }
-
-        impl<'de> IntoDeserializer<'de> for $primitive {
-            type Deserializer<'a> = $name<'a> where Self: 'a;
-
-            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
-            where
-                Self: 'a {
-                $name::new(self, context)
-            }
-        }
+        });
     };
 }
 

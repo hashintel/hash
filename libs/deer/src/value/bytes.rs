@@ -4,151 +4,30 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
-    value::{EnumUnitDeserializer, IntoDeserializer},
+    value::IntoDeserializer,
     Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection, Visitor,
 };
 
-#[derive(Debug, Copy, Clone)]
-pub struct BytesDeserializer<'a, 'b> {
-    context: &'a Context,
-    value: &'b [u8],
-}
+impl_deserializer!(
+    #[derive(Copy)] BorrowedBytesDeserializer<'de>([u8]);
+    deserialize_any!(visit_borrowed_bytes);
+    deserialize_optional!();
+    deserialize_enum!();
+    deserialize_identifier!(visit, visit_bytes);
+);
 
-impl<'a, 'b> BytesDeserializer<'a, 'b> {
-    #[must_use]
-    pub const fn new(value: &'b [u8], context: &'a Context) -> Self {
-        Self { context, value }
-    }
-}
-
-impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
-    forward_to_deserialize_any!(
-        null
-        bool
-        number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
-        f32 f64
-        char str string
-        bytes bytes_buffer
-        array object
-    );
-
-    fn context(&self) -> &Context {
-        self.context
-    }
-
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
-    where
-        V: Visitor<'de>,
-    {
-        visitor
-            .visit_bytes(self.value)
-            .change_context(DeserializerError)
-    }
-
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
-    where
-        V: OptionalVisitor<'de>,
-    {
-        visitor.visit_some(self).change_context(DeserializerError)
-    }
-
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: EnumVisitor<'de>,
-    {
-        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
-    }
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: IdentifierVisitor<'de>,
-    {
-        visitor
-            .visit_bytes(self.value)
-            .change_context(DeserializerError)
-    }
-}
-
-impl<'de, 'b> IntoDeserializer<'de> for &'b [u8] {
-    type Deserializer<'a> = BytesDeserializer<'a, 'b> where Self: 'a;
-
-    fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
-    where
-        Self: 'a,
-    {
-        BytesDeserializer::new(self, context)
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct BorrowedBytesDeserializer<'a, 'de> {
-    context: &'a Context,
-    value: &'de [u8],
-}
-
-impl<'a, 'de> BorrowedBytesDeserializer<'a, 'de> {
-    #[must_use]
-    pub const fn new(value: &'de [u8], context: &'a Context) -> Self {
-        Self { context, value }
-    }
-}
-
-impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
-    forward_to_deserialize_any!(
-        null
-        bool
-        number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
-        f32 f64
-        char str string
-        bytes bytes_buffer
-        array object
-    );
-
-    fn context(&self) -> &Context {
-        self.context
-    }
-
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
-    where
-        V: Visitor<'de>,
-    {
-        visitor
-            .visit_borrowed_bytes(self.value)
-            .change_context(DeserializerError)
-    }
-
-    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
-    where
-        V: OptionalVisitor<'de>,
-    {
-        visitor.visit_some(self).change_context(DeserializerError)
-    }
-
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: EnumVisitor<'de>,
-    {
-        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
-    }
-
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: IdentifierVisitor<'de>,
-    {
-        visitor
-            .visit_bytes(self.value)
-            .change_context(DeserializerError)
-    }
-}
+impl_deserializer!(
+    #[derive(Copy)] BytesDeserializer<'b>([u8]);
+    deserialize_any!(visit_bytes);
+    deserialize_optional!();
+    deserialize_enum!();
+    deserialize_identifier!(visit, visit_bytes);
+);
 
 impl_deserializer!(
     #[derive(Clone)] BytesBufferDeserializer(Vec<u8>);
     deserialize_any!(visit_bytes_buffer);
     deserialize_optional!();
     deserialize_enum!();
-    deserialize_identifier!(!, [u8]);
+    deserialize_identifier!(deref, visit_bytes);
 );
