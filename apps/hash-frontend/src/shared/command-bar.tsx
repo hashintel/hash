@@ -32,47 +32,47 @@ const options = [
   {
     group: "Blocks",
     label: "Find a block…",
-    href: "https://www.google.com",
+    href: "https://google.com/",
   },
   {
     group: "Blocks",
     label: "Generate new block with AI…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Entities",
     label: "Search for an entity…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Entities",
     label: "Insert a link to an entity…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Entities",
     label: "Create new entity…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Types",
     label: "Create new type…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Apps",
     label: "Find an app…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Apps",
     label: "Create an app…",
-    href: "https://www.google.com",
+    href: "/",
   },
   {
     group: "Apps",
     label: "Generate new app…",
-    href: "https://www.google.com",
+    href: "/",
   },
 ];
 
@@ -121,10 +121,13 @@ export const CommandBar = () => {
             )}
             onChange={(_, __, reason, details) => {
               if (details && reason === "selectOption") {
+                popupState.close();
                 if ("href" in details.option) {
-                  router.push(details.option.href);
-                } else {
-                  popupState.close();
+                  if (details.option.href.startsWith("https:")) {
+                    window.open(details.option.href, "_blank", "noopener");
+                  } else {
+                    void router.push(details.option.href);
+                  }
                 }
               }
             }}
