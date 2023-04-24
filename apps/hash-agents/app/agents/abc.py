@@ -1,19 +1,17 @@
 import importlib
 import os.path
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Any, Coroutine, Self
+from typing import Any, Coroutine, Generic, Self, TypeAlias, TypeVar
 
 import structlog.stdlib
+from pydantic import BaseModel
 
 from app.agents.globals import AGENTS
-from app.agents.io_types import Input, Output
 
 logger = structlog.stdlib.get_logger()
 
 
-DENY_LIST = frozenset(
-    ("__init__.py", "__main__.py", "abc.py", "io_types.py", "globals.py")
-)
+DENY_LIST = frozenset(("__init__.py", "__main__.py", "abc.py", "globals.py"))
 
 
 class AgentMeta(ABCMeta):
@@ -56,7 +54,15 @@ class AgentMeta(ABCMeta):
         return AGENTS
 
 
-class Agent(ABC, metaclass=AgentMeta):
+Input = TypeVar('Input', bound=BaseModel)
+Output = TypeVar('Output', bound=BaseModel)
+
+
+class Agent(ABC, Generic[Input, Output], metaclass=AgentMeta):
+    # make I/O types accessible to scripts
+    Input: type[Input]
+    Output: type[Output]
+
     # creating this as an abstractmethod allows us to force certain attributes
     @abstractmethod
     def __init__(self):

@@ -1,27 +1,12 @@
-import importlib
-import os
-import runpy
-from typing import Any
+from typing import Coroutine
 
 import structlog
 from beartype import beartype
+from pydantic import BaseModel
+
+from app.agents.abc import Agent
 
 logger = structlog.stdlib.get_logger(__name__)
-
-
-@beartype
-def find_allowed_agents() -> list[str]:
-    agents_dir = os.path.dirname(__file__)
-    allowed_agents = []
-    for agent in os.listdir(agents_dir):
-        agent_dir = os.path.join(agents_dir, agent)
-        if (
-            os.path.isdir(agent_dir)
-            and os.path.exists(os.path.join(agent_dir, "__main__.py"))
-            and os.path.exists(os.path.join(agent_dir, "io_types.py"))
-        ):
-            allowed_agents.append(agent)
-    return allowed_agents
 
 
 class InvalidAgentNameError(ValueError):
@@ -34,38 +19,30 @@ class InvalidAgentNameError(ValueError):
 
 class InvalidAgentOutputError(ValueError):
     @beartype
-    def __init__(self, agent_name: str, output: Any) -> None:  # noqa: ANN401
+    def __init__(self, agent_name: str, output: BaseModel) -> None:
         super().__init__(f"Unexpected output for agent {agent_name}: {output}")
 
 
 @beartype
-def call_agent(agent: str, **kwargs: dict) -> dict:
-    allowed_agents = find_allowed_agents()
-    if agent not in allowed_agents:
-        raise InvalidAgentNameError(agent, allowed_agents)
+async def call_agent(name: str, **kwargs: dict) -> Coroutine[None, None, dict]:
+    allowed_agents = {k.split('.')[-1]: v for k, v in Agent.find().items()}
 
-    module = f"{__name__}.{agent}"
+    agent: Agent | None = allowed_agents.get(name)
 
-    io_types = importlib.import_module(f"{module}.io_types")
+    if agent is None:
+        raise InvalidAgentNameError(name, list(allowed_agents.keys()))
 
-    logger.debug("Calling agent", agent=agent, kwargs=kwargs)
-    out = runpy.run_module(
-        module,
-        run_name="HASH",
-        init_globals={
-            "IN": io_types.Input.parse_obj(kwargs),
-        },
-    ).get("OUT")
+    output = await agent.execute(agent.Input.parse_obj(kwargs))
 
     try:
-        agent_output = io_types.Output.dict(out)
+        output = output.dict()
     except AssertionError as e:
-        raise InvalidAgentOutputError(agent, out) from e
+        raise InvalidAgentOutputError(name, output) from e
 
     logger.debug(
         "Agent output",
-        agent=agent,
-        output=agent_output,
+        agent=name,
+        output=output,
     )
 
-    return agent_output
+    return output

@@ -1,2 +1,2 @@
-app/agents/io_types.py
+app/agents/*/io.py
 src/agents.ts
