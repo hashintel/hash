@@ -28,6 +28,7 @@ setuptools = "^67.7.1"
 black = "^23.3.0"
 ruff = "^0.0.262"
 isort = {extras = ["colors"], version = "^5.12.0"}
+datamodel-code-generator = "^0.18.0"
 
 [tool.poetry.group.production.dependencies]
 gunicorn = "^20.1.0"
