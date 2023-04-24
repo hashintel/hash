@@ -1,10 +1,11 @@
 import structlog.stdlib
-from app.logger import Environment, http_logging_middleware, setup_logging
-from app.routes import router
 from asgi_correlation_id import CorrelationIdMiddleware
 from beartype import beartype
 from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI
+
+from app.logger import Environment, http_logging_middleware, setup_logging
+from app.routes import router
 
 from .logger import setup_logging
 
