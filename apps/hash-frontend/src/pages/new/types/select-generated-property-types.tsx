@@ -225,9 +225,9 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
             sx={{ color: ({ palette }) => palette.gray[40] }}
           />
           <Typography>
-            {generatedPropertyTypeDefinitions
-              ? "Re-generating property types..."
-              : "Generating property types..."}
+            {`${
+              generatedPropertyTypeDefinitions ? "Re-generating" : "Generating"
+            } property types suggestions...`}
           </Typography>
         </Box>
       </Collapse>
