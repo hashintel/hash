@@ -30,6 +30,8 @@ def main(agent_input: Input) -> Output:
 
     property_type_definitions = json.loads(response.content)
 
+    getLogger().info(f"property_type_definitions: {property_type_definitions}")
+
     # TODO - validate the response
 
     for property_type in property_type_definitions:
