@@ -1,6 +1,6 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack, styled } from "@mui/material";
-import { FieldArrayWithId, useFormContext } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 
 import { FontAwesomeIcon } from "../../fontawesome-icon";
 import { IconButton } from "../../icon-button";
@@ -17,15 +17,15 @@ const StyledIcon = styled(FontAwesomeIcon)({
 interface FilterRowProps {
   index: number;
   onRemove: () => void;
-  value: FieldArrayWithId<FormValues, "filters", "id">;
+  // value: FieldArrayWithId<FormValues, "filters", "id">;
 }
 
 const TypeSelector = ({ index }: { index: number }) => {
-  const form = useFormContext<FormValues>();
+  const { control, setValue } = useFormContext<FormValues>();
 
   return (
     <RHFSelect
-      control={form.control}
+      control={control}
       name={`filters.${index}.type`}
       selectProps={{ size: "xs" }}
       rules={{
@@ -33,7 +33,7 @@ const TypeSelector = ({ index }: { index: number }) => {
           const firstOperatorOfSelectedType =
             fieldOperators[event.target.value][0]!;
 
-          form.setValue(
+          setValue(
             `filters.${index}.operator`,
             firstOperatorOfSelectedType.operator,
             {
@@ -56,14 +56,14 @@ const TypeSelector = ({ index }: { index: number }) => {
 };
 
 const OperatorSelector = ({ index }: { index: number }) => {
-  const form = useFormContext<FormValues>();
-  const watchedType = form.watch(`filters.${index}.type`);
+  const { watch, control } = useFormContext<FormValues>();
+  const watchedType = watch(`filters.${index}.type`);
 
   return (
     <RHFSelect
-      control={form.control}
+      control={control}
       name={`filters.${index}.operator`}
-      selectProps={{ size: "xs", displayEmpty: true }}
+      selectProps={{ size: "xs" }}
     >
       {fieldOperators[watchedType].map(({ operator }) => (
         <MenuItem key={operator} value={operator}>
@@ -74,46 +74,68 @@ const OperatorSelector = ({ index }: { index: number }) => {
   );
 };
 
+const PropertySelector = ({ index }: { index: number }) => {
+  const { control } = useFormContext<FormValues>();
+
+  const properties = [
+    { title: "First name", id: "123" },
+    { title: "Last name", id: "456" },
+  ];
+
+  return (
+    <RHFSelect
+      control={control}
+      defaultValue=""
+      name={`filters.${index}.propertyTypeId`}
+      selectProps={{ size: "xs", displayEmpty: true }}
+    >
+      <MenuItem value="" disabled noSelectBackground>
+        Choose
+      </MenuItem>
+      {properties.map(({ title, id }) => (
+        <MenuItem key={id} value={id}>
+          {title}
+        </MenuItem>
+      ))}
+    </RHFSelect>
+  );
+};
+
 const ValueSelector = ({ index }: { index: number }) => {
-  const form = useFormContext<FormValues>();
+  const { register } = useFormContext<FormValues>();
 
   /** @todo add type dropdown support */
-
   return (
     <TextField
       placeholder="value"
-      {...form.register(`filters.${index}.value`)}
+      {...register(`filters.${index}.value`)}
       size="xs"
     />
   );
 };
 
 const ChainOperatorSelector = () => {
-  const form = useFormContext<FormValues>();
+  const { control } = useFormContext<FormValues>();
 
   return (
-    <RHFSelect
-      name="operator"
-      control={form.control}
-      selectProps={{ size: "xs" }}
-    >
+    <RHFSelect name="operator" control={control} selectProps={{ size: "xs" }}>
       <MenuItem value="AND">and</MenuItem>
       <MenuItem value="OR">or</MenuItem>
     </RHFSelect>
   );
 };
 
-export const FilterRow = ({ value, onRemove, index }: FilterRowProps) => {
-  const form = useFormContext<FormValues>();
+export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
+  const { watch } = useFormContext<FormValues>();
 
-  const chainOperator = form.watch("operator");
+  const chainOperator = watch("operator");
   const chainOperatorText = chainOperator === "AND" ? "and" : "or";
 
   const isFirstOne = index === 0;
   const isSecondOne = index === 1;
 
-  const watchedType = form.watch(`filters.${index}.type`);
-  const watchedOperator = form.watch(`filters.${index}.operator`);
+  const watchedType = watch(`filters.${index}.type`);
+  const watchedOperator = watch(`filters.${index}.operator`);
 
   const watchedOperatorHasValue = fieldOperators[watchedType].find(
     (op) => op.operator === watchedOperator,
@@ -133,6 +155,7 @@ export const FilterRow = ({ value, onRemove, index }: FilterRowProps) => {
 
       <Stack direction="row">
         <TypeSelector index={index} />
+        {watchedType === "Property" && <PropertySelector index={index} />}
         <OperatorSelector index={index} />
         {watchedOperatorHasValue && <ValueSelector index={index} />}
       </Stack>

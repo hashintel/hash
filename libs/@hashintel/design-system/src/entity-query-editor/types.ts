@@ -2,9 +2,13 @@ import { MultiFilterOperatorType } from "@blockprotocol/graph";
 
 export type FilterType = "Type" | "Property";
 
+interface FilterBase {
+  type: FilterType;
+}
+
 export type TypeOperator = "is";
 
-interface TypeFilter {
+interface TypeFilter extends FilterBase {
   type: "Type";
   operator: TypeOperator;
   value: string;
@@ -21,12 +25,8 @@ export type PropertyOperator =
 interface PropertyFilter extends FilterBase {
   type: "Property";
   operator: PropertyOperator;
-  value: string;
-}
-
-interface FilterBase {
-  type: FilterType;
-  value: string;
+  value?: string;
+  propertyTypeId: string;
 }
 
 export type FilterField = TypeFilter | PropertyFilter;

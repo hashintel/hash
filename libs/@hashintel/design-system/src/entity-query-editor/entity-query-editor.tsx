@@ -47,7 +47,6 @@ export const EntityQueryEditor = ({
           <FilterRow
             index={index}
             key={field.id}
-            value={field}
             onRemove={() => fieldArray.remove(index)}
           />
         ))}
@@ -74,12 +73,12 @@ export const EntityQueryEditor = ({
         </Box>
 
         <Stack direction="row" gap={1}>
-          <Button onClick={() => form.handleSubmit(onSubmit)}>
+          <Button onClick={form.handleSubmit(onSubmit)}>
             Save and run query
           </Button>
           <Button
             sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
-            onClick={() => form.handleSubmit(onSubmit)}
+            onClick={form.handleSubmit(onSubmit)}
           >
             Save as draft
           </Button>
