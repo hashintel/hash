@@ -25,7 +25,7 @@ class InvalidAgentOutputError(ValueError):
 
 @beartype
 async def call_agent(name: str, **kwargs: dict) -> Coroutine[None, None, dict]:
-    allowed_agents = {k.split('.')[-1]: v for k, v in Agent.find().items()}
+    allowed_agents = {k: v for k, v in Agent.find().items()}
 
     agent: Agent | None = allowed_agents.get(name)
 

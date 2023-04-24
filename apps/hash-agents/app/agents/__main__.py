@@ -1,34 +1,56 @@
+import inspect
 import json
-import sys
 
+import anyio
 from beartype import beartype
+from typer import Typer
 
 from .. import setup
-from . import call_agent
+from . import Agent, call_agent
+
+app = Typer()
 
 
-class InvalidArgumentError(RuntimeError):
-    @beartype
-    def __init__(self, program_name: str) -> None:
-        super().__init__(f"Usage: {program_name} <AGENT_NAME> [INPUT]")
+@app.command()
+def help():
+    # always here because typer is otherwise short-circuits
+    print("use --help to get help")
 
 
 @beartype
-def main() -> None:
-    setup()
+def register_command(name: str, agent: Agent):
+    fields = agent.Input.__fields__
+    args = ((name, field.type_) for name, field in fields.items())
 
-    args = sys.argv
-    if len(args) < 2:
-        raise InvalidArgumentError(program_name=args[0])
+    def invoke(**kwargs: dict):
+        try:
 
-    agent_name = args[1]
-    agent_input = json.loads(args[2]) if len(args) > 2 else {}
-    try:
-        agent_output = call_agent(agent_name, **agent_input)
-    except Exception as e:
-        agent_output = {"error": str(e)}
-    print(json.dumps(agent_output))  # noqa: T201
+            async def wrap():
+                return await call_agent(name, **kwargs)
+
+            agent_output = anyio.run(wrap)
+        except Exception as e:
+            agent_output = {"error": str(e)}
+
+        print(json.dumps(agent_output))  # noqa: T201
+
+    signature = inspect.signature(invoke)
+    invoke.__signature__ = signature.replace(
+        parameters=[
+            inspect.Parameter(
+                name=k, kind=inspect.Parameter.POSITIONAL_ONLY, annotation=v
+            )
+            for k, v in args
+        ]
+    )
+
+    app.command(name)(invoke)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    setup('dev')
+
+    for name, agent in Agent.find().items():
+        register_command(name, agent)
+
+    app()
