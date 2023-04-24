@@ -16,3 +16,11 @@ export const logger = new Logger({
   mode: process.env.NODE_ENV === "development" ? "dev" : "prod",
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
 });
+
+export const VECTORDB_INDEX_NAMES = [
+  "entities",
+  "entity_types",
+  "property_types",
+] as const;
+
+export type VectorDbIndexName = (typeof VECTORDB_INDEX_NAMES)[number];

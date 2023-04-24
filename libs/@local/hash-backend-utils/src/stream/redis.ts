@@ -113,4 +113,10 @@ export class RedisStreamConsumer<T> implements StreamConsumer<T> {
       }
     }
   }
+
+  async handleEvery(handler: (value: T) => Promise<void>) {
+    for await (const value of this) {
+      await handler(value);
+    }
+  }
 }

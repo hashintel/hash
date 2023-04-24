@@ -2,10 +2,11 @@
  * This script clears all indices created by the vector-loader service. It is intended
  * for use during development.
  */
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { getRequiredEnv } from "../../../../libs/@local/hash-backend-utils/src/environment";
+
+import { VECTORDB_INDEX_NAMES } from "../config";
 import { QdrantDb } from "../vector/qdrant";
-import { VECTORDB_INDEX_NAME } from "../main";
 
 const logger = new Logger({
   serviceName: "delete-qdrant-collection",
@@ -21,7 +22,11 @@ const main = async () => {
     port: QDRANT_PORT,
   });
 
-  await qdrantClient.deleteIndex(VECTORDB_INDEX_NAME);
+  await Promise.all(
+    VECTORDB_INDEX_NAMES.map((indexName) =>
+      qdrantClient.deleteIndex(indexName),
+    ),
+  );
 };
 
 main().catch(logger.error);

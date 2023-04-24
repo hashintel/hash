@@ -4,6 +4,12 @@ The `hash-vector-loader` service is responsible for reading the database change-
 published to a queue by the `hash-realtime` service and loading it into a vector index powered
 by [Qdrant](https://qdrant.tech/).
 
+The vector loader creates the following indexes:
+
+- `entities`: a collection of indexed entities loaded from the equivalent Redis Stream
+- `entity_types`: a collection of indexed entity types loaded from the equivalent Redis Stream
+- `property_types`: a collection of indexed property types loaded from the equivalent Redis Stream
+
 ## HTTP Server
 
 The service listens for HTTP requests for administration purposes with endpoints:

@@ -100,7 +100,7 @@ export const generateStreamConsumers = (
       setupRedisClient(logger, redisConfig),
       streams.entityTypeStream,
     ),
-    propertyTypeStream: new RedisStreamProducer<PropertyType>(
+    propertyTypeStream: new RedisStreamConsumer<PropertyType>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.propertyTypeStream,

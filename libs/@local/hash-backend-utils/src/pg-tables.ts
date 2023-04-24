@@ -6,7 +6,8 @@ import { Wal2JsonMsg } from "./wal2json";
 
 export type PgEntityEdition = {
   entity_edition_id: string;
-  properties: Record<string, unknown>;
+  // This is a JSON Object in a string.
+  properties: string;
   left_to_right_order?: number;
   right_to_left_order?: number;
   record_created_by_id: string;
@@ -27,7 +28,7 @@ export const entityEditionFromWalJsonMsg = (
 
   return {
     entity_edition_id: obj.entity_edition_id as string,
-    properties: obj.properties as Record<string, unknown>,
+    properties: obj.properties as string,
     left_to_right_order: obj.left_to_right_order as number,
     right_to_left_order: obj.right_to_left_order as number,
     record_created_by_id: obj.record_created_by_id as string,
@@ -76,7 +77,8 @@ export const entityFromWalJsonMsg = (
 
 type PgOntologyType = {
   ontology_id: string;
-  schema: Record<string, unknown>;
+  // This is a JSON Object in a string.
+  schema: string;
 };
 
 const ontologyTypeFromWalJsonMsg =
@@ -91,7 +93,7 @@ const ontologyTypeFromWalJsonMsg =
 
     return {
       ontology_id: obj.ontology_id as string,
-      schema: obj.schema as Record<string, unknown>,
+      schema: obj.schema as string,
     };
   };
 
