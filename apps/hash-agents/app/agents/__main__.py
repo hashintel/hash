@@ -1,20 +1,14 @@
 import inspect
 
 import anyio
+from argdantic import ArgParser
 from beartype import beartype
 from rich.pretty import pprint
-from typer import Typer
 
 from .. import setup
 from . import Agent, call_agent
 
-app = Typer()
-
-
-@app.command()
-def help():
-    # always here because typer is otherwise short-circuits
-    print("use --help to get help")
+app = ArgParser()
 
 
 @beartype
