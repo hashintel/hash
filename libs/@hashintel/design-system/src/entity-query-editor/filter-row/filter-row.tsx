@@ -1,13 +1,13 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, Stack, styled } from "@mui/material";
-import { useFormContext } from "react-hook-form";
+import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
 import { FontAwesomeIcon } from "../../fontawesome-icon";
 import { IconButton } from "../../icon-button";
 import { MenuItem } from "../../menu-item";
 import { TextField } from "../../text-field";
 import { fieldOperators, filterTypes } from "../constants";
-import { FilterType, FormValues } from "../types";
+import { FilterType, FormValues, PropertyFilter } from "../types";
 import { RHFSelect } from "./rhf-select";
 
 const StyledIcon = styled(FontAwesomeIcon)({
@@ -75,19 +75,26 @@ const OperatorSelector = ({ index }: { index: number }) => {
 };
 
 const PropertySelector = ({ index }: { index: number }) => {
-  const { control } = useFormContext<FormValues>();
+  const { control, formState } = useFormContext<FormValues>();
 
   const properties = [
     { title: "First name", id: "123" },
     { title: "Last name", id: "456" },
   ];
 
+  const filterErrors = formState.errors.filters?.[index] as
+    | FieldErrorsImpl<PropertyFilter>
+    | undefined;
+
+  const hasError = !!filterErrors?.propertyTypeId;
+
   return (
     <RHFSelect
       control={control}
+      rules={{ required: "Required" }}
       defaultValue=""
       name={`filters.${index}.propertyTypeId`}
-      selectProps={{ size: "xs", displayEmpty: true }}
+      selectProps={{ size: "xs", displayEmpty: true, error: hasError }}
     >
       <MenuItem value="" disabled noSelectBackground>
         Choose
@@ -102,13 +109,17 @@ const PropertySelector = ({ index }: { index: number }) => {
 };
 
 const ValueSelector = ({ index }: { index: number }) => {
-  const { register } = useFormContext<FormValues>();
+  const { register, formState } = useFormContext<FormValues>();
+
+  const errorMsg = formState.errors.filters?.[index]?.value?.message;
 
   /** @todo add type dropdown support */
   return (
     <TextField
       placeholder="value"
-      {...register(`filters.${index}.value`)}
+      {...register(`filters.${index}.value`, { required: "Required" })}
+      error={!!errorMsg}
+      helperText={errorMsg}
       size="xs"
     />
   );

@@ -22,7 +22,7 @@ export type PropertyOperator =
   | "contains"
   | "does not contain";
 
-interface PropertyFilter extends FilterBase {
+export interface PropertyFilter extends FilterBase {
   type: "Property";
   operator: PropertyOperator;
   value?: string;
