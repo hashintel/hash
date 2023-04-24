@@ -3,7 +3,7 @@ from beartype import beartype
 from langchain import LLMMathChain
 from langchain.chat_models import ChatOpenAI
 
-from .io_types import Input, Output
+from app.agents.io_types import Input, Output
 
 logger = structlog.stdlib.get_logger(__name__)
 

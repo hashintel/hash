@@ -4,16 +4,16 @@ from abc import ABC, ABCMeta, abstractmethod
 from typing import Any, Coroutine, Self
 
 import structlog.stdlib
-from beartype import beartype
 
-from app.agents.template.io_types import Input, Output
+from app.agents.globals import AGENTS
+from app.agents.io_types import Input, Output
 
 logger = structlog.stdlib.get_logger()
 
-# Python has no notion of private items, this hides it from the docs at least
-_AGENTS: "dict[str, Agent] | None" = None
 
-DENY_LIST = frozenset(("__init__.py", "__main__.py", "abc.py"))
+DENY_LIST = frozenset(
+    ("__init__.py", "__main__.py", "abc.py", "io_types.py", "globals.py")
+)
 
 
 class AgentMeta(ABCMeta):
@@ -31,19 +31,15 @@ class AgentMeta(ABCMeta):
             logger.warning("unable to determine module of agent", agent=name)
             return cls
 
-        global _AGENTS
-
-        if _AGENTS is None:
-            _AGENTS = {}
-
-        _AGENTS[module] = cls()
+        AGENTS[module] = cls()
 
         return cls
 
     # noinspection PyMethodMayBeStatic
-    def find(cls) -> "dict[str, Agent]":
-        if _AGENTS:
-            return _AGENTS
+    @classmethod
+    def find(mcls) -> "dict[str, Agent]":
+        if AGENTS:
+            return AGENTS
 
         # find any file or directory in the current directory of abc, and import them if
         # they are not on the deny list.
@@ -53,11 +49,11 @@ class AgentMeta(ABCMeta):
             if agent in DENY_LIST:
                 continue
 
-            agent = agent.removeprefix('.py')
+            agent = agent.removesuffix('.py')
             # import them, this will register any agent declared in the file or __init__
-            importlib.import_module(f".{agent}")
+            importlib.import_module(f"app.agents.{agent}")
 
-        return _AGENTS or {}
+        return AGENTS
 
 
 class Agent(ABC, metaclass=AgentMeta):

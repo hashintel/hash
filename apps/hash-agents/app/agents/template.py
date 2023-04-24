@@ -5,13 +5,14 @@ from langchain import LLMMathChain
 from langchain.chat_models import ChatOpenAI
 
 from app.agents.abc import Agent
-from app.agents.template.io_types import Input, Output
+from app.agents.io_types import Input, Output
 
 
 class Math(Agent):
     def __init__(self):
-        self.llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0)
-        self.math = LLMMathChain(llm=self.llm, verbose=True)
+        # self.llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0)
+        # self.math = LLMMathChain(llm=self.llm, verbose=True)
+        ...
 
     @beartype
     async def execute(self, input: Input) -> Coroutine[None, None, Output]:
