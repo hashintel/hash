@@ -291,8 +291,11 @@ export const CommandBar = () => {
                   )
                 }
                 open
+                popupIcon={null}
                 onClose={(_, reason) => {
-                  closeBar(reason === "escape" ? "immediate" : "delayed");
+                  if (reason !== "toggleInput") {
+                    closeBar(reason === "escape" ? "immediate" : "delayed");
+                  }
                 }}
                 sx={{ width: "100%" }}
                 renderInput={(props) => {
@@ -310,7 +313,6 @@ export const CommandBar = () => {
                         />
                       ))}
                       <TextField
-                        onBlur={() => closeBar("delayed")}
                         autoFocus
                         placeholder="Type a command or search…"
                         inputRef={inputRef}
