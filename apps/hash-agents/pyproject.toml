@@ -20,6 +20,7 @@ uvicorn = "^0.21.1"
 structlog = "^23.1.0"
 asgi-correlation-id = "^4.1.0"
 rich = "^13.3.4"
+typer = {extras = ["rich"], version = "^0.7.0"}
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"
