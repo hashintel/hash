@@ -174,7 +174,11 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
   )?.hasValue;
 
   return (
-    <Stack direction="row" gap={1.5} sx={{ alignItems: "center" }}>
+    <Stack
+      direction="row"
+      gap={1.5}
+      sx={{ alignItems: "center", fontSize: 14 }}
+    >
       <Box sx={{ width: 80 }}>
         {isFirstOne ? (
           "Where"
@@ -189,7 +193,7 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
         direction="row"
         sx={{
           flex: 1,
-          "*": {
+          fieldset: {
             boxShadow: "none !important",
           },
 
@@ -205,10 +209,6 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
           },
 
           [`.${formControlClasses.root}`]: {
-            [`.${outlinedInputClasses.focused}`]: {
-              borderWidth: "6px",
-            },
-
             [`:not(:last-child) .${outlinedInputClasses.notchedOutline}`]: {
               borderRight: "none",
             },
