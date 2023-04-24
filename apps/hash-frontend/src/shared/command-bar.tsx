@@ -1,6 +1,6 @@
 import { TextField } from "@hashintel/design-system";
 import { Autocomplete, Box, Modal } from "@mui/material";
-import { bindPopover, usePopupState } from "material-ui-popup-state/es/hooks";
+import { bindPopover, usePopupState } from "material-ui-popup-state";
 import { useKeys } from "rooks";
 
 export const CommandBar = () => {
