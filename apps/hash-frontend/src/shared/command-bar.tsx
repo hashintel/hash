@@ -14,10 +14,13 @@ import {
   HTMLAttributes,
   ReactNode,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
 import { useKeys } from "rooks";
+
+const RESET_BAR_TIMEOUT = 5_000;
 
 const CustomScreenContext = createContext<ReactNode | null>(null);
 
@@ -120,6 +123,11 @@ const options: Option[] = [
         label: "Option C",
         href: "https://google.com/",
       },
+      {
+        group: "Other",
+        label: "Option D",
+        href: "/",
+      },
     ],
   },
   {
@@ -174,21 +182,58 @@ export const CommandBar = () => {
 
   const router = useRouter();
 
+  const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
   const [selectedOptions, selectedOption] = getSelectedOptions(
     selectedOptionPath,
     options,
   );
 
-  const closeBar = () => {
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      const timer = closeTimer.current;
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
+
+  const resetBar = () => {
     setSelectedOptionPath([]);
+    setInputValue("");
+  };
+
+  const closeBar = (reset: "immediate" | "never" | "delayed") => {
     popupState.close();
+
+    const timer = closeTimer.current;
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    switch (reset) {
+      case "immediate":
+        resetBar();
+        break;
+      case "delayed":
+        closeTimer.current = setTimeout(resetBar, RESET_BAR_TIMEOUT);
+        break;
+      case "never":
+        // Do nothing
+        break;
+    }
   };
 
   useKeys(["Meta", "k"], () => {
     if (popupState.isOpen) {
-      closeBar();
+      closeBar("delayed");
     } else {
+      const timer = closeTimer.current;
+      if (timer) {
+        clearTimeout(timer);
+      }
       popupState.open();
     }
   });
@@ -199,8 +244,6 @@ export const CommandBar = () => {
     (option) => option.label === selectedOption,
   );
   const selectedOptionValue = selected?.selected?.(selected);
-
-  const [inputValue, setInputValue] = useState("");
 
   return (
     <Modal open={popupState.isOpen} onClose={closeBar}>
@@ -218,91 +261,96 @@ export const CommandBar = () => {
           display="flex"
           justifyContent="center"
           margin="0 auto"
+          sx={{ pointerEvents: "none" }}
         >
-          <CustomScreenContext.Provider value={selectedOptionValue}>
-            <Autocomplete
-              inputValue={inputValue}
-              // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selected option
-              value={null}
-              onInputChange={(_, value, reason) => {
-                setInputValue(reason === "reset" ? "" : value);
-              }}
-              disableCloseOnSelect
-              autoHighlight
-              options={flattenedOptions}
-              filterOptions={(allOptions, state) =>
-                defaultFilterOptions(
-                  allOptions.filter(
-                    (option) =>
-                      JSON.stringify(option.path) ===
-                      JSON.stringify(selectedOptionPath),
-                  ),
-                  state,
-                )
-              }
-              open
-              onClose={() => closeBar()}
-              sx={{ width: "100%" }}
-              renderInput={(props) => {
-                return (
-                  <>
-                    {selectedOptionPath.map((path, index) => (
-                      <Chip
-                        key={path}
-                        label={path}
-                        onDelete={() =>
-                          setSelectedOptionPath(
-                            selectedOptionPath.slice(0, index),
-                          )
-                        }
-                      />
-                    ))}
-                    <TextField
-                      onBlur={() => closeBar()}
-                      autoFocus
-                      placeholder="Type a command or search…"
-                      inputRef={inputRef}
-                      onKeyDown={(evt) => {
-                        if (
-                          evt.key === "Backspace" &&
-                          !inputRef.current?.value
-                        ) {
-                          setSelectedOptionPath(
-                            selectedOptionPath.slice(0, -1),
-                          );
-                        }
-                      }}
-                      {...props}
-                    />
-                  </>
-                );
-              }}
-              onChange={(_, __, reason, details) => {
-                if (details && reason === "selectOption") {
-                  const option = details.option;
-
-                  if (option.href) {
-                    closeBar();
-                    if (option.href.startsWith("https:")) {
-                      window.open(option.href, "_blank", "noopener");
-                    } else {
-                      void router.push(option.href);
-                    }
-                  } else if (option.options || option.selected) {
-                    setSelectedOptionPath([
-                      ...selectedOptionPath,
-                      option.label,
-                    ]);
-                  } else {
-                    closeBar();
-                  }
+          <Box sx={{ pointerEvents: "all", width: "100%" }}>
+            <CustomScreenContext.Provider value={selectedOptionValue}>
+              <Autocomplete
+                inputValue={inputValue}
+                // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selected option
+                value={null}
+                onInputChange={(_, value, reason) => {
+                  setInputValue(reason === "reset" ? "" : value);
+                }}
+                disableCloseOnSelect
+                autoHighlight
+                options={flattenedOptions}
+                filterOptions={(allOptions, state) =>
+                  defaultFilterOptions(
+                    allOptions.filter(
+                      (option) =>
+                        JSON.stringify(option.path) ===
+                        JSON.stringify(selectedOptionPath),
+                    ),
+                    state,
+                  )
                 }
-              }}
-              groupBy={(option) => option.group}
-              getOptionLabel={(option) => option.label}
-              PaperComponent={CustomPaperComponent}
-            />
-          </CustomScreenContext.Provider>
+                open
+                onClose={(_, reason) => {
+                  closeBar(reason === "escape" ? "immediate" : "delayed");
+                }}
+                sx={{ width: "100%" }}
+                renderInput={(props) => {
+                  return (
+                    <>
+                      {selectedOptionPath.map((path, index) => (
+                        <Chip
+                          key={path}
+                          label={path}
+                          onDelete={() =>
+                            setSelectedOptionPath(
+                              selectedOptionPath.slice(0, index),
+                            )
+                          }
+                        />
+                      ))}
+                      <TextField
+                        onBlur={() => closeBar("delayed")}
+                        autoFocus
+                        placeholder="Type a command or search…"
+                        inputRef={inputRef}
+                        onKeyDown={(evt) => {
+                          if (
+                            evt.key === "Backspace" &&
+                            !inputRef.current?.value
+                          ) {
+                            setSelectedOptionPath(
+                              selectedOptionPath.slice(0, -1),
+                            );
+                          }
+                        }}
+                        {...props}
+                      />
+                    </>
+                  );
+                }}
+                onChange={(_, __, reason, details) => {
+                  if (details && reason === "selectOption") {
+                    const option = details.option;
+
+                    if (option.href) {
+                      closeBar("immediate");
+                      if (option.href.startsWith("https:")) {
+                        window.open(option.href, "_blank", "noopener");
+                      } else {
+                        void router.push(option.href);
+                      }
+                    } else if (option.options || option.selected) {
+                      setSelectedOptionPath([
+                        ...selectedOptionPath,
+                        option.label,
+                      ]);
+                    } else {
+                      closeBar("immediate");
+                    }
+                  }
+                }}
+                groupBy={(option) => option.group}
+                getOptionLabel={(option) => option.label}
+                PaperComponent={CustomPaperComponent}
+              />
+            </CustomScreenContext.Provider>
+          </Box>
         </Box>
       </Box>
     </Modal>
