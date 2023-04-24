@@ -1,5 +1,14 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Box, Stack, styled } from "@mui/material";
+import {
+  Box,
+  FormControl,
+  formControlClasses,
+  formHelperTextClasses,
+  inputBaseClasses,
+  outlinedInputClasses,
+  Stack,
+  styled,
+} from "@mui/material";
 import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
 import { FontAwesomeIcon } from "../../fontawesome-icon";
@@ -24,34 +33,36 @@ const TypeSelector = ({ index }: { index: number }) => {
   const { control, setValue } = useFormContext<FormValues>();
 
   return (
-    <RHFSelect
-      control={control}
-      name={`filters.${index}.type`}
-      selectProps={{ size: "xs" }}
-      rules={{
-        onChange: (event: { target: { value: FilterType } }) => {
-          const firstOperatorOfSelectedType =
-            fieldOperators[event.target.value][0]!;
+    <FormControl>
+      <RHFSelect
+        control={control}
+        name={`filters.${index}.type`}
+        selectProps={{ size: "xs" }}
+        rules={{
+          onChange: (event: { target: { value: FilterType } }) => {
+            const firstOperatorOfSelectedType =
+              fieldOperators[event.target.value][0]!;
 
-          setValue(
-            `filters.${index}.operator`,
-            firstOperatorOfSelectedType.operator,
-            {
-              shouldDirty: true,
-              shouldTouch: true,
-              shouldValidate: true,
-            },
-          );
-        },
-      }}
-    >
-      {filterTypes.map(({ icon, type }) => (
-        <MenuItem key={type} value={type}>
-          <StyledIcon icon={{ icon }} />
-          {type}
-        </MenuItem>
-      ))}
-    </RHFSelect>
+            setValue(
+              `filters.${index}.operator`,
+              firstOperatorOfSelectedType.operator,
+              {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: true,
+              },
+            );
+          },
+        }}
+      >
+        {filterTypes.map(({ icon, type }) => (
+          <MenuItem key={type} value={type}>
+            <StyledIcon icon={{ icon }} />
+            {type}
+          </MenuItem>
+        ))}
+      </RHFSelect>
+    </FormControl>
   );
 };
 
@@ -60,17 +71,19 @@ const OperatorSelector = ({ index }: { index: number }) => {
   const watchedType = watch(`filters.${index}.type`);
 
   return (
-    <RHFSelect
-      control={control}
-      name={`filters.${index}.operator`}
-      selectProps={{ size: "xs" }}
-    >
-      {fieldOperators[watchedType].map(({ operator }) => (
-        <MenuItem key={operator} value={operator}>
-          {operator}
-        </MenuItem>
-      ))}
-    </RHFSelect>
+    <FormControl>
+      <RHFSelect
+        control={control}
+        name={`filters.${index}.operator`}
+        selectProps={{ size: "xs" }}
+      >
+        {fieldOperators[watchedType].map(({ operator }) => (
+          <MenuItem key={operator} value={operator}>
+            {operator}
+          </MenuItem>
+        ))}
+      </RHFSelect>
+    </FormControl>
   );
 };
 
@@ -89,22 +102,24 @@ const PropertySelector = ({ index }: { index: number }) => {
   const hasError = !!filterErrors?.propertyTypeId;
 
   return (
-    <RHFSelect
-      control={control}
-      rules={{ required: "Required" }}
-      defaultValue=""
-      name={`filters.${index}.propertyTypeId`}
-      selectProps={{ size: "xs", displayEmpty: true, error: hasError }}
-    >
-      <MenuItem value="" disabled noSelectBackground>
-        Choose
-      </MenuItem>
-      {properties.map(({ title, id }) => (
-        <MenuItem key={id} value={id}>
-          {title}
+    <FormControl>
+      <RHFSelect
+        control={control}
+        rules={{ required: "Required" }}
+        defaultValue=""
+        name={`filters.${index}.propertyTypeId`}
+        selectProps={{ size: "xs", displayEmpty: true, error: hasError }}
+      >
+        <MenuItem value="" disabled noSelectBackground>
+          Choose
         </MenuItem>
-      ))}
-    </RHFSelect>
+        {properties.map(({ title, id }) => (
+          <MenuItem key={id} value={id}>
+            {title}
+          </MenuItem>
+        ))}
+      </RHFSelect>
+    </FormControl>
   );
 };
 
@@ -129,10 +144,12 @@ const ChainOperatorSelector = () => {
   const { control } = useFormContext<FormValues>();
 
   return (
-    <RHFSelect name="operator" control={control} selectProps={{ size: "xs" }}>
-      <MenuItem value="AND">and</MenuItem>
-      <MenuItem value="OR">or</MenuItem>
-    </RHFSelect>
+    <FormControl>
+      <RHFSelect name="operator" control={control} selectProps={{ size: "xs" }}>
+        <MenuItem value="AND">and</MenuItem>
+        <MenuItem value="OR">or</MenuItem>
+      </RHFSelect>
+    </FormControl>
   );
 };
 
@@ -153,7 +170,7 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
   )?.hasValue;
 
   return (
-    <Stack direction="row" gap={1.5}>
+    <Stack direction="row" gap={1.5} sx={{ alignItems: "center" }}>
       <Box sx={{ width: 80 }}>
         {isFirstOne ? (
           "Where"
@@ -164,7 +181,43 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
         )}
       </Box>
 
-      <Stack direction="row">
+      <Stack
+        direction="row"
+        sx={{
+          "*": {
+            boxShadow: "none !important",
+          },
+
+          [`.${formHelperTextClasses.root}`]: {
+            position: "absolute",
+            bottom: 0,
+            transform: "translateY(100%)",
+          },
+
+          [`.${inputBaseClasses.root}`]: {
+            borderRadius: 0,
+            height: 38,
+          },
+
+          [`.${formControlClasses.root}`]: {
+            [`.${outlinedInputClasses.focused}`]: {
+              borderWidth: "6px",
+            },
+
+            [`:not(:last-child) .${outlinedInputClasses.notchedOutline}`]: {
+              borderRight: "none",
+            },
+
+            [`:first-child .${inputBaseClasses.root}`]: {
+              borderRadius: "6px 0 0 6px",
+            },
+
+            [`:last-child .${inputBaseClasses.root}`]: {
+              borderRadius: "0 6px 6px 0",
+            },
+          },
+        }}
+      >
         <TypeSelector index={index} />
         {watchedType === "Property" && <PropertySelector index={index} />}
         <OperatorSelector index={index} />

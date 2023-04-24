@@ -43,13 +43,15 @@ export const EntityQueryEditor = ({
       >
         <EditorTitle />
 
-        {fieldArray.fields.map((field, index) => (
-          <FilterRow
-            index={index}
-            key={field.id}
-            onRemove={() => fieldArray.remove(index)}
-          />
-        ))}
+        <Stack gap={3}>
+          {fieldArray.fields.map((field, index) => (
+            <FilterRow
+              index={index}
+              key={field.id}
+              onRemove={() => fieldArray.remove(index)}
+            />
+          ))}
+        </Stack>
 
         <Box>
           <Button
