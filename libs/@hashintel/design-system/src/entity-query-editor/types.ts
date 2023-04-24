@@ -1,4 +1,5 @@
 import { MultiFilterOperatorType } from "@blockprotocol/graph";
+import { BoxProps } from "@mui/material";
 
 export type FilterType = "Type" | "Property";
 
@@ -39,4 +40,5 @@ export type FormValues = {
 export interface EntityQueryEditorProps {
   onSave: () => void;
   onClose: () => void;
+  sx?: BoxProps["sx"];
 }

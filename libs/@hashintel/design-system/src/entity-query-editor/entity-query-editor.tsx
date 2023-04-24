@@ -11,6 +11,7 @@ import { EntityQueryEditorProps, FormValues } from "./types";
 export const EntityQueryEditor = ({
   onClose,
   onSave,
+  sx = [],
 }: EntityQueryEditorProps) => {
   const form = useForm<FormValues>({
     defaultValues: { operator: "AND", filters: [] },
@@ -34,16 +35,20 @@ export const EntityQueryEditor = ({
     <FormProvider {...form}>
       <Stack
         gap={2.5}
-        sx={{
-          border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          p: 2.5,
-          borderRadius: 2,
-          background: "white",
-        }}
+        sx={[
+          {
+            border: ({ palette }) => `1px solid ${palette.gray[30]}`,
+            p: 2.5,
+            borderRadius: 2,
+            background: "white",
+            overflowX: "auto",
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
       >
         <EditorTitle />
 
-        <Stack gap={3}>
+        <Stack gap={3} sx={{ alignSelf: "flex-start" }}>
           {fieldArray.fields.map((field, index) => (
             <FilterRow
               index={index}

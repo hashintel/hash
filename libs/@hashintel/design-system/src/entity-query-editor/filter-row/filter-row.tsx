@@ -26,14 +26,13 @@ const StyledIcon = styled(FontAwesomeIcon)({
 interface FilterRowProps {
   index: number;
   onRemove: () => void;
-  // value: FieldArrayWithId<FormValues, "filters", "id">;
 }
 
 const TypeSelector = ({ index }: { index: number }) => {
   const { control, setValue } = useFormContext<FormValues>();
 
   return (
-    <FormControl>
+    <FormControl sx={{ width: 133 }}>
       <RHFSelect
         control={control}
         name={`filters.${index}.type`}
@@ -71,7 +70,7 @@ const OperatorSelector = ({ index }: { index: number }) => {
   const watchedType = watch(`filters.${index}.type`);
 
   return (
-    <FormControl>
+    <FormControl sx={{ minWidth: 117, flex: 1 }}>
       <RHFSelect
         control={control}
         name={`filters.${index}.operator`}
@@ -92,7 +91,7 @@ const PropertySelector = ({ index }: { index: number }) => {
 
   const properties = [
     { title: "First name", id: "123" },
-    { title: "Last name", id: "456" },
+    { title: "Age", id: "456" },
   ];
 
   const filterErrors = formState.errors.filters?.[index] as
@@ -108,7 +107,11 @@ const PropertySelector = ({ index }: { index: number }) => {
         rules={{ required: "Required" }}
         defaultValue=""
         name={`filters.${index}.propertyTypeId`}
-        selectProps={{ size: "xs", displayEmpty: true, error: hasError }}
+        selectProps={{
+          size: "xs",
+          displayEmpty: true,
+          error: hasError,
+        }}
       >
         <MenuItem value="" disabled noSelectBackground>
           Choose
@@ -131,11 +134,12 @@ const ValueSelector = ({ index }: { index: number }) => {
   /** @todo add type dropdown support */
   return (
     <TextField
-      placeholder="value"
+      placeholder="filter value"
       {...register(`filters.${index}.value`, { required: "Required" })}
       error={!!errorMsg}
       helperText={errorMsg}
       size="xs"
+      sx={{ width: 190 }}
     />
   );
 };
@@ -184,6 +188,7 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
       <Stack
         direction="row"
         sx={{
+          flex: 1,
           "*": {
             boxShadow: "none !important",
           },
