@@ -1,4 +1,4 @@
-import { TextField } from "@hashintel/design-system";
+import { Chip, TextField } from "@hashintel/design-system";
 import {
   Autocomplete,
   autocompleteClasses,
@@ -182,13 +182,31 @@ export const CommandBar = () => {
             sx={{ width: "100%" }}
             renderInput={(props) => {
               return (
-                <TextField
-                  onBlur={() => closeBar()}
-                  autoFocus
-                  placeholder="Type a command or search…"
-                  inputRef={inputRef}
-                  {...props}
-                />
+                <>
+                  {selectedOptionPath.map((path, index) => (
+                    <Chip
+                      key={path}
+                      label={path}
+                      onDelete={() =>
+                        setSelectedOptionPath(
+                          selectedOptionPath.slice(0, index),
+                        )
+                      }
+                    />
+                  ))}
+                  <TextField
+                    onBlur={() => closeBar()}
+                    autoFocus
+                    placeholder="Type a command or search…"
+                    inputRef={inputRef}
+                    onKeyDown={(evt) => {
+                      if (evt.key === "Backspace" && !inputRef.current?.value) {
+                        setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+                      }
+                    }}
+                    {...props}
+                  />
+                </>
               );
             }}
             renderOption={(props, option) => {
