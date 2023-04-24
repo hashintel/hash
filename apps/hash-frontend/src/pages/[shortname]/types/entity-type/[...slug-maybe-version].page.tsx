@@ -1,5 +1,9 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
-import { EntityType } from "@blockprotocol/type-system/slim";
+import {
+  EntityType,
+  PropertyType,
+  PropertyTypeReference,
+} from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -13,15 +17,17 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
+import { BaseUrl, OwnedById } from "@local/hash-subgraph";
+import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -56,6 +62,8 @@ const Page: NextPageWithLayout = () => {
     `${number}` | undefined,
   ]; // @todo validate that the URL is formatted as expected;
 
+  const { getPropertyType } = useBlockProtocolGetPropertyType();
+
   const baseEntityTypeUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
     : null;
@@ -88,7 +96,9 @@ const Page: NextPageWithLayout = () => {
   const isReadonly = useIsReadonlyModeForResource(routeNamespace?.accountId);
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { properties: [], links: [] },
+    defaultValues: draftEntityType
+      ? getFormDataFromSchema(draftEntityType)
+      : { properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
@@ -128,15 +138,61 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
+  const [fetchedDraftPropertyTypes, setFetchedDraftPropertyTypes] = useState<{
+    [k: string]: PropertyType;
+  }>();
+
+  const fetchDraftPropertyTypes = useCallback(async () => {
+    if (draftEntityType) {
+      const draftPropertyTypes: PropertyType[] = [];
+
+      /** @todo: fetch these asynchronously when it is made possible */
+      for (const { $ref: propertyTypeId } of Object.values(
+        draftEntityType.properties as Record<BaseUrl, PropertyTypeReference>,
+      )) {
+        const { data: propertyTypeSubgraph } = await getPropertyType({
+          data: { propertyTypeId },
+        });
+
+        const propertyType = propertyTypeSubgraph
+          ? getPropertyTypeById(propertyTypeSubgraph, propertyTypeId)?.schema
+          : undefined;
+
+        if (!propertyType) {
+          throw new Error(`Property type not found: ${propertyTypeId}`);
+        }
+
+        draftPropertyTypes.push(propertyType);
+      }
+
+      setFetchedDraftPropertyTypes(
+        draftPropertyTypes.reduce(
+          (acc, propertyType) => ({
+            ...acc,
+            [propertyType.$id]: propertyType,
+          }),
+          {},
+        ),
+      );
+    }
+  }, [draftEntityType, getPropertyType]);
+
+  useEffect(() => {
+    if (draftEntityType && !fetchedDraftPropertyTypes) {
+      void fetchDraftPropertyTypes();
+    }
+  }, [draftEntityType, fetchedDraftPropertyTypes, fetchDraftPropertyTypes]);
+
   const entityTypeAndPropertyTypes = useMemo(
     () =>
       entityType
         ? {
             entityType,
-            propertyTypes: remotePropertyTypes ?? {},
+            propertyTypes:
+              remotePropertyTypes ?? fetchedDraftPropertyTypes ?? {},
           }
         : null,
-    [entityType, remotePropertyTypes],
+    [entityType, remotePropertyTypes, fetchedDraftPropertyTypes],
   );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
