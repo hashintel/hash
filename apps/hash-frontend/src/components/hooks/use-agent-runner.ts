@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { AgentType } from "@apps/hash-agents";
+import { GraphQLError } from "graphql";
 import { useCallback } from "react";
 
 import {
@@ -8,14 +9,16 @@ import {
 } from "../../graphql/api-types.gen";
 import { callAgentRunnerMutation } from "../../graphql/queries/agents.queries";
 
+type CallAgentRunnerCallback<T> = (
+  input: Extract<AgentType, { Agent: T }>["Input"],
+) => Promise<{
+  output?: Extract<AgentType, { Agent: T }>["Output"];
+  errors?: GraphQLError[];
+}>;
+
 export const useAgentRunner = <T extends AgentType["Agent"]>(
   agent: T,
-): [
-  (
-    input: Extract<AgentType, { Agent: T }>["Input"],
-  ) => Promise<Extract<AgentType, { Agent: T }>["Output"] | undefined>,
-  { readonly loading: boolean },
-] => {
+): [CallAgentRunnerCallback<T>, { readonly loading: boolean }] => {
   const [callAgentRunnerFn, { loading }] = useMutation<
     CallAgentRunnerMutation,
     CallAgentRunnerMutationVariables
@@ -24,20 +27,25 @@ export const useAgentRunner = <T extends AgentType["Agent"]>(
   });
 
   const callAgentRunnerCallback = useCallback(
-    async (input: Extract<AgentType, { Agent: T }>["Input"]) => {
-      return (
-        await callAgentRunnerFn({
-          variables: {
-            payload: {
-              Agent: agent,
-              Input: input,
-            },
-          },
-        })
-      ).data?.callAgentRunner.Output;
+    async (input: Parameters<CallAgentRunnerCallback<T>>[0]) => {
+      const { data, errors } = await callAgentRunnerFn({
+        variables: {
+          payload: { Agent: agent, Input: input },
+        },
+      });
+
+      const output = data?.callAgentRunner.Output as Extract<
+        AgentType,
+        { Agent: T }
+      >["Output"];
+
+      return { output, errors };
     },
     [agent, callAgentRunnerFn],
   );
 
-  return [callAgentRunnerCallback, { loading }];
+  return [
+    callAgentRunnerCallback as unknown as CallAgentRunnerCallback<T>,
+    { loading },
+  ];
 };
