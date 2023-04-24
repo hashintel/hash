@@ -24,12 +24,7 @@ class AgentMeta(ABCMeta):
             # only process agents that are not abstract base classes (are real agents)
             return cls
 
-        module = namespace.get('__module__')
-        if module is None:
-            logger.warning("unable to determine module of agent", agent=name)
-            return cls
-
-        AGENTS[module] = cls()
+        AGENTS[cls.name()] = cls()
 
         return cls
 
@@ -66,6 +61,11 @@ class Agent(ABC, Generic[Input, Output], metaclass=AgentMeta):
     # creating this as an abstractmethod allows us to force certain attributes
     @abstractmethod
     def __init__(self):
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def name():
         ...
 
     @abstractmethod

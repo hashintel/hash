@@ -17,6 +17,10 @@ class Math(Agent[Input, Output]):
         self.llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0)
         self.math = LLMMathChain(llm=self.llm, verbose=True)
 
+    @staticmethod
+    def name():
+        return 'template'
+
     @beartype
     async def execute(self, input: Input) -> Coroutine[None, None, Output]:
         result = await self.math.arun(input.expression)
