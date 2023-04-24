@@ -203,7 +203,8 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
                 }
                 label={
                   <>
-                    <strong>{title}</strong> {description}
+                    <strong>{title}</strong> - {description?.[0]?.toLowerCase()}
+                    {description?.slice(1)}
                   </>
                 }
                 sx={{
