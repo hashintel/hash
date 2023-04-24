@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import { HTMLAttributes } from "react";
+import { HTMLAttributes, useRef, useState } from "react";
 import { useKeys } from "rooks";
 
 const CustomPaperComponent = ({
@@ -19,8 +19,7 @@ const CustomPaperComponent = ({
     {...props}
     sx={{
       [`.${autocompleteClasses.listbox}`]: {
-        height: 461,
-        maxHeight: "none",
+        maxHeight: 461,
       },
     }}
   >
@@ -28,11 +27,31 @@ const CustomPaperComponent = ({
   </Paper>
 );
 
-const options = [
+type Option = {
+  group: string;
+  label: string;
+  href?: string;
+  options?: Option[];
+};
+
+const options: Option[] = [
   {
     group: "Blocks",
     label: "Find a block…",
-    href: "https://google.com/",
+    options: [
+      {
+        group: "General",
+        label: "Option A",
+      },
+      {
+        group: "General",
+        label: "Option B",
+      },
+      {
+        group: "Other",
+        label: "Option C",
+      },
+    ],
   },
   {
     group: "Blocks",
@@ -88,6 +107,17 @@ export const CommandBar = () => {
 
   const router = useRouter();
 
+  const [selectedOptionPath, setSelectedOptionPath] = useState<Option[]>([]);
+  const selectedOptions =
+    selectedOptionPath[selectedOptionPath.length - 1]?.options ?? options;
+
+  const closeBar = () => {
+    setSelectedOptionPath([]);
+    popupState.close();
+  };
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
   return (
     <Modal {...bindPopover(popupState)}>
       <Box
@@ -106,28 +136,41 @@ export const CommandBar = () => {
           margin="0 auto"
         >
           <Autocomplete
+            // This forces the autocomplete to be recreated when the options
+            // change, which clears the input value.
+            key={selectedOptionPath.length}
+            disableCloseOnSelect
             autoHighlight
-            options={options}
+            options={selectedOptions}
             open
-            onClose={() => popupState.close()}
+            onClose={() => closeBar()}
             sx={{ width: "100%" }}
-            renderInput={(props) => (
-              <TextField
-                onBlur={() => popupState.close()}
-                autoFocus
-                placeholder="Type a command or search…"
-                {...props}
-              />
-            )}
+            renderInput={(props) => {
+              return (
+                <TextField
+                  onBlur={() => closeBar()}
+                  autoFocus
+                  placeholder="Type a command or search…"
+                  inputRef={inputRef}
+                  {...props}
+                />
+              );
+            }}
             onChange={(_, __, reason, details) => {
               if (details && reason === "selectOption") {
-                popupState.close();
-                if ("href" in details.option) {
-                  if (details.option.href.startsWith("https:")) {
-                    window.open(details.option.href, "_blank", "noopener");
+                const option = details.option;
+
+                if (option.href) {
+                  closeBar();
+                  if (option.href.startsWith("https:")) {
+                    window.open(option.href, "_blank", "noopener");
                   } else {
-                    void router.push(details.option.href);
+                    void router.push(option.href);
                   }
+                } else if (option.options) {
+                  setSelectedOptionPath([...selectedOptionPath, option]);
+                } else {
+                  closeBar();
                 }
               }
             }}
