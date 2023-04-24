@@ -7,6 +7,7 @@ import {
   Paper,
 } from "@mui/material";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
+import { useRouter } from "next/router";
 import { HTMLAttributes } from "react";
 import { useKeys } from "rooks";
 
@@ -31,38 +32,47 @@ const options = [
   {
     group: "Blocks",
     label: "Find a block…",
+    href: "https://www.google.com",
   },
   {
     group: "Blocks",
     label: "Generate new block with AI…",
+    href: "https://www.google.com",
   },
   {
     group: "Entities",
     label: "Search for an entity…",
+    href: "https://www.google.com",
   },
   {
     group: "Entities",
     label: "Insert a link to an entity…",
+    href: "https://www.google.com",
   },
   {
     group: "Entities",
     label: "Create new entity…",
+    href: "https://www.google.com",
   },
   {
     group: "Types",
     label: "Create new type…",
+    href: "https://www.google.com",
   },
   {
     group: "Apps",
     label: "Find an app…",
+    href: "https://www.google.com",
   },
   {
     group: "Apps",
     label: "Create an app…",
+    href: "https://www.google.com",
   },
   {
     group: "Apps",
     label: "Generate new app…",
+    href: "https://www.google.com",
   },
 ];
 
@@ -75,6 +85,8 @@ export const CommandBar = () => {
   useKeys(["Meta", "k"], () => {
     popupState.toggle();
   });
+
+  const router = useRouter();
 
   return (
     <Modal {...bindPopover(popupState)}>
@@ -103,12 +115,17 @@ export const CommandBar = () => {
               <TextField
                 onBlur={() => popupState.close()}
                 autoFocus
+                placeholder="Type a command or search…"
                 {...props}
               />
             )}
-            onChange={(_, __, reason) => {
-              if (reason === "selectOption") {
-                popupState.close();
+            onChange={(_, __, reason, details) => {
+              if (details && reason === "selectOption") {
+                if ("href" in details.option) {
+                  router.push(details.option.href);
+                } else {
+                  popupState.close();
+                }
               }
             }}
             groupBy={(option) => option.group}
