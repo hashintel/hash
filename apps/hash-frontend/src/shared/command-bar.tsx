@@ -36,7 +36,13 @@ const CustomPaperComponent = ({
         },
       }}
     >
-      {value ?? children}
+      {value ? (
+        <Box py={3} px={2}>
+          {value}
+        </Box>
+      ) : (
+        children
+      )}
     </Paper>
   );
 };
@@ -216,6 +222,8 @@ export const CommandBar = () => {
           <CustomScreenContext.Provider value={selectedOptionValue}>
             <Autocomplete
               inputValue={inputValue}
+              // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selected option
+              value={null}
               onInputChange={(_, value, reason) => {
                 setInputValue(reason === "reset" ? "" : value);
               }}
