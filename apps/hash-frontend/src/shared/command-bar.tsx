@@ -18,7 +18,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
 import { useKeys } from "rooks";
 
 const RESET_BAR_TIMEOUT = 5_000;
@@ -37,9 +36,6 @@ const CustomPaperComponent = ({
       sx={{
         [`.${autocompleteClasses.listbox}`]: {
           maxHeight: 461,
-        },
-        [`.${autocompleteClasses.option}:not(.Mui-focused)`]: {
-          cursor: "default !important",
         },
       }}
     >
@@ -230,8 +226,6 @@ export const CommandBar = () => {
     }
   };
 
-  const readyForHighlight = useRef(false);
-
   useKeys(["Meta", "k"], () => {
     if (popupState.isOpen) {
       closeBar("delayed");
@@ -241,15 +235,7 @@ export const CommandBar = () => {
         clearTimeout(timer);
       }
 
-      readyForHighlight.current = false;
-
-      flushSync(() => {
-        popupState.open();
-      });
-
-      setTimeout(() => {
-        readyForHighlight.current = true;
-      });
+      popupState.open();
     }
   });
 
@@ -290,42 +276,6 @@ export const CommandBar = () => {
                 disableCloseOnSelect
                 autoHighlight
                 options={flattenedOptions}
-                onHighlightChange={(evt, __, reason) => {
-                  if (reason === "mouse" && !readyForHighlight.current) {
-                    readyForHighlight.current = true;
-                    const firstOption = document.querySelector(
-                      ".MuiAutocomplete-option",
-                    );
-                    const focusedOption = evt.target as HTMLElement;
-
-                    console.log(focusedOption.getAttribute("class"));
-
-                    if (firstOption && focusedOption !== firstOption) {
-                      const handler = () => {
-                        (focusedOption as HTMLElement).style.cursor = "";
-                        focusedOption.removeEventListener("mousemove", handler);
-                        focusedOption.dispatchEvent(
-                          new MouseEvent("mouseover", {
-                            bubbles: true,
-                            cancelable: true,
-                          }),
-                        );
-                      };
-
-                      focusedOption.addEventListener("mousemove", handler);
-                      (focusedOption as HTMLElement).style.cursor = "default";
-
-                      setTimeout(() => {
-                        firstOption.dispatchEvent(
-                          new MouseEvent("mouseover", {
-                            bubbles: true,
-                            cancelable: true,
-                          }),
-                        );
-                      });
-                    }
-                  }
-                }}
                 filterOptions={(allOptions, state) =>
                   defaultFilterOptions(
                     allOptions.filter(
