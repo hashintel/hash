@@ -54,7 +54,7 @@ Browse the [HASH roadmap] for more information about upcoming features and relea
 
 ### Top-level layout
 
-This repository's contents is divided across four primary sections:
+This repository's contents is divided across several primary sections:
 
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
