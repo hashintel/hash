@@ -227,7 +227,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
           <Typography>
             {`${
               generatedPropertyTypeDefinitions ? "Re-generating" : "Generating"
-            } property types suggestions...`}
+            } property type suggestions...`}
           </Typography>
         </Box>
       </Collapse>
