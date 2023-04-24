@@ -8,33 +8,43 @@ import {
 } from "@mui/material";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import { HTMLAttributes, ReactNode, useRef, useState } from "react";
+import {
+  createContext,
+  HTMLAttributes,
+  ReactNode,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 import { useKeys } from "rooks";
+
+const CustomScreenContext = createContext<ReactNode | null>(null);
 
 const CustomPaperComponent = ({
   children,
   ...props
-}: HTMLAttributes<HTMLElement>) => (
-  <Paper
-    {...props}
-    sx={{
-      [`.${autocompleteClasses.listbox}`]: {
-        maxHeight: 461,
-      },
-    }}
-  >
-    {children}
-  </Paper>
-);
+}: HTMLAttributes<HTMLElement>) => {
+  const value = useContext(CustomScreenContext);
+
+  return (
+    <Paper
+      {...props}
+      sx={{
+        [`.${autocompleteClasses.listbox}`]: {
+          maxHeight: 461,
+        },
+      }}
+    >
+      {value ?? children}
+    </Paper>
+  );
+};
 
 type Option = {
   group: string;
   label: string;
   href?: string;
-  selected?: (
-    props: HTMLAttributes<HTMLLIElement>,
-    option: Option,
-  ) => ReactNode;
+  selected?: (option: Option) => ReactNode;
   options?: Option[];
 };
 
@@ -71,15 +81,17 @@ export const CommandBar = () => {
         {
           group: "General",
           label: "Option A",
-          selected: (props, { label }) => <li {...props}>Foo</li>,
+          selected: ({ label }) => <div>You selected {label}</div>,
         },
         {
           group: "General",
           label: "Option B",
+          selected: ({ label }) => <div>You selected {label}</div>,
         },
         {
           group: "Other",
           label: "Option C",
+          href: "https://google.com/",
         },
       ],
     },
@@ -153,6 +165,11 @@ export const CommandBar = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const selected = selectedOptions.find(
+    (option) => option.label === selectedOption,
+  );
+  const selectedOptionValue = selected?.selected?.(selected);
+
   return (
     <Modal {...bindPopover(popupState)}>
       <Box
@@ -170,81 +187,91 @@ export const CommandBar = () => {
           justifyContent="center"
           margin="0 auto"
         >
-          <Autocomplete
-            // This forces the autocomplete to be recreated when the options
-            // change, which clears the input value.
-            key={selectedOptionPath.length}
-            disableCloseOnSelect
-            autoHighlight
-            options={selectedOptions}
-            open
-            onClose={() => closeBar()}
-            sx={{ width: "100%" }}
-            renderInput={(props) => {
-              return (
-                <>
-                  {selectedOptionPath.map((path, index) => (
-                    <Chip
-                      key={path}
-                      label={path}
-                      onDelete={() =>
-                        setSelectedOptionPath(
-                          selectedOptionPath.slice(0, index),
-                        )
-                      }
+          <CustomScreenContext.Provider value={selectedOptionValue}>
+            <Autocomplete
+              // This forces the autocomplete to be recreated when the options
+              // change, which clears the input value.
+              key={selectedOptionPath.length}
+              disableCloseOnSelect
+              autoHighlight
+              options={selectedOptions}
+              open
+              onClose={() => closeBar()}
+              sx={{ width: "100%" }}
+              renderInput={(props) => {
+                return (
+                  <>
+                    {selectedOptionPath.map((path, index) => (
+                      <Chip
+                        key={path}
+                        label={path}
+                        onDelete={() =>
+                          setSelectedOptionPath(
+                            selectedOptionPath.slice(0, index),
+                          )
+                        }
+                      />
+                    ))}
+                    <TextField
+                      onBlur={() => closeBar()}
+                      autoFocus
+                      placeholder="Type a command or search…"
+                      inputRef={inputRef}
+                      onKeyDown={(evt) => {
+                        if (
+                          evt.key === "Backspace" &&
+                          !inputRef.current?.value
+                        ) {
+                          setSelectedOptionPath(
+                            selectedOptionPath.slice(0, -1),
+                          );
+                        }
+                      }}
+                      {...props}
                     />
-                  ))}
-                  <TextField
-                    onBlur={() => closeBar()}
-                    autoFocus
-                    placeholder="Type a command or search…"
-                    inputRef={inputRef}
-                    onKeyDown={(evt) => {
-                      if (evt.key === "Backspace" && !inputRef.current?.value) {
-                        setSelectedOptionPath(selectedOptionPath.slice(0, -1));
-                      }
-                    }}
-                    {...props}
-                  />
-                </>
-              );
-            }}
-            renderOption={(props, option) => {
-              if (selectedOption) {
-                if (option.label === selectedOption) {
-                  if (!option.selected) {
-                    throw new Error("Cannot render selected option");
+                  </>
+                );
+              }}
+              renderOption={(props, option) => {
+                if (selectedOption) {
+                  if (option.label === selectedOption) {
+                    if (!option.selected) {
+                      throw new Error("Cannot render selected option");
+                    }
+
+                    return option.selected(props, option);
                   }
-
-                  return option.selected(props, option);
+                  return null;
                 }
-                return null;
-              }
 
-              return <li {...props}>{option.label}</li>;
-            }}
-            onChange={(_, __, reason, details) => {
-              if (details && reason === "selectOption") {
-                const option = details.option;
+                return <li {...props}>{option.label}</li>;
+              }}
+              onChange={(_, __, reason, details) => {
+                if (details && reason === "selectOption") {
+                  const option = details.option;
 
-                if (option.href) {
-                  closeBar();
-                  if (option.href.startsWith("https:")) {
-                    window.open(option.href, "_blank", "noopener");
+                  if (option.href) {
+                    closeBar();
+                    if (option.href.startsWith("https:")) {
+                      window.open(option.href, "_blank", "noopener");
+                    } else {
+                      void router.push(option.href);
+                    }
+                  } else if (option.options || option.selected) {
+                    setSelectedOptionPath([
+                      ...selectedOptionPath,
+                      option.label,
+                    ]);
                   } else {
-                    void router.push(option.href);
+                    closeBar();
                   }
-                } else if (option.options || option.selected) {
-                  setSelectedOptionPath([...selectedOptionPath, option.label]);
-                } else {
-                  closeBar();
                 }
-              }
-            }}
-            groupBy={(option) => option.group}
-            getOptionLabel={(option) => option.label}
-            PaperComponent={CustomPaperComponent}
-          />
+              }}
+              groupBy={(option) => option.group}
+              getOptionLabel={(option) => option.label}
+              PaperComponent={CustomPaperComponent}
+            />
+          </CustomScreenContext.Provider>
         </Box>
       </Box>
     </Modal>
