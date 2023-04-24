@@ -1,6 +1,7 @@
 import {
   ENTITY_TYPE_META_SCHEMA,
   EntityType,
+  PropertyType,
 } from "@blockprotocol/type-system";
 import {
   Button,
@@ -8,6 +9,10 @@ import {
   OntologyIcon,
   TextField,
 } from "@hashintel/design-system";
+import { getPropertyTypeSchema } from "@hashintel/type-editor/src/entity-type-editor/property-list-card/get-property-type-schema";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-subgraph/.";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Container,
@@ -21,18 +26,24 @@ import {
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useContext } from "react";
+import { ReactNode, useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { useBlockProtocolCreatePropertyType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { useGenerateTypeUrlsForUser } from "../../shared/use-generate-type-urls-for-user";
 import { WorkspaceContext } from "../../shared/workspace-context";
+import {
+  PropertyTypeDefinition,
+  SelectGeneratedPropertyTypes,
+} from "./select-generated-property-types";
 
 const FormHelperLabel = ({
   children,
@@ -63,7 +74,12 @@ const HELPER_TEXT_WIDTH = 290;
  * @todo check user has permission to create entity type in this namespace
  */
 const Page: NextPageWithLayout = () => {
+  const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
+
+  const { createPropertyType } = useBlockProtocolCreatePropertyType(
+    authenticatedUser.accountId as OwnedById,
+  );
 
   const {
     handleSubmit,
@@ -72,6 +88,7 @@ const Page: NextPageWithLayout = () => {
       isSubmitting,
       errors: { name: nameError },
     },
+    watch,
     clearErrors,
   } = useForm<CreateEntityTypeFormData>({
     shouldFocusError: true,
@@ -81,6 +98,13 @@ const Page: NextPageWithLayout = () => {
       name: typeof router.query.name === "string" ? router.query.name : "",
     },
   });
+
+  const [initialPropertyTypes, setInitialPropertyTypes] = useState<
+    (PropertyTypeDefinition | PropertyType)[]
+  >([]);
+
+  const entityTypeTitle = watch("name");
+  const entityTypeDescription = watch("description");
 
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
@@ -96,6 +120,7 @@ const Page: NextPageWithLayout = () => {
       kind: "entity-type",
       version: 1,
     });
+
     const entityType: EntityType = {
       $schema: ENTITY_TYPE_META_SCHEMA,
       kind: "entityType",
@@ -103,7 +128,42 @@ const Page: NextPageWithLayout = () => {
       title: name,
       description,
       type: "object",
-      properties: {},
+      properties: await Promise.all(
+        initialPropertyTypes.map(async (propertyTypeDefinition) => {
+          if ("$id" in propertyTypeDefinition) {
+            return propertyTypeDefinition;
+          }
+
+          const res = await createPropertyType({
+            data: {
+              propertyType: getPropertyTypeSchema({
+                name: propertyTypeDefinition.title,
+                description: propertyTypeDefinition.description,
+                expectedValues: [
+                  types.dataType[propertyTypeDefinition.dataType].dataTypeId,
+                ],
+                flattenedCustomExpectedValueList: {},
+              }),
+            },
+          });
+
+          if (res.errors?.length || !res.data) {
+            /** @todo: handle this */
+
+            return [];
+          }
+
+          return res.data.schema;
+        }),
+      ).then((createdPropertyTypes) =>
+        createdPropertyTypes.flat().reduce(
+          (prev, { $id }) => ({
+            ...prev,
+            [extractBaseUrl($id)]: { $ref: $id },
+          }),
+          {},
+        ),
+      ),
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(
@@ -272,6 +332,11 @@ const Page: NextPageWithLayout = () => {
                     be used
                   </Box>
                 }
+              />
+              <SelectGeneratedPropertyTypes
+                entityTypeTitle={entityTypeTitle}
+                entityTypeDescription={entityTypeDescription}
+                setSelectedPropertyDefinitions={setInitialPropertyTypes}
               />
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
                 <Button
