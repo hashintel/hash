@@ -3,7 +3,7 @@ import json
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
-from .io_types import *
+from .io_types import Input, Output, PropertyTypeDefinition
 
 SYSTEM_MESSAGE_CONTENT = " ".join(
     [
@@ -22,7 +22,8 @@ SYSTEM_MESSAGE_CONTENT = " ".join(
 
 
 def main(agent_input: Input) -> Output:
-    # TODO - add support for querying existing property types so that they can be re-used
+    # TODO - add support for querying existing property types so
+    # that they can be re-used
     chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
     messages = [
@@ -45,9 +46,6 @@ def main(agent_input: Input) -> Output:
 
     # TODO - validate the response
 
-    for property_type in property_type_definitions:
-        print(property_type)
-
     return Output(
         [
             PropertyTypeDefinition.from_dict(property_type)
@@ -58,7 +56,7 @@ def main(agent_input: Input) -> Output:
 
 if __name__ == "HASH":
     global IN, OUT
-    OUT = main(IN)
+    OUT = main(IN)  # noqa: F821
 
 if __name__ == "__main__":
     from logging import getLogger

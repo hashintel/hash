@@ -7,8 +7,6 @@ from fastapi import FastAPI
 from app.logger import Environment, http_logging_middleware, setup_logging
 from app.routes import router
 
-from .logger import setup_logging
-
 logger = structlog.stdlib.get_logger(__name__)
 
 
