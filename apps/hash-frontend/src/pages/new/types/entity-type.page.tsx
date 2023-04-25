@@ -27,7 +27,7 @@ import {
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useContext, useState } from "react";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreatePropertyType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
@@ -81,16 +81,7 @@ const Page: NextPageWithLayout = () => {
     authenticatedUser.accountId as OwnedById,
   );
 
-  const {
-    handleSubmit,
-    register,
-    formState: {
-      isSubmitting,
-      errors: { name: nameError },
-    },
-    watch,
-    clearErrors,
-  } = useForm<CreateEntityTypeFormData>({
+  const formMethods = useForm<CreateEntityTypeFormData>({
     shouldFocusError: true,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
@@ -99,12 +90,19 @@ const Page: NextPageWithLayout = () => {
     },
   });
 
+  const {
+    handleSubmit,
+    register,
+    formState: {
+      isSubmitting,
+      errors: { name: nameError },
+    },
+    clearErrors,
+  } = formMethods;
+
   const [initialPropertyTypes, setInitialPropertyTypes] = useState<
     (PropertyTypeDefinition | PropertyType)[]
   >([]);
-
-  const entityTypeTitle = watch("name");
-  const entityTypeDescription = watch("description");
 
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
@@ -172,196 +170,196 @@ const Page: NextPageWithLayout = () => {
   });
 
   return (
-    <Stack sx={{ height: "100vh" }}>
-      <Box bgcolor="white">
-        <TopContextBar
-          defaultCrumbIcon={null}
-          crumbs={[
-            {
-              title: "Types",
-              href: "#",
-              id: "types",
-            },
-            {
-              title: "Entity types",
-              href: "#",
-              id: "entity-types",
-            },
-          ]}
-          scrollToTop={() => {}}
-        />
-        <Box py={3.75}>
-          <Container>
-            <OntologyChip
-              icon={<OntologyIcon />}
-              domain="hash.ai"
-              path={
-                <Typography color={(theme) => theme.palette.blue[70]}>
-                  <Typography
-                    component="span"
-                    fontWeight="bold"
-                    color="inherit"
-                  >
-                    {`@${activeWorkspace.shortname}`}
+    <FormProvider {...formMethods}>
+      <Stack sx={{ height: "100vh" }}>
+        <Box bgcolor="white">
+          <TopContextBar
+            defaultCrumbIcon={null}
+            crumbs={[
+              {
+                title: "Types",
+                href: "#",
+                id: "types",
+              },
+              {
+                title: "Entity types",
+                href: "#",
+                id: "entity-types",
+              },
+            ]}
+            scrollToTop={() => {}}
+          />
+          <Box py={3.75}>
+            <Container>
+              <OntologyChip
+                icon={<OntologyIcon />}
+                domain="hash.ai"
+                path={
+                  <Typography color={(theme) => theme.palette.blue[70]}>
+                    <Typography
+                      component="span"
+                      fontWeight="bold"
+                      color="inherit"
+                    >
+                      {`@${activeWorkspace.shortname}`}
+                    </Typography>
+                    /types/entity-type
                   </Typography>
-                  /types/entity-type
-                </Typography>
-              }
-              sx={[{ marginBottom: 2 }]}
-            />
-            <Typography variant="h1" fontWeight="bold">
-              Create new entity type
-            </Typography>
-          </Container>
+                }
+                sx={[{ marginBottom: 2 }]}
+              />
+              <Typography variant="h1" fontWeight="bold">
+                Create new entity type
+              </Typography>
+            </Container>
+          </Box>
         </Box>
-      </Box>
-      <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
-        <Container>
-          <Box
-            py={8}
-            component="form"
-            onSubmit={handleFormSubmit}
-            data-testid="entity-type-creation-form"
-          >
-            <Stack
-              alignItems="stretch"
-              sx={(theme) => ({
-                [theme.breakpoints.up("md")]: {
-                  [`.${outlinedInputClasses.root}`]: {
-                    width: `calc(100% - ${HELPER_TEXT_WIDTH + 52}px)`,
+        <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
+          <Container>
+            <Box
+              py={8}
+              component="form"
+              onSubmit={handleFormSubmit}
+              data-testid="entity-type-creation-form"
+            >
+              <Stack
+                alignItems="stretch"
+                sx={(theme) => ({
+                  [theme.breakpoints.up("md")]: {
+                    [`.${outlinedInputClasses.root}`]: {
+                      width: `calc(100% - ${HELPER_TEXT_WIDTH + 52}px)`,
+                    },
                   },
-                },
 
-                [`.${formHelperTextClasses.root}`]: {
-                  position: "absolute",
-                  right: 0,
-                  top: 24,
-                  width: HELPER_TEXT_WIDTH,
-                  p: 0,
-                  m: 0,
-                  color: theme.palette.gray[80],
+                  [`.${formHelperTextClasses.root}`]: {
+                    position: "absolute",
+                    right: 0,
+                    top: 24,
+                    width: HELPER_TEXT_WIDTH,
+                    p: 0,
+                    m: 0,
+                    color: theme.palette.gray[80],
 
-                  [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
-                    {
+                    [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
+                      {
+                        display: "none",
+                      },
+
+                    [theme.breakpoints.down("md")]: {
                       display: "none",
                     },
-
-                  [theme.breakpoints.down("md")]: {
-                    display: "none",
                   },
-                },
-              })}
-              spacing={3}
-            >
-              <TextField
-                {...register("name", {
-                  required: true,
-                  onChange() {
-                    clearErrors("name");
-                  },
-                  async validate(title) {
-                    const res = await getEntityType({
-                      data: {
-                        entityTypeId: generateTypeUrlsForUser({
-                          kind: "entity-type",
-                          title,
-                          version: 1,
-                        }).versionedUrl,
-                        graphResolveDepths: {
-                          constrainsValuesOn: { outgoing: 0 },
-                          constrainsPropertiesOn: { outgoing: 0 },
-                          constrainsLinksOn: { outgoing: 0 },
-                          constrainsLinkDestinationsOn: { outgoing: 0 },
+                })}
+                spacing={3}
+              >
+                <TextField
+                  {...register("name", {
+                    required: true,
+                    onChange() {
+                      clearErrors("name");
+                    },
+                    async validate(title) {
+                      const res = await getEntityType({
+                        data: {
+                          entityTypeId: generateTypeUrlsForUser({
+                            kind: "entity-type",
+                            title,
+                            version: 1,
+                          }).versionedUrl,
+                          graphResolveDepths: {
+                            constrainsValuesOn: { outgoing: 0 },
+                            constrainsPropertiesOn: { outgoing: 0 },
+                            constrainsLinksOn: { outgoing: 0 },
+                            constrainsLinkDestinationsOn: { outgoing: 0 },
+                          },
                         },
-                      },
-                    });
+                      });
 
-                    return res.data?.roots.length
-                      ? "Entity type name must be unique"
-                      : true;
-                  },
-                })}
-                required
-                label="Singular Name"
-                type="text"
-                placeholder="e.g. Stock Price"
-                helperText={
-                  <Box pr={1.25}>
-                    {nameError?.message ? (
-                      <>
-                        <FormHelperLabel
-                          sx={(theme) => ({ color: theme.palette.red[70] })}
-                        >
-                          Error
-                        </FormHelperLabel>{" "}
-                        - {nameError.message}
-                      </>
-                    ) : (
-                      <>
-                        <FormHelperLabel>Required</FormHelperLabel> - provide
-                        the singular form of your entity type’s name so it can
-                        be referred to correctly (e.g. “Stock Price” not “Stock
-                        Prices”)
-                      </>
-                    )}
-                  </Box>
-                }
-                error={!!nameError}
-              />
-              <TextField
-                {...register("description", {
-                  required: true,
-                })}
-                required
-                multiline
-                onKeyDown={async (evt) => {
-                  if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
-                    await handleFormSubmit(evt);
+                      return res.data?.roots.length
+                        ? "Entity type name must be unique"
+                        : true;
+                    },
+                  })}
+                  required
+                  label="Singular Name"
+                  type="text"
+                  placeholder="e.g. Stock Price"
+                  helperText={
+                    <Box pr={1.25}>
+                      {nameError?.message ? (
+                        <>
+                          <FormHelperLabel
+                            sx={(theme) => ({ color: theme.palette.red[70] })}
+                          >
+                            Error
+                          </FormHelperLabel>{" "}
+                          - {nameError.message}
+                        </>
+                      ) : (
+                        <>
+                          <FormHelperLabel>Required</FormHelperLabel> - provide
+                          the singular form of your entity type’s name so it can
+                          be referred to correctly (e.g. “Stock Price” not
+                          “Stock Prices”)
+                        </>
+                      )}
+                    </Box>
                   }
-                }}
-                inputProps={{ minRows: 1 }}
-                label="Description"
-                type="text"
-                placeholder="Describe this entity in one or two sentences"
-                helperText={
-                  <Box pr={3.75}>
-                    <FormHelperLabel>Required</FormHelperLabel> - descriptions
-                    should explain what an entity type is, and when they should
-                    be used
-                  </Box>
-                }
-              />
-              <SelectGeneratedPropertyTypes
-                entityTypeTitle={entityTypeTitle}
-                entityTypeDescription={entityTypeDescription}
-                onSelectedPropertiesChange={setInitialPropertyTypes}
-              />
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-                <Button
-                  type="submit"
-                  size="small"
-                  loading={isSubmitting}
-                  disabled={isSubmitting || !!nameError}
-                  loadingWithoutText
-                >
-                  Create new entity type
-                </Button>
-                <Button
-                  href="/"
-                  variant="tertiary"
-                  size="small"
-                  disabled={isSubmitting}
-                  // For some reason, Button doesn't know it can take component
-                  {...({ component: Link } as any)}
-                >
-                  Discard draft
-                </Button>
+                  error={!!nameError}
+                />
+                <TextField
+                  {...register("description", {
+                    required: true,
+                  })}
+                  required
+                  multiline
+                  onKeyDown={async (evt) => {
+                    if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
+                      await handleFormSubmit(evt);
+                    }
+                  }}
+                  inputProps={{ minRows: 1 }}
+                  label="Description"
+                  type="text"
+                  placeholder="Describe this entity in one or two sentences"
+                  helperText={
+                    <Box pr={3.75}>
+                      <FormHelperLabel>Required</FormHelperLabel> - descriptions
+                      should explain what an entity type is, and when they
+                      should be used
+                    </Box>
+                  }
+                />
+                <SelectGeneratedPropertyTypes
+                  onSelectedPropertiesChange={setInitialPropertyTypes}
+                />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+                  <Button
+                    type="submit"
+                    size="small"
+                    loading={isSubmitting}
+                    disabled={isSubmitting || !!nameError}
+                    loadingWithoutText
+                  >
+                    Create new entity type
+                  </Button>
+                  <Button
+                    href="/"
+                    variant="tertiary"
+                    size="small"
+                    disabled={isSubmitting}
+                    // For some reason, Button doesn't know it can take component
+                    {...({ component: Link } as any)}
+                  >
+                    Discard draft
+                  </Button>
+                </Stack>
               </Stack>
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
-    </Stack>
+            </Box>
+          </Container>
+        </Box>
+      </Stack>
+    </FormProvider>
   );
 };
 
