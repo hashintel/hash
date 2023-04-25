@@ -15,6 +15,7 @@ import {
 import { Box } from "@mui/system";
 import { debounce } from "lodash";
 import {
+  ChangeEvent,
   FunctionComponent,
   useCallback,
   useEffect,
@@ -161,7 +162,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
 
   const handlePropertyTypeCheckboxChange = ({
     target,
-  }: React.ChangeEvent<HTMLInputElement>) => {
+  }: ChangeEvent<HTMLInputElement>) => {
     setSelectedPropertyTypeTitles((prev) =>
       target.checked
         ? [...prev, target.name]
