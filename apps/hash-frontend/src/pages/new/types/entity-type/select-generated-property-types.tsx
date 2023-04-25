@@ -40,7 +40,7 @@ export type PropertyTypeDefinition = {
 type SelectGeneratedPropertyTypesProps = {
   entityTypeTitle: string;
   entityTypeDescription: string;
-  setSelectedPropertyDefinitions: (
+  onSelectedPropertiesChange: (
     propertyDefinitions: (PropertyTypeDefinition | PropertyType)[],
   ) => void;
 };
@@ -50,7 +50,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
 > = ({
   entityTypeTitle,
   entityTypeDescription,
-  setSelectedPropertyDefinitions,
+  onSelectedPropertiesChange,
 }) => {
   const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
@@ -174,7 +174,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
 
   useEffect(() => {
     if (generatedPropertyTypeDefinitions) {
-      setSelectedPropertyDefinitions(
+      onSelectedPropertiesChange(
         generatedPropertyTypeDefinitions.filter(({ title }) =>
           selectedPropertyTypeTitles.includes(title),
         ),
@@ -183,7 +183,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   }, [
     selectedPropertyTypeTitles,
     generatedPropertyTypeDefinitions,
-    setSelectedPropertyDefinitions,
+    onSelectedPropertiesChange,
   ]);
 
   return (

@@ -334,7 +334,7 @@ const Page: NextPageWithLayout = () => {
               <SelectGeneratedPropertyTypes
                 entityTypeTitle={entityTypeTitle}
                 entityTypeDescription={entityTypeDescription}
-                setSelectedPropertyDefinitions={setInitialPropertyTypes}
+                onSelectedPropertiesChange={setInitialPropertyTypes}
               />
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
                 <Button
