@@ -67,9 +67,23 @@ const postProcess = async (files: string[]) => {
     export type AgentType =
       ${ioMapping}
     ;
+    
+    type DistributiveOmit<T, K extends keyof any> = T extends any
+      ? Omit<T, K>
+      : never;
 
-    export type AgentTypeInput = Omit<AgentType, "Output">;
-    export type AgentTypeOutput = Omit<AgentType, "Input">;
+    export type AgentTypeInput = DistributiveOmit<AgentType, "Output">;
+    export type AgentTypeOutput = DistributiveOmit<AgentType, "Input">;
+    
+    type AgentTypeMapHelper<T extends Agent> = T extends Agent
+      ? {
+          Agent: T;
+          Input: Extract<AgentType, { Agent: T }>["Input"];
+          Output: Extract<AgentType, { Agent: T }>["Output"];
+        }
+      : never;
+
+    export type AgentTypeMap = { [T in Agent]: AgentTypeMapHelper<T> }
     `;
 
   const result = importLines + "\n\n" + agentNames + "\n\n" + typeExport;
