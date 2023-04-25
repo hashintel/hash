@@ -5,19 +5,13 @@ from langchain.schema import HumanMessage, SystemMessage
 
 from .io_types import Input, Output, PropertyTypeDefinition
 
-SYSTEM_MESSAGE_CONTENT = " ".join(
-    [
-        "You are an entity type generator.",
-        (
-            "Given a title and description of an entity type, generate relevant"
-            " property types for the entity."
-        ),
-        "Respond to any user prompts in a minified JSON array format (no whitespace),",
-        "where each item in the array represents a property type for the entity type",
-        "where each property type has a `title`, `description`,",
-        # TODO - support additional data types
-        "and a `dataType` (one of `text`, `number` or `boolean`).",
-    ]
+SYSTEM_MESSAGE_CONTENT = (
+    "You are an entity type generator. Given a title and description of an entity"
+    " type, generate relevant property types for the entity. Respond to any user"
+    " prompts in a minified JSON array format (no whitespace), where each item in the"
+    " array represents a property type for the entity type where each property type has"
+    " a `title`, `description`, and a `dataType` (one of `text`, `number` or"
+    " `boolean`)."
 )
 
 
