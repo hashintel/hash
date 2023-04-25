@@ -170,7 +170,6 @@ export const getOrCreateEntity: ImpureGraphFunction<
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
-  console.log({ entityDefinition, actorId, ownedById });
 
   if (existingEntityId) {
     entity = await getLatestEntityById(context, {
@@ -194,13 +193,9 @@ export const getOrCreateEntity: ImpureGraphFunction<
       );
     }
 
-    console.log("Looking for entity type");
-
     const entityType = await getEntityTypeById(context, {
       entityTypeId,
     });
-
-    console.log({ entityType });
 
     entity = await createEntity(context, {
       ownedById,
@@ -213,8 +208,6 @@ export const getOrCreateEntity: ImpureGraphFunction<
       `entityType and one of entityId OR entityProperties must be provided`,
     );
   }
-
-  console.log({ entity });
 
   return entity;
 };
@@ -530,27 +523,26 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
 /**
  * Get the outgoing links of an entity.
  *
- * @param params.entity - the entity
- * @param params.linkEntityType (optional) - the specific link type of the outgoing links
+ * @param params.entityId - the entityId of the entity to get the outgoing links of
+ * @param [params.linkEntityTypeVersionedUrl] (optional) – the specific link type of the outgoing links to filter to
+ * @param [params.rightEntityId] (optional) – limit returned links to those with the specified right entity
  */
 export const getEntityOutgoingLinks: ImpureGraphFunction<
   {
-    entity: Entity;
-    linkEntityType?: EntityTypeWithMetadata;
-    rightEntity?: Entity;
+    entityId: EntityId;
+    linkEntityTypeVersionedUrl?: VersionedUrl;
+    rightEntityId?: EntityId;
   },
   Promise<LinkEntity[]>
 > = async ({ graphApi }, params) => {
-  const { entity } = params;
+  const { entityId, linkEntityTypeVersionedUrl, rightEntityId } = params;
   const filter: Filter = {
     all: [
       {
         equal: [
           { path: ["leftEntity", "uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(entityId),
           },
         ],
       },
@@ -558,9 +550,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
         equal: [
           { path: ["leftEntity", "ownedById"] },
           {
-            parameter: extractOwnedByIdFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractOwnedByIdFromEntityId(entityId),
           },
         ],
       },
@@ -570,26 +560,24 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     ],
   };
 
-  if (params.linkEntityType) {
+  if (linkEntityTypeVersionedUrl) {
     filter.all.push({
       equal: [
         { path: ["type", "versionedUrl"] },
         {
-          parameter: params.linkEntityType.schema.$id,
+          parameter: linkEntityTypeVersionedUrl,
         },
       ],
     });
   }
 
-  if (params.rightEntity) {
+  if (rightEntityId) {
     filter.all.push(
       {
         equal: [
           { path: ["rightEntity", "uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              params.rightEntity.metadata.recordId.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(rightEntityId),
           },
         ],
       },
@@ -597,9 +585,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
         equal: [
           { path: ["rightEntity", "ownedById"] },
           {
-            parameter: extractOwnedByIdFromEntityId(
-              params.rightEntity.metadata.recordId.entityId,
-            ),
+            parameter: extractOwnedByIdFromEntityId(rightEntityId),
           },
         ],
       },

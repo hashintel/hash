@@ -495,17 +495,11 @@ const Page: NextPageWithLayout<PageProps> = ({
           <UserBlocksProvider value={blocksMap}>
             <BlockLoadedProvider routeHash={routeHash}>
               {canvasPage ? (
-                <CanvasPageBlock
-                  accountId={pageWorkspace.accountId}
-                  contents={contents}
-                  blocks={blocksMap}
-                  pageComments={pageComments}
-                  entityId={pageEntityId}
-                />
+                <CanvasPageBlock contents={contents} blocks={blocksMap} />
               ) : (
                 <PageBlock
                   accountId={pageWorkspace.accountId}
-                  contents={contents}
+                  contents={pageBlocks}
                   blocks={blocksMap}
                   pageComments={pageComments}
                   entityId={pageEntityId}

@@ -12,6 +12,7 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
+import { PageContentItem } from "../../graphql/api-types.gen";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
@@ -24,7 +25,7 @@ import {
 } from "./page-section-container";
 
 type PageBlockProps = {
-  contents: BlockEntity[];
+  contents: PageContentItem[];
   blocks: BlocksMap;
   pageComments: PageThread[];
   accountId: AccountId;
@@ -88,7 +89,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       blocks,
       isReadonlyMode,
       pageTitleRef,
-      () => currentContents.current,
+      () =>
+        currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
     );
 

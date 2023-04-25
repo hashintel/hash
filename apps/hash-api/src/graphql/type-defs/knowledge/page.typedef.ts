@@ -1,6 +1,15 @@
 import { gql } from "apollo-server-express";
 
 export const pageTypedef = gql`
+  """
+  A special return type to include blocks linked from pages and the link entity (as it might contain positioning data)
+  @todo – migrate from pages having special return types to returning subgraphs like other entities
+  """
+  type PageContentItem {
+    rightEntity: Block!
+    linkEntity: Entity!
+  }
+
   type Page {
     """
     The title of the page.
@@ -21,7 +30,7 @@ export const pageTypedef = gql`
     """
     The contents of the page.
     """
-    contents: [Block!]!
+    contents: [PageContentItem!]!
     """
     The fractional index of the page in the page tree.
     """
@@ -100,7 +109,7 @@ export const pageTypedef = gql`
     """
     Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
     """
-    canvasPosition: CanvasPositionInput!
+    canvasPosition: CanvasPositionInput
     """
     The block componentId.
     """
@@ -146,6 +155,10 @@ export const pageTypedef = gql`
     The position to move the block to.
     """
     newPosition: Int!
+    """
+    Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
+    """
+    canvasPosition: CanvasPositionInput
   }
 
   """

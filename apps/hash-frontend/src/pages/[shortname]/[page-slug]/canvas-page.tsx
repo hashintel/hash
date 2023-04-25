@@ -5,8 +5,7 @@ import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { updatePageContents } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { OwnedById } from "@local/hash-subgraph";
+import { BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 import { TldrawEditorConfig, useApp } from "@tldraw/editor";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
@@ -35,14 +34,18 @@ import {
   BlockLoaderProps,
 } from "../../../components/block-loader/block-loader";
 import {
+  CanvasPosition,
+  CanvasPositionInput,
+  PageContentItem,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "../../../graphql/api-types.gen";
+import { apolloClient } from "../../../lib/apollo-client";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 
 type CanvasPageBlockProps = {
-  contents: BlockEntity[];
+  contents: PageContentItem[];
   blocks: BlocksMap;
 };
 
@@ -58,12 +61,52 @@ type BlockShape = TLBaseShape<
     h: number;
     opacity: TLOpacityType;
     firstCreation: boolean;
+    indexPosition: number;
+    pageEntityId: EntityId;
     blockLoaderProps: Partial<JsonSerializableBlockLoaderProps>;
   }
 >;
 
 const defaultWidth = 600;
 const defaultHeight = 200;
+
+const fakeXPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/x-position/";
+const fakeYPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/y-position/";
+const fakeWidthPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/";
+const fakeHeightPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/";
+const fakeRotationPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/rotation-in-degrees/";
+
+const persistBlockPosition = ({
+  blockIndexPosition,
+  pageEntityId,
+  canvasPosition,
+}: {
+  blockIndexPosition: number;
+  pageEntityId: EntityId;
+  canvasPosition: CanvasPositionInput;
+}) => {
+  void apolloClient.mutate<
+    UpdatePageContentsMutation,
+    UpdatePageContentsMutationVariables
+  >({
+    variables: {
+      actions: {
+        moveBlock: {
+          currentPosition: blockIndexPosition,
+          newPosition: blockIndexPosition,
+          canvasPosition,
+        },
+      },
+      entityId: pageEntityId,
+    },
+    mutation: updatePageContents,
+  });
+};
 
 const BlockCreationDialog = ({ onClose }: DialogProps) => {
   const [creatingEntity, setCreatingEntity] = useState(false);
@@ -88,6 +131,12 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
       const blockEntityTypeId = blockMeta.schema as VersionedUrl;
 
+      const width = defaultWidth;
+      const height = defaultHeight;
+
+      const x = app.viewportPageCenter.x - width / 2;
+      const y = app.viewportPageCenter.y - height / 2;
+
       const { data } = await updatePageContentsFn({
         variables: {
           entityId: pageEntityId,
@@ -103,6 +152,13 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 },
                 ownedById: accountId as OwnedById,
                 position,
+                canvasPosition: {
+                  w: width,
+                  h: height,
+                  rotation: 0,
+                  x,
+                  y,
+                },
               },
             },
           ],
@@ -115,27 +171,28 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
       const { page } = data.updatePageContents;
 
-      const newBlock = page.contents[position];
+      const newBlock = page.contents.find(
+        (contentItem) =>
+          contentItem.linkEntity.linkData?.leftToRightOrder === position,
+      )!.rightEntity;
 
-      const wrappingEntityId = newBlock!.metadata.recordId.entityId;
+      const wrappingEntityId = newBlock.metadata.recordId.entityId;
       const blockEntityId =
-        newBlock!.blockChildEntity.metadata.recordId.entityId;
+        newBlock.blockChildEntity.metadata.recordId.entityId;
 
       const blockId = createShapeId();
-
-      const width = defaultWidth;
-      const height = defaultHeight;
 
       const blockShape = {
         id: blockId,
         type: "bpBlock",
-        x: app.viewportPageCenter.x - width / 2,
-        y: app.viewportPageCenter.y - height / 2,
+        x,
+        y,
         props: {
           w: width,
           h: height,
           firstCreation: true,
           opacity: "1" as const,
+          pageEntityId,
           blockLoaderProps: {
             blockEntityId,
             blockEntityTypeId,
@@ -193,6 +250,24 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
     console.log({ current });
   };
 
+  static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
+    return {
+      x: shape.x,
+      y: shape.y,
+      w: shape.props.w,
+      h: shape.props.h,
+      rotation: shape.rotation,
+    };
+  };
+
+  static persistShapePosition = (shape: BlockShape) => {
+    persistBlockPosition({
+      blockIndexPosition: shape.props.indexPosition,
+      pageEntityId: shape.props.pageEntityId,
+      canvasPosition: BlockUtil.shapeToCanvasPosition(shape),
+    });
+  };
+
   defaultProps() {
     return {
       opacity: "1" as const,
@@ -200,6 +275,8 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
       h: 150,
       firstCreation: true,
       blockLoaderProps: {},
+      indexPosition: 0,
+      pageEntityId: "placeholder-123" as EntityId,
     };
   }
 
@@ -247,8 +324,6 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
       }
     };
 
-    console.log({ blockLoaderProps });
-
     return (
       <HTMLContainer id={shape.id} style={{ pointerEvents: "all" }}>
         <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
@@ -285,11 +360,23 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
     }
 
     app.createShapes(
-      contents.map((blockEntity, index) => ({
+      contents.map(({ linkEntity, rightEntity: blockEntity }, index) => ({
         id: createShapeId(),
         type: "bpBlock",
-        x: 50,
-        y: index * defaultHeight + 50,
+        x:
+          (linkEntity.properties[fakeXPropertyBaseUrl as BaseUrl] as
+            | number
+            | undefined) ?? 50,
+        y:
+          (linkEntity.properties[fakeYPropertyBaseUrl as BaseUrl] as
+            | number
+            | undefined) ??
+          linkEntity.linkData?.leftToRightOrder ??
+          index * defaultHeight + 50,
+        rotation:
+          (linkEntity.properties[fakeRotationPropertyBaseUrl as BaseUrl] as
+            | number
+            | undefined) ?? 0,
         props: {
           blockLoaderProps: {
             blockEntityId:
@@ -301,6 +388,16 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
             readonly: false,
           },
           firstCreation: false,
+          indexPosition: linkEntity.linkData?.leftToRightOrder ?? index,
+          pageEntityId: linkEntity.linkData?.leftEntityId,
+          h:
+            (linkEntity.properties[fakeHeightPropertyBaseUrl as BaseUrl] as
+              | number
+              | undefined) ?? 250,
+          w:
+            (linkEntity.properties[fakeWidthPropertyBaseUrl as BaseUrl] as
+              | number
+              | undefined) ?? 600,
         },
       })),
     );
