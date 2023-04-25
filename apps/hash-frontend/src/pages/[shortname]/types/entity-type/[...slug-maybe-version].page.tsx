@@ -170,7 +170,7 @@ const Page: NextPageWithLayout = () => {
           draftPropertyTypes.map((propertyType) => [
             propertyType.$id,
             propertyType,
-          ])
+          ]),
         ),
       );
     }

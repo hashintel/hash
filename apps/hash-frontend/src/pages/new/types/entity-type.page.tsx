@@ -43,7 +43,7 @@ import { WorkspaceContext } from "../../shared/workspace-context";
 import {
   PropertyTypeDefinition,
   SelectGeneratedPropertyTypes,
-} from "./select-generated-property-types";
+} from "./entity-type/select-generated-property-types";
 
 const FormHelperLabel = ({
   children,
@@ -157,10 +157,9 @@ const Page: NextPageWithLayout = () => {
         }),
       ).then((createdPropertyTypes) =>
         Object.fromEntries(
-          createdPropertyTypes.flat().map(({ $id }) => [
-            extractBaseUrl($id),
-            { $ref: $id },
-          ])
+          createdPropertyTypes
+            .flat()
+            .map(({ $id }) => [extractBaseUrl($id), { $ref: $id }]),
         ),
       ),
     };

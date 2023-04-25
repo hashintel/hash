@@ -22,9 +22,9 @@ import {
   useState,
 } from "react";
 
-import { useBlockProtocolQueryPropertyTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
-import { useAgentRunner } from "../../../components/hooks/use-agent-runner";
-import { useGenerateTypeUrlsForUser } from "../../shared/use-generate-type-urls-for-user";
+import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
+import { useAgentRunner } from "../../../../components/hooks/use-agent-runner";
+import { useGenerateTypeUrlsForUser } from "../../../shared/use-generate-type-urls-for-user";
 
 export type PropertyTypeDefinition = {
   title: string;
