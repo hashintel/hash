@@ -1,5 +1,9 @@
 import { PropertyType } from "@blockprotocol/type-system";
-import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph/.";
+import {
+  BaseUrl,
+  PropertyTypeWithMetadata,
+  Subgraph,
+} from "@local/hash-subgraph/.";
 import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
 import {
   Checkbox,
@@ -86,9 +90,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   }, [allPropertyTypes, fetchAllPropertyTypes]);
 
   const getLatestPropertyType = useCallback(
-    (params: {
-      propertyTypeBaseUrl: PropertyTypeWithMetadata["metadata"]["recordId"]["baseUrl"];
-    }): PropertyType | null => {
+    (params: { propertyTypeBaseUrl: BaseUrl }): PropertyType | null => {
       if (!allPropertyTypes) {
         throw new Error("All property types need to be fetched");
       }
