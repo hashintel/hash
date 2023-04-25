@@ -58,7 +58,7 @@ if __name__ == "HASH":
 if __name__ == "__main__":
     from ... import setup
 
-    setup()
+    setup("dev")
 
     output = main(
         Input(
