@@ -156,12 +156,11 @@ const Page: NextPageWithLayout = () => {
           return res.data.schema;
         }),
       ).then((createdPropertyTypes) =>
-        createdPropertyTypes.flat().reduce(
-          (prev, { $id }) => ({
-            ...prev,
-            [extractBaseUrl($id)]: { $ref: $id },
-          }),
-          {},
+        Object.fromEntries(
+          createdPropertyTypes.flat().map(({ $id }) => [
+            extractBaseUrl($id),
+            { $ref: $id },
+          ])
         ),
       ),
     };
