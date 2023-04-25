@@ -146,7 +146,10 @@ const Page: NextPageWithLayout = () => {
     if (draftEntityType) {
       const draftPropertyTypes: PropertyType[] = [];
 
-      /** @todo: fetch these asynchronously when asynchronous bug is fixed in the FE client */
+      /**
+       * @todo: fetch these simultaneously when bug is fixed in the FE client
+       * @see https://hashintel.slack.com/archives/C02K2ARC1BK/p1682006483805629
+       */
       for (const { $ref: propertyTypeId } of Object.values(
         draftEntityType.properties as Record<BaseUrl, PropertyTypeReference>,
       )) {
