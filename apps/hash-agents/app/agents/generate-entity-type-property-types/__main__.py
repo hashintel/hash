@@ -1,9 +1,12 @@
 import json
 
+import structlog.stdlib
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 from .io_types import Input, Output, PropertyTypeDefinition
+
+logger = structlog.stdlib.get_logger(__name__)
 
 SYSTEM_MESSAGE_CONTENT = (
     "You are an entity type generator. Given a title and description of an entity"
@@ -36,7 +39,7 @@ def main(agent_input: Input) -> Output:
 
     property_type_definitions = json.loads(response.content)
 
-    getLogger().info(f"property_type_definitions: {property_type_definitions}")
+    logger.info.info(f"property_type_definitions: {property_type_definitions}")
 
     # TODO - validate the response
 
@@ -53,8 +56,6 @@ if __name__ == "HASH":
     OUT = main(IN)  # noqa: F821
 
 if __name__ == "__main__":
-    from logging import getLogger
-
     from ... import setup
 
     setup()
@@ -66,4 +67,4 @@ if __name__ == "__main__":
         )
     )
 
-    getLogger().info(f"output: {output}")
+    logger.info(f"output: {output}")
