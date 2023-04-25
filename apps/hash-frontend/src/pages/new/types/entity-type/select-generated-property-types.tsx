@@ -31,6 +31,7 @@ import { useWatch } from "react-hook-form";
 import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { useAgentRunner } from "../../../../components/hooks/use-agent-runner";
 import { useGenerateTypeUrlsForUser } from "../../../shared/use-generate-type-urls-for-user";
+import { CreateEntityTypeFormData } from "../entity-type.page";
 
 export type PropertyTypeDefinition = {
   title: string;
@@ -47,8 +48,10 @@ type SelectGeneratedPropertyTypesProps = {
 export const SelectGeneratedPropertyTypes: FunctionComponent<
   SelectGeneratedPropertyTypesProps
 > = ({ onSelectedPropertiesChange }) => {
-  const entityTypeTitle = useWatch({ name: "name" });
-  const entityTypeDescription = useWatch({ name: "description" });
+  const entityTypeTitle = useWatch<CreateEntityTypeFormData>({ name: "name" });
+  const entityTypeDescription = useWatch<CreateEntityTypeFormData>({
+    name: "description",
+  });
 
   const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();

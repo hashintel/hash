@@ -63,7 +63,7 @@ const FormHelperLabel = ({
   </Box>
 );
 
-type CreateEntityTypeFormData = {
+export type CreateEntityTypeFormData = {
   name: string;
   description: string;
 };
