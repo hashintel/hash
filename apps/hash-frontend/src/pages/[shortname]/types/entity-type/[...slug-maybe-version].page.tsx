@@ -166,12 +166,11 @@ const Page: NextPageWithLayout = () => {
       }
 
       setFetchedDraftPropertyTypes(
-        draftPropertyTypes.reduce(
-          (acc, propertyType) => ({
-            ...acc,
-            [propertyType.$id]: propertyType,
-          }),
-          {},
+        Object.fromEntries(
+          draftPropertyTypes.map((propertyType) => [
+            propertyType.$id,
+            propertyType,
+          ])
         ),
       );
     }
