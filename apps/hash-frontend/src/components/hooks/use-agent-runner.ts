@@ -34,10 +34,7 @@ export const useAgentRunner = <T extends AgentType["Agent"]>(
         },
       });
 
-      const output = data?.callAgentRunner.Output as Extract<
-        AgentType,
-        { Agent: T }
-      >["Output"];
+      const output = data?.callAgentRunner.Output;
 
       return { output, errors };
     },
