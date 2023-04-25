@@ -39,7 +39,7 @@ def main(agent_input: Input) -> Output:
 
     property_type_definitions = json.loads(response.content)
 
-    logger.info(f"property_type_definitions: {property_type_definitions}")
+    logger.info(property_type_definitions=property_type_definitions)
 
     # TODO - validate the response
 
@@ -67,4 +67,4 @@ if __name__ == "__main__":
         )
     )
 
-    logger.info(f"output: {output}")
+    logger.info(output=output)
