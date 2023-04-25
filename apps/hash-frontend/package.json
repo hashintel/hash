@@ -45,6 +45,8 @@
     "@sentry/nextjs": "7.30.0",
     "@sentry/react": "7.30.0",
     "@svgr/webpack": "6.2.1",
+    "@tldraw/editor": "2.0.0-alpha.12",
+    "@tldraw/primitives": "2.0.0-alpha.12",
     "@tldraw/tldraw": "2.0.0-alpha.12",
     "axios": "0.27.2",
     "buffer": "6.0.3",

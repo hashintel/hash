@@ -89,16 +89,12 @@ export const createBlock: ImpureGraphFunction<
       componentId,
   };
 
-  console.log(" GOt here ");
-
   const entity = await createEntity(ctx, {
     ownedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.block.schema.$id,
     actorId,
   });
-
-  console.log({ entity });
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
@@ -121,8 +117,9 @@ export const getBlockData: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: block.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
   });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -153,8 +150,9 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { block, newBlockDataEntity, actorId } = params;
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: block.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
   });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];

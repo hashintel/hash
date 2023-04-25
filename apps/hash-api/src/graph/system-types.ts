@@ -417,6 +417,11 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
+/**
+ * @todo this 'contains' link type is used to link a page to blocks it conains
+ *     – it needs expanding (and possibly renaming) to account for canvas positioning properties
+ *     for example see {@link addBlockToPage}
+ */
 const containsLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.contains,
 );
