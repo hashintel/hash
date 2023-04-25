@@ -17,124 +17,40 @@ import {
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import { useKeys } from "rooks";
 
-type Option = {
+// In order to make declaring the options easier, we use a type that doesn't require the path to be specified.
+// The path is added later by flattening the options
+type OptionWithoutPath = {
   group: string;
   label: string;
   href?: string;
-  renderCustomScreen?: (option: Option) => ReactNode;
-  options?: Option[];
-  command?: (option: Option) => void;
+  // Used to render a custom screen inside the popup when the option is selected
+  renderCustomScreen?: (option: OptionWithoutPath) => ReactNode;
+  // Used to render a submenu when the option is selected
+  options?: OptionWithoutPath[];
+  // Used to trigger a command when the option is selected
+  command?: (option: OptionWithoutPath) => void;
 };
 
-type OptionWithPath = Option & { path: string[] };
+type Option = OptionWithoutPath & { path: string[] };
 
+// The state of the command bar is not immediately reset when exited via the backdrop or command+K.
+// This is the number of milliseconds to wait before resetting the state when exited in this way.
+// The state is immediately reset when exited via the escape key or by selecting an option.
 const RESET_BAR_TIMEOUT = 5_000;
 
-// Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
-const CenterContainer = ({ children }: PropsWithChildren) => (
-  <Box
-    width="100vw"
-    height="100vh"
-    display="flex"
-    alignItems="center"
-    margin="0 auto"
-  >
-    <Box
-      height={518}
-      maxWidth={560}
-      width="100vw"
-      display="flex"
-      justifyContent="center"
-      margin="0 auto"
-      // Ensures pointer events pass through to the modal backdrop
-      sx={{ pointerEvents: "none" }}
-    >
-      <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
-    </Box>
-  </Box>
-);
+const defaultFilterOptions = createFilterOptions<Option>();
 
-// Used to pass the node to render inside the popup from the command bar to the paper component
-const CustomScreenContext = createContext<ReactNode | null>(null);
-
-const CustomPaperComponent = ({
-  children,
-  ...props
-}: HTMLAttributes<HTMLElement>) => {
-  const customScreen = useContext(CustomScreenContext);
-
-  return (
-    <Paper
-      {...props}
-      sx={{
-        [`.${autocompleteClasses.listbox}`]: {
-          maxHeight: 460,
-        },
-      }}
-    >
-      {customScreen ? (
-        <Box py={3} px={2}>
-          {customScreen}
-        </Box>
-      ) : (
-        children
-      )}
-    </Paper>
-  );
-};
-
-const getSelectedOptions = (
-  selectedOptionPath: string[],
-  options: Option[],
-) => {
-  let selectedOptions = options;
-  let selectedLabel = null;
-  for (const path of selectedOptionPath) {
-    const next = selectedOptions.find((option) => option.label === path);
-
-    if (next) {
-      if (next.options) {
-        selectedOptions = next.options;
-      } else if (next.renderCustomScreen) {
-        selectedLabel = next.label;
-        break;
-      }
-    } else {
-      break;
-    }
-  }
-
-  return [selectedOptions, selectedLabel] as const;
-};
-
-// Flattens the options into a single array, with a path property that contains the path to the option
-const flattenOptions = (
-  options: Option[],
-  parentOption?: OptionWithPath,
-): OptionWithPath[] => {
-  return options.flatMap((option) => {
-    const nextOption = {
-      ...option,
-      path: parentOption ? [...parentOption.path, parentOption.label] : [],
-    };
-
-    return [
-      nextOption,
-      ...flattenOptions(nextOption.options ?? [], nextOption),
-    ];
-  });
-};
-
-const defaultFilterOptions = createFilterOptions<OptionWithPath>();
-
-const options: Option[] = [
+// These are the options that are displayed in the command bar
+const allOptions: OptionWithoutPath[] = [
   {
     group: "Blocks",
     label: "Find a block…",
@@ -206,7 +122,157 @@ const options: Option[] = [
   },
 ];
 
-const flattenedOptions = flattenOptions(options);
+// Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
+const CenterContainer = ({ children }: PropsWithChildren) => (
+  <Box
+    width="100vw"
+    height="100vh"
+    display="flex"
+    alignItems="center"
+    margin="0 auto"
+  >
+    <Box
+      height={518}
+      maxWidth={560}
+      width="100vw"
+      display="flex"
+      justifyContent="center"
+      margin="0 auto"
+      // Ensures pointer events pass through to the modal backdrop
+      sx={{ pointerEvents: "none" }}
+    >
+      <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
+    </Box>
+  </Box>
+);
+
+// Used to pass the node to render inside the popup from the command bar to the paper component
+const CustomScreenContext = createContext<ReactNode | null>(null);
+
+// Used to render a custom screen inside the popup when the option is selected,
+// and to set the max height of the popup
+const CustomPaperComponent = ({
+  children,
+  ...props
+}: HTMLAttributes<HTMLElement>) => {
+  const customScreen = useContext(CustomScreenContext);
+
+  return (
+    <Paper
+      {...props}
+      sx={{
+        [`.${autocompleteClasses.listbox}`]: {
+          maxHeight: 460,
+        },
+      }}
+    >
+      {customScreen ? (
+        <Box py={3} px={2}>
+          {customScreen}
+        </Box>
+      ) : (
+        children
+      )}
+    </Paper>
+  );
+};
+
+// Use the path of the selected option to find the option that renders a custom screen
+const getSelectedOptions = (
+  selectedOptionPath: string[],
+  options: OptionWithoutPath[],
+) => {
+  let selectedOptions = options;
+  let selectedOption = null;
+  for (const path of selectedOptionPath) {
+    const next = selectedOptions.find((option) => option.label === path);
+
+    if (next) {
+      if (next.options) {
+        selectedOptions = next.options;
+      } else if (next.renderCustomScreen) {
+        selectedOption = next;
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  return selectedOption;
+};
+
+type DelayedCallbackTiming = "immediate" | "delayed";
+
+// This hook is used to optionally delay the execution of a callback until a certain amount of time has passed
+const useDelayedCallback = (callback: () => void, delay: number) => {
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      const timer = resetTimer.current;
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
+
+  const callbackRef = useRef(callback);
+  useLayoutEffect(() => {
+    callbackRef.current = callback;
+  });
+
+  const handler = useCallback(
+    (timing: DelayedCallbackTiming) => {
+      const timer = resetTimer.current;
+      if (timer) {
+        clearTimeout(timer);
+      }
+
+      switch (timing) {
+        case "immediate":
+          callbackRef.current();
+          break;
+        case "delayed":
+          resetTimer.current = setTimeout(() => {
+            callbackRef.current();
+            resetTimer.current = null;
+          }, delay);
+          break;
+      }
+    },
+    [delay],
+  );
+
+  const cancel = () => {
+    const timer = resetTimer.current;
+    if (timer) {
+      clearTimeout(timer);
+    }
+  };
+
+  return [handler, cancel] as const;
+};
+
+// Flattens the options into a single array, with a path property that contains the path to the option
+const flattenOptions = (
+  options: OptionWithoutPath[],
+  parentOption?: Option,
+): Option[] => {
+  return options.flatMap((option) => {
+    const nextOption = {
+      ...option,
+      path: parentOption ? [...parentOption.path, parentOption.label] : [],
+    };
+
+    return [
+      nextOption,
+      ...flattenOptions(nextOption.options ?? [], nextOption),
+    ];
+  });
+};
+
+const flattenedOptions = flattenOptions(allOptions);
 
 export const CommandBar = () => {
   const popupState = usePopupState({
@@ -218,56 +284,22 @@ export const CommandBar = () => {
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
-  const [selectedOptions, selectedLabel] = getSelectedOptions(
-    selectedOptionPath,
-    options,
-  );
 
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      const timer = closeTimer.current;
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, []);
-
-  const resetBar = () => {
+  const [resetBar, cancelReset] = useDelayedCallback(() => {
     setSelectedOptionPath([]);
     setInputValue("");
-  };
+  }, RESET_BAR_TIMEOUT);
 
-  const closeBar = (reset: "immediate" | "never" | "delayed") => {
+  const closeBar = (timing: DelayedCallbackTiming) => {
     popupState.close();
-
-    const timer = closeTimer.current;
-    if (timer) {
-      clearTimeout(timer);
-    }
-
-    switch (reset) {
-      case "immediate":
-        resetBar();
-        break;
-      case "delayed":
-        closeTimer.current = setTimeout(resetBar, RESET_BAR_TIMEOUT);
-        break;
-      case "never":
-        // Do nothing
-        break;
-    }
+    resetBar(timing);
   };
 
   useKeys(["Meta", "k"], () => {
     if (popupState.isOpen) {
       closeBar("delayed");
     } else {
-      const timer = closeTimer.current;
-      if (timer) {
-        clearTimeout(timer);
-      }
+      cancelReset();
 
       popupState.open();
     }
@@ -275,16 +307,14 @@ export const CommandBar = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = selectedOptions.find(
-    (option) => option.label === selectedLabel,
-  );
+  const selectedOption = getSelectedOptions(selectedOptionPath, allOptions);
   const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
 
   const handleChange = (
     _: unknown,
     __: unknown,
     reason: AutocompleteChangeReason,
-    details: AutocompleteChangeDetails<OptionWithPath> | undefined,
+    details: AutocompleteChangeDetails<Option> | undefined,
   ) => {
     if (details && reason === "selectOption") {
       const option = details.option;
@@ -294,19 +324,23 @@ export const CommandBar = () => {
       } else {
         closeBar("immediate");
 
+        if (option.command) {
+          option.command(option);
+        }
+
         if (option.href) {
           if (option.href.startsWith("https:")) {
+            // Uses noopener to prevent the new tab from accessing the window.opener property
             window.open(option.href, "_blank", "noopener");
           } else {
             void router.push(option.href);
           }
-        } else if (option.command) {
-          option.command(option);
         }
       }
     }
   };
 
+  // This is used to render the input with the selected options as chips
   const renderInput = (props: AutocompleteRenderInputParams) => (
     <>
       {selectedOptionPath.map((path, index) => (
@@ -323,6 +357,7 @@ export const CommandBar = () => {
         placeholder="Type a command or search…"
         inputRef={inputRef}
         onKeyDown={(evt) => {
+          // If the user presses backspace and there is no input value, then go back to the previous selectedOption
           if (evt.key === "Backspace" && !inputRef.current?.value) {
             setSelectedOptionPath(selectedOptionPath.slice(0, -1));
           }
@@ -337,18 +372,31 @@ export const CommandBar = () => {
       <CenterContainer>
         <CustomScreenContext.Provider value={customScreen}>
           <Autocomplete
-            inputValue={inputValue}
+            options={flattenedOptions}
+            sx={{ width: "100%" }}
+            renderInput={renderInput}
+            PaperComponent={CustomPaperComponent}
+            onChange={handleChange}
+            groupBy={(option) => option.group}
+            getOptionLabel={(option) => option.label}
+            // The popup should always be open when the modal is open
+            open
+            popupIcon={null}
+            // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
+            disableCloseOnSelect
+            // The first option should be highlighted by default to make activating the first option quicker
+            autoHighlight
             // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
             value={null}
+            inputValue={inputValue}
             onInputChange={(_, value, reason) => {
               setInputValue(reason === "reset" ? "" : value);
             }}
-            disableCloseOnSelect
-            autoHighlight
-            options={flattenedOptions}
-            filterOptions={(allOptions, state) =>
+            filterOptions={(optionsToFilter, state) =>
+              // Combine the default filtering with filtering by the selectedOptionPath
+              // so that only options that are in the selectedOptionPath are shown
               defaultFilterOptions(
-                allOptions.filter(
+                optionsToFilter.filter(
                   (option) =>
                     JSON.stringify(option.path) ===
                     JSON.stringify(selectedOptionPath),
@@ -356,19 +404,12 @@ export const CommandBar = () => {
                 state,
               )
             }
-            open
-            popupIcon={null}
             onClose={(_, reason) => {
+              // Prevent the autocomplete from closing when the user clicks on the input
               if (reason !== "toggleInput") {
                 closeBar(reason === "escape" ? "immediate" : "delayed");
               }
             }}
-            sx={{ width: "100%" }}
-            renderInput={renderInput}
-            onChange={handleChange}
-            groupBy={(option) => option.group}
-            getOptionLabel={(option) => option.label}
-            PaperComponent={CustomPaperComponent}
           />
         </CustomScreenContext.Provider>
       </CenterContainer>
