@@ -1,3 +1,4 @@
+import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -26,6 +27,8 @@ const StyledIcon = styled(FontAwesomeIcon)({
 interface FilterRowProps {
   index: number;
   onRemove: () => void;
+  entityTypes: EntityType[];
+  propertyTypes: PropertyType[];
 }
 
 const TypeSelector = ({ index }: { index: number }) => {
@@ -86,13 +89,14 @@ const OperatorSelector = ({ index }: { index: number }) => {
   );
 };
 
-const PropertySelector = ({ index }: { index: number }) => {
+const PropertyTypeSelector = ({
+  index,
+  propertyTypes,
+}: {
+  index: number;
+  propertyTypes: PropertyType[];
+}) => {
   const { control, formState } = useFormContext<FormValues>();
-
-  const properties = [
-    { title: "First name", id: "123" },
-    { title: "Age", id: "456" },
-  ];
 
   const filterErrors = formState.errors.filters?.[index] as
     | FieldErrorsImpl<PropertyFilter>
@@ -116,8 +120,8 @@ const PropertySelector = ({ index }: { index: number }) => {
         <MenuItem value="" disabled noSelectBackground>
           Choose
         </MenuItem>
-        {properties.map(({ title, id }) => (
-          <MenuItem key={id} value={id}>
+        {propertyTypes.map(({ title, $id }) => (
+          <MenuItem key={$id} value={$id}>
             {title}
           </MenuItem>
         ))}
@@ -126,12 +130,48 @@ const PropertySelector = ({ index }: { index: number }) => {
   );
 };
 
-const ValueSelector = ({ index }: { index: number }) => {
+const EntityTypeSelector = ({
+  index,
+  entityTypes,
+}: {
+  index: number;
+  entityTypes: EntityType[];
+}) => {
+  const { control, formState } = useFormContext<FormValues>();
+
+  const hasError = !!formState.errors.filters?.[index]?.value;
+
+  return (
+    <FormControl>
+      <RHFSelect
+        control={control}
+        rules={{ required: "Required" }}
+        defaultValue=""
+        name={`filters.${index}.value`}
+        selectProps={{
+          size: "xs",
+          displayEmpty: true,
+          error: hasError,
+        }}
+      >
+        <MenuItem value="" disabled noSelectBackground>
+          Choose
+        </MenuItem>
+        {entityTypes.map(({ title, $id }) => (
+          <MenuItem key={$id} value={$id}>
+            {title}
+          </MenuItem>
+        ))}
+      </RHFSelect>
+    </FormControl>
+  );
+};
+
+const ValueInput = ({ index }: { index: number }) => {
   const { register, formState } = useFormContext<FormValues>();
 
   const errorMsg = formState.errors.filters?.[index]?.value?.message;
 
-  /** @todo add type dropdown support */
   return (
     <TextField
       placeholder="filter value"
@@ -157,7 +197,12 @@ const ChainOperatorSelector = () => {
   );
 };
 
-export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
+export const FilterRow = ({
+  onRemove,
+  index,
+  entityTypes,
+  propertyTypes,
+}: FilterRowProps) => {
   const { watch } = useFormContext<FormValues>();
 
   const chainOperator = watch("operator");
@@ -213,7 +258,7 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
               borderRight: "none",
             },
 
-            [`:first-child .${inputBaseClasses.root}`]: {
+            [`:first-of-type .${inputBaseClasses.root}`]: {
               borderRadius: "6px 0 0 6px",
             },
 
@@ -224,9 +269,16 @@ export const FilterRow = ({ onRemove, index }: FilterRowProps) => {
         }}
       >
         <TypeSelector index={index} />
-        {watchedType === "Property" && <PropertySelector index={index} />}
+        {watchedType === "Property" && (
+          <PropertyTypeSelector index={index} propertyTypes={propertyTypes} />
+        )}
         <OperatorSelector index={index} />
-        {watchedOperatorHasValue && <ValueSelector index={index} />}
+        {watchedOperatorHasValue &&
+          (watchedType === "Type" ? (
+            <EntityTypeSelector index={index} entityTypes={entityTypes} />
+          ) : (
+            <ValueInput index={index} />
+          ))}
       </Stack>
 
       <IconButton onClick={onRemove}>

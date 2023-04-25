@@ -1,34 +1,49 @@
-import { MultiFilterOperatorType } from "@blockprotocol/graph";
+import {
+  EntityType,
+  MultiFilter,
+  MultiFilterOperatorType,
+  PropertyType,
+} from "@blockprotocol/graph";
 import { BoxProps } from "@mui/material";
 
 export type FilterType = "Type" | "Property";
 
-interface FilterBase {
-  type: FilterType;
-}
-
 export type TypeOperator = "is";
 
-interface TypeFilter extends FilterBase {
+interface TypeFilter {
   type: "Type";
   operator: TypeOperator;
   value: string;
 }
 
-export type PropertyOperator =
+type PropertyOperatorWithoutValue = "is empty" | "is not empty";
+type PropertyOperatorWithValue =
   | "is"
   | "is not"
-  | "is empty"
-  | "is not empty"
   | "contains"
   | "does not contain";
 
-export interface PropertyFilter extends FilterBase {
+export type PropertyOperator =
+  | PropertyOperatorWithoutValue
+  | PropertyOperatorWithValue;
+
+interface PropertyFilterWithValue {
   type: "Property";
-  operator: PropertyOperator;
-  value?: string;
+  operator: PropertyOperatorWithValue;
+  value: string;
   propertyTypeId: string;
 }
+
+interface PropertyFilterWithoutValue {
+  type: "Property";
+  operator: PropertyOperatorWithoutValue;
+  propertyTypeId: string;
+  value?: never;
+}
+
+export type PropertyFilter =
+  | PropertyFilterWithValue
+  | PropertyFilterWithoutValue;
 
 export type FilterField = TypeFilter | PropertyFilter;
 
@@ -38,7 +53,10 @@ export type FormValues = {
 };
 
 export interface EntityQueryEditorProps {
-  onSave: () => void;
+  onSave: (value: MultiFilter) => void;
   onClose: () => void;
   sx?: BoxProps["sx"];
+  entityTypes: EntityType[];
+  propertyTypes: PropertyType[];
+  defaultValue?: MultiFilter;
 }
