@@ -1,7 +1,10 @@
 import { Chip, TextField } from "@hashintel/design-system";
 import {
   Autocomplete,
+  AutocompleteChangeDetails,
+  AutocompleteChangeReason,
   autocompleteClasses,
+  AutocompleteRenderInputParams,
   Box,
   createFilterOptions,
   Modal,
@@ -12,6 +15,7 @@ import { useRouter } from "next/router";
 import {
   createContext,
   HTMLAttributes,
+  PropsWithChildren,
   ReactNode,
   useContext,
   useEffect,
@@ -20,8 +24,44 @@ import {
 } from "react";
 import { useKeys } from "rooks";
 
+type Option = {
+  group: string;
+  label: string;
+  href?: string;
+  renderCustomScreen?: (option: Option) => ReactNode;
+  options?: Option[];
+  command?: (option: Option) => void;
+};
+
+type OptionWithPath = Option & { path: string[] };
+
 const RESET_BAR_TIMEOUT = 5_000;
 
+// Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
+const CenterContainer = ({ children }: PropsWithChildren) => (
+  <Box
+    width="100vw"
+    height="100vh"
+    display="flex"
+    alignItems="center"
+    margin="0 auto"
+  >
+    <Box
+      height={518}
+      maxWidth={560}
+      width="100vw"
+      display="flex"
+      justifyContent="center"
+      margin="0 auto"
+      // Ensures pointer events pass through to the modal backdrop
+      sx={{ pointerEvents: "none" }}
+    >
+      <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
+    </Box>
+  </Box>
+);
+
+// Used to pass the node to render inside the popup from the command bar to the paper component
 const CustomScreenContext = createContext<ReactNode | null>(null);
 
 const CustomPaperComponent = ({
@@ -50,15 +90,6 @@ const CustomPaperComponent = ({
   );
 };
 
-type Option = {
-  group: string;
-  label: string;
-  href?: string;
-  renderCustomScreen?: (option: Option) => ReactNode;
-  options?: Option[];
-  command?: (option: Option) => void;
-};
-
 const getSelectedOptions = (
   selectedOptionPath: string[],
   options: Option[],
@@ -83,8 +114,7 @@ const getSelectedOptions = (
   return [selectedOptions, selectedLabel] as const;
 };
 
-type OptionWithPath = Option & { path: string[] };
-
+// Flattens the options into a single array, with a path property that contains the path to the option
 const flattenOptions = (
   options: Option[],
   parentOption?: OptionWithPath,
@@ -250,119 +280,98 @@ export const CommandBar = () => {
   );
   const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
 
+  const handleChange = (
+    _: unknown,
+    __: unknown,
+    reason: AutocompleteChangeReason,
+    details: AutocompleteChangeDetails<OptionWithPath> | undefined,
+  ) => {
+    if (details && reason === "selectOption") {
+      const option = details.option;
+
+      if (option.options || option.renderCustomScreen) {
+        setSelectedOptionPath([...selectedOptionPath, option.label]);
+      } else {
+        closeBar("immediate");
+
+        if (option.href) {
+          if (option.href.startsWith("https:")) {
+            window.open(option.href, "_blank", "noopener");
+          } else {
+            void router.push(option.href);
+          }
+        } else if (option.command) {
+          option.command(option);
+        }
+      }
+    }
+  };
+
+  const renderInput = (props: AutocompleteRenderInputParams) => (
+    <>
+      {selectedOptionPath.map((path, index) => (
+        <Chip
+          key={path}
+          label={path}
+          onDelete={() =>
+            setSelectedOptionPath(selectedOptionPath.slice(0, index))
+          }
+        />
+      ))}
+      <TextField
+        autoFocus
+        placeholder="Type a command or search…"
+        inputRef={inputRef}
+        onKeyDown={(evt) => {
+          if (evt.key === "Backspace" && !inputRef.current?.value) {
+            setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+          }
+        }}
+        {...props}
+      />
+    </>
+  );
+
   return (
     <Modal open={popupState.isOpen} onClose={closeBar}>
-      <Box
-        width="100vw"
-        height="100vh"
-        display="flex"
-        alignItems="center"
-        margin="0 auto"
-      >
-        <Box
-          height={518}
-          maxWidth={560}
-          width="100vw"
-          display="flex"
-          justifyContent="center"
-          margin="0 auto"
-          sx={{ pointerEvents: "none" }}
-        >
-          <Box sx={{ pointerEvents: "all", width: "100%" }}>
-            <CustomScreenContext.Provider value={customScreen}>
-              <Autocomplete
-                inputValue={inputValue}
-                // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
-                value={null}
-                onInputChange={(_, value, reason) => {
-                  setInputValue(reason === "reset" ? "" : value);
-                }}
-                disableCloseOnSelect
-                autoHighlight
-                options={flattenedOptions}
-                filterOptions={(allOptions, state) =>
-                  defaultFilterOptions(
-                    allOptions.filter(
-                      (option) =>
-                        JSON.stringify(option.path) ===
-                        JSON.stringify(selectedOptionPath),
-                    ),
-                    state,
-                  )
-                }
-                open
-                popupIcon={null}
-                onClose={(_, reason) => {
-                  if (reason !== "toggleInput") {
-                    closeBar(reason === "escape" ? "immediate" : "delayed");
-                  }
-                }}
-                sx={{ width: "100%" }}
-                renderInput={(props) => {
-                  return (
-                    <>
-                      {selectedOptionPath.map((path, index) => (
-                        <Chip
-                          key={path}
-                          label={path}
-                          onDelete={() =>
-                            setSelectedOptionPath(
-                              selectedOptionPath.slice(0, index),
-                            )
-                          }
-                        />
-                      ))}
-                      <TextField
-                        autoFocus
-                        placeholder="Type a command or search…"
-                        inputRef={inputRef}
-                        onKeyDown={(evt) => {
-                          if (
-                            evt.key === "Backspace" &&
-                            !inputRef.current?.value
-                          ) {
-                            setSelectedOptionPath(
-                              selectedOptionPath.slice(0, -1),
-                            );
-                          }
-                        }}
-                        {...props}
-                      />
-                    </>
-                  );
-                }}
-                onChange={(_, __, reason, details) => {
-                  if (details && reason === "selectOption") {
-                    const option = details.option;
-
-                    if (option.options || option.renderCustomScreen) {
-                      setSelectedOptionPath([
-                        ...selectedOptionPath,
-                        option.label,
-                      ]);
-                    } else {
-                      closeBar("immediate");
-
-                      if (option.href) {
-                        if (option.href.startsWith("https:")) {
-                          window.open(option.href, "_blank", "noopener");
-                        } else {
-                          void router.push(option.href);
-                        }
-                      } else if (option.command) {
-                        option.command(option);
-                      }
-                    }
-                  }
-                }}
-                groupBy={(option) => option.group}
-                getOptionLabel={(option) => option.label}
-                PaperComponent={CustomPaperComponent}
-              />
-            </CustomScreenContext.Provider>
-          </Box>
-        </Box>
-      </Box>
+      <CenterContainer>
+        <CustomScreenContext.Provider value={customScreen}>
+          <Autocomplete
+            inputValue={inputValue}
+            // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
+            value={null}
+            onInputChange={(_, value, reason) => {
+              setInputValue(reason === "reset" ? "" : value);
+            }}
+            disableCloseOnSelect
+            autoHighlight
+            options={flattenedOptions}
+            filterOptions={(allOptions, state) =>
+              defaultFilterOptions(
+                allOptions.filter(
+                  (option) =>
+                    JSON.stringify(option.path) ===
+                    JSON.stringify(selectedOptionPath),
+                ),
+                state,
+              )
+            }
+            open
+            popupIcon={null}
+            onClose={(_, reason) => {
+              if (reason !== "toggleInput") {
+                closeBar(reason === "escape" ? "immediate" : "delayed");
+              }
+            }}
+            sx={{ width: "100%" }}
+            renderInput={renderInput}
+            onChange={handleChange}
+            groupBy={(option) => option.group}
+            getOptionLabel={(option) => option.label}
+            PaperComponent={CustomPaperComponent}
+          />
+        </CustomScreenContext.Provider>
+      </CenterContainer>
     </Modal>
   );
 };
