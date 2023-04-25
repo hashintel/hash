@@ -1,9 +1,5 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
-import {
-  EntityType,
-  PropertyType,
-  PropertyTypeReference,
-} from "@blockprotocol/type-system/slim";
+import { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -17,7 +13,7 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { BaseUrl, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -150,9 +146,10 @@ const Page: NextPageWithLayout = () => {
        * @todo: fetch these simultaneously when bug is fixed in the FE client
        * @see https://hashintel.slack.com/archives/C02K2ARC1BK/p1682006483805629
        */
-      for (const { $ref: propertyTypeId } of Object.values(
-        draftEntityType.properties as Record<BaseUrl, PropertyTypeReference>,
-      )) {
+      for (const propertyValue of Object.values(draftEntityType.properties)) {
+        const { $ref: propertyTypeId } =
+          "items" in propertyValue ? propertyValue.items : propertyValue;
+
         const { data: propertyTypeSubgraph } = await getPropertyType({
           data: { propertyTypeId },
         });
