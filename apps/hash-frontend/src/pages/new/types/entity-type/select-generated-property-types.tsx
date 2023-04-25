@@ -63,10 +63,10 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   const [
     generatedPropertyTypeDefinitions,
     setGeneratedPropertyTypeDefinitions,
-  ] = useState<(PropertyTypeDefinition | PropertyType)[]>();
-  const [selectedPropertyTypeTitles, setSelectedPropertyTypeTitles] = useState<
-    string[]
-  >([]);
+  ] =
+    useState<
+      { definition: PropertyTypeDefinition | PropertyType; selected: boolean }[]
+    >();
 
   const [allPropertyTypes, setAllPropertyTypes] = useState<Subgraph>();
 
@@ -146,7 +146,12 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
               propertyTypeDefinitions.push(existingPropertyType ?? definition);
             }
 
-            setGeneratedPropertyTypeDefinitions(propertyTypeDefinitions);
+            setGeneratedPropertyTypeDefinitions(
+              propertyTypeDefinitions.map((definition) => ({
+                definition,
+                selected: false,
+              })),
+            );
           }
         },
         1000,
@@ -166,20 +171,32 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   const handlePropertyTypeCheckboxChange = ({
     target,
   }: ChangeEvent<HTMLInputElement>) => {
-    setSelectedPropertyTypeTitles((prev) => {
-      const updatedSelectedPropertyTypeTitles = target.checked
-        ? [...prev, target.name]
-        : prev.filter((title) => title !== target.name);
+    setGeneratedPropertyTypeDefinitions((prev) => {
+      const existingPropertyTypeDefinitionIndex =
+        prev?.findIndex(({ definition: { title } }) => title === target.name) ??
+        -1;
+
+      const updatedSelectedPropertyTypes =
+        prev && existingPropertyTypeDefinitionIndex >= 0
+          ? [
+              ...prev.slice(0, existingPropertyTypeDefinitionIndex),
+              {
+                ...prev[existingPropertyTypeDefinitionIndex]!,
+                selected: !prev[existingPropertyTypeDefinitionIndex]!.selected,
+              },
+              ...prev.slice(existingPropertyTypeDefinitionIndex + 1),
+            ]
+          : prev;
 
       if (generatedPropertyTypeDefinitions) {
         onSelectedPropertiesChange(
-          generatedPropertyTypeDefinitions.filter(({ title }) =>
-            updatedSelectedPropertyTypeTitles.includes(title),
-          ),
+          updatedSelectedPropertyTypes
+            ?.filter(({ selected }) => selected)
+            .map(({ definition }) => definition) ?? [],
         );
       }
 
-      return updatedSelectedPropertyTypeTitles;
+      return updatedSelectedPropertyTypes;
     });
   };
 
@@ -191,30 +208,33 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
             Select initial property types
           </FormLabel>
           <FormGroup>
-            {generatedPropertyTypeDefinitions?.map(({ title, description }) => (
-              <FormControlLabel
-                key={title}
-                control={
-                  <Checkbox
-                    checked={selectedPropertyTypeTitles.includes(title)}
-                    onChange={handlePropertyTypeCheckboxChange}
-                    name={title}
-                  />
-                }
-                label={
-                  <>
-                    <strong>{title}</strong> - {description?.[0]?.toLowerCase()}
-                    {description?.slice(1)}
-                  </>
-                }
-                sx={{
-                  marginLeft: 0,
-                  [`.${formControlLabelClasses.label}`]: {
-                    marginLeft: 2,
-                  },
-                }}
-              />
-            ))}
+            {generatedPropertyTypeDefinitions?.map(
+              ({ definition: { title, description }, selected }) => (
+                <FormControlLabel
+                  key={title}
+                  control={
+                    <Checkbox
+                      checked={selected}
+                      onChange={handlePropertyTypeCheckboxChange}
+                      name={title}
+                    />
+                  }
+                  label={
+                    <>
+                      <strong>{title}</strong> -{" "}
+                      {description?.[0]?.toLowerCase()}
+                      {description?.slice(1)}
+                    </>
+                  }
+                  sx={{
+                    marginLeft: 0,
+                    [`.${formControlLabelClasses.label}`]: {
+                      marginLeft: 2,
+                    },
+                  }}
+                />
+              ),
+            )}
           </FormGroup>
         </FormControl>
       </Collapse>
