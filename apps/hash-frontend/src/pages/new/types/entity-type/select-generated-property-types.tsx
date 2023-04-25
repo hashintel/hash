@@ -165,26 +165,22 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   const handlePropertyTypeCheckboxChange = ({
     target,
   }: ChangeEvent<HTMLInputElement>) => {
-    setSelectedPropertyTypeTitles((prev) =>
-      target.checked
+    setSelectedPropertyTypeTitles((prev) => {
+      const updatedSelectedPropertyTypeTitles = target.checked
         ? [...prev, target.name]
-        : prev.filter((title) => title !== target.name),
-    );
-  };
+        : prev.filter((title) => title !== target.name);
 
-  useEffect(() => {
-    if (generatedPropertyTypeDefinitions) {
-      onSelectedPropertiesChange(
-        generatedPropertyTypeDefinitions.filter(({ title }) =>
-          selectedPropertyTypeTitles.includes(title),
-        ),
-      );
-    }
-  }, [
-    selectedPropertyTypeTitles,
-    generatedPropertyTypeDefinitions,
-    onSelectedPropertiesChange,
-  ]);
+      if (generatedPropertyTypeDefinitions) {
+        onSelectedPropertiesChange(
+          generatedPropertyTypeDefinitions.filter(({ title }) =>
+            updatedSelectedPropertyTypeTitles.includes(title),
+          ),
+        );
+      }
+
+      return updatedSelectedPropertyTypeTitles;
+    });
+  };
 
   return (
     <Box>
