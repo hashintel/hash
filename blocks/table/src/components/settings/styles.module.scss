@@ -1,8 +1,6 @@
 $grayFilter: invert(90%) sepia(11%) saturate(377%) hue-rotate(175deg)
   brightness(90%) contrast(92%);
 
-$fontFamily: Inter, Helvetica, Arial, sans-serif;
-
 .settingsButton {
   margin-right: 10px;
   width: 20px;
@@ -19,7 +17,7 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
 
 .popover {
   font-size: 13px;
-  font-family: $fontFamily;
+  font-family: var(--font-family);
 
   border-radius: 6px;
   box-shadow: 0px 0px 1px rgba(62, 65, 86, 0.7),
