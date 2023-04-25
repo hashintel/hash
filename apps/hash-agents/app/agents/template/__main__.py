@@ -35,7 +35,7 @@ if __name__ == "__main__":
     """This is used when running the agent from the command line"""
     from ... import setup
 
-    setup()
+    setup("dev")
 
     output = main(Input(expression="round(pi * 13.37)"))
     logger.info(f"output: {output.result}")

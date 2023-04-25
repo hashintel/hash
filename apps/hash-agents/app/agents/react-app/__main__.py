@@ -1,8 +1,12 @@
-from .io_types import *
+import structlog.stdlib
+from beartype import beartype
+from .io_types import Input, Output, OutputMessage, TypeEnum, Message
 from langchain.chat_models import ChatOpenAI
 from langchain.callbacks.base import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
+
+logger = structlog.stdlib.get_logger(__name__)
 
 def mapInputMessagesToOutputMessages(message):
     return OutputMessage(type=message.type, content=message.content)
@@ -13,6 +17,7 @@ def mapInputMessagesToMessagePrompts(message):
     if message.type == TypeEnum.HUMAN_MESSAGE:
         return HumanMessage(content=message.content)
 
+@beartype
 def main(input: Input) -> Output:
     """
     Main function of the agent
@@ -45,14 +50,13 @@ if __name__ == "HASH":
 if __name__ == "__main__":
     """This is used when running the agent from the command line"""
     from ... import setup
-    from logging import getLogger
 
-    setup()
+    setup("dev")
+    
     print("Describe your application:")
     IN = input("")
     message = Message(type=TypeEnum.HUMAN_MESSAGE, content=IN)
     output = main((Input(messages=[message])))
-    getLogger().info(f"output: {output.messages}")
 
     while(True):
         print("Anything else?")
