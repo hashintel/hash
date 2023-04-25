@@ -28,20 +28,20 @@ const CustomPaperComponent = ({
   children,
   ...props
 }: HTMLAttributes<HTMLElement>) => {
-  const value = useContext(CustomScreenContext);
+  const customScreen = useContext(CustomScreenContext);
 
   return (
     <Paper
       {...props}
       sx={{
         [`.${autocompleteClasses.listbox}`]: {
-          maxHeight: 461,
+          maxHeight: 460,
         },
       }}
     >
-      {value ? (
+      {customScreen ? (
         <Box py={3} px={2}>
-          {value}
+          {customScreen}
         </Box>
       ) : (
         children
@@ -54,7 +54,7 @@ type Option = {
   group: string;
   label: string;
   href?: string;
-  selected?: (option: Option) => ReactNode;
+  renderCustomScreen?: (option: Option) => ReactNode;
   options?: Option[];
   command?: (option: Option) => void;
 };
@@ -64,15 +64,15 @@ const getSelectedOptions = (
   options: Option[],
 ) => {
   let selectedOptions = options;
-  let selectedOption = null;
+  let selectedLabel = null;
   for (const path of selectedOptionPath) {
     const next = selectedOptions.find((option) => option.label === path);
 
     if (next) {
       if (next.options) {
         selectedOptions = next.options;
-      } else if (next.selected) {
-        selectedOption = next.label;
+      } else if (next.renderCustomScreen) {
+        selectedLabel = next.label;
         break;
       }
     } else {
@@ -80,7 +80,7 @@ const getSelectedOptions = (
     }
   }
 
-  return [selectedOptions, selectedOption] as const;
+  return [selectedOptions, selectedLabel] as const;
 };
 
 type OptionWithPath = Option & { path: string[] };
@@ -112,12 +112,12 @@ const options: Option[] = [
       {
         group: "General",
         label: "Option A",
-        selected: ({ label }) => <div>You selected {label}</div>,
+        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
       },
       {
         group: "General",
         label: "Option B",
-        selected: ({ label }) => <div>You selected {label}</div>,
+        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
       },
       {
         group: "Other",
@@ -188,7 +188,7 @@ export const CommandBar = () => {
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
-  const [selectedOptions, selectedOption] = getSelectedOptions(
+  const [selectedOptions, selectedLabel] = getSelectedOptions(
     selectedOptionPath,
     options,
   );
@@ -245,10 +245,10 @@ export const CommandBar = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selected = selectedOptions.find(
-    (option) => option.label === selectedOption,
+  const selectedOption = selectedOptions.find(
+    (option) => option.label === selectedLabel,
   );
-  const selectedOptionValue = selected?.selected?.(selected);
+  const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
 
   return (
     <Modal open={popupState.isOpen} onClose={closeBar}>
@@ -269,10 +269,10 @@ export const CommandBar = () => {
           sx={{ pointerEvents: "none" }}
         >
           <Box sx={{ pointerEvents: "all", width: "100%" }}>
-            <CustomScreenContext.Provider value={selectedOptionValue}>
+            <CustomScreenContext.Provider value={customScreen}>
               <Autocomplete
                 inputValue={inputValue}
-                // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selected option
+                // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
                 value={null}
                 onInputChange={(_, value, reason) => {
                   setInputValue(reason === "reset" ? "" : value);
@@ -335,7 +335,7 @@ export const CommandBar = () => {
                   if (details && reason === "selectOption") {
                     const option = details.option;
 
-                    if (option.options || option.selected) {
+                    if (option.options || option.renderCustomScreen) {
                       setSelectedOptionPath([
                         ...selectedOptionPath,
                         option.label,
