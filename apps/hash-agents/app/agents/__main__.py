@@ -15,7 +15,7 @@ class InvalidArgumentError(RuntimeError):
 
 @beartype
 def main() -> None:
-    setup()
+    setup("dev")
 
     args = sys.argv
     if len(args) < 2:
