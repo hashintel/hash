@@ -1,6 +1,5 @@
 /**
- * This module contains type definitions for tables in the Postgres database. Column
- * names are converted from snake_case to camelCase for consistency.
+ * This module contains type definitions for some of the tables in the Postgres database used for realtime updates.
  */
 import { SupportedRealtimeTable } from "./realtime";
 import { Wal2JsonMsg } from "./wal2json";
