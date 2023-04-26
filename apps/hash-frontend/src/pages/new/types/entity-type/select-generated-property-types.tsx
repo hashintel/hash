@@ -171,33 +171,39 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   const handlePropertyTypeCheckboxChange = ({
     target,
   }: ChangeEvent<HTMLInputElement>) => {
-    setGeneratedPropertyTypeDefinitions((prev) => {
+    if (generatedPropertyTypeDefinitions) {
       const existingPropertyTypeDefinitionIndex =
-        prev?.findIndex(({ definition: { title } }) => title === target.name) ??
-        -1;
-
-      const updatedSelectedPropertyTypes =
-        prev && existingPropertyTypeDefinitionIndex >= 0
-          ? [
-              ...prev.slice(0, existingPropertyTypeDefinitionIndex),
-              {
-                ...prev[existingPropertyTypeDefinitionIndex]!,
-                selected: !prev[existingPropertyTypeDefinitionIndex]!.selected,
-              },
-              ...prev.slice(existingPropertyTypeDefinitionIndex + 1),
-            ]
-          : prev;
-
-      if (generatedPropertyTypeDefinitions) {
-        onSelectedPropertiesChange(
-          updatedSelectedPropertyTypes
-            ?.filter(({ selected }) => selected)
-            .map(({ definition }) => definition) ?? [],
+        generatedPropertyTypeDefinitions.findIndex(
+          ({ definition: { title } }) => title === target.name,
         );
-      }
 
-      return updatedSelectedPropertyTypes;
-    });
+      const propertyTypeDefinition =
+        generatedPropertyTypeDefinitions[existingPropertyTypeDefinitionIndex];
+
+      const updatedSelectedPropertyTypes = propertyTypeDefinition
+        ? [
+            ...generatedPropertyTypeDefinitions.slice(
+              0,
+              existingPropertyTypeDefinitionIndex,
+            ),
+            {
+              ...propertyTypeDefinition,
+              selected: !propertyTypeDefinition.selected,
+            },
+            ...generatedPropertyTypeDefinitions.slice(
+              existingPropertyTypeDefinitionIndex + 1,
+            ),
+          ]
+        : generatedPropertyTypeDefinitions;
+
+      setGeneratedPropertyTypeDefinitions(updatedSelectedPropertyTypes);
+
+      onSelectedPropertiesChange(
+        updatedSelectedPropertyTypes
+          .filter(({ selected }) => selected)
+          .map(({ definition }) => definition),
+      );
+    }
   };
 
   return (
