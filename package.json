@@ -13,10 +13,11 @@
   },
   "scripts": {
     "codegen": "turbo run codegen",
-    "dev": "turbo run dev --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-frontend' --",
-    "dev:backend": "turbo run dev --filter '@apps/hash-api' --filter '@apps/hash-realtime' --filter '@apps/hash-search-loader' --",
+    "dev": "turbo run dev --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-vector-loader' --filter '@apps/hash-frontend' --",
+    "dev:backend": "turbo run dev --filter '@apps/hash-api' --filter '@apps/hash-realtime' --filter '@apps/hash-search-loader' --filter '@apps/hash-vector-loader' --",
     "dev:backend:api": "turbo run dev --filter '@apps/hash-api' --",
     "dev:backend:realtime": "turbo run dev --filter '@apps/hash-realtime' --",
+    "dev:backend:vector-loader": "turbo run dev --filter '@apps/hash-vector-loader' --",
     "dev:backend:search-loader": "turbo run dev --filter '@apps/hash-search-loader' --",
     "dev:frontend": "turbo run dev --filter '@apps/hash-frontend' --",
     "external-services": "turbo run deploy --filter '@apps/hash-external-services' --",
