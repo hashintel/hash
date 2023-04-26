@@ -38,8 +38,13 @@ target-version = ['py311']
 preview = true
 
 [tool.ruff]
-select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "T20", "TRY"]
-ignore = ["ANN101"]
+select = ["ALL"]
+ignore = [
+    "D203", # this conflicts with `D211`
+    "D213", # this conflicts with `D212`
+    "D401", # Relates to PEP-257 but also conflicts with Google Python Style Guide, generally gets in the way
+    "ANN101" # most type checkers infer the type of `self` automatically
+]
 
 [tool.isort]
 profile = "black"
