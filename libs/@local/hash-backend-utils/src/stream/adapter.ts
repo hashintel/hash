@@ -1,6 +1,6 @@
 import { JsonObject } from "@blockprotocol/core/.";
 
-/** QueueProducer represents a resource which adds items to a queue. */
+/** StreamProducer represents a resource which adds items to a stream. */
 export interface StreamProducer<T> {
   /**
    * Push one or more items onto a stream.
