@@ -9,9 +9,9 @@ import {
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  Entity,
   entityFromWalJsonMsg,
   entityTypeFromWalJsonMsg,
+  PgEntity,
   propertyTypeFromWalJsonMsg,
 } from "@local/hash-backend-utils/pg-tables";
 import {
@@ -167,7 +167,7 @@ const findColumn = <T>(columns: ChangeType["columns"], name: string): T =>
 const handleEntityTableChange = (
   change: ChangeType,
   state: EntityPollState,
-): Entity | null => {
+): PgEntity | null => {
   const entityEditionId = findColumn<EntityEditionId>(
     change.columns,
     "entity_edition_id",

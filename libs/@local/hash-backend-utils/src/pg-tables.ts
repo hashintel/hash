@@ -4,18 +4,18 @@
 import { SupportedRealtimeTable } from "./realtime";
 import { Wal2JsonMsg } from "./wal2json";
 
-export type EntityEdition = {
+export type PgEntityEdition = {
   entity_edition_id: string;
   properties: Record<string, unknown>;
-  left_to_right_order: number;
-  right_to_left_order: number;
+  left_to_right_order?: number;
+  right_to_left_order?: number;
   record_created_by_id: string;
   archived: boolean;
 };
 
 export const entityEditionFromWalJsonMsg = (
   msg: Wal2JsonMsg<SupportedRealtimeTable>,
-): EntityEdition => {
+): PgEntityEdition => {
   if (msg.table !== "entity_editions") {
     throw new Error(
       `invalid table "${msg.table}" for 'entity_edition' parsing`,
@@ -35,7 +35,7 @@ export const entityEditionFromWalJsonMsg = (
   };
 };
 
-export type EntityTemporalMetadata = {
+export type PgEntityTemporalMetadata = {
   owned_by_id: string;
   entity_uuid: Record<string, unknown>;
   entity_edition_id: string;
@@ -45,7 +45,7 @@ export type EntityTemporalMetadata = {
 
 export const entityTemporalMetadataFromWalJsonMsg = (
   msg: Wal2JsonMsg<SupportedRealtimeTable>,
-): EntityTemporalMetadata => {
+): PgEntityTemporalMetadata => {
   if (msg.table !== "entity_temporal_metadata") {
     throw new Error(
       `invalid table "${msg.table}" for 'entity_temporal_metadata' parsing`,
@@ -64,24 +64,24 @@ export const entityTemporalMetadataFromWalJsonMsg = (
   };
 };
 
-export type Entity = EntityEdition & EntityTemporalMetadata;
+export type PgEntity = PgEntityEdition & PgEntityTemporalMetadata;
 
 export const entityFromWalJsonMsg = (
   entityEdition: Wal2JsonMsg<SupportedRealtimeTable>,
   entityTemporalMetadata: Wal2JsonMsg<SupportedRealtimeTable>,
-): Entity => ({
+): PgEntity => ({
   ...entityEditionFromWalJsonMsg(entityEdition),
   ...entityTemporalMetadataFromWalJsonMsg(entityTemporalMetadata),
 });
 
-type OntologyType = {
+type PgOntologyType = {
   ontology_id: string;
   schema: Record<string, unknown>;
 };
 
 const ontologyTypeFromWalJsonMsg =
   (table: SupportedRealtimeTable) =>
-  (msg: Wal2JsonMsg<SupportedRealtimeTable>): OntologyType => {
+  (msg: Wal2JsonMsg<SupportedRealtimeTable>): PgOntologyType => {
     if (msg.table !== table) {
       throw new Error(`invalid table "${msg.table}" for '${table}' parsing`);
     }
@@ -95,12 +95,12 @@ const ontologyTypeFromWalJsonMsg =
     };
   };
 
-export type EntityType = OntologyType;
+export type PgEntityType = PgOntologyType;
 export const entityTypeFromWalJsonMsg: (
   msg: Wal2JsonMsg<SupportedRealtimeTable>,
-) => EntityType = ontologyTypeFromWalJsonMsg("entity_types");
+) => PgEntityType = ontologyTypeFromWalJsonMsg("entity_types");
 
-export type PropertyType = OntologyType;
+export type PgPropertyType = PgOntologyType;
 export const propertyTypeFromWalJsonMsg: (
   msg: Wal2JsonMsg<SupportedRealtimeTable>,
-) => PropertyType = ontologyTypeFromWalJsonMsg("property_types");
+) => PgPropertyType = ontologyTypeFromWalJsonMsg("property_types");

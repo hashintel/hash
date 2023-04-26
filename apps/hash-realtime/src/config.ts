@@ -1,9 +1,9 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  Entity,
-  EntityType,
-  PropertyType,
+  PgEntity,
+  PgEntityType,
+  PgPropertyType,
 } from "@local/hash-backend-utils/pg-tables";
 import { supportedRealtimeTables } from "@local/hash-backend-utils/realtime";
 import { RedisConfig, setupRedisClient } from "@local/hash-backend-utils/redis";
@@ -23,17 +23,17 @@ const redisConfig: RedisConfig = {
 // following queues.
 export const generateQueues = (logger: Logger) => {
   return {
-    entityStream: new RedisStreamProducer<Entity>(
+    entityStream: new RedisStreamProducer<PgEntity>(
       logger,
       setupRedisClient(logger, redisConfig),
       getRequiredEnv("HASH_REALTIME_ENTITY_STREAM_NAME"),
     ),
-    entityTypeStream: new RedisStreamProducer<EntityType>(
+    entityTypeStream: new RedisStreamProducer<PgEntityType>(
       logger,
       setupRedisClient(logger, redisConfig),
       getRequiredEnv("HASH_REALTIME_ENTITY_TYPE_STREAM_NAME"),
     ),
-    propertyTypeStream: new RedisStreamProducer<PropertyType>(
+    propertyTypeStream: new RedisStreamProducer<PgPropertyType>(
       logger,
       setupRedisClient(logger, redisConfig),
       getRequiredEnv("HASH_REALTIME_PROPERTY_TYPE_STREAM_NAME"),
