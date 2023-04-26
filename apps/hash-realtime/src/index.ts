@@ -19,6 +19,7 @@ import {
   PgPool,
 } from "@local/hash-backend-utils/postgres";
 import {
+  generateStreamProducers,
   isSupportedRealtimeEntityTable,
   isSupportedRealtimeEntityTypeTable,
   isSupportedRealtimePropertyTypeTable,
@@ -33,7 +34,7 @@ import {
 } from "set-interval-async/dynamic";
 import { sql } from "slonik";
 
-import { generateQueues, MONITOR_TABLES } from "./config";
+import { MONITOR_TABLES, redisConfig } from "./config";
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;
@@ -56,7 +57,7 @@ const logger = new Logger({
   metadata: { instanceId: INSTANCE_ID },
 });
 
-const QUEUES = generateQueues(logger);
+const STREAMS = generateStreamProducers(logger, redisConfig);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -240,12 +241,12 @@ const pollChanges = async (
     if (isSupportedRealtimeEntityTable(change.table)) {
       const entity = handleEntityTableChange(change, state);
       if (entity !== null) {
-        await QUEUES.entityStream.push(entity);
+        await STREAMS.entityStream.push(entity);
       }
     } else if (isSupportedRealtimeEntityTypeTable(change.table)) {
-      await QUEUES.entityTypeStream.push(entityTypeFromWalJsonMsg(change));
+      await STREAMS.entityTypeStream.push(entityTypeFromWalJsonMsg(change));
     } else if (isSupportedRealtimePropertyTypeTable(change.table)) {
-      await QUEUES.propertyTypeStream.push(propertyTypeFromWalJsonMsg(change));
+      await STREAMS.propertyTypeStream.push(propertyTypeFromWalJsonMsg(change));
     }
   }
 };

@@ -3,6 +3,7 @@ version: "3.9"
 volumes:
   hash-redis-data:
   hash-postgres-data:
+  hash-qdrant:
   log:
 
 services:
@@ -288,3 +289,16 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     ports:
       - "${HASH_AGENT_RUNNER_PORT}:80"
+
+  hash-qdrant:
+    image: qdrant/qdrant:v1.1.0
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - hash-qdrant:/qdrant/storage
+    tmpfs:
+      - /qdrant/snapshots
+    ports:
+      - "6333:6333"

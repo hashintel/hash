@@ -1,5 +1,3 @@
-import { JsonObject } from "@blockprotocol/core/.";
-
 import { Logger } from "../logger";
 import { RedisClient } from "../redis";
 import { StreamConsumer, StreamProducer } from "./adapter";
@@ -37,44 +35,42 @@ export class RedisStreamProducer<T> implements StreamProducer<T> {
   }
 }
 
-/**
- * An implementation of the `StreamConsumer` interface based on Redis streams.
- */
-export class RedisStreamConsumer implements StreamConsumer {
-  private lastId: string | null = null;
-
-  constructor(
-    private logger: Logger,
-    private client: RedisClient,
-    private streamName: string,
-  ) {}
-
-  async readNext(maxReadCount: number = 100): Promise<JsonObject[]> {
-    const msg = await this.client.xread(
+const redisChunkRead = async <T>(params: {
+  logger: Logger;
+  client: RedisClient;
+  streamName: string;
+  lastReadId: string | null;
+  maxReadCount: number;
+}): Promise<{
+  lastReadId: string | null;
+  payloads: T[];
+}> => {
+  const { logger, client, streamName, lastReadId, maxReadCount } = params;
+  const msg =
+    (await client.xread(
       "COUNT",
       maxReadCount,
       "BLOCK",
       0,
       "STREAMS",
-      this.streamName,
-      this.lastId === null ? "$" : this.lastId,
-    );
+      streamName,
+      lastReadId === null ? "$" : lastReadId,
+    )) ?? [];
 
-    // Reduce all messages from the specific stream of this class into a list,
-    // dropping their key names, saving the last stream entry id.
-    const msgs = msg?.reduce<{
-      lastEntryId: string;
-      payloads: JsonObject[];
-    } | null>((acc, [stream, messages]) => {
-      if (stream === this.streamName) {
-        // eslint-disable-next-line no-param-reassign
-        acc = acc ?? { lastEntryId: "", payloads: [] };
+  // Reduce all messages from the specific stream of this class into a list,
+  // dropping their key names, saving the last stream entry id.
+  return msg.reduce<{
+    lastReadId: string | null;
+    payloads: T[];
+  }>(
+    (acc, [stream, messages]) => {
+      if (stream === streamName) {
         for (const [id, [_, payload]] of messages) {
           if (payload) {
-            acc.payloads.push(JSON.parse(payload) as JsonObject);
-            acc.lastEntryId = id;
+            acc.payloads.push(JSON.parse(payload) as T);
+            acc.lastReadId = id;
           } else {
-            this.logger.debug(
+            logger.debug(
               "Received unknown stream entry in payload: ",
               messages,
             );
@@ -82,10 +78,45 @@ export class RedisStreamConsumer implements StreamConsumer {
         }
       }
       return acc;
-    }, null);
+    },
+    { lastReadId, payloads: [] },
+  );
+};
 
-    this.lastId = msgs?.lastEntryId ?? this.lastId;
+/**
+ * An implementation of the `StreamConsumer` interface based on Redis streams.
+ */
+export class RedisStreamConsumer<T> implements StreamConsumer<T> {
+  private lastId: string | null = null;
+  private running: boolean = true;
 
-    return msgs?.payloads ?? [];
+  constructor(
+    private logger: Logger,
+    private client: RedisClient,
+    private streamName: string,
+  ) {}
+
+  async *[Symbol.asyncIterator](maxReadCount: number = 100): AsyncGenerator<T> {
+    while (this.running) {
+      const result = await redisChunkRead<T>({
+        logger: this.logger,
+        client: this.client,
+        streamName: this.streamName,
+        lastReadId: this.lastId,
+        maxReadCount,
+      });
+
+      this.lastId = result.lastReadId ?? this.lastId;
+
+      for (const payload of result.payloads) {
+        yield payload;
+      }
+    }
+  }
+
+  async handleEvery(handler: (value: T) => Promise<void>) {
+    for await (const value of this) {
+      await handler(value);
+    }
   }
 }

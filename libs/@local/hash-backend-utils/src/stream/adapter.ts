@@ -1,6 +1,4 @@
-import { JsonObject } from "@blockprotocol/core/.";
-
-/** StreamProducer represents a resource which adds items to a stream. */
+/** QueueProducer represents a resource which adds items to a queue. */
 export interface StreamProducer<T> {
   /**
    * Push one or more items onto a stream.
@@ -14,12 +12,12 @@ export interface StreamProducer<T> {
 /**
  * StreamConsumer represents a stream consumer which does not belong to a consumer group
  */
-export interface StreamConsumer {
+export interface StreamConsumer<T> {
   /**
    * Reads an item from the stream. This will block until an item is available.
    * @returns The next items in the stream
    */
-  readNext(): Promise<JsonObject[]>;
+  [Symbol.asyncIterator](): AsyncGenerator<T>;
 
   /** @todo consider adding something like `readNextFromStart`? */
 }
