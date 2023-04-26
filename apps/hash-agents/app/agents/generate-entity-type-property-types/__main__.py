@@ -37,11 +37,16 @@ def main(agent_input: Input) -> Output:
 
     response = chat(messages)
 
-    property_type_definitions = json.loads(response.content)
+    try:
+        property_type_definitions = json.loads(response.content)
+    except json.JSONDecodeError as e:
+        # TODO - handle the JSON decoding error using some form of retry logic
+        raise json.JsonParsingError("Failed to parse OpenAI JSON data") from e
+    
+    # TODO - validate the structure of the generated JSON data, and handle
+    # any errors using some form of retry logic
 
     logger.info(property_type_definitions=property_type_definitions)
-
-    # TODO - validate the response
 
     return Output(
         [
