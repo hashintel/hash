@@ -1,5 +1,5 @@
 import { PropertyType } from "@blockprotocol/type-system";
-import { TriangleExclamationIcon } from "@hashintel/design-system";
+import { Chip, TriangleExclamationIcon } from "@hashintel/design-system";
 import {
   BaseUrl,
   PropertyTypeWithMetadata,
@@ -32,6 +32,7 @@ import { useWatch } from "react-hook-form";
 
 import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { useAgentRunner } from "../../../../components/hooks/use-agent-runner";
+import { LayerPlusIcon } from "../../../../shared/icons/layer-plus-icon";
 import { useGenerateTypeUrlsForUser } from "../../../shared/use-generate-type-urls-for-user";
 import { CreateEntityTypeFormData } from "../entity-type.page";
 
@@ -231,8 +232,6 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
               ({ definition, selected }) => {
                 const { title, description } = definition;
 
-                const isExistingType = "$id" in definition;
-
                 return (
                   <FormControlLabel
                     key={title}
@@ -248,21 +247,33 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
                         <strong>{title}</strong> -{" "}
                         {description?.[0]?.toLowerCase()}
                         {description?.slice(1)}
-                        <Box
-                          component="span"
-                          sx={{
-                            marginLeft: 1,
-                            color: ({ palette }) => palette.gray[50],
-                          }}
-                        >
-                          <strong>
-                            <i>{isExistingType ? "Existing" : "New"}</i>
-                          </strong>
-                        </Box>
+                        {"$id" in definition ? (
+                          <Box
+                            component="i"
+                            sx={{
+                              marginLeft: 1,
+                              color: ({ palette }) => palette.gray[50],
+                            }}
+                          >
+                            @{definition.$id.split("@")![1]}
+                          </Box>
+                        ) : (
+                          <Chip
+                            icon={<LayerPlusIcon />}
+                            label="New"
+                            color="gray"
+                            sx={{
+                              marginLeft: 1,
+                              backgroundColor: "transparent",
+                              borderColor: ({ palette }) => palette.gray[20],
+                            }}
+                          />
+                        )}
                       </>
                     }
                     sx={{
                       marginLeft: 0,
+                      marginBottom: 0.5,
                       [`.${formControlLabelClasses.label}`]: {
                         marginLeft: 2,
                       },
