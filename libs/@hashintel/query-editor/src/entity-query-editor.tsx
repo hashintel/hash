@@ -67,15 +67,16 @@ export const EntityQueryEditor = ({
           }}
           defaultValue={query}
         />
-      ) : query ? (
+      ) : (
         <QueryPreview
-          query={query}
+          /** @todo if not editing, %100 there should be a `query`, need to use TS property for this situation */
+          query={query!}
           onDiscard={onDiscard}
           onSave={onSave}
           onGoBack={() => setIsEditing(true)}
           queryEntities={queryEntities}
         />
-      ) : null}
+      )}
     </Stack>
   );
 };
