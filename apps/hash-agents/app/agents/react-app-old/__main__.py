@@ -29,9 +29,12 @@ def main(input: Input) -> Output:
                 SystemMessage(content="Answer as concisely as possible with react code only."),
                 SystemMessage(content="Do NOT include an explanation or any text that is not part of the code block you are generating."),
                 SystemMessage(content="Return code blocks as ```jsx\n{code...}\n```."),
-                SystemMessage(content="Use the 'sx' prop to style MUI elements. For example, a button with a purple background should be <Button sx={{\"background: \"purple\"}} />."),
-                SystemMessage(content="Generate a react component using MUI components."),
-                SystemMessage(content="Return the list of dependencies that should be installed in the react project as an array. For example if '@mui/material' and 'axios' should be installed you should return `Dependencies: ['@mui/material', 'axios']`.")]
+                SystemMessage(content="Do not include imports or exports in the code."),
+                SystemMessage(content="Import all React dependencies from the object React. For example, useState should be React.useState."),
+                SystemMessage(content="Import all MUI components from the object MUI. For example, Button should be MUI.Button."),
+                SystemMessage(content="Use the 'sx' prop to style MUI elements. For example, a button with a purple background should be <MUI.Button sx={{\"background: \"purple\"}} />."),
+                SystemMessage(content="End the code block with the following line: render(<Component />)"), 
+                SystemMessage(content="Generate a react component using MUI components.")]
     
     chat = ChatOpenAI(model="gpt-3.5-turbo", streaming=True, callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]), verbose=True, temperature=0)
     prompts = systemPrompts + list(map(mapInputMessagesToMessagePrompts, input.messages))
