@@ -18,8 +18,8 @@ import {
 } from "@mui/material";
 import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
-import { fieldOperators, filterTypes } from "../constants";
-import { FilterType, FormValues, PropertyFilter } from "../types";
+import { FilterType, FormValues, PropertyFilter } from "../../../types";
+import { fieldOperators, filterTypes } from "../../utils";
 import { RHFSelect } from "./rhf-select";
 
 const StyledIcon = styled(FontAwesomeIcon)({

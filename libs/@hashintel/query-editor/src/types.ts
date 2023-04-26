@@ -55,8 +55,16 @@ export type FormValues = {
 
 export interface EntityQueryEditorProps {
   onSave: (value: MultiFilter) => void;
-  onClose: () => void;
+  onDiscard: () => void;
   sx?: BoxProps["sx"];
+  entityTypes: EntityType[];
+  propertyTypes: PropertyType[];
+  defaultValue?: MultiFilter;
+}
+
+export interface QueryFormProps {
+  onSave: (value: MultiFilter) => void;
+  onDiscard: () => void;
   entityTypes: EntityType[];
   propertyTypes: PropertyType[];
   defaultValue?: MultiFilter;
