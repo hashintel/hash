@@ -228,31 +228,48 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
           </FormLabel>
           <FormGroup>
             {generatedPropertyTypeDefinitions?.map(
-              ({ definition: { title, description }, selected }) => (
-                <FormControlLabel
-                  key={title}
-                  control={
-                    <Checkbox
-                      checked={selected}
-                      onChange={handlePropertyTypeCheckboxChange}
-                      name={title}
-                    />
-                  }
-                  label={
-                    <>
-                      <strong>{title}</strong> -{" "}
-                      {description?.[0]?.toLowerCase()}
-                      {description?.slice(1)}
-                    </>
-                  }
-                  sx={{
-                    marginLeft: 0,
-                    [`.${formControlLabelClasses.label}`]: {
-                      marginLeft: 2,
-                    },
-                  }}
-                />
-              ),
+              ({ definition, selected }) => {
+                const { title, description } = definition;
+
+                const isExistingType = "$id" in definition;
+
+                return (
+                  <FormControlLabel
+                    key={title}
+                    control={
+                      <Checkbox
+                        checked={selected}
+                        onChange={handlePropertyTypeCheckboxChange}
+                        name={title}
+                      />
+                    }
+                    label={
+                      <>
+                        <strong>{title}</strong> -{" "}
+                        {description?.[0]?.toLowerCase()}
+                        {description?.slice(1)}
+                        <Box
+                          component="span"
+                          sx={{
+                            marginLeft: 1,
+                            color: ({ palette }) => palette.gray[50],
+                          }}
+                        >
+                          <strong>
+                            <i>{isExistingType ? "Existing" : "New"}</i>
+                          </strong>
+                        </Box>
+                      </>
+                    }
+                    sx={{
+                      marginLeft: 0,
+                      [`.${formControlLabelClasses.label}`]: {
+                        marginLeft: 2,
+                      },
+                    }}
+                  />
+                );
+              },
             )}
           </FormGroup>
         </FormControl>
