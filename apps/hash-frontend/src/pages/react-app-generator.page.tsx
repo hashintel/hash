@@ -1,39 +1,39 @@
 import * as React from "react";
-import * as MUICore from "@mui/material";
-import * as MUILab from "@mui/lab";
-import * as MUIDatePickers from "@mui/x-date-pickers";
-import * as MUIDataGrid from "@mui/x-data-grid";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAgentRunner } from "../components/hooks/use-agent-runner";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { DemoLiveEditor } from "./react-app-generator/demo-live-editor";
 import { BlockPromptInput } from "@hashintel/design-system";
 import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { Message } from "@apps/hash-agents/app/agents/react-app/io_types";
 import axios from "axios";
+import { Box, Container, Typography } from "@mui/material";
 
 export const ReactAppGenerator: NextPageWithLayout = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState("");
+  const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
   const [containerId, setContainerId] = useState("");
-  const [callAgentRunner, { loading }] = useAgentRunner("react-app");
-
-  const iframeRef = useRef<HTMLIFrameElement | null>();
   const [iframeKey, setIframeKey] = useState(0);
+  const [loadingPreview, setLoadingPreview] = useState(true);
 
-  const { Container, Typography, Box } = MUICore;
+  const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
   useEffect(() => {
     axios.get("api/initialize-container").then((res) => {
       setContainerId(res.data);
-
-      setTimeout(() => {
-        setIframeKey(iframeKey + 1);
-      }, 2000);
+      setLoadingPreview(false);
     });
   }, []);
+
+  const updatePreview = (val: string) => {
+    setLoadingPreview(true);
+    axios.post("api/update-code", { containerId, code: val }).then((res) => {
+      setLoadingPreview(false);
+      setIframeKey(iframeKey + 1);
+    });
+  };
 
   const callAgent = (userPrompt: string) => {
     const newMessage: Message = {
@@ -41,8 +41,6 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
       content: userPrompt,
     };
     const newMessages = [...messages, newMessage];
-
-    console.log({ messages: newMessages });
 
     void callAgentRunner({ messages: newMessages }).then((data) => {
       if (data) {
@@ -55,25 +53,12 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
             "(?<=(Dependencies: [))(.|\n)+?(?=(]))",
           );
 
-          console.log(dependencies);
-
           if (codeBlock?.length) {
+            setCode(codeBlock[0]);
             setOutput(codeBlock[0]);
             setMessages(data.messages);
 
-            axios
-              .post("api/update-code", { containerId, code: codeBlock[0] })
-              .then((res) => {
-                console.log(
-                  "_------------------------------------- reoslver ----------",
-                );
-
-                setIframeKey(iframeKey + 1);
-
-                setTimeout(() => {
-                  setIframeKey(iframeKey + 1);
-                }, 2000);
-              });
+            updatePreview(codeBlock[0]);
           }
         }
       }
@@ -108,30 +93,22 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
               <>Submit Prompt</>
             )
           }
-          disabled={loading}
+          disabled={loading || loadingPreview}
         />
       </Box>
 
-      {!loading && output ? (
+      {output ? (
         <DemoLiveEditor
-          code={output}
-          scope={{
-            React,
-            MUI: {
-              ...MUICore,
-              ...MUILab,
-              ...MUIDatePickers,
-              ...MUIDataGrid,
-              AdapterDateFns,
-            },
-          }}
+          code={code}
           noInline
+          iframeKey={iframeKey}
+          loading={loadingPreview}
+          onChange={(value) => {
+            setCode(value);
+            updatePreview(value);
+          }}
         />
       ) : null}
-
-      <iframe key={iframeKey} src="http://localhost:3001" />
-
-      <button onClick={() => setIframeKey(iframeKey + 1)}>asd</button>
     </Container>
   );
 };
