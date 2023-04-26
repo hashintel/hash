@@ -149,7 +149,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   /** Pop an item from the queue and execute the callback on it. The items stays on
    * the queue if the callback throws an error. To match the Redis API, the behavior
    * of this function depends on the value of `timeoutMs`:
-   *   - timemoutMs === 0: blocks indefinitely until an item appears on the queue.
+   *   - timeoutMs === 0: blocks indefinitely until an item appears on the queue.
    *   - timeoutMs > 0: blocks for at most timeoutMs until an item appears on the queue.
    *   - timeoutMs < 0: throws an error
    *   - timeoutMs === null: checks once for an item on the queue and returns immediately.
