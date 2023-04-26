@@ -54,7 +54,13 @@ export const EntityQueryEditor = ({
         <QueryForm
           entityTypes={entityTypes}
           propertyTypes={propertyTypes}
-          onDiscard={() => setIsEditing(false)}
+          onDiscard={() => {
+            if (query) {
+              return setIsEditing(false);
+            }
+
+            onDiscard();
+          }}
           onSave={(value) => {
             setQuery(value);
             setIsEditing(false);

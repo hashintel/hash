@@ -1,7 +1,7 @@
 import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Button, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 
 import { FilterRow } from "./query-form/filter-row";
@@ -32,7 +32,13 @@ export const QueryForm = ({
       : { operator: "AND", filters: [] },
   });
 
-  const fieldArray = useFieldArray({ control: form.control, name: "filters" });
+  const fieldArray = useFieldArray({
+    control: form.control,
+    name: "filters",
+    rules: {
+      required: { value: true, message: "Min. 1 condition is required" },
+    },
+  });
 
   const handleAddCondition = () => {
     fieldArray.append({
@@ -45,6 +51,8 @@ export const QueryForm = ({
   const onSubmit = (data: FormValues) => {
     onSave(mapFormValuesToMultiFilter(data));
   };
+
+  const filtersError = form.formState.errors.filters?.root?.message;
 
   return (
     <FormProvider {...form}>
@@ -83,6 +91,12 @@ export const QueryForm = ({
             ADD CONDITION
           </Button>
         </Box>
+
+        {!!filtersError && (
+          <Typography sx={{ color: ({ palette }) => palette.red[70] }}>
+            {filtersError}
+          </Typography>
+        )}
 
         <Stack direction="row" gap={1}>
           <Button onClick={form.handleSubmit(onSubmit)}>
