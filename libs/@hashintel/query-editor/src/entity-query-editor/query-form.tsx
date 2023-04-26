@@ -49,17 +49,19 @@ export const QueryForm = ({
   return (
     <FormProvider {...form}>
       <>
-        <Stack gap={3} sx={{ alignSelf: "flex-start", mb: 2.5 }}>
-          {fieldArray.fields.map((field, index) => (
-            <FilterRow
-              index={index}
-              key={field.id}
-              onRemove={() => fieldArray.remove(index)}
-              entityTypes={entityTypes}
-              propertyTypes={propertyTypes}
-            />
-          ))}
-        </Stack>
+        {!!fieldArray.fields.length && (
+          <Stack gap={3} sx={{ alignSelf: "flex-start" }}>
+            {fieldArray.fields.map((field, index) => (
+              <FilterRow
+                index={index}
+                key={field.id}
+                onRemove={() => fieldArray.remove(index)}
+                entityTypes={entityTypes}
+                propertyTypes={propertyTypes}
+              />
+            ))}
+          </Stack>
+        )}
 
         <Box>
           <Button
