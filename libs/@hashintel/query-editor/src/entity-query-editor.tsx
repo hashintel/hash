@@ -1,4 +1,9 @@
-import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
+import {
+  EntityType,
+  GraphBlockHandler,
+  MultiFilter,
+  PropertyType,
+} from "@blockprotocol/graph";
 import { Stack } from "@mui/material";
 import { BoxProps } from "@mui/system";
 import { useState } from "react";
@@ -14,6 +19,7 @@ export interface EntityQueryEditorProps {
   entityTypes: EntityType[];
   propertyTypes: PropertyType[];
   defaultValue?: MultiFilter;
+  queryEntities: GraphBlockHandler["queryEntities"];
 }
 
 export const EntityQueryEditor = ({
@@ -23,6 +29,7 @@ export const EntityQueryEditor = ({
   propertyTypes,
   sx = [],
   defaultValue,
+  queryEntities,
 }: EntityQueryEditorProps) => {
   const [query, setQuery] = useState(defaultValue);
   const [isEditing, setIsEditing] = useState(!defaultValue);
@@ -60,6 +67,7 @@ export const EntityQueryEditor = ({
           onDiscard={onDiscard}
           onSave={onSave}
           onGoBack={() => setIsEditing(true)}
+          queryEntities={queryEntities}
         />
       ) : null}
     </Stack>
