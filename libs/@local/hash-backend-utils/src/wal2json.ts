@@ -5,7 +5,7 @@
  * Note: We ignore transaction begin / end messages (i.e. those with action "B" / "C"),
  * and TRUNCATE messages (action "T").
  */
-export type Wal2JsonMsg<T = string> = {
+export type Wal2JsonMsg<T extends string = string> = {
   /** The table the change is coming from. */
   table: T;
 
