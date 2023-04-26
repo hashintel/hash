@@ -8,7 +8,7 @@ import {
   PropertyFilter,
   PropertyOperator,
   TypeOperator,
-} from "../types";
+} from "../../types";
 
 export const filterTypes: {
   type: FilterType;

@@ -1,11 +1,4 @@
-import {
-  BaseUrl,
-  EntityType,
-  MultiFilter,
-  MultiFilterOperatorType,
-  PropertyType,
-} from "@blockprotocol/graph";
-import { BoxProps } from "@mui/material";
+import { BaseUrl, MultiFilterOperatorType } from "@blockprotocol/graph";
 
 export type FilterType = "Type" | "Property";
 
@@ -52,20 +45,3 @@ export type FormValues = {
   filters: FilterField[];
   operator: MultiFilterOperatorType;
 };
-
-export interface EntityQueryEditorProps {
-  onSave: (value: MultiFilter) => void;
-  onDiscard: () => void;
-  sx?: BoxProps["sx"];
-  entityTypes: EntityType[];
-  propertyTypes: PropertyType[];
-  defaultValue?: MultiFilter;
-}
-
-export interface QueryFormProps {
-  onSave: (value: MultiFilter) => void;
-  onDiscard: () => void;
-  entityTypes: EntityType[];
-  propertyTypes: PropertyType[];
-  defaultValue?: MultiFilter;
-}

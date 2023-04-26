@@ -1,10 +1,20 @@
+import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
 import { Stack } from "@mui/material";
+import { BoxProps } from "@mui/system";
 import { useState } from "react";
 
-import { QueryForm } from "./entity-query-editor/query-form/query-form";
+import { QueryForm } from "./entity-query-editor/query-form";
 import { QueryPreview } from "./entity-query-editor/query-preview";
 import { EditorTitle } from "./entity-query-editor/title";
-import { EntityQueryEditorProps } from "./types";
+
+export interface EntityQueryEditorProps {
+  onSave: (value: MultiFilter) => void;
+  onDiscard: () => void;
+  sx?: BoxProps["sx"];
+  entityTypes: EntityType[];
+  propertyTypes: PropertyType[];
+  defaultValue?: MultiFilter;
+}
 
 export const EntityQueryEditor = ({
   onDiscard,

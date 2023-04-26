@@ -1,14 +1,23 @@
+import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 
-import { FormValues, QueryFormProps } from "../../types";
+import { FilterRow } from "./query-form/filter-row";
 import {
   mapFormValuesToMultiFilter,
   mapMultiFilterToFormValues,
-} from "../utils";
-import { FilterRow } from "./filter-row/filter-row";
+} from "./query-form/filter-row/utils";
+import { FormValues } from "./types";
+
+interface QueryFormProps {
+  onSave: (value: MultiFilter) => void;
+  onDiscard: () => void;
+  entityTypes: EntityType[];
+  propertyTypes: PropertyType[];
+  defaultValue?: MultiFilter;
+}
 
 export const QueryForm = ({
   onDiscard,
