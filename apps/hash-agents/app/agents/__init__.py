@@ -19,7 +19,7 @@ def find_allowed_agents() -> list[str]:
     for agent in os.listdir(agents_dir):
         agent_dir = agents_dir / agent
         if (
-            Path.is_dir(agent_dir)
+            agent_dir.is_dir()
             and Path.exists(agent_dir / "__main__.py")
             and Path.exists(agent_dir / "io_types.py")
         ):
