@@ -1,29 +1,6 @@
 FROM node:16.18.1-alpine AS base
 
-WORKDIR /app
-
-RUN yarn global add turbo
-COPY . .
-RUN turbo prune --scope='@apps/hash-agents' --docker
-
-
-
-FROM node:16.18.1-alpine as installer
-
-WORKDIR /usr/local/src/hash/
-
-COPY --from=base /app/out/json/ .
-COPY --from=base /app/out/yarn.lock ./yarn.lock
-
-RUN yarn install --frozen-lockfile --prefer-offline && \
-    yarn cache clean
-
-COPY --from=base /app/out/full/ .
-
-RUN yarn turbo build --filter '@apps/hash-agents'
-
-
-FROM python:3.11-alpine as base-env
+RUN apk --no-cache add python3 python3-dev --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -32,29 +9,60 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VERSION=1.4.2 \
-    WORKDIR="/usr/local/src/hash/apps/hash-agents"
-ENV VIRTUAL_ENV="$WORKDIR/.venv"
+    POETRY_VERSION=1.4.2
+ENV VIRTUAL_ENV=".venv"
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
-WORKDIR $WORKDIR
-
-FROM base-env AS builder
-
-COPY --from=installer $WORKDIR/poetry.lock $WORKDIR/pyproject.toml ./
-
 RUN apk add --no-cache --virtual .build-deps g++ musl-dev libffi-dev make curl && \
-    curl -sSL https://install.python-poetry.org | python && \
-    poetry install --no-root --only main --only production && \
-    apk del .build-deps
+    curl -sSL https://install.python-poetry.org | python
 
 
-FROM base-env AS runner
+FROM base as pruned
 
-WORKDIR $WORKDIR
+WORKDIR /app
 
-COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
-COPY --from=installer $WORKDIR/app app
+RUN yarn global add turbo
+COPY . .
+RUN turbo prune --scope='@apps/hash-agents' --docker
+
+
+FROM base as venv-installer
+
+WORKDIR /usr/local/src/hash/
+
+COPY --from=pruned /app/out/json/ .
+COPY --from=pruned /app/out/yarn.lock ./yarn.lock
+
+WORKDIR /usr/local/src/hash/apps/hash-agents
+
+COPY --from=pruned /app/out/full/apps/hash-agents/poetry.lock .
+COPY --from=pruned /app/out/full/apps/hash-agents/pyproject.toml .
+
+RUN poetry install --no-root --only main --only production
+
+RUN apk del .build-deps
+
+FROM venv-installer as yarn-installer
+
+WORKDIR /usr/local/src/hash/
+
+RUN yarn install --frozen-lockfile --prefer-offline && \
+    yarn cache clean
+
+COPY --from=pruned /app/out/full/ .
+
+RUN yarn turbo build --filter '@apps/hash-agents'
+
+
+FROM alpine AS runner
+
+WORKDIR "/usr/local/src/hash/apps/hash-agents"
+
+
+COPY --from=yarn-installer /usr/local/src/hash/ app
+
+RUN . app/apps/hash-agents/.venv/bin/activate
+
 
 ENTRYPOINT ["gunicorn"]
 CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "app:create_app('prod')"]
