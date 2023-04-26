@@ -1,11 +1,12 @@
 version: "3.9"
 
 volumes:
+  hash-redis-data:
   hash-postgres-data:
   log:
 
 services:
-  hash-dev-opensearch:
+  hash-opensearch:
     deploy:
       restart_policy:
         condition: on-failure
@@ -35,6 +36,28 @@ services:
     # volumes:
     #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
 
+  hash-redis:
+    image: redis/redis-stack:6.2.6-v6
+    read_only: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    volumes:
+      - hash-redis-data:/data
+    tmpfs:
+      - /redisinsight
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - 6379:6379
+      # Redisinsight is a GUI for Redis which is at port 8011
+      - 8011:8001
+
   postgres:
     build:
       context: ./postgres
@@ -51,8 +74,8 @@ services:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
-      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+      HASH_REALTIME_PG_USER: "${HASH_REALTIME_PG_USER}"
+      HASH_REALTIME_PG_PASSWORD: "${HASH_REALTIME_PG_PASSWORD}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -204,14 +227,6 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
-
-  hash-dev-redis:
-    image: redis:6.2
-    deploy:
-      restart_policy:
-        condition: on-failure
-    ports:
-      - 6379:6379
 
   kratos-migrate:
     build:

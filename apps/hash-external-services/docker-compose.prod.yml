@@ -20,8 +20,8 @@ services:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
-      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+      HASH_REALTIME_PG_USER: "${HASH_REALTIME_PG_USER}"
+      HASH_REALTIME_PG_PASSWORD: "${HASH_REALTIME_PG_PASSWORD}"
     # Note this isn't a complete security measure, we'd have to restrict
     # `listen_addresses` and other postgres config to lock down access.
     # The database port isn't forwarded outside the docker network.
@@ -166,6 +166,8 @@ services:
       interval: 2s
       timeout: 2s
       retries: 5
+    tmpfs:
+      - /data
     security_opt:
       - no-new-privileges:true
 
@@ -240,3 +242,33 @@ services:
 
     ports:
       - "3000:3000"
+
+  hash-realtime:
+    build:
+      context: ../../
+      dockerfile: infra/docker/realtime/prod/Dockerfile
+    read_only: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hash-redis:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      HASH_REDIS_HOST: "hash-redis"
+      HASH_REDIS_PORT: "6379"
+      HASH_REALTIME_PG_HOST: "postgres"
+      HASH_REALTIME_PG_PORT: "5432"
+      HASH_REALTIME_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_REALTIME_PG_USER: "${HASH_REALTIME_PG_USER}"
+      HASH_REALTIME_PG_PASSWORD: "${HASH_REALTIME_PG_PASSWORD}"
+      HASH_REALTIME_SLOT_NAME: "realtime"
+      HASH_REALTIME_PORT: "3333"
+      HASH_REALTIME_ENTITY_STREAM_NAME: entities
+      HASH_REALTIME_ENTITY_TYPE_STREAM_NAME: entity_types
+      HASH_REALTIME_PROPERTY_TYPE_STREAM_NAME: property_types
+      NODE_ENV: development
+    ports:
+      - "3333:3333"
