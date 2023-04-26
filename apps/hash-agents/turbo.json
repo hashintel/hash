@@ -2,7 +2,7 @@
   "extends": ["//"],
   "pipeline": {
     "codegen": {
-      "outputs": ["./agents/**/*.py", "./src/agents.ts"],
+      "outputs": ["./agents/**/io_types.py", "./src/agents.ts"],
       "dependsOn": ["^build"]
     },
     "install:tools": {
