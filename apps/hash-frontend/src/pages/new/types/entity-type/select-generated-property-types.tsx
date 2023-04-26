@@ -70,25 +70,23 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
 
   const [allPropertyTypes, setAllPropertyTypes] = useState<Subgraph>();
 
-  const fetchAllPropertyTypes = useCallback(async () => {
-    const { data: propertyTypesSubgraph } = await queryPropertyTypes({
-      data: {},
-    });
-
-    if (!propertyTypesSubgraph) {
-      throw new Error(
-        "Could not query property types to get all property types.",
-      );
-    }
-
-    setAllPropertyTypes(propertyTypesSubgraph);
-  }, [queryPropertyTypes]);
-
   useEffect(() => {
-    if (!allPropertyTypes) {
-      void fetchAllPropertyTypes();
-    }
-  }, [allPropertyTypes, fetchAllPropertyTypes]);
+    void (async () => {
+      if (!allPropertyTypes) {
+        const { data: propertyTypesSubgraph } = await queryPropertyTypes({
+          data: {},
+        });
+
+        if (!propertyTypesSubgraph) {
+          throw new Error(
+            "Could not query property types to get all property types.",
+          );
+        }
+
+        setAllPropertyTypes(propertyTypesSubgraph);
+      }
+    })();
+  }, [allPropertyTypes, queryPropertyTypes]);
 
   const getLatestPropertyType = useCallback(
     (params: { propertyTypeBaseUrl: BaseUrl }): PropertyType | null => {
