@@ -16,6 +16,7 @@ import { Subtype } from "@local/advanced-types/subtype";
 
 import {
   BaseUrl,
+  EntityEditionId,
   EntityId,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
@@ -38,7 +39,7 @@ export type EntityRecordId = Subtype<
   EntityRecordIdBp,
   {
     entityId: EntityId;
-    editionId: string;
+    editionId: EntityEditionId;
   }
 >;
 

@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import {
   Entity,
+  EntityEditionId,
   EntityId,
   RecordCreatedById,
   Timestamp,
@@ -42,7 +43,10 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
+      recordId: {
+        editionId: "draft" as EntityEditionId,
+        entityId: `draft%${Date.now()}` as EntityId,
+      },
       entityTypeId: linkEntityTypeId,
       provenance: { recordCreatedById: "" as RecordCreatedById },
       temporalVersioning: {

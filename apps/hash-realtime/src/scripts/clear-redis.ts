@@ -3,7 +3,7 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import { setupRedisClient } from "@local/hash-backend-utils/redis";
 
 const logger = new Logger({
   serviceName: "clear-redis-queues",
@@ -19,7 +19,7 @@ const main = async () => {
 
   await waitOnResource(`tcp:${host}:${port}`, logger);
 
-  const redis = new AsyncRedisClient(logger, {
+  const redis = setupRedisClient(logger, {
     host,
     port,
   });
@@ -27,7 +27,7 @@ const main = async () => {
     await redis.flushall();
     logger.info("Redis data cleared");
   } finally {
-    await redis.close();
+    await redis.quit();
   }
 };
 
