@@ -1,3 +1,5 @@
+"""Routes for the Hash Agents API."""
+
 from fastapi import APIRouter
 
 from .agents import router as agents

@@ -1,7 +1,10 @@
+"""Utilities for setting up structured logging."""
+
 import logging
 import logging.config
 import os
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Literal, assert_never
 
 import structlog
@@ -13,6 +16,7 @@ Environment = Literal["dev", "prod"]
 
 
 def setup_logging(environment: Environment = "dev") -> None:
+    """Sets up structured logging."""
     # we're using the most ambitious approach outlined in
     # https://www.structlog.org/en/stable/standard-library.html
 
@@ -36,7 +40,7 @@ def setup_logging(environment: Environment = "dev") -> None:
                 structlog.processors.CallsiteParameter.FILENAME,
                 structlog.processors.CallsiteParameter.FUNC_NAME,
                 structlog.processors.CallsiteParameter.LINENO,
-            }
+            },
         ),
         structlog.stdlib.ExtraAdder(),
     ]
@@ -53,8 +57,10 @@ def setup_logging(environment: Environment = "dev") -> None:
     log_level = log_level or default_log_level
 
     log_folder = os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs")
-    if not os.path.exists(log_folder):
-        os.mkdir(log_folder)
+    if not Path.exists(log_folder):
+        Path.mkdir(log_folder)
+
+    file_name = f"{log_folder}/run-{datetime.now(tz=timezone.utc).isoformat()}.log"
 
     logging.config.dictConfig(
         {
@@ -96,7 +102,7 @@ def setup_logging(environment: Environment = "dev") -> None:
                 "file": {
                     "level": logging.getLevelName(log_level),
                     "class": "logging.handlers.WatchedFileHandler",
-                    "filename": f"{log_folder}/run-{datetime.now().isoformat()}.log",
+                    "filename": file_name,
                     "formatter": "file",
                 },
             },
@@ -105,9 +111,9 @@ def setup_logging(environment: Environment = "dev") -> None:
                     "handlers": ["default", "file"],
                     "level": "DEBUG",
                     "propagate": True,
-                }
+                },
             },
-        }
+        },
     )
 
     # Disable uvicorn access, as otherwise we have duplicate events
