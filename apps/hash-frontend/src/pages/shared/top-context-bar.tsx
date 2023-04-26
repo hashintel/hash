@@ -2,6 +2,8 @@ import { faFile, faPencilRuler } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
+  FormControlLabel,
+  Switch,
   SxProps,
   Theme,
   ToggleButton,
@@ -67,7 +69,27 @@ export const TopContextBar = ({
           scrollToTop={scrollToTop}
         />
       </Box>
-      <Box>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        {query.canvas && (
+          <FormControlLabel
+            labelPlacement="start"
+            slotProps={{
+              typography: { fontSize: 14, fontWeight: 500, marginRight: 1 },
+            }}
+            sx={{
+              mr: 2,
+            }}
+            control={
+              <Switch
+                checked={!!query.locked}
+                onChange={() => setPageMode("canvas", !query.locked)}
+                inputProps={{ "aria-label": "controlled" }}
+                size="medium"
+              />
+            }
+            label="Locked"
+          />
+        )}
         <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
           <ToggleButton
             value="document"

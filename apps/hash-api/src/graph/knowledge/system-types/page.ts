@@ -1,3 +1,4 @@
+import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   AccountId,
@@ -13,7 +14,6 @@ import { getEntities } from "@local/hash-subgraph/stdlib";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { CanvasPositionInput } from "../../../graphql/api-types.gen";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
@@ -483,7 +483,7 @@ export const addBlockToPage: ImpureGraphFunction<
   {
     page: Page;
     block: Block;
-    canvasPosition?: CanvasPositionInput;
+    canvasPosition?: CanvasPosition;
     position?: number;
     actorId: AccountId;
   },
@@ -531,14 +531,15 @@ export const addBlockToPage: ImpureGraphFunction<
 export const moveBlockInPage: ImpureGraphFunction<
   {
     page: Page;
-    canvasPosition?: CanvasPositionInput;
+    canvasPosition?: CanvasPosition;
     currentPosition: number;
     newPosition: number;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { page, currentPosition, newPosition, actorId } = params;
+  const { page, canvasPosition, currentPosition, newPosition, actorId } =
+    params;
 
   const contentLinks = await getEntityOutgoingLinks(ctx, {
     entityId: page.entity.metadata.recordId.entityId,
@@ -567,7 +568,7 @@ export const moveBlockInPage: ImpureGraphFunction<
   await updateLinkEntity(ctx, {
     properties: {
       ...linkEntity.properties,
-      ...params.canvasPosition,
+      ...canvasPosition,
     },
     linkEntity,
     leftToRightOrder: newPosition,
@@ -638,7 +639,9 @@ export const getPageComments: ImpureGraphFunction<
   });
 
   const comments = await Promise.all(
-    blocks.map((block) => getBlockComments(ctx, { block })),
+    blocks.map(({ rightEntity }) =>
+      getBlockComments(ctx, { block: rightEntity }),
+    ),
   );
 
   return comments

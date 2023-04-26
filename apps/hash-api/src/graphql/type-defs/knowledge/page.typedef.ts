@@ -78,21 +78,7 @@ export const pageTypedef = gql`
     ): [Comment!]!
   }
 
-  type CanvasPosition {
-    x: Float!
-    y: Float!
-    w: Float!
-    h: Float!
-    rotation: Float!
-  }
-
-  input CanvasPositionInput {
-    x: Float!
-    y: Float!
-    w: Float!
-    h: Float!
-    rotation: Float!
-  }
+  scalar CanvasPosition
 
   """
   Insert a block into a page with a corresponding entity.
@@ -109,7 +95,7 @@ export const pageTypedef = gql`
     """
     Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
     """
-    canvasPosition: CanvasPositionInput
+    canvasPosition: CanvasPosition
     """
     The block componentId.
     """
@@ -158,7 +144,7 @@ export const pageTypedef = gql`
     """
     Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
     """
-    canvasPosition: CanvasPositionInput
+    canvasPosition: CanvasPosition
   }
 
   """

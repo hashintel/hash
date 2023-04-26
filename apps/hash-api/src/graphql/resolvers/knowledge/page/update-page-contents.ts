@@ -141,14 +141,16 @@ export const updatePageContents: ResolverFn<
         await addBlockToPage(context, {
           page,
           block: insertedBlocks[insertCount]!,
-          canvasPosition: action.insertBlock.canvasPosition,
+          canvasPosition: action.insertBlock.canvasPosition ?? undefined,
           position: action.insertBlock.position,
           actorId: user.accountId,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
+        console.log("moveBlock", action.moveBlock);
         await moveBlockInPage(context, {
           ...action.moveBlock,
+          canvasPosition: action.moveBlock.canvasPosition ?? undefined,
           page,
           actorId: user.accountId,
         });
