@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { MutationHookOptions, useMutation } from "@apollo/client";
 import { Agent, AgentTypeInput, AgentTypeMap } from "@apps/hash-agents";
 import { GraphQLError } from "graphql";
 import { useCallback } from "react";
@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import {
   CallAgentRunnerMutation,
   CallAgentRunnerMutationVariables,
+  Exact,
 } from "../../graphql/api-types.gen";
 import { callAgentRunnerMutation } from "../../graphql/queries/agents.queries";
 
@@ -18,12 +19,17 @@ type CallAgentRunnerCallback<T extends Agent> = (
 
 export const useAgentRunner = <T extends Agent>(
   agent: T,
+  options?: MutationHookOptions<
+    CallAgentRunnerMutation,
+    Exact<{ payload: AgentTypeInput }>
+  >,
 ): [CallAgentRunnerCallback<T>, { readonly loading: boolean }] => {
   const [callAgentRunnerFn, { loading }] = useMutation<
     CallAgentRunnerMutation,
     CallAgentRunnerMutationVariables
   >(callAgentRunnerMutation, {
     fetchPolicy: "no-cache",
+    ...options,
   });
 
   const callAgentRunnerCallback = useCallback<CallAgentRunnerCallback<T>>(
