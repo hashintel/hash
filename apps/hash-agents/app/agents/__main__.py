@@ -4,7 +4,7 @@ import sys
 
 from beartype import beartype
 
-from app import setup
+from app.prerun import setup_prerun
 
 from . import call_agent
 
@@ -20,7 +20,8 @@ class InvalidArgumentError(RuntimeError):
 @beartype
 def main() -> None:
     """Execute the agent."""
-    setup()
+    # TODO: make this configurable
+    setup_prerun("dev")
 
     args = sys.argv
     if len(args) < 2:  # noqa: PLR2004
