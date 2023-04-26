@@ -1,6 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Entity,
+  EntityEditionId,
   EntityId,
   EntityRevisionId,
   GraphResolveDepths,
@@ -45,7 +46,7 @@ export const useFetchBlockSubgraph = () => {
           metadata: {
             recordId: {
               entityId: "placeholder-account%entity-id-not-set" as EntityId,
-              editionId: now,
+              editionId: "placeholder-entity-edition-id" as EntityEditionId,
             },
             entityTypeId: blockEntityTypeId,
             temporalVersioning: {

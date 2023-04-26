@@ -26,6 +26,9 @@ export type EntityUuid = Brand<Uuid, "EntityUuid">;
 /** An ID to uniquely identify an entity */
 export type EntityId = Brand<`${OwnedById}%${EntityUuid}`, "EntityId">;
 
+/** A `Uuid` that uniqely identifies an entity edition */
+export type EntityEditionId = Brand<Uuid, "EntityEditionId">;
+
 export const isEntityId = (entityId: string): entityId is EntityId => {
   const [accountId, entityUuid] = entityId.split("%");
   return (
