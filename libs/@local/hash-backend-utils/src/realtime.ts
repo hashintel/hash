@@ -1,6 +1,6 @@
 import { getRequiredEnv } from "./environment";
 import { Logger } from "./logger";
-import { Entity, EntityType, PropertyType } from "./pg-tables";
+import { PgEntity, PgEntityType, PgPropertyType } from "./pg-tables";
 import { RedisConfig, setupRedisClient } from "./redis";
 import { RedisStreamConsumer, RedisStreamProducer } from "./stream/redis";
 
@@ -66,17 +66,17 @@ export const generateStreamProducers = (
 ) => {
   const streams = getStreams();
   return {
-    entityStream: new RedisStreamProducer<Entity>(
+    entityStream: new RedisStreamProducer<PgEntity>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.entityStream,
     ),
-    entityTypeStream: new RedisStreamProducer<EntityType>(
+    entityTypeStream: new RedisStreamProducer<PgEntityType>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.entityTypeStream,
     ),
-    propertyTypeStream: new RedisStreamProducer<PropertyType>(
+    propertyTypeStream: new RedisStreamProducer<PgPropertyType>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.propertyTypeStream,
@@ -90,17 +90,17 @@ export const generateStreamConsumers = (
 ) => {
   const streams = getStreams();
   return {
-    entityStream: new RedisStreamConsumer<Entity>(
+    entityStream: new RedisStreamConsumer<PgEntity>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.entityStream,
     ),
-    entityTypeStream: new RedisStreamConsumer<EntityType>(
+    entityTypeStream: new RedisStreamConsumer<PgEntityType>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.entityTypeStream,
     ),
-    propertyTypeStream: new RedisStreamConsumer<PropertyType>(
+    propertyTypeStream: new RedisStreamConsumer<PgPropertyType>(
       logger,
       setupRedisClient(logger, redisConfig),
       streams.propertyTypeStream,

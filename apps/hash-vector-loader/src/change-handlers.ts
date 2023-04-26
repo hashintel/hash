@@ -1,9 +1,9 @@
 import { EntityType } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  Entity as PgEntity,
-  EntityType as PgEntityType,
-  PropertyType as PgPropertyType,
+  PgEntity,
+  PgEntityType,
+  PgPropertyType,
 } from "@local/hash-backend-utils/pg-tables";
 import { RedisStreamConsumer } from "@local/hash-backend-utils/stream/redis";
 import dedent from "dedent";
