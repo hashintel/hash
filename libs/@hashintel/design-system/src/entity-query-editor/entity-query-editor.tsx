@@ -21,7 +21,7 @@ const mapFormValuesToMultiFilter = (data: FormValues): MultiFilter => {
         field: ["metadata", "entityTypeId"],
       });
     } else {
-      const field = ["properties", filter.propertyTypeId];
+      const field = ["properties", filter.propertyTypeBaseUrl];
 
       switch (filter.operator) {
         case "is empty":
@@ -100,7 +100,7 @@ const mapMultiFilterToFormValues = (multiFilter: MultiFilter): FormValues => {
 
       /** @todo what about targeting a nested property? */
     } else if (isTargetingProperty && filter.field[1]) {
-      const propertyTypeId = filter.field[1] as string;
+      const propertyTypeBaseUrl = filter.field[1] as string;
 
       const isEmpty = filter.operator === "EQUALS" && filter.value === null;
       const isNotEmpty =
@@ -113,9 +113,9 @@ const mapMultiFilterToFormValues = (multiFilter: MultiFilter): FormValues => {
       const isNotContains =
         filter.operator === "DOES_NOT_CONTAIN_SEGMENT" && filter.value !== null;
 
-      const repeating: Pick<PropertyFilter, "type" | "propertyTypeId"> = {
+      const repeating: Pick<PropertyFilter, "type" | "propertyTypeBaseUrl"> = {
         type: "Property",
-        propertyTypeId,
+        propertyTypeBaseUrl,
       };
 
       if (isEmpty || isNotEmpty) {

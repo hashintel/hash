@@ -1,4 +1,4 @@
-import { EntityType, PropertyType } from "@blockprotocol/graph";
+import { EntityType, extractBaseUrl, PropertyType } from "@blockprotocol/graph";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -102,29 +102,36 @@ const PropertyTypeSelector = ({
     | FieldErrorsImpl<PropertyFilter>
     | undefined;
 
-  const hasError = !!filterErrors?.propertyTypeId;
+  const hasError = !!filterErrors?.propertyTypeBaseUrl;
 
   return (
     <FormControl>
       <RHFSelect
         control={control}
         rules={{ required: "Required" }}
-        defaultValue=""
-        name={`filters.${index}.propertyTypeId`}
+        name={`filters.${index}.propertyTypeBaseUrl`}
         selectProps={{
           size: "xs",
           displayEmpty: true,
           error: hasError,
         }}
       >
-        <MenuItem value="" disabled noSelectBackground>
+        <MenuItem disabled noSelectBackground>
           Choose
         </MenuItem>
-        {propertyTypes.map(({ title, $id }) => (
-          <MenuItem key={$id} value={$id}>
-            {title}
-          </MenuItem>
-        ))}
+        {propertyTypes.map(({ title, $id }) => {
+          const baseUrl = extractBaseUrl($id);
+
+          /**
+           * @todo baseUrl is probably going to be duplicated if there are multiple versions of the same property type, which is going to make these items non-unique.
+           * we need to address the versioning of property types here.
+           */
+          return (
+            <MenuItem key={baseUrl} value={baseUrl}>
+              {title}
+            </MenuItem>
+          );
+        })}
       </RHFSelect>
     </FormControl>
   );

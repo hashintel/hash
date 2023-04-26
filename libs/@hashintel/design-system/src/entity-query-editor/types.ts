@@ -1,4 +1,5 @@
 import {
+  BaseUrl,
   EntityType,
   MultiFilter,
   MultiFilterOperatorType,
@@ -30,14 +31,14 @@ export type PropertyOperator =
 interface PropertyFilterWithValue {
   type: "Property";
   operator: PropertyOperatorWithValue;
+  propertyTypeBaseUrl: BaseUrl;
   value: string;
-  propertyTypeId: string;
 }
 
 interface PropertyFilterWithoutValue {
   type: "Property";
   operator: PropertyOperatorWithoutValue;
-  propertyTypeId: string;
+  propertyTypeBaseUrl: BaseUrl;
   value?: never;
 }
 
