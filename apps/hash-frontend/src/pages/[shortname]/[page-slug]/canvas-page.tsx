@@ -3,19 +3,22 @@ import "@tldraw/tldraw/ui.css";
 
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { updatePageContents } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 import { TldrawEditorConfig, useApp } from "@tldraw/editor";
-import { toDomPrecision } from "@tldraw/primitives";
+import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 import {
   App,
   createShapeId,
+  createShapeValidator,
   defineShape,
   DialogProps,
   HTMLContainer,
   MenuGroup,
   menuItem,
+  setPropsForNextShape,
   TLBaseShape,
   TLBoxTool,
   TLBoxUtil,
@@ -23,6 +26,8 @@ import {
   TLOpacityType,
   toolbarItem,
 } from "@tldraw/tldraw";
+import { T } from "@tldraw/tlvalidate";
+import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 
 import { BlockContextProvider } from "../../../blocks/page/block-context";
@@ -34,8 +39,6 @@ import {
   BlockLoaderProps,
 } from "../../../components/block-loader/block-loader";
 import {
-  CanvasPosition,
-  CanvasPositionInput,
   PageContentItem,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
@@ -70,17 +73,6 @@ type BlockShape = TLBaseShape<
 const defaultWidth = 600;
 const defaultHeight = 200;
 
-const fakeXPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/x-position/";
-const fakeYPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/y-position/";
-const fakeWidthPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/";
-const fakeHeightPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/";
-const fakeRotationPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/rotation-in-degrees/";
-
 const persistBlockPosition = ({
   blockIndexPosition,
   pageEntityId,
@@ -88,7 +80,7 @@ const persistBlockPosition = ({
 }: {
   blockIndexPosition: number;
   pageEntityId: EntityId;
-  canvasPosition: CanvasPositionInput;
+  canvasPosition: CanvasPosition;
 }) => {
   void apolloClient.mutate<
     UpdatePageContentsMutation,
@@ -113,21 +105,20 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const app = useApp();
 
-  const { authenticatedUser } = useAuthenticatedUser();
   const { routeNamespace } = useRouteNamespace();
 
   const { accountId } = routeNamespace ?? {};
 
   const { pageEntityId } = usePageContext();
 
-  const [updatePageContentsFn, { loading }] = useMutation<
+  const [updatePageContentsFn] = useMutation<
     UpdatePageContentsMutation,
     UpdatePageContentsMutationVariables
   >(updatePageContents);
 
   const createBlock = useCallback(
     async (blockMeta: HashBlockMeta) => {
-      const position = 0;
+      const position = app.getShapesInPage(app.pages[0]!.id).length;
 
       const blockEntityTypeId = blockMeta.schema as VersionedUrl;
 
@@ -153,11 +144,15 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 ownedById: accountId as OwnedById,
                 position,
                 canvasPosition: {
-                  w: width,
-                  h: height,
-                  rotation: 0,
-                  x,
-                  y,
+                  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+                    width,
+                  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+                    height,
+                  "https://blockprotocol.org/@hash/types/property-type/x-position/":
+                    x,
+                  "https://blockprotocol.org/@hash/types/property-type/y-position/":
+                    y,
+                  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/": 0,
                 },
               },
             },
@@ -192,6 +187,7 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
           h: height,
           firstCreation: true,
           opacity: "1" as const,
+          indexPosition: position,
           pageEntityId,
           blockLoaderProps: {
             blockEntityId,
@@ -210,7 +206,7 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
   );
 
   return creatingEntity ? (
-    "Creating entity..."
+    <div style={{ padding: 60 }}>Creating block...</div>
   ) : (
     <BlockSuggester
       onChange={async (_variant, blockMeta) => {
@@ -218,10 +214,8 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
         try {
           await createBlock(blockMeta);
         } catch (err) {
-          console.log({ err });
           setCreatingEntity(false);
         }
-        // app.setSelectedTool("bpBlock", { blockMeta });
       }}
     />
   );
@@ -230,33 +224,33 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
 class BlockUtil extends TLBoxUtil<BlockShape> {
   static type = "bpBlock";
 
-  override canUnmount = () => false;
-
-  override canEdit = () => true;
+  override canEdit = () => false;
 
   // i.e. moving its position
   override onTranslateEnd = (_previous: BlockShape, current: BlockShape) => {
-    console.log("Translate end");
-    console.log({ current });
+    BlockUtil.persistShapePosition(current);
   };
 
   override onResizeEnd = (_previous: BlockShape, current: BlockShape) => {
-    console.log("Resize end");
-    console.log({ current });
+    BlockUtil.persistShapePosition(current);
   };
 
   override onRotateEnd = (_previous: BlockShape, current: BlockShape) => {
-    console.log("Rotate end");
-    console.log({ current });
+    BlockUtil.persistShapePosition(current);
   };
 
   static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
     return {
-      x: shape.x,
-      y: shape.y,
-      w: shape.props.w,
-      h: shape.props.h,
-      rotation: shape.rotation,
+      "https://blockprotocol.org/@hash/types/property-type/x-position/":
+        shape.x,
+      "https://blockprotocol.org/@hash/types/property-type/y-position/":
+        shape.y,
+      "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+        shape.props.w,
+      "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+        shape.props.h,
+      "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+        shape.rotation,
     };
   };
 
@@ -325,7 +319,14 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
     };
 
     return (
-      <HTMLContainer id={shape.id} style={{ pointerEvents: "all" }}>
+      <HTMLContainer
+        id={shape.id}
+        style={{
+          pointerEvents: "all",
+          width: bounds.width,
+          height: bounds.height,
+        }}
+      >
         <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
           <BlockLoader {...blockLoaderProps} onBlockLoaded={onBlockLoaded} />
         </BlockContextProvider>
@@ -337,6 +338,19 @@ class BlockUtil extends TLBoxUtil<BlockShape> {
 const BlockShapeDef = defineShape<BlockShape, BlockUtil>({
   type: "bpBlock",
   getShapeUtil: () => BlockUtil,
+  validator: createShapeValidator(
+    "bpBlock",
+    T.any,
+    // T.object({
+    //   w: T.number,
+    //   h: T.number,
+    //   firstCreation: T.boolean,
+    //   opacity: T.string,
+    //   indexPosition: T.number,
+    //   pageEntityId: T.string,
+    //   blockLoaderProps: T.any,
+    // }),
+  ),
 });
 
 class BlockTool extends TLBoxTool {
@@ -352,7 +366,98 @@ const config = new TldrawEditorConfig({
   tools: [BlockTool],
 });
 
+const FixedCanvas = ({ blocks, contents }: CanvasPageBlockProps) => {
+  return (
+    <div style={{ height: "100%", position: "relative" }}>
+      <div
+        style={{
+          position: "relative",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          background: "rgb(249, 250, 251)",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
+        >
+          {contents.map(({ linkEntity, rightEntity: blockEntity }, index) => {
+            const {
+              "https://blockprotocol.org/@hash/types/property-type/x-position/":
+                x,
+              "https://blockprotocol.org/@hash/types/property-type/y-position/":
+                y,
+              "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+                width,
+              "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+                height,
+              "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+                rotation,
+            } = linkEntity.properties;
+
+            const matrix = Matrix2d.Compose(
+              Matrix2d.Translate(x, y),
+              Matrix2d.Rotate(rotation),
+            );
+
+            const blockLoaderProps = {
+              blockEntityId:
+                blockEntity.blockChildEntity.metadata.recordId.entityId,
+              blockEntityTypeId:
+                blockEntity.blockChildEntity.metadata.entityTypeId,
+              wrappingEntityId: blockEntity.metadata.recordId.entityId,
+              blockMetadata: blocks[blockEntity.componentId]!.meta,
+              readonly: false,
+            };
+
+            return (
+              <div
+                key={linkEntity.metadata.recordId.entityId}
+                style={{
+                  width,
+                  height,
+                  transform: `matrix(${toDomPrecision(
+                    matrix.a,
+                  )}, ${toDomPrecision(matrix.b)}, ${toDomPrecision(
+                    matrix.c,
+                  )}, ${toDomPrecision(matrix.d)}, ${toDomPrecision(
+                    matrix.e,
+                  )}, ${toDomPrecision(matrix.f)})`,
+                  transformOrigin: "top left",
+                  position: "absolute",
+                }}
+              >
+                <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
+                  <BlockLoader
+                    {...blockLoaderProps}
+                    onBlockLoaded={() => null}
+                  />
+                </BlockContextProvider>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
+  const { query } = useRouter();
+
+  console.log({ contents });
+
+  if (query.locked) {
+    return <FixedCanvas blocks={blocks} contents={contents} />;
+  }
+
   const handleMount = (app: App) => {
     for (const page of app.pages) {
       const shapes = app.getShapesInPage(page.id);
@@ -360,50 +465,44 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
     }
 
     app.createShapes(
-      contents.map(({ linkEntity, rightEntity: blockEntity }, index) => ({
-        id: createShapeId(),
-        type: "bpBlock",
-        x:
-          (linkEntity.properties[fakeXPropertyBaseUrl as BaseUrl] as
-            | number
-            | undefined) ?? 50,
-        y:
-          (linkEntity.properties[fakeYPropertyBaseUrl as BaseUrl] as
-            | number
-            | undefined) ??
-          linkEntity.linkData?.leftToRightOrder ??
-          index * defaultHeight + 50,
-        rotation:
-          (linkEntity.properties[fakeRotationPropertyBaseUrl as BaseUrl] as
-            | number
-            | undefined) ?? 0,
-        props: {
-          blockLoaderProps: {
-            blockEntityId:
-              blockEntity.blockChildEntity.metadata.recordId.entityId,
-            blockEntityTypeId:
-              blockEntity.blockChildEntity.metadata.entityTypeId,
-            wrappingEntityId: blockEntity.metadata.recordId.entityId,
-            blockMetadata: blocks[blockEntity.componentId]!.meta,
-            readonly: false,
+      contents.map(({ linkEntity, rightEntity: blockEntity }, index) => {
+        const {
+          "https://blockprotocol.org/@hash/types/property-type/x-position/": x,
+          "https://blockprotocol.org/@hash/types/property-type/y-position/": y,
+          "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+            width,
+          "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+            height,
+          "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+            rotation,
+        } = linkEntity.properties as Partial<CanvasPosition>;
+
+        return {
+          id: createShapeId(),
+          type: "bpBlock",
+          x: x ?? 50,
+          y: y ?? index * defaultHeight + 50,
+          rotation: rotation ?? 0,
+          props: {
+            blockLoaderProps: {
+              blockEntityId:
+                blockEntity.blockChildEntity.metadata.recordId.entityId,
+              blockEntityTypeId:
+                blockEntity.blockChildEntity.metadata.entityTypeId,
+              wrappingEntityId: blockEntity.metadata.recordId.entityId,
+              blockMetadata: blocks[blockEntity.componentId]!.meta,
+              readonly: false,
+            },
+            firstCreation: false,
+            indexPosition: linkEntity.linkData?.leftToRightOrder ?? index,
+            pageEntityId: linkEntity.linkData?.leftEntityId,
+            h: height ?? 250,
+            w: width ?? 600,
           },
-          firstCreation: false,
-          indexPosition: linkEntity.linkData?.leftToRightOrder ?? index,
-          pageEntityId: linkEntity.linkData?.leftEntityId,
-          h:
-            (linkEntity.properties[fakeHeightPropertyBaseUrl as BaseUrl] as
-              | number
-              | undefined) ?? 250,
-          w:
-            (linkEntity.properties[fakeWidthPropertyBaseUrl as BaseUrl] as
-              | number
-              | undefined) ?? 600,
-        },
-      })),
+        };
+      }),
     );
   };
-
-  console.log({ blocks, contents });
 
   return (
     <div style={{ height: "100%" }}>

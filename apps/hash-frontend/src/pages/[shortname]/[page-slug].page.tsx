@@ -429,41 +429,42 @@ const Page: NextPageWithLayout<PageProps> = ({
           <PageNotificationBanner />
         </Box>
 
-        <PageSectionContainer {...pageSectionContainerProps}>
-          <Box position="relative">
-            <PageIconButton
-              entityId={pageEntityId}
-              readonly={isReadonlyMode}
-              sx={({ breakpoints }) => ({
-                mb: 2,
-                [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
-                  position: "absolute",
-                  top: 0,
-                  right: "calc(100% + 24px)",
-                },
-              })}
-            />
-            <Box
-              component="header"
-              ref={pageHeaderRef}
-              sx={{
-                scrollMarginTop:
-                  HEADER_HEIGHT +
-                  TOP_CONTEXT_BAR_HEIGHT +
-                  pageIconVariantSizes.medium.container,
-              }}
-            >
-              <PageTitle
-                value={title}
-                pageEntityId={pageEntityId}
+        {!canvasPage && (
+          <PageSectionContainer {...pageSectionContainerProps}>
+            <Box position="relative">
+              <PageIconButton
+                entityId={pageEntityId}
                 readonly={isReadonlyMode}
+                sx={({ breakpoints }) => ({
+                  mb: 2,
+                  [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
+                    position: "absolute",
+                    top: 0,
+                    right: "calc(100% + 24px)",
+                  },
+                })}
               />
-              {/*
+              <Box
+                component="header"
+                ref={pageHeaderRef}
+                sx={{
+                  scrollMarginTop:
+                    HEADER_HEIGHT +
+                    TOP_CONTEXT_BAR_HEIGHT +
+                    pageIconVariantSizes.medium.container,
+                }}
+              >
+                <PageTitle
+                  value={title}
+                  pageEntityId={pageEntityId}
+                  readonly={isReadonlyMode}
+                />
+                {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs
             for them have been added
           */}
-              {/* <div style={{"marginRight":"1rem"}}>
+                {/* <div style={{"marginRight":"1rem"}}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -487,9 +488,10 @@ const Page: NextPageWithLayout<PageProps> = ({
               />
             </div>
           </div> */}
+              </Box>
             </Box>
-          </Box>
-        </PageSectionContainer>
+          </PageSectionContainer>
+        )}
 
         <CollabPositionProvider value={[]}>
           <UserBlocksProvider value={blocksMap}>
@@ -499,7 +501,7 @@ const Page: NextPageWithLayout<PageProps> = ({
               ) : (
                 <PageBlock
                   accountId={pageWorkspace.accountId}
-                  contents={pageBlocks}
+                  contents={contents}
                   blocks={blocksMap}
                   pageComments={pageComments}
                   entityId={pageEntityId}

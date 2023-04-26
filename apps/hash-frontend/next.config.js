@@ -12,9 +12,9 @@ const withTM = require("next-transpile-modules")([
   "@local/hash-isomorphic-utils",
   "@local/hash-subgraph",
   "react-syntax-highlighter",
-  "@tldraw/tldraw",
   "@tldraw/polyfills",
-  "@tldraw/primitives",
+  "@tldraw/tldraw",
+  "@tldraw/tlschema",
   "@tldraw/ui",
 ]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
