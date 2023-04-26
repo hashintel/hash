@@ -171,7 +171,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     let item = await this.client.rpoplpush(processingName, processingName);
 
     // Otherwise, pop from the main queue and push onto the processing queue.
-    if (item) {
+    if (!item) {
       item =
         (timeoutMs === null
           ? // Non-blocking
