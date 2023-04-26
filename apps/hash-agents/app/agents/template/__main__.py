@@ -38,4 +38,4 @@ if __name__ == "__main__":
     setup()
 
     output = main(Input(expression="round(pi * 13.37)"))
-    logger.info(f"output: {output.result}")
+    logger.info(output=output)

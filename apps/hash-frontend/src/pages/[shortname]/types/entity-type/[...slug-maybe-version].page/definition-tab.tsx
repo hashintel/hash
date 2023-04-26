@@ -36,7 +36,10 @@ export const DefinitionTab = ({
       ...possiblyIncompletePropertyTypeOptions,
       ...entityTypeAndPropertyTypes.propertyTypes,
     };
-  }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
+  }, [
+    entityTypeAndPropertyTypes.propertyTypes,
+    possiblyIncompletePropertyTypeOptions,
+  ]);
 
   const entityTypeOptions = useMemo<Record<VersionedUrl, EntityType>>(() => {
     return Object.fromEntries(
