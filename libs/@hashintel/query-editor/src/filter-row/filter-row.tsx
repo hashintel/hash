@@ -1,6 +1,12 @@
 import { EntityType, extractBaseUrl, PropertyType } from "@blockprotocol/graph";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
+  FontAwesomeIcon,
+  IconButton,
+  MenuItem,
+  TextField,
+} from "@hashintel/design-system";
+import {
   Box,
   FormControl,
   formControlClasses,
@@ -12,10 +18,6 @@ import {
 } from "@mui/material";
 import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
-import { FontAwesomeIcon } from "../../fontawesome-icon";
-import { IconButton } from "../../icon-button";
-import { MenuItem } from "../../menu-item";
-import { TextField } from "../../text-field";
 import { fieldOperators, filterTypes } from "../constants";
 import { FilterType, FormValues, PropertyFilter } from "../types";
 import { RHFSelect } from "./rhf-select";

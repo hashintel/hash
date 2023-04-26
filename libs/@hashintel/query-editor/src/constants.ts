@@ -1,7 +1,6 @@
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { faAsterisk, faDiagramSubtask } from "@hashintel/design-system";
 
-import { faAsterisk } from "../fa-icons/fa-asterisk";
-import { faDiagramSubtask } from "../fa-icons/fa-diagram-subtask";
 import { FilterType, PropertyOperator, TypeOperator } from "./types";
 
 export const filterTypes: {

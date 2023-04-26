@@ -22,7 +22,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.2.2",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/styled": "11.8.1",
@@ -30,7 +29,6 @@
     "@fortawesome/free-solid-svg-icons": "6.0.0",
     "clsx": "1.2.1",
     "lowlight": "2.8.1",
-    "react-hook-form": "7.37.0",
     "react-loading-skeleton": "3.2.0",
     "react-syntax-highlighter": "15.5.0",
     "react-type-animation": "3.0.1"
