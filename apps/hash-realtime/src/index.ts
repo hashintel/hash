@@ -161,8 +161,11 @@ type EntityPollState = {
   seenEntityEdition: Map<EntityEditionId, ChangeType>;
 };
 
-const findColumn = <T>(columns: ChangeType["columns"], name: string): T =>
-  columns.find((col) => col.name === name)?.value as T;
+const findColumn = <T>(
+  columns: ChangeType["columns"],
+  name: string,
+): T | undefined =>
+  columns.find((col) => col.name === name)?.value as T | undefined;
 
 const handleEntityTableChange = (
   change: ChangeType,
@@ -172,6 +175,11 @@ const handleEntityTableChange = (
     change.columns,
     "entity_edition_id",
   );
+
+  if (!entityEditionId) {
+    return null;
+  }
+
   let entity = null;
 
   if (change.table === "entity_editions") {
