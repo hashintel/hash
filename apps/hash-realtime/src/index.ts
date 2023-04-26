@@ -26,6 +26,7 @@ import {
 } from "@local/hash-backend-utils/realtime";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
+import { EntityEditionId } from "@local/hash-subgraph";
 import {
   clearIntervalAsync,
   setIntervalAsync,
@@ -154,20 +155,23 @@ const releaseSlotOwnership = async (pool: PgPool, slotName: string) => {
 };
 
 type ChangeType = Wal2JsonMsg<SupportedRealtimeTable>;
-type EntityEditionId = string;
+
 type EntityPollState = {
   seenTemporalMetadata: Map<EntityEditionId, ChangeType>;
   seenEntityEdition: Map<EntityEditionId, ChangeType>;
 };
 
-const findColumn = (columns: ChangeType["columns"], name: string): string =>
-  columns.find((col) => col.name === name)?.value as string;
+const findColumn = <T>(columns: ChangeType["columns"], name: string): T =>
+  columns.find((col) => col.name === name)?.value as T;
 
 const handleEntityTableChange = (
   change: ChangeType,
   state: EntityPollState,
 ): Entity | null => {
-  const entityEditionId = findColumn(change.columns, "entity_edition_id");
+  const entityEditionId = findColumn<EntityEditionId>(
+    change.columns,
+    "entity_edition_id",
+  );
   let entity = null;
 
   if (change.table === "entity_editions") {
