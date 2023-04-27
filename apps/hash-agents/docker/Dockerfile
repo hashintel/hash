@@ -65,7 +65,7 @@ RUN . app/apps/hash-agents/.venv/bin/activate
 
 
 ENTRYPOINT ["gunicorn"]
-CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "app:create_app('prod')"]
+CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "--timeout", "0", "app:create_app('prod')"]
 EXPOSE 80
 
 RUN apk add --no-cache curl && \
