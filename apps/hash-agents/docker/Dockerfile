@@ -57,7 +57,7 @@ COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY --from=installer $WORKDIR/app app
 
 ENTRYPOINT ["gunicorn"]
-CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "app:create_app('prod')"]
+CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "--timeout", "0", "app:create_app('prod')"]
 EXPOSE 80
 
 RUN apk add --no-cache curl && \
