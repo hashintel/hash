@@ -24,8 +24,6 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
 
   const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
-  console.log(dependencies);
-
   const initContainer = (dependencies?: string[]) => {
     axios
       .post("api/react-app-generator/initialize-container", { dependencies })

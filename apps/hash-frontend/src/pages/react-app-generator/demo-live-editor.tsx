@@ -1,7 +1,12 @@
 import { LoadingSpinner } from "@hashintel/design-system";
 import { Box, Button } from "@mui/material";
 import React from "react";
-import { LiveProvider, LiveEditor } from "react-live";
+import Editor from "react-simple-code-editor";
+import { highlight, languages } from "prismjs/components/prism-core";
+import "prismjs";
+import "prismjs/components/prism-clike";
+import "prismjs/components/prism-javascript";
+import "prismjs/themes/prism.css";
 
 type Props = {
   noInline?: boolean;
@@ -14,7 +19,6 @@ type Props = {
 };
 
 export const DemoLiveEditor = ({
-  noInline = false,
   code,
   iframeKey,
   onChange,
@@ -22,20 +26,34 @@ export const DemoLiveEditor = ({
   refreshIframe,
 }: Props) => {
   return (
-    <LiveProvider code={code} noInline={noInline}>
+    <Box>
       <Box
         sx={{
           display: "flex",
           overflow: "hidden",
-          borderRadius: 5,
           border: ({ palette }) => `1px solid ${palette.gray[20]}`,
           gap: 3,
         }}
       >
         <Box sx={{ flex: 1, overflowY: "scroll" }}>
-          <LiveEditor className="font-mono" onChange={onChange} />
+          <Editor
+            value={code}
+            onValueChange={onChange}
+            highlight={(code) => highlight(code, languages.js)}
+            padding={10}
+            style={{
+              fontFamily: '"Fira code", "Fira Mono", monospace',
+              fontSize: 12,
+            }}
+          />
         </Box>
-        <Box sx={{ flex: 1, overflow: "scroll", position: "relative" }}>
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "scroll",
+            position: "relative",
+          }}
+        >
           {loading ? (
             <LoadingSpinner />
           ) : (
@@ -55,6 +73,6 @@ export const DemoLiveEditor = ({
           </Button>
         </Box>
       </Box>
-    </LiveProvider>
+    </Box>
   );
 };
