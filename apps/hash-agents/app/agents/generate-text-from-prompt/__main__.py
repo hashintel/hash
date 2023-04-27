@@ -18,6 +18,9 @@ def main(agent_input: Input) -> Output:
     chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
     messages = [
+        SystemMessage(
+            content=SYSTEM_MESSAGE_CONTENT
+        ),
         HumanMessage(
             content=agent_input.prompt
         ),
