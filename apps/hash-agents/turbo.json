@@ -3,24 +3,35 @@
   "pipeline": {
     "codegen": {
       "outputs": ["./agents/**/io_types.py", "./src/agents.ts"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "install:tools"]
     },
     "install:tools": {
-      "cache": false
+      "outputs": ["./.venv/**"],
+      "inputs": ["pyproject.toml", "poetry.lock"]
     },
     "build:docker": {
       "cache": false
     },
-    "fix:black": {},
-    "fix:ruff": {},
+    "fix:black": {
+      "dependsOn": ["install:tools"]
+    },
+    "fix:ruff": {
+      "dependsOn": ["install:tools"]
+    },
     "fix:lock-files": {
+      "dependsOn": ["install:tools"],
       "inputs": ["poetry.lock", "pyproject.toml"],
       "outputs": ["poetry.lock"]
     },
-    "lint:black": {},
+    "lint:black": {
+      "dependsOn": ["install:tools"]
+    },
     "lint:lock-files": {
+      "dependsOn": ["install:tools"],
       "inputs": ["poetry.lock", "pyproject.toml"]
     },
-    "lint:ruff": {}
+    "lint:ruff": {
+      "dependsOn": ["install:tools"]
+    }
   }
 }
