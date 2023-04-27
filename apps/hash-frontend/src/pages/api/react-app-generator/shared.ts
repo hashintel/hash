@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 
-export const REACT_PROJECT_PATH = "src/pages/react-app-generator/preview";
+export const PREVIEW_PROJECT_PATH = "src/pages/react-app-generator/preview";
 
 export type CommandCallback = (data: any) => void;
 

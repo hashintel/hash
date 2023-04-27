@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { REACT_PROJECT_PATH, runCommand } from "./shared";
+import { PREVIEW_PROJECT_PATH, runCommand } from "./shared";
 
 export default async function handler(
   req: NextApiRequest,
@@ -42,13 +42,13 @@ export default async function handler(
   await runCommand({
     cmd: "docker",
     args: ["build", "-t", "my-react-app-test", "."],
-    cwd: REACT_PROJECT_PATH,
+    cwd: PREVIEW_PROJECT_PATH,
   });
 
   await runCommand({
     cmd: "docker",
     args: ["run", "-d", "-p", "3001:3000", "my-react-app-test"],
-    cwd: REACT_PROJECT_PATH,
+    cwd: PREVIEW_PROJECT_PATH,
     stdOutCb: (data) => {
       newContainerId = data.toString().trim();
     },
