@@ -128,7 +128,6 @@ export const createGraphClient = (
       }
       try {
         const graphApiError = new GraphApiError(error);
-        console.log({ graphApiError });
         return Promise.reject(graphApiError);
       } catch (secondaryError) {
         // the error was apparently not a valid error from the Graph API, construct a local one
