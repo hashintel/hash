@@ -147,7 +147,6 @@ export const updatePageContents: ResolverFn<
         });
         insertCount += 1;
       } else if (action.moveBlock) {
-        console.log("moveBlock", action.moveBlock);
         await moveBlockInPage(context, {
           ...action.moveBlock,
           canvasPosition: action.moveBlock.canvasPosition ?? undefined,

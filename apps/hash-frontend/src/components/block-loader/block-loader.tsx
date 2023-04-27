@@ -6,8 +6,9 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { TextToken } from "@local/hash-graphql-shared/src/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {
   FunctionComponent,
   useCallback,
@@ -30,7 +31,7 @@ export type BlockLoaderProps = {
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeId: VersionedUrl;
   blockMetadata: HashBlockMeta;
-  editableRef: (node: HTMLElement | null) => void;
+  editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded: () => void;
   wrappingEntityId: string;
   readonly: boolean;
@@ -169,6 +170,15 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
     if (!rootEntity) {
       throw new Error("Root entity not present in blockEntitySubgraph");
+    }
+
+    const textTokens = rootEntity.properties[
+      "http://localhost:3000/@system-user/types/property-type/tokens/" as BaseUrl
+    ] as TextToken[] | undefined;
+    if (textTokens) {
+      rootEntity.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as BaseUrl
+      ] = textTokens.map(({ text }) => text).join("");
     }
 
     return {

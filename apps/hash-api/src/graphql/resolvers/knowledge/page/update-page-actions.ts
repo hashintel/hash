@@ -52,7 +52,6 @@ export const createEntityWithPlaceholdersFn =
         actorId: entityActorId,
       });
     } else {
-      console.log("Creating with links");
       return await createEntityWithLinks(context, {
         ownedById: entityActorId as OwnedById,
         entityTypeId: entityDefinition.entityTypeId!,
@@ -196,15 +195,11 @@ export const handleInsertNewBlock = async (
       placeholderResults,
     } = params;
 
-    console.log("Working");
-
     const blockData = await createEntityWithPlaceholders(
       entity,
       // assume that the "block entity" is in the same account as the block itself
       blockOwnedById,
     );
-
-    console.log({ blockData });
 
     placeholderResults.set(entityPlaceholderId, {
       entityId: blockData.metadata.recordId.entityId,

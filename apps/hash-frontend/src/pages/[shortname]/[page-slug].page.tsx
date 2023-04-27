@@ -80,7 +80,7 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
-import { CanvasPageBlock } from "./[page-slug]/canvas-page";
+import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
