@@ -31,7 +31,8 @@ def main(input: Input) -> Output:
                 SystemMessage(content="Return code blocks as ```jsx\n{code...}\n```."),
                 SystemMessage(content="Use the 'sx' prop to style MUI elements. For example, a button with a purple background should be <Button sx={{\"background: \"purple\"}} />."),
                 SystemMessage(content="Generate a react component using MUI components."),
-                SystemMessage(content="Return the list of dependencies that should be installed in the react project as an array. For example if '@mui/material' and 'axios' should be installed you should return `Dependencies: ['@mui/material', 'axios']`.")]
+                SystemMessage(content="Return the list of dependencies that should be installed in the react project as an array. For example if '@mui/material' and 'axios' should be installed you should return `Dependencies: ['@mui/material', 'axios']`."),
+                SystemMessage(content="Dependencies should be included after closing the code block. The message you return should have the following format: ```jsx\n{code...}\n```\nDependencies: [{dependency1}, {dependency2}, ...].")]
     
     chat = ChatOpenAI(model="gpt-3.5-turbo", streaming=True, callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]), verbose=True, temperature=0)
     prompts = systemPrompts + list(map(mapInputMessagesToMessagePrompts, input.messages))
