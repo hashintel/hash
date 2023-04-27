@@ -1,10 +1,8 @@
 from langchain import PromptTemplate
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
-from langchain.vectorstores import Qdrant
-from langchain.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
-
+from langchain.chat_models import ChatOpenAI
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores import Qdrant
 from qdrant_client import QdrantClient
 
 from .io_types import *
@@ -35,12 +33,12 @@ Graph: ---
 
 Inquiry: {question}
 Helpful Answer:"""
-    PROMPT = PromptTemplate(
+    prompt = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
     )
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-    retrievalQA = RetrievalQA.from_llm(llm=llm, retriever=retriever, prompt=PROMPT)
-    result = retrievalQA.run(agent_input.query)
+    retrieval_qa = RetrievalQA.from_llm(llm=llm, retriever=retriever, prompt=prompt)
+    result = retrieval_qa.run(agent_input.query)
     return Output(answer=result)
 
 
@@ -53,8 +51,8 @@ if __name__ == "HASH":
 
 if __name__ == "__main__":
     """This is used when running the agent from the command line"""
+
     from ... import setup
-    from logging import getLogger
 
     setup("dev")
 
