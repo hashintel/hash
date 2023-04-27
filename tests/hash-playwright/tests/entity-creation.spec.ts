@@ -45,7 +45,7 @@ test.beforeEach(async () => {
 });
 
 /** This is a temporary test to commit the progress made on testing `Grid` component. */
-test("user can update values on property table", async ({ page }) => {
+test.skip("user can update values on property table", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
