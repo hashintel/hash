@@ -345,10 +345,7 @@ export const CommandBar = () => {
         {
           group: "Blocks",
           label: "Generate new block with AI…",
-          command(option) {
-            // eslint-disable-next-line no-alert
-            alert(`You picked option ${option.label}`);
-          },
+          href: "/block-generator",
         },
         {
           group: "Entities",
