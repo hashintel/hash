@@ -21,6 +21,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -77,86 +78,6 @@ const addPathToOptions = (
       path: parentPath ?? [],
     };
   });
-
-// These are the options that are displayed in the command bar
-const allOptions = addPathToOptions([
-  {
-    group: "Test",
-    label: "Alert prompt",
-    textCommand(text) {
-      alert(text);
-    },
-  },
-  {
-    group: "Blocks",
-    label: "Find a block…",
-    options: [
-      {
-        group: "General",
-        label: "Option A",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "General",
-        label: "Option B",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "Other",
-        label: "Option C",
-        href: "https://google.com/",
-      },
-      {
-        group: "Other",
-        label: "Option D",
-        href: "/",
-      },
-    ],
-  },
-  {
-    group: "Blocks",
-    label: "Generate new block with AI…",
-    command(option) {
-      // eslint-disable-next-line no-alert
-      alert(`You picked option ${option.label}`);
-    },
-  },
-  {
-    group: "Entities",
-    label: "Search for an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Insert a link to an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Create new entity…",
-    href: "/",
-  },
-  {
-    group: "Types",
-    label: "Create new type…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Find an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Create an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Generate new app…",
-    href: "/",
-  },
-]);
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
 const CenterContainer = forwardRef<HTMLDivElement, PropsWithChildren>(
@@ -274,12 +195,12 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
     [delay],
   );
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     const timer = resetTimer.current;
     if (timer) {
       clearTimeout(timer);
     }
-  };
+  }, []);
 
   return [handler, cancel] as const;
 };
@@ -290,8 +211,6 @@ const flattenOptions = (options: Option[]): Option[] =>
     option,
     ...(option.options ? flattenOptions(option.options) : []),
   ]);
-
-const flattenedOptions = flattenOptions(allOptions);
 
 export const CommandBar = () => {
   const [visible, setVisible] = useState(false);
@@ -306,10 +225,23 @@ export const CommandBar = () => {
     setInputValue("");
   }, RESET_BAR_TIMEOUT);
 
-  const closeBar = (timing: DelayedCallbackTiming) => {
-    setVisible(false);
-    resetBar(timing);
-  };
+  const closeBar = useCallback(
+    (timing: DelayedCallbackTiming) => {
+      setVisible(false);
+      resetBar(timing);
+    },
+    [resetBar],
+  );
+
+  useEffect(() => {
+    const handler = () => {
+      closeBar("immediate");
+    };
+    router.events.on("routeChangeStart", handler);
+    return () => {
+      router.events.off("routeChangeStart", handler);
+    };
+  }, [router.events, closeBar]);
 
   useKeys(["Meta", "k"], () => {
     if (visible) {
@@ -322,6 +254,101 @@ export const CommandBar = () => {
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // These are the options that are displayed in the command bar
+  const options = useMemo(
+    () =>
+      addPathToOptions([
+        // @todo colocate this functionality with the page component
+        ...(router.pathname === "/[shortname]/[page-slug]"
+          ? [
+              {
+                group: "Page",
+                label: "Generate text from prompt",
+                textCommand(text: string) {
+                  alert(text);
+                },
+              },
+            ]
+          : []),
+        {
+          group: "Blocks",
+          label: "Find a block…",
+          options: [
+            {
+              group: "General",
+              label: "Option A",
+              renderCustomScreen: ({ label }) => (
+                <div>You selected {label}</div>
+              ),
+            },
+            {
+              group: "General",
+              label: "Option B",
+              renderCustomScreen: ({ label }) => (
+                <div>You selected {label}</div>
+              ),
+            },
+            {
+              group: "Other",
+              label: "Option C",
+              href: "https://google.com/",
+            },
+            {
+              group: "Other",
+              label: "Option D",
+              href: "/",
+            },
+          ],
+        },
+        {
+          group: "Blocks",
+          label: "Generate new block with AI…",
+          command(option) {
+            // eslint-disable-next-line no-alert
+            alert(`You picked option ${option.label}`);
+          },
+        },
+        {
+          group: "Entities",
+          label: "Search for an entity…",
+          href: "/",
+        },
+        {
+          group: "Entities",
+          label: "Insert a link to an entity…",
+          href: "/",
+        },
+        {
+          group: "Entities",
+          label: "Create new entity…",
+          href: "/",
+        },
+        {
+          group: "Types",
+          label: "Create new type…",
+          href: "/",
+        },
+        {
+          group: "Apps",
+          label: "Find an app…",
+          href: "/",
+        },
+        {
+          group: "Apps",
+          label: "Create an app…",
+          href: "/",
+        },
+        {
+          group: "Apps",
+          label: "Generate new app…",
+          href: "/",
+        },
+      ]),
+    [router.pathname],
+  );
+
+  const flattenedOptions = useMemo(() => flattenOptions(options), [options]);
 
   const selectedOption = getSelectedOption(
     selectedOptionPath,
