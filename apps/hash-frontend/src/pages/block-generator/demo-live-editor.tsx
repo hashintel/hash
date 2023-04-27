@@ -55,7 +55,9 @@ export const DemoLiveEditor = ({
           }}
         >
           {loading ? (
-            <LoadingSpinner />
+            <Box sx={{ position: "absolute", top: 8, left: 8 }}>
+              <LoadingSpinner />
+            </Box>
           ) : (
             <iframe
               style={{ borderWidth: 0, width: "100%", height: "100%" }}
