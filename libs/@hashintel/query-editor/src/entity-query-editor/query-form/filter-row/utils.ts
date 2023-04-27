@@ -4,6 +4,8 @@ import { faAsterisk, faDiagramSubtask } from "@hashintel/design-system";
 
 import {
   FilterType,
+  FilterValue,
+  FilterValueType,
   FormValues,
   PropertyFilter,
   PropertyOperator,
@@ -165,13 +167,15 @@ export const mapMultiFilterToFormValues = (
         filters.push({
           ...repeating,
           operator: isEquals ? "is" : "is not",
-          value: filter.value as string,
+          valueType: typeof filter.value as FilterValueType,
+          value: filter.value as FilterValue,
         });
       } else if (isContains || isNotContains) {
         filters.push({
           ...repeating,
           operator: isContains ? "contains" : "does not contain",
-          value: filter.value as string,
+          valueType: typeof filter.value as FilterValueType,
+          value: filter.value as FilterValue,
         });
       }
     }

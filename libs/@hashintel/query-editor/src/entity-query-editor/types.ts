@@ -21,17 +21,22 @@ export type PropertyOperator =
   | PropertyOperatorWithoutValue
   | PropertyOperatorWithValue;
 
+export type FilterValue = boolean | number | string;
+export type FilterValueType = "boolean" | "number" | "string";
+
 interface PropertyFilterWithValue {
   type: "Property";
   operator: PropertyOperatorWithValue;
   propertyTypeBaseUrl: BaseUrl;
-  value: string;
+  valueType: FilterValueType;
+  value: FilterValue;
 }
 
 interface PropertyFilterWithoutValue {
   type: "Property";
   operator: PropertyOperatorWithoutValue;
   propertyTypeBaseUrl: BaseUrl;
+  valueType?: never;
   value?: never;
 }
 

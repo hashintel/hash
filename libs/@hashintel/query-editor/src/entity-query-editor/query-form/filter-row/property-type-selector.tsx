@@ -13,7 +13,7 @@ export const PropertyTypeSelector = ({
   index: number;
   propertyTypes: PropertyType[];
 }) => {
-  const { control, formState } = useFormContext<FormValues>();
+  const { control, formState, setValue } = useFormContext<FormValues>();
 
   const filterErrors = formState.errors.filters?.[index] as
     | FieldErrorsImpl<PropertyFilter>
@@ -25,7 +25,30 @@ export const PropertyTypeSelector = ({
     <FormControl>
       <RHFSelect
         control={control}
-        rules={{ required: "Required" }}
+        rules={{
+          required: "Required",
+          onChange: (event: { target: { value: string } }) => {
+            const chosenPropertyType = propertyTypes.find(
+              (type) => extractBaseUrl(type.$id) === event.target.value,
+            );
+
+            const firstOneOf = chosenPropertyType?.oneOf[0];
+
+            if (firstOneOf && "$ref" in firstOneOf) {
+              const dataTypeId = firstOneOf.$ref;
+
+              /** @todo temporary solution which works with mock data and only these 3 data types */
+              setValue(
+                `filters.${index}.valueType`,
+                dataTypeId.includes("data-type/boolean/")
+                  ? "boolean"
+                  : dataTypeId.includes("data-type/number/")
+                  ? "number"
+                  : "string",
+              );
+            }
+          },
+        }}
         name={`filters.${index}.propertyTypeBaseUrl`}
         selectProps={{
           size: "xs",
