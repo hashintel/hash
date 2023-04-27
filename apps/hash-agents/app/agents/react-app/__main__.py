@@ -5,7 +5,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
-from .io_types import Input, Message, Output, OutputMessage, TypeEnum, InputMessage
+from .io_types import Input, InputMessage, Message, Output, OutputMessage, TypeEnum
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -104,16 +104,16 @@ if __name__ == "__main__":
     setup("dev")
 
     logger.info("Describe your application:")
-    input = input("")
-    message = Message(type=TypeEnum.HUMAN_MESSAGE, content=input)
+    cli_input = input("")
+    message = Message(type=TypeEnum.HUMAN_MESSAGE, content=cli_input)
     output = main(Input(messages=[message]))
 
     while True:
         logger.info("Anything else?")
-        input = input("")
+        cli_input = input("")
         output = main(
             Input(
                 messages=output.messages
-                + [Message(type=TypeEnum.HUMAN_MESSAGE, content=input)]
+                + [Message(type=TypeEnum.HUMAN_MESSAGE, content=cli_input)]
             )
         )
