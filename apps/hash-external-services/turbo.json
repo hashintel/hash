@@ -6,6 +6,7 @@
     },
     "deploy": {
       "cache": false,
+      "persistent": true,
       "dependsOn": [
         "@apps/hash-graph#build:docker",
         "@apps/hash-agents#build:docker",
@@ -14,6 +15,7 @@
     },
     "deploy:test": {
       "cache": false,
+      "persistent": true,
       "dependsOn": [
         "@apps/hash-graph#build:docker:test",
         "@apps/hash-agents#build:docker",
@@ -22,6 +24,7 @@
     },
     "deploy:offline": {
       "cache": false,
+      "persistent": true,
       "dependsOn": [
         "@apps/hash-graph#build:docker:offline",
         "@apps/hash-agents#build:docker",
