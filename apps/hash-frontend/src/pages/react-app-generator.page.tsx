@@ -31,7 +31,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
     setLoadingPreview(true);
     axios
       .post("api/react-app-generator/update-code", { containerId, code: val })
-      .then((res) => {
+      .then(() => {
         setLoadingPreview(false);
         setIframeKey(iframeKey + 1);
       });
