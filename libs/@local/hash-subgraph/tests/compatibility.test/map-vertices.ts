@@ -24,6 +24,7 @@ import {
 } from "@local/hash-graph-client";
 import {
   BaseUrl,
+  EntityEditionId,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
@@ -156,7 +157,7 @@ const mapEntityRecordId = (
 ): EntityRecordId => {
   return {
     entityId: recordId.entityId as EntityId,
-    editionId: recordId.editionId,
+    editionId: recordId.editionId as EntityEditionId,
   };
 };
 

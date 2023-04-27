@@ -1,6 +1,7 @@
 import {
   ENTITY_TYPE_META_SCHEMA,
   EntityType,
+  PropertyType,
 } from "@blockprotocol/type-system";
 import {
   Button,
@@ -8,6 +9,10 @@ import {
   OntologyIcon,
   TextField,
 } from "@hashintel/design-system";
+import { getPropertyTypeSchema } from "@hashintel/type-editor/src/entity-type-editor/property-list-card/get-property-type-schema";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-subgraph/.";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Container,
@@ -21,18 +26,24 @@ import {
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useContext } from "react";
-import { useForm } from "react-hook-form";
+import { ReactNode, useContext, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 
+import { useBlockProtocolCreatePropertyType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { useGenerateTypeUrlsForUser } from "../../shared/use-generate-type-urls-for-user";
 import { WorkspaceContext } from "../../shared/workspace-context";
+import {
+  PropertyTypeDefinition,
+  SelectGeneratedPropertyTypes,
+} from "./entity-type/select-generated-property-types";
 
 const FormHelperLabel = ({
   children,
@@ -52,7 +63,7 @@ const FormHelperLabel = ({
   </Box>
 );
 
-type CreateEntityTypeFormData = {
+export type CreateEntityTypeFormData = {
   name: string;
   description: string;
 };
@@ -63,7 +74,21 @@ const HELPER_TEXT_WIDTH = 290;
  * @todo check user has permission to create entity type in this namespace
  */
 const Page: NextPageWithLayout = () => {
+  const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
+
+  const { createPropertyType } = useBlockProtocolCreatePropertyType(
+    authenticatedUser.accountId as OwnedById,
+  );
+
+  const formMethods = useForm<CreateEntityTypeFormData>({
+    shouldFocusError: true,
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
+    defaultValues: {
+      name: typeof router.query.name === "string" ? router.query.name : "",
+    },
+  });
 
   const {
     handleSubmit,
@@ -73,14 +98,11 @@ const Page: NextPageWithLayout = () => {
       errors: { name: nameError },
     },
     clearErrors,
-  } = useForm<CreateEntityTypeFormData>({
-    shouldFocusError: true,
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
-    defaultValues: {
-      name: typeof router.query.name === "string" ? router.query.name : "",
-    },
-  });
+  } = formMethods;
+
+  const [initialPropertyTypes, setInitialPropertyTypes] = useState<
+    (PropertyTypeDefinition | PropertyType)[]
+  >([]);
 
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
@@ -96,6 +118,7 @@ const Page: NextPageWithLayout = () => {
       kind: "entity-type",
       version: 1,
     });
+
     const entityType: EntityType = {
       $schema: ENTITY_TYPE_META_SCHEMA,
       kind: "entityType",
@@ -103,7 +126,40 @@ const Page: NextPageWithLayout = () => {
       title: name,
       description,
       type: "object",
-      properties: {},
+      properties: await Promise.all(
+        initialPropertyTypes.map(async (propertyTypeDefinition) => {
+          if ("$id" in propertyTypeDefinition) {
+            return propertyTypeDefinition;
+          }
+
+          const res = await createPropertyType({
+            data: {
+              propertyType: getPropertyTypeSchema({
+                name: propertyTypeDefinition.title,
+                description: propertyTypeDefinition.description,
+                expectedValues: [
+                  types.dataType[propertyTypeDefinition.dataType].dataTypeId,
+                ],
+                flattenedCustomExpectedValueList: {},
+              }),
+            },
+          });
+
+          if (res.errors?.length || !res.data) {
+            /** @todo: handle this */
+
+            return [];
+          }
+
+          return res.data.schema;
+        }),
+      ).then((createdPropertyTypes) =>
+        Object.fromEntries(
+          createdPropertyTypes
+            .flat()
+            .map(({ $id }) => [extractBaseUrl($id), { $ref: $id }]),
+        ),
+      ),
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(
@@ -114,191 +170,196 @@ const Page: NextPageWithLayout = () => {
   });
 
   return (
-    <Stack sx={{ height: "100vh" }}>
-      <Box bgcolor="white">
-        <TopContextBar
-          defaultCrumbIcon={null}
-          crumbs={[
-            {
-              title: "Types",
-              href: "#",
-              id: "types",
-            },
-            {
-              title: "Entity types",
-              href: "#",
-              id: "entity-types",
-            },
-          ]}
-          scrollToTop={() => {}}
-        />
-        <Box py={3.75}>
-          <Container>
-            <OntologyChip
-              icon={<OntologyIcon />}
-              domain="hash.ai"
-              path={
-                <Typography color={(theme) => theme.palette.blue[70]}>
-                  <Typography
-                    component="span"
-                    fontWeight="bold"
-                    color="inherit"
-                  >
-                    {`@${activeWorkspace.shortname}`}
+    <FormProvider {...formMethods}>
+      <Stack sx={{ height: "100vh" }}>
+        <Box bgcolor="white">
+          <TopContextBar
+            defaultCrumbIcon={null}
+            crumbs={[
+              {
+                title: "Types",
+                href: "#",
+                id: "types",
+              },
+              {
+                title: "Entity types",
+                href: "#",
+                id: "entity-types",
+              },
+            ]}
+            scrollToTop={() => {}}
+          />
+          <Box py={3.75}>
+            <Container>
+              <OntologyChip
+                icon={<OntologyIcon />}
+                domain="hash.ai"
+                path={
+                  <Typography color={(theme) => theme.palette.blue[70]}>
+                    <Typography
+                      component="span"
+                      fontWeight="bold"
+                      color="inherit"
+                    >
+                      {`@${activeWorkspace.shortname}`}
+                    </Typography>
+                    /types/entity-type
                   </Typography>
-                  /types/entity-type
-                </Typography>
-              }
-              sx={[{ marginBottom: 2 }]}
-            />
-            <Typography variant="h1" fontWeight="bold">
-              Create new entity type
-            </Typography>
-          </Container>
+                }
+                sx={[{ marginBottom: 2 }]}
+              />
+              <Typography variant="h1" fontWeight="bold">
+                Create new entity type
+              </Typography>
+            </Container>
+          </Box>
         </Box>
-      </Box>
-      <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
-        <Container>
-          <Box
-            py={8}
-            component="form"
-            onSubmit={handleFormSubmit}
-            data-testid="entity-type-creation-form"
-          >
-            <Stack
-              alignItems="stretch"
-              sx={(theme) => ({
-                [theme.breakpoints.up("md")]: {
-                  [`.${outlinedInputClasses.root}`]: {
-                    width: `calc(100% - ${HELPER_TEXT_WIDTH + 52}px)`,
+        <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
+          <Container>
+            <Box
+              py={8}
+              component="form"
+              onSubmit={handleFormSubmit}
+              data-testid="entity-type-creation-form"
+            >
+              <Stack
+                alignItems="stretch"
+                sx={(theme) => ({
+                  [theme.breakpoints.up("md")]: {
+                    [`.${outlinedInputClasses.root}`]: {
+                      width: `calc(100% - ${HELPER_TEXT_WIDTH + 52}px)`,
+                    },
                   },
-                },
 
-                [`.${formHelperTextClasses.root}`]: {
-                  position: "absolute",
-                  right: 0,
-                  top: 24,
-                  width: HELPER_TEXT_WIDTH,
-                  p: 0,
-                  m: 0,
-                  color: theme.palette.gray[80],
+                  [`.${formHelperTextClasses.root}`]: {
+                    position: "absolute",
+                    right: 0,
+                    top: 24,
+                    width: HELPER_TEXT_WIDTH,
+                    p: 0,
+                    m: 0,
+                    color: theme.palette.gray[80],
 
-                  [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
-                    {
+                    [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
+                      {
+                        display: "none",
+                      },
+
+                    [theme.breakpoints.down("md")]: {
                       display: "none",
                     },
-
-                  [theme.breakpoints.down("md")]: {
-                    display: "none",
                   },
-                },
-              })}
-              spacing={3}
-            >
-              <TextField
-                {...register("name", {
-                  required: true,
-                  onChange() {
-                    clearErrors("name");
-                  },
-                  async validate(title) {
-                    const res = await getEntityType({
-                      data: {
-                        entityTypeId: generateTypeUrlsForUser({
-                          kind: "entity-type",
-                          title,
-                          version: 1,
-                        }).versionedUrl,
-                        graphResolveDepths: {
-                          constrainsValuesOn: { outgoing: 0 },
-                          constrainsPropertiesOn: { outgoing: 0 },
-                          constrainsLinksOn: { outgoing: 0 },
-                          constrainsLinkDestinationsOn: { outgoing: 0 },
+                })}
+                spacing={3}
+              >
+                <TextField
+                  {...register("name", {
+                    required: true,
+                    onChange() {
+                      clearErrors("name");
+                    },
+                    async validate(title) {
+                      const res = await getEntityType({
+                        data: {
+                          entityTypeId: generateTypeUrlsForUser({
+                            kind: "entity-type",
+                            title,
+                            version: 1,
+                          }).versionedUrl,
+                          graphResolveDepths: {
+                            constrainsValuesOn: { outgoing: 0 },
+                            constrainsPropertiesOn: { outgoing: 0 },
+                            constrainsLinksOn: { outgoing: 0 },
+                            constrainsLinkDestinationsOn: { outgoing: 0 },
+                          },
                         },
-                      },
-                    });
+                      });
 
-                    return res.data?.roots.length
-                      ? "Entity type name must be unique"
-                      : true;
-                  },
-                })}
-                required
-                label="Singular Name"
-                type="text"
-                placeholder="e.g. Stock Price"
-                helperText={
-                  <Box pr={1.25}>
-                    {nameError?.message ? (
-                      <>
-                        <FormHelperLabel
-                          sx={(theme) => ({ color: theme.palette.red[70] })}
-                        >
-                          Error
-                        </FormHelperLabel>{" "}
-                        - {nameError.message}
-                      </>
-                    ) : (
-                      <>
-                        <FormHelperLabel>Required</FormHelperLabel> - provide
-                        the singular form of your entity type’s name so it can
-                        be referred to correctly (e.g. “Stock Price” not “Stock
-                        Prices”)
-                      </>
-                    )}
-                  </Box>
-                }
-                error={!!nameError}
-              />
-              <TextField
-                {...register("description", {
-                  required: true,
-                })}
-                required
-                multiline
-                onKeyDown={async (evt) => {
-                  if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
-                    await handleFormSubmit(evt);
+                      return res.data?.roots.length
+                        ? "Entity type name must be unique"
+                        : true;
+                    },
+                  })}
+                  required
+                  label="Singular Name"
+                  type="text"
+                  placeholder="e.g. Stock Price"
+                  helperText={
+                    <Box pr={1.25}>
+                      {nameError?.message ? (
+                        <>
+                          <FormHelperLabel
+                            sx={(theme) => ({ color: theme.palette.red[70] })}
+                          >
+                            Error
+                          </FormHelperLabel>{" "}
+                          - {nameError.message}
+                        </>
+                      ) : (
+                        <>
+                          <FormHelperLabel>Required</FormHelperLabel> - provide
+                          the singular form of your entity type’s name so it can
+                          be referred to correctly (e.g. “Stock Price” not
+                          “Stock Prices”)
+                        </>
+                      )}
+                    </Box>
                   }
-                }}
-                inputProps={{ minRows: 1 }}
-                label="Description"
-                type="text"
-                placeholder="Describe this entity in one or two sentences"
-                helperText={
-                  <Box pr={3.75}>
-                    <FormHelperLabel>Required</FormHelperLabel> - descriptions
-                    should explain what an entity type is, and when they should
-                    be used
-                  </Box>
-                }
-              />
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-                <Button
-                  type="submit"
-                  size="small"
-                  loading={isSubmitting}
-                  disabled={isSubmitting || !!nameError}
-                  loadingWithoutText
-                >
-                  Create new entity type
-                </Button>
-                <Button
-                  href="/"
-                  variant="tertiary"
-                  size="small"
-                  disabled={isSubmitting}
-                  // For some reason, Button doesn't know it can take component
-                  {...({ component: Link } as any)}
-                >
-                  Discard draft
-                </Button>
+                  error={!!nameError}
+                />
+                <TextField
+                  {...register("description", {
+                    required: true,
+                  })}
+                  required
+                  multiline
+                  onKeyDown={async (evt) => {
+                    if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
+                      await handleFormSubmit(evt);
+                    }
+                  }}
+                  inputProps={{ minRows: 1 }}
+                  label="Description"
+                  type="text"
+                  placeholder="Describe this entity in one or two sentences"
+                  helperText={
+                    <Box pr={3.75}>
+                      <FormHelperLabel>Required</FormHelperLabel> - descriptions
+                      should explain what an entity type is, and when they
+                      should be used
+                    </Box>
+                  }
+                />
+                <SelectGeneratedPropertyTypes
+                  onSelectedPropertiesChange={setInitialPropertyTypes}
+                />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+                  <Button
+                    type="submit"
+                    size="small"
+                    loading={isSubmitting}
+                    disabled={isSubmitting || !!nameError}
+                    loadingWithoutText
+                  >
+                    Create new entity type
+                  </Button>
+                  <Button
+                    href="/"
+                    variant="tertiary"
+                    size="small"
+                    disabled={isSubmitting}
+                    // For some reason, Button doesn't know it can take component
+                    {...({ component: Link } as any)}
+                  >
+                    Discard draft
+                  </Button>
+                </Stack>
               </Stack>
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
-    </Stack>
+            </Box>
+          </Container>
+        </Box>
+      </Stack>
+    </FormProvider>
   );
 };
 

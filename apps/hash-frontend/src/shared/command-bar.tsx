@@ -1,4 +1,5 @@
 import { Chip, TextField } from "@hashintel/design-system";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -10,10 +11,13 @@ import {
   Modal,
   Paper,
 } from "@mui/material";
-import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
+import NProgress from "nprogress";
+import { TextSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 import {
   createContext,
+  forwardRef,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
@@ -21,26 +25,39 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { useKeys } from "rooks";
 
-// In order to make declaring the options easier, we use a type that doesn't require the path to be specified.
-// The path is added later by flattening the options
-type OptionWithoutPath = {
-  group: string;
-  label: string;
+import { useAgentRunner } from "../components/hooks/use-agent-runner";
+
+type OptionActivation = {
   href?: string;
   // Used to render a custom screen inside the popup when the option is selected
-  renderCustomScreen?: (option: OptionWithoutPath) => ReactNode;
+  renderCustomScreen?: (option: Option) => ReactNode;
   // Used to render a submenu when the option is selected
-  options?: OptionWithoutPath[];
+  options?: Option[];
   // Used to trigger a command when the option is selected
-  command?: (option: OptionWithoutPath) => void;
+  // @todo handle promise
+  command?: (option: Option) => void | Promise<void>;
+  // Command to trigger when the option is selected and the user has entered text into the bar
+  // @todo handle promise
+  textCommand?: (text: string, option: Option) => void | Promise<void>;
+  asyncAction?: (text: string, option: Option) => Promise<OptionActivation>;
 };
 
-type Option = OptionWithoutPath & { path: string[] };
+type Option = {
+  group: string;
+  label: string;
+  // The path of parent option labels to the current option
+  path: string[];
+} & OptionActivation;
+
+type OptionWithoutPath = Omit<Option, "options" | "path"> & {
+  options?: OptionWithoutPath[];
+};
 
 // The state of the command bar is not immediately reset when exited via the backdrop or command+K.
 // This is the number of milliseconds to wait before resetting the state when exited in this way.
@@ -49,101 +66,54 @@ const RESET_BAR_TIMEOUT = 5_000;
 
 const defaultFilterOptions = createFilterOptions<Option>();
 
-// These are the options that are displayed in the command bar
-const allOptions: OptionWithoutPath[] = [
-  {
-    group: "Blocks",
-    label: "Find a block…",
-    options: [
-      {
-        group: "General",
-        label: "Option A",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "General",
-        label: "Option B",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "Other",
-        label: "Option C",
-        href: "https://google.com/",
-      },
-      {
-        group: "Other",
-        label: "Option D",
-        href: "/",
-      },
-    ],
-  },
-  {
-    group: "Blocks",
-    label: "Generate new block with AI…",
-    command(option) {
-      // eslint-disable-next-line no-alert
-      alert(`You picked option ${option.label}`);
-    },
-  },
-  {
-    group: "Entities",
-    label: "Search for an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Insert a link to an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Create new entity…",
-    href: "/",
-  },
-  {
-    group: "Types",
-    label: "Create new type…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Find an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Create an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Generate new app…",
-    href: "/",
-  },
-];
+// This function recursively adds a "path" property to each option representing
+// an array of labels denoting the path from the root option to each option
+const addPathToOptions = (
+  options: OptionWithoutPath[],
+  parentPath?: string[],
+): Option[] =>
+  options.map((option) => {
+    const { options: childOptions, ...optionWithoutOptions } = option;
+
+    return {
+      ...optionWithoutOptions,
+      ...(childOptions
+        ? {
+            options: addPathToOptions(childOptions, [
+              ...(parentPath ?? []),
+              option.label,
+            ]),
+          }
+        : {}),
+      path: parentPath ?? [],
+    };
+  });
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
-const CenterContainer = ({ children }: PropsWithChildren) => (
-  <Box
-    width="100vw"
-    height="100vh"
-    display="flex"
-    alignItems="center"
-    margin="0 auto"
-  >
+const CenterContainer = forwardRef<HTMLDivElement, PropsWithChildren>(
+  ({ children }: PropsWithChildren, ref) => (
     <Box
-      height={518}
-      maxWidth={560}
       width="100vw"
+      height="100vh"
       display="flex"
-      justifyContent="center"
+      alignItems="center"
       margin="0 auto"
-      // Ensures pointer events pass through to the modal backdrop
-      sx={{ pointerEvents: "none" }}
+      ref={ref}
     >
-      <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
+      <Box
+        height={518}
+        maxWidth={560}
+        width="100vw"
+        display="flex"
+        justifyContent="center"
+        margin="0 auto"
+        // Ensures pointer events pass through to the modal backdrop
+        sx={{ pointerEvents: "none" }}
+      >
+        <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
+      </Box>
     </Box>
-  </Box>
+  ),
 );
 
 // Used to pass the node to render inside the popup from the command bar to the paper component
@@ -175,31 +145,6 @@ const CustomPaperComponent = ({
       )}
     </Paper>
   );
-};
-
-// Use the path of the selected option to find the option that renders a custom screen
-const getSelectedOptions = (
-  selectedOptionPath: string[],
-  options: OptionWithoutPath[],
-) => {
-  let selectedOptions = options;
-  let selectedOption = null;
-  for (const path of selectedOptionPath) {
-    const next = selectedOptions.find((option) => option.label === path);
-
-    if (next) {
-      if (next.options) {
-        selectedOptions = next.options;
-      } else if (next.renderCustomScreen) {
-        selectedOption = next;
-        break;
-      }
-    } else {
-      break;
-    }
-  }
-
-  return selectedOption;
 };
 
 type DelayedCallbackTiming = "immediate" | "delayed";
@@ -244,71 +189,258 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
     [delay],
   );
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     const timer = resetTimer.current;
     if (timer) {
       clearTimeout(timer);
     }
-  };
+  }, []);
 
   return [handler, cancel] as const;
 };
 
-// Flattens the options into a single array, with a path property that contains the path to the option
-const flattenOptions = (
-  options: OptionWithoutPath[],
-  parentOption?: Option,
-): Option[] => {
-  return options.flatMap((option) => {
-    const nextOption = {
-      ...option,
-      path: parentOption ? [...parentOption.path, parentOption.label] : [],
-    };
-
-    return [
-      nextOption,
-      ...flattenOptions(nextOption.options ?? [], nextOption),
-    ];
-  });
-};
-
-const flattenedOptions = flattenOptions(allOptions);
+// Flattens the options into a single array
+const flattenOptions = (options: Option[]): Option[] =>
+  options.flatMap((option) => [
+    option,
+    ...(option.options ? flattenOptions(option.options) : []),
+  ]);
 
 export const CommandBar = () => {
-  const popupState = usePopupState({
-    popupId: "kbar",
-    variant: "popover",
-  });
+  const [visible, setVisible] = useState(false);
 
   const router = useRouter();
 
   const [inputValue, setInputValue] = useState("");
-  const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
+  const [selectedOptionPath, setSelectedOptionPath] = useState<Option[]>([]);
 
   const [resetBar, cancelReset] = useDelayedCallback(() => {
     setSelectedOptionPath([]);
     setInputValue("");
   }, RESET_BAR_TIMEOUT);
 
-  const closeBar = (timing: DelayedCallbackTiming) => {
-    popupState.close();
-    resetBar(timing);
-  };
+  const closeBar = useCallback(
+    (timing: DelayedCallbackTiming) => {
+      setVisible(false);
+      resetBar(timing);
+    },
+    [resetBar],
+  );
+
+  useEffect(() => {
+    const handler = () => {
+      closeBar("immediate");
+    };
+    router.events.on("routeChangeStart", handler);
+    return () => {
+      router.events.off("routeChangeStart", handler);
+    };
+  }, [router.events, closeBar]);
 
   useKeys(["Meta", "k"], () => {
-    if (popupState.isOpen) {
+    if (visible) {
       closeBar("delayed");
     } else {
       cancelReset();
 
-      popupState.open();
+      setVisible(true);
     }
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = getSelectedOptions(selectedOptionPath, allOptions);
-  const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
+  const [generateTextFromPrompt] = useAgentRunner("generate-text-from-prompt");
+  const [semanticSearch] = useAgentRunner("semantic-qa");
+
+  // These are the options that are displayed in the command bar
+  const isOnPage = router.pathname === "/[shortname]/[page-slug]";
+  // @todo handle windows
+  const generateTextFromPromptLabel = "Generate text from prompt (⌘G)";
+  const options = useMemo(
+    () =>
+      addPathToOptions([
+        // @todo colocate this functionality with the page component
+        ...(isOnPage
+          ? [
+              {
+                group: "Page",
+                label: generateTextFromPromptLabel,
+                async textCommand(prompt: string) {
+                  NProgress.set(0);
+                  NProgress.start();
+                  const res = await generateTextFromPrompt({ prompt }).catch(
+                    () => null,
+                  );
+
+                  if (res?.output?.result) {
+                    const { view } = (window as any).PageProsemirror as {
+                      manager: ProsemirrorManager;
+                      view: EditorView;
+                    };
+
+                    const $cursor = (
+                      view.state.selection as TextSelection | null
+                    )?.$cursor;
+
+                    const insertPos =
+                      $cursor?.after() ?? view.state.doc.nodeSize - 2;
+
+                    const tr = view.state.tr.insertText(
+                      res.output.result,
+                      insertPos,
+                    );
+
+                    view.dispatch(tr);
+
+                    NProgress.done(true);
+                  } else {
+                    // eslint-disable-next-line no-console
+                    console.error("Failed");
+                  }
+                },
+              },
+            ]
+          : []),
+        {
+          group: "Blocks",
+          label: "Find a block…",
+          options: [
+            {
+              group: "General",
+              label: "Option A",
+              renderCustomScreen: ({ label }) => (
+                <div>You selected {label}</div>
+              ),
+            },
+            {
+              group: "General",
+              label: "Option B",
+              renderCustomScreen: ({ label }) => (
+                <div>You selected {label}</div>
+              ),
+            },
+            {
+              group: "Other",
+              label: "Option C",
+              href: "https://google.com/",
+            },
+            {
+              group: "Other",
+              label: "Option D",
+              href: "/",
+            },
+          ],
+        },
+        {
+          group: "Blocks",
+          label: "Generate new block with AI…",
+          href: "/block-generator",
+        },
+        {
+          group: "Entities",
+          label: "Semantic question answering",
+          async asyncAction(prompt: string) {
+            NProgress.set(0);
+            NProgress.start();
+            const res = await semanticSearch({ query: prompt }).catch(
+              () => null,
+            );
+
+            if (res?.output?.answer) {
+              NProgress.done(true);
+            }
+
+            return {
+              renderCustomScreen: () => (
+                <p>
+                  {res?.output?.answer
+                    ? res.output.answer
+                    : "Error, unable to retrieve result"}
+                </p>
+              ),
+            };
+          },
+        },
+        {
+          group: "Entities",
+          label: "Search for an entity…",
+          href: "/",
+        },
+        {
+          group: "Entities",
+          label: "Insert a link to an entity…",
+          href: "/",
+        },
+        {
+          group: "Entities",
+          label: "Create new entity…",
+          href: "/",
+        },
+        {
+          group: "Types",
+          label: "Create new type…",
+          href: "/",
+        },
+        {
+          group: "Apps",
+          label: "Find an app…",
+          href: "/",
+        },
+        {
+          group: "Apps",
+          label: "Create an app…",
+          href: "/",
+        },
+        {
+          group: "Apps",
+          label: "Generate new app…",
+          href: "/",
+        },
+      ]),
+    [generateTextFromPrompt, semanticSearch, isOnPage],
+  );
+
+  useKeys(["Meta", "g"], (evt) => {
+    if (isOnPage) {
+      evt.preventDefault();
+      setVisible(true);
+      setSelectedOptionPath([
+        options.find((option) => option.label === generateTextFromPromptLabel)!,
+      ]);
+    }
+  });
+
+  const flattenedOptions = useMemo(() => flattenOptions(options), [options]);
+
+  const selectedOption = selectedOptionPath[selectedOptionPath.length - 1];
+  const customScreen =
+    selectedOption?.renderCustomScreen?.(selectedOption) ?? null;
+
+  const handleOption = (option: Option) => {
+    if (
+      option.options ||
+      option.renderCustomScreen ||
+      option.textCommand ||
+      option.asyncAction
+    ) {
+      setSelectedOptionPath([...selectedOptionPath, option]);
+    } else {
+      closeBar("immediate");
+
+      if (option.command) {
+        void option.command(option);
+      }
+
+      if (option.href) {
+        if (option.href.startsWith("https:")) {
+          // Uses noopener to prevent the new tab from accessing the window.opener property
+          window.open(option.href, "_blank", "noopener");
+        } else {
+          void router.push(option.href);
+        }
+      }
+    }
+  };
 
   const handleChange = (
     _: unknown,
@@ -318,35 +450,17 @@ export const CommandBar = () => {
   ) => {
     if (details && reason === "selectOption") {
       const option = details.option;
-
-      if (option.options || option.renderCustomScreen) {
-        setSelectedOptionPath([...selectedOptionPath, option.label]);
-      } else {
-        closeBar("immediate");
-
-        if (option.command) {
-          option.command(option);
-        }
-
-        if (option.href) {
-          if (option.href.startsWith("https:")) {
-            // Uses noopener to prevent the new tab from accessing the window.opener property
-            window.open(option.href, "_blank", "noopener");
-          } else {
-            void router.push(option.href);
-          }
-        }
-      }
+      handleOption(option);
     }
   };
 
   // This is used to render the input with the selected options as chips
   const renderInput = (props: AutocompleteRenderInputParams) => (
     <>
-      {selectedOptionPath.map((path, index) => (
+      {selectedOptionPath.map((option, index) => (
         <Chip
-          key={path}
-          label={path}
+          key={option.label}
+          label={option.label}
           onDelete={() =>
             setSelectedOptionPath(selectedOptionPath.slice(0, index))
           }
@@ -358,8 +472,35 @@ export const CommandBar = () => {
         inputRef={inputRef}
         onKeyDown={(evt) => {
           // If the user presses backspace and there is no input value, then go back to the previous selectedOption
-          if (evt.key === "Backspace" && !inputRef.current?.value) {
-            setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+          switch (evt.key) {
+            case "Backspace":
+              if (!inputRef.current?.value) {
+                setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+              }
+              break;
+            case "Enter":
+              if (!inputValue) {
+                return;
+              }
+
+              if (selectedOption?.textCommand) {
+                // @todo wait for the text command to finish before closing the bar
+                closeBar("immediate");
+
+                // @todo display a loading indicator while the text command is running
+                void selectedOption.textCommand(inputValue, selectedOption);
+              } else if (selectedOption?.asyncAction) {
+                void selectedOption
+                  .asyncAction(inputValue, selectedOption)
+                  .then((nextOption) =>
+                    handleOption({
+                      label: `${selectedOption.label}*`,
+                      group: selectedOption.group,
+                      path: selectedOption.path,
+                      ...nextOption,
+                    }),
+                  );
+              }
           }
         }}
         {...props}
@@ -368,7 +509,7 @@ export const CommandBar = () => {
   );
 
   return (
-    <Modal open={popupState.isOpen} onClose={closeBar}>
+    <Modal open={visible} onClose={closeBar}>
       <CenterContainer>
         <CustomScreenContext.Provider value={customScreen}>
           <Autocomplete
@@ -403,6 +544,13 @@ export const CommandBar = () => {
                 ),
                 state,
               )
+            }
+            noOptionsText={
+              selectedOption?.textCommand || selectedOption?.asyncAction
+                ? inputValue
+                  ? "Press Enter to run command"
+                  : "Type your prompt and press enter"
+                : undefined
             }
             onClose={(_, reason) => {
               // Prevent the autocomplete from closing when the user clicks on the input

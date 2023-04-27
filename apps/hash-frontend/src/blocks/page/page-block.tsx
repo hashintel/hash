@@ -94,6 +94,9 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       client,
     );
 
+    // @todo remove this
+    (window as any).PageProsemirror = { view, manager };
+
     setEditorView(view);
 
     prosemirrorSetup.current = {
@@ -103,6 +106,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     };
 
     return () => {
+      delete (window as any).PageProsemirror;
       clearPortals();
       view.destroy();
       connection?.close();

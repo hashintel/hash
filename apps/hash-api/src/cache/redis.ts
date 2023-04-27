@@ -1,11 +1,15 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { AsyncRedisClient, RedisConfig } from "@local/hash-backend-utils/redis";
+import {
+  RedisClient,
+  RedisConfig,
+  setupRedisClient,
+} from "@local/hash-backend-utils/redis";
 import { DataSource } from "apollo-datasource";
 
 import { CacheAdapter } from "./adapter";
 
 export class RedisCache extends DataSource implements CacheAdapter {
-  private client: AsyncRedisClient;
+  private client: RedisClient;
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string) => Promise<void>;
   setExpiring: (
@@ -18,14 +22,18 @@ export class RedisCache extends DataSource implements CacheAdapter {
 
   constructor(logger: Logger, cfg: RedisConfig) {
     super();
-    this.client = new AsyncRedisClient(logger, cfg);
-    this.get = this.client.get;
-    this.set = this.client.set;
-    this.setExpiring = this.client.setex;
-    this.rpush = this.client.rpush;
+    this.client = setupRedisClient(logger, cfg);
+    this.get = (key) => this.client.get(key);
+    this.set = (key, value) => this.client.set(key, value).then();
+    // The underlying redis library returns `Promise<"OK">` and we're
+    // interested in returning `Promise<void>` for this method.
+    // The empty `.then` accomplishes this.
+    this.setExpiring = (key, value, expiry) =>
+      this.client.setex(key, expiry, value).then();
+    this.rpush = (key, ...values) => this.client.rpush(key, ...values);
   }
 
   async close() {
-    await this.client.close();
+    await this.client.quit();
   }
 }
