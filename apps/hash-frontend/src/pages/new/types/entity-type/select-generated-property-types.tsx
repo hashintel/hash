@@ -1,11 +1,14 @@
 import { PropertyType } from "@blockprotocol/type-system";
+import { Chip, TriangleExclamationIcon } from "@hashintel/design-system";
 import {
   BaseUrl,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph/.";
 import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
+import { ChevronRight } from "@mui/icons-material";
 import {
+  Box,
   Checkbox,
   CircularProgress,
   Collapse,
@@ -16,7 +19,6 @@ import {
   FormLabel,
   Typography,
 } from "@mui/material";
-import { Box } from "@mui/system";
 import { debounce } from "lodash";
 import {
   ChangeEvent,
@@ -24,12 +26,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useWatch } from "react-hook-form";
 
 import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { useAgentRunner } from "../../../../components/hooks/use-agent-runner";
+import { LayerPlusIcon } from "../../../../shared/icons/layer-plus-icon";
 import { useGenerateTypeUrlsForUser } from "../../../shared/use-generate-type-urls-for-user";
 import { CreateEntityTypeFormData } from "../entity-type.page";
 
@@ -56,8 +60,9 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
   const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
 
-  const [generatePropertyTypes, { loading }] = useAgentRunner(
+  const [generatePropertyTypesUsingAgentRunner, { loading }] = useAgentRunner(
     "generate-entity-type-property-types",
+    { errorPolicy: "ignore" },
   );
 
   const [
@@ -67,6 +72,7 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
     useState<
       { definition: PropertyTypeDefinition | PropertyType; selected: boolean }[]
     >();
+  const [generationError, setGenerationError] = useState<boolean>(false);
 
   const [allPropertyTypes, setAllPropertyTypes] = useState<Subgraph>();
 
@@ -115,50 +121,72 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
     [allPropertyTypes],
   );
 
+  const latestCallIdRef = useRef<number>(0);
+
+  const generatePropertyTypes = useCallback(
+    async (params: {
+      entityTypeTitle: string;
+      entityTypeDescription: string;
+    }) => {
+      const callId = new Date().getTime();
+
+      latestCallIdRef.current = callId;
+
+      setGenerationError(false);
+
+      const { output, errors } = await generatePropertyTypesUsingAgentRunner(
+        params,
+      );
+
+      if (callId !== latestCallIdRef.current) {
+        return;
+      }
+
+      if (!output || (errors && errors.length > 0)) {
+        setGenerationError(true);
+      } else {
+        const propertyTypeDefinitions: (
+          | PropertyTypeDefinition
+          | PropertyType
+        )[] = [];
+
+        for (const definition of output.propertyTypeDefinitions) {
+          const { baseUrl: propertyTypeBaseUrl } = generateTypeUrlsForUser({
+            kind: "property-type",
+            title: definition.title,
+            version: 1,
+          });
+
+          const existingPropertyType = getLatestPropertyType({
+            propertyTypeBaseUrl,
+          });
+
+          propertyTypeDefinitions.push(existingPropertyType ?? definition);
+        }
+
+        setGeneratedPropertyTypeDefinitions(
+          propertyTypeDefinitions.map((definition) => ({
+            definition,
+            selected: false,
+          })),
+        );
+      }
+    },
+    [
+      generateTypeUrlsForUser,
+      generatePropertyTypesUsingAgentRunner,
+      getLatestPropertyType,
+    ],
+  );
+
   const debouncedGeneratePropertyTypes = useMemo(
-    () =>
-      debounce(
-        async (params: {
-          entityTypeTitle: string;
-          entityTypeDescription: string;
-        }) => {
-          const { output } = await generatePropertyTypes(params);
-
-          if (output) {
-            const propertyTypeDefinitions: (
-              | PropertyTypeDefinition
-              | PropertyType
-            )[] = [];
-
-            for (const definition of output.propertyTypeDefinitions) {
-              const { baseUrl: propertyTypeBaseUrl } = generateTypeUrlsForUser({
-                kind: "property-type",
-                title: definition.title,
-                version: 1,
-              });
-
-              const existingPropertyType = getLatestPropertyType({
-                propertyTypeBaseUrl,
-              });
-
-              propertyTypeDefinitions.push(existingPropertyType ?? definition);
-            }
-
-            setGeneratedPropertyTypeDefinitions(
-              propertyTypeDefinitions.map((definition) => ({
-                definition,
-                selected: false,
-              })),
-            );
-          }
-        },
-        1000,
-      ),
-    [generateTypeUrlsForUser, generatePropertyTypes, getLatestPropertyType],
+    () => debounce(generatePropertyTypes, 1000),
+    [generatePropertyTypes],
   );
 
   useEffect(() => {
     if (entityTypeTitle && entityTypeDescription) {
+      setGenerationError(false);
       void debouncedGeneratePropertyTypes({
         entityTypeTitle,
         entityTypeDescription,
@@ -213,31 +241,58 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
           </FormLabel>
           <FormGroup>
             {generatedPropertyTypeDefinitions?.map(
-              ({ definition: { title, description }, selected }) => (
-                <FormControlLabel
-                  key={title}
-                  control={
-                    <Checkbox
-                      checked={selected}
-                      onChange={handlePropertyTypeCheckboxChange}
-                      name={title}
-                    />
-                  }
-                  label={
-                    <>
-                      <strong>{title}</strong> -{" "}
-                      {description?.[0]?.toLowerCase()}
-                      {description?.slice(1)}
-                    </>
-                  }
-                  sx={{
-                    marginLeft: 0,
-                    [`.${formControlLabelClasses.label}`]: {
-                      marginLeft: 2,
-                    },
-                  }}
-                />
-              ),
+              ({ definition, selected }) => {
+                const { title, description } = definition;
+
+                return (
+                  <FormControlLabel
+                    key={title}
+                    control={
+                      <Checkbox
+                        checked={selected}
+                        onChange={handlePropertyTypeCheckboxChange}
+                        name={title}
+                      />
+                    }
+                    label={
+                      <>
+                        <strong>{title}</strong> -{" "}
+                        {description?.[0]?.toLowerCase()}
+                        {description?.slice(1)}
+                        {"$id" in definition ? (
+                          <Box
+                            component="i"
+                            sx={{
+                              marginLeft: 1,
+                              color: ({ palette }) => palette.gray[50],
+                            }}
+                          >
+                            @{definition.$id.split("@")![1]}
+                          </Box>
+                        ) : (
+                          <Chip
+                            icon={<LayerPlusIcon />}
+                            label="New"
+                            color="gray"
+                            sx={{
+                              marginLeft: 1,
+                              backgroundColor: "transparent",
+                              borderColor: ({ palette }) => palette.gray[20],
+                            }}
+                          />
+                        )}
+                      </>
+                    }
+                    sx={{
+                      marginLeft: 0,
+                      marginBottom: 0.5,
+                      [`.${formControlLabelClasses.label}`]: {
+                        marginLeft: 2,
+                      },
+                    }}
+                  />
+                );
+              },
             )}
           </FormGroup>
         </FormControl>
@@ -248,10 +303,65 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
             size={20}
             sx={{ color: ({ palette }) => palette.gray[40] }}
           />
-          <Typography>
+          <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
             {`${
               generatedPropertyTypeDefinitions ? "Re-generating" : "Generating"
             } property type suggestions...`}
+          </Typography>
+        </Box>
+      </Collapse>
+      <Collapse in={generationError}>
+        <Box display="flex" alignItems="center" columnGap={1}>
+          <TriangleExclamationIcon
+            sx={{
+              fontSize: 18,
+              fill: ({ palette }) => palette.red[70],
+              marginBottom: -0.2,
+            }}
+          />
+          <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
+            Error suggesting property types.{" "}
+            <Box
+              component="span"
+              role="button"
+              tabIndex={0}
+              onClick={() =>
+                generatePropertyTypes({
+                  entityTypeTitle,
+                  entityTypeDescription,
+                })
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  void generatePropertyTypes({
+                    entityTypeTitle,
+                    entityTypeDescription,
+                  });
+                }
+              }}
+              sx={{
+                display: "inline-flex",
+                alignItems: "flex-end",
+                cursor: "pointer",
+                color: ({ palette }) => palette.gray[80],
+                svg: {
+                  marginLeft: -0.5,
+                  marginBottom: -0.2,
+                  position: "relative",
+                  transition: ({ transitions }) => transitions.create("left"),
+                  left: 0,
+                },
+                ":hover": {
+                  color: ({ palette }) => palette.common.black,
+                  svg: {
+                    left: 8,
+                  },
+                },
+              }}
+            >
+              Click to retry
+              <ChevronRight />
+            </Box>
           </Typography>
         </Box>
       </Collapse>

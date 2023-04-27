@@ -12,6 +12,7 @@ import {
   FontAwesomeIcon,
   GetHelpLink,
   theme,
+  TriangleExclamationIcon,
 } from "@hashintel/design-system";
 import {
   CircularProgress,
@@ -28,7 +29,6 @@ import { SizeMe } from "react-sizeme";
 
 import { AddressCard, AddressCardLoading } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
-import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
   AddressBlock,
