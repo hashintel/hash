@@ -264,15 +264,18 @@ export const CommandBar = () => {
   const [generateTextFromPrompt] = useAgentRunner("generate-text-from-prompt");
 
   // These are the options that are displayed in the command bar
+  const isOnPage = router.pathname === "/[shortname]/[page-slug]";
+  // @todo handle windows
+  const generateTextFromPromptLabel = "Generate text from prompt (⌘G)";
   const options = useMemo(
     () =>
       addPathToOptions([
         // @todo colocate this functionality with the page component
-        ...(router.pathname === "/[shortname]/[page-slug]"
+        ...(isOnPage
           ? [
               {
                 group: "Page",
-                label: "Generate text from prompt",
+                label: generateTextFromPromptLabel,
                 async textCommand(prompt: string) {
                   NProgress.set(0);
                   NProgress.start();
@@ -286,10 +289,12 @@ export const CommandBar = () => {
                       view: EditorView;
                     };
 
-                    const $cursor = (view.state.selection as TextSelection)
-                      .$cursor!;
+                    const $cursor = (
+                      view.state.selection as TextSelection | null
+                    )?.$cursor;
 
-                    const insertPos = $cursor.after();
+                    const insertPos =
+                      $cursor?.after() ?? view.state.doc.nodeSize - 2;
 
                     const tr = view.state.tr.insertText(
                       res.output.result,
@@ -381,8 +386,16 @@ export const CommandBar = () => {
           href: "/",
         },
       ]),
-    [generateTextFromPrompt, router.pathname],
+    [generateTextFromPrompt, isOnPage],
   );
+
+  useKeys(["Meta", "g"], (evt) => {
+    if (isOnPage) {
+      evt.preventDefault();
+      setVisible(true);
+      setSelectedOptionPath([generateTextFromPromptLabel]);
+    }
+  });
 
   const flattenedOptions = useMemo(() => flattenOptions(options), [options]);
 
