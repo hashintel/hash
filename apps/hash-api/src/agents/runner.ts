@@ -1,4 +1,4 @@
-import { AgentType } from "@apps/hash-agents";
+import { Agent, AgentTypeMap } from "@apps/hash-agents";
 import { DataSource } from "apollo-datasource";
 import fetch from "node-fetch";
 
@@ -10,10 +10,10 @@ export type AgentRunner = ReturnType<typeof setupAgentRunner> & DataSource;
 
 export const setupAgentRunner = () => {
   return {
-    runAgent: async <T extends AgentType["Agent"]>(
+    runAgent: async <T extends Agent>(
       agent: T,
-      input: Extract<AgentType, { Agent: T }>["Input"],
-    ): Promise<Extract<AgentType, { Agent: T }>["Output"]> => {
+      input: AgentTypeMap[T]["Input"],
+    ): Promise<AgentTypeMap[T]["Output"]> => {
       const { url } = withEnabledAgentRunner();
       const endpoint = `${url}agents/${agent}`;
       return (
