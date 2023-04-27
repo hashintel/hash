@@ -21,7 +21,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
   const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
   useEffect(() => {
-    axios.get("api/initialize-container").then((res) => {
+    axios.get("api/react-app-generator/initialize-container").then((res) => {
       setContainerId(res.data);
       setLoadingPreview(false);
     });
@@ -29,10 +29,12 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
 
   const updatePreview = (val: string) => {
     setLoadingPreview(true);
-    axios.post("api/update-code", { containerId, code: val }).then((res) => {
-      setLoadingPreview(false);
-      setIframeKey(iframeKey + 1);
-    });
+    axios
+      .post("api/react-app-generator/update-code", { containerId, code: val })
+      .then((res) => {
+        setLoadingPreview(false);
+        setIframeKey(iframeKey + 1);
+      });
   };
 
   const callAgent = (userPrompt: string) => {

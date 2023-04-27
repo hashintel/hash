@@ -1,25 +1,13 @@
 import { spawn } from "child_process";
 import fs from "fs";
 import { NextApiRequest, NextApiResponse } from "next";
-
-const REACT_PROJECT_PATH = "../../../test";
+import { REACT_PROJECT_PATH } from "./shared";
 
 const getWriteFileCmd = (containerId: string, file: string) => ({
   cmd: "docker",
   args: ["cp", `src/App.js`, `${containerId}:app/src/App.js`],
   cwd: REACT_PROJECT_PATH,
 });
-// const getWriteFileCmd = (containerId: string, file: string) => ({
-//   cmd: "docker",
-//   args: [
-//     "exec",
-//     "4923c332e65f18f09b7ba2b239cd0607b0559122def9c0961924dad12f23021a",
-//     "sh",
-//     "-c",
-//     `'echo "${file}" > ./src/App.js'`,
-//   ],
-//   cwd: ".",
-// });
 
 const writeFile: Promise<void> = (containerId: string, file: string) =>
   new Promise((res) => {
