@@ -1,5 +1,5 @@
 import { LoadingSpinner } from "@hashintel/design-system";
-import { Box } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import React from "react";
 import { LiveProvider, LiveEditor } from "react-live";
 
@@ -10,6 +10,7 @@ type Props = {
   iframeKey: number;
   loading: boolean;
   onChange: (value: string) => void;
+  refreshIframe: () => void;
 };
 
 export const DemoLiveEditor = ({
@@ -18,6 +19,7 @@ export const DemoLiveEditor = ({
   iframeKey,
   onChange,
   loading,
+  refreshIframe,
 }: Props) => {
   return (
     <LiveProvider code={code} noInline={noInline}>
@@ -33,7 +35,7 @@ export const DemoLiveEditor = ({
         <Box sx={{ flex: 1, overflowY: "scroll" }}>
           <LiveEditor className="font-mono" onChange={onChange} />
         </Box>
-        <Box sx={{ flex: 1, overflow: "scroll" }}>
+        <Box sx={{ flex: 1, overflow: "scroll", position: "relative" }}>
           {loading ? (
             <LoadingSpinner />
           ) : (
@@ -43,6 +45,14 @@ export const DemoLiveEditor = ({
               src="http://localhost:3001"
             />
           )}
+
+          <Button
+            variant="tertiary"
+            onClick={refreshIframe}
+            sx={{ position: "absolute", top: 8, right: 8 }}
+          >
+            Refresh
+          </Button>
         </Box>
       </Box>
     </LiveProvider>

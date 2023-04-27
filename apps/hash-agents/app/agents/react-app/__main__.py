@@ -30,9 +30,10 @@ def main(input: Input) -> Output:
                 SystemMessage(content="Do NOT include an explanation or any text that is not part of the code block you are generating."),
                 SystemMessage(content="Return code blocks as ```jsx\n{code...}\n```."),
                 SystemMessage(content="Use the 'sx' prop to style MUI elements. For example, a button with a purple background should be <Button sx={{\"background: \"purple\"}} />."),
-                SystemMessage(content="Generate a react component using MUI components."),
-                SystemMessage(content="Return the list of dependencies that should be installed in the react project as an array. For example if '@mui/material' and 'axios' should be installed you should return `Dependencies: ['@mui/material', 'axios']`."),
-                SystemMessage(content="Dependencies should be included after closing the code block. The message you return should have the following format: ```jsx\n{code...}\n```\nDependencies: [{dependency1}, {dependency2}, ...].")]
+                SystemMessage(content="Generate a react component using MUI components and export it as default."),
+                SystemMessage(content="Return the list of dependencies that should be installed in the react project as an array. For example if 'moment' and 'axios' should be installed you should return `Dependencies: ['moment', 'axios']`."),
+                SystemMessage(content="Do not include @mui/material in the dependency array."),
+                SystemMessage(content="Dependencies should be included after closing the code block with ```. The message you return should have the following format: ```jsx\n{code...}\n```\nDependencies: [{dependency1}, {dependency2}, ...].")]
     
     chat = ChatOpenAI(model="gpt-3.5-turbo", streaming=True, callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]), verbose=True, temperature=0)
     prompts = systemPrompts + list(map(mapInputMessagesToMessagePrompts, input.messages))

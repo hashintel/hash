@@ -1,9 +1,9 @@
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAgentRunner } from "../components/hooks/use-agent-runner";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { DemoLiveEditor } from "./react-app-generator/demo-live-editor";
-import { BlockPromptInput } from "@hashintel/design-system";
+import { BlockPromptInput, LoadingSpinner } from "@hashintel/design-system";
 import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
 import { Message } from "@apps/hash-agents/app/agents/react-app/io_types";
 import axios from "axios";
@@ -26,7 +26,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
 
   console.log(dependencies);
 
-  const initContainer = (dependencies?: string) => {
+  const initContainer = (dependencies?: string[]) => {
     axios
       .post("api/react-app-generator/initialize-container", { dependencies })
       .then((res) => {
@@ -37,7 +37,9 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
           setInstalledDependencies(dependencies);
         }
 
-        setIframeKey(iframeKey + 1);
+        setTimeout(() => {
+          setIframeKey(iframeKey + 1);
+        }, 5000);
       });
   };
 
@@ -46,6 +48,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
   }, []);
 
   const updateDependencies = () => {
+    setLoadingPreview(true);
     initContainer(dependencies);
   };
 
@@ -86,7 +89,11 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
               setDependencies(
                 responseDependencies[0]
                   .split(" ")
-                  .map((dependency) => dependency.replaceAll("'", "")),
+                  .map((dependency) => dependency.replaceAll("'", ""))
+                  .filter(
+                    (dependency) =>
+                      dependency !== "react" && dependency !== "@mui/material",
+                  ),
               );
             }
 
@@ -96,6 +103,14 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
       }
     });
   };
+
+  const missingDependencies = useMemo(
+    () =>
+      dependencies.filter(
+        (dependency) => !installedDependencies.includes(dependency),
+      ),
+    [dependencies, installedDependencies],
+  );
 
   return (
     <Container
@@ -139,16 +154,20 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
             setCode(value);
             updatePreview(value);
           }}
+          refreshIframe={() => setIframeKey(iframeKey + 1)}
         />
       ) : null}
 
-      {dependencies.join(" ") !== installedDependencies.join(" ") ? (
+      {missingDependencies.length ? (
         <Box mt={3}>
           <Typography variant="h5" mb={1}>
-            Missing Dependencies
+            Missing Dependencies: {missingDependencies.join(" ")}
           </Typography>
-          <Button onClick={() => updateDependencies()}>
-            Install Dependencies
+          <Button
+            onClick={() => updateDependencies()}
+            disabled={loadingPreview}
+          >
+            {loadingPreview ? <LoadingSpinner /> : "Install Dependencies"}
           </Button>
         </Box>
       ) : null}
