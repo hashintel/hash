@@ -11,8 +11,7 @@ logger = structlog.stdlib.get_logger(__name__)
 SYSTEM_MESSAGE_CONTENT = (
     "You are a text generator. Given a topic or a question, generate a"
     "paragraph of text accurately describing the given topic or answering the"
-    " question. You must be concise. Do not comment on controversial issues"
-    " including politics."
+    " question. You must be concise."
 )
 
 def main(agent_input: Input) -> Output:
