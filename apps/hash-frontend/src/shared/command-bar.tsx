@@ -33,9 +33,7 @@ import { useKeys } from "rooks";
 
 import { useAgentRunner } from "../components/hooks/use-agent-runner";
 
-type Option = {
-  group: string;
-  label: string;
+type OptionActivation = {
   href?: string;
   // Used to render a custom screen inside the popup when the option is selected
   renderCustomScreen?: (option: Option) => ReactNode;
@@ -47,9 +45,15 @@ type Option = {
   // Command to trigger when the option is selected and the user has entered text into the bar
   // @todo handle promise
   textCommand?: (text: string, option: Option) => void | Promise<void>;
+  asyncAction?: (text: string, option: Option) => Promise<OptionActivation>;
+};
+
+type Option = {
+  group: string;
+  label: string;
   // The path of parent option labels to the current option
   path: string[];
-};
+} & OptionActivation;
 
 type OptionWithoutPath = Omit<Option, "options" | "path"> & {
   options?: OptionWithoutPath[];
@@ -143,22 +147,6 @@ const CustomPaperComponent = ({
   );
 };
 
-const getSelectedOption = (
-  selectedOptionPath: string[],
-  flattenedOptions: Option[],
-) => {
-  const stringPath = JSON.stringify(selectedOptionPath);
-
-  const option = flattenedOptions.find(
-    (optionCandidate) =>
-      (optionCandidate.renderCustomScreen || optionCandidate.textCommand) &&
-      JSON.stringify([...optionCandidate.path, optionCandidate.label]) ===
-        stringPath,
-  );
-
-  return option ?? null;
-};
-
 type DelayedCallbackTiming = "immediate" | "delayed";
 
 // This hook is used to optionally delay the execution of a callback until a certain amount of time has passed
@@ -224,7 +212,7 @@ export const CommandBar = () => {
   const router = useRouter();
 
   const [inputValue, setInputValue] = useState("");
-  const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
+  const [selectedOptionPath, setSelectedOptionPath] = useState<Option[]>([]);
 
   const [resetBar, cancelReset] = useDelayedCallback(() => {
     setSelectedOptionPath([]);
@@ -262,6 +250,7 @@ export const CommandBar = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [generateTextFromPrompt] = useAgentRunner("generate-text-from-prompt");
+  const [semanticSearch] = useAgentRunner("semantic-qa");
 
   // These are the options that are displayed in the command bar
   const isOnPage = router.pathname === "/[shortname]/[page-slug]";
@@ -349,6 +338,31 @@ export const CommandBar = () => {
         },
         {
           group: "Entities",
+          label: "Semantic question answering",
+          async asyncAction(prompt: string) {
+            NProgress.set(0);
+            NProgress.start();
+            const res = await semanticSearch({ query: prompt }).catch(
+              () => null,
+            );
+
+            if (res?.output?.answer) {
+              NProgress.done(true);
+            }
+
+            return {
+              renderCustomScreen: () => (
+                <p>
+                  {res?.output?.answer
+                    ? res.output.answer
+                    : "Error, unable to retrieve result"}
+                </p>
+              ),
+            };
+          },
+        },
+        {
+          group: "Entities",
           label: "Search for an entity…",
           href: "/",
         },
@@ -383,25 +397,50 @@ export const CommandBar = () => {
           href: "/",
         },
       ]),
-    [generateTextFromPrompt, isOnPage],
+    [generateTextFromPrompt, semanticSearch, isOnPage],
   );
 
   useKeys(["Meta", "g"], (evt) => {
     if (isOnPage) {
       evt.preventDefault();
       setVisible(true);
-      setSelectedOptionPath([generateTextFromPromptLabel]);
+      setSelectedOptionPath([
+        options.find((option) => option.label === generateTextFromPromptLabel)!,
+      ]);
     }
   });
 
   const flattenedOptions = useMemo(() => flattenOptions(options), [options]);
 
-  const selectedOption = getSelectedOption(
-    selectedOptionPath,
-    flattenedOptions,
-  );
+  const selectedOption = selectedOptionPath[selectedOptionPath.length - 1];
   const customScreen =
     selectedOption?.renderCustomScreen?.(selectedOption) ?? null;
+
+  const handleOption = (option: Option) => {
+    if (
+      option.options ||
+      option.renderCustomScreen ||
+      option.textCommand ||
+      option.asyncAction
+    ) {
+      setSelectedOptionPath([...selectedOptionPath, option]);
+    } else {
+      closeBar("immediate");
+
+      if (option.command) {
+        void option.command(option);
+      }
+
+      if (option.href) {
+        if (option.href.startsWith("https:")) {
+          // Uses noopener to prevent the new tab from accessing the window.opener property
+          window.open(option.href, "_blank", "noopener");
+        } else {
+          void router.push(option.href);
+        }
+      }
+    }
+  };
 
   const handleChange = (
     _: unknown,
@@ -411,35 +450,17 @@ export const CommandBar = () => {
   ) => {
     if (details && reason === "selectOption") {
       const option = details.option;
-
-      if (option.options || option.renderCustomScreen || option.textCommand) {
-        setSelectedOptionPath([...selectedOptionPath, option.label]);
-      } else {
-        closeBar("immediate");
-
-        if (option.command) {
-          void option.command(option);
-        }
-
-        if (option.href) {
-          if (option.href.startsWith("https:")) {
-            // Uses noopener to prevent the new tab from accessing the window.opener property
-            window.open(option.href, "_blank", "noopener");
-          } else {
-            void router.push(option.href);
-          }
-        }
-      }
+      handleOption(option);
     }
   };
 
   // This is used to render the input with the selected options as chips
   const renderInput = (props: AutocompleteRenderInputParams) => (
     <>
-      {selectedOptionPath.map((path, index) => (
+      {selectedOptionPath.map((option, index) => (
         <Chip
-          key={path}
-          label={path}
+          key={option.label}
+          label={option.label}
           onDelete={() =>
             setSelectedOptionPath(selectedOptionPath.slice(0, index))
           }
@@ -458,12 +479,27 @@ export const CommandBar = () => {
               }
               break;
             case "Enter":
-              if (inputValue && selectedOption?.textCommand) {
+              if (!inputValue) {
+                return;
+              }
+
+              if (selectedOption?.textCommand) {
                 // @todo wait for the text command to finish before closing the bar
                 closeBar("immediate");
 
                 // @todo display a loading indicator while the text command is running
                 void selectedOption.textCommand(inputValue, selectedOption);
+              } else if (selectedOption?.asyncAction) {
+                void selectedOption
+                  .asyncAction(inputValue, selectedOption)
+                  .then((nextOption) =>
+                    handleOption({
+                      label: `${selectedOption.label}*`,
+                      group: selectedOption.group,
+                      path: selectedOption.path,
+                      ...nextOption,
+                    }),
+                  );
               }
           }
         }}
@@ -510,7 +546,7 @@ export const CommandBar = () => {
               )
             }
             noOptionsText={
-              selectedOption?.textCommand
+              selectedOption?.textCommand || selectedOption?.asyncAction
                 ? inputValue
                   ? "Press Enter to run command"
                   : "Type your prompt and press enter"
