@@ -4,7 +4,10 @@ import "@tldraw/tldraw/ui.css";
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
-import { updatePageContents } from "@local/hash-graphql-shared/queries/page.queries";
+import {
+  getPageQuery,
+  updatePageContents,
+} from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 import { TldrawEditorConfig, useApp } from "@tldraw/editor";
@@ -97,6 +100,9 @@ const persistBlockPosition = ({
       entityId: pageEntityId,
     },
     mutation: updatePageContents,
+    refetchQueries: [
+      { query: getPageQuery, variables: { entityId: pageEntityId } },
+    ],
   });
 };
 
@@ -158,6 +164,9 @@ const BlockCreationDialog = ({ onClose }: DialogProps) => {
             },
           ],
         },
+        refetchQueries: [
+          { query: getPageQuery, variables: { entityId: pageEntityId } },
+        ],
       });
 
       if (!data) {
@@ -407,6 +416,10 @@ const FixedCanvas = ({ blocks, contents }: CanvasPageBlockProps) => {
               Matrix2d.Rotate(rotation),
             );
 
+            console.log("blockEntity", blockEntity);
+
+            // const metadata = blocks[blockEntity.componentId]?.meta;
+            //
             const blockLoaderProps = {
               blockEntityId:
                 blockEntity.blockChildEntity.metadata.recordId.entityId,
@@ -452,7 +465,7 @@ const FixedCanvas = ({ blocks, contents }: CanvasPageBlockProps) => {
 export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
   const { query } = useRouter();
 
-  console.log({ contents });
+  console.log({ blocks, contents });
 
   if (query.locked) {
     return <FixedCanvas blocks={blocks} contents={contents} />;
@@ -476,6 +489,8 @@ export const CanvasPageBlock = ({ blocks, contents }: CanvasPageBlockProps) => {
           "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
             rotation,
         } = linkEntity.properties as Partial<CanvasPosition>;
+
+        console.log("Component", blockEntity.componentId);
 
         return {
           id: createShapeId(),
