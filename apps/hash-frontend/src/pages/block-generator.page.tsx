@@ -2,9 +2,9 @@ import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAgentRunner } from "../components/hooks/use-agent-runner";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { DemoLiveEditor } from "./react-app-generator/demo-live-editor";
+import { DemoLiveEditor } from "./block-generator/demo-live-editor";
 import { BlockPromptInput, LoadingSpinner } from "@hashintel/design-system";
-import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
+import { BouncingDotsLoader } from "./block-generator/bouncing-dots-loader";
 import { Message } from "@apps/hash-agents/app/agents/react-app/io_types";
 import axios from "axios";
 import { Box, Button, Container, Typography } from "@mui/material";
@@ -26,7 +26,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
 
   const initContainer = (dependencies?: string[]) => {
     axios
-      .post("api/react-app-generator/initialize-container", { dependencies })
+      .post("api/block-generator/initialize-container", { dependencies })
       .then((res) => {
         setContainerId(res.data);
         setLoadingPreview(false);
@@ -53,7 +53,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
   const updatePreview = (val: string) => {
     setLoadingPreview(true);
     axios
-      .post("api/react-app-generator/update-code", { containerId, code: val })
+      .post("api/block-generator/update-code", { containerId, code: val })
       .then(() => {
         setLoadingPreview(false);
         setIframeKey(iframeKey + 1);
@@ -68,9 +68,12 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
     const newMessages = [...messages, newMessage];
 
     void callAgentRunner({ messages: newMessages }).then((data) => {
-      if (data) {
+      console.log(data);
+      if (data.output) {
         const result =
-          data.messages[data.messages.length - 1]?.content.toString();
+          data.output.messages[
+            data.output.messages.length - 1
+          ]?.content.toString();
 
         if (result) {
           const responseDependencies = result.match(
@@ -81,7 +84,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
           if (codeBlock?.length) {
             setCode(codeBlock[0]);
             setOutput(codeBlock[0]);
-            setMessages(data.messages);
+            setMessages(data.output.messages);
 
             if (responseDependencies?.[0]) {
               setDependencies(
@@ -121,7 +124,7 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
     >
       <Box mb={2}>
         <Typography variant="h3" mb={1}>
-          Create a React Application!
+          Create a Block!
         </Typography>
 
         <BlockPromptInput

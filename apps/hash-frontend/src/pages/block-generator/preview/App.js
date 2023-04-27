@@ -10,5 +10,3 @@ const MyButton = () => {
 };
 
 export default MyButton;
-
-// Dependencies: ['@mui/material']
