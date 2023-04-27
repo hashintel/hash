@@ -9,17 +9,32 @@ import {
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
+  entityFromWalJsonMsg,
+  entityTypeFromWalJsonMsg,
+  PgEntity,
+  propertyTypeFromWalJsonMsg,
+} from "@local/hash-backend-utils/pg-tables";
+import {
   createPostgresConnPool,
   PgPool,
 } from "@local/hash-backend-utils/postgres";
+import {
+  generateStreamProducers,
+  isSupportedRealtimeEntityTable,
+  isSupportedRealtimeEntityTypeTable,
+  isSupportedRealtimePropertyTypeTable,
+  SupportedRealtimeTable,
+} from "@local/hash-backend-utils/realtime";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
+import { EntityEditionId } from "@local/hash-subgraph";
 import {
   clearIntervalAsync,
   setIntervalAsync,
 } from "set-interval-async/dynamic";
 import { sql } from "slonik";
 
-import { generateQueues, MONITOR_TABLES } from "./config";
+import { MONITOR_TABLES, redisConfig } from "./config";
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;
@@ -42,7 +57,7 @@ const logger = new Logger({
   metadata: { instanceId: INSTANCE_ID },
 });
 
-const QUEUES = generateQueues(logger);
+const STREAMS = generateStreamProducers(logger, redisConfig);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -77,7 +92,7 @@ const acquireReplicationSlot = async (
   `);
 
   if (slotExists) {
-    logger.info(`Replication slot '${slotName}' exists.`);
+    logger.debug(`Replication slot '${slotName}' exists.`);
   } else {
     logger.warn(`Could not create replication slot '${slotName}'. Retrying..`);
     return false;
@@ -125,7 +140,7 @@ const updateSlotOwnership = async (pool: PgPool, slotName: string) => {
       } * interval '1 second'
     where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.debug(`Updated ownership of slot "${slotName}"`);
+  logger.silly(`Updated ownership of slot "${slotName}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
@@ -140,10 +155,73 @@ const releaseSlotOwnership = async (pool: PgPool, slotName: string) => {
   }
 };
 
-const pollChanges = async (pool: PgPool, slotName: string) => {
+type ChangeType = Wal2JsonMsg<SupportedRealtimeTable>;
+
+type EntityPollState = {
+  seenTemporalMetadata: Map<EntityEditionId, ChangeType>;
+  seenEntityEdition: Map<EntityEditionId, ChangeType>;
+};
+
+const findColumn = <T>(
+  columns: ChangeType["columns"],
+  name: string,
+): T | undefined =>
+  columns.find((col) => col.name === name)?.value as T | undefined;
+
+const handleEntityTableChange = (
+  change: ChangeType,
+  state: EntityPollState,
+): PgEntity | null => {
+  const entityEditionId = findColumn<EntityEditionId>(
+    change.columns,
+    "entity_edition_id",
+  );
+
+  if (!entityEditionId) {
+    return null;
+  }
+
+  let entity = null;
+
+  if (change.table === "entity_editions") {
+    const metadataChange = state.seenTemporalMetadata.get(entityEditionId);
+    if (!metadataChange) {
+      // Save edition for later
+      state.seenEntityEdition.set(entityEditionId, change);
+      return null;
+    }
+
+    // We have all the data we need to create the entity
+    entity = entityFromWalJsonMsg(change, metadataChange);
+  }
+
+  if (change.table === "entity_temporal_metadata") {
+    const editionChange = state.seenEntityEdition.get(entityEditionId);
+    if (!editionChange) {
+      // Save metadata for later
+      state.seenTemporalMetadata.set(entityEditionId, change);
+      return null;
+    }
+
+    // We have all the data we need to create the entity
+    entity = entityFromWalJsonMsg(editionChange, change);
+  }
+
+  if (entity) {
+    state.seenTemporalMetadata.delete(entityEditionId);
+    state.seenEntityEdition.delete(entityEditionId);
+  }
+  return entity;
+};
+
+const pollChanges = async (
+  pool: PgPool,
+  slotName: string,
+  state: EntityPollState,
+) => {
   // Note: setting 'include-transaction' to 'false' here removes the transaction begin
   // & end messages with action types "B" and "C", respectively. We don't need these.
-  const rows = await pool.anyFirst(sql`
+  const rows = await pool.anyFirst<ChangeType>(sql`
     select data::jsonb from pg_logical_slot_get_changes(
       ${slotName},
       null,
@@ -156,20 +234,26 @@ const pollChanges = async (pool: PgPool, slotName: string) => {
   // Push each row change onto the queues
   for (const change of rows) {
     logger.debug({ message: "change", change });
-    // @ts-expect-error -- Ignore TRUNCATE changes (absent in types), see Wal2JsonMsg
-    if (change?.action === "T") {
+    if (change.action !== "I") {
       continue;
     }
-    const changeStr = JSON.stringify(change);
-    await Promise.all(
-      QUEUES.map(({ name, producer }) => producer.push(name, changeStr)),
-    );
+
+    if (isSupportedRealtimeEntityTable(change.table)) {
+      const entity = handleEntityTableChange(change, state);
+      if (entity !== null) {
+        await STREAMS.entityStream.push(entity);
+      }
+    } else if (isSupportedRealtimeEntityTypeTable(change.table)) {
+      await STREAMS.entityTypeStream.push(entityTypeFromWalJsonMsg(change));
+    } else if (isSupportedRealtimePropertyTypeTable(change.table)) {
+      await STREAMS.propertyTypeStream.push(propertyTypeFromWalJsonMsg(change));
+    }
   }
 };
 
 const createHttpServer = () => {
   const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health-check") {
+    if (req.method === "GET" && req.url === "/health") {
       res.setHeader("Content-Type", "application/json");
       res.writeHead(200);
       res.end(
@@ -209,20 +293,20 @@ const main = async () => {
     });
   });
 
-  const pgHost = process.env.HASH_GRAPH_PG_HOST ?? "localhost";
-  const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT ?? "5432", 10);
+  const pgHost = process.env.HASH_REALTIME_PG_HOST ?? "localhost";
+  const pgPort = parseInt(process.env.HASH_REALTIME_PG_PORT ?? "5432", 10);
   await waitOnResource(`tcp:${pgHost}:${pgPort}`, logger);
 
   const pool = createPostgresConnPool(logger, {
-    user: getRequiredEnv("HASH_GRAPH_REALTIME_PG_USER"),
+    user: getRequiredEnv("HASH_REALTIME_PG_USER"),
     host: pgHost,
     port: pgPort,
     /**
      * @todo: update how the database is set once realtime if realtime is run in the testing environment.
      *   See https://app.asana.com/0/0/1203046447168483/f
      */
-    database: getRequiredEnv("HASH_GRAPH_PG_DEV_DATABASE"),
-    password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
+    database: getRequiredEnv("HASH_REALTIME_PG_DATABASE"),
+    password: getRequiredEnv("HASH_REALTIME_PG_PASSWORD"),
     maxPoolSize: 1,
   });
 
@@ -265,6 +349,11 @@ const main = async () => {
     await clearIntervalAsync(slotInterval);
   });
 
+  const state: EntityPollState = {
+    seenEntityEdition: new Map(),
+    seenTemporalMetadata: new Map(),
+  };
+
   // Poll the replication slot for new data
   // We are using set-interval-async/dynamic as the built-in setInterval might
   // call the callback in an overlapping manner if the promise takes longer
@@ -280,7 +369,7 @@ const main = async () => {
     }
     try {
       await Promise.all([
-        pollChanges(pool, slotName),
+        pollChanges(pool, slotName, state),
         updateSlotOwnership(pool, slotName),
       ]);
     } catch (error) {
