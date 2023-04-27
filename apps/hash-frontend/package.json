@@ -63,6 +63,7 @@
     "next-transpile-modules": "10.0.0",
     "nextjs-progressbar": "0.0.16",
     "notistack": "2.0.5",
+    "nprogress": "0.2.0",
     "pluralize": "8.0.0",
     "prismjs": "1.29.0",
     "prosemirror-collab": "1.3.0",
