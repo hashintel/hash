@@ -30,9 +30,7 @@ def main(agent_input: Input) -> Output:
 
     # TODO - validate the response
 
-    return Output({
-        "result": response.content,
-    })
+    return Output(response.content)
 
 
 if __name__ == "HASH":

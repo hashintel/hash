@@ -1,4 +1,5 @@
 import { Chip, TextField } from "@hashintel/design-system";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -11,6 +12,9 @@ import {
   Paper,
 } from "@mui/material";
 import { useRouter } from "next/router";
+import NProgress from "nprogress";
+import { TextSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 import {
   createContext,
   forwardRef,
@@ -26,6 +30,8 @@ import {
   useState,
 } from "react";
 import { useKeys } from "rooks";
+
+import { useAgentRunner } from "../components/hooks/use-agent-runner";
 
 type Option = {
   group: string;
@@ -255,6 +261,8 @@ export const CommandBar = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [generateTextFromPrompt] = useAgentRunner("generate-text-from-prompt");
+
   // These are the options that are displayed in the command bar
   const options = useMemo(
     () =>
@@ -265,8 +273,36 @@ export const CommandBar = () => {
               {
                 group: "Page",
                 label: "Generate text from prompt",
-                textCommand(text: string) {
-                  alert(text);
+                async textCommand(prompt: string) {
+                  NProgress.set(0);
+                  NProgress.start();
+                  const res = await generateTextFromPrompt({ prompt }).catch(
+                    () => null,
+                  );
+
+                  if (res?.output?.result) {
+                    const { view } = (window as any).PageProsemirror as {
+                      manager: ProsemirrorManager;
+                      view: EditorView;
+                    };
+
+                    const $cursor = (view.state.selection as TextSelection)
+                      .$cursor!;
+
+                    const insertPos = $cursor.after();
+
+                    const tr = view.state.tr.insertText(
+                      res.output.result,
+                      insertPos,
+                    );
+
+                    view.dispatch(tr);
+
+                    NProgress.done(true);
+                  } else {
+                    // eslint-disable-next-line no-console
+                    console.error("Failed");
+                  }
                 },
               },
             ]
@@ -345,7 +381,7 @@ export const CommandBar = () => {
           href: "/",
         },
       ]),
-    [router.pathname],
+    [generateTextFromPrompt, router.pathname],
   );
 
   const flattenedOptions = useMemo(() => flattenOptions(options), [options]);
