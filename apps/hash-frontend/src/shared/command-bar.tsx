@@ -250,7 +250,7 @@ export const CommandBar = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [generateTextFromPrompt] = useAgentRunner("generate-text-from-prompt");
-  const [semanticSearch] = useAgentRunner("semantic-search");
+  const [semanticSearch] = useAgentRunner("semantic-qa");
 
   // These are the options that are displayed in the command bar
   const isOnPage = router.pathname === "/[shortname]/[page-slug]";
