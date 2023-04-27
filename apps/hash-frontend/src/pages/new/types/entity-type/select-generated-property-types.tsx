@@ -26,6 +26,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useWatch } from "react-hook-form";
@@ -120,15 +121,26 @@ export const SelectGeneratedPropertyTypes: FunctionComponent<
     [allPropertyTypes],
   );
 
+  const latestCallIdRef = useRef<number>(0);
+
   const generatePropertyTypes = useCallback(
     async (params: {
       entityTypeTitle: string;
       entityTypeDescription: string;
     }) => {
+      const callId = new Date().getTime();
+
+      latestCallIdRef.current = callId;
+
       setGenerationError(false);
+
       const { output, errors } = await generatePropertyTypesUsingAgentRunner(
         params,
       );
+
+      if (callId !== latestCallIdRef.current) {
+        return;
+      }
 
       if (!output || (errors && errors.length > 0)) {
         setGenerationError(true);
