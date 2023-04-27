@@ -386,7 +386,9 @@ export const save = async (
       variables: { entityId: pageEntityId },
       fetchPolicy: "network-only",
     })
-    .then((res) => res.data.page.contents);
+    .then((res) =>
+      res.data.page.contents.map((contentItem) => contentItem.rightEntity),
+    );
 
   // const entityTypeForComponentId = new Map<string, string>();
 
@@ -423,7 +425,9 @@ export const save = async (
       throw new Error("Failed");
     }
 
-    currentBlocks = res.data.updatePageContents.page.contents;
+    currentBlocks = res.data.updatePageContents.page.contents.map(
+      (contentItem) => contentItem.rightEntity,
+    );
     placeholders = res.data.updatePageContents.placeholders;
   }
   const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);

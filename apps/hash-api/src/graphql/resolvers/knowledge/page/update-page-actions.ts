@@ -246,7 +246,7 @@ export const handleInsertNewBlock = async (
       throw new UserInputError(`action ${params.index}: ${error}`);
     }
     throw new Error(
-      `insertBlock: Could not create insert new or existing block: ${JSON.stringify(
+      `insertBlock: Could not insert new or existing block: ${JSON.stringify(
         error,
       )}`,
     );

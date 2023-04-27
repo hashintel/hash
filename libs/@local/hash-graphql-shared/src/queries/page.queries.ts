@@ -17,7 +17,10 @@ const pageFieldsFragment = gql`
     icon
     summary
     contents {
-      ...BlockFields
+      rightEntity {
+        ...BlockFields
+      }
+      linkEntity
     }
     metadata
     properties

@@ -30,9 +30,10 @@ import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
-import { Router } from "next/router";
+import { Router, useRouter } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
+import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
 // import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
@@ -46,6 +47,7 @@ import {
   PageSectionContainerProps,
 } from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
+import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -78,6 +80,7 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
+import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -293,6 +296,11 @@ const Page: NextPageWithLayout<PageProps> = ({
 }) => {
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
+  const { asPath, query } = useRouter();
+  const canvasPage = query.canvas;
+
+  const routeHash = asPath.split("#")[1] ?? "";
+
   const { data: accountPages } = useAccountPages(pageOwnedById);
 
   const blocksMap = useMemo(() => {
@@ -421,41 +429,42 @@ const Page: NextPageWithLayout<PageProps> = ({
           <PageNotificationBanner />
         </Box>
 
-        <PageSectionContainer {...pageSectionContainerProps}>
-          <Box position="relative">
-            <PageIconButton
-              entityId={pageEntityId}
-              readonly={isReadonlyMode}
-              sx={({ breakpoints }) => ({
-                mb: 2,
-                [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
-                  position: "absolute",
-                  top: 0,
-                  right: "calc(100% + 24px)",
-                },
-              })}
-            />
-            <Box
-              component="header"
-              ref={pageHeaderRef}
-              sx={{
-                scrollMarginTop:
-                  HEADER_HEIGHT +
-                  TOP_CONTEXT_BAR_HEIGHT +
-                  pageIconVariantSizes.medium.container,
-              }}
-            >
-              <PageTitle
-                value={title}
-                pageEntityId={pageEntityId}
+        {!canvasPage && (
+          <PageSectionContainer {...pageSectionContainerProps}>
+            <Box position="relative">
+              <PageIconButton
+                entityId={pageEntityId}
                 readonly={isReadonlyMode}
+                sx={({ breakpoints }) => ({
+                  mb: 2,
+                  [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
+                    position: "absolute",
+                    top: 0,
+                    right: "calc(100% + 24px)",
+                  },
+                })}
               />
-              {/*
+              <Box
+                component="header"
+                ref={pageHeaderRef}
+                sx={{
+                  scrollMarginTop:
+                    HEADER_HEIGHT +
+                    TOP_CONTEXT_BAR_HEIGHT +
+                    pageIconVariantSizes.medium.container,
+                }}
+              >
+                <PageTitle
+                  value={title}
+                  pageEntityId={pageEntityId}
+                  readonly={isReadonlyMode}
+                />
+                {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs
             for them have been added
           */}
-              {/* <div style={{"marginRight":"1rem"}}>
+                {/* <div style={{"marginRight":"1rem"}}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -479,18 +488,27 @@ const Page: NextPageWithLayout<PageProps> = ({
               />
             </div>
           </div> */}
+              </Box>
             </Box>
-          </Box>
-        </PageSectionContainer>
+          </PageSectionContainer>
+        )}
 
         <CollabPositionProvider value={[]}>
-          <PageBlock
-            accountId={pageWorkspace.accountId}
-            contents={contents}
-            blocks={blocksMap}
-            pageComments={pageComments}
-            entityId={pageEntityId}
-          />
+          <UserBlocksProvider value={blocksMap}>
+            <BlockLoadedProvider routeHash={routeHash}>
+              {canvasPage ? (
+                <CanvasPageBlock contents={contents} blocks={blocksMap} />
+              ) : (
+                <PageBlock
+                  accountId={pageWorkspace.accountId}
+                  contents={contents}
+                  blocks={blocksMap}
+                  pageComments={pageComments}
+                  entityId={pageEntityId}
+                />
+              )}
+            </BlockLoadedProvider>
+          </UserBlocksProvider>
         </CollabPositionProvider>
       </PageContextProvider>
     </>

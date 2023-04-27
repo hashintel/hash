@@ -19,6 +19,25 @@ export type TextToken =
   | { tokenType: "hardBreak" }
   | { tokenType: "mention"; mentionType: "user" | "page"; entityId: EntityId };
 
+const fakeXPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/x-position/";
+const fakeYPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/y-position/";
+const fakeWidthPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/";
+const fakeHeightPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/";
+const fakeRotationPropertyBaseUrl =
+  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/";
+
+export type CanvasPosition = {
+  [fakeXPropertyBaseUrl]: number;
+  [fakeYPropertyBaseUrl]: number;
+  [fakeWidthPropertyBaseUrl]: number;
+  [fakeHeightPropertyBaseUrl]: number;
+  [fakeRotationPropertyBaseUrl]: number;
+};
+
 export type UnknownEntityProperties = {};
 
 export type SystemDefinedProperties = "$schema" | "kind" | "$id";

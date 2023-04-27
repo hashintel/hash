@@ -71,7 +71,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, { page: testPage });
+    const initialBlocks = await getPageBlocks(graphContext, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
+    });
 
     expect(initialBlocks).toHaveLength(1);
   });
@@ -93,7 +95,7 @@ describe("Page", () => {
     });
 
     const initialBlocks = await getPageBlocks(graphContext, {
-      page: testPage2,
+      pageEntityId: testPage2.entity.metadata.recordId.entityId,
     });
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
@@ -165,7 +167,7 @@ describe("Page", () => {
 
   it("can insert blocks", async () => {
     const existingBlocks = await getPageBlocks(graphContext, {
-      page: testPage,
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
     });
 
     expect(existingBlocks).toHaveLength(1);
@@ -191,7 +193,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const blocks = await getPageBlocks(graphContext, { page: testPage });
+    const blocks = await getPageBlocks(graphContext, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
+    });
     const expectedBlocks = [testBlock1, testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);
@@ -206,7 +210,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, { page: testPage });
+    const initialBlocks = await getPageBlocks(graphContext, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
+    });
     const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -221,7 +227,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const updatedBlocks = await getPageBlocks(graphContext, { page: testPage });
+    const updatedBlocks = await getPageBlocks(graphContext, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
+    });
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
     expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
     expect(updatedBlocks).toEqual(
@@ -236,7 +244,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const blocks = await getPageBlocks(graphContext, { page: testPage });
+    const blocks = await getPageBlocks(graphContext, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
+    });
     const expectedBlocks = [testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);

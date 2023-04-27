@@ -44,7 +44,7 @@ type RemoteBlockProps = {
   graphProperties: Required<BlockGraphProperties["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
-  editableRef?: (node: HTMLElement | null) => void;
+  editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded?: () => void;
 };
 
@@ -92,6 +92,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     graphModule.registerCallbacks(graphCallbacks);
   }, [graphCallbacks, graphModule]);
 
+  console.log({ graphProperties });
+
   useHookEmbedderModule(wrapperRef, {
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
@@ -102,7 +104,20 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           data.path[0] ===
             "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
         ) {
-          editableRef?.(data.node);
+          console.log("Hook message");
+          if (!editableRef) {
+            console.log("No editableRef");
+            return {
+              errors: [
+                {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Hook text module not implemented in this context",
+                },
+              ],
+            };
+          }
+
+          editableRef(data.node);
 
           const hookId = data.hookId ?? uuid();
           return { data: { hookId } };
@@ -144,7 +159,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   };
 
   return (
-    <div ref={wrapperRef}>
+    <div ref={wrapperRef} style={{ maxHeight: "100%", maxWidth: "100%" }}>
       <BlockRenderer
         blockSource={blockSource}
         blockType={blockMetadata.blockType}
