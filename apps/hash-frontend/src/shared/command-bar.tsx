@@ -10,10 +10,10 @@ import {
   Modal,
   Paper,
 } from "@mui/material";
-import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import {
   createContext,
+  forwardRef,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
@@ -26,21 +26,23 @@ import {
 } from "react";
 import { useKeys } from "rooks";
 
-// In order to make declaring the options easier, we use a type that doesn't require the path to be specified.
-// The path is added later by flattening the options
-type OptionWithoutPath = {
+type Option = {
   group: string;
   label: string;
   href?: string;
   // Used to render a custom screen inside the popup when the option is selected
-  renderCustomScreen?: (option: OptionWithoutPath) => ReactNode;
+  renderCustomScreen?: (option: Option) => ReactNode;
   // Used to render a submenu when the option is selected
-  options?: OptionWithoutPath[];
+  options?: Option[];
   // Used to trigger a command when the option is selected
-  command?: (option: OptionWithoutPath) => void;
+  command?: (option: Option) => void;
+  // The path of parent option labels to the current option
+  path: string[];
 };
 
-type Option = OptionWithoutPath & { path: string[] };
+type OptionWithoutPath = Omit<Option, "options" | "path"> & {
+  options?: OptionWithoutPath[];
+};
 
 // The state of the command bar is not immediately reset when exited via the backdrop or command+K.
 // This is the number of milliseconds to wait before resetting the state when exited in this way.
@@ -49,8 +51,31 @@ const RESET_BAR_TIMEOUT = 5_000;
 
 const defaultFilterOptions = createFilterOptions<Option>();
 
+// This function recursively adds a "path" property to each option representing
+// an array of labels denoting the path from the root option to each option
+const addPathToOptions = (
+  options: OptionWithoutPath[],
+  parentPath?: string[],
+): Option[] =>
+  options.map((option) => {
+    const { options: childOptions, ...optionWithoutOptions } = option;
+
+    return {
+      ...optionWithoutOptions,
+      ...(childOptions
+        ? {
+            options: addPathToOptions(childOptions, [
+              ...(parentPath ?? []),
+              option.label,
+            ]),
+          }
+        : {}),
+      path: parentPath ?? [],
+    };
+  });
+
 // These are the options that are displayed in the command bar
-const allOptions: OptionWithoutPath[] = [
+const allOptions = addPathToOptions([
   {
     group: "Blocks",
     label: "Find a block…",
@@ -120,30 +145,33 @@ const allOptions: OptionWithoutPath[] = [
     label: "Generate new app…",
     href: "/",
   },
-];
+]);
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
-const CenterContainer = ({ children }: PropsWithChildren) => (
-  <Box
-    width="100vw"
-    height="100vh"
-    display="flex"
-    alignItems="center"
-    margin="0 auto"
-  >
+const CenterContainer = forwardRef<HTMLDivElement, PropsWithChildren>(
+  ({ children }: PropsWithChildren, ref) => (
     <Box
-      height={518}
-      maxWidth={560}
       width="100vw"
+      height="100vh"
       display="flex"
-      justifyContent="center"
+      alignItems="center"
       margin="0 auto"
-      // Ensures pointer events pass through to the modal backdrop
-      sx={{ pointerEvents: "none" }}
+      ref={ref}
     >
-      <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
+      <Box
+        height={518}
+        maxWidth={560}
+        width="100vw"
+        display="flex"
+        justifyContent="center"
+        margin="0 auto"
+        // Ensures pointer events pass through to the modal backdrop
+        sx={{ pointerEvents: "none" }}
+      >
+        <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
+      </Box>
     </Box>
-  </Box>
+  ),
 );
 
 // Used to pass the node to render inside the popup from the command bar to the paper component
@@ -178,28 +206,20 @@ const CustomPaperComponent = ({
 };
 
 // Use the path of the selected option to find the option that renders a custom screen
-const getSelectedOptions = (
+const getCustomScreen = (
   selectedOptionPath: string[],
-  options: OptionWithoutPath[],
+  flattenedOptions: Option[],
 ) => {
-  let selectedOptions = options;
-  let selectedOption = null;
-  for (const path of selectedOptionPath) {
-    const next = selectedOptions.find((option) => option.label === path);
+  const stringPath = JSON.stringify(selectedOptionPath);
 
-    if (next) {
-      if (next.options) {
-        selectedOptions = next.options;
-      } else if (next.renderCustomScreen) {
-        selectedOption = next;
-        break;
-      }
-    } else {
-      break;
-    }
-  }
+  const option = flattenedOptions.find(
+    (optionCandidate) =>
+      optionCandidate.renderCustomScreen &&
+      JSON.stringify([...optionCandidate.path, optionCandidate.label]) ===
+        stringPath,
+  );
 
-  return selectedOption;
+  return option?.renderCustomScreen?.(option) ?? null;
 };
 
 type DelayedCallbackTiming = "immediate" | "delayed";
@@ -254,31 +274,17 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   return [handler, cancel] as const;
 };
 
-// Flattens the options into a single array, with a path property that contains the path to the option
-const flattenOptions = (
-  options: OptionWithoutPath[],
-  parentOption?: Option,
-): Option[] => {
-  return options.flatMap((option) => {
-    const nextOption = {
-      ...option,
-      path: parentOption ? [...parentOption.path, parentOption.label] : [],
-    };
-
-    return [
-      nextOption,
-      ...flattenOptions(nextOption.options ?? [], nextOption),
-    ];
-  });
-};
+// Flattens the options into a single array
+const flattenOptions = (options: Option[]): Option[] =>
+  options.flatMap((option) => [
+    option,
+    ...(option.options ? flattenOptions(option.options) : []),
+  ]);
 
 const flattenedOptions = flattenOptions(allOptions);
 
 export const CommandBar = () => {
-  const popupState = usePopupState({
-    popupId: "kbar",
-    variant: "popover",
-  });
+  const [visible, setVisible] = useState(false);
 
   const router = useRouter();
 
@@ -291,24 +297,23 @@ export const CommandBar = () => {
   }, RESET_BAR_TIMEOUT);
 
   const closeBar = (timing: DelayedCallbackTiming) => {
-    popupState.close();
+    setVisible(false);
     resetBar(timing);
   };
 
   useKeys(["Meta", "k"], () => {
-    if (popupState.isOpen) {
+    if (visible) {
       closeBar("delayed");
     } else {
       cancelReset();
 
-      popupState.open();
+      setVisible(true);
     }
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = getSelectedOptions(selectedOptionPath, allOptions);
-  const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
+  const customScreen = getCustomScreen(selectedOptionPath, flattenedOptions);
 
   const handleChange = (
     _: unknown,
@@ -368,7 +373,7 @@ export const CommandBar = () => {
   );
 
   return (
-    <Modal open={popupState.isOpen} onClose={closeBar}>
+    <Modal open={visible} onClose={closeBar}>
       <CenterContainer>
         <CustomScreenContext.Provider value={customScreen}>
           <Autocomplete
