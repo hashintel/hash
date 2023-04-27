@@ -35,7 +35,11 @@ type Option = {
   // Used to render a submenu when the option is selected
   options?: Option[];
   // Used to trigger a command when the option is selected
-  command?: (option: Option) => void;
+  // @todo handle promise
+  command?: (option: Option) => void | Promise<void>;
+  // Command to trigger when the option is selected and the user has entered text into the bar
+  // @todo handle promise
+  textCommand?: (text: string, option: Option) => void | Promise<void>;
   // The path of parent option labels to the current option
   path: string[];
 };
@@ -76,6 +80,13 @@ const addPathToOptions = (
 
 // These are the options that are displayed in the command bar
 const allOptions = addPathToOptions([
+  {
+    group: "Test",
+    label: "Alert prompt",
+    textCommand(text) {
+      alert(text);
+    },
+  },
   {
     group: "Blocks",
     label: "Find a block…",
@@ -205,8 +216,7 @@ const CustomPaperComponent = ({
   );
 };
 
-// Use the path of the selected option to find the option that renders a custom screen
-const getCustomScreen = (
+const getSelectedOption = (
   selectedOptionPath: string[],
   flattenedOptions: Option[],
 ) => {
@@ -214,12 +224,12 @@ const getCustomScreen = (
 
   const option = flattenedOptions.find(
     (optionCandidate) =>
-      optionCandidate.renderCustomScreen &&
+      (optionCandidate.renderCustomScreen || optionCandidate.textCommand) &&
       JSON.stringify([...optionCandidate.path, optionCandidate.label]) ===
         stringPath,
   );
 
-  return option?.renderCustomScreen?.(option) ?? null;
+  return option ?? null;
 };
 
 type DelayedCallbackTiming = "immediate" | "delayed";
@@ -313,7 +323,12 @@ export const CommandBar = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const customScreen = getCustomScreen(selectedOptionPath, flattenedOptions);
+  const selectedOption = getSelectedOption(
+    selectedOptionPath,
+    flattenedOptions,
+  );
+  const customScreen =
+    selectedOption?.renderCustomScreen?.(selectedOption) ?? null;
 
   const handleChange = (
     _: unknown,
@@ -324,13 +339,13 @@ export const CommandBar = () => {
     if (details && reason === "selectOption") {
       const option = details.option;
 
-      if (option.options || option.renderCustomScreen) {
+      if (option.options || option.renderCustomScreen || option.textCommand) {
         setSelectedOptionPath([...selectedOptionPath, option.label]);
       } else {
         closeBar("immediate");
 
         if (option.command) {
-          option.command(option);
+          void option.command(option);
         }
 
         if (option.href) {
@@ -363,8 +378,20 @@ export const CommandBar = () => {
         inputRef={inputRef}
         onKeyDown={(evt) => {
           // If the user presses backspace and there is no input value, then go back to the previous selectedOption
-          if (evt.key === "Backspace" && !inputRef.current?.value) {
-            setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+          switch (evt.key) {
+            case "Backspace":
+              if (!inputRef.current?.value) {
+                setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+              }
+              break;
+            case "Enter":
+              if (inputValue && selectedOption?.textCommand) {
+                // @todo wait for the text command to finish before closing the bar
+                closeBar("immediate");
+
+                // @todo display a loading indicator while the text command is running
+                void selectedOption.textCommand(inputValue, selectedOption);
+              }
           }
         }}
         {...props}
@@ -408,6 +435,13 @@ export const CommandBar = () => {
                 ),
                 state,
               )
+            }
+            noOptionsText={
+              selectedOption?.textCommand
+                ? inputValue
+                  ? "Press Enter to run command"
+                  : "Type your prompt and press enter"
+                : undefined
             }
             onClose={(_, reason) => {
               // Prevent the autocomplete from closing when the user clicks on the input
