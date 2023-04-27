@@ -12,14 +12,12 @@
       "cache": false
     },
     "fix:black": {},
-    "fix:isort": {},
     "fix:ruff": {},
     "fix:lock-files": {
       "inputs": ["poetry.lock", "pyproject.toml"],
       "outputs": ["poetry.lock"]
     },
     "lint:black": {},
-    "lint:isort": {},
     "lint:lock-files": {
       "inputs": ["poetry.lock", "pyproject.toml"]
     },

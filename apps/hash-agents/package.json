@@ -11,13 +11,11 @@
     "exe": "ts-node --transpile-only",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:black": "poetry run black app",
-    "fix:isort": "poetry run isort app",
     "fix:lock-files": "poetry lock --no-update",
     "fix:ruff": "poetry run ruff app --fix",
     "install:tools": "poetry install --no-root --no-interaction --only tools",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:black": "poetry run black --check --diff --color app",
-    "lint:isort": "poetry run isort app --check --diff --color",
     "lint:lock-files": "poetry lock --check",
     "lint:ruff": "poetry run ruff app"
   },
