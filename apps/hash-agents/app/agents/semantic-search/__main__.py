@@ -27,9 +27,9 @@ def main(agent_input: Input) -> Output:
         embedding_function=embeddings.embed_query,
     )
     retriever = qdrant.as_retriever()
-    prompt_template = """Use the following pieces of context to answer/fulfil the inquiry at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Do not reply with raw IDs that would be meaningless to users. Treat the context entities as information you know, and not information the user can/should see. Answer precisely and concisely.
+    prompt_template = """Use the following nodes of the user's Graph to answer/fulfil the inquiry at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Do not reply with raw IDs that would be meaningless to users. Treat the context entities as information you know, and not information the user can/should see. Answer precisely and concisely.
 
-Context: ---
+Graph: ---
 {context}
 ---
 
@@ -38,7 +38,7 @@ Helpful Answer:"""
     PROMPT = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
     )
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.15)
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     retrievalQA = RetrievalQA.from_llm(llm=llm, retriever=retriever, prompt=PROMPT)
     result = retrievalQA.run(agent_input.query)
     return Output(answer=result)
