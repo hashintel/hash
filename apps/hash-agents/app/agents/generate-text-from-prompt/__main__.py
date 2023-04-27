@@ -1,4 +1,3 @@
-import json
 
 import structlog.stdlib
 from langchain.chat_models import ChatOpenAI
