@@ -7,25 +7,47 @@ import { BlockPromptInput } from "@hashintel/design-system";
 import { BouncingDotsLoader } from "./react-app-generator/bouncing-dots-loader";
 import { Message } from "@apps/hash-agents/app/agents/react-app/io_types";
 import axios from "axios";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Button, Container, Typography } from "@mui/material";
 
 export const ReactAppGenerator: NextPageWithLayout = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState("");
   const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
+  const [dependencies, setDependencies] = useState<string[]>([]);
+  const [installedDependencies, setInstalledDependencies] = useState<string[]>(
+    [],
+  );
   const [containerId, setContainerId] = useState("");
   const [iframeKey, setIframeKey] = useState(0);
   const [loadingPreview, setLoadingPreview] = useState(true);
 
   const [callAgentRunner, { loading }] = useAgentRunner("react-app");
 
+  console.log(dependencies);
+
+  const initContainer = (dependencies?: string) => {
+    axios
+      .post("api/react-app-generator/initialize-container", { dependencies })
+      .then((res) => {
+        setContainerId(res.data);
+        setLoadingPreview(false);
+
+        if (dependencies) {
+          setInstalledDependencies(dependencies);
+        }
+
+        setIframeKey(iframeKey + 1);
+      });
+  };
+
   useEffect(() => {
-    axios.get("api/react-app-generator/initialize-container").then((res) => {
-      setContainerId(res.data);
-      setLoadingPreview(false);
-    });
+    initContainer();
   }, []);
+
+  const updateDependencies = () => {
+    initContainer(dependencies);
+  };
 
   const updatePreview = (val: string) => {
     setLoadingPreview(true);
@@ -50,15 +72,23 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
           data.messages[data.messages.length - 1]?.content.toString();
 
         if (result) {
-          const codeBlock = result.match("(?<=(```jsx\n))(.|\n)+?(?=(\n```))");
-          const dependencies = result.match(
-            "(?<=(Dependencies: [))(.|\n)+?(?=(]))",
+          const responseDependencies = result.match(
+            "(?<=(Dependencies: \\[))(.|\n)+?(?=(]))",
           );
+          const codeBlock = result.match("(?<=(```jsx\n))(.|\n)+?(?=(\n```))");
 
           if (codeBlock?.length) {
             setCode(codeBlock[0]);
             setOutput(codeBlock[0]);
             setMessages(data.messages);
+
+            if (responseDependencies?.[0]) {
+              setDependencies(
+                responseDependencies[0]
+                  .split(" ")
+                  .map((dependency) => dependency.replaceAll("'", "")),
+              );
+            }
 
             updatePreview(codeBlock[0]);
           }
@@ -110,6 +140,17 @@ export const ReactAppGenerator: NextPageWithLayout = () => {
             updatePreview(value);
           }}
         />
+      ) : null}
+
+      {dependencies.join(" ") !== installedDependencies.join(" ") ? (
+        <Box mt={3}>
+          <Typography variant="h5" mb={1}>
+            Missing Dependencies
+          </Typography>
+          <Button onClick={() => updateDependencies()}>
+            Install Dependencies
+          </Button>
+        </Box>
       ) : null}
     </Container>
   );

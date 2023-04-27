@@ -39,6 +39,14 @@ export default async function handler(
     });
   }
 
+  if (req.body.dependencies) {
+    await runCommand({
+      cmd: "yarn",
+      args: ["add", ...req.body.dependencies],
+      cwd: PREVIEW_PROJECT_PATH,
+    });
+  }
+
   await runCommand({
     cmd: "docker",
     args: ["build", "-t", "my-react-app-test", "."],
