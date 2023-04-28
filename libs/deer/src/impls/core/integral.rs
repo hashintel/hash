@@ -111,7 +111,7 @@ impl_num!(
 impl_num!(
     u64::deserialize_u64;
     num_self!(u64::visit_u64);
-    num_from!(u16::visit_u16, u32::visit_u32);
+    num_from!(u8::visit_u8, u16::visit_u16, u32::visit_u32);
     num_try_from!(i8::visit_i8, i16::visit_i16, i32::visit_i32, i64::visit_i64, i128::visit_i128, u128::visit_u128);
     num_number!(u64::to_u64);
 );
@@ -119,7 +119,7 @@ impl_num!(
 impl_num!(
     u128::deserialize_u128;
     num_self!(u128::visit_u128);
-    num_from!(u16::visit_u16, u32::visit_u32, u64::visit_u64);
+    num_from!(u8::visit_u8, u16::visit_u16, u32::visit_u32, u64::visit_u64);
     num_try_from!(i8::visit_i8, i16::visit_i16, i32::visit_i32, i64::visit_i64, i128::visit_i128);
     num_number!(u128::to_u128);
 );
