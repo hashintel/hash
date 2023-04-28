@@ -11,8 +11,8 @@ description = "The entity-graph query-layer for the HASH datastore"
 type-fetcher = { path = "../../lib/type-fetcher", optional = true }
 
 axum = "0.6.12"
-clap = { version = "4.2.1", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.2.0"
+clap = { version = "4.2.5", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.2.1"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = { version = "0.3.28" }
 graph = { path = "../../lib/graph", features = ["clap"] }
