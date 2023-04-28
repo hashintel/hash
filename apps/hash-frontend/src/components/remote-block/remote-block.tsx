@@ -96,14 +96,11 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
       async hook({ data }) {
-        /*
-         *@todo-0.3 - update this when we update the text blocks, we should stop checking for typeof string,
-         *      it should become an array with a base URL
-         */
         if (
           data?.type === "text" &&
-          typeof data.path === "string" &&
-          data.path === "$.text"
+          data.path.length === 1 &&
+          data.path[0] ===
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
         ) {
           editableRef?.(data.node);
 

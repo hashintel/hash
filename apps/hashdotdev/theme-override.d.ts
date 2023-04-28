@@ -65,6 +65,7 @@ declare module "@mui/material/styles" {
     hashSmallCaps: CSSProperties;
     hashMediumCaps: CSSProperties;
     hashSocialIconLink?: CSSProperties;
+    hashCode?: CSSProperties;
   }
 
   interface TypographyVariantsOptions {
@@ -82,6 +83,7 @@ declare module "@mui/material/styles" {
     hashSmallCaps?: CSSProperties;
     hashMediumCaps?: CSSProperties;
     hashSocialIconLink?: CSSProperties;
+    hashCode?: CSSProperties;
   }
 }
 
@@ -101,6 +103,7 @@ declare module "@mui/material/Typography" {
     hashSmallCaps: true;
     hashMediumCaps: true;
     hashSocialIconLink: true;
+    hashCode: true;
   }
 }
 

@@ -4,12 +4,11 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
+import { EditableField, GetHelpLink } from "@hashintel/block-design-system";
 import {
   Button,
-  EditableField,
   faPlus,
   FontAwesomeIcon,
-  GetHelpLink,
   theme,
 } from "@hashintel/design-system";
 import {
