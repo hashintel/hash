@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # Setup TurboRepo and get a pruned src folder and lockfile
 
 echo "Installing turbo"
