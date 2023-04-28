@@ -205,8 +205,6 @@ impl Token {
             Self::Number(_) => Document::new::<Number>(),
             Self::U128(_) => Document::new::<u128>(),
             Self::I128(_) => Document::new::<i128>(),
-            Self::USize(_) => Document::new::<usize>(),
-            Self::ISize(_) => Document::new::<isize>(),
             Self::Char(_) => Document::new::<char>(),
             Self::Str(_) | Self::BorrowedStr(_) | Self::String(_) => Document::new::<str>(),
             Self::Bytes(_) | Self::BorrowedBytes(_) | Self::BytesBuf(_) => Document::new::<[u8]>(),
