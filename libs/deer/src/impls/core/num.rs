@@ -5,6 +5,8 @@ use core::num::{
     NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize, Wrapping,
 };
 
+#[cfg(all(not(nightly), not(feature = "std")))]
+use error_stack::IntoReport;
 use error_stack::{Report, ResultExt};
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
@@ -138,6 +140,7 @@ macro_rules! num_from {
     };
 }
 
+#[cfg(any(nightly, feature = "std"))]
 macro_rules! num_try_from {
     ($primitive:ident:: $visit:ident) => {
         fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
@@ -147,6 +150,23 @@ macro_rules! num_try_from {
                 .attach(ExpectedType::new(self.expecting()))
                 .attach(ReceivedValue::new(v))
                 .change_context(VisitorError)
+        }
+    };
+}
+
+// error_in_core is not stabilized just yet
+#[cfg(all(not(nightly), not(feature = "std")))]
+macro_rules! num_try_from {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
+            if let Ok(value) = Self::Value::try_from(v) {
+                Ok(value)
+            } else {
+                Err(Report::new(ValueError.into_error())
+                    .attach(ExpectedType::new(self.expecting()))
+                    .attach(ReceivedValue::new(v))
+                    .change_context(VisitorError))
+            }
         }
     };
 }
