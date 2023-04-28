@@ -4,5 +4,5 @@ Storybook app for viewing design system components used in libraries, applicatio
 
 Included packages:
 
-- @hashintel/design-system
-- @hashintel/block-design-system
+- `@hashintel/design-system`
+- `@hashintel/block-design-system`
