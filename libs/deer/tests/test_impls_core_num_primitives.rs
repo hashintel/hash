@@ -160,7 +160,7 @@ proptest_primitive!(
 // The reason we have no other use-cases for the other `target_pointer_width`s is because it is hard
 // to emulate those during testing.
 #[cfg(target_pointer_width = "64")]
-proptest_integral!(
+proptest_primitive!(
     Token::Number(usize as u64);
     proptest_fit!(u8 :: U8Deserializer, u16 :: U16Deserializer);
     proptest_try_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer, i32 :: I32Deserializer, i64 :: I64Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, i128 :: I128Deserializer, u128 :: U128Deserializer);
@@ -197,7 +197,7 @@ proptest_primitive!(
 
 // for reason of cfg guard please refer to `usize` tests
 #[cfg(target_pointer_width = "64")]
-proptest_integral!(
+proptest_primitive!(
     Token::Number(isize as i64);
     proptest_fit!(i8 :: I8Deserializer, i16 :: I16Deserializer);
     proptest_try_fit!(i32 :: I32Deserializer, i64 :: I64Deserializer, i128 :: I128Deserializer, u8 :: U8Deserializer, u16 :: U16Deserializer, u32 :: U32Deserializer, u64 :: U64Deserializer, u128 :: U128Deserializer);
