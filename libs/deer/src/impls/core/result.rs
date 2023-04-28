@@ -25,20 +25,20 @@ impl<'de> Visitor<'de> for ResultDiscriminantVisitor {
         ResultDiscriminant::reflection()
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "Ok" => Ok(ResultDiscriminant::Ok),
             "Err" => Ok(ResultDiscriminant::Err),
             _ => Err(Report::new(UnknownVariantError.into_error())
                 .attach(ExpectedVariant::new("Err"))
                 .attach(ExpectedVariant::new("Ok"))
-                .attach(ReceivedVariant::new(v))
+                .attach(ReceivedVariant::new(value))
                 .change_context(VisitorError)),
         }
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+        match value {
             b"Ok" => Ok(ResultDiscriminant::Ok),
             b"Err" => Ok(ResultDiscriminant::Err),
             _ => {
@@ -46,7 +46,7 @@ impl<'de> Visitor<'de> for ResultDiscriminantVisitor {
                     .attach(ExpectedVariant::new("Err"))
                     .attach(ExpectedVariant::new("Ok"));
 
-                if let Ok(received) = core::str::from_utf8(v) {
+                if let Ok(received) = core::str::from_utf8(value) {
                     error = error.attach(ReceivedVariant::new(received));
                 }
 
@@ -65,8 +65,9 @@ impl Reflection for ResultDiscriminant {
 impl<'de> Deserialize<'de> for ResultDiscriminant {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(ResultDiscriminantVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_str(ResultDiscriminantVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -148,8 +149,9 @@ where
 {
     type Reflection = ResultReflection<T::Reflection, E::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(ResultEnumVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(ResultEnumVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

@@ -381,7 +381,9 @@ impl Reflection for Number {
 impl<'de> Deserialize<'de> for Number {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
         struct Visitor;
 
         impl<'de> crate::Visitor<'de> for Visitor {
@@ -391,15 +393,16 @@ impl<'de> Deserialize<'de> for Number {
                 Number::reflection()
             }
 
-            fn visit_number(self, v: Number) -> error_stack::Result<Self::Value, VisitorError> {
-                Ok(v)
+            fn visit_number(self, value: Number) -> error_stack::Result<Self::Value, VisitorError> {
+                Ok(value)
             }
 
             // TODO: visit_object, needs `deserialize_any`, first need to make decision which token
             // to use!
         }
 
-        de.deserialize_number(Visitor)
+        deserializer
+            .deserialize_number(Visitor)
             .change_context(DeserializeError)
     }
 }
