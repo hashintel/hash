@@ -1,6 +1,6 @@
-FROM node:16.18.1-alpine AS base
+FROM python:3.11.3-slim-bullseye as python-base
 
-RUN apk --no-cache add python3 python3-dev --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main
+FROM node:16.18.1-bullseye-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -13,64 +13,95 @@ ENV PYTHONUNBUFFERED=1 \
 ENV VIRTUAL_ENV=".venv"
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
-RUN apk add --no-cache --virtual .build-deps g++ musl-dev libffi-dev make curl && \
-    curl -sSL https://install.python-poetry.org | python
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential libffi-dev curl
+
+# `apt-get install python3` installs an older version of Python and we want 3.11, copying it from the official image
+#   seems to work with just these commands, so we opt to do this rather than needing to build it from source or
+#   install it from an external source such as https://github.com/indygreg/python-build-standalone (see frontend vercel-install)
+#   if this causes problem, or we update dependencies, we can change approach.
+
+COPY --from=python-base /usr/local/bin/python3 /usr/local/bin/python3
+COPY --from=python-base /usr/local/bin/python3.11 /usr/local/bin/python3.11
+COPY --from=python-base /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=python-base /usr/local/lib/libpython3.so /usr/local/lib/libpython3.so
+COPY --from=python-base /usr/local/lib/libpython3.11.so /usr/local/lib/libpython3.11.so
+COPY --from=python-base /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
+
+RUN apt-get install -y python-is-python3
+
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+RUN yarn global add turbo
 
 
 FROM base as pruned
 
 WORKDIR /app
 
-RUN yarn global add turbo
 COPY . .
 RUN turbo prune --scope='@apps/hash-agents' --docker
 
 
 FROM base as venv-installer
 
-WORKDIR /usr/local/src/hash/
+ENV REPO_ROOT="/usr/local/src/hash"
+ENV APP_ROOT="$REPO_ROOT/apps/hash-agents"
+
+WORKDIR $REPO_ROOT
 
 COPY --from=pruned /app/out/json/ .
-COPY --from=pruned /app/out/yarn.lock ./yarn.lock
+COPY --from=pruned /app/out/yarn.lock .
+COPY --from=pruned /app/turbo.json .
 
-WORKDIR /usr/local/src/hash/apps/hash-agents
+WORKDIR $APP_ROOT
 
-COPY --from=pruned /app/out/full/apps/hash-agents/poetry.lock .
+COPY --from=pruned /app/out/full/apps/hash-agents/turbo.json .
+COPY --from=pruned /app/out/full/apps/hash-agents/package.json .
 COPY --from=pruned /app/out/full/apps/hash-agents/pyproject.toml .
+COPY --from=pruned /app/out/full/apps/hash-agents/poetry.toml .
+COPY --from=pruned /app/out/full/apps/hash-agents/poetry.lock .
 
-RUN poetry install --no-root --only main --only production
+RUN poetry env use python3
 
-RUN apk del .build-deps
+WORKDIR $REPO_ROOT
+
+RUN turbo poetry:install-production
+
+RUN apt-get remove -y build-essential libffi-dev && \
+    apt-get autoremove -y
+
 
 FROM venv-installer as yarn-installer
 
-WORKDIR /usr/local/src/hash/
+WORKDIR $REPO_ROOT
 
 RUN yarn install --frozen-lockfile --prefer-offline && \
     yarn cache clean
 
 COPY --from=pruned /app/out/full/ .
 
-RUN yarn turbo build --filter '@apps/hash-agents'
+RUN turbo codegen --filter '@apps/hash-agents'
 
+FROM python-base AS runner
 
-FROM alpine AS runner
+ENV VIRTUAL_ENV=".venv"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY --from=yarn-installer /usr/local/src/hash/ /usr/local/src/hash
 
 WORKDIR "/usr/local/src/hash/apps/hash-agents"
 
-
-COPY --from=yarn-installer /usr/local/src/hash/ app
-
-RUN . app/apps/hash-agents/.venv/bin/activate
-
+RUN . .venv/bin/activate
 
 ENTRYPOINT ["gunicorn"]
 CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "--timeout", "0", "app:create_app('prod')"]
 EXPOSE 80
 
-RUN apk add --no-cache curl && \
-    addgroup --system --gid 60000 hash && \
-    adduser --system agents -G hash && \
+RUN apt-get update && \
+    apt-get install -y curl && \
+    groupadd --system --gid 60000 hash && \
+    useradd --system agents -G hash && \
     install -d -m 0775 -o agents -g hash /log
 
 USER agents:hash
