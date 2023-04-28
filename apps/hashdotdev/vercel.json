@@ -1,0 +1,8 @@
+{
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
+  "buildCommand": "turbo --filter '@apps/hashdotdev' build",
+  "installCommand": "cd ../.. && yarn install"
+}

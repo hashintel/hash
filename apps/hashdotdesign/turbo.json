@@ -3,7 +3,10 @@
   "pipeline": {
     "build": {
       // Outputs of the build
-      "outputs": ["./.next/**/*"]
+      "outputs": ["./storybook-static/**/*"]
+    },
+    "storybook": {
+      "persistent": true
     }
   }
 }

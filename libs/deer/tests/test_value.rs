@@ -109,8 +109,8 @@ impl<'de> Visitor<'de> for ChoiceVisitor {
         Self::Value::document()
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "yes" => Ok(Choice::Yes),
             "no" => Ok(Choice::No),
             other => Err(Report::new(ValueError.into_error())
@@ -124,8 +124,9 @@ impl<'de> Visitor<'de> for ChoiceVisitor {
 impl<'de> Deserialize<'de> for Choice {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(ChoiceVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_str(ChoiceVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -155,8 +156,9 @@ impl<'de> Visitor<'de> for NullVisitor {
 impl<'de> Deserialize<'de> for Null {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_null(NullVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_null(NullVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -302,16 +304,17 @@ impl<'de> Visitor<'de> for BytesVisitor {
         Bytes::document()
     }
 
-    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
-        Ok(Bytes(v))
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, VisitorError> {
+        Ok(Bytes(value))
     }
 }
 
 impl<'de: 'a, 'a> Deserialize<'de> for Bytes<'a> {
     type Reflection = Bytes<'static>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bytes(BytesVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes(BytesVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -333,16 +336,17 @@ impl<'de> Visitor<'de> for BytesLengthVisitor {
         Self::Value::document()
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        Ok(BytesLength(v.len()))
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+        Ok(BytesLength(value.len()))
     }
 }
 
 impl<'de> Deserialize<'de> for BytesLength {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bytes(BytesLengthVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes(BytesLengthVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -364,16 +368,17 @@ impl<'de> Visitor<'de> for ByteBufferVisitor {
         Self::Value::document()
     }
 
-    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
-        Ok(ByteBuffer(v))
+    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        Ok(ByteBuffer(value))
     }
 }
 
 impl<'de> Deserialize<'de> for ByteBuffer {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bytes_buffer(ByteBufferVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bytes_buffer(ByteBufferVisitor)
             .change_context(DeserializeError)
     }
 }
