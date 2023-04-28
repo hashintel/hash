@@ -28,6 +28,7 @@ deer-desert = { path = "./desert", features = ['pretty'] }
 proptest = "1.1.0"
 paste = "1.0.12"
 approx = "0.5.1"
+seq-macro = "0.3.3"
 
 [build-dependencies]
 rustc_version = "0.4.0"

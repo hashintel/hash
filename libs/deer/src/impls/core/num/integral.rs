@@ -1,4 +1,6 @@
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(any(nightly, feature = "std"))]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 use crate::{
@@ -48,7 +50,7 @@ impl_num!(
     u64::deserialize_u64;
     impl_reflection;
     num_self!(u64::visit_u64);
-    num_from!(u16::visit_u16, u32::visit_u32);
+    num_from!(u8::visit_u8, u16::visit_u16, u32::visit_u32);
     num_try_from!(i8::visit_i8, i16::visit_i16, i32::visit_i32, i64::visit_i64, i128::visit_i128, u128::visit_u128);
     num_number!(u64::to_u64);
 );
@@ -57,7 +59,7 @@ impl_num!(
     u128::deserialize_u128;
     impl_reflection;
     num_self!(u128::visit_u128);
-    num_from!(u16::visit_u16, u32::visit_u32, u64::visit_u64);
+    num_from!(u8::visit_u8, u16::visit_u16, u32::visit_u32, u64::visit_u64);
     num_try_from!(i8::visit_i8, i16::visit_i16, i32::visit_i32, i64::visit_i64, i128::visit_i128);
     num_number!(u128::to_u128);
 );
@@ -130,8 +132,8 @@ impl<'de> Deserialize<'de> for usize {
     }
 
     // #[cfg(target_pointer_width = "64")]
-    // The default if not other architecture is chosen, should there every be a case of a usize that
-    // has not the "default" pointer widths, even 128 is quite unlikely
+    // The default if no other architecture is chosen, should there ever be a case of a `usize` that
+    // does not have the "default" pointer width, even 128 is quite unlikely
     #[cfg(not(any(
         target_pointer_width = "16",
         target_pointer_width = "32",
@@ -171,8 +173,8 @@ impl<'de> Deserialize<'de> for isize {
     }
 
     // #[cfg(target_pointer_width = "64")]
-    // The default if not other architecture is chosen, should there every be a case of a isize that
-    // has not the "default" pointer widths, even 128 is quite unlikely
+    // The default if no other architecture is chosen, should there ever be a case of a `usize` that
+    // does not have the "default" pointer width, even 128 is quite unlikely
     #[cfg(not(any(
         target_pointer_width = "16",
         target_pointer_width = "32",

@@ -455,6 +455,10 @@ impl<'a> ArrayAccess<'a> {
 }
 
 impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
+    fn context(&self) -> &Context {
+        self.context
+    }
+
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
         if self.dirty {
             return Err(
@@ -550,6 +554,10 @@ impl<'a> ObjectAccess<'a> {
 }
 
 impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
+    fn context(&self) -> &Context {
+        self.context
+    }
+
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
         if self.dirty {
             return Err(

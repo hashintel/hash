@@ -11,4 +11,5 @@ mod result;
 mod string;
 mod sync;
 mod time;
+mod tuples;
 mod unit;
