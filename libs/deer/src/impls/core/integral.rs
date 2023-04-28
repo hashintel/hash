@@ -23,7 +23,7 @@ macro_rules! impl_num {
         impl<'de> Deserialize<'de> for $primitive {
             type Reflection = Self;
 
-            fn deserialize<D>(de: D) -> Result<Self, DeserializeError>
+            fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
             where
                 D: Deserializer<'de>,
             {
@@ -39,7 +39,7 @@ macro_rules! impl_num {
                     $($($method!($val :: $visit);)*)*
                 }
 
-                de.$deserialize(PrimitiveVisitor).change_context(DeserializeError)
+                deserializer.$deserialize(PrimitiveVisitor).change_context(DeserializeError)
             }
         }
     };
