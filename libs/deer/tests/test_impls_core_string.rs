@@ -1,5 +1,7 @@
-use deer_desert::{assert_tokens, Token};
+use deer::Deserialize;
+use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use proptest::prelude::*;
+use serde_json::json;
 
 #[cfg(not(miri))]
 proptest! {
@@ -21,4 +23,46 @@ fn single_char_str_ok() {
     assert_tokens(&'A', &[Token::BorrowedStr("A")]);
     assert_tokens(&'A', &[Token::Str("A")]);
     assert_tokens(&'A', &[Token::String("A")]);
+}
+
+#[test]
+fn multiple_char_str_err() {
+    assert_tokens_error::<char>(
+        &error!([{
+            ns: "deer",
+            id: ["type"],
+            properties: {
+                "expected": char::reflection(),
+                "received": <&str>::reflection(),
+                "location": []
+            }
+        }]),
+        &[Token::BorrowedStr("ABC")],
+    );
+
+    assert_tokens_error::<char>(
+        &error!([{
+            ns: "deer",
+            id: ["type"],
+            properties: {
+                "expected": char::reflection(),
+                "received": <&str>::reflection(),
+                "location": []
+            }
+        }]),
+        &[Token::Str("ABC")],
+    );
+
+    assert_tokens_error::<char>(
+        &error!([{
+            ns: "deer",
+            id: ["type"],
+            properties: {
+                "expected": char::reflection(),
+                "received": <&str>::reflection(),
+                "location": []
+            }
+        }]),
+        &[Token::String("ABC")],
+    );
 }
