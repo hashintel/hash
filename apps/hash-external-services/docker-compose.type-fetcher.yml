@@ -3,12 +3,6 @@ version: "3.9"
 services:
   type-fetcher:
     init: true
-    build:
-      dockerfile: apps/hash-graph/docker/Dockerfile
-      context: ../../
-      args:
-        PROFILE: dev
-        TYPE_FETCHER: yes
     image: hash-graph
     read_only: true
     security_opt:
@@ -35,6 +29,3 @@ services:
     depends_on:
       type-fetcher:
         condition: service_healthy
-    build:
-      args:
-        TYPE_FETCHER: yes

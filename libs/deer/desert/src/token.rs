@@ -49,34 +49,6 @@ pub enum Token {
     /// ```
     I128(i128),
 
-    /// A serialized [`usize`]
-    ///
-    /// this is a separate variant, because there is no guarantee about the width of a usize/isize,
-    /// it depends on the size to reference a memory address on the host system. There might be
-    /// systems that use 128 bit in the future that rust supports, which means we too need to
-    /// support those, by special casing usize.
-    ///
-    /// ```
-    /// use deer_desert::{assert_tokens, Token};
-    ///
-    /// assert_tokens(&1usize, &[Token::USize(1)])
-    /// ```
-    USize(usize),
-
-    /// A serialized [`isize`]
-    ///
-    /// this is a separate variant, because there is no guarantee about the width of a usize/isize,
-    /// it depends on the size to reference a memory address on the host system. There might be
-    /// systems that use 128 bit in the future that rusts supports, which means we too need to
-    /// support those, by special casing isize/usize.
-    ///
-    /// ```
-    /// use deer_desert::{assert_tokens, Token};
-    ///
-    /// assert_tokens(&1isize, &[Token::ISize(1)])
-    /// ```
-    ISize(isize),
-
     /// A serialized [`char`]
     ///
     /// ```
@@ -116,8 +88,8 @@ pub enum Token {
     ///         Self::Value::reflection()
     ///     }
     ///
-    ///     fn visit_str(self, v: &str) -> error_stack::Result<Self::Value, VisitorError> {
-    ///         match v {
+    ///     fn visit_str(self, value: &str) -> error_stack::Result<Self::Value, VisitorError> {
+    ///         match value {
     ///             "trace" => Ok(LogLevel::Trace),
     ///             "debug" => Ok(LogLevel::Debug),
     ///             "info" => Ok(LogLevel::Info),
@@ -140,8 +112,11 @@ pub enum Token {
     /// impl<'de> Deserialize<'de> for LogLevel {
     ///     type Reflection = Self;
     ///
-    ///     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-    ///         de.deserialize_str(LogLevelVisitor)
+    ///     fn deserialize<D: Deserializer<'de>>(
+    ///         deserializer: D,
+    ///     ) -> error_stack::Result<Self, DeserializeError> {
+    ///         deserializer
+    ///             .deserialize_str(LogLevelVisitor)
     ///             .change_context(DeserializeError)
     ///     }
     /// }

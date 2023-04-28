@@ -2,6 +2,8 @@ import { Box, Typography } from "@mui/material";
 import Image, { ImageProps } from "next/legacy/image";
 import { FunctionComponent, ReactNode } from "react";
 
+import { useBlogPostPhotos } from "./blog-post";
+
 export const MdxTalkSlide: FunctionComponent<
   Pick<ImageProps, "width" | "height"> & {
     children?: ReactNode;
@@ -9,6 +11,9 @@ export const MdxTalkSlide: FunctionComponent<
     video?: boolean;
   }
 > = ({ children, src, video = false, width, height }) => {
+  const { body } = useBlogPostPhotos();
+  const details = body[src];
+
   return (
     <Box
       sx={{
@@ -27,7 +32,14 @@ export const MdxTalkSlide: FunctionComponent<
         {video ? (
           <Box component="video" width="100%" src={src} controls />
         ) : (
-          <Image src={src} width={width} height={height} />
+          <Image
+            {...details}
+            src={src}
+            width={width}
+            height={height}
+            layout="responsive"
+            placeholder="blur"
+          />
         )}
       </Box>
       <Box

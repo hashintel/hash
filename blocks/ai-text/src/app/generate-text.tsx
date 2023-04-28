@@ -4,7 +4,7 @@ import {
   BlockPromptInput,
   codeBlockFormattingPrompt,
   GetHelpLink,
-} from "@hashintel/design-system";
+} from "@hashintel/block-design-system";
 import { Box, Collapse, Fade } from "@mui/material";
 import { useCallback, useRef, useState } from "react";
 
