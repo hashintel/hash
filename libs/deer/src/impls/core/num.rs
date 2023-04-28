@@ -106,7 +106,7 @@ macro_rules! impl_num {
         impl<'de> Deserialize<'de> for $primitive {
             type Reflection = Self;
 
-            fn deserialize<D>(de: D) -> Result<Self, DeserializeError>
+            fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
             where
                 D: Deserializer<'de>,
             {
@@ -122,7 +122,7 @@ macro_rules! impl_num {
                     $($($method!($val :: $visit);)*)*
                 }
 
-                de.$deserialize(PrimitiveVisitor).change_context(DeserializeError)
+                deserializer.$deserialize(PrimitiveVisitor).change_context(DeserializeError)
             }
         }
     };
@@ -130,16 +130,16 @@ macro_rules! impl_num {
 
 macro_rules! num_self {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
-            Ok(v)
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(value)
         }
     };
 }
 
 macro_rules! num_from {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
-            Ok(Self::Value::from(v))
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(Self::Value::from(value))
         }
     };
 }
@@ -147,12 +147,12 @@ macro_rules! num_from {
 #[cfg(any(nightly, feature = "std"))]
 macro_rules! num_try_from {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
-            Self::Value::try_from(v)
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Self::Value::try_from(value)
                 .into_report()
                 .change_context(ValueError.into_error())
                 .attach(ExpectedType::new(self.expecting()))
-                .attach(ReceivedValue::new(v))
+                .attach(ReceivedValue::new(value))
                 .change_context(VisitorError)
         }
     };
@@ -162,13 +162,13 @@ macro_rules! num_try_from {
 #[cfg(all(not(nightly), not(feature = "std")))]
 macro_rules! num_try_from {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
-            if let Ok(value) = Self::Value::try_from(v) {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            if let Ok(value) = Self::Value::try_from(value) {
                 Ok(value)
             } else {
                 Err(Report::new(ValueError.into_error())
                     .attach(ExpectedType::new(self.expecting()))
-                    .attach(ReceivedValue::new(v))
+                    .attach(ReceivedValue::new(value))
                     .change_context(VisitorError))
             }
         }
@@ -177,19 +177,19 @@ macro_rules! num_try_from {
 
 macro_rules! num_as_lossy {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, v: $primitive) -> Result<Self::Value, VisitorError> {
-            Ok(v as Self::Value)
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(value as Self::Value)
         }
     };
 }
 
 macro_rules! num_number {
     ($primitive:ident:: $to:ident) => {
-        fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-            v.$to().ok_or_else(|| {
+        fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+            value.$to().ok_or_else(|| {
                 Report::new(ValueError.into_error())
                     .attach(ExpectedType::new(self.expecting()))
-                    .attach(ReceivedValue::new(v))
+                    .attach(ReceivedValue::new(value))
                     .change_context(VisitorError)
             })
         }
