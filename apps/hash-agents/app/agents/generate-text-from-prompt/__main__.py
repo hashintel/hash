@@ -1,4 +1,3 @@
-
 import structlog.stdlib
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
@@ -13,16 +12,13 @@ SYSTEM_MESSAGE_CONTENT = (
     " question. You must be concise."
 )
 
+
 def main(agent_input: Input) -> Output:
     chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
     messages = [
-        SystemMessage(
-            content=SYSTEM_MESSAGE_CONTENT
-        ),
-        HumanMessage(
-            content=agent_input.prompt
-        ),
+        SystemMessage(content=SYSTEM_MESSAGE_CONTENT),
+        HumanMessage(content=agent_input.prompt),
     ]
 
     response = chat(messages)
@@ -43,10 +39,6 @@ if __name__ == "__main__":
 
     setup("dev")
 
-    output = main(
-        Input(
-            prompt="What is the meaning of life?"
-        )
-    )
+    output = main(Input(prompt="What is the meaning of life?"))
 
     logger.info(output=output)

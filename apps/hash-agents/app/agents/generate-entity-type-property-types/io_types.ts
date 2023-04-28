@@ -12,10 +12,12 @@ export type Input = {
   entityTypeDescription: string;
 };
 
+type NewPropertyTypeDefinition = {
+  title: string;
+  description: string;
+  dataType: "text" | "number" | "boolean";
+};
+
 export type Output = {
-  propertyTypeDefinitions: {
-    title: string;
-    description: string;
-    dataType: "text" | "number" | "boolean";
-  }[];
+  propertyTypeDefinitions: NewPropertyTypeDefinition[];
 };
