@@ -187,8 +187,8 @@ impl<'de> Deserialize<'de> for usize {
     }
 
     // #[cfg(target_pointer_width = "64")]
-    // The default if not other architecture is chosen, should there every be a case of a usize that
-    // has not the "default" pointer widths, even 128 is quite unlikely
+    // The default if no other architecture is chosen, should there ever be a case of a `usize` that
+    // does not have the "default" pointer width, even 128 is quite unlikely
     #[cfg(not(any(
         target_pointer_width = "16",
         target_pointer_width = "32",
