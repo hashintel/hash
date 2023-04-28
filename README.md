@@ -75,6 +75,7 @@ Key projects within are summarized below.
 
 ### Infrastructure
 
+- [`docker`](infra/docker): Docker assets relating to HASH
 - [`terraform`](infra/terraform): Terraform modules for deploying HASH on AWS
 
 ### Libraries
