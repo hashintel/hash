@@ -30,7 +30,7 @@ import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
-import { Router } from "next/router";
+import { Router, useRouter } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
 // import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
@@ -78,6 +78,7 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
+import { CanvasPageBlock } from "./[page-slug]/canvas-page";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -293,6 +294,9 @@ const Page: NextPageWithLayout<PageProps> = ({
 }) => {
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
+  const { query } = useRouter();
+  const canvasPage = query.canvas;
+
   const { data: accountPages } = useAccountPages(pageOwnedById);
 
   const blocksMap = useMemo(() => {
@@ -484,13 +488,23 @@ const Page: NextPageWithLayout<PageProps> = ({
         </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
-          <PageBlock
-            accountId={pageWorkspace.accountId}
-            contents={contents}
-            blocks={blocksMap}
-            pageComments={pageComments}
-            entityId={pageEntityId}
-          />
+          {canvasPage ? (
+            <CanvasPageBlock
+              accountId={pageWorkspace.accountId}
+              contents={contents}
+              blocks={blocksMap}
+              pageComments={pageComments}
+              entityId={pageEntityId}
+            />
+          ) : (
+            <PageBlock
+              accountId={pageWorkspace.accountId}
+              contents={contents}
+              blocks={blocksMap}
+              pageComments={pageComments}
+              entityId={pageEntityId}
+            />
+          )}
         </CollabPositionProvider>
       </PageContextProvider>
     </>
