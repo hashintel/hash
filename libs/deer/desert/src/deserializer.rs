@@ -1,9 +1,9 @@
 use alloc::borrow::ToOwned;
 
 use deer::{
-    error::{DeserializerError, TypeError, Variant},
+    error::{DeserializerError, ExpectedType, MissingError, ReceivedType, TypeError, Variant},
     value::NoneDeserializer,
-    Context, EnumVisitor, OptionalVisitor, Visitor,
+    Context, EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
@@ -134,6 +134,26 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 
         Ok(value)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        let token = self.next();
+
+        match token {
+            Token::Array { length } => visitor
+                .visit_array(ArrayAccess::new(self, length))
+                .change_context(DeserializerError),
+            Token::Object { length } => visitor
+                .visit_object(ObjectAccess::new(self, length))
+                .change_context(DeserializerError),
+            other => Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(other.schema()))
+                .change_context(DeserializerError)),
+        }
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -155,10 +175,6 @@ impl<'a, 'de> Deserializer<'a, 'de> {
 
     pub(crate) fn next(&mut self) -> Token {
         self.tape.next().expect("should have token to deserialize")
-    }
-
-    pub(crate) const fn tape(&self) -> &Tape<'de> {
-        &self.tape
     }
 
     pub(crate) fn tape_mut(&mut self) -> &mut Tape<'de> {
@@ -223,5 +239,14 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
         visitor
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }
