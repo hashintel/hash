@@ -6,13 +6,11 @@ import {
 import { AutofillSuggestion } from "@blockprotocol/service/dist/mapbox-types";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
-  Autocomplete,
   BlockErrorMessage,
   BlockSettingsButton,
-  FontAwesomeIcon,
   GetHelpLink,
-  theme,
-} from "@hashintel/design-system";
+} from "@hashintel/block-design-system";
+import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
 import {
   CircularProgress,
   Collapse,

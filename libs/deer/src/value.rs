@@ -30,7 +30,7 @@ macro_rules! impl_owned {
         }
     };
 
-    (@INTERNAL IMPL, $ty:ty, $name:ident, $method:ident) => {
+    (@INTERNAL IMPL, $ty:ty $(as $conv:ty)?, $name:ident, $method:ident) => {
         impl<'a> $name<'a> {
             #[must_use]
             pub const fn new(value: $ty, context: &'a Context) -> Self {
@@ -59,7 +59,7 @@ macro_rules! impl_owned {
             where
                 V: Visitor<'de>,
             {
-                visitor.$method(self.value).change_context(DeserializerError)
+                visitor.$method(self.value $(as $conv)?).change_context(DeserializerError)
             }
 
             fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
@@ -88,9 +88,9 @@ macro_rules! impl_owned {
         }
     };
 
-    (copy: $ty:ty, $name:ident, $method:ident) => {
+    (copy: $ty:ty $(as $conv:ty)?, $name:ident, $method:ident) => {
         impl_owned!(@INTERNAL COPY, $ty, $name, $method);
-        impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
+        impl_owned!(@INTERNAL IMPL, $ty $(as $conv)?, $name, $method);
     };
 
     (!copy: $ty:ty, $name:ident, $method:ident) => {
@@ -98,8 +98,8 @@ macro_rules! impl_owned {
         impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
     };
 
-    ($ty:ty, $name:ident, $method:ident) => {
-        impl_owned!(copy: $ty, $name, $method);
+    ($ty:ty $(as $conv:ty)?, $name:ident, $method:ident) => {
+        impl_owned!(copy: $ty $(as $conv)?, $name, $method);
     };
 }
 
@@ -265,13 +265,35 @@ impl_owned!(u16, U16Deserializer, visit_u16);
 impl_owned!(u32, U32Deserializer, visit_u32);
 impl_owned!(u64, U64Deserializer, visit_u64);
 impl_owned!(u128, U128Deserializer, visit_u128);
-impl_owned!(usize, UsizeDeserializer, visit_usize);
+#[cfg(target_pointer_width = "16")]
+impl_owned!(usize as u16, UsizeDeserializer, visit_u16);
+#[cfg(target_pointer_width = "32")]
+impl_owned!(usize as u32, UsizeDeserializer, visit_u32);
+#[cfg(not(any(
+    target_pointer_width = "16",
+    target_pointer_width = "32",
+    target_pointer_width = "128"
+)))]
+impl_owned!(usize as u64, UsizeDeserializer, visit_u64);
+#[cfg(target_pointer_width = "128")]
+impl_owned!(usize as u128, UsizeDeserializer, visit_u128);
 impl_owned!(i8, I8Deserializer, visit_i8);
 impl_owned!(i16, I16Deserializer, visit_i16);
 impl_owned!(i32, I32Deserializer, visit_i32);
 impl_owned!(i64, I64Deserializer, visit_i64);
 impl_owned!(i128, I128Deserializer, visit_i128);
-impl_owned!(isize, IsizeDeserializer, visit_isize);
+#[cfg(target_pointer_width = "16")]
+impl_owned!(isize as i16, IsizeDeserializer, visit_u16);
+#[cfg(target_pointer_width = "32")]
+impl_owned!(isize as i32, IsizeDeserializer, visit_u32);
+#[cfg(not(any(
+    target_pointer_width = "16",
+    target_pointer_width = "32",
+    target_pointer_width = "128"
+)))]
+impl_owned!(isize as i64, IsizeDeserializer, visit_i64);
+#[cfg(target_pointer_width = "128")]
+impl_owned!(isize as i128, UsizeDeserializer, visit_i128);
 impl_owned!(f32, F32Deserializer, visit_f32);
 impl_owned!(f64, F64Deserializer, visit_f64);
 
