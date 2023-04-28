@@ -28,9 +28,9 @@ macro_rules! impl_atomic {
             type Reflection = Self;
 
             fn deserialize<D: Deserializer<'de>>(
-                de: D,
+                deserializer: D,
             ) -> error_stack::Result<Self, DeserializeError> {
-                $int::deserialize(de).map(Self::new)
+                $int::deserialize(deserializer).map(Self::new)
             }
         }
     };

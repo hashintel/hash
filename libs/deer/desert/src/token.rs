@@ -88,8 +88,8 @@ pub enum Token {
     ///         Self::Value::reflection()
     ///     }
     ///
-    ///     fn visit_str(self, v: &str) -> error_stack::Result<Self::Value, VisitorError> {
-    ///         match v {
+    ///     fn visit_str(self, value: &str) -> error_stack::Result<Self::Value, VisitorError> {
+    ///         match value {
     ///             "trace" => Ok(LogLevel::Trace),
     ///             "debug" => Ok(LogLevel::Debug),
     ///             "info" => Ok(LogLevel::Info),
@@ -112,8 +112,11 @@ pub enum Token {
     /// impl<'de> Deserialize<'de> for LogLevel {
     ///     type Reflection = Self;
     ///
-    ///     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-    ///         de.deserialize_str(LogLevelVisitor)
+    ///     fn deserialize<D: Deserializer<'de>>(
+    ///         deserializer: D,
+    ///     ) -> error_stack::Result<Self, DeserializeError> {
+    ///         deserializer
+    ///             .deserialize_str(LogLevelVisitor)
     ///             .change_context(DeserializeError)
     ///     }
     /// }
