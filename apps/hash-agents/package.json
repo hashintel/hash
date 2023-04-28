@@ -12,10 +12,13 @@
     "fix:black": "poetry run black app",
     "fix:lock-files": "poetry lock --no-update",
     "fix:ruff": "poetry run ruff app --fix",
-    "install:tools": "poetry install --no-root --no-interaction --only tools",
     "lint:black": "poetry run black --check --diff --color app",
     "lint:lock-files": "poetry lock --check",
-    "lint:ruff": "poetry run ruff app"
+    "lint:ruff": "poetry run ruff app",
+    "poetry:install-dev": "poetry install --no-root --no-interaction --only main --only dev",
+    "poetry:install-lint-tools": "poetry install --no-root --no-interaction --only lint-tools",
+    "poetry:install-production": "poetry install --no-root --no-interaction --only main --only production",
+    "poetry:venv": "poetry install --no-root --no-interaction --only ,"
   },
   "dependencies": {
     "dedent": "0.7.0",

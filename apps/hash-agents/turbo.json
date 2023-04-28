@@ -1,11 +1,27 @@
 {
   "extends": ["//"],
   "pipeline": {
+    "dev": {
+      "dependsOn": ["^build", "codegen", "poetry:install-dev"],
+      "persistent": true
+    },
     "codegen": {
       "outputs": ["./agents/**/io_types.py", "./src/agents.ts"],
-      "dependsOn": ["^build", "install:tools"]
+      "dependsOn": ["^build"]
     },
-    "install:tools": {
+    "poetry:venv": {
+      "outputs": ["./.venv/**"],
+      "inputs": ["pyproject.toml", "poetry.lock"]
+    },
+    "poetry:install-dev": {
+      "outputs": ["./.venv/**"],
+      "inputs": ["pyproject.toml", "poetry.lock"]
+    },
+    "poetry:install-production": {
+      "outputs": ["./.venv/**"],
+      "inputs": ["pyproject.toml", "poetry.lock"]
+    },
+    "poetry:install-lint-tools": {
       "outputs": ["./.venv/**"],
       "inputs": ["pyproject.toml", "poetry.lock"]
     },
@@ -13,25 +29,25 @@
       "cache": false
     },
     "fix:black": {
-      "dependsOn": ["install:tools"]
+      "dependsOn": ["poetry:install-lint-tools"]
     },
     "fix:ruff": {
-      "dependsOn": ["install:tools"]
+      "dependsOn": ["poetry:install-lint-tools"]
     },
     "fix:lock-files": {
-      "dependsOn": ["install:tools"],
+      "dependsOn": ["poetry:install-lint-tools"],
       "inputs": ["poetry.lock", "pyproject.toml"],
       "outputs": ["poetry.lock"]
     },
     "lint:black": {
-      "dependsOn": ["install:tools"]
+      "dependsOn": ["poetry:install-lint-tools"]
     },
     "lint:lock-files": {
-      "dependsOn": ["install:tools"],
+      "dependsOn": ["poetry:install-lint-tools"],
       "inputs": ["poetry.lock", "pyproject.toml"]
     },
     "lint:ruff": {
-      "dependsOn": ["install:tools"]
+      "dependsOn": ["poetry:install-lint-tools"]
     }
   }
 }
