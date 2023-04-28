@@ -22,9 +22,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
-    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
-    "storybook": "yarn workspace @apps/hashdotdesign storybook",
-    "test": "jest"
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
     "@hashintel/design-system": "0.0.6",
