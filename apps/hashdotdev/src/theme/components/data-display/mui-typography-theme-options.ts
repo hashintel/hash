@@ -15,6 +15,7 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
       hashSmallTextMedium: "p",
       hashSmallCaps: "span",
       hashFooterHeading: "h5",
+      hashCode: "code",
     },
     variant: "hashBodyCopy",
   },

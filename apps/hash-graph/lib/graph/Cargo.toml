@@ -41,7 +41,7 @@ opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "542836" }
 uuid = { version = "1.3.0", features = ["v4", "serde"] }
-utoipa = { version = "3.2.1", features = ["uuid"] }
+utoipa = { version = "3.3.0", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
@@ -54,8 +54,6 @@ graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
 [features]
-# WARNING: this is an internal feature which should not be used outside of HASH. It's introduced to conditionally
-#          compile code for externally written benchmarks to avoid exposing internals of the data store
-__internal_bench = []
+test-server = []
 clap = ["dep:clap"]
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]

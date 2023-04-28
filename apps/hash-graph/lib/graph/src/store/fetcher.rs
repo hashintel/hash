@@ -632,7 +632,8 @@ where
             .await
     }
 
-    #[cfg(feature = "__internal_bench")]
+    #[doc(hidden)]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
