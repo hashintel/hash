@@ -216,7 +216,8 @@ export const fetchBlock = async (
  */
 export const blockProtocolHubOrigin =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
-  process.env.BLOCK_PROTOCOL_HUB_ORIGIN || "https://blockprotocol.org";
+  process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
+  "https://blockprotocol.org";
 
 export const paragraphBlockComponentId = `${blockProtocolHubOrigin}/blocks/@hash/paragraph`;
 

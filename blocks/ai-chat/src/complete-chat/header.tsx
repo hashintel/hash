@@ -1,4 +1,7 @@
-import { BlockSettingsButton, GetHelpLink } from "@hashintel/design-system";
+import {
+  BlockSettingsButton,
+  GetHelpLink,
+} from "@hashintel/block-design-system";
 import {
   Box,
   Collapse,

@@ -67,6 +67,8 @@ type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
 type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
 
 pub trait ObjectAccess<'de> {
+    fn context(&self) -> &Context;
+
     /// This enables bound-checking for [`ObjectAccess`].
     ///
     /// After calling this [`ObjectAccess`] will
@@ -116,6 +118,8 @@ pub trait FieldVisitor<'de> {
 }
 
 pub trait ArrayAccess<'de> {
+    fn context(&self) -> &Context;
+
     /// Enables bound-checking for [`ArrayAccess`].
     ///
     /// After calling this [`ArrayAccess`] will

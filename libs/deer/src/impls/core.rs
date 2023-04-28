@@ -9,6 +9,7 @@ mod marker;
 mod mem;
 mod num;
 mod option;
+mod result;
 mod string;
 mod sync;
 mod time;

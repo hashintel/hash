@@ -9,9 +9,16 @@
       "dependsOn": ["^build", "codegen", "format"],
       "outputs": ["./dist/**"]
     },
+    "lint:tsc": {
+      "dependsOn": ["codegen"]
+    },
     "format": {
       "cache": false,
       "dependsOn": ["codegen"]
+    },
+    "dev": {
+      "persistent": true,
+      "dependsOn": ["^build", "codegen"]
     },
     "serve": {
       "persistent": true,

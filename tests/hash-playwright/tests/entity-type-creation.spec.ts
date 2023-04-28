@@ -10,7 +10,7 @@ test.beforeEach(async () => {
  * @todo: Re-enable this playwright test when required backend functionality is fixed
  * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
  */
-test.skip("user can create and update entity", async ({ page }) => {
+test("user can create entity type", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -23,7 +23,7 @@ test.skip("user can create and update entity", async ({ page }) => {
   // Go to Create Entity Type
   await page.locator('[data-testid="create-entity-type-btn"]').click();
   await page.waitForURL(
-    (url) => !!url.pathname.match(/^\/types\/new\/entity-type/),
+    (url) => !!url.pathname.match(/^\/new\/types\/entity-type/),
   );
 
   // Create a random entity name for each test
@@ -35,7 +35,7 @@ test.skip("user can create and update entity", async ({ page }) => {
     entityName,
   );
   await page.fill(
-    '[data-testid=entity-type-creation-form] input[name="description"]',
+    '[data-testid=entity-type-creation-form] textarea[name="description"]',
     "Test Entity",
   );
 
@@ -43,19 +43,17 @@ test.skip("user can create and update entity", async ({ page }) => {
   await page.click("[data-testid=entity-type-creation-form] button");
   await page.waitForURL(
     (url) =>
-      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity\d{3}/) &&
+      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/) &&
       url.searchParams.has("draft"),
   );
 
-  // Insert the first property
-  await page.click('[data-testid="empty-property-card"]');
-  await page.click('[data-testid="property-selector-option"]:first-child');
-
   // Click on New Entity button to create new instance of entity
-  await page.click('[data-testid="editbar-confirm"]');
-  await page.waitForURL(
-    (url) =>
-      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity\d{3}/) &&
-      !url.searchParams.has("draft"),
-  );
+  // @todo uncomment when API is sped up (this page relies on very slow queryEntityTypes and queryPropertyTypes calls)
+  // await page.click('[data-testid="editbar-confirm"]');
+  // await page.waitForURL(
+  //   (url) =>
+  //     !!url.pathname.match(
+  //       /^\/@alice\/types\/entity-type\/testentity/,
+  //     ) && !url.searchParams.has("draft"),
+  // );
 });
