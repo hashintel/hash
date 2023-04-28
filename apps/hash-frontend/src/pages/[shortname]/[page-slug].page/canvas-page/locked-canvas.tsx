@@ -5,9 +5,18 @@ import { BlockContextProvider } from "../../../../blocks/page/block-context";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
 import { CanvasProps } from "./shared";
 
+/**
+ * Display blocks at a given x/y position, with width, height and rotation, with no ability to edit position.
+ *
+ * Known issues to be fixed when we develop the ability to build apps further:
+ * – if the TLDraw canvas was panned, blocks will appear in a different position here.
+ *   we probably will have a constrained editing canvas space that eliminates this issue
+ * - rotated blocks can have click/tap targets which are inconsistent with their visual appearance
+ */
 export const FixedCanvas = ({ blocks, contents }: CanvasProps) => {
   return (
     <div style={{ height: "100%", position: "relative" }}>
+      {/* These wrapping divs mimic TLDraw's to keep visual consistency between locked/non-locked mode */}
       <div
         style={{
           position: "relative",
@@ -46,8 +55,6 @@ export const FixedCanvas = ({ blocks, contents }: CanvasProps) => {
               Matrix2d.Rotate(rotation),
             );
 
-            // const metadata = blocks[blockEntity.componentId]?.meta;
-            //
             const blockLoaderProps = {
               blockEntityId:
                 blockEntity.blockChildEntity.metadata.recordId.entityId,

@@ -36,22 +36,20 @@ export const CanvasPageBlock = ({
   contents,
 }: CanvasProps) => {
   const { query } = useRouter();
+
   const [blocks, setBlocks] = useState<BlocksMap | null>(null);
 
+  /**
+   * This fetches the metadata for blocks that weren't included in the server-side fetch in [page-slug].page.tsx
+   * @todo handle fetching of blocks in the document in getServerSideProps in [page-slug].page.tsx
+   */
   useEffect(() => {
     const blocksMap = initialBlocks;
     void Promise.all(
       contents.map(async ({ rightEntity }) => {
         const { componentId } = rightEntity;
         if (!blocksMap[componentId]) {
-          const blockMetadata = await fetchBlock(componentId);
-          console.log("Fetched", { blockMetadata });
-          if (!blockMetadata) {
-            throw new Error(
-              `Could not fetch metadata for block at ${componentId}`,
-            );
-          }
-          blocksMap[componentId] = blockMetadata;
+          blocksMap[componentId] = await fetchBlock(componentId);
         }
       }),
     ).then(() => {
@@ -60,14 +58,21 @@ export const CanvasPageBlock = ({
   }, [contents, initialBlocks]);
 
   if (!blocks) {
+    // loading metadata for blocks not included in our default list
     return null;
   }
 
+  /** @see {@link TopContextBar} for how page status is set in the query */
   if (query.locked) {
     return <FixedCanvas blocks={blocks} contents={contents} />;
   }
 
   const handleMount = (app: App) => {
+    /**
+     * TLDraw maintains a localStorage entry for the canvas state. This wipes shapes from it,
+     * but probably leaves some other unhelpful stuff in (zoom / pan settings?)
+     * @todo figure out how to disable localStorage persistence entirely
+     */
     for (const page of app.pages) {
       const shapes = app.getShapesInPage(page.id);
       app.deleteShapes(shapes.map((shape) => shape.id));
@@ -102,7 +107,6 @@ export const CanvasPageBlock = ({
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,
             },
-            firstCreation: false,
             indexPosition: linkEntity.linkData?.leftToRightOrder ?? index,
             pageEntityId: linkEntity.linkData?.leftEntityId,
             h: height ?? defaultBlockHeight,
@@ -123,6 +127,8 @@ export const CanvasPageBlock = ({
             // eslint-disable-next-line no-param-reassign
             tools.bpBlock = {
               id: "bpBlock",
+              // at the moment custom icons appear to only be possible via overwriting an existing one (in public/icons)
+              // @see https://docs.tldraw.dev/docs/ucg/usage#assets
               icon: "twitter",
               label: "Block" as any,
               kbd: "b",
@@ -136,7 +142,9 @@ export const CanvasPageBlock = ({
           },
           toolbar(_app, toolbar, { tools }) {
             toolbar.splice(1, 0, toolbarItem(tools.bpBlock!));
-            return toolbar;
+            return toolbar.filter((item) =>
+              ["select", "bpBlock", "hand", "eraser"].includes(item.id),
+            );
           },
           keyboardShortcutsMenu(_app, keyboardShortcutsMenu, { tools }) {
             const toolsGroup = keyboardShortcutsMenu.find(

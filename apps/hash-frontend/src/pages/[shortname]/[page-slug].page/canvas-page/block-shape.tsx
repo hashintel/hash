@@ -6,7 +6,6 @@ import {
 import { EntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
-  createShapeValidator,
   defineShape,
   HTMLContainer,
   TLBaseShape,
@@ -14,7 +13,6 @@ import {
   TLBoxUtil,
   TLOpacityType,
 } from "@tldraw/tldraw";
-import { T } from "@tldraw/tlvalidate";
 
 import { BlockContextProvider } from "../../../../blocks/page/block-context";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
@@ -23,21 +21,26 @@ import {
   UpdatePageContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { apolloClient } from "../../../../lib/apollo-client";
-import { defaultBlockWidth, JsonSerializableBlockLoaderProps } from "./shared";
+import {
+  defaultBlockHeight,
+  defaultBlockWidth,
+  JsonSerializableBlockLoaderProps,
+} from "./shared";
 
-type BlockShape = TLBaseShape<
+// Defines the string id and the 'props' available on our custom TLDraw shape
+export type BlockShape = TLBaseShape<
   "bpBlock",
   {
     w: number;
     h: number;
     opacity: TLOpacityType;
-    firstCreation: boolean;
     indexPosition: number;
     pageEntityId: EntityId;
-    blockLoaderProps: Partial<JsonSerializableBlockLoaderProps>;
+    blockLoaderProps: JsonSerializableBlockLoaderProps;
   }
 >;
 
+// Persist a block's new position in the database
 const persistBlockPosition = ({
   blockIndexPosition,
   pageEntityId,
@@ -68,24 +71,12 @@ const persistBlockPosition = ({
   });
 };
 
+// Defines the behaviour of our custom shape in TLDraw
 export class BlockUtil extends TLBoxUtil<BlockShape> {
   static type = "bpBlock";
 
-  override canEdit = () => false;
-
-  // i.e. moving its position
-  override onTranslateEnd = (_previous: BlockShape, current: BlockShape) => {
-    BlockUtil.persistShapePosition(current);
-  };
-
-  override onResizeEnd = (_previous: BlockShape, current: BlockShape) => {
-    BlockUtil.persistShapePosition(current);
-  };
-
-  override onRotateEnd = (_previous: BlockShape, current: BlockShape) => {
-    BlockUtil.persistShapePosition(current);
-  };
-
+  // gather a shape's positional information into a flat object
+  // they are split up in TLDraw because x, y and rotation are properties on every shape, whereas w and h are not
   static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
     return {
       "https://blockprotocol.org/@hash/types/property-type/x-position/":
@@ -109,76 +100,66 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
     });
   };
 
-  defaultProps() {
+  // Editing of block contents happens in 'locked' canvas view, not here
+  override canEdit = () => false;
+
+  override onTranslateEnd = (_previous: BlockShape, current: BlockShape) => {
+    BlockUtil.persistShapePosition(current);
+  };
+
+  override onResizeEnd = (_previous: BlockShape, current: BlockShape) => {
+    BlockUtil.persistShapePosition(current);
+  };
+
+  override onRotateEnd = (_previous: BlockShape, current: BlockShape) => {
+    BlockUtil.persistShapePosition(current);
+  };
+
+  override defaultProps() {
     return {
       opacity: "1" as const,
       w: defaultBlockWidth,
-      h: 150,
-      firstCreation: true,
-      blockLoaderProps: {},
-      indexPosition: 0,
+      h: defaultBlockHeight,
+      /**
+       * we want blockLoaderProps to have required properties in the BlockShape definition, for type safety elsewhere.
+       * we pass them when creating a BlockShape, so this default is never actually used
+       */
+      blockLoaderProps: {} as JsonSerializableBlockLoaderProps,
       pageEntityId: "placeholder-123" as EntityId,
+      indexPosition: 0,
     };
   }
 
-  indicator(shape: BlockShape) {
-    return (
-      <rect
-        width={toDomPrecision(shape.props.w)}
-        height={toDomPrecision(shape.props.h)}
-        color="red"
-      />
-    );
+  // We have to implement this method but the DOM element returned doesn't seem necessary in our usage
+  override indicator() {
+    return null;
   }
 
-  render(shape: BlockShape) {
+  override render(shape: BlockShape) {
     const bounds = this.bounds(shape);
 
-    const { opacity: _opacity, w, h, blockLoaderProps } = shape.props;
-
-    const onBlockLoaded = () => {
-      return;
-
-      // @todo the intention of this is to set the width and height of the block based on its rendered size
-      //    but the outer element of the block might be smaller than the content,
-      //    if the block doesn't respect its container – needs more work
-      if (shape.props.firstCreation) {
-        const blockWrapper = document.getElementById(
-          blockLoaderProps.wrappingEntityId,
-        );
-        if (!blockWrapper) {
-          throw new Error(
-            `No block element with id ${blockLoaderProps.wrappingEntityId} found in DOM`,
-          );
-        }
-        this.app.updateShapes([
-          {
-            ...shape,
-            props: {
-              ...shape.props,
-              w: blockWrapper.clientWidth,
-              h: blockWrapper.clientHeight,
-              firstCreation: false,
-            },
-          } satisfies BlockShape,
-        ]);
-      }
-    };
+    const {
+      opacity: _opacity,
+      w: _width,
+      h: _height,
+      blockLoaderProps,
+    } = shape.props;
 
     return (
       <HTMLContainer
         id={shape.id}
         style={{
           pointerEvents: "all",
-          width: bounds.width,
-          height: bounds.height,
+          width: toDomPrecision(bounds.width),
+          height: toDomPrecision(bounds.height),
         }}
       >
         <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
           <BlockLoader
             {...blockLoaderProps}
             editableRef={null}
-            onBlockLoaded={onBlockLoaded}
+            onBlockLoaded={() => null}
+            readonly
           />
         </BlockContextProvider>
       </HTMLContainer>
@@ -186,24 +167,13 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
   }
 }
 
+// Defines our custom shape, using its type definition and class
 export const BlockShapeDef = defineShape<BlockShape, BlockUtil>({
   type: "bpBlock",
   getShapeUtil: () => BlockUtil,
-  validator: createShapeValidator(
-    "bpBlock",
-    T.any,
-    // T.object({
-    //   w: T.number,
-    //   h: T.number,
-    //   firstCreation: T.boolean,
-    //   opacity: T.string,
-    //   indexPosition: T.number,
-    //   pageEntityId: T.string,
-    //   blockLoaderProps: T.any,
-    // }),
-  ),
 });
 
+// Defines a custom tool used to draw our shape
 export class BlockTool extends TLBoxTool {
   static id = "bpBlock";
   static initial = "idle";

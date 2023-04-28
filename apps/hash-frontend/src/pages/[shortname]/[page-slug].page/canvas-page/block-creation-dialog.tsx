@@ -7,7 +7,7 @@ import {
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { OwnedById } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
-import { createShapeId, DialogProps } from "@tldraw/tldraw";
+import { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
 
 import { BlockSuggester } from "../../../../blocks/page/create-suggester/block-suggester";
@@ -17,12 +17,10 @@ import {
   UpdatePageContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import {
-  defaultBlockHeight,
-  defaultBlockWidth,
-  JsonSerializableBlockLoaderProps,
-} from "./shared";
+import { BlockShape } from "./block-shape";
+import { defaultBlockHeight, defaultBlockWidth } from "./shared";
 
+// An interface for selecting a Block Protocol block and creating the entity it needs
 export const BlockCreationDialog = ({ onClose }: DialogProps) => {
   const [creatingEntity, setCreatingEntity] = useState(false);
 
@@ -51,6 +49,12 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const x = app.viewportPageCenter.x - width / 2;
       const y = app.viewportPageCenter.y - height / 2;
 
+      if (!accountId) {
+        throw new Error(
+          "No accountId available – possibly routeNamespace is not yet loaded",
+        );
+      }
+
       const { data } = await updatePageContentsFn({
         variables: {
           entityId: pageEntityId,
@@ -59,13 +63,14 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
               insertBlock: {
                 componentId: blockMeta.componentId,
                 entity: {
-                  // @todo this should be 'blockEntityTypeId' above but external types not fully supported
+                  // @todo this should be 'blockEntityTypeId' above but external types are not yet fully supported
                   entityTypeId:
                     "http://localhost:3000/@system-user/types/entity-type/text/v/1",
                   entityProperties: {},
                 },
                 ownedById: accountId as OwnedById,
                 position,
+                // These defaults will be overridden when the user draws the shape on the canvas
                 canvasPosition: {
                   "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
                     width,
@@ -81,6 +86,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
             },
           ],
         },
+        // temporary hack to keep page data consistent, in the absence of proper data subscriptions
         refetchQueries: [
           { query: getPageQuery, variables: { entityId: pageEntityId } },
         ],
@@ -101,32 +107,42 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const blockEntityId =
         newBlock.blockChildEntity.metadata.recordId.entityId;
 
-      const blockId = createShapeId();
-
-      const blockShape = {
-        id: blockId,
-        type: "bpBlock",
-        x,
-        y,
-        props: {
-          w: width,
-          h: height,
-          firstCreation: true,
-          opacity: "1" as const,
-          indexPosition: position,
-          pageEntityId,
-          blockLoaderProps: {
-            blockEntityId,
-            blockEntityTypeId,
-            blockMetadata: blockMeta,
-            readonly: false,
-            wrappingEntityId,
-          } satisfies JsonSerializableBlockLoaderProps,
+      const blockShapeProps: BlockShape["props"] = {
+        w: width,
+        h: height,
+        opacity: "1",
+        indexPosition: position,
+        pageEntityId,
+        blockLoaderProps: {
+          blockEntityId,
+          blockEntityTypeId,
+          blockMetadata: blockMeta,
+          readonly: false,
+          wrappingEntityId,
         },
       };
 
-      app.createShapes([blockShape]);
       onClose();
+
+      /**
+       * Set the bpBlock tool and pass the necessary entity and block meta props
+       * The user will then draw a rectangle, with any updates to position from the defaults in the class
+       * @see e.g. {@link BlockUtil#onTranslateEnd}
+       */
+      app.batch(() => {
+        app.setSelectedTool("bpBlock");
+        app.updateInstanceState(
+          {
+            propsForNextShape: {
+              ...app.instanceState.propsForNextShape,
+              ...blockShapeProps,
+            },
+          },
+          true,
+        );
+      });
+
+      // app.createShapes([blockShape]);
     },
     [accountId, app, onClose, pageEntityId, updatePageContentsFn],
   );

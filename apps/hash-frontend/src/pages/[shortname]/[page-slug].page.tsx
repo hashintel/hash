@@ -111,7 +111,7 @@ export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
  * This is used to fetch the metadata associated with blocks that're preloaded
  * ahead of time so that the client doesn't need to
  *
- * @todo Include blocks present in the document in this
+ * @todo Include blocks present in the document in this, and remove fetching of these in canvas-page
  */
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   req,
