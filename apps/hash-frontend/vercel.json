@@ -1,0 +1,9 @@
+{
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
+  "installCommand": "./vercel-install.sh",
+  "buildCommand": "./vercel-build.sh",
+  "outputDirectory": "./.next"
+}

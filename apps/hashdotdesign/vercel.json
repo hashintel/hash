@@ -1,0 +1,9 @@
+{
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
+  "installCommand": "cd ../.. && yarn install",
+  "buildCommand": "turbo --filter '@apps/hashdotdesign' build",
+  "outputDirectory": "storybook-static"
+}
