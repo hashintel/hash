@@ -43,6 +43,7 @@ async def logging_middleware(request: Request, call_next: Callable) -> Response:
             """{%s:%s} - "{%s} {%s} HTTP/{%s}" {%s}""",
             client_host,
             client_port,
+            http_method,
             url,
             http_version,
             status_code,

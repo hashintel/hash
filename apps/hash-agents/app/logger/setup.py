@@ -56,9 +56,9 @@ def setup_logging(environment: Environment = "dev") -> None:
     log_level = os.getenv("HASH_AGENT_RUNNER_LOG_LEVEL")
     log_level = log_level or default_log_level
 
-    log_folder = os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs")
-    if not Path.exists(log_folder):
-        Path.mkdir(log_folder)
+    log_folder = Path(os.environ.get("HASH_AGENT_RUNNER_LOG_FOLDER", "./logs"))
+    if not log_folder.exists():
+        log_folder.mkdir()
 
     file_name = f"{log_folder}/run-{datetime.now(tz=timezone.utc).isoformat()}.log"
 
