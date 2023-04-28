@@ -1,5 +1,5 @@
 ---
-"@hashintel/type-editor": minor
+"@hashintel/type-editor": patch
 ---
 
 Changed the copy property type hover tooltip

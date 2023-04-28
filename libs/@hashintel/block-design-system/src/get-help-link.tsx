@@ -1,8 +1,7 @@
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { Link, LinkProps } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { CircleQuestionIcon } from "./icons/circle-question";
 
 export type GetHelpProps = {
   href: string;
@@ -46,10 +45,7 @@ export const GetHelpLink: FunctionComponent<GetHelpProps> = ({
       ]}
     >
       Get help{" "}
-      <FontAwesomeIcon
-        icon={faQuestionCircle}
-        sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-      />
+      <CircleQuestionIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
     </Link>
   );
 };
