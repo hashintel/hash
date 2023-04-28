@@ -4,12 +4,8 @@ import {
   faMinus,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  EditableField,
-  FontAwesomeIcon,
-  Skeleton,
-} from "@hashintel/design-system";
+import { EditableField } from "@hashintel/block-design-system";
+import { Button, FontAwesomeIcon, Skeleton } from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,
