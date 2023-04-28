@@ -1,5 +1,5 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
-import { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
+import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -14,16 +14,14 @@ import {
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { OwnedById } from "@local/hash-subgraph";
-import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -58,8 +56,6 @@ const Page: NextPageWithLayout = () => {
     `${number}` | undefined,
   ]; // @todo validate that the URL is formatted as expected;
 
-  const { getPropertyType } = useBlockProtocolGetPropertyType();
-
   const baseEntityTypeUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
     : null;
@@ -92,9 +88,7 @@ const Page: NextPageWithLayout = () => {
   const isReadonly = useIsReadonlyModeForResource(routeNamespace?.accountId);
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: draftEntityType
-      ? getFormDataFromSchema(draftEntityType)
-      : { properties: [], links: [] },
+    defaultValues: { properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
@@ -134,64 +128,15 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const [fetchedDraftPropertyTypes, setFetchedDraftPropertyTypes] = useState<{
-    [k: string]: PropertyType;
-  }>();
-
-  const fetchDraftPropertyTypes = useCallback(async () => {
-    if (draftEntityType) {
-      const draftPropertyTypes: PropertyType[] = [];
-
-      /**
-       * @todo: fetch these simultaneously when bug is fixed in the FE client
-       * @see https://hashintel.slack.com/archives/C02K2ARC1BK/p1682006483805629
-       */
-      for (const propertyValue of Object.values(draftEntityType.properties)) {
-        const { $ref: propertyTypeId } =
-          "items" in propertyValue ? propertyValue.items : propertyValue;
-
-        const { data: propertyTypeSubgraph } = await getPropertyType({
-          data: { propertyTypeId },
-        });
-
-        const propertyType = propertyTypeSubgraph
-          ? getPropertyTypeById(propertyTypeSubgraph, propertyTypeId)?.schema
-          : undefined;
-
-        if (!propertyType) {
-          throw new Error(`Property type not found: ${propertyTypeId}`);
-        }
-
-        draftPropertyTypes.push(propertyType);
-      }
-
-      setFetchedDraftPropertyTypes(
-        Object.fromEntries(
-          draftPropertyTypes.map((propertyType) => [
-            propertyType.$id,
-            propertyType,
-          ]),
-        ),
-      );
-    }
-  }, [draftEntityType, getPropertyType]);
-
-  useEffect(() => {
-    if (draftEntityType && !fetchedDraftPropertyTypes) {
-      void fetchDraftPropertyTypes();
-    }
-  }, [draftEntityType, fetchedDraftPropertyTypes, fetchDraftPropertyTypes]);
-
   const entityTypeAndPropertyTypes = useMemo(
     () =>
       entityType
         ? {
             entityType,
-            propertyTypes:
-              remotePropertyTypes ?? fetchedDraftPropertyTypes ?? {},
+            propertyTypes: remotePropertyTypes ?? {},
           }
         : null,
-    [entityType, remotePropertyTypes, fetchedDraftPropertyTypes],
+    [entityType, remotePropertyTypes],
   );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {

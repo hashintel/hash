@@ -1,6 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { Agent, AgentTypeInput, AgentTypeMap } from "@apps/hash-agents";
-import { GraphQLError } from "graphql";
+import { AgentType } from "@apps/hash-agents";
 import { useCallback } from "react";
 
 import {
@@ -9,16 +8,14 @@ import {
 } from "../../graphql/api-types.gen";
 import { callAgentRunnerMutation } from "../../graphql/queries/agents.queries";
 
-type CallAgentRunnerCallback<T extends Agent> = (
-  input: AgentTypeMap[T]["Input"],
-) => Promise<{
-  output?: AgentTypeMap[T]["Output"];
-  errors?: readonly GraphQLError[];
-}>;
-
-export const useAgentRunner = <T extends Agent>(
+export const useAgentRunner = <T extends AgentType["Agent"]>(
   agent: T,
-): [CallAgentRunnerCallback<T>, { readonly loading: boolean }] => {
+): [
+  (
+    input: Extract<AgentType, { Agent: T }>["Input"],
+  ) => Promise<Extract<AgentType, { Agent: T }>["Output"] | undefined>,
+  { readonly loading: boolean },
+] => {
   const [callAgentRunnerFn, { loading }] = useMutation<
     CallAgentRunnerMutation,
     CallAgentRunnerMutationVariables
@@ -26,20 +23,18 @@ export const useAgentRunner = <T extends Agent>(
     fetchPolicy: "no-cache",
   });
 
-  const callAgentRunnerCallback = useCallback<CallAgentRunnerCallback<T>>(
-    async (input) => {
-      // @ts-expect-error TypeScript is unaware that the input here matches the input type for the agent
-      const payload: AgentTypeInput = { Agent: agent, Input: input };
-
-      const { data, errors } = await callAgentRunnerFn({
-        variables: {
-          payload,
-        },
-      });
-
-      const output = data?.callAgentRunner.Output;
-
-      return { output, errors };
+  const callAgentRunnerCallback = useCallback(
+    async (input: Extract<AgentType, { Agent: T }>["Input"]) => {
+      return (
+        await callAgentRunnerFn({
+          variables: {
+            payload: {
+              Agent: agent,
+              Input: input,
+            },
+          },
+        })
+      ).data?.callAgentRunner.Output;
     },
     [agent, callAgentRunnerFn],
   );
