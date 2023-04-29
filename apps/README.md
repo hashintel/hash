@@ -31,7 +31,7 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 ## Other projects
 
-The following applications are available but not currently stable. We remain open to accepting contributions in line with our [contributing guidelines].
+The following applications are available but not currently stable. As with our main projects, we remain open to accepting contributions to these. Please see our [contributing guidelines] for more information.
 
 | Subdirectory       | Description                                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- |
