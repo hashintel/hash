@@ -8,7 +8,11 @@
 
 # HASH Engine
 
-[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (**hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/simulations?utm_medium=organic&utm_source=github_readme_engine). It is publicly and freely available here under the Elastic License. This public version of hEngine is our 'next-gen' engine whose architecture and performance characteristics differ significantly to the stable engine powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). It is currently unstable, and these different versions of the engine are maintained separately. Our long-term plan involves migrating both (1) our [simulation cloud compute service](https://hash.ai/platform/cloud) and (2) hCore to use the engine under development here (upon its first stable release).
+[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (**hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/simulations?utm_medium=organic&utm_source=github_readme_engine). It is publicly and freely available here under the Elastic License.
+
+This public version of hEngine is our 'alpha' engine whose architecture and performance characteristics differ significantly to the stable engine powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine), our in-browser simulation envrionment; and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine), our cloud simulation compute service. It is not yet stable.
+
+Our ultimate intention is to migrate both hCore and hCloud to use the engine under development here (upon its first stable release).
 
 ## Table of Contents
 
