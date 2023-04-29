@@ -19,13 +19,13 @@ use std::any::Demand;
 use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
-        DeserializerError, ExpectedLength, ExpectedType, ObjectAccessError, ObjectItemsExtraError,
-        ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant,
+        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
+        ObjectItemsExtraError, ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType,
+        ReceivedValue, TypeError, ValueError, Variant,
     },
     value::NoneDeserializer,
     Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
-    Reflection, Schema, Visitor,
+    Reflection, Schema, StructVisitor, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -425,6 +425,25 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
                     context,
                 })
                 .change_context(DeserializerError)
+        }
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        match self.value {
+            None => Err(Report::new(MissingError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .change_context(DeserializerError)),
+            Some(Value::Object(object)) => visitor
+                .visit_object(ObjectAccess::new(object, self.context))
+                .change_context(DeserializerError),
+            // we do not allow arrays as struct, only objects are allowed for structs
+            Some(value) => Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(into_document(&value)))
+                .change_context(DeserializerError)),
         }
     }
 }
