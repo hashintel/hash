@@ -3,6 +3,7 @@
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash engine]: https://hash.ai/platform/engine
 [hash.ai]: https://hash.ai/
+[hash.design]: https://hash.design/
 [hash.dev]: https://hash.dev/
 
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/01e2b813-d046-4b70-cc4e-eb2f1ead6900/github)][github_banner]
