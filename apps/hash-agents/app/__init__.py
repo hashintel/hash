@@ -1,27 +1,24 @@
-import logging
-
+"""A python web-server that allows the orchestration of various AI-assisted tasks."""
+import structlog.stdlib
+from asgi_correlation_id import CorrelationIdMiddleware
 from beartype import beartype
-from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI
 
-from app.logger import setup_logging
-from app.routes import router
+from .logger import Environment, http_logging_middleware
+from .prerun import setup_prerun
+from .routes import router
 
-logger = logging.getLogger(__name__)
-
-
-@beartype
-def setup(base_logger: logging.Logger | None = None) -> None:
-    setup_logging(base_logger)
-    load_dotenv()
-    load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 @beartype
-def create_app(base_logger_name: str | None = None) -> FastAPI:
-    setup(logging.getLogger(base_logger_name or "uvicorn"))
+def create_app(environment: Environment = "dev") -> FastAPI:
+    """Runs the app."""
+    setup_prerun(environment)
 
     app = FastAPI()
     app.include_router(router)
+    app.middleware("http")(http_logging_middleware)
+    app.add_middleware(CorrelationIdMiddleware)
 
     return app

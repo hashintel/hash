@@ -30,12 +30,16 @@ Some potential candidates for `PYTHON_CMD`
   - Set the `OPENAI_API_KEY` environment variable in your shell
 - Install dependencies:
   - `poetry install`
+- Generate the Python typings for the agents:
+  - `yarn codegen`
 
 ### Subsequent Runs (or after Pre-Setup)
 
 - Ensure the OpenAI API key is available
 - If the requirements has been changed:
   - `poetry install`
+- If the typings for the agents have been changed:
+  - `yarn codegen`
 
 ## Running
 
@@ -61,13 +65,13 @@ You can configure the logging level with the `HASH_AGENT_RUNNER_LOG_LEVEL` envir
 This can be set either in the `.env.local` or within the environment when you run the module.
 The possible values are those accepted by [Python's `logging` library](https://docs.python.org/3/library/logging.html#levels).
 
-The level defaults to `WARNING` if the environment variable is not set.
+If the environment variable is not set, it will default to `DEBUG` in a development environment and `WARNING` in a production environment.
 
 All logs will be output to a `$HASH_AGENT_RUNNER_LOG_FOLDER/run-TIMESTAMP.log` file, where `TIMESTAMP` is the time the module was started. If the environment variable is not set, the logs will be output to the `logs` directory.
 
 ## Developing agents
 
-> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn build` command to ensure the python typings are up to date.
+> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn codegen` command to ensure the python typings are up to date.
 
 ### Adding a new agent
 

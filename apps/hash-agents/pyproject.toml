@@ -17,15 +17,16 @@ tiktoken = "^0.3.3"
 beartype = "^0.13.1"
 fastapi = "^0.95.1"
 uvicorn = "^0.21.1"
-
+structlog = "^23.1.0"
+asgi-correlation-id = "^4.1.0"
+rich = "^13.3.4"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"
 
-[tool.poetry.group.tools.dependencies]
+[tool.poetry.group.lint-tools.dependencies]
 black = "^23.3.0"
 ruff = "^0.0.262"
-isort = {extras = ["colors"], version = "^5.12.0"}
 
 [tool.poetry.group.production.dependencies]
 gunicorn = "^20.1.0"
@@ -36,12 +37,13 @@ target-version = ['py311']
 preview = true
 
 [tool.ruff]
-select = ["ANN", "B", "C901", "E", "F", "G201", "N", "UP", "S", "TRY"]
-ignore = ["ANN101"]
-
-[tool.isort]
-profile = "black"
-
+select = ["ALL"]
+ignore = [
+    "D203", # this conflicts with `D211`
+    "D213", # this conflicts with `D212`
+    "D401", # Relates to PEP-257 but also conflicts with Google Python Style Guide, generally gets in the way
+    "ANN101" # most type checkers infer the type of `self` automatically
+]
 
 [build-system]
 requires = ["poetry-core"]
