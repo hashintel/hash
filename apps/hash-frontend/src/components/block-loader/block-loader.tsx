@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { TextToken } from "@local/hash-graphql-shared/src/graphql/types";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {

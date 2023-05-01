@@ -94,9 +94,11 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, {
-      pageEntityId: testPage2.entity.metadata.recordId.entityId,
-    });
+    const initialBlocks = (
+      await getPageBlocks(graphContext, {
+        pageEntityId: testPage2.entity.metadata.recordId.entityId,
+      })
+    ).map((block) => block.rightEntity);
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
