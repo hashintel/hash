@@ -24,10 +24,12 @@ rich = "^13.3.4"
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"
 
+[tool.poetry.group.build-tools.dependencies]
+datamodel-code-generator = "^0.18.0"
+
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.3.0"
 ruff = "^0.0.262"
-datamodel-code-generator = "^0.18.0"
 
 [tool.poetry.group.production.dependencies]
 gunicorn = "^20.1.0"
