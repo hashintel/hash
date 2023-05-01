@@ -2,6 +2,7 @@ import { JsonValue } from "@blockprotocol/graph";
 import {
   CompactSelection,
   DataEditorProps,
+  DataEditorRef,
   GridCellKind,
   GridColumn,
   GridSelection,
@@ -53,6 +54,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
   const updateEntityQueue = useRef<number[]>([]);
   const isDebounceQueued = useRef(false);
   const justClickedHeaderRef = useRef(false);
+  const gridRef = useRef<DataEditorRef>(null);
 
   const {
     properties: {
@@ -133,6 +135,15 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
         },
       ],
     });
+
+    setTimeout(() => {
+      const col = localColumns.length;
+      const bounds = gridRef.current?.getBounds(col, 0);
+      if (!bounds) return;
+
+      bounds.y -= ROW_HEIGHT;
+      handleHeaderMenuClick(col, bounds);
+    }, 0);
   };
 
   const addNewRow = () => {
@@ -205,6 +216,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
       )}
 
       <Grid
+        gridRef={gridRef}
         rowMarkerWidth={32}
         rows={rows.length}
         columns={columns}
