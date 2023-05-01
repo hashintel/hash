@@ -60,8 +60,8 @@ describe("Hash Instance", () => {
     });
 
     const hashOutgoingAdminLinks = await getEntityOutgoingLinks(graphContext, {
-      entity: hashInstance.entity,
-      linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
+      entityId: hashInstance.entity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
     });
 
     expect(hashOutgoingAdminLinks).toHaveLength(1);
@@ -92,8 +92,9 @@ describe("Hash Instance", () => {
     const hashInstanceOutgoingAdminLinks = await getEntityOutgoingLinks(
       graphContext,
       {
-        entity: hashInstance.entity,
-        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
+        entityId: hashInstance.entity.metadata.recordId.entityId,
+        linkEntityTypeVersionedUrl:
+          SYSTEM_TYPES.linkEntityType.admin.schema.$id,
       },
     );
 
