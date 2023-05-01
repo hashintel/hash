@@ -27,6 +27,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.30.0",
+    "apollo-server-express": "3.9.0",
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {

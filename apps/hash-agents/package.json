@@ -6,20 +6,19 @@
   "main": "./src/agents.ts",
   "scripts": {
     "build:docker": "docker buildx build --tag hash-agents --file docker/Dockerfile ../../",
-    "codegen": "yarn exe ./scripts/codegen.ts 'app/agents/**/*.ts'",
+    "codegen": "poetry run yarn exe ./scripts/codegen.ts 'app/agents/**/io_types.ts'",
     "dev": "poetry run uvicorn --factory app:create_app --port 7123 --reload",
     "exe": "ts-node --transpile-only",
-    "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:black": "poetry run black app",
-    "fix:isort": "poetry run isort app",
     "fix:lock-files": "poetry lock --no-update",
     "fix:ruff": "poetry run ruff app --fix",
-    "install:tools": "poetry install --no-root --no-interaction --only tools",
-    "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:black": "poetry run black --check --diff --color app",
-    "lint:isort": "poetry run isort app --check --diff --color",
     "lint:lock-files": "poetry lock --check",
-    "lint:ruff": "poetry run ruff app"
+    "lint:ruff": "poetry run ruff app",
+    "poetry:install-dev": "poetry install --no-root --no-interaction --only main --only dev",
+    "poetry:install-lint-tools": "poetry install --no-root --no-interaction --only lint-tools",
+    "poetry:install-production": "poetry install --no-root --no-interaction --only main --only production",
+    "poetry:venv": "poetry install --no-root --no-interaction --only ,"
   },
   "dependencies": {
     "dedent": "0.7.0",

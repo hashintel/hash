@@ -2,7 +2,7 @@ use error_stack::{Result, ResultExt};
 
 use crate::{
     error::DeserializerError, value::EnumUnitDeserializer, ArrayAccess, Context, Deserializer,
-    EnumVisitor, OptionalVisitor, Visitor,
+    EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 
 // TODO: SliceDeserializer/IteratorDeserializer
@@ -28,8 +28,8 @@ where
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -61,5 +61,14 @@ where
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        visitor
+            .visit_array(self.value)
+            .change_context(DeserializerError)
     }
 }

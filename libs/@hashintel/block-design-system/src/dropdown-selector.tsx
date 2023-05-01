@@ -1,18 +1,18 @@
 import {
   Box,
-  inputBaseClasses,
   ListSubheader,
+  MenuItem,
   menuItemClasses,
   outlinedInputClasses,
+  Select,
   selectClasses,
+  SelectProps,
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
 
 import { CaretDownIcon } from "./icons/caret-down";
 import { CheckIcon } from "./icons/check";
-import { MenuItem } from "./menu-item";
-import { Select, SelectProps } from "./select";
 
 export interface Option<OptionId extends string = string> {
   id: OptionId;
@@ -231,14 +231,12 @@ export const DropdownSelector = <OptionId extends string = string>({
       IconComponent={CaretDownIcon}
       sx={[
         {
-          [`.${inputBaseClasses.root}`]: {
-            background: "none !important",
-            boxShadow: "none !important",
-            [`& .${selectClasses.icon}`]: {
-              fontSize: 13,
-              color: ({ palette }) => palette.gray[40],
-              opacity: disabled ? 0 : 1,
-            },
+          background: "none !important",
+          boxShadow: "none !important",
+          [`& .${selectClasses.icon}`]: {
+            fontSize: 13,
+            color: ({ palette }) => palette.gray[40],
+            opacity: disabled ? 0 : 1,
           },
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),

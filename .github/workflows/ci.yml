@@ -48,18 +48,6 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: poetry
-
-      - name: Install dependencies
-        run: yarn turbo install:tools
-
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
         run: |
@@ -185,18 +173,6 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:isort
-        if: ${{ success() || failure() }}
-        run: |
-          if ! yarn lint:isort; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:isort` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
-
         ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
         ## https://yarnpkg.com/cli/dedupe
         ## https://github.com/yarnpkg/berry/issues/2297
@@ -318,6 +294,7 @@ jobs:
       - name: Launch external services
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
+          # if we use turbo here, this would cost time with the docker build step needing to check that all the layers are cached          
           yarn workspace @apps/hash-external-services deploy up --detach
 
       ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f

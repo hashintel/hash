@@ -7,6 +7,7 @@ mod assert;
 mod deserializer;
 pub mod error;
 pub(crate) mod object;
+mod skip;
 pub(crate) mod tape;
 mod token;
 

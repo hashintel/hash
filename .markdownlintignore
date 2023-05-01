@@ -155,3 +155,7 @@ seed-users.json
 # Keep license files as is
 LICENSE.md
 LICENSE-*.md
+
+# Turborepo
+.turbo/
+out/
