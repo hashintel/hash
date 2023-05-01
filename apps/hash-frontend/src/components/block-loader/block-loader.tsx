@@ -192,7 +192,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     if (textTokens) {
       rootEntity.properties[
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as BaseUrl
-      ] = textTokens.map(({ text }) => text).join("");
+      ] = textTokens
+        .map((token) =>
+          "text" in token ? token.text : "hardBreak" in token ? "\n" : "",
+        )
+        .join("");
     }
 
     return {
