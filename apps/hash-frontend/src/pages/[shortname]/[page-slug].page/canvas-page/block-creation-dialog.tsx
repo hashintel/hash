@@ -141,8 +141,6 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
           true,
         );
       });
-
-      // app.createShapes([blockShape]);
     },
     [accountId, app, onClose, pageEntityId, updatePageContentsFn],
   );

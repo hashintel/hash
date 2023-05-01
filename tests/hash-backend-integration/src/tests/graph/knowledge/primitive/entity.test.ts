@@ -272,7 +272,7 @@ describe("Entity CRU", () => {
 
     const linkEntity = (
       await getEntityOutgoingLinks(graphContext, {
-        entity: aliceEntity,
+        entityId: aliceEntity.metadata.recordId.entityId,
       })
     )[0]!;
 
