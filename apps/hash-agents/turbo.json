@@ -7,7 +7,7 @@
     },
     "codegen": {
       "outputs": ["./agents/**/io_types.py", "./src/agents.ts"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "poetry:install-build-tools"]
     },
     "poetry:venv": {
       "outputs": ["./.venv/**"],
@@ -22,6 +22,10 @@
       "inputs": ["pyproject.toml", "poetry.lock"]
     },
     "poetry:install-lint-tools": {
+      "outputs": ["./.venv/**"],
+      "inputs": ["pyproject.toml", "poetry.lock"]
+    },
+    "poetry:install-build-tools": {
       "outputs": ["./.venv/**"],
       "inputs": ["pyproject.toml", "poetry.lock"]
     },
