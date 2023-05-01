@@ -26,10 +26,6 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const app = useApp();
 
-  console.log({ app });
-
-  // app.store.schema[]
-
   const { routeNamespace } = useRouteNamespace();
 
   const { accountId } = routeNamespace ?? {};
