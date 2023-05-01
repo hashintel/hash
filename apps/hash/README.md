@@ -47,7 +47,7 @@ This folder contains only the _HASH_ project README. The application is split ac
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
     Run each of these version commands and make sure the output is expected:
 
     ```sh
@@ -68,6 +68,15 @@ To run HASH locally, please follow these steps:
     
     docker buildx version
     ## ≥ 0.10.4
+    
+    java --version
+    ## ≥ 8
+    
+    python --version
+    ## ≥ 3.11
+    
+    poetry --version
+    ## ≥ 1.4.2
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -423,7 +432,6 @@ If the service should report metrics to a StatsD server, the following variables
 HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
 
 - Ahmad Sattar
-- Alexander Kachkaev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan
