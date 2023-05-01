@@ -6,7 +6,7 @@
   "main": "./src/agents.ts",
   "scripts": {
     "build:docker": "docker buildx build --tag hash-agents --file docker/Dockerfile ../../",
-    "codegen": "poetry run yarn exe ./scripts/codegen.ts 'app/agents/**/io_types.ts'",
+    "codegen": "poetry install --only build-tools && poetry run yarn exe ./scripts/codegen.ts 'app/agents/**/io_types.ts'",
     "dev": "poetry run uvicorn --factory app:create_app --port 7123 --reload",
     "exe": "ts-node --transpile-only",
     "fix:black": "poetry run black app",
