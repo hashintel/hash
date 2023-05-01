@@ -418,9 +418,9 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
 });
 
 /**
- * @todo this 'contains' link type is used to link a page to blocks it conains
- *     – it needs expanding (and possibly renaming) to account for canvas positioning properties
- *     for example see {@link addBlockToPage}
+ * @todo this 'contains' link type is used to link a page to blocks it contains
+ *     for both canvas and document mode. We probably want to split these out into two links,
+ *     and maybe even split a Page into two types. @see https://app.asana.com/0/1204355839255041/1204504514595841/f
  */
 const containsLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.contains,

@@ -38,7 +38,7 @@ export const useBlockProtocolGetEntity = (): {
       const { data: response } = await getEntityFn({
         variables: {
           entityId, // @todo-0.3 consider validating that this matches the id format,
-          constrainsValuesOn: { outgoing: 0 },
+          constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },

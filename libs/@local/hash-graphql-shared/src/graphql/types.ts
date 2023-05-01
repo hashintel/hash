@@ -30,6 +30,12 @@ const fakeHeightPropertyBaseUrl =
 const fakeRotationPropertyBaseUrl =
   "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/";
 
+/**
+ * Temporary type for canvas position properties
+ * In future, we may want to move this either to be:
+ * 1. Hosted on Block Protocol
+ * 2. Defined as a system type in HASH
+ */
 export type CanvasPosition = {
   [fakeXPropertyBaseUrl]: number;
   [fakeYPropertyBaseUrl]: number;
