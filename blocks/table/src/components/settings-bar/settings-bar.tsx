@@ -78,14 +78,16 @@ export const SettingsBar = ({
               onChange={(value) => updateEntity({ [isStripedKey]: value })}
             />
             <SettingSwitch
-              label="Hide header row"
-              value={hideHeaderRow}
-              onChange={(value) => updateEntity({ [hideHeaderRowKey]: value })}
+              label="Show header row"
+              value={!hideHeaderRow}
+              onChange={(value) => updateEntity({ [hideHeaderRowKey]: !value })}
             />
             <SettingSwitch
-              label="Hide row numbers"
-              value={hideRowNumbers}
-              onChange={(value) => updateEntity({ [hideRowNumbersKey]: value })}
+              label="Show row numbers"
+              value={!hideRowNumbers}
+              onChange={(value) =>
+                updateEntity({ [hideRowNumbersKey]: !value })
+              }
             />
           </div>
         </Collapse>
