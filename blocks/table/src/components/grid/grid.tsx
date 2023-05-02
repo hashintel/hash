@@ -1,15 +1,19 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
-import { DataEditor, DataEditorProps } from "@glideapps/glide-data-grid";
+import {
+  DataEditor,
+  DataEditorProps,
+  DataEditorRef,
+} from "@glideapps/glide-data-grid";
 import uniqueId from "lodash.uniqueid";
-import { useEffect, useRef, useState } from "react";
+import { Ref, useEffect, useRef, useState } from "react";
 
 import { getScrollBarWidth } from "./get-scrollbar-width";
 import { useRenderGridPortal } from "./use-render-grid-portal";
 
 export const ROW_HEIGHT = 40;
 
-type GridProps = DataEditorProps;
+type GridProps = DataEditorProps & { gridRef?: Ref<DataEditorRef> };
 
 const preventBoxShadowCss = `
     input.gdg-input, textarea.gdg-input {
@@ -21,7 +25,7 @@ function isScrollbarVisible(element: Element) {
   return element.scrollWidth > element.clientWidth;
 }
 
-export const Grid = (props: GridProps) => {
+export const Grid = ({ gridRef, ...props }: GridProps) => {
   const { columns } = props;
 
   useRenderGridPortal();
@@ -70,6 +74,7 @@ export const Grid = (props: GridProps) => {
   return (
     <>
       <DataEditor
+        ref={gridRef}
         className={uniqueClassNameRef.current}
         width="100%"
         headerHeight={ROW_HEIGHT}
