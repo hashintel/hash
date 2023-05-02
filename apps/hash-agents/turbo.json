@@ -6,7 +6,7 @@
       "persistent": true
     },
     "codegen": {
-      "outputs": ["./agents/**/io_types.py", "./src/agents.ts"],
+      "outputs": ["./app/agents/**/io_types.py", "./src/agents.ts"],
       "dependsOn": ["^build", "poetry:install-build-tools"]
     },
     "poetry:venv": {
