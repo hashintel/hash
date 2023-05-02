@@ -136,14 +136,23 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
       ],
     });
 
-    setTimeout(() => {
+    setImmediate(() => {
       const col = localColumns.length;
-      const bounds = gridRef.current?.getBounds(col, 0);
-      if (!bounds) return;
+      gridRef.current?.scrollTo(
+        { amount: col, unit: "cell" },
+        0,
+        "horizontal",
+        200,
+      );
 
-      bounds.y -= ROW_HEIGHT;
-      setHeaderMenu({ col, bounds });
-    }, 0);
+      setTimeout(() => {
+        const bounds = gridRef.current?.getBounds(col, 0);
+        if (!bounds) return;
+
+        bounds.y -= ROW_HEIGHT;
+        setHeaderMenu({ col, bounds });
+      }, 100);
+    });
   };
 
   const addNewRow = () => {
