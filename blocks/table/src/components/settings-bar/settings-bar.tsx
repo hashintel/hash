@@ -1,5 +1,9 @@
-import { GetHelpLink } from "@hashintel/block-design-system";
-import { Fade, Switch } from "@mui/material";
+import {
+  BlockSettingsButton,
+  GetHelpLink,
+} from "@hashintel/block-design-system";
+import { Collapse, Fade, Switch } from "@mui/material";
+import { useState } from "react";
 
 import { RootKey } from "../../additional-types";
 import { BlockEntity } from "../../types/generated/block-entity";
@@ -33,12 +37,14 @@ const SettingSwitch = ({ label, value, onChange }: SettingSwitchProps) => {
 
 interface SettingsProps {
   show: boolean;
+  isMobile: boolean;
   blockEntity: BlockEntity;
   updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
 }
 
 export const SettingsBar = ({
   show,
+  isMobile,
   blockEntity,
   updateEntity,
 }: SettingsProps) => {
@@ -50,28 +56,39 @@ export const SettingsBar = ({
     },
   } = blockEntity;
 
+  const [mobileSettingsExpanded, setMobileSettingsExpanded] = useState(false);
+
   return (
     <Fade in={show}>
       <div className={styles.settingsBar}>
-        <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
+        <GetHelpLink href="https://blockprotocol.org/@hash/blocks/table" />
 
-        <div className={styles.settingsContainer}>
-          <SettingSwitch
-            label="Enable stripes for alternating rows"
-            value={isStriped}
-            onChange={(value) => updateEntity({ [isStripedKey]: value })}
+        {isMobile ? (
+          <BlockSettingsButton
+            expanded={mobileSettingsExpanded}
+            onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
           />
-          <SettingSwitch
-            label="Hide header row"
-            value={hideHeaderRow}
-            onChange={(value) => updateEntity({ [hideHeaderRowKey]: value })}
-          />
-          <SettingSwitch
-            label="Hide row numbers"
-            value={hideRowNumbers}
-            onChange={(value) => updateEntity({ [hideRowNumbersKey]: value })}
-          />
-        </div>
+        ) : null}
+
+        <Collapse in={!isMobile || mobileSettingsExpanded}>
+          <div className={styles.settingsContainer}>
+            <SettingSwitch
+              label="Enable stripes for alternating rows"
+              value={isStriped}
+              onChange={(value) => updateEntity({ [isStripedKey]: value })}
+            />
+            <SettingSwitch
+              label="Hide header row"
+              value={hideHeaderRow}
+              onChange={(value) => updateEntity({ [hideHeaderRowKey]: value })}
+            />
+            <SettingSwitch
+              label="Hide row numbers"
+              value={hideRowNumbers}
+              onChange={(value) => updateEntity({ [hideRowNumbersKey]: value })}
+            />
+          </div>
+        </Collapse>
       </div>
     </Fade>
   );
