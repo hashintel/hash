@@ -31,8 +31,6 @@ const LoginPage: NextPageWithLayout = () => {
   const { updateActiveWorkspaceAccountId } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
-  console.error("Test");
-
   const {
     return_to: returnTo,
     flow: flowId,
