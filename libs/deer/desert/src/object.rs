@@ -4,7 +4,7 @@ use deer::{
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{deserializer::Deserializer, token::Token};
+use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
 pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
@@ -48,18 +48,17 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             return Err(visitor);
         }
 
-        let key = visitor.visit_key(&mut *self.deserializer);
-        let value = key.and_then(|key| visitor.visit_value(key, &mut *self.deserializer));
-
         self.expected += 1;
-            if key.is_err() {
-                // the key is an error, we need to swallow the value
-                let next = self.deserializer.next();
-                skip_tokens(self.deserializer, &next);
-            }
 
-            key.and_then(|key| access.visit_value(key, &mut *self.deserializer))
-        };
+        let key = visitor.visit_key(&mut *self.deserializer);
+
+        if key.is_err() {
+            // the key is an error, we need to swallow the value
+            let next = self.deserializer.next();
+            skip_tokens(self.deserializer, &next);
+        }
+
+        let value = key.and_then(|key| visitor.visit_value(key, &mut *self.deserializer));
 
         Ok(value.change_context(ObjectAccessError))
     }
