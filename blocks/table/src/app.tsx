@@ -4,7 +4,7 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { EditableField, theme } from "@hashintel/block-design-system";
-import { Box, ThemeProvider } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
 import { useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
 
@@ -59,7 +59,7 @@ export const App: BlockComponent<BlockEntity> = ({
           const isMobile = (size.width ?? 0) < 660;
 
           return (
-            <Box
+            <div
               className={styles.block}
               ref={blockRootRef}
               onMouseEnter={() => setHovered(true)}
@@ -99,7 +99,7 @@ export const App: BlockComponent<BlockEntity> = ({
                 updateEntity={updateEntity}
                 readonly={readonly}
               />
-            </Box>
+            </div>
           );
         }}
       </SizeMe>
