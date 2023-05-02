@@ -24,12 +24,12 @@ services:
     build:
       context: ./opensearch
     ports:
-      - 9200:9200
+      - "9200:9200"
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
-    ## Mouting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
+    ## Mounting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
     ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
     ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
     # volumes:
@@ -112,9 +112,9 @@ services:
       timeout: 2s
       retries: 10
     ports:
-      - 16686:16686
+      - "16686:16686"
       # To expose OTLP collector over gRPC on the host
-      - 4317:4317
+      - "4317:4317"
       # To expose OTLP collector over HTTP on the host
       # - 4318:4318
     environment:
@@ -211,7 +211,7 @@ services:
       restart_policy:
         condition: on-failure
     ports:
-      - 6379:6379
+      - "6379:6379"
 
   kratos-migrate:
     build:
