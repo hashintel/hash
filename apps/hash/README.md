@@ -385,6 +385,13 @@ The Postgres information for Kratos is configured through:
 - `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
 - `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
 
+The Postgres information for Temporal is configured through:
+
+- `HASH_TEMPORAL_PG_USER` (default: `temporal`)
+- `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
+- `HASH_TEMPORAL_PG_DEV_DATABASE` (default: `dev_temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE` (default: `dev_temporal_visibility`)
+
 The Postgres information for the graph query layer is configured through:
 
 - `HASH_GRAPH_PG_USER` (default: `graph`)
