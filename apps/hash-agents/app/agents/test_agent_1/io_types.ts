@@ -19,4 +19,7 @@ export type Output = {
       mixedNonEmptyArray: [string | number, ...(string | number)[]];
     };
   };
+  nestedObject: {
+    nestedNumber: number;
+  };
 };
