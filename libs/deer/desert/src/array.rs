@@ -4,7 +4,7 @@ use deer::{
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{deserializer::Deserializer, token::Token};
+use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
 pub(crate) struct ArrayAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
