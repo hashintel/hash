@@ -4,24 +4,15 @@ import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import {
-  FormEventHandler,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { FormEventHandler, useContext, useEffect, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
-import {
-  createFlowErrorHandler,
-  mustGetCsrfTokenFromFlow,
-  oryKratosClient,
-} from "./shared/ory-kratos";
+import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
+import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
 
 const LoginPage: NextPageWithLayout = () => {
@@ -48,16 +39,11 @@ const LoginPage: NextPageWithLayout = () => {
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const handleFlowError = useMemo(
-    () =>
-      createFlowErrorHandler({
-        router,
-        flowType: "login",
-        setFlow,
-        setErrorMessage,
-      }),
-    [router, setFlow, setErrorMessage],
-  );
+  const { handleFlowError } = useKratosErrorHandler({
+    flowType: "login",
+    setFlow,
+    setErrorMessage,
+  });
 
   // This might be confusing, but we want to show the user an option
   // to sign out if they are performing two-factor authentication!
@@ -140,7 +126,7 @@ const LoginPage: NextPageWithLayout = () => {
             }
 
             updateActiveWorkspaceAccountId(authenticatedUser.accountId);
-
+            // console.log("redirect to /");
             void router.push("/");
           })
           .catch(handleFlowError)
