@@ -4,12 +4,12 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { EditableField, theme } from "@hashintel/block-design-system";
-import { ThemeProvider } from "@mui/material";
+import { Box, ThemeProvider } from "@mui/material";
 import { useRef, useState } from "react";
 
 import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
-import { Settings } from "./components/settings/settings";
+import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
 import {
   BlockEntity,
@@ -48,11 +48,24 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   };
 
+  const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
 
   return (
     <ThemeProvider theme={theme}>
-      <div className={styles.block} ref={blockRootRef}>
+      <Box
+        className={styles.block}
+        ref={blockRootRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {!readonly ? (
+          <SettingsBar
+            show={hovered}
+            blockEntity={blockEntity}
+            updateEntity={updateEntity}
+          />
+        ) : null}
         <div className={styles.titleWrapper}>
           <div>
             <EditableField
@@ -72,9 +85,6 @@ export const App: BlockComponent<BlockEntity> = ({
               wrapperSx={{ mb: 1.5 }}
             />
           </div>
-          {!readonly && (
-            <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
-          )}
         </div>
 
         <Table
@@ -82,7 +92,7 @@ export const App: BlockComponent<BlockEntity> = ({
           updateEntity={updateEntity}
           readonly={readonly}
         />
-      </div>
+      </Box>
     </ThemeProvider>
   );
 };
