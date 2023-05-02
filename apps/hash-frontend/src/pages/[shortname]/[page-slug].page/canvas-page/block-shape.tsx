@@ -125,6 +125,10 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
        * we pass them when creating a BlockShape, so this default is never actually used
        */
       blockLoaderProps: {} as JsonSerializableBlockLoaderProps,
+      /**
+       * This is intentionally a dummy string that should never be used,
+       * because we supply it in when creating a BlockShape
+       */
       pageEntityId: "placeholder-123" as EntityId,
       indexPosition: 0,
     };

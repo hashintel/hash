@@ -13,7 +13,7 @@ import { CanvasProps } from "./shared";
  *   we probably will have a constrained editing canvas space that eliminates this issue
  * - rotated blocks can have click/tap targets which are inconsistent with their visual appearance
  */
-export const FixedCanvas = ({ blocks, contents }: CanvasProps) => {
+export const LockedCanvas = ({ blocks, contents }: CanvasProps) => {
   return (
     <div style={{ height: "100%", position: "relative" }}>
       {/* These wrapping divs mimic TLDraw's to keep visual consistency between locked/non-locked mode */}

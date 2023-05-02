@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 import { BlocksMap } from "../../../blocks/page/create-editor-view";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
 import { BlockShapeDef, BlockTool } from "./canvas-page/block-shape";
-import { FixedCanvas } from "./canvas-page/locked-canvas";
+import { LockedCanvas } from "./canvas-page/locked-canvas";
 import {
   CanvasProps,
   defaultBlockHeight,
@@ -64,7 +64,7 @@ export const CanvasPageBlock = ({
 
   /** @see {@link TopContextBar} for how page status is set in the query */
   if (query.locked) {
-    return <FixedCanvas blocks={blocks} contents={contents} />;
+    return <LockedCanvas blocks={blocks} contents={contents} />;
   }
 
   const handleMount = (app: App) => {
@@ -118,7 +118,7 @@ export const CanvasPageBlock = ({
   };
 
   return (
-    <div style={{ height: "100%" }}>
+    <div style={{ height: "100%", width: "100%", position: "absolute" }}>
       <Tldraw
         config={config}
         onMount={handleMount}

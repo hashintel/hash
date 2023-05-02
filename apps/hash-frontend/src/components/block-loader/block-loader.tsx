@@ -8,6 +8,7 @@ import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "@local/hash-isomorphic-utils/entity-store";
 import { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {
   FunctionComponent,
@@ -187,7 +188,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * @todo address the issues described above
      */
     const textTokens = rootEntity.properties[
-      "http://localhost:3000/@system-user/types/property-type/tokens/" as BaseUrl
+      TEXT_TOKEN_PROPERTY_TYPE_BASE_URL as BaseUrl
     ] as TextToken[] | undefined;
     if (textTokens) {
       rootEntity.properties[

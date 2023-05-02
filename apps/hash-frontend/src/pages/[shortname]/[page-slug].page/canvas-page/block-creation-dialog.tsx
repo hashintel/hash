@@ -5,6 +5,7 @@ import {
   updatePageContents,
 } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import { TEXT_ENTITY_TYPE_ID } from "@local/hash-isomorphic-utils/entity-store";
 import { OwnedById } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
@@ -64,8 +65,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 componentId: blockMeta.componentId,
                 entity: {
                   // @todo this should be 'blockEntityTypeId' above but external types are not yet fully supported
-                  entityTypeId:
-                    "http://localhost:3000/@system-user/types/entity-type/text/v/1",
+                  entityTypeId: TEXT_ENTITY_TYPE_ID,
                   entityProperties: {},
                 },
                 ownedById: accountId as OwnedById,
