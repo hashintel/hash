@@ -142,7 +142,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
       if (!bounds) return;
 
       bounds.y -= ROW_HEIGHT;
-      handleHeaderMenuClick(col, bounds);
+      setHeaderMenu({ col, bounds });
     }, 0);
   };
 
