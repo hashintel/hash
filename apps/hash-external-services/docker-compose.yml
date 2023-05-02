@@ -321,7 +321,6 @@ services:
       TEMPORAL_CLI_ADDRESS: temporal:7233
       SKIP_DEFAULT_NAMESPACE_CREATION: "false" # left as a convenience as most temporal tooling expects default namespace
 
-  # TODO: healthcheck
   temporal:
     container_name: temporal
     image: "temporalio/server:1.20.2.0"
@@ -332,6 +331,11 @@ services:
         condition: service_completed_successfully
       hash-dev-opensearch:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "workflow", "list"]
+      interval: 10s
+      timeout: 2s
+      retries: 10
     environment:
       DB: "postgresql"
       DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
