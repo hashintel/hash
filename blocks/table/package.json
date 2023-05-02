@@ -1,6 +1,6 @@
 {
   "name": "@blocks/table",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
