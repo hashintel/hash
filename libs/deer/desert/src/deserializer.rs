@@ -162,7 +162,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
     }
 
-    fn deserialize_identifier<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: IdentifierVisitor<'de>,
     {
