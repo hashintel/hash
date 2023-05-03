@@ -23,8 +23,8 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
-pub use crate::{context::Context, number::Number};
 use crate::{
+    content::Content,
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
         ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
@@ -32,6 +32,7 @@ use crate::{
     },
     schema::visitor,
 };
+pub use crate::{context::Context, number::Number};
 
 mod context;
 pub mod error;
@@ -44,6 +45,10 @@ pub mod schema;
 pub mod value;
 
 extern crate alloc;
+
+pub(crate) mod sealed {
+    pub struct T;
+}
 
 struct GenericFieldVisitor<T, U>(PhantomData<fn() -> *const (T, U)>);
 
@@ -641,6 +646,20 @@ pub trait Deserializer<'de>: Sized {
         deserialize_f32(to_f32: f32) -> visit_f32,
         deserialize_f64(to_f64: f64) -> visit_f64,
     ];
+
+    // Not public API.
+    // No stability guarantees are given!
+    #[doc(hidden)]
+    fn __deserialize_content<V>(
+        self,
+        _: sealed::T,
+        visitor: V,
+    ) -> Result<Content<'de>, DeserializerError>
+    where
+        V: Visitor<'de, Value = Content<'de>>,
+    {
+        self.deserialize_any(visitor)
+    }
 }
 
 /// A **data-structure** that can be deserialized from any format supported by deer.

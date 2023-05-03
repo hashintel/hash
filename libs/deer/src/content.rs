@@ -7,6 +7,7 @@ use crate::{
         ArrayAccessError, DeserializeError, DeserializerError, Error, ExpectedType, MissingError,
         ObjectAccessError, ReceivedValue, TypeError, ValueError, Variant, VisitorError,
     },
+    sealed::T,
     ArrayAccess, Context, Deserialize, Deserializer, Document, EnumVisitor, Number, ObjectAccess,
     OptionalVisitor, Reflection, Visitor,
 };
@@ -450,6 +451,15 @@ impl<'de> Deserializer<'de> for ContentDeserializer<'_, 'de> {
             },
         }
     }
+
+    fn __deserialize_content<V>(self, _: T, visitor: V) -> Result<Content<'de>, DeserializerError>
+    where
+        V: Visitor<'de, Value = Content<'de>>,
+    {
+        let _ = visitor;
+
+        Ok(self.content)
+    }
 }
 
 struct ContentRefDeserializer<'a, 'de: 'a> {
@@ -551,5 +561,14 @@ impl<'de> Deserializer<'de> for ContentRefDeserializer<'_, 'de> {
         V: EnumVisitor<'de>,
     {
         todo!()
+    }
+
+    fn __deserialize_content<V>(self, _: T, visitor: V) -> Result<Content<'de>, DeserializerError>
+    where
+        V: Visitor<'de, Value = Content<'de>>,
+    {
+        let _ = visitor;
+
+        Ok(self.content.clone())
     }
 }
