@@ -71,7 +71,7 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
-import { usePropertyShortname } from "./shared/use-property-shortname";
+import { useTypeNamespace } from "./shared/use-type-namespace";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 
@@ -364,7 +364,7 @@ export const PropertyTypeRow = ({
     propertyTypesOptions,
   );
 
-  const propertyShortname = usePropertyShortname(propertyId);
+  const propertyNamespace = useTypeNamespace(propertyId);
 
   const getDefaultValues = useCallback(() => {
     if (!property) {
@@ -388,7 +388,7 @@ export const PropertyTypeRow = ({
 
   const $id = property.$id;
 
-  const editDisabledReason = !canEditResource(propertyShortname)
+  const editDisabledReason = !canEditResource(propertyNamespace)
     ? "Can't edit property types that belong to other users or organizations you aren't a member of"
     : currentVersion !== latestVersion
     ? "Update the property type to the latest version to edit"

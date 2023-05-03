@@ -46,6 +46,7 @@ import {
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
+import { useTypeNamespace } from "./shared/use-type-namespace";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
 
@@ -87,7 +88,7 @@ const LinkTypeRow = ({
 }) => {
   const isReadonly = useIsReadonly();
 
-  const { updateEntityType } = useOntologyFunctions();
+  const { updateEntityType, canEditResource } = useOntologyFunctions();
 
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
@@ -109,6 +110,8 @@ const LinkTypeRow = ({
     linkId,
     linkTypes,
   );
+
+  const linkNamespace = useTypeNamespace(linkId);
 
   if (!link) {
     throw new Error(`Link entity type with ${linkId} not found in options`);
@@ -140,6 +143,12 @@ const LinkTypeRow = ({
     editModalPopupState.close();
   };
 
+  const editDisabledReason = !canEditResource(linkNamespace)
+    ? "Can't edit link types that belong to other users or organizations you aren't a member of"
+    : currentVersion !== latestVersion
+    ? "Update the link type to the latest version to edit"
+    : undefined;
+
   return (
     <>
       <EntityTypeTableRow flash={flash}>
@@ -170,12 +179,7 @@ const LinkTypeRow = ({
         <TypeMenuCell
           typeId={link.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
-          {...(currentVersion !== latestVersion
-            ? {
-                editButtonDisabled:
-                  "Update the link type to the latest version to edit",
-              }
-            : {})}
+          editButtonDisabled={editDisabledReason}
           variant="link"
           onRemove={onRemove}
         />
