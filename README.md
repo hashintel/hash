@@ -89,7 +89,8 @@ Key projects within are summarized below.
 
 #### npm packages
 
-- [`@hashintel/design-system`](libs/@hashintel/design-system): design system for [HASH] and new [hash.ai] website
+- [`@hashintel/block-design-system`](libs/@hashintel/block-design-system): a relatively unopinionated design system for [Block Protocol] blocks
+- [`@hashintel/design-system`](libs/@hashintel/design-system): the design system for [HASH] and our [hash.ai] website
 - [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
