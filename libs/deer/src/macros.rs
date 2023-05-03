@@ -99,12 +99,19 @@ macro_rules! forward_to_deserialize_any_helper {
     };
 }
 
+// TODO: move to TT muncher
 #[macro_export]
 macro_rules! identifier {
+    (@internal match $e:expr; $($arms:tt)*) => {
+        match $e {
+            $($arms),*
+        }
+    };
+
     (@internal match arm $name:ident :: $variant:ident => _) => {};
 
     (@internal match arm $name:ident :: $variant:ident => $value:literal) => {
-        $value => Ok($name :: $variant),
+        $value => Ok($name :: $variant)
     };
 
     ($vis:vis enum $name:ident { $($variant:ident = $str:tt | $bytes:tt | $u64:tt),* $(,)? }) => {
@@ -133,9 +140,7 @@ macro_rules! identifier {
                     }
 
                     fn visit_str(self, value: &str) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
-                        match value {
-                            $($crate::identifier!(@internal match arm $name :: $variant => $str))*
-                        }
+                        identifier!(@internal match value; $(identifier!(@internal match arm $name :: $variant => $str)),*)
                     }
 
                     fn visit_bytes(self, value: &[u8]) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
