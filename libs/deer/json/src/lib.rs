@@ -458,8 +458,8 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             Some(Value::Number(value)) => {
                 let value = value.as_u64().ok_or_else(|| {
                     Report::new(ValueError.into_error())
-                        .change_context(ExpectedType::new(visitor.expecting()))
-                        .change_context(ReceivedValue::new(value))
+                        .attach(ExpectedType::new(visitor.expecting()))
+                        .attach(ReceivedValue::new(value))
                         .change_context(DeserializerError)
                 })?;
 

@@ -3,13 +3,14 @@ use core::num::TryFromIntError;
 
 use deer::{
     error::{
-        DeserializerError, ExpectedType, MissingError, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant,
+        DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
+        Variant,
     },
     value::NoneDeserializer,
     Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use num_traits::ToPrimitive;
 
 use crate::{
     array::ArrayAccess, object::ObjectAccess, skip::skip_tokens, tape::Tape, token::Token,
@@ -186,14 +187,14 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
                     .attach(ReceivedValue::new(value))
                     .change_context(DeserializerError)?;
 
-                visitor.visit_u64(value)
+                visitor.visit_u64(value).change_context(DeserializerError)
             }
             Token::I128(value) => {
                 let value = visit_try(value.try_into())
                     .attach(ReceivedValue::new(value))
                     .change_context(DeserializerError)?;
 
-                visitor.visit_u64(value)
+                visitor.visit_u64(value).change_context(DeserializerError)
             }
             Token::Number(value) => {
                 // first try u8 (if possible)
@@ -210,11 +211,14 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
                     visitor.visit_u64(value).change_context(DeserializerError)
                 }
             }
-            token @ (Token::Array { .. } | Token::Object { .. }) => skip_tokens(&mut self, &token),
-            token => Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(token.schema()))
-                .change_context(DeserializerError)),
+            token => {
+                skip_tokens(&mut self, &token);
+
+                Err(Report::new(TypeError.into_error())
+                    .attach(ExpectedType::new(visitor.expecting()))
+                    .attach(ReceivedType::new(token.schema()))
+                    .change_context(DeserializerError))
+            }
         }
     }
 }
