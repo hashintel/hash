@@ -66,7 +66,7 @@ Key projects within are summarized below.
 
 ### Applications
 
-- [`hash`](apps/hash): entry-point for **[HASH]**, a data-driven, entity-centric, all-in-one workspace based on the [Block Protocol]
+- [`hash`](apps/hash): entry-point for **[HASH]**, our data-driven, all-in-one AI workspace
 - [`engine`](apps/engine): experimental version of **[HASH Engine]**, a versatile agent-based simulation engine written in Rust
 
 ### Blocks
