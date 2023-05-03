@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const deprecatedTypedef = gql`
   scalar UnknownEntityProperties
+  scalar QueryOperationInput
 
   type UnknownEntity {
     properties: UnknownEntityProperties!
