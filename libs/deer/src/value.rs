@@ -115,6 +115,90 @@ macro_rules! deserialize_struct {
     };
 }
 
+// TODO: we should always first try the smaller number?
+// TODO: possibility for borrowed values vs. borrowed by "just normal"
+macro_rules! deserialize_identifier {
+    ($name:ident, $primitive:ty, !) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(<$primitive>::document()))
+                .change_context(DeserializerError))
+        }
+    };
+
+    ($name:ident, $primitive:ty, ! , $reflection:ty) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(<$reflection>::document()))
+                .change_context(DeserializerError))
+        }
+    };
+
+    ($name:ident, $primitive:ty,deref, $visit:ident) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            visitor
+                .$visit(&*self.value)
+                .change_context(DeserializerError)
+        }
+    };
+
+    ($name:ident, $primitive:ty,to, $to:ident, $visit:ident) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            let value = self.value.$to().ok_or_else(|| {
+                Report::new(TypeError.into_error())
+                    .attach(ExpectedType::new(visitor.expecting()))
+                    .attach(ReceivedType::new(<$primitive>::reflection()))
+                    .change_context(DeserializerError)
+            })?;
+
+            visitor.$visit(value).change_context(DeserializerError)
+        }
+    };
+
+    ($name:ident, $primitive:ty,visit, $visit:ident) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            visitor
+                .$visit(self.value.into())
+                .change_context(DeserializerError)
+        }
+    };
+
+    ($name:ident, $primitive:ty,try, $visit:ident) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            let value = self
+                .value
+                .try_into()
+                .into_report()
+                .change_context(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(<$primitive>::document()))
+                .change_context(DeserializerError)?;
+
+            visitor.$visit(value).change_context(DeserializerError)
+        }
+    };
+}
+
 macro_rules! impl_deserializer {
     (@derive Copy, $name:ident, $primitive:ty $(, $lifetime:lifetime)?) => {
         #[derive(Debug, Copy, Clone)]
