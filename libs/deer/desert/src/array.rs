@@ -3,15 +3,12 @@ use deer::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, ExpectedLength,
         ReceivedLength, Variant,
     },
+    value::NoneDeserializer,
     Context, Deserialize, Deserializer as _,
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{
-    deserializer::{Deserializer, DeserializerNone},
-    skip::skip_tokens,
-    token::Token,
-};
+use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
 pub(crate) struct ArrayAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
@@ -74,9 +71,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
             // to deserialize any values that require `None`
             self.remaining.is_some().then(|| {
                 // previous statement ensures that remaining is decremented and wasn't 0
-                let value = T::deserialize(DeserializerNone {
-                    context: self.deserializer.context(),
-                });
+                let value = T::deserialize(NoneDeserializer::new(self.deserializer.context()));
 
                 self.consumed += 1;
                 value.change_context(ArrayAccessError)

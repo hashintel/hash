@@ -3,15 +3,12 @@ use deer::{
         BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
         ReceivedLength, Variant,
     },
+    value::NoneDeserializer,
     Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{
-    deserializer::{Deserializer, DeserializerNone},
-    skip::skip_tokens,
-    token::Token,
-};
+use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
 pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
@@ -76,14 +73,10 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             self.remaining?;
 
             if self.remaining.is_some() {
-                let key = access.visit_key(DeserializerNone {
-                    context: self.deserializer.context(),
-                });
+                let key = access.visit_key(NoneDeserializer::new(self.deserializer.context()));
 
                 key.and_then(|key| {
-                    access.visit_value(key, DeserializerNone {
-                        context: self.deserializer.context(),
-                    })
+                    access.visit_value(key, NoneDeserializer::new(self.deserializer.context()))
                 })
             } else {
                 return None;
