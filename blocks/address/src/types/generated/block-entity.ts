@@ -8,23 +8,23 @@ export type Address = Entity<AddressProperties>;
 
 export type AddressBlock = Entity<AddressBlockProperties>;
 
-export type AddressBlockHasAddressLinks = {
+export type AddressBlockHasAddressLink = {
   linkEntity: HasAddress;
   rightEntity: Address;
 };
 
-export type AddressBlockHasMapImageLinks = {
+export type AddressBlockHasMapImageLink = {
   linkEntity: HasMapImage;
   rightEntity: RemoteFile;
 };
 
 export type AddressBlockOutgoingLinkAndTarget =
-  | AddressBlockHasAddressLinks
-  | AddressBlockHasMapImageLinks;
+  | AddressBlockHasAddressLink
+  | AddressBlockHasMapImageLink;
 
 export type AddressBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/has-address/v/1": AddressBlockHasAddressLinks;
-  "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/2": AddressBlockHasMapImageLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-address/v/1": AddressBlockHasAddressLink;
+  "https://blockprotocol.org/@hash/types/entity-type/has-map-image/v/2": AddressBlockHasMapImageLink;
 };
 
 /**

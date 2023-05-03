@@ -47,15 +47,15 @@ export type FileURLPropertyValue = Text;
 
 export type ImageBlock = Entity<ImageBlockProperties>;
 
-export type ImageBlockDisplaysMediaFileLinks = {
+export type ImageBlockDisplaysMediaFileLink = {
   linkEntity: DisplaysMediaFile;
   rightEntity: RemoteFile;
 };
 
-export type ImageBlockOutgoingLinkAndTarget = ImageBlockDisplaysMediaFileLinks;
+export type ImageBlockOutgoingLinkAndTarget = ImageBlockDisplaysMediaFileLink;
 
 export type ImageBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": ImageBlockDisplaysMediaFileLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": ImageBlockDisplaysMediaFileLink;
 };
 
 /**

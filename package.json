@@ -13,6 +13,7 @@
   },
   "scripts": {
     "codegen": "turbo run codegen",
+    "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
     "dev": "turbo run dev --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-frontend' --",
     "dev:backend": "turbo run dev --filter '@apps/hash-api' --filter '@apps/hash-realtime' --filter '@apps/hash-search-loader' --",
     "dev:backend:api": "turbo run dev --filter '@apps/hash-api' --",
