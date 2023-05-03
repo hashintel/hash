@@ -375,7 +375,7 @@ export const save = async (
   pageEntityId: EntityId,
   doc: Node,
   store: EntityStore,
-  blocksMap: ComponentIdHashBlockMap,
+  blocksMap: () => ComponentIdHashBlockMap,
 ) => {
   const blocks = await apolloClient
     .query<GetPageQuery, GetPageQueryVariables>({
@@ -398,7 +398,7 @@ export const save = async (
      * @todo Should the fallback be text here?
      */
     (componentId: string) => {
-      return (blocksMap[componentId]?.meta.schema ??
+      return (blocksMap()[componentId]?.meta.schema ??
         TEXT_ENTITY_TYPE_ID) as VersionedUrl;
     },
   );

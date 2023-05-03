@@ -35,7 +35,7 @@ import styles from "./style.module.css";
 const createSavePlugin = (
   ownedById: OwnedById,
   pageEntityId: EntityId,
-  blocks: ComponentIdHashBlockMap,
+  blocks: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
@@ -145,7 +145,7 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: AccountId,
   pageEntityId: EntityId,
-  blocks: ComponentIdHashBlockMap,
+  blocks: () => ComponentIdHashBlockMap,
   readonly: boolean,
   pageTitleRef: RefObject<HTMLTextAreaElement>,
   getLastSavedValue: () => BlockEntity[],
@@ -247,7 +247,7 @@ export const createEditorView = (
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  const blocksArray = Object.values(blocks);
+  const blocksArray = Object.values(blocks());
 
   const paragraphBlock = blocksArray.find(
     (block) => block.meta.componentId === paragraphBlockComponentId,

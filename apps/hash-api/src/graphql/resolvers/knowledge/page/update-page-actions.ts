@@ -152,7 +152,9 @@ export const handleCreateNewEntity = async (params: {
       throw new UserInputError(`action ${params.index}: ${error}`);
     }
     throw new Error(
-      `createEntity: Could not create new entity: ${JSON.stringify(error)}`,
+      `createEntity: Could not create new entity: ${JSON.stringify(
+        error,
+      )}, trying to create ${JSON.stringify(params)}`,
     );
   }
 };
