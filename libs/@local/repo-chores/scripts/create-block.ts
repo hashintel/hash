@@ -44,6 +44,12 @@ const script = async () => {
     url: "https://github.com/hashintel/hash.git#main",
     directory: `blocks/${blockName}`,
   };
+
+  (
+    packageJson.blockprotocol as JsonObject
+  ).displayName = `${blockName[0]!.toUpperCase()}${blockName.slice(1)}`;
+  (packageJson.blockprotocol as JsonObject).name = `@hash/${blockName}`;
+
   (packageJson.scripts as JsonObject)["fix:eslint"] = "eslint --fix .";
   (packageJson.scripts as JsonObject)["lint:eslint"] =
     "eslint --report-unused-disable-directives .";
@@ -52,6 +58,8 @@ const script = async () => {
 
   (packageJson.devDependencies as JsonObject)["@local/eslint-config"] =
     "0.0.0-private";
+
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
   for (const file of fs.readdirSync(
     path.join(__dirname, "create-block", "additional-block-files"),
@@ -70,6 +78,14 @@ const script = async () => {
       path.join(newBlockFolder, file),
     );
   }
+
+  const indexFile = path.join(newBlockFolder, "src", "index.ts");
+  fs.writeFileSync(
+    indexFile,
+    `/* eslint-disable canonical/filename-no-index */\n${fs
+      .readFileSync(indexFile)
+      .toString()}`,
+  );
 };
 
 void (async () => {
