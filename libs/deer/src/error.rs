@@ -113,11 +113,11 @@ impl Id {
     }
 }
 
-pub(crate) fn fmt_fold_fields<'a, T: Display>(
+pub(crate) fn fmt_fold_fields<T: Display>(
     fmt: &mut Formatter,
-    it: impl IntoIterator<Item = T>,
+    iter: impl IntoIterator<Item = T>,
 ) -> fmt::Result {
-    for (idx, field) in it.into_iter().enumerate() {
+    for (idx, field) in iter.into_iter().enumerate() {
         if idx > 0 {
             fmt.write_str(", ")?;
         }
