@@ -99,7 +99,6 @@ macro_rules! forward_to_deserialize_any_helper {
     };
 }
 
-// TODO: move to TT muncher
 #[macro_export]
 macro_rules! identifier {
     (@internal
@@ -111,8 +110,8 @@ macro_rules! identifier {
         $crate::identifier!(@internal
             match $ty, $e; $name
                 @($($rest),*)
-                @($($stack),*),
-                $($arms),*
+                @($($stack),*)
+                $($arms)*
         );
     };
     (@internal
@@ -198,13 +197,13 @@ macro_rules! identifier {
         }
     };
 
-    (@internal match arm $name:ident :: $variant:ident => _) => {};
-
-    (@internal match arm $name:ident :: $variant:ident => $value:literal) => {
-        $value => Ok($name :: $variant)
-    };
-
-    ($vis:vis enum $name:ident { $($variant:ident = $str:tt | $bytes:tt | $u64:tt),* $(,)? }) => {
+    (
+        $(#[$meta:meta])*
+        $vis:vis enum $name:ident {
+            $($variant:ident = $str:tt | $bytes:tt | $u64:tt),* $(,)?
+        }
+    ) => {
+        $(#[$meta])*
         #[derive(Debug, Copy, Clone)]
         $vis enum $name {
             $($variant),*
