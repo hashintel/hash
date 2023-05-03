@@ -14,6 +14,7 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import {
   createContext,
+  forwardRef,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
@@ -123,13 +124,14 @@ const allOptions: OptionWithoutPath[] = [
 ];
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
-const CenterContainer = ({ children }: PropsWithChildren) => (
+const CenterContainer = forwardRef(({ children }: PropsWithChildren, ref) => (
   <Box
     width="100vw"
     height="100vh"
     display="flex"
     alignItems="center"
     margin="0 auto"
+    ref={ref}
   >
     <Box
       height={518}
@@ -144,7 +146,7 @@ const CenterContainer = ({ children }: PropsWithChildren) => (
       <Box sx={{ pointerEvents: "all", width: "100%" }}>{children}</Box>
     </Box>
   </Box>
-);
+));
 
 // Used to pass the node to render inside the popup from the command bar to the paper component
 const CustomScreenContext = createContext<ReactNode | null>(null);

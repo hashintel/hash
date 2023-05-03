@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
 
-use deer::Number;
+use deer::{Deserialize, Document, Number, Reflection, Schema};
 
 // TODO: test
 // TODO: this should be `Copy`, but `Number` has no &'static constructor
@@ -181,3 +181,41 @@ impl Display for Token {
         Debug::fmt(self, f)
     }
 }
+
+struct AnyArray;
+
+impl Reflection for AnyArray {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("array")
+    }
+}
+
+struct AnyObject;
+
+impl Reflection for AnyObject {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("object")
+    }
+}
+
+impl Token {
+    pub(crate) fn schema(&self) -> Document {
+        match self {
+            Self::Bool(_) => Document::new::<bool>(),
+            Self::Number(_) => Document::new::<Number>(),
+            Self::U128(_) => Document::new::<u128>(),
+            Self::I128(_) => Document::new::<i128>(),
+            Self::Char(_) => Document::new::<char>(),
+            Self::Str(_) | Self::BorrowedStr(_) | Self::String(_) => Document::new::<str>(),
+            Self::Bytes(_) | Self::BorrowedBytes(_) | Self::BytesBuf(_) => Document::new::<[u8]>(),
+            Self::Array { .. } | Self::ArrayEnd => Document::new::<AnyArray>(),
+            Self::Object { .. } | Self::ObjectEnd => Document::new::<AnyObject>(),
+            Self::Null => Document::new::<<() as Deserialize>::Reflection>(),
+        }
+    }
+}
+
+// TODO: maybe number
+// TODO: IdentifierVisitor (u8, u64, str, borrowed_str, string,
+//  bytes, bytes_buf, borrowed_bytes)
+// TODO: test
