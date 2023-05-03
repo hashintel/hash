@@ -6,7 +6,11 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { ForbiddenError, UserInputError } from "apollo-server-express";
+import {
+  ApolloError,
+  ForbiddenError,
+  UserInputError,
+} from "apollo-server-express";
 
 import {
   archiveEntity,
@@ -14,6 +18,7 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
+import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
 import {
   createLinkEntity,
   isEntityLinkEntity,
@@ -26,7 +31,7 @@ import {
   MutationCreateEntityArgs,
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
-  QueryQueryEntitiesArgs,
+  QueryResolvers,
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -92,15 +97,13 @@ export const createEntityResolver: ResolverFn<
   return mapEntityToGQL(entity);
 };
 
-export const queryEntitiesResolver: ResolverFn<
-  Promise<Subgraph>,
-  {},
-  LoggedInGraphQLContext,
-  QueryQueryEntitiesArgs
+export const queryEntitiesResolver: Extract<
+  QueryResolvers<LoggedInGraphQLContext>["queryEntities"],
+  Function
 > = async (
   _,
   {
-    rootEntityTypeIds,
+    operation,
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
@@ -114,24 +117,15 @@ export const queryEntitiesResolver: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const filter: Filter = {
-    all: [
-      {
-        equal: [{ path: ["archived"] }, { parameter: false }],
-      },
-    ],
-  };
-
-  if (rootEntityTypeIds && rootEntityTypeIds.length > 0) {
-    filter.all.push({
-      any: rootEntityTypeIds.map((entityTypeId) => ({
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: entityTypeId },
-        ],
-      })),
-    });
+  if (operation.multiSort !== undefined && operation.multiSort !== null) {
+    throw new ApolloError(
+      "Sorting on queryEntities results is not currently supported",
+    );
   }
+
+  const filter = operation.multiFilter
+    ? bpMultiFilterToGraphFilter(operation.multiFilter)
+    : { any: [] };
 
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
