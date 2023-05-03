@@ -6,6 +6,7 @@ const withTM = require("next-transpile-modules")([
   "@blockprotocol/type-system",
   "@hashintel/design-system",
   "@hashintel/type-editor",
+  "@hashintel/query-editor",
   "@local/advanced-types",
   "@local/hash-graph-client",
   "@local/hash-graphql-shared",

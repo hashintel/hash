@@ -13,6 +13,7 @@ import { FormValues } from "./types";
 
 interface QueryFormProps {
   onSave: (value: MultiFilter) => void;
+  onPreview: (value: MultiFilter) => void;
   onDiscard: () => void;
   entityTypes: EntityType[];
   propertyTypes: PropertyType[];
@@ -22,6 +23,7 @@ interface QueryFormProps {
 export const QueryForm = ({
   onDiscard,
   onSave,
+  onPreview,
   entityTypes,
   propertyTypes,
   defaultValue,
@@ -48,7 +50,11 @@ export const QueryForm = ({
     });
   };
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmitPreview = (data: FormValues) => {
+    onPreview(mapFormValuesToMultiFilter(data));
+  };
+
+  const onSubmitSave = (data: FormValues) => {
     onSave(mapFormValuesToMultiFilter(data));
   };
 
@@ -99,8 +105,14 @@ export const QueryForm = ({
         )}
 
         <Stack direction="row" gap={1}>
-          <Button onClick={form.handleSubmit(onSubmit)}>
-            Save and preview query
+          <Button onClick={form.handleSubmit(onSubmitPreview)}>
+            Preview query
+          </Button>
+          <Button
+            onClick={form.handleSubmit(onSubmitSave)}
+            sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
+          >
+            Save query
           </Button>
           <Button variant="tertiary" onClick={onDiscard}>
             Discard query

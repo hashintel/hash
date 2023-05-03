@@ -61,10 +61,11 @@ export const EntityQueryEditor = ({
 
             onDiscard();
           }}
-          onSave={(value) => {
+          onPreview={(value) => {
             setQuery(value);
             setIsEditing(false);
           }}
+          onSave={onSave}
           defaultValue={query}
         />
       ) : (

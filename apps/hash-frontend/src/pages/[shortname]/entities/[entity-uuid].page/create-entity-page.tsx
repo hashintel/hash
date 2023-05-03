@@ -9,8 +9,10 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
+import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
+import { QueryEditorPage } from "./query-editor-page";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
@@ -19,6 +21,12 @@ import { useDraftLinkState } from "./shared/use-draft-link-state";
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
 }
+
+/** @todo replace these with published system types */
+const QUERY_ENTITY_TYPE_ID =
+  "http://localhost:3000/@alice/types/entity-type/query-entity/v/1";
+const QUERY_PROPERTY_TYPE_BASE_URL =
+  "http://localhost:3000/@alice/types/property-type/query/";
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
@@ -41,7 +49,14 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   );
 
   const [creating, setCreating] = useState(false);
-  const handleCreateEntity = async () => {
+
+  /**
+   * `overrideProperties` is a quick hack to bypass the setting draftEntity state
+   * I did this, because I was having trouble with the `setDraftEntitySubgraph` function,
+   * I tried calling handleCreateEntity after setting the draftEntity state, but state was not updating
+   * @todo find a better way to do this
+   */
+  const handleCreateEntity = async (overrideProperties: any) => {
     if (!draftEntitySubgraph || !activeWorkspace) {
       return;
     }
@@ -57,7 +72,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       const { data: entity } = await createEntity({
         data: {
           entityTypeId,
-          properties: draftEntity.properties,
+          properties: overrideProperties ?? draftEntity.properties,
         },
       });
 
@@ -91,10 +106,41 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
+  const shouldShowQueryEditor = entityTypeId === QUERY_ENTITY_TYPE_ID;
+
+  const entityEditorProps: EntityEditorProps = {
+    setEntity: (entity) => {
+      updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+    },
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+    entitySubgraph: draftEntitySubgraph,
+    readonly: false,
+    refetch: async () => {},
+  };
+
+  if (shouldShowQueryEditor) {
+    return (
+      <QueryEditorPage
+        handleSaveQuery={async (value) => {
+          const properties = {
+            [QUERY_PROPERTY_TYPE_BASE_URL]: value,
+          };
+
+          await handleCreateEntity(properties);
+        }}
+        entityLabel={entityLabel}
+        entityUuid="draft"
+        owner={`@${activeWorkspace?.shortname}`}
+        {...entityEditorProps}
+      />
+    );
+  }
+
   return (
     <EntityEditorPage
-      readonly={false}
-      refetch={async () => {}}
       editBar={
         <EditBar
           label="- this entity has not been created yet"
@@ -111,16 +157,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         />
       }
       entityLabel={entityLabel}
-      entitySubgraph={draftEntitySubgraph}
       entityUuid="draft"
       owner={`@${activeWorkspace?.shortname}`}
-      setEntity={(entity) => {
-        updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
-      }}
-      draftLinksToCreate={draftLinksToCreate}
-      setDraftLinksToCreate={setDraftLinksToCreate}
-      draftLinksToArchive={draftLinksToArchive}
-      setDraftLinksToArchive={setDraftLinksToArchive}
+      {...entityEditorProps}
     />
   );
 };

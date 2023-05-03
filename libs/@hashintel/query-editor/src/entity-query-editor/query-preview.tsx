@@ -68,15 +68,15 @@ export const QueryPreview = ({
       )}
 
       <Stack direction="row" gap={1}>
-        <Button onClick={() => onSave(query)}>Add entities to table</Button>
+        <Button onClick={() => onSave(query)}>Save query</Button>
         <Button
           onClick={onGoBack}
           sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
         >
-          Go back and refine query
+          Edit query
         </Button>
         <Button variant="tertiary" onClick={onDiscard}>
-          Discard query and cancel
+          Discard query
         </Button>
       </Stack>
     </Stack>
