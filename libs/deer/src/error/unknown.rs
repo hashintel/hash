@@ -77,8 +77,8 @@ impl Variant for UnknownFieldError {
         let has_expected = !expected.is_empty();
         let has_received = !received.is_empty();
 
-        let expected = expected.iter().map(|ExpectedField(inner)| *inner);
-        let received = received.iter().map(|ReceivedField(inner)| inner.as_str());
+        let expected = expected.iter().map(|ExpectedField(inner)| inner);
+        let received = received.iter().map(|ReceivedField(inner)| inner);
 
         if has_expected {
             fmt.write_str("expected fields ")?;
@@ -203,9 +203,145 @@ impl Display for UnknownVariantError {
     }
 }
 
+fn fmt_byte_slice(slice: &[u8], fmt: &mut Formatter<'_>) -> fmt::Result {
+    fmt.write_str("[")?;
+
+    if let Some((first, rest)) = slice.split_first() {
+        fmt.write_fmt(format_args!("{first:#04X}"))?;
+
+        for value in rest {
+            fmt.write_str(", ")?;
+            fmt.write_fmt(format_args!("{value:#04X}"))?;
+        }
+    }
+
+    fmt.write_str("]")
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum ExpectedIdentifier {
+    U8(u8),
+    U64(u64),
+    String(&'static str),
+    Bytes(&'static [u8]),
+}
+
+impl Display for ExpectedIdentifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::U8(value) => Display::fmt(value, f),
+            Self::U64(value) => Display::fmt(value, f),
+            Self::String(value) => Display::fmt(value, f),
+            Self::Bytes(value) => fmt_byte_slice(value, f),
+        }
+    }
+}
+
+impl ErrorProperty for ExpectedIdentifier {
+    type Value<'a> = Vec<&'a Self> where Self: 'a;
+
+    fn key() -> &'static str {
+        "expected"
+    }
+
+    fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
+        let mut value: Vec<_> = stack.collect();
+        value.reverse();
+        value
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum ReceivedIdentifier {
+    U8(u8),
+    U64(u64),
+    String(String),
+    Bytes(Vec<u8>),
+}
+
+impl Display for ReceivedIdentifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::U8(value) => Display::fmt(value, f),
+            Self::U64(value) => Display::fmt(value, f),
+            Self::String(value) => Display::fmt(value, f),
+            Self::Bytes(value) => {
+                if let Ok(value) = core::str::from_utf8(value) {
+                    Display::fmt(value, f)
+                } else {
+                    fmt_byte_slice(value, f)
+                }
+            }
+        }
+    }
+}
+
+impl ErrorProperty for ReceivedIdentifier {
+    type Value<'a> = Vec<&'a Self> where Self: 'a;
+
+    fn key() -> &'static str {
+        "received"
+    }
+
+    fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
+        let mut value: Vec<_> = stack.collect();
+        value.reverse();
+        value
+    }
+}
+
+#[derive(Debug)]
+pub struct UnknownIdentifierError;
+
+impl Variant for UnknownIdentifierError {
+    type Properties = (Location, ExpectedIdentifier, ReceivedIdentifier);
+
+    const ID: Id = id!["unknown", "identifier"];
+    const NAMESPACE: Namespace = NAMESPACE;
+
+    fn message(
+        &self,
+        fmt: &mut Formatter,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
+    ) -> fmt::Result {
+        // expected identifier "ident1", "...", but received identifiers "ident1", "..."
+        let (_, expected, received) = properties;
+
+        let has_expected = !expected.is_empty();
+        let has_received = !received.is_empty();
+
+        if has_expected {
+            fmt.write_str("expected identifiers ")?;
+            fmt_fold_fields(fmt, expected)?;
+        }
+
+        if has_received && has_expected {
+            fmt.write_str(", but ")?;
+        }
+
+        if has_received {
+            fmt.write_str("received identifiers ")?;
+            fmt_fold_fields(fmt, received)?;
+        }
+
+        if !has_expected && !has_received {
+            Display::fmt(self, fmt)?;
+        }
+
+        Ok(())
+    }
+}
+impl Display for UnknownIdentifierError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("received unknown identifiers")
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
+    use alloc::{borrow::ToOwned, vec};
 
     use error_stack::Report;
     use serde_json::json;
@@ -337,6 +473,90 @@ mod tests {
                     .attach(ReceivedVariant::new("C"))
             ),
             r#"expected enum variants "A", "B", but received unknown enum variant "C""#
+        );
+    }
+
+    #[test]
+    fn identifier() {
+        // we try to parse:
+        // [_, _, {field1: _, field2: _ <- here, field3: _, field4: _ <- here}] into:
+        // struct Example { field1: _, field3: _ }
+
+        let report = Report::new(UnknownIdentifierError.into_error())
+            .attach(Location::Array(2))
+            .attach(ExpectedIdentifier::String("field1"))
+            .attach(ExpectedIdentifier::String("field3"))
+            .attach(ReceivedIdentifier::String("field1".to_owned()))
+            .attach(ReceivedIdentifier::String("field2".to_owned()))
+            .attach(ReceivedIdentifier::String("field3".to_owned()))
+            .attach(ReceivedIdentifier::String("field4".to_owned()));
+
+        assert_eq!(
+            to_json::<UnknownIdentifierError>(&report),
+            json!({
+                "location": [
+                    {"type": "array", "value": 2}
+                ],
+                "expected": ["field1", "field3"],
+                "received": ["field1", "field2", "field3", "field4"]
+            })
+        );
+    }
+
+    #[test]
+    fn identifier_message() {
+        assert_eq!(
+            to_message::<UnknownIdentifierError>(&Report::new(UnknownIdentifierError.into_error())),
+            "received unknown identifiers"
+        );
+
+        assert_eq!(
+            to_message::<UnknownIdentifierError>(
+                &Report::new(UnknownIdentifierError.into_error())
+                    .attach(ExpectedIdentifier::String("field1"))
+                    .attach(ExpectedIdentifier::String("field2"))
+                    .attach(ExpectedIdentifier::String("field3"))
+            ),
+            r#"expected identifiers "field1", "field2", "field3""#
+        );
+
+        assert_eq!(
+            to_message::<UnknownIdentifierError>(
+                &Report::new(UnknownIdentifierError.into_error())
+                    .attach(ReceivedIdentifier::String("field1".to_owned()))
+                    .attach(ReceivedIdentifier::String("field2".to_owned()))
+                    .attach(ReceivedIdentifier::String("field3".to_owned()))
+            ),
+            r#"received identifiers "field1", "field2", "field3""#
+        );
+
+        assert_eq!(
+            to_message::<UnknownIdentifierError>(
+                &Report::new(UnknownIdentifierError.into_error())
+                    .attach(ExpectedIdentifier::String("field1"))
+                    .attach(ExpectedIdentifier::String("field2"))
+                    .attach(ExpectedIdentifier::String("field3"))
+                    .attach(ReceivedIdentifier::String("field1".to_owned()))
+                    .attach(ReceivedIdentifier::String("field2".to_owned()))
+                    .attach(ReceivedIdentifier::String("field3".to_owned()))
+                    .attach(ReceivedIdentifier::String("field4".to_owned()))
+            ),
+            r#"expected identifiers "field1", "field2", "field3", but received identifiers "field1", "field2", "field3", "field4""#
+        );
+
+        assert_eq!(
+            to_message::<UnknownIdentifierError>(
+                &Report::new(UnknownIdentifierError.into_error())
+                    .attach(ExpectedIdentifier::String("field1"))
+                    .attach(ExpectedIdentifier::U8(2))
+                    .attach(ExpectedIdentifier::U64(256))
+                    .attach(ExpectedIdentifier::Bytes(&[0x02, 0xFF]))
+                    .attach(ReceivedIdentifier::String("field1".to_owned()))
+                    .attach(ReceivedIdentifier::U8(3))
+                    .attach(ReceivedIdentifier::U64(257))
+                    .attach(ReceivedIdentifier::Bytes([0x03, 0xFE].to_vec()))
+            ),
+            r#"expected identifiers "field1", "2", "256", "[0x02, 0xFF]", but received identifiers "field1", "3", "257", "[0x03, 0xFE]""#
         );
     }
 }

@@ -73,8 +73,8 @@ pub use location::Location;
 use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
 pub use unknown::{
-    ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
-    UnknownVariantError,
+    ExpectedField, ExpectedIdentifier, ExpectedVariant, ReceivedField, ReceivedIdentifier,
+    ReceivedVariant, UnknownFieldError, UnknownIdentifierError, UnknownVariantError,
 };
 pub use value::{MissingError, ReceivedValue, ValueError};
 
@@ -113,11 +113,11 @@ impl Id {
     }
 }
 
-pub(crate) fn fmt_fold_fields<'a>(
+pub(crate) fn fmt_fold_fields<'a, T: Display>(
     fmt: &mut Formatter,
-    it: impl Iterator<Item = &'a str>,
+    it: impl IntoIterator<Item = T>,
 ) -> fmt::Result {
-    for (idx, field) in it.enumerate() {
+    for (idx, field) in it.into_iter().enumerate() {
         if idx > 0 {
             fmt.write_str(", ")?;
         }

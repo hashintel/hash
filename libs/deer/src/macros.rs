@@ -102,9 +102,17 @@ macro_rules! forward_to_deserialize_any_helper {
 // TODO: move to TT muncher
 #[macro_export]
 macro_rules! identifier {
-    (@internal match $e:expr; $($arms:tt)*) => {
+    (@internal match $ty:tt, $e:expr; $name:ident @(($variant:ident, _) $(, $rest:tt)*), $($arms:tt)*) => {
+        $crate::identifier!(@internal match $e; $name @($($rest),*) , $($arms),*);
+    };
+    (@internal match $ty:tt, $e:expr; $name:ident @(($variant:ident, $value:literal) $(, $rest:tt)*), $($arms:tt)*) => {
+        $crate::identifier!(@internal match $e; $name @($($rest),*) ,$value => Ok($name::$variant), $($arms),*);
+    };
+
+    (@internal match str, $e:expr; $name:ident @(), $($arms:tt)*) => {
         match $e {
-            $($arms),*
+            $($arms)*
+            _ => Err($crate::export::error_stack::Report::new($crate::error::Variant::into_error($crate::error::UnknownIdentifierError)))
         }
     };
 
@@ -140,18 +148,20 @@ macro_rules! identifier {
                     }
 
                     fn visit_str(self, value: &str) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
-                        identifier!(@internal match value; $(identifier!(@internal match arm $name :: $variant => $str)),*)
+                        identifier!(@internal match value; $name @($(($variant, $str)),*),)
                     }
 
                     fn visit_bytes(self, value: &[u8]) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
                         match value {
                             // $($crate::identifier!(@internal match arm $name :: $variant => $bytes))*
+                            _ => todo!()
                         }
                     }
 
                     fn visit_u64(self, value: u64) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
                         match value {
                             // $($crate::identifier!(@internal match arm $name :: $variant => $u64))*
+                            _ => todo!()
                         }
                     }
                 }
