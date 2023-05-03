@@ -1,4 +1,4 @@
-use deer::{identifier, Reflection};
+use deer::identifier;
 
 identifier! {
     pub enum Ident {

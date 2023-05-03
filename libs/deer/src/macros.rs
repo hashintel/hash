@@ -102,17 +102,99 @@ macro_rules! forward_to_deserialize_any_helper {
 // TODO: move to TT muncher
 #[macro_export]
 macro_rules! identifier {
-    (@internal match $ty:tt, $e:expr; $name:ident @(($variant:ident, _) $(, $rest:tt)*), $($arms:tt)*) => {
-        $crate::identifier!(@internal match $e; $name @($($rest),*) , $($arms),*);
+    (@internal
+        match $ty:tt, $e:expr; $name:ident
+            @(($variant:ident, _) $(, $rest:tt)*)
+            @($($stack:literal),*)
+            $($arms:tt)*
+    ) => {
+        $crate::identifier!(@internal
+            match $ty, $e; $name
+                @($($rest),*)
+                @($($stack),*),
+                $($arms),*
+        );
     };
-    (@internal match $ty:tt, $e:expr; $name:ident @(($variant:ident, $value:literal) $(, $rest:tt)*), $($arms:tt)*) => {
-        $crate::identifier!(@internal match $e; $name @($($rest),*) ,$value => Ok($name::$variant), $($arms),*);
+    (@internal
+        match $ty:tt, $e:expr; $name:ident
+            @(($variant:ident, $value:literal) $(, $rest:tt)*)
+            @($($stack:literal),*)
+            $($arms:tt)*
+    ) => {
+        $crate::identifier!(@internal
+            match $ty, $e; $name
+                @($($rest),*)
+                @($value $(, $stack)*)
+                $value => Ok($name::$variant), $($arms)*
+        );
     };
 
-    (@internal match str, $e:expr; $name:ident @(), $($arms:tt)*) => {
+    (@internal
+        match str, $e:expr; $name:ident
+            @()
+            @($($stack:literal),*)
+            $($arms:tt)*
+    ) => {
         match $e {
             $($arms)*
-            _ => Err($crate::export::error_stack::Report::new($crate::error::Variant::into_error($crate::error::UnknownIdentifierError)))
+            value => Err(
+                $crate::export::error_stack::Report::new(
+                    $crate::error::Variant::into_error(
+                        $crate::error::UnknownIdentifierError
+                    )
+                )
+                $(
+                    .attach($crate::error::ExpectedIdentifier::String($stack))
+                )*
+                .attach($crate::error::ReceivedIdentifier::String(value.to_owned()))
+                .change_context($crate::error::VisitorError)
+            )
+        }
+    };
+
+    (@internal
+        match bytes, $e:expr; $name:ident
+            @()
+            @($($stack:literal),*)
+            $($arms:tt)*
+    ) => {
+        match $e {
+            $($arms)*
+            value => Err(
+                $crate::export::error_stack::Report::new(
+                    $crate::error::Variant::into_error(
+                        $crate::error::UnknownIdentifierError
+                    )
+                )
+                $(
+                    .attach($crate::error::ExpectedIdentifier::Bytes($stack))
+                )*
+                .attach($crate::error::ReceivedIdentifier::Bytes(value.to_owned()))
+                .change_context($crate::error::VisitorError)
+            )
+        }
+    };
+
+    (@internal
+        match u64, $e:expr; $name:ident
+            @()
+            @($($stack:literal),*)
+            $($arms:tt)*
+    ) => {
+        match $e {
+            $($arms)*
+            value => Err(
+                $crate::export::error_stack::Report::new(
+                    $crate::error::Variant::into_error(
+                        $crate::error::UnknownIdentifierError
+                    )
+                )
+                $(
+                    .attach($crate::error::ExpectedIdentifier::U64($stack))
+                )*
+                .attach($crate::error::ReceivedIdentifier::U64(value))
+                .change_context($crate::error::VisitorError)
+            )
         }
     };
 
@@ -144,25 +226,31 @@ macro_rules! identifier {
                     type Value = $name;
 
                     fn expecting(&self) -> $crate::Document {
-                        Self::Value::document()
+                        <Self::Value as $crate::Reflection>::document()
                     }
 
                     fn visit_str(self, value: &str) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
-                        identifier!(@internal match value; $name @($(($variant, $str)),*),)
+                        identifier!(@internal
+                            match str, value; $name
+                            @($(($variant, $str)),*)
+                            @()
+                        )
                     }
 
                     fn visit_bytes(self, value: &[u8]) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
-                        match value {
-                            // $($crate::identifier!(@internal match arm $name :: $variant => $bytes))*
-                            _ => todo!()
-                        }
+                        identifier!(@internal
+                            match bytes, value; $name
+                            @($(($variant, $bytes)),*)
+                            @()
+                        )
                     }
 
                     fn visit_u64(self, value: u64) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
-                        match value {
-                            // $($crate::identifier!(@internal match arm $name :: $variant => $u64))*
-                            _ => todo!()
-                        }
+                        identifier!(@internal
+                            match u64, value; $name
+                            @($(($variant, $u64)),*)
+                            @()
+                        )
                     }
                 }
 
