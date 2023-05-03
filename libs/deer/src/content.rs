@@ -563,6 +563,7 @@ impl<'de> Deserializer<'de> for ContentRefDeserializer<'_, 'de> {
         todo!()
     }
 
+    // TODO: is there a better way? I don't think without specialization (default impl)
     fn __deserialize_content<V>(self, _: T, visitor: V) -> Result<Content<'de>, DeserializerError>
     where
         V: Visitor<'de, Value = Content<'de>>,
