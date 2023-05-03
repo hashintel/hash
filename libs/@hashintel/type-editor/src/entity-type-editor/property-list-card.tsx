@@ -71,6 +71,7 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
+import { usePropertyShortname } from "./shared/use-property-shortname";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 
@@ -356,12 +357,14 @@ export const PropertyTypeRow = ({
   const propertyTypesOptions = usePropertyTypesOptions();
   const property = propertyTypesOptions[propertyId];
 
-  const { updatePropertyType } = useOntologyFunctions();
+  const { updatePropertyType, canEditResource } = useOntologyFunctions();
 
   const [currentVersion, latestVersion] = useTypeVersions(
     propertyId,
     propertyTypesOptions,
   );
+
+  const propertyShortname = usePropertyShortname(propertyId);
 
   const getDefaultValues = useCallback(() => {
     if (!property) {
@@ -384,6 +387,12 @@ export const PropertyTypeRow = ({
   }
 
   const $id = property.$id;
+
+  const editDisabledReason = !canEditResource(propertyShortname)
+    ? "Can't edit property types that belong to other users or organizations you aren't a member of"
+    : currentVersion !== latestVersion
+    ? "Update the property type to the latest version to edit"
+    : undefined;
 
   return (
     <>
@@ -411,12 +420,7 @@ export const PropertyTypeRow = ({
             onRemove={onRemove}
             typeId={property.$id}
             variant="property"
-            {...(currentVersion !== latestVersion
-              ? {
-                  editButtonDisabled:
-                    "Update the property type to the latest version to edit",
-                }
-              : {})}
+            editButtonDisabled={editDisabledReason}
           />
         }
         onUpdateVersion={onUpdateVersion}

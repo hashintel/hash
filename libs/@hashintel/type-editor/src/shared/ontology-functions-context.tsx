@@ -9,13 +9,18 @@ export type TitleValidationFunction = (proposal: {
   message: string;
 }>;
 
+export type canEditResourceFunction = (resourceNamespace: string) => boolean;
+
 export type EditorOntologyFunctions = Pick<
   GraphEmbedderMessageCallbacks,
   | "createPropertyType"
   | "updatePropertyType"
   | "createEntityType"
   | "updateEntityType"
-> & { validateTitle: TitleValidationFunction };
+> & {
+  validateTitle: TitleValidationFunction;
+  canEditResource: canEditResourceFunction;
+};
 
 export const OntologyFunctionsContext =
   createContext<EditorOntologyFunctions | null>(null);

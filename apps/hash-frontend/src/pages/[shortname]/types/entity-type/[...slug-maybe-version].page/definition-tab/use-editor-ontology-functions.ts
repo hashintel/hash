@@ -1,3 +1,4 @@
+import { useIsReadonlyModeForResource } from "./../../../../../../shared/readonly-mode";
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
 import { OwnedById } from "@local/hash-subgraph";
 import {
@@ -15,11 +16,13 @@ import { useBlockProtocolUpdatePropertyType } from "../../../../../../components
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
 import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
 import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
+import { AuthenticatedUser } from "../../../../../../lib/user-and-org";
 
 type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
 
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,
+  user: AuthenticatedUser | undefined,
 ): EntityTypeEditorProps["ontologyFunctions"] => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { createEntityType } = useBlockProtocolCreateEntityType(ownedById);
@@ -123,11 +126,26 @@ export const useEditorOntologyFunctions = (
     [generateTypeUrlsForUser, getEntityType, getPropertyType],
   );
 
+  const canEditResource = useCallback(
+    (resourceNamespace: string) => {
+      if (!resourceNamespace || !user) {
+        return false;
+      }
+
+      return !!(
+        resourceNamespace === user.shortname ||
+        user.memberOf.find((org) => org.shortname === resourceNamespace)
+      );
+    },
+    [user],
+  );
+
   return {
     createEntityType: wrappedCreateEntityType,
     updateEntityType: wrappedUpdateEntityType,
     createPropertyType: wrappedCreatePropertyType,
     updatePropertyType: wrappedUpdatePropertyType,
     validateTitle,
+    canEditResource,
   };
 };
