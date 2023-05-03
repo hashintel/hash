@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::DeserializerError, value::IntoDeserializer, Context, Deserializer, EnumVisitor,
-    OptionalVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    value::IntoDeserializer,
+    Context, Deserializer, EnumVisitor, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 
 impl_deserializer!(
@@ -12,6 +13,7 @@ impl_deserializer!(
     deserialize_any!(visit_borrowed_bytes);
     deserialize_optional!();
     deserialize_enum!();
+    deserialize_struct!(error, [u8]);
 );
 
 impl_deserializer!(
@@ -19,6 +21,7 @@ impl_deserializer!(
     deserialize_any!(visit_bytes);
     deserialize_optional!();
     deserialize_enum!();
+    deserialize_struct!(error, [u8]);
 );
 
 impl_deserializer!(
@@ -26,4 +29,5 @@ impl_deserializer!(
     deserialize_any!(visit_bytes_buffer);
     deserialize_optional!();
     deserialize_enum!();
+    deserialize_struct!(error, [u8]);
 );

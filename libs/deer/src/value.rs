@@ -1,7 +1,9 @@
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::DeserializerError, Context, Deserializer, EnumVisitor, Number, OptionalVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, Reflection,
+    StructVisitor, Visitor,
 };
 
 pub trait IntoDeserializer<'de> {
@@ -89,6 +91,26 @@ macro_rules! deserialize_enum {
             V: EnumVisitor<'de>,
         {
             $crate::value::EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+        }
+    };
+}
+
+macro_rules! deserialize_struct {
+    ($name:ident, $primitive:ty,error) => {
+        deserialize_struct!($name, $primitive, error, <bool as Deserialize>::Reflection);
+    };
+    ($name:ident, $primitive:ty,error, $expected:ty) => {
+        fn deserialize_struct<V>(
+            self,
+            visitor: V,
+        ) -> error_stack::Result<V::Value, DeserializerError>
+        where
+            V: StructVisitor<'de>,
+        {
+            Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(<$expected>::document()))
+                .change_context(DeserializerError))
         }
     };
 }
@@ -203,6 +225,7 @@ impl_deserializer!(
     deserialize_any!(visit_bool);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -210,6 +233,7 @@ impl_deserializer!(
     deserialize_any!(visit_char);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -217,6 +241,7 @@ impl_deserializer!(
     deserialize_any!(visit_u8);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -224,6 +249,7 @@ impl_deserializer!(
     deserialize_any!(visit_u16);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -231,6 +257,7 @@ impl_deserializer!(
     deserialize_any!(visit_u32);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -238,6 +265,7 @@ impl_deserializer!(
     deserialize_any!(visit_u64);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -245,6 +273,7 @@ impl_deserializer!(
     deserialize_any!(visit_u128);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(target_pointer_width = "16")]
@@ -253,6 +282,7 @@ impl_deserializer!(
     deserialize_any!(as, u16, visit_u16);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(target_pointer_width = "32")]
@@ -261,6 +291,7 @@ impl_deserializer!(
     deserialize_any!(as, u32, visit_u32);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(not(any(
@@ -273,6 +304,7 @@ impl_deserializer!(
     deserialize_any!(as, u64, visit_u64);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(target_pointer_width = "128")]
@@ -281,6 +313,7 @@ impl_deserializer!(
     deserialize_any!(as, u128, visit_u128);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -288,6 +321,7 @@ impl_deserializer!(
     deserialize_any!(visit_i8);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -295,6 +329,7 @@ impl_deserializer!(
     deserialize_any!(visit_i16);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -302,6 +337,7 @@ impl_deserializer!(
     deserialize_any!(visit_i32);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -309,6 +345,7 @@ impl_deserializer!(
     deserialize_any!(visit_i64);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -316,6 +353,7 @@ impl_deserializer!(
     deserialize_any!(visit_i128);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(target_pointer_width = "16")]
@@ -324,6 +362,7 @@ impl_deserializer!(
     deserialize_any!(as, i16, visit_i16);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(target_pointer_width = "32")]
@@ -332,6 +371,7 @@ impl_deserializer!(
     deserialize_any!(as, i32, visit_i32);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(not(any(
@@ -344,6 +384,7 @@ impl_deserializer!(
     deserialize_any!(as, i64, visit_i64);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[cfg(target_pointer_width = "128")]
@@ -352,6 +393,7 @@ impl_deserializer!(
     deserialize_any!(as, i128, visit_i128);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -359,6 +401,7 @@ impl_deserializer!(
     deserialize_any!(visit_f32);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -366,6 +409,7 @@ impl_deserializer!(
     deserialize_any!(visit_f64);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 impl_deserializer!(
@@ -373,6 +417,7 @@ impl_deserializer!(
     deserialize_any!(visit_number);
     deserialize_enum!();
     deserialize_optional!();
+    deserialize_struct!(error);
 );
 
 #[derive(Debug, Copy, Clone)]
@@ -430,6 +475,15 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -481,6 +535,16 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .attach(ReceivedType::new(<()>::reflection()))
+            .change_context(DeserializerError))
+    }
 }
 
 // down here so that they can make use of the macros
@@ -493,3 +557,5 @@ pub use array::ArrayAccessDeserializer;
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
+
+use crate::error::MissingError;

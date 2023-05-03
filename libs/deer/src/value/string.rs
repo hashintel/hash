@@ -1,10 +1,11 @@
 use alloc::string::String;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::DeserializerError, value::IntoDeserializer, Context, Deserializer, EnumVisitor,
-    OptionalVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    value::IntoDeserializer,
+    Context, Deserializer, EnumVisitor, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 
 impl_deserializer!(
@@ -12,6 +13,7 @@ impl_deserializer!(
     deserialize_any!(visit_str);
     deserialize_optional!();
     deserialize_enum!();
+    deserialize_struct!(error, str);
 );
 
 impl_deserializer!(
@@ -19,6 +21,7 @@ impl_deserializer!(
     deserialize_any!(visit_borrowed_str);
     deserialize_optional!();
     deserialize_enum!();
+    deserialize_struct!(error, str);
 );
 
 impl_deserializer!(
@@ -26,4 +29,5 @@ impl_deserializer!(
     deserialize_any!(visit_string);
     deserialize_optional!();
     deserialize_enum!();
+    deserialize_struct!(error, str);
 );
