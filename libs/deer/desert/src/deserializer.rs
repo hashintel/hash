@@ -212,7 +212,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
                 }
             }
             token => {
-                skip_tokens(&mut self, &token);
+                skip_tokens(self, &token);
 
                 Err(Report::new(TypeError.into_error())
                     .attach(ExpectedType::new(visitor.expecting()))
