@@ -7,7 +7,7 @@ Components for specific use in blocks.
 
 ## Running Storybook
 
-The Block Design System can be previewed in the hosted [HASH Storybook], as well as locally (alongside the [HASH Design System]) by running the following command:
+The Block Design System can be viewed as part of the live, hosted [HASH Storybook]. To preview the Block Design System alongside the [HASH Design System] locally, on your machine, run the following command:
 
 ```bash
 turbo --filter '@apps/hashdotdesign' storybook
