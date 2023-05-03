@@ -7,6 +7,7 @@ use crate::{
         ArrayAccessError, DeserializeError, DeserializerError, Error, ExpectedType, MissingError,
         ObjectAccessError, ReceivedValue, TypeError, ValueError, Variant, VisitorError,
     },
+    ext::TupleExt,
     sealed::T,
     ArrayAccess, Context, Deserialize, Deserializer, Document, EnumVisitor, Number, ObjectAccess,
     OptionalVisitor, Reflection, Visitor,
