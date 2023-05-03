@@ -123,8 +123,8 @@ macro_rules! identifier {
         $crate::identifier!(@internal
             match $ty, $e; $name
                 @($($rest),*)
-                @($value $(, $stack)*)
-                $value => Ok($name::$variant), $($arms)*
+                @($($stack, )* $value)
+                $($arms)* $value => Ok($name::$variant),
         );
     };
 
@@ -197,6 +197,42 @@ macro_rules! identifier {
         }
     };
 
+    (@internal reflection $name:ident;
+        @($next:literal $(, $rest:tt)*)
+        @($($stack:literal),*)
+    ) => {
+        $crate::identifier!(
+            @internal reflection $name;
+                @($($rest),*)
+                @($($stack, )* $next)
+        );
+    };
+
+    (@internal reflection $name:ident;
+        @(_ $(, $rest:tt)*)
+        @($($stack:literal),*)
+    ) => {
+        $crate::identifier!(
+            @internal reflection $name;
+                @($($rest),*)
+                @($($stack),*)
+        );
+    };
+
+    (@internal reflection $name:ident;
+        @()
+        @($($stack:literal),*)
+    ) => {
+        impl $crate::Reflection for $name {
+            fn schema(doc: &mut $crate::Document) -> $crate::Schema {
+                // we lack the ability to properly express OR, so for now we just default to
+                // output the string representation
+                $crate::Schema::new("string").with("enum", [$($stack),*])
+            }
+        }
+    };
+
+
     (
         $(#[$meta:meta])*
         $vis:vis enum $name:ident {
@@ -209,11 +245,11 @@ macro_rules! identifier {
             $($variant),*
         }
 
-        impl $crate::Reflection for $name {
-            fn schema(doc: &mut $crate::Document) -> $crate::Schema {
-                todo!()
-            }
-        }
+        $crate::identifier!(
+            @internal reflection $name;
+                @($($str),*)
+                @()
+        );
 
         impl<'de> $crate::Deserialize<'de> for $name {
             type Reflection = Self;

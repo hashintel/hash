@@ -34,7 +34,7 @@ fn ident_str_err() {
             ns: "deer",
             id: ["unknown", "identifier"],
             properties: {
-                "expected": ["c", "b", "a"],
+                "expected": ["a", "b", "c"],
                 "received": ["d"],
                 "location": []
             }
@@ -75,7 +75,7 @@ fn ident_bytes_err() {
             ns: "deer",
             id: ["unknown", "identifier"],
             properties: {
-                "expected": [b"c", b"b", b"a"],
+                "expected": [b"a", b"b", b"c"],
                 "received": [b"d"],
                 "location": []
             }
@@ -116,7 +116,7 @@ fn ident_u64_err() {
             ns: "deer",
             id: ["unknown", "identifier"],
             properties: {
-                "expected": [2, 1, 0],
+                "expected": [0, 1, 2],
                 "received": [3],
                 "location": []
             }
