@@ -14,8 +14,8 @@ impl<'de> Visitor<'de> for BoolVisitor {
         bool::document()
     }
 
-    fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_bool(self, value: bool) -> Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 }
 
@@ -28,8 +28,9 @@ impl Reflection for bool {
 impl<'de> Deserialize<'de> for bool {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_bool(BoolVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_bool(BoolVisitor)
             .change_context(DeserializeError)
     }
 }

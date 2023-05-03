@@ -2,7 +2,8 @@ import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
-import { AiAssistantMessage, theme } from "@hashintel/design-system";
+import { AiAssistantMessage } from "@hashintel/block-design-system";
+import { theme } from "@hashintel/design-system";
 import { ThemeProvider } from "@mui/material";
 
 import { GenerateText } from "./app/generate-text";

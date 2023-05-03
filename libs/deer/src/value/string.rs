@@ -1,11 +1,11 @@
 use alloc::string::String;
 
-use error_stack::ResultExt;
+use error_stack::{Report, ResultExt};
 
 use crate::{
-    error::DeserializerError,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     value::{impl_owned, EnumUnitDeserializer, IntoDeserializer, NoneDeserializer},
-    Context, Deserializer, EnumVisitor, OptionalVisitor, Visitor,
+    Context, Deserializer, EnumVisitor, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -26,8 +26,8 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -68,6 +68,16 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
             .visit_value(discriminant, NoneDeserializer::new(context))
             .change_context(DeserializerError)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(str::document()))
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
+    }
 }
 
 impl<'de, 'b> IntoDeserializer<'de> for &'b str {
@@ -99,8 +109,8 @@ impl<'de> Deserializer<'de> for BorrowedStrDeserializer<'_, 'de> {
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -132,6 +142,16 @@ impl<'de> Deserializer<'de> for BorrowedStrDeserializer<'_, 'de> {
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(str::document()))
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }
 
