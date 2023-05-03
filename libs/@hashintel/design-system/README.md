@@ -1,6 +1,6 @@
 # HASH Design System
 
-Components for use in other libraries, applications and blocks. Design system components are in the process of gradually being made accessible within the [HASH Storybook](https://hash.design/).
+Components for use in libraries and applications. Design system components are in the process of gradually being made accessible within the [HASH Storybook](https://hash.design/).
 
 ## Running Storybook
 
