@@ -1,9 +1,10 @@
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
+use num_traits::NumCast;
 
 use crate::{
     error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
-    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, Reflection,
-    StructVisitor, Visitor,
+    Context, Deserialize, Deserializer, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
+    Reflection, StructVisitor, Visitor,
 };
 
 pub trait IntoDeserializer<'de> {
@@ -99,7 +100,7 @@ macro_rules! deserialize_struct {
     ($name:ident, $primitive:ty,error) => {
         deserialize_struct!($name, $primitive, error, <bool as Deserialize>::Reflection);
     };
-    ($name:ident, $primitive:ty,error, $expected:ty) => {
+    ($name:ident, $primitive:ty,error, $received:ty) => {
         fn deserialize_struct<V>(
             self,
             visitor: V,
@@ -109,7 +110,7 @@ macro_rules! deserialize_struct {
         {
             Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$expected>::document()))
+                .attach(ReceivedType::new(<$received>::document()))
                 .change_context(DeserializerError))
         }
     };
@@ -118,31 +119,28 @@ macro_rules! deserialize_struct {
 // TODO: we should always first try the smaller number?
 // TODO: possibility for borrowed values vs. borrowed by "just normal"
 macro_rules! deserialize_identifier {
-    ($name:ident, $primitive:ty, !) => {
+    ($name:ident, $primitive:ty,error) => {
+        deserialize_identifier!(
+            $name,
+            $primitive,
+            error,
+            <$primitive as Deserialize>::Reflection
+        );
+    };
+
+    ($name:ident, $primitive:ty,error, $received:ty) => {
         fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
         where
             V: IdentifierVisitor<'de>,
         {
             Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$primitive>::document()))
+                .attach(ReceivedType::new(<$received>::document()))
                 .change_context(DeserializerError))
         }
     };
 
-    ($name:ident, $primitive:ty, ! , $reflection:ty) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-        where
-            V: IdentifierVisitor<'de>,
-        {
-            Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$reflection>::document()))
-                .change_context(DeserializerError))
-        }
-    };
-
-    ($name:ident, $primitive:ty,deref, $visit:ident) => {
+    ($name:ident, $primitive:ty,visit,deref, $visit:ident) => {
         fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
         where
             V: IdentifierVisitor<'de>,
@@ -153,12 +151,12 @@ macro_rules! deserialize_identifier {
         }
     };
 
-    ($name:ident, $primitive:ty,to, $to:ident, $visit:ident) => {
+    ($name:ident, $primitive:ty,visit,cast, $visit:ident) => {
         fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
         where
             V: IdentifierVisitor<'de>,
         {
-            let value = self.value.$to().ok_or_else(|| {
+            let value = NumCast::from(self.value).ok_or_else(|| {
                 Report::new(TypeError.into_error())
                     .attach(ExpectedType::new(visitor.expecting()))
                     .attach(ReceivedType::new(<$primitive>::reflection()))
@@ -166,6 +164,17 @@ macro_rules! deserialize_identifier {
             })?;
 
             visitor.$visit(value).change_context(DeserializerError)
+        }
+    };
+
+    ($name:ident, $primitive:ty,visit,as, $visit:ident) => {
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            visitor
+                .$visit(self.value as _)
+                .change_context(DeserializerError)
         }
     };
 
@@ -180,7 +189,7 @@ macro_rules! deserialize_identifier {
         }
     };
 
-    ($name:ident, $primitive:ty,try, $visit:ident) => {
+    ($name:ident, $primitive:ty,try_visit, $visit:ident) => {
         fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
         where
             V: IdentifierVisitor<'de>,
@@ -310,6 +319,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(error);
 );
 
 impl_deserializer!(
@@ -318,6 +328,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(error);
 );
 
 impl_deserializer!(
@@ -326,6 +337,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, visit_u8);
 );
 
 impl_deserializer!(
@@ -334,6 +346,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -342,6 +355,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -350,6 +364,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -358,6 +373,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 #[cfg(target_pointer_width = "16")]
@@ -367,6 +383,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, visit_u64);
 );
 
 #[cfg(target_pointer_width = "32")]
@@ -376,6 +393,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, as, visit_u64);
 );
 
 #[cfg(not(any(
@@ -389,6 +407,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, as, visit_u64);
 );
 
 #[cfg(target_pointer_width = "128")]
@@ -398,6 +417,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -406,6 +426,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u8);
 );
 
 impl_deserializer!(
@@ -414,6 +435,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -422,6 +444,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -430,6 +453,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -438,6 +462,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 #[cfg(target_pointer_width = "16")]
@@ -447,6 +472,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 #[cfg(target_pointer_width = "32")]
@@ -456,6 +482,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 #[cfg(not(any(
@@ -469,6 +496,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 #[cfg(target_pointer_width = "128")]
@@ -478,6 +506,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(try_visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -486,6 +515,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(error);
 );
 
 impl_deserializer!(
@@ -494,6 +524,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(error);
 );
 
 impl_deserializer!(
@@ -502,6 +533,7 @@ impl_deserializer!(
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);
+    deserialize_identifier!(visit, cast, visit_u64);
 );
 
 #[derive(Debug, Copy, Clone)]
@@ -568,6 +600,15 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .attach(ExpectedType::new(visitor.expecting()))
             .change_context(DeserializerError))
     }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -623,6 +664,16 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .attach(ReceivedType::new(<()>::reflection()))
+            .change_context(DeserializerError))
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
     {
         Err(Report::new(TypeError.into_error())
             .attach(ExpectedType::new(visitor.expecting()))

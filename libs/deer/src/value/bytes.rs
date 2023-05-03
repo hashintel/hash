@@ -5,7 +5,8 @@ use error_stack::{Report, Result, ResultExt};
 use crate::{
     error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     value::IntoDeserializer,
-    Context, Deserializer, EnumVisitor, OptionalVisitor, Reflection, StructVisitor, Visitor,
+    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection,
+    StructVisitor, Visitor,
 };
 
 impl_deserializer!(
@@ -14,6 +15,7 @@ impl_deserializer!(
     deserialize_optional!();
     deserialize_enum!();
     deserialize_struct!(error, [u8]);
+    deserialize_identifier!(visit, visit_bytes);
 );
 
 impl_deserializer!(
@@ -22,6 +24,7 @@ impl_deserializer!(
     deserialize_optional!();
     deserialize_enum!();
     deserialize_struct!(error, [u8]);
+    deserialize_identifier!(visit, visit_bytes);
 );
 
 impl_deserializer!(
@@ -30,4 +33,5 @@ impl_deserializer!(
     deserialize_optional!();
     deserialize_enum!();
     deserialize_struct!(error, [u8]);
+    deserialize_identifier!(visit, deref, visit_bytes);
 );
