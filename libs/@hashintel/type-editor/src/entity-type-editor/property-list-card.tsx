@@ -72,7 +72,6 @@ import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
-import { useTypeNamespace } from "./shared/use-type-namespace";
 import { useTypeVersions } from "./shared/use-type-versions";
 
 const CollapsibleTableRow = ({
@@ -364,8 +363,6 @@ export const PropertyTypeRow = ({
     propertyTypesOptions,
   );
 
-  const propertyNamespace = useTypeNamespace(propertyId);
-
   const getDefaultValues = useCallback(() => {
     if (!property) {
       throw new Error("Missing property type");
@@ -388,7 +385,7 @@ export const PropertyTypeRow = ({
 
   const $id = property.$id;
 
-  const editDisabledReason = !canEditResource(propertyNamespace)
+  const editDisabledReason = !canEditResource(property)
     ? "Can't edit property types that belong to other users or organizations you aren't a member of"
     : currentVersion !== latestVersion
     ? "Update the property type to the latest version to edit"

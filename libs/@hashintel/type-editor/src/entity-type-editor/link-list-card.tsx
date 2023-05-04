@@ -46,7 +46,6 @@ import {
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
-import { useTypeNamespace } from "./shared/use-type-namespace";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
 
@@ -111,8 +110,6 @@ const LinkTypeRow = ({
     linkTypes,
   );
 
-  const linkNamespace = useTypeNamespace(linkId);
-
   if (!link) {
     throw new Error(`Link entity type with ${linkId} not found in options`);
   }
@@ -143,7 +140,7 @@ const LinkTypeRow = ({
     editModalPopupState.close();
   };
 
-  const editDisabledReason = !canEditResource(linkNamespace)
+  const editDisabledReason = !canEditResource(link)
     ? "Can't edit link types that belong to other users or organizations you aren't a member of"
     : currentVersion !== latestVersion
     ? "Update the link type to the latest version to edit"

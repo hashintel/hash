@@ -1,10 +1,12 @@
-import {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { AccountId, BaseUrl, OwnedById, Subgraph } from "@local/hash-subgraph";
+import {
+  AccountId,
+  BaseUrl,
+  OwnedById,
+  PropertyTypeWithMetadata,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityTypesByBaseUrl,
   getPropertyTypeById,
@@ -31,16 +33,17 @@ import {
 const getPropertyTypes = (
   properties: any,
   subgraph: Subgraph,
-  propertyTypes?: Map<string, PropertyType>,
+  propertyTypes?: Map<string, PropertyTypeWithMetadata>,
 ) => {
-  let propertyTypesMap = propertyTypes ?? new Map<string, PropertyType>();
+  let propertyTypesMap =
+    propertyTypes ?? new Map<string, PropertyTypeWithMetadata>();
   for (const prop of properties) {
     const propertyUrl = "items" in prop ? prop.items.$ref : prop.$ref;
     if (!propertyTypesMap.has(propertyUrl)) {
-      const propertyType = getPropertyTypeById(subgraph, propertyUrl)?.schema;
+      const propertyType = getPropertyTypeById(subgraph, propertyUrl);
 
       if (propertyType) {
-        for (const childProp of propertyType.oneOf) {
+        for (const childProp of propertyType.schema.oneOf) {
           if ("type" in childProp && childProp.type === "object") {
             propertyTypesMap = getPropertyTypes(
               Object.values(childProp.properties),

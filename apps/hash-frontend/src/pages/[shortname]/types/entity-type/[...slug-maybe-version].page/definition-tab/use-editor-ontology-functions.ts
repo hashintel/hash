@@ -1,5 +1,14 @@
+import {
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypeById,
@@ -22,6 +31,10 @@ type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,
   user: AuthenticatedUser | undefined,
+  typesWithMetadata: Record<
+    VersionedUrl,
+    EntityTypeWithMetadata | PropertyTypeWithMetadata
+  >,
 ): EntityTypeEditorProps["ontologyFunctions"] => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { createEntityType } = useBlockProtocolCreateEntityType(ownedById);
@@ -126,17 +139,27 @@ export const useEditorOntologyFunctions = (
   );
 
   const canEditResource = useCallback(
-    (resourceNamespace: string) => {
-      if (!resourceNamespace || !user) {
+    (resource: EntityType | PropertyType) => {
+      if (!user) {
+        return false;
+      }
+
+      const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
+      const resourceAccountId =
+        resourceMetadata &&
+        "ownedById" in resourceMetadata &&
+        resourceMetadata.ownedById;
+
+      if (!resourceAccountId) {
         return false;
       }
 
       return !!(
-        resourceNamespace === user.shortname ||
-        user.memberOf.find((org) => org.shortname === resourceNamespace)
+        resourceAccountId === user.accountId ||
+        user.memberOf.find((org) => org.accountId === resourceAccountId)
       );
     },
-    [user],
+    [typesWithMetadata, user],
   );
 
   return {

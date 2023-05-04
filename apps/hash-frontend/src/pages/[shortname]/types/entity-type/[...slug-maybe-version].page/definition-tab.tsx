@@ -1,7 +1,11 @@
 import { EntityType } from "@blockprotocol/graph";
-import { PropertyType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
@@ -11,11 +15,24 @@ import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
 
+const getTypesWithoutMetadata = <
+  T extends EntityTypeWithMetadata | PropertyTypeWithMetadata,
+>(
+  typesWithMetadata: Record<VersionedUrl, T>,
+): Record<VersionedUrl, T["schema"]> => {
+  return Object.fromEntries(
+    Object.entries(typesWithMetadata).map(([$id, typeWithMetadata]) => [
+      $id,
+      typeWithMetadata.schema,
+    ]),
+  );
+};
+
 type DefinitionTabProps = {
   ownedById?: OwnedById;
   entityTypeAndPropertyTypes: {
     entityType: EntityType;
-    propertyTypes: Record<VersionedUrl, PropertyType>;
+    propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
   readonly: boolean;
 };
@@ -27,31 +44,50 @@ export const DefinitionTab = ({
 }: DefinitionTabProps) => {
   const { authenticatedUser } = useAuthInfo();
 
-  const ontologyFunctions = useEditorOntologyFunctions(
-    ownedById ?? null,
-    authenticatedUser,
-  );
-
   const router = useRouter();
 
   const entityTypesContext = useEntityTypesContextRequired();
   const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
 
-  const propertyTypeOptions = useMemo(() => {
-    return {
+  const [propertyTypeOptionsWithMetadata, propertyTypeOptions] = useMemo(() => {
+    const propertyTypesWithMetadata = {
       ...possiblyIncompletePropertyTypeOptions,
       ...entityTypeAndPropertyTypes.propertyTypes,
     };
+
+    return [
+      propertyTypesWithMetadata,
+      getTypesWithoutMetadata(propertyTypesWithMetadata),
+    ];
   }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
 
-  const entityTypeOptions = useMemo<Record<VersionedUrl, EntityType>>(() => {
-    return Object.fromEntries(
+  const [entityTypeOptionsWithMetadata, entityTypeOptions] = useMemo(() => {
+    const entityTypesWithMetadata = Object.fromEntries(
       (entityTypesContext.entityTypes ?? []).map((entityType) => [
         entityType.schema.$id,
-        entityType.schema,
+        entityType,
       ]),
     );
+
+    return [
+      entityTypesWithMetadata,
+      getTypesWithoutMetadata(entityTypesWithMetadata),
+    ];
   }, [entityTypesContext.entityTypes]);
+
+  const typesWithMetadata = useMemo(
+    () => ({
+      ...entityTypeOptionsWithMetadata,
+      ...propertyTypeOptionsWithMetadata,
+    }),
+    [entityTypeOptionsWithMetadata, propertyTypeOptionsWithMetadata],
+  );
+
+  const ontologyFunctions = useEditorOntologyFunctions(
+    ownedById ?? null,
+    authenticatedUser,
+    typesWithMetadata,
+  );
 
   const onNavigateToType = (url: string) => {
     if (isHrefExternal(url)) {

@@ -1,11 +1,11 @@
-import { PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { PropertyTypeWithMetadata } from "@local/hash-subgraph/.";
 import { createContext, PropsWithChildren, useContext } from "react";
 
 import { useLatestPropertyTypesContextValue } from "./use-latest-property-types-context-value";
 
 export type LatestPropertyTypesContextValues = {
-  propertyTypes: Record<VersionedUrl, PropertyType> | null;
+  propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata> | null;
   refetch: () => Promise<void>;
 };
 

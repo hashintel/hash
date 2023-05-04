@@ -1,4 +1,8 @@
-import { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph/temporal";
+import {
+  EntityType,
+  GraphEmbedderMessageCallbacks,
+  PropertyType,
+} from "@blockprotocol/graph/temporal";
 import { createContext, useContext } from "react";
 
 export type TitleValidationFunction = (proposal: {
@@ -9,7 +13,9 @@ export type TitleValidationFunction = (proposal: {
   message: string;
 }>;
 
-export type canEditResourceFunction = (resourceNamespace: string) => boolean;
+export type canEditResourceFunction = (
+  resource: PropertyType | EntityType,
+) => boolean;
 
 export type EditorOntologyFunctions = Pick<
   GraphEmbedderMessageCallbacks,
