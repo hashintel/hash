@@ -11,7 +11,6 @@ import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isHrefExternal } from "../../../../../shared/is-href-external";
-import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
 
@@ -42,8 +41,6 @@ export const DefinitionTab = ({
   ownedById,
   readonly,
 }: DefinitionTabProps) => {
-  const { authenticatedUser } = useAuthInfo();
-
   const router = useRouter();
 
   const entityTypesContext = useEntityTypesContextRequired();
@@ -85,7 +82,6 @@ export const DefinitionTab = ({
 
   const ontologyFunctions = useEditorOntologyFunctions(
     ownedById ?? null,
-    authenticatedUser,
     typesWithMetadata,
   );
 

@@ -13,9 +13,13 @@ export type TitleValidationFunction = (proposal: {
   message: string;
 }>;
 
-export type canEditResourceFunction = (
-  resource: PropertyType | EntityType,
-) => boolean;
+export type canEditResourceFunction = (proposal: {
+  kind: "link-type" | "property-type";
+  resource: PropertyType | EntityType;
+}) => {
+  allowed: boolean;
+  message: string;
+};
 
 export type EditorOntologyFunctions = Pick<
   GraphEmbedderMessageCallbacks,

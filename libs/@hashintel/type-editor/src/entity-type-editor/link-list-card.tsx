@@ -140,11 +140,18 @@ const LinkTypeRow = ({
     editModalPopupState.close();
   };
 
-  const editDisabledReason = !canEditResource(link)
-    ? "Can't edit link types that belong to other users or organizations you aren't a member of"
-    : currentVersion !== latestVersion
-    ? "Update the link type to the latest version to edit"
-    : undefined;
+  const editDisabledReason = useMemo(() => {
+    const canEdit = canEditResource({
+      kind: "link-type",
+      resource: link,
+    });
+
+    return !canEdit.allowed
+      ? canEdit.message
+      : currentVersion !== latestVersion
+      ? "Update the link type to the latest version to edit"
+      : undefined;
+  }, [canEditResource, link, currentVersion, latestVersion]);
 
   return (
     <>
