@@ -9,6 +9,7 @@ import {
   mapFormValuesToMultiFilter,
   mapMultiFilterToFormValues,
 } from "./query-form/filter-row/utils";
+import { useReadonlyContext } from "./readonly-context";
 import { FormValues } from "./types";
 
 interface QueryFormProps {
@@ -28,6 +29,7 @@ export const QueryForm = ({
   propertyTypes,
   defaultValue,
 }: QueryFormProps) => {
+  const readonly = useReadonlyContext();
   const form = useForm<FormValues>({
     defaultValues: defaultValue
       ? mapMultiFilterToFormValues(defaultValue)
@@ -77,26 +79,28 @@ export const QueryForm = ({
           </Stack>
         )}
 
-        <Box>
-          <Button
-            onClick={handleAddCondition}
-            variant="tertiary_quiet"
-            size="xs"
-            startIcon={
-              <FontAwesomeIcon
-                icon={faPlus}
-                sx={{ color: ({ palette }) => palette.gray[80] }}
-              />
-            }
-            sx={{
-              color: ({ palette }) => palette.gray[80],
-              fontSize: 13,
-              fontWeight: "500",
-            }}
-          >
-            ADD CONDITION
-          </Button>
-        </Box>
+        {!readonly && (
+          <Box>
+            <Button
+              onClick={handleAddCondition}
+              variant="tertiary_quiet"
+              size="xs"
+              startIcon={
+                <FontAwesomeIcon
+                  icon={faPlus}
+                  sx={{ color: ({ palette }) => palette.gray[80] }}
+                />
+              }
+              sx={{
+                color: ({ palette }) => palette.gray[80],
+                fontSize: 13,
+                fontWeight: "500",
+              }}
+            >
+              ADD CONDITION
+            </Button>
+          </Box>
+        )}
 
         {!!filtersError && (
           <Typography sx={{ color: ({ palette }) => palette.red[70] }}>
@@ -108,15 +112,19 @@ export const QueryForm = ({
           <Button onClick={form.handleSubmit(onSubmitPreview)}>
             Preview query
           </Button>
-          <Button
-            onClick={form.handleSubmit(onSubmitSave)}
-            sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
-          >
-            Save query
-          </Button>
-          <Button variant="tertiary" onClick={onDiscard}>
-            Discard query
-          </Button>
+          {!readonly && (
+            <Button
+              onClick={form.handleSubmit(onSubmitSave)}
+              sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
+            >
+              Save query
+            </Button>
+          )}
+          {!readonly && (
+            <Button variant="tertiary" onClick={onDiscard}>
+              Discard query
+            </Button>
+          )}
         </Stack>
       </>
     </FormProvider>

@@ -3,6 +3,7 @@ import { MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
+import { useReadonlyContext } from "../../readonly-context";
 import { FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
 
@@ -14,6 +15,7 @@ export const EntityTypeSelector = ({
   entityTypes: EntityType[];
 }) => {
   const { control, formState } = useFormContext<FormValues>();
+  const readonly = useReadonlyContext();
 
   const hasError = !!formState.errors.filters?.[index]?.value;
 
@@ -28,6 +30,7 @@ export const EntityTypeSelector = ({
           size: "xs",
           displayEmpty: true,
           error: hasError,
+          disabled: readonly,
         }}
       >
         <MenuItem value="" disabled noSelectBackground>

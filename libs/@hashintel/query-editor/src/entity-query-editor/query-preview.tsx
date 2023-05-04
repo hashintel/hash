@@ -5,6 +5,8 @@ import { Button, Typography } from "@mui/material";
 import { Stack } from "@mui/system";
 import { useEffect, useState } from "react";
 
+import { useReadonlyContext } from "./readonly-context";
+
 interface QueryPreviewProps {
   onSave: (value: MultiFilter) => void;
   onGoBack: () => void;
@@ -20,6 +22,7 @@ export const QueryPreview = ({
   onSave,
   queryEntities,
 }: QueryPreviewProps) => {
+  const readonly = useReadonlyContext();
   const [loading, setLoading] = useState(true);
   const [entities, setEntities] = useState<Entity[]>([]);
 
@@ -68,16 +71,18 @@ export const QueryPreview = ({
       )}
 
       <Stack direction="row" gap={1}>
-        <Button onClick={() => onSave(query)}>Save query</Button>
+        {!readonly && <Button onClick={() => onSave(query)}>Save query</Button>}
         <Button
           onClick={onGoBack}
           sx={{ backgroundColor: ({ palette }) => palette.gray[80] }}
         >
-          Edit query
+          {readonly ? "See" : "Edit"} query
         </Button>
-        <Button variant="tertiary" onClick={onDiscard}>
-          Discard query
-        </Button>
+        {!readonly && (
+          <Button variant="tertiary" onClick={onDiscard}>
+            Discard query
+          </Button>
+        )}
       </Stack>
     </Stack>
   );

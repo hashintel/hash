@@ -1,10 +1,12 @@
 import { TextField } from "@hashintel/design-system";
 import { useFormContext } from "react-hook-form";
 
+import { useReadonlyContext } from "../../readonly-context";
 import { FormValues } from "../../types";
 
 export const ValueInput = ({ index }: { index: number }) => {
   const { register, formState, watch } = useFormContext<FormValues>();
+  const readonly = useReadonlyContext();
 
   const errorMsg = formState.errors.filters?.[index]?.value?.message;
 
@@ -14,6 +16,7 @@ export const ValueInput = ({ index }: { index: number }) => {
     return (
       <TextField
         type="checkbox"
+        disabled={readonly}
         InputProps={{
           sx: { px: 1 },
         }}
@@ -33,6 +36,7 @@ export const ValueInput = ({ index }: { index: number }) => {
           required: "Required",
           valueAsNumber: isNumber,
         })}
+        disabled={readonly}
         placeholder="filter value"
         error={!!errorMsg}
         helperText={errorMsg}

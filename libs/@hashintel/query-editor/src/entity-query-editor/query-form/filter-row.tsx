@@ -4,6 +4,7 @@ import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
+import { useReadonlyContext } from "../readonly-context";
 import { FormValues } from "../types";
 import { ChainOperatorSelector } from "./filter-row/chain-operator-selector";
 import { EntityTypeSelector } from "./filter-row/entity-type-selector";
@@ -27,6 +28,7 @@ export const FilterRow = ({
   entityTypes,
   propertyTypes,
 }: FilterRowProps) => {
+  const readonly = useReadonlyContext();
   const { watch } = useFormContext<FormValues>();
 
   const chainOperator = watch("operator");
@@ -72,9 +74,11 @@ export const FilterRow = ({
           ))}
       </SelectorGroupWrapper>
 
-      <IconButton onClick={onRemove}>
-        <FontAwesomeIcon icon={faClose} />
-      </IconButton>
+      {!readonly && (
+        <IconButton onClick={onRemove}>
+          <FontAwesomeIcon icon={faClose} />
+        </IconButton>
+      )}
     </Stack>
   );
 };

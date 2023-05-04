@@ -123,6 +123,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
               <Box>Loading...</Box>
             ) : (
               <EntityQueryEditor
+                readonly={entityEditorProps.readonly}
                 defaultValue={defaultValue}
                 entityTypes={entityTypes}
                 propertyTypes={propertyTypes}

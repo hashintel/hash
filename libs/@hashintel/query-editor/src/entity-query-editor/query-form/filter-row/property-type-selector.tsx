@@ -3,6 +3,7 @@ import { MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
 import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
+import { useReadonlyContext } from "../../readonly-context";
 import { FormValues, PropertyFilter } from "../../types";
 import { RHFSelect } from "./rhf-select";
 
@@ -13,6 +14,7 @@ export const PropertyTypeSelector = ({
   index: number;
   propertyTypes: PropertyType[];
 }) => {
+  const readonly = useReadonlyContext();
   const { control, formState, setValue } = useFormContext<FormValues>();
 
   const filterErrors = formState.errors.filters?.[index] as
@@ -54,6 +56,7 @@ export const PropertyTypeSelector = ({
           size: "xs",
           displayEmpty: true,
           error: hasError,
+          disabled: readonly,
         }}
       >
         <MenuItem disabled noSelectBackground>
