@@ -6,6 +6,7 @@
     //   "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-specs"]
     // },
     "codegen": {
+      "inputs": ["../../../apps/hash-graph/openapi/openapi.json"],
       "outputs": [
         ".npmignore",
         "api.ts",
