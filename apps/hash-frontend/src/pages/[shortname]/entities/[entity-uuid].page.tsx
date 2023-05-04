@@ -24,8 +24,14 @@ import {
 import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
+import {
+  QUERY_ENTITY_TYPE_ID,
+  QUERY_PROPERTY_TYPE_BASE_URL,
+} from "./[entity-uuid].page/create-entity-page";
+import { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
+import { QueryEditorPage } from "./[entity-uuid].page/query-editor-page";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
@@ -141,7 +147,7 @@ const Page: NextPageWithLayout = () => {
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = async (overrideProperties: any) => {
     if (!entitySubgraphFromDb || !draftEntitySubgraph) {
       return;
     }
@@ -167,7 +173,7 @@ const Page: NextPageWithLayout = () => {
         data: {
           entityId: draftEntity.metadata.recordId.entityId,
           entityTypeId: draftEntity.metadata.entityTypeId,
-          properties: draftEntity.properties,
+          properties: overrideProperties ?? draftEntity.properties,
         },
       });
 
@@ -191,10 +197,44 @@ const Page: NextPageWithLayout = () => {
   const showEditBar =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
+  const draftEntity = getRoots(draftEntitySubgraph)[0];
+  const shouldShowQueryEditor =
+    draftEntity?.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
+
+  const entityEditorProps: EntityEditorProps = {
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+    entitySubgraph: draftEntitySubgraph,
+    readonly,
+    refetch,
+    setEntity: (changedEntity) => {
+      setIsDirty(true);
+      updateEntitySubgraphStateByEntity(changedEntity, setDraftEntitySubgraph);
+    },
+  };
+
+  if (shouldShowQueryEditor) {
+    return (
+      <QueryEditorPage
+        handleSaveQuery={async (value) => {
+          const properties = {
+            [QUERY_PROPERTY_TYPE_BASE_URL]: value,
+          };
+
+          await handleSaveChanges(properties);
+        }}
+        entityLabel={entityLabel}
+        entityUuid={entityUuid}
+        owner={String(router.query.shortname)}
+        {...entityEditorProps}
+      />
+    );
+  }
+
   return (
     <EntityEditorPage
-      readonly={readonly}
-      refetch={refetch}
       editBar={
         <EditBar
           visible={showEditBar}
@@ -209,20 +249,9 @@ const Page: NextPageWithLayout = () => {
         />
       }
       entityLabel={entityLabel}
-      entitySubgraph={draftEntitySubgraph}
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
-      setEntity={(changedEntity) => {
-        setIsDirty(true);
-        updateEntitySubgraphStateByEntity(
-          changedEntity,
-          setDraftEntitySubgraph,
-        );
-      }}
-      draftLinksToCreate={draftLinksToCreate}
-      setDraftLinksToCreate={setDraftLinksToCreate}
-      draftLinksToArchive={draftLinksToArchive}
-      setDraftLinksToArchive={setDraftLinksToArchive}
+      {...entityEditorProps}
     />
   );
 };

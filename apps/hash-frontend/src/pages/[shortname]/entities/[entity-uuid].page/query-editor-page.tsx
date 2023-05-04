@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
+import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
@@ -69,6 +70,9 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
     void init();
   }, [queryEntityTypes, queryPropertyTypes]);
 
+  const entity = getRoots(entityEditorProps.entitySubgraph)[0];
+  const defaultValue = entity?.properties[QUERY_PROPERTY_TYPE_BASE_URL];
+
   return (
     <>
       <Head>
@@ -119,17 +123,14 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
               <Box>Loading...</Box>
             ) : (
               <EntityQueryEditor
+                defaultValue={defaultValue}
                 entityTypes={entityTypes}
                 propertyTypes={propertyTypes}
-                queryEntities={async () => {
-                  const sleep = (ms: number) =>
-                    new Promise((res) => {
-                      setTimeout(res, ms);
-                    });
-
-                  await sleep(1000);
-
-                  return {};
+                /** @todo implement bp query entities */
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                queryEntities={() => {
+                  return { data: { results: { roots: [], vertices: {} } } };
                 }}
                 onDiscard={() => alert("discard")}
                 onSave={handleSaveQuery}

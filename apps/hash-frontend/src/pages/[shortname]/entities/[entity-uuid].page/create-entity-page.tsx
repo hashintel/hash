@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
@@ -23,10 +23,10 @@ interface CreateEntityPageProps {
 }
 
 /** @todo replace these with published system types */
-const QUERY_ENTITY_TYPE_ID =
-  "http://localhost:3000/@alice/types/entity-type/query-entity/v/1";
-const QUERY_PROPERTY_TYPE_BASE_URL =
-  "http://localhost:3000/@alice/types/property-type/query/";
+export const QUERY_ENTITY_TYPE_ID =
+  "http://localhost:3000/@alice/types/entity-type/query-entity/v/2" as VersionedUrl;
+export const QUERY_PROPERTY_TYPE_BASE_URL =
+  "http://localhost:3000/@alice/types/property-type/query/" as BaseUrl;
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
