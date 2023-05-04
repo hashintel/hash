@@ -71,8 +71,8 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
-import { useTypeNamespace } from "./shared/use-type-namespace";
 import { useStateCallback } from "./shared/use-state-callback";
+import { useTypeNamespace } from "./shared/use-type-namespace";
 import { useTypeVersions } from "./shared/use-type-versions";
 
 const CollapsibleTableRow = ({

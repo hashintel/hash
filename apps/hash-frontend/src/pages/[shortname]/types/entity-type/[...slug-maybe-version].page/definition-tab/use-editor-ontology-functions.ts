@@ -1,4 +1,3 @@
-import { useIsReadonlyModeForResource } from "./../../../../../../shared/readonly-mode";
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
 import { OwnedById } from "@local/hash-subgraph";
 import {
@@ -13,10 +12,10 @@ import { useBlockProtocolGetEntityType } from "../../../../../../components/hook
 import { useBlockProtocolGetPropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
+import { AuthenticatedUser } from "../../../../../../lib/user-and-org";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
 import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
 import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
-import { AuthenticatedUser } from "../../../../../../lib/user-and-org";
 
 type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
 
