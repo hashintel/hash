@@ -7,6 +7,7 @@ export const entityTypedef = gql`
   scalar EntityPropertiesObject
   scalar EntityMetadata
   scalar LinkData
+  scalar QueryOperationInput
 
   input LinkedEntityDefinition {
     destinationAccountId: AccountId!
@@ -38,16 +39,15 @@ export const entityTypedef = gql`
     linkedEntities: [LinkedEntityDefinition!]
   }
 
-  # TODO: rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f
   extend type Query {
     """
-    Get a subgraph rooted at all entities that match a given filter.
+    Implementation of the Block Protocol queryEntities hook
     """
     queryEntities(
       """
       Filter root entities by their entity type ID (optional)
       """
-      rootEntityTypeIds: [VersionedUrl!]
+      operation: QueryOperationInput!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
