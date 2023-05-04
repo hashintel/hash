@@ -9,6 +9,7 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
+    "@blockprotocol/core": "0.1.2",
     "chalk": "4.1.2",
     "envalid": "7.3.1",
     "execa": "5.1.1",

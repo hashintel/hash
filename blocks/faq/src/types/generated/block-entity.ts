@@ -30,16 +30,16 @@ export type DescriptionPropertyValue = Text;
 
 export type FAQBlock = Entity<FAQBlockProperties>;
 
-export type FAQBlockHasFrequentlyAskedQuestionLinks = {
+export type FAQBlockHasFrequentlyAskedQuestionLink = {
   linkEntity: HasFrequentlyAskedQuestion;
   rightEntity: FrequentlyAskedQuestion;
 };
 
 export type FAQBlockOutgoingLinkAndTarget =
-  FAQBlockHasFrequentlyAskedQuestionLinks;
+  FAQBlockHasFrequentlyAskedQuestionLink;
 
 export type FAQBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/has-frequently-asked-question/v/1": FAQBlockHasFrequentlyAskedQuestionLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-frequently-asked-question/v/1": FAQBlockHasFrequentlyAskedQuestionLink;
 };
 
 export type FAQBlockProperties = {
