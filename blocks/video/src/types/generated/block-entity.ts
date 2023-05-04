@@ -83,15 +83,15 @@ export type Text = string;
 
 export type VideoBlock = Entity<VideoBlockProperties>;
 
-export type VideoBlockDisplaysMediaFileLinks = {
+export type VideoBlockDisplaysMediaFileLink = {
   linkEntity: DisplaysMediaFile;
   rightEntity: RemoteFile;
 };
 
-export type VideoBlockOutgoingLinkAndTarget = VideoBlockDisplaysMediaFileLinks;
+export type VideoBlockOutgoingLinkAndTarget = VideoBlockDisplaysMediaFileLink;
 
 export type VideoBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": VideoBlockDisplaysMediaFileLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": VideoBlockDisplaysMediaFileLink;
 };
 
 /**
