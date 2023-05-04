@@ -65,12 +65,12 @@ def call_agent(agent: str, **kwargs: dict) -> dict:
         module,
         run_name="HASH",
         init_globals={
-            "IN": io_types.input_from_dict(kwargs),
+            "IN": io_types.Input.parse_obj(kwargs),
         },
     ).get("OUT")
 
     try:
-        agent_output = io_types.output_to_dict(out)
+        agent_output = io_types.Output.dict(out)
     except AssertionError as e:
         raise InvalidAgentOutputError(agent, out) from e
 
