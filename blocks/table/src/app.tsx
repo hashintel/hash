@@ -6,8 +6,8 @@ import {
 import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import { useRef, useState } from "react";
-import { SizeMe } from "react-sizeme";
 import { isMobile } from "react-device-detect";
+import { SizeMe } from "react-sizeme";
 
 import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
