@@ -78,6 +78,7 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
+import { ActionsContextProvider } from "./[page-slug].page/actions-context";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -484,13 +485,15 @@ const Page: NextPageWithLayout<PageProps> = ({
         </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
-          <PageBlock
-            accountId={pageWorkspace.accountId}
-            contents={contents}
-            blocks={blocksMap}
-            pageComments={pageComments}
-            entityId={pageEntityId}
-          />
+          <ActionsContextProvider>
+            <PageBlock
+              accountId={pageWorkspace.accountId}
+              contents={contents}
+              blocks={blocksMap}
+              pageComments={pageComments}
+              entityId={pageEntityId}
+            />
+          </ActionsContextProvider>
         </CollabPositionProvider>
       </PageContextProvider>
     </>

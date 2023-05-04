@@ -1,0 +1,72 @@
+{
+  "name": "@blocks/button",
+  "version": "0.0.0",
+  "description": "button block",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/button"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "trailingComma": "all"
+  },
+  "dependencies": {
+    "@blockprotocol/action": "0.0.1-canary.2",
+    "uuid": "9.0.0"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@types/react-dom": "18.0.9",
+    "@types/react-is": "18.2.0",
+    "block-scripts": "0.3.0",
+    "mock-block-dock": "0.1.5",
+    "prettier": "2.8.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "block-scripts": {
+    "port": 63212
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "Button",
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.png",
+    "name": "@hash/button",
+    "protocol": "0.3",
+    "blockEntityType": "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/3",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
+  }
+}

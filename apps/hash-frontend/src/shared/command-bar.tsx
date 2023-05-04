@@ -79,6 +79,19 @@ const allOptions: OptionWithoutPath[] = [
     ],
   },
   {
+    group: "Page",
+    label: "Set page actions…",
+    command() {
+      // eslint-disable-next-line no-alert
+      alert("You picked set page actions");
+    },
+  },
+  {
+    group: "Page",
+    label: "Configure page variables…",
+    renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
+  },
+  {
     group: "Blocks",
     label: "Generate new block with AI…",
     command(option) {

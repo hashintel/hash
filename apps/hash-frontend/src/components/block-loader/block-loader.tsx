@@ -191,6 +191,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       graphCallbacks={functions}
       graphProperties={temporaryBackwardsCompatibleProperties}
       onBlockLoaded={onRemoteBlockLoaded}
+      wrappingEntityId={wrappingEntityId}
     />
   );
 };

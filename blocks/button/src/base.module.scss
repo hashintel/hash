@@ -1,0 +1,43 @@
+/*  ----------------------------------------------------------------------
+Styles used for the Hello World example included with block-react-template 
+----------------------------------------------------------------------  */
+
+.block {
+  /* –––––––––– Helper styles –––––––––– */
+  font-family: system-ui, "Helvetica Neue", "Arial", sans-serif;
+  color: #1e293b;
+
+  .heading,
+  .paragraph {
+    max-width: 60ch;
+  }
+
+  .heading {
+    font-size: clamp(3.05rem, 3.54vw + 2.17rem, 5rem);
+    margin: 1rem 0 0.5rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .paragraph {
+    margin-bottom: 1rem;
+    font-size: clamp(1rem, 0.34vw + 0.91rem, 1.12rem);
+    line-height: 1.5;
+  }
+
+  .button {
+    background-color: #0284c7;
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-size: clamp(0.85rem, 0.22vw + 0.83rem, 0.95rem);
+    line-height: 1.5;
+    transition: 250ms ease-in-out;
+
+    &:hover {
+      background-color: #0369a1;
+      cursor: pointer;
+    }
+  }
+}

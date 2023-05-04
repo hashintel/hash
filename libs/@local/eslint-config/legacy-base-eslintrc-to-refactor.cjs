@@ -65,16 +65,8 @@ module.exports = {
     "import/no-unresolved": [
       2,
       {
-        // graph uses 'exports' field in package.json https://github.com/import-js/eslint-plugin-import/issues/1810
-        ignore: [
-          "^@apps/",
-          "^@blockprotocol/graph",
-          "^@blockprotocol/hook",
-          "^@blockprotocol/service",
-          "^@blockprotocol/type-system",
-          "^@hashintel/",
-          "^@local/",
-        ],
+        // rule does not handle 'exports' field in package.json https://github.com/import-js/eslint-plugin-import/issues/1810
+        ignore: ["^@apps/", "^@blockprotocol/", "^@hashintel/", "^@local/"],
       },
     ],
     "react/prop-types": "off",

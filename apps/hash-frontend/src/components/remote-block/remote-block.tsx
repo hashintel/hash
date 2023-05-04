@@ -1,3 +1,5 @@
+import { ActionBlockMessages } from "@blockprotocol/action";
+import { useActionEmbedderModule } from "@blockprotocol/action/react";
 import { BlockMetadata } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
@@ -5,10 +7,12 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
+import { EntityId } from "@local/hash-subgraph";
 import { Skeleton, SkeletonProps } from "@mui/material";
-import { FunctionComponent, useEffect, useRef } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
+import { useActionsContext } from "../../pages/[shortname]/[page-slug].page/actions-context";
 import { BlockRenderer } from "./block-renderer";
 import { useRemoteBlock } from "./use-remote-block";
 
@@ -46,6 +50,7 @@ type RemoteBlockProps = {
   crossFrame?: boolean;
   editableRef?: (node: HTMLElement | null) => void;
   onBlockLoaded?: () => void;
+  wrappingEntityId: string;
 };
 
 export const BlockLoadingIndicator: FunctionComponent<{
@@ -74,6 +79,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   graphCallbacks,
   graphProperties,
   onBlockLoaded,
+  wrappingEntityId,
 }) => {
   const [loading, err, blockSource] = useRemoteBlock(
     blockMetadata.source,
@@ -86,6 +92,30 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   const { graphModule } = useGraphEmbedderModule(wrapperRef, {
     callbacks: graphCallbacks,
     ...graphProperties,
+  });
+
+  const { processEvent, setBlockActions } = useActionsContext();
+
+  const actionCallbacks = useMemo<ActionBlockMessages>(
+    () => ({
+      action: ({ data }) => {
+        if (!data) {
+          return { errors: [{ code: "INVALID_INPUT", message: "No data" }] };
+        }
+        processEvent(wrappingEntityId as EntityId, data);
+      },
+      availableActions: ({ data }) => {
+        if (!data) {
+          return { errors: [{ code: "INVALID_INPUT", message: "No data" }] };
+        }
+        setBlockActions(wrappingEntityId as EntityId, data);
+      },
+    }),
+    [processEvent, setBlockActions, wrappingEntityId],
+  );
+
+  const { actionModule } = useActionEmbedderModule(wrapperRef, {
+    callbacks: actionCallbacks,
   });
 
   useEffect(() => {

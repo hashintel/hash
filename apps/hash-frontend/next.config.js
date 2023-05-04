@@ -1,5 +1,6 @@
 const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
+  "@blockprotocol/action",
   "@blockprotocol/core",
   "@blockprotocol/graph",
   "@blockprotocol/hook",
