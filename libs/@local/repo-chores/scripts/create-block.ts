@@ -86,6 +86,8 @@ const script = async () => {
       .readFileSync(indexFile)
       .toString()}`,
   );
+
+  fs.rmSync(path.join(newBlockFolder, ".gitignore"));
 };
 
 void (async () => {
