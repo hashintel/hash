@@ -103,12 +103,17 @@ const bpMultiFilterFieldPathToPathExpression = (
           throw new InvalidEntityQueryError(
             "Filtering by `metadata.archived` is currently not exposed, all queries will return unarchived entities",
           );
+          // We short-circuit above based on the assumption that archived will be hard-coded to `false` in queries.
+          // Should `archived` enter the BP spec, or this assumption change for other reasons, we should introduce a
+          // check such as the following:
+          // ```
           // if (metadataRest.length > 0) {
           //   throw new InvalidEntityQueryError(
           //     `Invalid filter field path, unable to index inside \`metadata.archived\``,
           //   );
           // }
           // return ["archived"];
+          // ```
         }
 
         throw new InvalidEntityQueryError(
