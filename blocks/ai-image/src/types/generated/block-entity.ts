@@ -6,15 +6,15 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 export type AIImageBlock = Entity<AIImageBlockProperties>;
 
-export type AIImageBlockGeneratedLinks = {
+export type AIImageBlockGeneratedLink = {
   linkEntity: Generated;
   rightEntity: RemoteFile;
 };
 
-export type AIImageBlockOutgoingLinkAndTarget = AIImageBlockGeneratedLinks;
+export type AIImageBlockOutgoingLinkAndTarget = AIImageBlockGeneratedLink;
 
 export type AIImageBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/generated/v/1": AIImageBlockGeneratedLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/generated/v/1": AIImageBlockGeneratedLink;
 };
 
 /**

@@ -1,4 +1,5 @@
-import { AiAssistantMessage, Button } from "@hashintel/design-system";
+import { AiAssistantMessage } from "@hashintel/block-design-system";
+import { Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
 import { ArrowRotateLeftIcon } from "../../icons/arrow-rotate-left";

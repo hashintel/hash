@@ -327,8 +327,11 @@ export const MultipleValuesCell = ({
                             field.onChange(target.value);
                           } else {
                             min = Math.max(0, min);
+                            const max = Number.isNaN(maxValue)
+                              ? 0
+                              : Number(maxValue);
 
-                            if (min > maxValue) {
+                            if (min > max) {
                               setValue(`${formPrefix}.maxValue`, min, {
                                 shouldDirty: true,
                               });
@@ -390,7 +393,11 @@ export const MultipleValuesCell = ({
                                 field.onChange(target.value);
                               } else {
                                 max = Math.max(max, 0);
-                                if (max < minValue) {
+
+                                const min = Number.isNaN(minValue)
+                                  ? 0
+                                  : Number(minValue);
+                                if (max < min) {
                                   setValue(`${formPrefix}.minValue`, max, {
                                     shouldDirty: true,
                                   });
@@ -442,7 +449,10 @@ export const MultipleValuesCell = ({
                     {...field}
                     checked={menuOpenFrozenInfinity}
                     onChange={(evt) => {
-                      if (typeof maxValue !== "number") {
+                      if (
+                        typeof maxValue !== "number" ||
+                        typeof minValue !== "number"
+                      ) {
                         setValue(
                           `${formPrefix}.maxValue`,
                           Math.max(

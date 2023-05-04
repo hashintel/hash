@@ -508,6 +508,10 @@ impl Modify for FilterSchemaAddon {
                                             .item(
                                                 ObjectBuilder::new()
                                                     .schema_type(SchemaType::String),
+                                            )
+                                            .item(
+                                                ObjectBuilder::new()
+                                                    .schema_type(SchemaType::Number),
                                             ),
                                     ),
                                 )

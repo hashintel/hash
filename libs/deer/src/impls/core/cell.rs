@@ -24,9 +24,9 @@ macro_rules! impl_cell {
             type Reflection = T::Reflection;
 
             fn deserialize<D: Deserializer<'de>>(
-                de: D,
+                deserializer: D,
             ) -> error_stack::Result<Self, DeserializeError> {
-                T::deserialize(de).map(Self::from)
+                T::deserialize(deserializer).map(Self::from)
             }
         }
     };

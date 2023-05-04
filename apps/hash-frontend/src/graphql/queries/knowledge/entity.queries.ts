@@ -50,7 +50,7 @@ export const getEntityQuery = gql`
 
 export const queryEntitiesQuery = gql`
   query queryEntities(
-    $rootEntityTypeIds: [VersionedUrl!]
+    $operation: QueryOperationInput!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -60,7 +60,7 @@ export const queryEntitiesQuery = gql`
     $hasRightEntity: EdgeResolveDepthsInput!
   ) {
     queryEntities(
-      rootEntityTypeIds: $rootEntityTypeIds
+      operation: $operation
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
