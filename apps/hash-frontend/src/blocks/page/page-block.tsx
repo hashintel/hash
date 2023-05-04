@@ -2,6 +2,7 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/design-system";
+import { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { AccountId, EntityId } from "@local/hash-subgraph";
@@ -19,7 +20,7 @@ import { UserBlocksProvider } from "../user-blocks";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
 import { CommentThread } from "./comments/comment-thread";
-import { BlocksMap, createEditorView } from "./create-editor-view";
+import { createEditorView } from "./create-editor-view";
 import { usePageContext } from "./page-context";
 import {
   getPageSectionContainerStyles,
@@ -28,7 +29,7 @@ import {
 
 type PageBlockProps = {
   contents: BlockEntity[];
-  blocks: BlocksMap;
+  blocks: ComponentIdHashBlockMap;
   pageComments: PageThread[];
   accountId: AccountId;
   entityId: EntityId;

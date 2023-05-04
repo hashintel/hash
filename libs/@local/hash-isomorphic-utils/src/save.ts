@@ -9,6 +9,7 @@ import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
+import { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
   DraftEntity,
@@ -32,21 +33,17 @@ const generatePlaceholderId = () => `placeholder-${uuid()}`;
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [VersionedUrl, UpdatePageAction[]];
-
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
  * determines what changes are needed to persist changes to the database.
  */
-const calculateSaveActions = async (
+const calculateSaveActions = (
   store: EntityStore,
   ownedById: OwnedById,
   textEntityTypeId: VersionedUrl,
   blocks: BlockEntity[],
   doc: Node,
-  getEntityTypeForComponent: (
-    componentId: string,
-  ) => EntityTypeForComponentResult | Promise<EntityTypeForComponentResult>,
+  getEntityTypeForComponent: (componentId: string) => VersionedUrl,
 ) => {
   const actions: UpdatePageAction[] = [];
 
@@ -141,12 +138,11 @@ const calculateSaveActions = async (
           throw new Error("Cannot find parent entity");
         }
 
-        const [assumedEntityTypeId, newTypeActions] =
-          await getEntityTypeForComponent(blockEntity.componentId ?? "");
+        const assumedEntityTypeId = getEntityTypeForComponent(
+          blockEntity.componentId ?? "",
+        );
 
         entityTypeId = assumedEntityTypeId;
-        // Placing at front to ensure latter actions can make use of this type
-        actions.unshift(...newTypeActions);
       }
 
       const action: UpdatePageAction = {
@@ -379,6 +375,7 @@ export const save = async (
   pageEntityId: EntityId,
   doc: Node,
   store: EntityStore,
+  blocksMap: ComponentIdHashBlockMap,
 ) => {
   const blocks = await apolloClient
     .query<GetPageQuery, GetPageQueryVariables>({
@@ -390,7 +387,7 @@ export const save = async (
 
   // const entityTypeForComponentId = new Map<string, string>();
 
-  const [actions, placeholderToDraft] = await calculateSaveActions(
+  const [actions, placeholderToDraft] = calculateSaveActions(
     store,
     ownedById,
     /** @todo This type ID should *not* be hardcoded as is here. */
@@ -398,10 +395,11 @@ export const save = async (
     blocks,
     doc,
     /**
-     * @todo currently we use the text entity type for *every block* we don't know about.
+     * @todo Should the fallback be text here?
      */
-    (_componentId: string) => {
-      return [TEXT_ENTITY_TYPE_ID, []];
+    (componentId: string) => {
+      return (blocksMap[componentId]?.meta.schema ??
+        TEXT_ENTITY_TYPE_ID) as VersionedUrl;
     },
   );
 

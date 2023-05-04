@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import {
-  HashBlock,
+  ComponentIdHashBlockMap,
   paragraphBlockComponentId,
 } from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
@@ -32,11 +32,10 @@ import { createFocusPageTitlePlugin } from "./focus-page-title-plugin";
 import { LoadingView } from "./loading-view";
 import styles from "./style.module.css";
 
-export type BlocksMap = Record<string, HashBlock>;
-
 const createSavePlugin = (
   ownedById: OwnedById,
   pageEntityId: EntityId,
+  blocks: ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
@@ -49,6 +48,7 @@ const createSavePlugin = (
         pageEntityId,
         view.state.doc,
         entityStorePluginState(view.state).store,
+        blocks,
       );
 
       if (!view.isDestroyed) {
@@ -145,7 +145,7 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: AccountId,
   pageEntityId: EntityId,
-  blocks: BlocksMap,
+  blocks: ComponentIdHashBlockMap,
   readonly: boolean,
   pageTitleRef: RefObject<HTMLTextAreaElement>,
   getLastSavedValue: () => BlockEntity[],
@@ -158,7 +158,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown>[] = readonly
     ? []
     : [
-        createSavePlugin(accountId as OwnedById, pageEntityId, client),
+        createSavePlugin(accountId as OwnedById, pageEntityId, blocks, client),
         ...createFormatPlugins(renderPortal),
         createSuggester(renderPortal, accountId, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),

@@ -14,6 +14,8 @@ export type HashBlock = {
   meta: HashBlockMeta;
 };
 
+export type ComponentIdHashBlockMap = Record<string, HashBlock>;
+
 /**
  * The cache is designed to store promises, not resolved values, in order to
  * ensure multiple requests for the same block in rapid succession don't cause
