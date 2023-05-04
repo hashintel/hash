@@ -6,7 +6,7 @@ publish = false
 description = "RPC service definition to fetch external BP types"
 
 [dependencies]
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "542836" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "808753" }
 
 serde = { version = "1.0.160", features = ["derive"] }
 time = { version = "0.3.20", features = ['serde'] }
