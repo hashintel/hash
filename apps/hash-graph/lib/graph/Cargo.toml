@@ -46,7 +46,7 @@ include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"], optional = true }
-tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
+tokio-serde = { version = "0.8", features = ["json"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros", "tracing"] }

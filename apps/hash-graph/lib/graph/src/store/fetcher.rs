@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
-use tokio_serde::formats::MessagePack;
+use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetcherClient, OntologyTypeRepr};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -113,7 +113,7 @@ where
     where
         A: ToSocketAddrs,
     {
-        let transport = tarpc::serde_transport::tcp::connect(&self.address, MessagePack::default)
+        let transport = tarpc::serde_transport::tcp::connect(&self.address, Json::default)
             .await
             .into_report()
             .change_context(StoreError)
@@ -226,6 +226,7 @@ where
                 break;
             }
 
+            dbg!(&ontology_urls);
             let ontology_types = fetcher
                 .fetch_ontology_types(context::current(), ontology_urls)
                 .await
