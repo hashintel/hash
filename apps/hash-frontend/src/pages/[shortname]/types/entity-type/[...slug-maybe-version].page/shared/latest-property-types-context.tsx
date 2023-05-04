@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { PropertyTypeWithMetadata } from "@local/hash-subgraph/.";
+import { PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { createContext, PropsWithChildren, useContext } from "react";
 
 import { useLatestPropertyTypesContextValue } from "./use-latest-property-types-context-value";
