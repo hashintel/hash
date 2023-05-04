@@ -37,14 +37,14 @@ const SettingSwitch = ({ label, value, onChange }: SettingSwitchProps) => {
 
 interface SettingsProps {
   show: boolean;
-  isMobile: boolean;
+  collapseSettings: boolean;
   blockEntity: BlockEntity;
   updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
 }
 
 export const SettingsBar = ({
   show,
-  isMobile,
+  collapseSettings,
   blockEntity,
   updateEntity,
 }: SettingsProps) => {
@@ -63,14 +63,14 @@ export const SettingsBar = ({
       <div className={styles.settingsBar}>
         <GetHelpLink href="https://blockprotocol.org/@hash/blocks/table" />
 
-        {isMobile ? (
+        {collapseSettings ? (
           <BlockSettingsButton
             expanded={mobileSettingsExpanded}
             onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
           />
         ) : null}
 
-        <Collapse in={!isMobile || mobileSettingsExpanded}>
+        <Collapse in={!collapseSettings || mobileSettingsExpanded}>
           <div className={styles.settingsContainer}>
             <SettingSwitch
               label="Enable stripes for alternating rows"

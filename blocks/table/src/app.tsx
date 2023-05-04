@@ -7,6 +7,7 @@ import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import { useRef, useState } from "react";
 import { SizeMe } from "react-sizeme";
+import { isMobile } from "react-device-detect";
 
 import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
@@ -56,7 +57,7 @@ export const App: BlockComponent<BlockEntity> = ({
     <ThemeProvider theme={theme}>
       <SizeMe>
         {({ size }) => {
-          const isMobile = (size.width ?? 0) < 660;
+          const collapseSettings = (size.width ?? 0) < 670;
 
           return (
             <div
@@ -67,8 +68,8 @@ export const App: BlockComponent<BlockEntity> = ({
             >
               {!readonly ? (
                 <SettingsBar
-                  show={hovered}
-                  isMobile={isMobile}
+                  show={isMobile || hovered}
+                  collapseSettings={collapseSettings}
                   blockEntity={blockEntity}
                   updateEntity={updateEntity}
                 />
