@@ -235,7 +235,7 @@ const textBlockComponentIds = new Set([
  * @todo allow users to configure their own default block list, and store in db.
  *    this should be a list of additions and removals from this default list,
  *    to allow us to add new default blocks that show up for all users.
- *    we currently store this in localStorage - see UserBlockProvider.
+ *    we currently store this in localStorage - see UserBlocksProvider.
  */
 export const defaultBlockComponentIds = [
   ...Array.from(textBlockComponentIds),
