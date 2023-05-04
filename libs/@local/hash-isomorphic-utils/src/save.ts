@@ -94,7 +94,7 @@ const calculateSaveActions = (
         },
       });
     } else {
-      // We need to create the entity, and possibly a new entity type too
+      // We need to create the entity.
 
       /**
        * Sometimes, by the time it comes to create new entities, we have already
@@ -119,14 +119,12 @@ const calculateSaveActions = (
 
       if (isDraftTextEntity(draftEntity)) {
         /**
-         * Text types are built in, so we know in this case we don't need to
-         * create an entity type.
+         * Text types are built in, so we use our own text entity type ID
          */
         entityTypeId = textEntityTypeId;
       } else {
         /**
-         * At this point, we may need to create an entity type for the entity
-         * we want to insert.
+         * At this point, we will supply the assumed entity type ID based on the component ID
          */
         const blockEntity = Object.values(store.draft).find(
           (entity): entity is DraftEntity<BlockEntity> =>
@@ -166,8 +164,7 @@ const calculateSaveActions = (
        *       being handled here, so that's okay for now.
        */
       if (dependedOn) {
-        const idx = actions.findIndex((item) => !item.createEntityType);
-        actions.splice(idx === -1 ? 0 : idx, 0, action);
+        actions.unshift(action);
       } else {
         actions.push(action);
       }
