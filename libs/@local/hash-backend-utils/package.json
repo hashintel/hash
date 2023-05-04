@@ -38,6 +38,6 @@
     "@types/redis": "2.8.32",
     "@types/wait-on": "5.3.1",
     "eslint": "8.33.0",
-    "typescript": "5.0.2"
+    "typescript": "5.0.4"
   }
 }

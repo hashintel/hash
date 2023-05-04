@@ -12,7 +12,7 @@
     "algoliasearch": "4.12.1",
     "envalid": "7.3.1",
     "gray-matter": "4.0.3",
-    "typescript": "5.0.2"
+    "typescript": "5.0.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

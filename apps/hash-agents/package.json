@@ -32,6 +32,6 @@
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
     "@types/pascalcase": "1.0.1",
-    "typescript": "5.0.2"
+    "typescript": "5.0.4"
   }
 }
