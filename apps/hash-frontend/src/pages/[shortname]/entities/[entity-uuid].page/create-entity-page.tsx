@@ -106,7 +106,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
-  const shouldShowQueryEditor = entityTypeId === QUERY_ENTITY_TYPE_ID;
+  const isQueryEntity = entityTypeId === QUERY_ENTITY_TYPE_ID;
 
   const entityEditorProps: EntityEditorProps = {
     setEntity: (entity) => {
@@ -121,7 +121,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     refetch: async () => {},
   };
 
-  if (shouldShowQueryEditor) {
+  if (isQueryEntity) {
     return (
       <QueryEditorPage
         mode="create"

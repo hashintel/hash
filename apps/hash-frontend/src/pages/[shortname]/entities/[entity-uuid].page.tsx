@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { useSnackbar } from "../../../components/hooks/use-snackbar";
 import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
 import {
@@ -32,6 +33,7 @@ import { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { QueryEditorPage } from "./[entity-uuid].page/query-editor-page";
+import { QueryEditorToggle } from "./[entity-uuid].page/query-editor-toggle";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
@@ -43,6 +45,8 @@ const Page: NextPageWithLayout = () => {
   const { getEntity } = useBlockProtocolGetEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
+  const snackbar = useSnackbar();
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
@@ -198,7 +202,7 @@ const Page: NextPageWithLayout = () => {
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
   const draftEntity = getRoots(draftEntitySubgraph)[0];
-  const shouldShowQueryEditor =
+  const isQueryEntity =
     draftEntity?.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
 
   const entityEditorProps: EntityEditorProps = {
@@ -215,45 +219,59 @@ const Page: NextPageWithLayout = () => {
     },
   };
 
-  if (shouldShowQueryEditor) {
+  if (isQueryEntity && shouldShowQueryEditor) {
     return (
-      <QueryEditorPage
-        handleSaveQuery={async (value) => {
-          const properties = {
-            [QUERY_PROPERTY_TYPE_BASE_URL]: value,
-          };
+      <>
+        <QueryEditorToggle
+          shouldShowQueryEditor={shouldShowQueryEditor}
+          toggle={() => setShouldShowQueryEditor((val) => !val)}
+        />
+        <QueryEditorPage
+          handleSaveQuery={async (value) => {
+            const properties = {
+              [QUERY_PROPERTY_TYPE_BASE_URL]: value,
+            };
 
-          await handleSaveChanges(properties);
-        }}
-        entityLabel={entityLabel}
-        entityUuid={entityUuid}
-        owner={String(router.query.shortname)}
-        mode="edit"
-        {...entityEditorProps}
-      />
+            await handleSaveChanges(properties);
+
+            snackbar.success("Changes saved successfully");
+          }}
+          entityLabel={entityLabel}
+          entityUuid={entityUuid}
+          owner={String(router.query.shortname)}
+          mode="edit"
+          {...entityEditorProps}
+        />
+      </>
     );
   }
 
   return (
-    <EntityEditorPage
-      editBar={
-        <EditBar
-          visible={showEditBar}
-          discardButtonProps={{
-            onClick: discardChanges,
-          }}
-          confirmButtonProps={{
-            onClick: handleSaveChanges,
-            loading: savingChanges,
-            children: "Save changes",
-          }}
-        />
-      }
-      entityLabel={entityLabel}
-      entityUuid={entityUuid}
-      owner={String(router.query.shortname)}
-      {...entityEditorProps}
-    />
+    <>
+      <QueryEditorToggle
+        shouldShowQueryEditor={shouldShowQueryEditor}
+        toggle={() => setShouldShowQueryEditor((val) => !val)}
+      />
+      <EntityEditorPage
+        editBar={
+          <EditBar
+            visible={showEditBar}
+            discardButtonProps={{
+              onClick: discardChanges,
+            }}
+            confirmButtonProps={{
+              onClick: handleSaveChanges,
+              loading: savingChanges,
+              children: "Save changes",
+            }}
+          />
+        }
+        entityLabel={entityLabel}
+        entityUuid={entityUuid}
+        owner={String(router.query.shortname)}
+        {...entityEditorProps}
+      />
+    </>
   );
 };
 
