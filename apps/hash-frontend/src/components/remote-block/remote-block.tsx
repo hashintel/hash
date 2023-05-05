@@ -136,7 +136,6 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           },
           {},
         );
-        console.log({ actionsMap });
         setBlockActions(wrappingEntityId as EntityId, actionsMap);
       },
     }),
