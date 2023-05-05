@@ -1,4 +1,4 @@
-import { Select, SelectProps } from "@mui/material";
+import { Select, SelectProps } from "@hashintel/design-system";
 import { ReactNode } from "react";
 import {
   Controller,
@@ -12,7 +12,10 @@ interface RHFSelectProps<
   TName extends FieldPath<TFieldValues>,
 > extends UseControllerProps<TFieldValues, TName> {
   children: ReactNode;
-  selectProps?: SelectProps;
+  selectProps?: Omit<
+    SelectProps,
+    "name" | "onBlur" | "onChange" | "ref" | "value" | "defaultValue"
+  >;
 }
 
 export const RHFSelect = <
@@ -22,13 +25,15 @@ export const RHFSelect = <
   children,
   selectProps,
   ...controllerProps
-}: RHFSelectProps<TFieldValues, TName>) => (
-  <Controller
-    {...controllerProps}
-    render={({ field }) => (
-      <Select {...field} {...selectProps}>
-        {children}
-      </Select>
-    )}
-  />
-);
+}: RHFSelectProps<TFieldValues, TName>) => {
+  return (
+    <Controller
+      {...controllerProps}
+      render={({ field }) => (
+        <Select {...field} {...selectProps}>
+          {children}
+        </Select>
+      )}
+    />
+  );
+};
