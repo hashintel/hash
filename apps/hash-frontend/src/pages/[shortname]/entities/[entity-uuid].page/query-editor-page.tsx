@@ -1,4 +1,4 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import { GraphResolveDepths, MultiFilter } from "@blockprotocol/graph";
 import { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
@@ -16,6 +16,17 @@ import { EntityEditorContextProvider } from "./entity-editor/entity-editor-conte
 import { TypesSection } from "./entity-editor/types-section";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
+
+const zeroedGraphResolveDepths: GraphResolveDepths = {
+  inheritsFrom: { outgoing: 0 },
+  constrainsValuesOn: { outgoing: 0 },
+  constrainsPropertiesOn: { outgoing: 0 },
+  constrainsLinksOn: { outgoing: 0 },
+  constrainsLinkDestinationsOn: { outgoing: 0 },
+  isOfType: { outgoing: 0 },
+  hasLeftEntity: { incoming: 0, outgoing: 0 },
+  hasRightEntity: { incoming: 0, outgoing: 0 },
+};
 
 interface QueryEditorPageProps extends EntityEditorProps {
   entityLabel: string;
@@ -78,7 +89,10 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
   const handleQueryEntities = useCallback(
     async (multiFilter: MultiFilter) => {
       const res = await queryEntities({
-        data: { operation: { multiFilter } },
+        data: {
+          operation: { multiFilter },
+          graphResolveDepths: zeroedGraphResolveDepths,
+        },
       });
 
       if (!res.data) {
