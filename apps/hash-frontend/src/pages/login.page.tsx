@@ -126,7 +126,6 @@ const LoginPage: NextPageWithLayout = () => {
             }
 
             updateActiveWorkspaceAccountId(authenticatedUser.accountId);
-            // console.log("redirect to /");
             void router.push("/");
           })
           .catch(handleFlowError)
