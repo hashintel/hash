@@ -1,6 +1,7 @@
 import { ActionData, ActionDefinition } from "@blockprotocol/action";
 import { Modal } from "@hashintel/design-system";
 import { EntityId } from "@local/hash-subgraph";
+import { Box } from "@mui/material";
 import {
   createContext,
   PropsWithChildren,
@@ -10,16 +11,20 @@ import {
   useState,
 } from "react";
 
-export type BlockElementActions = {
-  [ActionName: string]: {
-    action?: (payload: ActionData["payload"]) => void;
-    eventTrigger: ActionDefinition;
-    updateTriggerLabel?: (label: string) => void;
-  };
+import { ElementActionsConfiguration } from "./actions-context/element-action-configuration";
+
+export type ElementAction = {
+  action?: (payload: ActionData["payload"]) => void;
+  eventTrigger: ActionDefinition;
+  updateTriggerLabel?: (label: string) => void;
+};
+
+export type ActionsByTriggerName = {
+  [ActionName: string]: ElementAction;
 };
 
 export type BlockActionsByElement = {
-  [ElementId: string]: BlockElementActions;
+  [ElementId: string]: ActionsByTriggerName;
 };
 
 export type PageActionsByBlock = Record<EntityId, BlockActionsByElement>;
@@ -39,10 +44,14 @@ export const PageActionsContext = createContext<PageActionsContextValue | null>(
 );
 
 export const ActionsContextProvider = ({ children }: PropsWithChildren) => {
-  const [showActionModal, setShowActionModal] = useState(false);
-
   const [pageActionsByBlock, setPageActionsByBlock] =
     useState<PageActionsByBlock>({});
+  const [selectedActionData, setSelectedActionData] = useState<{
+    actions: ActionsByTriggerName;
+    backgroundOverlay: HTMLDivElement;
+    blockId: string;
+    overlay: HTMLDivElement;
+  }>();
 
   const processEvent = useCallback<PageActionsContextValue["processEvent"]>(
     (blockId, action) => {
@@ -55,11 +64,15 @@ export const ActionsContextProvider = ({ children }: PropsWithChildren) => {
     [pageActionsByBlock],
   );
 
+  console.log({ pageActionsByBlock });
+
   const showActionsInterface = useCallback(() => {
     for (const [blockId, blockActionsByElement] of Object.entries(
       pageActionsByBlock,
     )) {
-      for (const elementId of Object.keys(blockActionsByElement)) {
+      for (const [elementId, actionsByName] of Object.entries(
+        blockActionsByElement,
+      )) {
         const blockWrapper = document.querySelector(
           `[data-entity-id="${blockId}"]`,
         );
@@ -81,7 +94,6 @@ export const ActionsContextProvider = ({ children }: PropsWithChildren) => {
             `Could not find element with id ${elementId} within block`,
           );
         }
-        console.log({ triggerElement });
 
         const overlay = document.createElement("div");
         overlay.style.position = "absolute";
@@ -89,21 +101,42 @@ export const ActionsContextProvider = ({ children }: PropsWithChildren) => {
         overlay.style.left = "0";
         overlay.style.width = `${triggerElement.clientWidth}px`;
         overlay.style.height = `${triggerElement.clientHeight}px`;
-        overlay.style.zIndex = "2000000000";
+        overlay.style.zIndex = "999";
 
         overlay.style.backgroundImage = `
-          linear-gradient(rgba(0, 255, 0, .7) .1em, transparent .1em), 
-          linear-gradient(90deg, rgba(0, 255, 0, .7) .1em, transparent .1em)
+          linear-gradient(rgba(0, 255, 0, 0.7) .1em, transparent .1em), 
+          linear-gradient(90deg, rgba(0, 255, 0, 0.7) .1em, transparent .1em)
         `;
         overlay.style.backgroundSize = "10px 10px";
         overlay.style.cursor = "pointer";
-        overlay.addEventListener("click", (event) => {
-          event.stopPropagation();
-          overlay.style.opacity = "0.8";
-          console.log("Clicked element", elementId);
-        });
+        overlay.style.border = "5px solid rgba(0, 255, 0, 0.7)";
+
+        const backgroundOverlay = document.createElement("div");
+        backgroundOverlay.style.position = "fixed";
+        backgroundOverlay.style.top = "0";
+        backgroundOverlay.style.left = "0";
+        backgroundOverlay.style.width = "100vw";
+        backgroundOverlay.style.height = "100vh";
+        backgroundOverlay.style.zIndex = "998";
+
+        backgroundOverlay.style.backgroundImage = `
+          linear-gradient(rgba(50, 50, 50, 0.1) 0.01em, transparent .1em),
+          linear-gradient(90deg, rgba(50, 50, 50, 0.1) 0.01em, transparent .1em)
+        `;
+        backgroundOverlay.style.backgroundSize = "10px 10px";
 
         triggerElement.appendChild(overlay);
+        document.body.appendChild(backgroundOverlay);
+
+        overlay.addEventListener("click", (event) => {
+          event.stopPropagation();
+          setSelectedActionData({
+            actions: actionsByName,
+            blockId,
+            overlay,
+            backgroundOverlay,
+          });
+        });
       }
     }
   }, [pageActionsByBlock]);
@@ -123,10 +156,31 @@ export const ActionsContextProvider = ({ children }: PropsWithChildren) => {
     [pageActionsByBlock, processEvent, showActionsInterface],
   );
 
+  const deselectElement = () => {
+    selectedActionData?.overlay.remove();
+    selectedActionData?.backgroundOverlay.remove();
+    setSelectedActionData(undefined);
+  };
+
   return (
     <PageActionsContext.Provider value={pageActionsContextValue}>
-      <Modal open={showActionModal} onClose={() => setShowActionModal(false)}>
-        <div>Modal content</div>
+      <Modal open={!!selectedActionData} onClose={deselectElement}>
+        {selectedActionData ? (
+          <ElementActionsConfiguration
+            actions={selectedActionData.actions}
+            updateActions={(actions) => {
+              setPageActionsByBlock((pageActions) => ({
+                ...pageActions,
+                [selectedActionData.blockId]: {
+                  ...pageActions[selectedActionData.blockId as EntityId],
+                  [selectedActionData.overlay.parentElement!.id]: actions,
+                },
+              }));
+            }}
+          />
+        ) : (
+          <Box />
+        )}
       </Modal>
       {children}
     </PageActionsContext.Provider>

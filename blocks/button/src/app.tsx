@@ -60,6 +60,7 @@ export const App = () => {
   useEffect(() => {
     actionModule.availableActions({ data: { actions: availableActions } });
   }, [actionModule, availableActions]);
+  console.log({ availableActions });
 
   const buttonAction = availableActions[0]!;
 
