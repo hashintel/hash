@@ -373,3 +373,20 @@ services:
       - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
+
+  hash-temporal-worker-ts:
+    build:
+      dockerfile: infra/docker/hash-ai-worker-ts/prod/Dockerfile
+      context: ../../
+    # Environemnt variables are to be set manually here.
+    # We could load in the entirety of the `.env.local` file using `env_file`
+    # but to prevent bloating the environment and spilling everything to process
+    # it is constrained here.
+    environment:
+      HASH_TEMPORAL_HOST: "temporal"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
