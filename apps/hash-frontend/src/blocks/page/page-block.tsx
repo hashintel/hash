@@ -2,7 +2,6 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/design-system";
-import { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { AccountId, EntityId } from "@local/hash-subgraph";
@@ -16,7 +15,7 @@ import { useLocalstorageState } from "rooks";
 import { PageThread } from "../../components/hooks/use-page-comments";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../on-block-loaded";
-import { UserBlocksProvider, useUserBlocks } from "../user-blocks";
+import { useUserBlocks } from "../user-blocks";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
 import { CommentThread } from "./comments/comment-thread";

@@ -46,6 +46,7 @@ import {
   PageSectionContainerProps,
 } from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
+import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -79,7 +80,6 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
-import { UserBlocksProvider } from "../../blocks/user-blocks";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
