@@ -281,6 +281,7 @@ services:
     build:
       context: ./temporal
       dockerfile: migrate.Dockerfile
+    read_only: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -296,6 +297,8 @@ services:
       ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
       ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
       ES_VERSION: "v7"
+    security_opt:
+      - no-new-privileges:true
 
   temporal-setup:
     build:
@@ -320,6 +323,8 @@ services:
       ES_VERSION: "v7"
       TEMPORAL_CLI_ADDRESS: temporal:7233
       SKIP_DEFAULT_NAMESPACE_CREATION: "false" # left as a convenience as most temporal tooling expects default namespace
+    security_opt:
+      - no-new-privileges:true
 
   temporal:
     container_name: temporal
@@ -348,12 +353,15 @@ services:
       ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
       ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
       ES_VERSION: "v7"
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_SERVER_PORT}:7233"
   #    volumes:
   #      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
 
   temporal-ui:
+    image: temporalio/ui:2.13.3
     container_name: temporal-ui
     depends_on:
       temporal:
@@ -361,6 +369,7 @@ services:
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_CORS_ORIGINS: http://localhost:3000
-    image: temporalio/ui:2.13.3
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
