@@ -1,7 +1,6 @@
 import { Entity, MultiFilter } from "@blockprotocol/graph";
 import { LoadingSpinner } from "@hashintel/design-system";
-import { Button, Typography } from "@mui/material";
-import { Stack } from "@mui/system";
+import { Button, Card, List, ListItem, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import { useReadonlyContext } from "./readonly-context";
@@ -56,13 +55,29 @@ export const QueryPreview = ({
             entities. See below.
           </Typography>
 
-          <ul>
-            {entities.map((entity) => (
-              <li key={entity.metadata.recordId.entityId}>
-                {Object.values(entity.properties).join(" - ")}
-              </li>
-            ))}
-          </ul>
+          <Card
+            sx={{ my: 2, background: ({ palette }) => palette.gray[10] }}
+            elevation={2}
+          >
+            <List
+              sx={{
+                maxHeight: 300,
+                overflowY: "auto",
+              }}
+            >
+              {entities.map((entity, index) => {
+                const entityUuid =
+                  entity.metadata.recordId.entityId.split("%")[1];
+
+                return (
+                  <ListItem key={entityUuid}>
+                    <b style={{ marginRight: 8 }}>{`- Entity ${index + 1}`}</b>
+                    {entityUuid}
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Card>
         </div>
       )}
 
