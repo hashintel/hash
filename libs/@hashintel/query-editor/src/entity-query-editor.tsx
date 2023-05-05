@@ -6,14 +6,14 @@ import { useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { QueryForm } from "./entity-query-editor/query-form";
-import {
-  mapFormValuesToMultiFilter,
-  mapMultiFilterToFormValues,
-} from "./entity-query-editor/query-form/filter-row/utils";
 import { QueryPreview } from "./entity-query-editor/query-preview";
 import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context";
 import { EditorTitle } from "./entity-query-editor/title";
 import { FormValues, QueryEntitiesFunc } from "./entity-query-editor/types";
+import {
+  mapFormValuesToMultiFilter,
+  mapMultiFilterToFormValues,
+} from "./entity-query-editor/utils";
 
 export interface EntityQueryEditorProps {
   onSave: (value: MultiFilter) => Promise<void>;
