@@ -124,6 +124,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   if (shouldShowQueryEditor) {
     return (
       <QueryEditorPage
+        mode="create"
         handleSaveQuery={async (value) => {
           const properties = {
             [QUERY_PROPERTY_TYPE_BASE_URL]: value,

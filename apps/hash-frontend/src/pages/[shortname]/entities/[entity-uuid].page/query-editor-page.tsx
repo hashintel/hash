@@ -5,6 +5,7 @@ import { EntityQueryEditor } from "@hashintel/query-editor";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
@@ -33,6 +34,7 @@ interface QueryEditorPageProps extends EntityEditorProps {
   owner: string;
   entityUuid: string;
   handleSaveQuery: (value: MultiFilter) => Promise<void>;
+  mode: "create" | "edit";
 }
 
 export const QueryEditorPage = (props: QueryEditorPageProps) => {
@@ -41,12 +43,16 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
     owner,
     entityUuid,
     handleSaveQuery,
+    mode,
     ...entityEditorProps
   } = props;
+
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
+  const [queryEditorKey, setQueryEditorKey] = useState(0);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
@@ -154,12 +160,26 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
               <Box>Loading...</Box>
             ) : (
               <EntityQueryEditor
+                key={queryEditorKey}
                 readonly={entityEditorProps.readonly}
                 defaultValue={defaultValue}
                 entityTypes={entityTypes}
                 propertyTypes={propertyTypes}
                 queryEntities={handleQueryEntities}
-                onDiscard={() => alert("discard")}
+                onDiscard={() => {
+                  if (mode === "create") {
+                    return router.push("/new/entity");
+                  }
+
+                  /**
+                   * this is not the best way to do this, but it works for now
+                   * to discard changes, we just change the key to make `EntityQueryEditor` re-render,
+                   * which resets the state of `EntityQueryEditor`, and thus discards the changes
+                   */
+                  setQueryEditorKey((key) => key + 1);
+                }}
+                discardTitle={mode === "edit" ? "Discard changes" : undefined}
+                saveTitle={mode === "edit" ? "Save changes" : undefined}
                 onSave={handleSaveQuery}
               />
             )}

@@ -228,6 +228,7 @@ const Page: NextPageWithLayout = () => {
         entityLabel={entityLabel}
         entityUuid={entityUuid}
         owner={String(router.query.shortname)}
+        mode="edit"
         {...entityEditorProps}
       />
     );
