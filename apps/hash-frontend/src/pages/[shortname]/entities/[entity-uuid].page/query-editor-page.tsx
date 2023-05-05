@@ -102,7 +102,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
       });
 
       if (!res.data) {
-        throw new Error("Error querying entities");
+        throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
       return getRoots(res.data);
