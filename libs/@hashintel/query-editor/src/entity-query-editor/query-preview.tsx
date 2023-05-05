@@ -1,18 +1,18 @@
-import { Entity, GraphBlockHandler, MultiFilter } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { Entity, MultiFilter } from "@blockprotocol/graph";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { Button, Typography } from "@mui/material";
 import { Stack } from "@mui/system";
 import { useEffect, useState } from "react";
 
 import { useReadonlyContext } from "./readonly-context";
+import { QueryEntitiesFunc } from "./types";
 
 interface QueryPreviewProps {
   onSave: (value: MultiFilter) => void;
   onGoBack: () => void;
   onDiscard: () => void;
   query: MultiFilter;
-  queryEntities: GraphBlockHandler["queryEntities"];
+  queryEntities: QueryEntitiesFunc;
 }
 
 export const QueryPreview = ({
@@ -28,16 +28,12 @@ export const QueryPreview = ({
 
   useEffect(() => {
     const init = async () => {
-      const res = await queryEntities({
-        data: { operation: { multiFilter: query } },
-      });
-
-      if (res.data) {
-        const subgraph = res.data.results;
-        setEntities(getRoots(subgraph));
+      try {
+        const res = await queryEntities(query);
+        setEntities(res);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     void init();

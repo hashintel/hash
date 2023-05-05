@@ -1,9 +1,4 @@
-import {
-  EntityType,
-  GraphBlockHandler,
-  MultiFilter,
-  PropertyType,
-} from "@blockprotocol/graph";
+import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
 import { Stack } from "@mui/material";
 import { BoxProps } from "@mui/system";
 import { useState } from "react";
@@ -12,6 +7,7 @@ import { QueryForm } from "./entity-query-editor/query-form";
 import { QueryPreview } from "./entity-query-editor/query-preview";
 import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context";
 import { EditorTitle } from "./entity-query-editor/title";
+import { QueryEntitiesFunc } from "./entity-query-editor/types";
 
 export interface EntityQueryEditorProps {
   onSave: (value: MultiFilter) => void;
@@ -20,7 +16,7 @@ export interface EntityQueryEditorProps {
   entityTypes: EntityType[];
   propertyTypes: PropertyType[];
   defaultValue?: MultiFilter;
-  queryEntities: GraphBlockHandler["queryEntities"];
+  queryEntities: QueryEntitiesFunc;
   readonly?: boolean;
 }
 

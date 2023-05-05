@@ -1,4 +1,9 @@
-import { BaseUrl, MultiFilterOperatorType } from "@blockprotocol/graph";
+import {
+  BaseUrl,
+  Entity,
+  MultiFilter,
+  MultiFilterOperatorType,
+} from "@blockprotocol/graph";
 
 export type FilterType = "Type" | "Property";
 
@@ -50,3 +55,5 @@ export type FormValues = {
   filters: FilterField[];
   operator: MultiFilterOperatorType;
 };
+
+export type QueryEntitiesFunc = (multiFilter: MultiFilter) => Promise<Entity[]>;

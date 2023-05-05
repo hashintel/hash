@@ -5,8 +5,9 @@ import { EntityQueryEditor } from "@hashintel/query-editor";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolQueryEntityTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
@@ -36,6 +37,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
 
+  const { queryEntities } = useBlockProtocolQueryEntities();
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
   const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
 
@@ -72,6 +74,21 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const entity = getRoots(entityEditorProps.entitySubgraph)[0];
   const defaultValue = entity?.properties[QUERY_PROPERTY_TYPE_BASE_URL];
+
+  const handleQueryEntities = useCallback(
+    async (multiFilter: MultiFilter) => {
+      const res = await queryEntities({
+        data: { operation: { multiFilter } },
+      });
+
+      if (!res.data) {
+        throw new Error("Error querying entities");
+      }
+
+      return getRoots(res.data);
+    },
+    [queryEntities],
+  );
 
   return (
     <>
@@ -127,12 +144,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
                 defaultValue={defaultValue}
                 entityTypes={entityTypes}
                 propertyTypes={propertyTypes}
-                /** @todo implement bp query entities */
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                queryEntities={() => {
-                  return { data: { results: { roots: [], vertices: {} } } };
-                }}
+                queryEntities={handleQueryEntities}
                 onDiscard={() => alert("discard")}
                 onSave={handleSaveQuery}
               />
