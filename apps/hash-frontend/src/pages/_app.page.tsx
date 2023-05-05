@@ -1,5 +1,7 @@
 /* eslint-disable import/first */
 // @todo have webpack polyfill this
+import { ActionsContextProvider } from "./[shortname]/[page-slug].page/actions-context";
+
 require("setimmediate");
 
 import "./globals.scss";
@@ -140,7 +142,9 @@ const App: FunctionComponent<AppProps> = ({
                   <WorkspaceContextProvider>
                     <SnackbarProvider maxSnack={3}>
                       <EntityTypesContextProvider>
-                        {getLayout(<Component {...pageProps} />)}
+                        <ActionsContextProvider>
+                          {getLayout(<Component {...pageProps} />)}
+                        </ActionsContextProvider>
                       </EntityTypesContextProvider>
                     </SnackbarProvider>
                   </WorkspaceContextProvider>

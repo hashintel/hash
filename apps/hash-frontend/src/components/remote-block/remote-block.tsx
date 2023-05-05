@@ -12,7 +12,10 @@ import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
-import { useActionsContext } from "../../pages/[shortname]/[page-slug].page/actions-context";
+import {
+  BlockActionsByElement,
+  useActionsContext,
+} from "../../pages/[shortname]/[page-slug].page/actions-context";
 import { BlockRenderer } from "./block-renderer";
 import { useRemoteBlock } from "./use-remote-block";
 
@@ -96,6 +99,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   const { processEvent, setBlockActions } = useActionsContext();
 
+  const { actionModule } = useActionEmbedderModule(wrapperRef);
+
   const actionCallbacks = useMemo<ActionBlockMessages>(
     () => ({
       action: ({ data }) => {
@@ -108,15 +113,40 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
         if (!data) {
           return { errors: [{ code: "INVALID_INPUT", message: "No data" }] };
         }
-        setBlockActions(wrappingEntityId as EntityId, data);
+        const actionsMap = data.actions.reduce<BlockActionsByElement>(
+          (map, definition) => {
+            const { actionName, elementId, label } = definition;
+            /* eslint-disable no-param-reassign */
+            map[elementId] ??= {};
+            map[elementId]![actionName] = {
+              eventTrigger: definition,
+              updateTriggerLabel: label
+                ? (newLabel: string) =>
+                    actionModule.updateAction({
+                      data: {
+                        elementId,
+                        actionName,
+                        label: newLabel,
+                      },
+                    })
+                : undefined,
+            };
+            /* eslint-enable no-param-reassign */
+            return map;
+          },
+          {},
+        );
+        console.log({ actionsMap });
+        setBlockActions(wrappingEntityId as EntityId, actionsMap);
       },
     }),
-    [processEvent, setBlockActions, wrappingEntityId],
+    [actionModule, processEvent, setBlockActions, wrappingEntityId],
   );
 
-  const { actionModule } = useActionEmbedderModule(wrapperRef, {
-    callbacks: actionCallbacks,
-  });
+  useEffect(() => {
+    // We don't register them in the actionModule constructor because they depend on using it
+    actionModule.registerCallbacks(actionCallbacks);
+  }, [actionCallbacks, actionModule]);
 
   useEffect(() => {
     graphModule.registerCallbacks(graphCallbacks);

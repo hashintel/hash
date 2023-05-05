@@ -1,6 +1,6 @@
 import { ActionDefinition } from "@blockprotocol/action";
 import { useActionBlockModule } from "@blockprotocol/action/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import styles from "./base.module.scss";
@@ -10,7 +10,7 @@ export const App = () => {
 
   const [availableActions, setAvailableActions] = useState<ActionDefinition[]>([
     {
-      elementId: `button-${uuid()}}`,
+      elementId: `button-${uuid()}`,
       actionName: "Click Button",
       label: "Submit",
       payloadSchema: { type: "null" },
@@ -57,6 +57,10 @@ export const App = () => {
     },
   });
 
+  useEffect(() => {
+    actionModule.availableActions({ data: { actions: availableActions } });
+  }, [actionModule, availableActions]);
+
   const buttonAction = availableActions[0]!;
 
   return (
@@ -72,6 +76,7 @@ export const App = () => {
             },
           })
         }
+        id={buttonAction.elementId}
         type="button"
       >
         {buttonAction.label}

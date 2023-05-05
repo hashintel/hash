@@ -27,21 +27,11 @@ import {
 } from "react";
 import { useKeys } from "rooks";
 
-// In order to make declaring the options easier, we use a type that doesn't require the path to be specified.
-// The path is added later by flattening the options
-type OptionWithoutPath = {
-  group: string;
-  label: string;
-  href?: string;
-  // Used to render a custom screen inside the popup when the option is selected
-  renderCustomScreen?: (option: OptionWithoutPath) => ReactNode;
-  // Used to render a submenu when the option is selected
-  options?: OptionWithoutPath[];
-  // Used to trigger a command when the option is selected
-  command?: (option: OptionWithoutPath) => void;
-};
-
-type Option = OptionWithoutPath & { path: string[] };
+import {
+  Option,
+  OptionWithoutPath,
+  useCommandBarOptions,
+} from "./command-bar/options";
 
 // The state of the command bar is not immediately reset when exited via the backdrop or command+K.
 // This is the number of milliseconds to wait before resetting the state when exited in this way.
@@ -49,92 +39,6 @@ type Option = OptionWithoutPath & { path: string[] };
 const RESET_BAR_TIMEOUT = 5_000;
 
 const defaultFilterOptions = createFilterOptions<Option>();
-
-// These are the options that are displayed in the command bar
-const allOptions: OptionWithoutPath[] = [
-  {
-    group: "Blocks",
-    label: "Find a block…",
-    options: [
-      {
-        group: "General",
-        label: "Option A",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "General",
-        label: "Option B",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "Other",
-        label: "Option C",
-        href: "https://google.com/",
-      },
-      {
-        group: "Other",
-        label: "Option D",
-        href: "/",
-      },
-    ],
-  },
-  {
-    group: "Page",
-    label: "Set page actions…",
-    command() {
-      // eslint-disable-next-line no-alert
-      alert("You picked set page actions");
-    },
-  },
-  {
-    group: "Page",
-    label: "Configure page variables…",
-    renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-  },
-  {
-    group: "Blocks",
-    label: "Generate new block with AI…",
-    command(option) {
-      // eslint-disable-next-line no-alert
-      alert(`You picked option ${option.label}`);
-    },
-  },
-  {
-    group: "Entities",
-    label: "Search for an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Insert a link to an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Create new entity…",
-    href: "/",
-  },
-  {
-    group: "Types",
-    label: "Create new type…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Find an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Create an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Generate new app…",
-    href: "/",
-  },
-];
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
 const CenterContainer = forwardRef(({ children }: PropsWithChildren, ref) => (
@@ -269,26 +173,6 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   return [handler, cancel] as const;
 };
 
-// Flattens the options into a single array, with a path property that contains the path to the option
-const flattenOptions = (
-  options: OptionWithoutPath[],
-  parentOption?: Option,
-): Option[] => {
-  return options.flatMap((option) => {
-    const nextOption = {
-      ...option,
-      path: parentOption ? [...parentOption.path, parentOption.label] : [],
-    };
-
-    return [
-      nextOption,
-      ...flattenOptions(nextOption.options ?? [], nextOption),
-    ];
-  });
-};
-
-const flattenedOptions = flattenOptions(allOptions);
-
 export const CommandBar = () => {
   const popupState = usePopupState({
     popupId: "kbar",
@@ -321,6 +205,8 @@ export const CommandBar = () => {
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { allOptions, flattenedOptions } = useCommandBarOptions();
 
   const selectedOption = getSelectedOptions(selectedOptionPath, allOptions);
   const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);

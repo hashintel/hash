@@ -485,15 +485,13 @@ const Page: NextPageWithLayout<PageProps> = ({
         </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
-          <ActionsContextProvider>
-            <PageBlock
-              accountId={pageWorkspace.accountId}
-              contents={contents}
-              blocks={blocksMap}
-              pageComments={pageComments}
-              entityId={pageEntityId}
-            />
-          </ActionsContextProvider>
+          <PageBlock
+            accountId={pageWorkspace.accountId}
+            contents={contents}
+            blocks={blocksMap}
+            pageComments={pageComments}
+            entityId={pageEntityId}
+          />
         </CollabPositionProvider>
       </PageContextProvider>
     </>
