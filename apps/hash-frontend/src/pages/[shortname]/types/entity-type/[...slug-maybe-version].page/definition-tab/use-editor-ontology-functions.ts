@@ -162,7 +162,7 @@ export const useEditorOntologyFunctions = (
         : {
             allowed: false,
             message: `Can't edit ${
-              kind === "link-type" ? "link" : "property"
+              kind === "link-type" ? "link entity" : "property"
             } types that belong to other users or organizations you aren't a member of`,
           };
     },
