@@ -2,7 +2,6 @@ import { promises as fs } from "node:fs";
 
 import { GraphStatus } from "@apps/hash-graph/type-defs/status";
 import { monorepoRootDir } from "@local/hash-backend-utils/environment";
-import { Logger } from "@local/hash-backend-utils/logger";
 import execa from "execa";
 
 export const recreateDbAndRunSchemaMigrations = async () => {
@@ -21,12 +20,6 @@ export const recreateDbAndRunSchemaMigrations = async () => {
   );
 };
 
-const logger = new Logger({
-  mode: "dev",
-  level: "debug",
-  serviceName: "integration-tests",
-});
-
 export const restoreSnapshot = (snapshotPath: string) => {
   return fs
     .readFile(snapshotPath)
@@ -39,14 +32,11 @@ export const restoreSnapshot = (snapshotPath: string) => {
     .then(async (response) => {
       const status: GraphStatus = await response.json();
       if (status.code !== "OK") {
-        logger.error(JSON.stringify(status, null, 2));
         if (status.message) {
           throw new Error(`Snapshot restoration error: ${status.message}`);
         } else {
           throw new Error(`Snapshot restoration failed with unknown error`);
         }
-      } else {
-        logger.debug(`Snapshot for \`${snapshotPath}\` restored successfully`);
       }
     });
 };
