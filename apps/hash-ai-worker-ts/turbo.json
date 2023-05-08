@@ -1,7 +1,6 @@
 {
   "extends": ["//"],
   "pipeline": {
-    // Currently no differences from the top-level `turbo.json` configuration
     "build:docker": {
       "cache": false
     }
