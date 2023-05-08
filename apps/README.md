@@ -21,13 +21,13 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 ## Main projects
 
-| Subdirectory                   | Description                                                                                                                                                                                  |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Subdirectory                   | Description                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`hash`](hash)                 | Entrypoint for [HASH], a block-based, data-centric, all-in-one workspace                                                                                      |
 | `hash-*`                       | Individual modules which together form [HASH], as summarized in the [`hash`](hash) README; these apps may (but are not guaranteed to) be independently useful |
-| [hashdotai](hashdotai)         | Content related to our main [hash.ai] website                                                                                                                                                |
-| [hashdotdesign](hashdotdesign) | Source code and content related to our [hash.design] designer-focused website                                                                                                                |
-| [hashdotdev](hashdotdev)       | Source code and content related to our [hash.dev] developer-focused website                                                                                                                  |
+| [hashdotai](hashdotai)         | Content related to our main [hash.ai] website                                                                                                                 |
+| [hashdotdesign](hashdotdesign) | Source code and content related to our [hash.design] designer-focused website                                                                                 |
+| [hashdotdev](hashdotdev)       | Source code and content related to our [hash.dev] developer-focused website                                                                                   |
 
 ## Other projects
 
