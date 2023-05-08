@@ -78,5 +78,5 @@ runs:
       if: inputs.hash-ai-worker-ts == 'true'
       uses: actions/upload-artifact@v3
       with:
-        name: hash-agents
+        name: hash-ai-worker-ts
         path: /tmp/hash-ai-worker-ts.tar
