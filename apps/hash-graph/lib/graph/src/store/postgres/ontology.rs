@@ -11,13 +11,13 @@ use type_system::{DataType, EntityType, PropertyType};
 pub use self::ontology_id::OntologyId;
 use crate::{
     ontology::OntologyType,
-    store::{error::DeletionError, postgres::query::PostgresRecord, AsClient, PostgresStore},
+    store::{error::DeletionError, AsClient, PostgresStore},
 };
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
 /// [`PostgresDatabase`]: crate::store::PostgresDatabase
-pub trait OntologyDatabaseType: OntologyType<WithMetadata: PostgresRecord> {
+pub trait OntologyDatabaseType: OntologyType {
     /// Returns the name of the table where this type is stored.
     fn table() -> &'static str;
 }
