@@ -1,5 +1,3 @@
-use crate::macros::impl_const;
-
 /// Basic colors variants
 ///
 /// ## Support
@@ -425,67 +423,51 @@ pub enum Color {
     Cmyk(CmykColor),
 }
 
-impl_const! {
-    impl const? From<BasicColor> for Color {
-        fn from(value: BasicColor) -> Self {
-            Self::Basic(value)
-        }
+impl From<BasicColor> for Color {
+    fn from(value: BasicColor) -> Self {
+        Self::Basic(value)
     }
 }
 
-impl_const! {
-    impl const? From<BrightColor> for Color {
-        fn from(value: BrightColor) -> Self {
-            Self::Bright(value)
-        }
+impl From<BrightColor> for Color {
+    fn from(value: BrightColor) -> Self {
+        Self::Bright(value)
     }
 }
 
-impl_const! {
-    impl const? From<IndexedColor> for Color {
-        fn from(value: IndexedColor) -> Self {
-            Self::Indexed(value)
-        }
+impl From<IndexedColor> for Color {
+    fn from(value: IndexedColor) -> Self {
+        Self::Indexed(value)
     }
 }
 
-impl_const! {
-    impl const? From<RgbColor> for Color {
-        fn from(value: RgbColor) -> Self {
-            Self::Rgb(value)
-        }
+impl From<RgbColor> for Color {
+    fn from(value: RgbColor) -> Self {
+        Self::Rgb(value)
     }
 }
 
 #[cfg(feature = "rgba")]
-impl_const! {
-    impl const? From<RgbaColor> for Color {
-        fn from(value: RgbaColor) -> Self {
-            Self::Rgba(value)
-        }
+impl From<RgbaColor> for Color {
+    fn from(value: RgbaColor) -> Self {
+        Self::Rgba(value)
     }
 }
 
-impl_const! {
-    impl const? From<CmyColor> for Color {
-        fn from(value: CmyColor) -> Self {
-            Self::Cmy(value)
-        }
+impl From<CmyColor> for Color {
+    fn from(value: CmyColor) -> Self {
+        Self::Cmy(value)
     }
 }
 
-impl_const! {
-    impl const? From<CmykColor> for Color {
-        fn from(value: CmykColor) -> Self {
-            Self::Cmyk(value)
-        }
+impl From<CmykColor> for Color {
+    fn from(value: CmykColor) -> Self {
+        Self::Cmyk(value)
     }
 }
 
-impl_const! {
-    impl const? From<TransparentColor> for Color {
-        fn from(value: TransparentColor) -> Self {
-            Self::Transparent(value)
-        }
+impl From<TransparentColor> for Color {
+    fn from(value: TransparentColor) -> Self {
+        Self::Transparent(value)
     }
 }
