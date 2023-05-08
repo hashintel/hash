@@ -231,7 +231,7 @@ jobs:
       - name: Launch external services
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up --detach
+          yarn workspace @apps/hash-external-services deploy:test up --detach
 
       - run: yarn test:backend-integration
         env:

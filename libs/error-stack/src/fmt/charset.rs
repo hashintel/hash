@@ -59,8 +59,8 @@ impl Report<()> {
     /// # Example
     ///
     /// ```
-    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{report, Report};
@@ -90,12 +90,12 @@ impl Report<()> {
     /// #
     /// Report::set_charset(Charset::Utf8);
     /// println!("{report:?}");
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_utf8.snap")].assert_eq(&render(format!("{report:?}")));
     ///
     /// Report::set_charset(Charset::Ascii);
     /// println!("{report:?}");
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_ascii.snap")].assert_eq(&render(format!("{report:?}")));
     /// ```
     ///
