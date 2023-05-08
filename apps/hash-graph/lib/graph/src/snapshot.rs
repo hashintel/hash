@@ -285,8 +285,6 @@ impl<C: AsClient> SnapshotStore<C> {
             }
             found_metadata = true;
 
-            tracing::info!("found metadata record in the snapshot: {:?}", metadata);
-
             ensure!(
                 metadata.block_protocol_module_versions.graph == semver::Version::new(0, 3, 0),
                 SnapshotRestoreError::Unsupported
