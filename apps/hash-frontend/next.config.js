@@ -109,6 +109,14 @@ module.exports = withSentryConfig(
 
         experimental: {
           allowMiddlewareResponseBody: true,
+          // These are introduced in the monorepo by the Temporal packages, and despite them not being part of the
+          // frontend dependency tree, they are not shaken and are included in the generated lambdas
+          // https://github.com/orgs/vercel/discussions/103#discussioncomment-5427097
+          outputFileTracingIgnores: [
+            "node_modules/@swc/core-linux-x64-gnu",
+            "node_modules/@swc/core-linux-x64-musl",
+            "node_modules/@esbuild/linux-x64",
+          ],
         },
 
         webpack: (webpackConfig, { isServer }) => {
