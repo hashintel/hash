@@ -375,9 +375,11 @@ services:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
 
   hash-temporal-worker-ts:
-    build:
-      dockerfile: infra/docker/hash-ai-worker-ts/prod/Dockerfile
-      context: ../../
+    image: hash-ai-worker-ts
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
     # Environemnt variables are to be set manually here.
     # We could load in the entirety of the `.env.local` file using `env_file`
     # but to prevent bloating the environment and spilling everything
