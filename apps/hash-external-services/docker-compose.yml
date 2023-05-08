@@ -329,6 +329,9 @@ services:
   temporal:
     container_name: temporal
     image: "temporalio/server:1.20.2.0"
+    deploy:
+      restart_policy:
+        condition: on-failure
     depends_on:
       postgres:
         condition: service_healthy
@@ -363,9 +366,12 @@ services:
   temporal-ui:
     image: temporalio/ui:2.13.3
     container_name: temporal-ui
+    deploy:
+      restart_policy:
+        condition: on-failure
     depends_on:
       temporal:
-        condition: service_started
+        condition: service_healthy
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_CORS_ORIGINS: http://localhost:3000
