@@ -32,11 +32,9 @@ export const restoreSnapshot = (snapshotPath: string) => {
     .then(async (response) => {
       const status: GraphStatus = await response.json();
       if (status.code !== "OK") {
-        if (status.message) {
-          throw new Error(`Snapshot restoration error: ${status.message}`);
-        } else {
-          throw new Error(`Snapshot restoration failed with unknown error`);
-        }
+        throw new Error(
+          `Snapshot restoration error: ${JSON.stringify(status)}`,
+        );
       }
     });
 };
