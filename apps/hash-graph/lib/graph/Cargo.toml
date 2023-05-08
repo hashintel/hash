@@ -13,7 +13,7 @@ axum = "0.6.18"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
 clap = { version = "4.2.5", features = ["derive", "env"], optional = true }
-time = { version = "0.3.20", features = ['serde', 'serde-well-known'] }
+time = { version = "0.3.21", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.28"
