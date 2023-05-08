@@ -160,7 +160,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
 
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
         deserializer
-            .deserialize_array(ArrayVisitor(PhantomData::default()))
+            .deserialize_array(ArrayVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

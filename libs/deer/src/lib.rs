@@ -728,7 +728,7 @@ pub(crate) mod test {
 
         let s: SerializeFrame<T> = SerializeFrame {
             frames: &frames,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         };
 
         serde_json::to_value(s)
