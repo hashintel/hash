@@ -68,7 +68,7 @@ runs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: apps/hash-ai-worker-ts/docker/Dockerfile
+        file: infra/docker/hash-ai-worker-ts/prod/Dockerfile
         tags: hash-ai-worker-ts
         cache-from: type=gha
         cache-to: type=gha,mode=max
