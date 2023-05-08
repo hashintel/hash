@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import { GraphStatus } from "@apps/hash-graph/type-defs/status";
 import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 import execa from "execa";
+import fetch from "node-fetch";
 
 export const recreateDbAndRunSchemaMigrations = async () => {
   await execa(
