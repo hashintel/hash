@@ -277,7 +277,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    needs: [build-hash-graph, build-hash-agents]
+    needs: [build-hash-graph, build-hash-agents, build-hash-ai-worker-ts]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -302,6 +302,7 @@ jobs:
         with:
           hash-graph: true
           hash-agents: true
+          hash-ai-worker-ts: true
 
       - name: Launch external services
         run: |
