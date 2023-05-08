@@ -226,7 +226,6 @@ where
                 break;
             }
 
-            dbg!(&ontology_urls);
             let ontology_types = fetcher
                 .fetch_ontology_types(context::current(), ontology_urls)
                 .await
