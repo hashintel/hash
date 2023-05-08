@@ -222,8 +222,6 @@ impl<C: AsClient> SnapshotStore<C> {
                 ),
         );
 
-        let metadata_read_thread = tokio::spawn(metadata_rx.collect::<Vec<SnapshotMetadata>>());
-
         let client = self
             .0
             .transaction()
@@ -269,12 +267,19 @@ impl<C: AsClient> SnapshotStore<C> {
                 }
             })?;
 
-        let mut found_metadata = false;
-        for metadata in metadata_read_thread
+        client
+            .commit()
+            .await
+            .change_context(SnapshotRestoreError::Write)
+            .attach_printable("unable to commit snapshot to the store")?;
+
+        read_thread
             .await
             .into_report()
-            .change_context(SnapshotRestoreError::Write)?
-        {
+            .change_context(SnapshotRestoreError::Read)??;
+
+        let mut found_metadata = false;
+        for metadata in metadata_rx.collect::<Vec<SnapshotMetadata>>().await {
             if found_metadata {
                 tracing::warn!("found more than one metadata record in the snapshot");
             }
@@ -289,17 +294,6 @@ impl<C: AsClient> SnapshotStore<C> {
         }
 
         ensure!(found_metadata, SnapshotRestoreError::MissingMetadata);
-
-        client
-            .commit()
-            .await
-            .change_context(SnapshotRestoreError::Write)
-            .attach_printable("unable to commit snapshot to the store")?;
-
-        read_thread
-            .await
-            .into_report()
-            .change_context(SnapshotRestoreError::Read)??;
 
         tracing::info!("snapshot restore finished");
 
