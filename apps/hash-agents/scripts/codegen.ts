@@ -94,14 +94,25 @@ const codegen = async ({ globPattern }: { globPattern: string }) => {
 
     if (fileExtension === ".ts") {
       const outputPath = path.join(path.dirname(filePath), `${fileName}.py`);
-      await execa("quicktype", [
+      let { stdout } = await execa("quicktype", [
         "--lang",
-        "py",
+        "schema",
         "--src",
         filePath,
-        "-o",
-        outputPath,
       ]);
+
+      await execa(
+        "datamodel-codegen",
+        [
+          "--input-file-type",
+          "jsonschema",
+          "--output-model-type",
+          "pydantic.BaseModel",
+          "--output",
+          outputPath,
+        ],
+        { input: stdout },
+      );
     } else {
       throw new Error(`Unsupported quicktype input format: ${fileExtension}`);
     }

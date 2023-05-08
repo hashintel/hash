@@ -10,6 +10,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructOrg, Org } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**
  * Retrieves a list of organizations.
@@ -27,7 +28,16 @@ export const useOrgs = (
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
-      rootEntityTypeIds: [types.entityType.org.entityTypeId],
+      operation: {
+        multiFilter: {
+          filters: [
+            entityHasEntityTypeByVersionedUrlFilter(
+              types.entityType.org.entityTypeId,
+            ),
+          ],
+          operator: "AND",
+        },
+      },
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },

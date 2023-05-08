@@ -30,8 +30,8 @@ import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
   AddressBlock,
-  AddressBlockHasAddressLinks,
-  AddressBlockHasMapImageLinks,
+  AddressBlockHasAddressLink,
+  AddressBlockHasMapImageLink,
   AddressBlockOutgoingLinkAndTarget,
   AddressBlockOutgoingLinksByLinkEntityTypeId,
   BlockEntity,
@@ -127,7 +127,7 @@ export const App: BlockComponent<BlockEntity> = ({
     () =>
       linkedEntities.find(
         ({ linkEntity }) => linkEntity.metadata.entityTypeId === hasAddressLink,
-      ) as AddressBlockHasAddressLinks | undefined,
+      ) as AddressBlockHasAddressLink | undefined,
     [linkedEntities],
   );
 
@@ -146,7 +146,7 @@ export const App: BlockComponent<BlockEntity> = ({
           (linkEntity as HasMapImage).properties[zoomLevelKey] === zoomLevel &&
           (linkEntity as HasMapImage).properties[addressIdKey] === addressId
         );
-      }) as AddressBlockHasMapImageLinks | undefined,
+      }) as AddressBlockHasMapImageLink | undefined,
     [linkedEntities, zoomLevel, addressId],
   );
 

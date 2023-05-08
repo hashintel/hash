@@ -20,6 +20,8 @@ export const useEntityTypeEntitiesContextValue = (
   useEffect(() => {
     void queryEntities({
       data: {
+        // TODO: should we filter this by base URL when "STARTS_WITH" is implemented in HASH
+        operation: {},
         graphResolveDepths: {
           constrainsValuesOn: { outgoing: 0 },
           constrainsPropertiesOn: { outgoing: 1 },
