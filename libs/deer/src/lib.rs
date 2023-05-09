@@ -147,8 +147,8 @@ pub trait FieldVisitor<'de> {
 pub trait ArrayAccess<'de>: Sized {
     /// Represent if the array has been accessed
     ///
-    /// If [`next`] was called at least once this **must** return `true`, otherwise it **must**
-    /// return `false`.
+    /// If [`Self::next`] was called at least once this **must** return `true`, otherwise it
+    /// **must** return `false`.
     ///
     /// This value is used to ensure all invariants are upheld when creating [`BoundArrayAccess`]
     /// through [`Self::into_bound`]
