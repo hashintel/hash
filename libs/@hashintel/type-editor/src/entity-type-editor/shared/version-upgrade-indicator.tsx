@@ -4,17 +4,19 @@ import {
   IconArrowRight,
   IconButton,
 } from "@hashintel/design-system";
-import { Stack, svgIconClasses, Typography } from "@mui/material";
+import { Collapse, Stack, svgIconClasses, Typography } from "@mui/material";
 
 type VersionUpgradeIndicatorProps = {
   currentVersion: number;
   latestVersion: number;
+  collapse?: boolean;
   onUpdateVersion: () => void;
 };
 
 export const VersionUpgradeIndicator = ({
   currentVersion,
   latestVersion,
+  collapse = false,
   onUpdateVersion,
 }: VersionUpgradeIndicatorProps) => {
   return (
@@ -22,42 +24,54 @@ export const VersionUpgradeIndicator = ({
       <Typography variant="smallTextLabels" color="gray.50" fontWeight={500}>
         v{currentVersion}
       </Typography>
-      <IconArrowRight
-        sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
-      />
-      <Typography variant="smallTextLabels" color="blue.70" fontWeight={500}>
-        v{latestVersion}
-      </Typography>
-      <IconButton
-        onClick={onUpdateVersion}
-        sx={{
-          p: 0.5,
-          minWidth: 0,
-          minHeight: 0,
-          fontSize: 11,
-          fontWeight: 700,
-          color: ({ palette }) => palette.blue[70],
-          textTransform: "uppercase",
-          gap: 0.625,
-          lineHeight: "18px",
-          ":hover": {
-            color: ({ palette }) => palette.blue[70],
+      <Collapse in={!collapse} orientation="horizontal">
+        <Stack direction="row" gap={1} alignItems="center">
+          <IconArrowRight
+            sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
+          />
+          <Typography
+            variant="smallTextLabels"
+            color="blue.70"
+            fontWeight={500}
+          >
+            v{latestVersion}
+          </Typography>
+          <IconButton
+            onClick={(event) => {
+              event.stopPropagation();
+              onUpdateVersion();
+            }}
+            sx={{
+              p: 0.5,
+              minWidth: 0,
+              minHeight: 0,
+              fontSize: 11,
+              fontWeight: 700,
+              color: ({ palette }) => palette.blue[70],
+              textTransform: "uppercase",
+              gap: 0.625,
+              lineHeight: "18px",
+              ":hover": {
+                color: ({ palette }) => palette.blue[70],
 
-            [`.${svgIconClasses.root}`]: {
-              transform: "rotate(360deg)",
-              transition: ({ transitions }) => transitions.create("transform"),
-            },
-          },
-        }}
-      >
-        <FontAwesomeIcon
-          icon={faArrowsRotate}
-          sx={{
-            fontSize: 11,
-          }}
-        />
-        Update
-      </IconButton>
+                [`.${svgIconClasses.root}`]: {
+                  transform: "rotate(360deg)",
+                  transition: ({ transitions }) =>
+                    transitions.create("transform"),
+                },
+              },
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faArrowsRotate}
+              sx={{
+                fontSize: 11,
+              }}
+            />
+            Update
+          </IconButton>
+        </Stack>
+      </Collapse>
     </Stack>
   );
 };

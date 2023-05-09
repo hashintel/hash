@@ -10,7 +10,7 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, Button, PopperPlacementType, Stack } from "@mui/material";
+import { Box, PopperPlacementType, Stack } from "@mui/material";
 import { ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -21,11 +21,42 @@ import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 import { useTypeVersions } from "../shared/use-type-versions";
+import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
-const TypeChipLabel = ({ children }: { children: ReactNode }) => (
-  <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
+const TypeChipLabel = ({
+  children,
+  currentVersion,
+  latestVersion,
+  chipHovered,
+  onUpdate,
+}: {
+  children: ReactNode;
+  currentVersion?: number;
+  latestVersion?: number;
+  chipHovered?: boolean;
+  onUpdate?: () => void;
+}) => (
+  <Stack
+    direction="row"
+    spacing={0.75}
+    fontSize={14}
+    height={26}
+    alignItems="center"
+  >
     <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
     <Box component="span">{children}</Box>
+
+    {currentVersion &&
+    latestVersion &&
+    onUpdate &&
+    currentVersion !== latestVersion ? (
+      <VersionUpgradeIndicator
+        currentVersion={currentVersion}
+        latestVersion={latestVersion}
+        collapse={chipHovered}
+        onUpdateVersion={onUpdate}
+      />
+    ) : null}
   </Stack>
 );
 
@@ -47,31 +78,32 @@ const ChosenEntityType = ({
     entityTypes,
   );
 
+  const [chipHovered, setChipHovered] = useState(false);
+
   if (!type) {
     throw new Error("Entity type missing in links table");
   }
 
   return (
-    <>
-      <Chip
-        sx={{ m: 0.25 }}
-        tabIndex={-1}
-        onDelete={onDelete}
-        color="blue"
-        label={<TypeChipLabel>{type.title}</TypeChipLabel>}
-        key={type.$id}
-      />
-      {currentVersion !== latestVersion ? (
-        <Button
-          onClick={(event) => {
-            event.stopPropagation();
-            updateVersion(`${baseUrl}v/${latestVersion}`);
-          }}
+    <Chip
+      onMouseEnter={() => setChipHovered(true)}
+      onMouseLeave={() => setChipHovered(false)}
+      key={type.$id}
+      sx={{ m: 0.25 }}
+      tabIndex={-1}
+      onDelete={onDelete}
+      color="blue"
+      label={
+        <TypeChipLabel
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          chipHovered={!chipHovered}
+          onUpdate={() => updateVersion(`${baseUrl}v/${latestVersion}`)}
         >
-          update
-        </Button>
-      ) : null}
-    </>
+          {type.title}
+        </TypeChipLabel>
+      }
+    />
   );
 };
 
