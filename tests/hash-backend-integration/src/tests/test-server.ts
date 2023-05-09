@@ -1,7 +1,22 @@
 import { promises as fs } from "node:fs";
 
 import { GraphStatus } from "@apps/hash-graph/type-defs/status";
+import {
+  DataTypeStructuralQuery,
+  EntityStructuralQuery,
+  EntityTypeStructuralQuery,
+  PropertyTypeStructuralQuery,
+} from "@local/hash-graph-client";
+import {
+  DataTypeRootType,
+  EntityRootType,
+  EntityTypeRootType,
+  PropertyTypeRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
 import fetch from "node-fetch";
+
+import { createTestImpureGraphContext } from "./util";
 
 const deleteRecords = async (endpoint: string) => {
   await fetch(`http://127.0.0.1:4001/${endpoint}`, { method: "DELETE" }).then(
@@ -95,4 +110,38 @@ export const resetToSnapshot = async (snapshotPath: string) => {
   await deleteAccounts();
 
   await restoreSnapshot(snapshotPath);
+};
+
+const graphContext = createTestImpureGraphContext();
+
+export const getDataTypes = async (
+  query: DataTypeStructuralQuery,
+): Promise<Subgraph<DataTypeRootType>> => {
+  return await graphContext.graphApi
+    .getDataTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<DataTypeRootType>);
+};
+
+export const getPropertyTypes = async (
+  query: PropertyTypeStructuralQuery,
+): Promise<Subgraph<PropertyTypeRootType>> => {
+  return await graphContext.graphApi
+    .getPropertyTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<PropertyTypeRootType>);
+};
+
+export const getEntityTypes = async (
+  query: EntityTypeStructuralQuery,
+): Promise<Subgraph<EntityTypeRootType>> => {
+  return await graphContext.graphApi
+    .getEntityTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<EntityTypeRootType>);
+};
+
+export const getEntities = async (
+  query: EntityStructuralQuery,
+): Promise<Subgraph<EntityRootType>> => {
+  return await graphContext.graphApi
+    .getEntitiesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<EntityRootType>);
 };
