@@ -12,6 +12,7 @@ import {
   UserInputError,
 } from "apollo-server-express";
 
+import { currentTemporalAxes } from "../../../../graph";
 import {
   archiveEntity,
   createEntityWithLinks,
@@ -139,19 +140,7 @@ export const queryEntitiesResolver: Extract<
       hasLeftEntity,
       hasRightEntity,
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTemporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;

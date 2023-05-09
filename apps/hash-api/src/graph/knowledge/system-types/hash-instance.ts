@@ -9,6 +9,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
+  currentTemporalAxes,
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
@@ -87,19 +88,7 @@ export const getHashInstance: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTemporalAxes,
     })
     .then(({ data: subgraph }) =>
       getRoots(subgraph as Subgraph<EntityRootType>),

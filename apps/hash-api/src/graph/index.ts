@@ -8,6 +8,7 @@ import {
   GraphApi as GraphApiClient,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
+import { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
@@ -45,6 +46,52 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   isOfType: { outgoing: 0 },
   hasLeftEntity: { incoming: 0, outgoing: 0 },
   hasRightEntity: { incoming: 0, outgoing: 0 },
+};
+
+export const currentTemporalAxes: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "transactionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "decisionTime",
+    interval: {
+      start: null,
+      end: null,
+    },
+  },
+};
+
+export const fullDecisionTimeAxis: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "transactionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "decisionTime",
+    interval: {
+      start: {
+        kind: "unbounded",
+      },
+      end: null,
+    },
+  },
+};
+
+export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "decisionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "transactionTime",
+    interval: {
+      start: {
+        kind: "unbounded",
+      },
+      end: null,
+    },
+  },
 };
 
 const agentConfig = {

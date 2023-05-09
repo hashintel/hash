@@ -5,6 +5,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
+import { currentTemporalAxes } from "../../../graph";
 import {
   createEntityType,
   updateEntityType,
@@ -70,19 +71,7 @@ export const queryEntityTypesResolver: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
@@ -121,19 +110,7 @@ export const getEntityTypeResolver: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;

@@ -1,5 +1,6 @@
 import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
+import { currentTemporalAxes } from "../../../graph";
 import {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
@@ -29,19 +30,7 @@ export const queryDataTypes: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTemporalAxes,
   });
 
   return dataTypeSubgraph as Subgraph<DataTypeRootType>;
@@ -70,19 +59,7 @@ export const getDataType: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTemporalAxes,
   });
 
   return dataTypeSubgraph as Subgraph<DataTypeRootType>;

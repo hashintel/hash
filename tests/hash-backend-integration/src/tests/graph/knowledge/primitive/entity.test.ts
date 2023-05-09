@@ -1,4 +1,5 @@
 import {
+  currentTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
@@ -202,19 +203,7 @@ describe("Entity CRU", () => {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: {
-          pinned: {
-            axis: "transactionTime",
-            timestamp: null,
-          },
-          variable: {
-            axis: "decisionTime",
-            interval: {
-              start: null,
-              end: null,
-            },
-          },
-        },
+        temporalAxes: currentTemporalAxes,
       })
       .then(({ data }) =>
         getRoots(data as Subgraph<EntityRootType>).filter(

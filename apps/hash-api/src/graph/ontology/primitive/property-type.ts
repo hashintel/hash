@@ -18,7 +18,11 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import {
+  currentTemporalAxes,
+  ImpureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -85,19 +89,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTemporalAxes,
     })
     .then(({ data: subgraph }) =>
       getRoots(subgraph as Subgraph<PropertyTypeRootType>),
