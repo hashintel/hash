@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
@@ -9,7 +10,7 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, PopperPlacementType, Stack } from "@mui/material";
+import { Box, Button, PopperPlacementType, Stack } from "@mui/material";
 import { ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -19,6 +20,7 @@ import { useEntityTypesOptions } from "../../shared/entity-types-options-context
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
+import { useTypeVersions } from "../shared/use-type-versions";
 
 const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
@@ -26,6 +28,52 @@ const TypeChipLabel = ({ children }: { children: ReactNode }) => (
     <Box component="span">{children}</Box>
   </Stack>
 );
+
+const ChosenEntityType = ({
+  entityTypeId,
+  updateVersion,
+  onDelete,
+}: {
+  entityTypeId: VersionedUrl;
+  updateVersion: (newVersion: VersionedUrl) => void;
+  onDelete?: () => void;
+}) => {
+  const { entityTypes } = useEntityTypesOptions();
+
+  const type = entityTypes[entityTypeId];
+
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
+    entityTypeId,
+    entityTypes,
+  );
+
+  if (!type) {
+    throw new Error("Entity type missing in links table");
+  }
+
+  return (
+    <>
+      <Chip
+        sx={{ m: 0.25 }}
+        tabIndex={-1}
+        onDelete={onDelete}
+        color="blue"
+        label={<TypeChipLabel>{type.title}</TypeChipLabel>}
+        key={type.$id}
+      />
+      {currentVersion !== latestVersion ? (
+        <Button
+          onClick={(event) => {
+            event.stopPropagation();
+            updateVersion(`${baseUrl}v/${latestVersion}`);
+          }}
+        >
+          update
+        </Button>
+      ) : null}
+    </>
+  );
+};
 
 const linkEntityTypeSelectorDropdownProps = {
   query: "",
@@ -152,36 +200,32 @@ export const LinkEntityTypeSelector = ({
           : {})}
       >
         {chosenEntityTypeIds.length ? (
-          chosenEntityTypeIds.map((entityTypeId) => {
-            const type = entityTypes[entityTypeId];
-
-            if (!type) {
-              throw new Error("Entity type missing in links table");
-            }
-
-            return (
-              <Chip
-                sx={{ m: 0.25 }}
-                tabIndex={-1}
-                {...(entityTypeSelectorPopupOpen
-                  ? {
-                      onDelete: () => {
-                        setValue(
-                          `links.${linkIndex}.entityTypes`,
-                          chosenEntityTypeIds.filter(
-                            (id) => id !== entityTypeId,
-                          ),
-                          { shouldDirty: true },
-                        );
-                      },
-                    }
-                  : {})}
-                color="blue"
-                label={<TypeChipLabel>{type.title}</TypeChipLabel>}
-                key={type.$id}
-              />
-            );
-          })
+          chosenEntityTypeIds.map((entityTypeId) => (
+            <ChosenEntityType
+              key={entityTypeId}
+              entityTypeId={entityTypeId}
+              updateVersion={(newVersion: VersionedUrl) =>
+                setValue(
+                  `links.${linkIndex}.entityTypes`,
+                  chosenEntityTypeIds.map((id) =>
+                    id === entityTypeId ? newVersion : id,
+                  ),
+                  { shouldDirty: true },
+                )
+              }
+              {...(entityTypeSelectorPopupOpen
+                ? {
+                    onDelete: () => {
+                      setValue(
+                        `links.${linkIndex}.entityTypes`,
+                        chosenEntityTypeIds.filter((id) => id !== entityTypeId),
+                        { shouldDirty: true },
+                      );
+                    },
+                  }
+                : {})}
+            />
+          ))
         ) : (
           <Chip
             color="blue"
