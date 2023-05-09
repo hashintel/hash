@@ -66,6 +66,13 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
 }
 
 pub trait ObjectAccess<'de>: Sized {
+    /// Represent if the object has been accessed
+    ///
+    /// If [`Self::next`], [`Self::field`] or [`Self::try_field`] was called at least once this
+    /// **must** return `true`, otherwise it **must** return `false`.
+    ///
+    /// This value is used to ensure all invariants are upheld when creating [`BoundObjectAccess`]
+    /// through [`Self::into_bound`]
     fn is_dirty(&self) -> bool;
 
     fn context(&self) -> &Context;
@@ -138,6 +145,13 @@ pub trait FieldVisitor<'de> {
 }
 
 pub trait ArrayAccess<'de>: Sized {
+    /// Represent if the array has been accessed
+    ///
+    /// If [`next`] was called at least once this **must** return `true`, otherwise it **must**
+    /// return `false`.
+    ///
+    /// This value is used to ensure all invariants are upheld when creating [`BoundArrayAccess`]
+    /// through [`Self::into_bound`]
     fn is_dirty(&self) -> bool;
 
     fn context(&self) -> &Context;
