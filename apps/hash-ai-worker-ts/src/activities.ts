@@ -18,7 +18,7 @@ export const complete = async (prompt: string): Promise<string> => {
   const openai = new OpenAIApi(configuration);
 
   const response = await openai.createCompletion({
-    model: "text-davinci-003",
+    model: "text-ada-001",
     prompt,
     temperature: 0,
     max_tokens: 500,

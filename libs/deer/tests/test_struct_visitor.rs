@@ -173,11 +173,11 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         Example::reflection()
     }
 
-    fn visit_array<A>(self, mut array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
     where
         A: ArrayAccess<'de>,
     {
-        array.set_bounded(3).change_context(VisitorError)?;
+        let mut array = array.into_bound(3).change_context(VisitorError)?;
 
         // while the contract states that we're guaranteed to always `Some` for the first 3
         // due to set_bounded we make sure that even if implementations are not correct we are still

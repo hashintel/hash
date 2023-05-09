@@ -54,7 +54,7 @@ Browse the [HASH roadmap] for more information about upcoming features and relea
 
 ### Top-level layout
 
-This repository's contents is divided across four primary sections:
+This repository's contents is divided across several primary sections:
 
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
@@ -66,7 +66,7 @@ Key projects within are summarized below.
 
 ### Applications
 
-- [`hash`](apps/hash): entry-point for **[HASH]**, a data-driven, entity-centric, all-in-one workspace based on the [Block Protocol]
+- [`hash`](apps/hash): entry-point for **[HASH]**, our data-driven, all-in-one AI workspace
 - [`engine`](apps/engine): experimental version of **[HASH Engine]**, a versatile agent-based simulation engine written in Rust
 
 ### Blocks
@@ -89,7 +89,8 @@ Key projects within are summarized below.
 
 #### npm packages
 
-- [`@hashintel/design-system`](libs/@hashintel/design-system): design system for [HASH] and new [hash.ai] website
+- [`@hashintel/block-design-system`](libs/@hashintel/block-design-system): a relatively unopinionated design system for [Block Protocol] blocks
+- [`@hashintel/design-system`](libs/@hashintel/design-system): the design system for [HASH] and our [hash.ai] website
 - [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
