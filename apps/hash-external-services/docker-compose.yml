@@ -329,6 +329,9 @@ services:
   temporal:
     container_name: temporal
     image: "temporalio/server:1.20.2.0"
+    deploy:
+      restart_policy:
+        condition: on-failure
     depends_on:
       postgres:
         condition: service_healthy
@@ -363,9 +366,12 @@ services:
   temporal-ui:
     image: temporalio/ui:2.13.3
     container_name: temporal-ui
+    deploy:
+      restart_policy:
+        condition: on-failure
     depends_on:
       temporal:
-        condition: service_started
+        condition: service_healthy
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_CORS_ORIGINS: http://localhost:3000
@@ -373,3 +379,22 @@ services:
       - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
+
+  hash-temporal-worker-ts:
+    image: hash-ai-worker-ts
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    # Environment variables are to be set manually here.
+    # We could load in the entirety of the `.env.local` file using `env_file`
+    # but to prevent bloating the environment and spilling everything
+    # into the process, it is constrained here.
+    environment:
+      HASH_TEMPORAL_HOST: "temporal"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

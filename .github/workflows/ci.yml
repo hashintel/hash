@@ -39,6 +39,17 @@ jobs:
         with:
           hash-agents: true
 
+  build-hash-ai-worker-ts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          hash-ai-worker-ts: true
+
   linting:
     name: Linting
     runs-on: ubuntu-latest
@@ -212,7 +223,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    needs: [build-hash-graph, build-hash-agents]
+    needs: [build-hash-graph, build-hash-agents, build-hash-ai-worker-ts]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -227,6 +238,7 @@ jobs:
         with:
           hash-graph: true
           hash-agents: true
+          hash-ai-worker-ts: true
 
       - name: Launch external services
         run: |
@@ -265,7 +277,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    needs: [build-hash-graph, build-hash-agents]
+    needs: [build-hash-graph, build-hash-agents, build-hash-ai-worker-ts]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -290,6 +302,7 @@ jobs:
         with:
           hash-graph: true
           hash-agents: true
+          hash-ai-worker-ts: true
 
       - name: Launch external services
         run: |
