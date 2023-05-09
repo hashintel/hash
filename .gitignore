@@ -137,3 +137,7 @@ seed-users.json
 
 # SARIF files
 *.sarif
+
+# Turborepo
+.turbo/
+out/

@@ -9,24 +9,24 @@ description = "HASH Graph API"
 type-fetcher = { path = "../type-fetcher", optional = true }
 
 async-trait = "0.1.68"
-axum = "0.6.12"
+axum = "0.6.18"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
-clap = { version = "4.2.1", features = ["derive", "env"], optional = true }
-time = { version = "0.3.20", features = ['serde', 'serde-well-known'] }
+clap = { version = "4.2.7", features = ["derive", "env"], optional = true }
+time = { version = "0.3.21", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.28"
 hash-status = { path = "../../../../libs/@local/status/crate" }
-hyper = "0.14.25"
+hyper = "0.14.26"
 mime = "0.3.17"
 postgres-types = { version = "0.2.5", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
 postgres-protocol = "0.6.5"
-regex = "1.7.3"
+regex = "1.8.1"
 semver = { version = "1.0.17", default-features = false, features = ["serde"] }
-serde = { version = "1.0.159", features = ["derive"] }
-serde_json = "1.0.95"
-tokio = { version = "1.27.0", default-features = false }
+serde = { version = "1.0.162", features = ["derive"] }
+serde_json = "1.0.96"
+tokio = { version = "1.28.0", default-features = false }
 tokio-postgres = { version = "0.7.8", default-features = false }
 tokio-util = { version = "0.7.7", default-features = false, features = ["codec", "io"] }
 tower = "0.4.13"
@@ -38,9 +38,9 @@ tracing-opentelemetry = "0.18.0"
 tonic = "0.8.3"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "542836" }
-uuid = { version = "1.3.0", features = ["v4", "serde"] }
+uuid = { version = "1.3.2", features = ["v4", "serde"] }
 utoipa = { version = "3.3.0", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
@@ -49,13 +49,11 @@ tarpc = { version = "0.33", features = ["serde-transport", "tcp"], optional = tr
 tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.28.0", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
 [features]
-# WARNING: this is an internal feature which should not be used outside of HASH. It's introduced to conditionally
-#          compile code for externally written benchmarks to avoid exposing internals of the data store
-__internal_bench = []
+test-server = []
 clap = ["dep:clap"]
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]

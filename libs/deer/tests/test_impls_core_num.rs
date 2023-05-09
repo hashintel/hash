@@ -81,7 +81,7 @@ fn isize_err_zero() {
                 "location": []
             }
         },
-        &[Token::ISize(0)],
+        &[Token::Number(0.into())],
     );
 }
 
@@ -113,7 +113,7 @@ fn usize_err_zero() {
                 "location": []
             }
         },
-        &[Token::USize(0)],
+        &[Token::Number(0.into())],
     );
 }
 

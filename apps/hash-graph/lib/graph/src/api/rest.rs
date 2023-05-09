@@ -2,7 +2,9 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-pub mod snapshot;
+#[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+#[doc(hidden)]
+pub mod test_server;
 
 mod api_resource;
 mod json;
@@ -420,6 +422,7 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
+    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         // This magically generates `any`, which is the closest representation we found working
         // with the OpenAPI generator.
@@ -506,6 +509,10 @@ impl Modify for FilterSchemaAddon {
                                             .item(
                                                 ObjectBuilder::new()
                                                     .schema_type(SchemaType::String),
+                                            )
+                                            .item(
+                                                ObjectBuilder::new()
+                                                    .schema_type(SchemaType::Number),
                                             ),
                                     ),
                                 )

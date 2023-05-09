@@ -3,7 +3,7 @@
   "pipeline": {
     "build": {
       // Outputs of the build
-      "outputs": ["./dist/**/*"]
+      "outputs": ["./.next/**/*"]
     }
   }
 }

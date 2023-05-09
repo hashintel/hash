@@ -2,5 +2,14 @@
   "name": "@apps/hash-external-services",
   "version": "0.0.0-private",
   "private": true,
-  "description": "External services needed to run HASH (databases, auth, etc.)"
+  "description": "External services needed to run HASH (databases, auth, etc.)",
+  "scripts": {
+    "codegen": "touch ../../.env.local",
+    "deploy": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.type-fetcher.yml --env-file ../../.env --env-file ../../.env.local",
+    "deploy:offline": "docker compose --project-name hash-external-services --file docker-compose.yml --env-file ../../.env --env-file ../../.env.local",
+    "deploy:test": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.type-fetcher.yml --file docker-compose.test.yml --env-file ../../.env --env-file ../../.env.local"
+  },
+  "devDependencies": {
+    "@apps/hash-graph": "0.0.0-private"
+  }
 }

@@ -22,7 +22,7 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::query::{Distinctness, PostgresRecord, SelectCompiler},
+        postgres::query::{Distinctness, PostgresQueryPath, PostgresRecord, SelectCompiler},
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError, Record,
     },
@@ -59,7 +59,7 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 impl<C: AsClient, T> Read<OntologyTypeSnapshotRecord<T>> for PostgresStore<C>
 where
     T: OntologyType<WithMetadata: PostgresRecord, Representation: Send>,
-    for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath,
+    for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath + PostgresQueryPath,
 {
     type Record = T::WithMetadata;
 

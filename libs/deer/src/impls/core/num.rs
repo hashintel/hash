@@ -37,8 +37,8 @@ macro_rules! impl_nonzero {
         impl<'de> Deserialize<'de> for $typ {
             type Reflection = Self;
 
-            fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-                let value = $int::deserialize(de)?;
+            fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
+                let value = $int::deserialize(deserializer)?;
 
                 Self::new(value)
                     .ok_or_else(|| Report::new(Error::new(ValueError)))
@@ -75,8 +75,10 @@ impl_nonzero![
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
     type Reflection = T::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        T::deserialize(de).map(Self)
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
+        T::deserialize(deserializer).map(Self)
     }
 }
 
@@ -84,7 +86,9 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Saturating<T> {
     type Reflection = T::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        T::deserialize(de).map(Self)
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> error_stack::Result<Self, DeserializeError> {
+        T::deserialize(deserializer).map(Self)
     }
 }

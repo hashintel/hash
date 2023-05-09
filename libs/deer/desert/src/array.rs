@@ -3,12 +3,13 @@ use deer::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, ExpectedLength,
         ReceivedLength, Variant,
     },
-    Deserialize, Deserializer as _,
+    Context, Deserialize, Deserializer as _,
 };
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     deserializer::{Deserializer, DeserializerNone},
+    skip::skip_tokens,
     token::Token,
 };
 
@@ -29,34 +30,13 @@ impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
             remaining: None,
         }
     }
-
-    fn scan_end(&self) -> Option<usize> {
-        let mut objects: usize = 0;
-        let mut arrays: usize = 0;
-
-        let mut n = 0;
-
-        loop {
-            let token = self.deserializer.peek_n(n)?;
-
-            match token {
-                Token::Array { .. } => arrays += 1,
-                Token::ArrayEnd if arrays == 0 && objects == 0 => {
-                    // we're at the outer layer, meaning we can know where we end
-                    return Some(n);
-                }
-                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
-                Token::Object { .. } => objects += 1,
-                Token::ObjectEnd => objects = objects.saturating_sub(1),
-                _ => {}
-            }
-
-            n += 1;
-        }
-    }
 }
 
 impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
+    fn context(&self) -> &Context {
+        self.deserializer.context()
+    }
+
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
         if self.consumed > 0 {
             return Err(
@@ -129,10 +109,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         };
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!
-        let bump = self
-            .scan_end()
-            .map_or_else(|| self.deserializer.tape().remaining(), |index| index + 1);
-        self.deserializer.tape_mut().bump_n(bump);
+        skip_tokens(self.deserializer, &Token::Array { length: None });
 
         if let Some(remaining) = self.remaining {
             if remaining > 0 {

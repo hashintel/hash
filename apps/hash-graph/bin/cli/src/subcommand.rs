@@ -2,9 +2,13 @@ mod completions;
 mod migrate;
 mod server;
 mod snapshot;
+#[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+mod test_server;
 #[cfg(feature = "type-fetcher")]
 mod type_fetcher;
 
+#[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+pub use self::test_server::{test_server, TestServerArgs};
 #[cfg(feature = "type-fetcher")]
 pub use self::type_fetcher::{type_fetcher, TypeFetcherArgs};
 pub use self::{
@@ -28,4 +32,7 @@ pub enum Subcommand {
     Completions(CompletionsArgs),
     /// Snapshot API for the database.
     Snapshot(SnapshotArgs),
+    /// Test server
+    #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+    TestServer(TestServerArgs),
 }

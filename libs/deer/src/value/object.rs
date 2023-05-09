@@ -4,7 +4,8 @@ use crate::{
     error::{
         DeserializerError, ExpectedLength, ObjectLengthError, ReceivedLength, Variant, VisitorError,
     },
-    Context, Deserializer, EnumVisitor, FieldVisitor, ObjectAccess, OptionalVisitor, Visitor,
+    Context, Deserializer, EnumVisitor, FieldVisitor, ObjectAccess, OptionalVisitor, StructVisitor,
+    Visitor,
 };
 
 // TODO: MapDeserializer/IteratorDeserializer
@@ -30,8 +31,8 @@ where
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -108,5 +109,14 @@ where
         // TODO: fold_results
         self.value.end().change_context(DeserializerError)?;
         value.change_context(DeserializerError)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        visitor
+            .visit_object(self.value)
+            .change_context(DeserializerError)
     }
 }

@@ -5,7 +5,7 @@ The HASH monorepo relies upon multiple different licenses. Source code in this r
 - the [GNU Affero General Public License 3.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md); or
 - the [Elastic License 2.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-ELASTIC.md).
 
-Written content, illustrations and graphics published under the `apps/hashdotai` and `apps/hashdotdev` directories are made available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md) license.
+Written content, illustrations and graphics published under the `apps/hashdotai`, `apps/hashdotdesign`, and `apps/hashdotdev` directories are made available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md) license.
 
 ## License Determination
 
@@ -20,11 +20,11 @@ The license for a particular work is defined with following prioritized rules:
 
 As outlined by the license files in the respective directories:
 
-- Within `/blocks` all source code is made available under the MIT License and Apache License 2.0, at your option.
-- Within `/apps`, `/libs` and `/tests`, source code in sub-directories (including those which are nested) named `@local` or prefixed `hash-` are typically licensed under version 3 of the GNU Affero General Public License.
+- Within `/blocks` source code is (unless otherwise noted) generally available under either the MIT License or Apache License 2.0, at your option.
+- Within `/apps`, `/libs` and `/tests`, source code in sub-directories (including those which are nested) named `@local` or prefixed `hash` are typically licensed under version 3 of the GNU Affero General Public License.
 - Within `/apps/engine` source code is licensed under the Elastic License 2.0, unless otherwise noted.
 
-These **quick reference** guidelines are provided as general heuristics only. In all cases, you should follow the above **license determination** rules to verify the actual terms under which code has been published.
+These **quick reference** guidelines are provided as general heuristics only. In all cases, you should follow the above **license determination** rules, outlined in the section above, to verify the actual terms under which code has been published.
 
 ## Questions
 
