@@ -1,20 +1,20 @@
 FROM python:3.11.3-slim-bullseye as python-base
 
-FROM node:16.18.1-bullseye-slim AS base
+FROM node:18.16-bullseye-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    POETRY_ACTIVE=1 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_VERSION=1.4.2
+  PYTHONDONTWRITEBYTECODE=1 \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  POETRY_ACTIVE=1 \
+  POETRY_HOME="/opt/poetry" \
+  POETRY_VIRTUALENVS_IN_PROJECT=true \
+  POETRY_NO_INTERACTION=1 \
+  POETRY_VERSION=1.4.2
 ENV VIRTUAL_ENV=".venv"
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential libffi-dev curl
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends build-essential libffi-dev curl
 
 # `apt-get install python3` installs an older version of Python and we want 3.11, copying it from the official image
 #   seems to work with just these commands, so we opt to do this rather than needing to build it from source or
@@ -34,14 +34,12 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 
 RUN yarn global add turbo
 
-
 FROM base as pruned
 
 WORKDIR /app
 
 COPY . .
 RUN turbo prune --scope='@apps/hash-agents' --docker
-
 
 FROM base as venv-installer
 
@@ -68,16 +66,15 @@ WORKDIR $REPO_ROOT
 
 RUN turbo poetry:install-production
 
-RUN apt-get remove -y build-essential libffi-dev && \
-    apt-get autoremove -y
-
+RUN apt-get remove -y build-essential libffi-dev \
+  && apt-get autoremove -y
 
 FROM venv-installer as yarn-installer
 
 WORKDIR $REPO_ROOT
 
-RUN yarn install --frozen-lockfile --prefer-offline && \
-    yarn cache clean
+RUN yarn install --frozen-lockfile --prefer-offline \
+  && yarn cache clean
 
 COPY --from=pruned /app/out/full/ .
 
@@ -98,11 +95,11 @@ ENTRYPOINT ["gunicorn"]
 CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:80", "--timeout", "0", "app:create_app('prod')"]
 EXPOSE 80
 
-RUN apt-get update && \
-    apt-get install -y curl && \
-    groupadd --system --gid 60000 hash && \
-    useradd --system agents -G hash && \
-    install -d -m 0775 -o agents -g hash /log
+RUN apt-get update \
+  && apt-get install -y curl \
+  && groupadd --system --gid 60000 hash \
+  && useradd --system agents -G hash \
+  && install -d -m 0775 -o agents -g hash /log
 
 USER agents:hash
 
