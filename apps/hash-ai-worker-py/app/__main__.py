@@ -17,7 +17,6 @@ load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
 async def run_worker(stop_event: asyncio.Event):
     client = await Client.connect("127.0.0.1:7233", namespace="default")
 
-    print("Worker launching..")
     worker = Worker(
         client,
         task_queue="ai",
@@ -30,10 +29,9 @@ async def run_worker(stop_event: asyncio.Event):
             complete,
         ],
     )
+
     async with worker:
-        print("Worker running")
         await stop_event.wait()
-        print("Worker done")
 
 
 async def main():
