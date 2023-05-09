@@ -70,8 +70,6 @@ runs:
         context: .
         file: infra/docker/hash-ai-worker-ts/prod/Dockerfile
         tags: hash-ai-worker-ts
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
         outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
 
     - name: Upload artifact
