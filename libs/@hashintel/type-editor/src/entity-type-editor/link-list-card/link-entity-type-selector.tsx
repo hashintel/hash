@@ -36,13 +36,7 @@ const TypeChipLabel = ({
   chipHovered?: boolean;
   onUpdate?: () => void;
 }) => (
-  <Stack
-    direction="row"
-    spacing={0.75}
-    fontSize={14}
-    height={26}
-    alignItems="center"
-  >
+  <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
     <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
     <Box component="span">{children}</Box>
 
@@ -50,12 +44,14 @@ const TypeChipLabel = ({
     latestVersion &&
     onUpdate &&
     currentVersion !== latestVersion ? (
-      <VersionUpgradeIndicator
-        currentVersion={currentVersion}
-        latestVersion={latestVersion}
-        collapse={chipHovered}
-        onUpdateVersion={onUpdate}
-      />
+      <Box sx={{ my: ({ spacing }) => `-${spacing(0.5)} !important` }}>
+        <VersionUpgradeIndicator
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          collapse={chipHovered}
+          onUpdateVersion={onUpdate}
+        />
+      </Box>
     ) : null}
   </Stack>
 );
