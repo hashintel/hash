@@ -71,7 +71,7 @@ pub trait ObjectAccess<'de>: Sized {
     /// If [`Self::next`], [`Self::field`] or [`Self::try_field`] was called at least once this
     /// **must** return `true`, otherwise it **must** return `false`.
     ///
-    /// This value is used to ensure all invariants are upheld when creating [`BoundObjectAccess`]
+    /// This value is used to ensure all invariants are upheld when creating the bound version
     /// through [`Self::into_bound`]
     fn is_dirty(&self) -> bool;
 
@@ -150,7 +150,7 @@ pub trait ArrayAccess<'de>: Sized {
     /// If [`Self::next`] was called at least once this **must** return `true`, otherwise it
     /// **must** return `false`.
     ///
-    /// This value is used to ensure all invariants are upheld when creating [`BoundArrayAccess`]
+    /// This value is used to ensure all invariants are upheld when creating the bound version
     /// through [`Self::into_bound`]
     fn is_dirty(&self) -> bool;
 
