@@ -1,0 +1,7 @@
+error: only enums are supported
+ --> tests/ui/fail/struct_unsupported.rs:3:10
+  |
+3 | #[derive(QueryBuilder)]
+  |          ^^^^^^^^^^^^
+  |
+  = note: this error originates in the derive macro `QueryBuilder` (in Nightly builds, run with -Z macro-backtrace for more info)
