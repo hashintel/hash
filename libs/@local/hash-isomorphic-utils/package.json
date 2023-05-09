@@ -51,7 +51,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.188",
-    "@types/node": "18.16.6",
+    "@types/node": "18.15.13",
     "@types/node-fetch": "^2.6.2",
     "eslint": "8.33.0",
     "react": "^18.2.0",

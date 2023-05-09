@@ -17,7 +17,7 @@
     "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node": "18.16.6",
+    "@types/node": "18.15.13",
     "@typescript-eslint/parser": "5.49.0",
     "eslint": "8.33.0",
     "typescript": "5.0.4"

@@ -1,4 +1,4 @@
-FROM node:18.16-alpine AS builder
+FROM node:18.15-alpine AS builder
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ COPY apps/hash-realtime apps/hash-realtime
 
 #########################################################################################
 
-FROM node:18.16-alpine
+FROM node:18.15-alpine
 
 # Run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

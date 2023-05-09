@@ -55,7 +55,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 18.16
+    ## ≥ 18.15
     
     yarn --version
     ## ≥ 1.16
