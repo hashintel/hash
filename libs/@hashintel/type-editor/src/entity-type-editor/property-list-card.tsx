@@ -356,18 +356,18 @@ export const PropertyTypeRow = ({
   const propertyTypesOptions = usePropertyTypesOptions();
   const property = propertyTypesOptions[propertyId];
 
-  const { updatePropertyType } = useOntologyFunctions();
+  const { updatePropertyType, canEditResource } = useOntologyFunctions();
 
   const [currentVersion, latestVersion] = useTypeVersions(
     propertyId,
     propertyTypesOptions,
   );
 
-  const getDefaultValues = useCallback(() => {
-    if (!property) {
-      throw new Error("Missing property type");
-    }
+  if (!property) {
+    throw new Error(`Property type with ${propertyId} not found in options`);
+  }
 
+  const getDefaultValues = useCallback(() => {
     const [expectedValues, flattenedCustomExpectedValueList] =
       propertyTypeToFormDataExpectedValues(property);
 
@@ -379,11 +379,18 @@ export const PropertyTypeRow = ({
     };
   }, [property]);
 
-  if (!property) {
-    return null;
-  }
+  const editDisabledReason = useMemo(() => {
+    const canEdit = canEditResource({
+      kind: "property-type",
+      resource: property,
+    });
 
-  const $id = property.$id;
+    return !canEdit.allowed
+      ? canEdit.message
+      : currentVersion !== latestVersion
+      ? "Update the property type to the latest version to edit"
+      : undefined;
+  }, [canEditResource, property, currentVersion, latestVersion]);
 
   return (
     <>
@@ -411,12 +418,7 @@ export const PropertyTypeRow = ({
             onRemove={onRemove}
             typeId={property.$id}
             variant="property"
-            {...(currentVersion !== latestVersion
-              ? {
-                  editButtonDisabled:
-                    "Update the property type to the latest version to edit",
-                }
-              : {})}
+            editButtonDisabled={editDisabledReason}
           />
         }
         onUpdateVersion={onUpdateVersion}
@@ -425,13 +427,13 @@ export const PropertyTypeRow = ({
 
       <TypeFormModal
         as={PropertyTypeForm}
-        baseUrl={extractBaseUrl($id)}
+        baseUrl={extractBaseUrl(propertyId)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data: PropertyTypeFormValues) => {
           const res = await updatePropertyType({
             data: {
-              propertyTypeId: $id,
+              propertyTypeId: propertyId,
               propertyType: getPropertyTypeSchema(data),
             },
           });

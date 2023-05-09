@@ -30,7 +30,7 @@ impl Display for BoundedContractViolationError {
 impl Variant for BoundedContractViolationError {
     type Properties = (Location,);
 
-    const ID: Id = id!["internal", "access", "bounded"];
+    const ID: Id = id!["internal", "access", "bound"];
     const NAMESPACE: Namespace = NAMESPACE;
 
     fn message(

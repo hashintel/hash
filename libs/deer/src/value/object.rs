@@ -60,7 +60,7 @@ where
         visitor.visit_some(self).change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>,
     {
@@ -96,18 +96,16 @@ where
             }
         }
 
-        self.value
-            .set_bounded(1)
-            .change_context(DeserializerError)?;
+        let mut access = self.value.into_bound(1).change_context(DeserializerError)?;
 
-        let Some(value) = self.value.field(EnumFieldVisitor(visitor)) else {
+        let Some(value) = access.field(EnumFieldVisitor(visitor)) else {
             return Err(Report::new(ObjectLengthError.into_error())
                 .attach(ExpectedLength::new(1))
                 .attach(ReceivedLength::new(0))
                 .change_context(DeserializerError))
         };
 
-        let (value, _) = (value, self.value.end())
+        let (value, _) = (value, access.end())
             .fold_reports()
             .change_context(DeserializerError)?;
 

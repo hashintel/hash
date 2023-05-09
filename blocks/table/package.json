@@ -1,6 +1,6 @@
 {
   "name": "@blocks/table",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
@@ -30,7 +30,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.2.2",
+    "@blockprotocol/graph": "0.3.0",
     "@glideapps/glide-data-grid": "5.2.1",
     "@hashintel/block-design-system": "0.0.0",
     "@mui/material": "5.11.9",
@@ -39,16 +39,18 @@
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
     "lodash.uniqueid": "4.0.1",
+    "react-device-detect": "2.2.3",
     "react-laag": "2.0.5",
+    "react-sizeme": "3.0.2",
     "rooks": "7.11.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.2.3",
+    "block-scripts": "0.3.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.4",
+    "mock-block-dock": "0.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

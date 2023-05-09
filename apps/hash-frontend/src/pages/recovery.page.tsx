@@ -3,15 +3,15 @@ import { Box, Collapse, Container, Typography } from "@mui/material";
 import { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useMemo, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
-  createFlowErrorHandler,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
+import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
 const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(
@@ -44,16 +44,11 @@ const RecoveryPage: NextPageWithLayout = () => {
   const [code, setCode] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const handleFlowError = useMemo(
-    () =>
-      createFlowErrorHandler({
-        router,
-        flowType: "recovery",
-        setFlow,
-        setErrorMessage,
-      }),
-    [router, setFlow, setErrorMessage],
-  );
+  const { handleFlowError } = useKratosErrorHandler({
+    flowType: "recovery",
+    setFlow,
+    setErrorMessage,
+  });
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.

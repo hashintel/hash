@@ -269,7 +269,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
         Self::Value::reflection()
     }
 
-    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
     where
         A: ObjectAccess<'de>,
     {
@@ -344,7 +344,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     }
                 }
 
-                object.set_bounded(1).change_context(VisitorError)?;
+                let mut object = object.into_bound(1).change_context(VisitorError)?;
 
                 let mut id = None;
                 let mut errors: Result<(), VisitorError> = Ok(());

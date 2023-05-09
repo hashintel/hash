@@ -1,0 +1,7 @@
+error: expected no attributes on field
+ --> tests/ui/fail/unknown_attr_value.rs:3:10
+  |
+3 | #[derive(QueryBuilder)]
+  |          ^^^^^^^^^^^^
+  |
+  = note: this error originates in the derive macro `QueryBuilder` (in Nightly builds, run with -Z macro-backtrace for more info)

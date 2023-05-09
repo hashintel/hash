@@ -37,7 +37,7 @@ export type LinkProperties = {};
 
 export type ShuffleBlock = Entity<ShuffleBlockProperties>;
 
-export type ShuffleBlockHasRepresentativeShuffleBlockItemLinks = {
+export type ShuffleBlockHasRepresentativeShuffleBlockItemLink = {
   linkEntity: HasRepresentativeShuffleBlockItem;
   rightEntity: Entity;
 };
@@ -62,10 +62,10 @@ export type ShuffleBlockItemPropertyValue = {
 };
 
 export type ShuffleBlockOutgoingLinkAndTarget =
-  ShuffleBlockHasRepresentativeShuffleBlockItemLinks;
+  ShuffleBlockHasRepresentativeShuffleBlockItemLink;
 
 export type ShuffleBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/has-representative-shuffle-block-item/v/1": ShuffleBlockHasRepresentativeShuffleBlockItemLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-representative-shuffle-block-item/v/1": ShuffleBlockHasRepresentativeShuffleBlockItemLink;
 };
 
 /**

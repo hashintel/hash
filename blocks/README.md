@@ -59,6 +59,14 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |
 
+## Creating a block
+
+Run the following command to create a new block:
+
+```sh
+yarn create-block block-name
+```
+
 ## Running these blocks
 
 If you want to work on, build or serve a single block, run:
