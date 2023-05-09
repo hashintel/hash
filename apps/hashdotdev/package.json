@@ -62,5 +62,8 @@
     "babel-loader": "^9.1.0",
     "eslint": "8.33.0",
     "typescript": "5.0.4"
+  },
+  "engines": {
+    "node": ">=v18.15.0"
   }
 }
