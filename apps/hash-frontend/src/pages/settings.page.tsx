@@ -4,15 +4,15 @@ import { SettingsFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useMemo, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
-  createFlowErrorHandler,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
+import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
 const SettingsPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
@@ -24,16 +24,11 @@ const SettingsPage: NextPageWithLayout = () => {
   const [updatedPassword, setUpdatedPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const handleFlowError = useMemo(
-    () =>
-      createFlowErrorHandler({
-        router,
-        flowType: "settings",
-        setFlow,
-        setErrorMessage,
-      }),
-    [router, setFlow, setErrorMessage],
-  );
+  const { handleFlowError } = useKratosErrorHandler({
+    flowType: "settings",
+    setFlow,
+    setErrorMessage,
+  });
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.

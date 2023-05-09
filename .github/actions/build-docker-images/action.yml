@@ -9,6 +9,10 @@ inputs:
     description: "Build hash-graph image"
     required: false
     default: "false"
+  hash-ai-worker-ts:
+    description: "Build hash-ai-worker-ts image"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -58,3 +62,19 @@ runs:
       with:
         name: hash-agents
         path: /tmp/hash-agents.tar
+
+    - name: Build hash-ai-worker-ts image
+      if: inputs.hash-ai-worker-ts == 'true'
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: infra/docker/hash-ai-worker-ts/prod/Dockerfile
+        tags: hash-ai-worker-ts
+        outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
+
+    - name: Upload artifact
+      if: inputs.hash-ai-worker-ts == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: hash-ai-worker-ts
+        path: /tmp/hash-ai-worker-ts.tar
