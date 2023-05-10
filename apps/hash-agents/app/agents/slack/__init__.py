@@ -18,7 +18,8 @@ logger = structlog.stdlib.get_logger(__name__)
 HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
 MESSAGES_PER_PAGE = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
-OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=1)).timestamp())
+# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=1)).timestamp())
+OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
 
 
 def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
@@ -42,14 +43,15 @@ def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
             continue
 
 
-def extract_messages(response: SlackResponse):
+def extract_messages(messages):
     return [
+        # TODO: extract file information, etc. here
         {
             "text": message["text"],
             "user": message["user"],
             "ts": message["ts"],
         }
-        for message in response["messages"]
+        for message in messages
         if message["type"] == "message"
     ]
 
@@ -65,7 +67,9 @@ def get_threaded_replies(client: WebClient, channel_id, thread_ts):
         ),
     ):
         response.validate()
-        replies.extend(response["messages"][1:])  # Exclude the parent message
+        replies.extend(
+            extract_messages(response["messages"][1:]),
+        )  # Exclude the parent message
 
     return replies
 
@@ -94,7 +98,7 @@ def execute() -> None:
             channel=HASH_GRAPH_CHANNEL_ID,
         )
         response.validate()
-        messages.extend(extract_messages(response))
+        messages.extend(extract_messages(response["messages"]))
 
     for message in messages:
         message["replies"] = get_threaded_replies(
