@@ -1,3 +1,4 @@
+import { MultiFilter } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -13,6 +14,7 @@ import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
+import { TableWithQuery } from "./components/table/table-with-query";
 import {
   BlockEntity,
   TableBlockOutgoingLinkAndTarget,
@@ -20,6 +22,17 @@ import {
 
 const titleKey: RootKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
+
+const query: MultiFilter = {
+  filters: [
+    {
+      field: ["metadata", "entityTypeId"],
+      operator: "EQUALS",
+      value: "https://example.com/types/entity-type/person/v/1",
+    },
+  ],
+  operator: "OR",
+};
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -95,11 +108,21 @@ export const App: BlockComponent<BlockEntity> = ({
                 </div>
               </div>
 
-              <Table
-                blockEntity={blockEntity}
-                updateEntity={updateEntity}
-                readonly={readonly}
-              />
+              {query ? (
+                <TableWithQuery
+                  graphModule={graphModule}
+                  query={query}
+                  blockEntity={blockEntity}
+                  updateEntity={updateEntity}
+                  readonly={readonly}
+                />
+              ) : (
+                <Table
+                  blockEntity={blockEntity}
+                  updateEntity={updateEntity}
+                  readonly={readonly}
+                />
+              )}
             </div>
           );
         }}
