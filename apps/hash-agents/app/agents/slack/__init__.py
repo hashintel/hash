@@ -1,10 +1,11 @@
 """A template agent, which provides a simple interface into LangChain's LLMMathChain."""
 
+import json
 import os
 import time
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from pprint import pprint
+from pathlib import Path
 
 import structlog
 from beartype import beartype
@@ -36,7 +37,7 @@ def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
             if error.response.status_code != 429:
                 raise
             retry_after = int(error.response.headers["Retry-After"])
-            logger.warning("Rate limited, retrying", retry_after=retry_after)
+            logger.debug("Rate limited, retrying", retry_after=retry_after)
             time.sleep(retry_after)
             continue
 
@@ -102,4 +103,5 @@ def execute() -> None:
             message["ts"],
         )
 
-    pprint(messages)
+    Path("out").mkdir(exist_ok=True)
+    Path("out/messages.json").write_text(json.dumps(messages, indent=2))
