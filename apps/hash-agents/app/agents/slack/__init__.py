@@ -16,7 +16,6 @@ logger = structlog.stdlib.get_logger(__name__)
 
 HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
 MESSAGES_PER_PAGE = 100
-MAX_MESSAGES = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
 OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=1)).timestamp())
 
@@ -37,9 +36,7 @@ def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
             if error.response.status_code != 429:
                 raise
             retry_after = int(error.response.headers["Retry-After"])
-            logger.warning(
-                "Rate limited, retrying",
-            )
+            logger.warning("Rate limited, retrying", retry_after=retry_after)
             time.sleep(retry_after)
             continue
 
@@ -63,6 +60,7 @@ def get_threaded_replies(client: WebClient, channel_id, thread_ts):
             channel=channel_id,
             ts=thread_ts,
             limit=MESSAGES_PER_PAGE,
+            oldest=OLDEST,
         ),
     ):
         response.validate()
@@ -84,6 +82,7 @@ def execute() -> None:
         lambda: client.conversations_history(
             channel=HASH_GRAPH_CHANNEL_ID,
             limit=MESSAGES_PER_PAGE,
+            oldest=OLDEST,
         ),
     ):
         page += 1
@@ -95,9 +94,6 @@ def execute() -> None:
         )
         response.validate()
         messages.extend(extract_messages(response))
-
-        if len(messages) >= MAX_MESSAGES:
-            break
 
     for message in messages:
         message["replies"] = get_threaded_replies(
