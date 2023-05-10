@@ -20,6 +20,7 @@ uvicorn = "^0.21.1"
 structlog = "^23.1.0"
 asgi-correlation-id = "^4.1.0"
 rich = "^13.3.4"
+slack-sdk = "^3.21.3"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"
@@ -47,6 +48,10 @@ ignore = [
     "D401", # Relates to PEP-257 but also conflicts with Google Python Style Guide, generally gets in the way
     "ANN101" # most type checkers infer the type of `self` automatically
 ]
+unfixable = [
+    "F841" # deletes unused variables but leaves their initializations, really annoying if you're temporarily commenting out code
+]
+
 
 [build-system]
 requires = ["poetry-core"]
