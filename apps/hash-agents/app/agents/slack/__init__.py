@@ -15,7 +15,7 @@ from slack_sdk.web import SlackResponse
 logger = structlog.stdlib.get_logger(__name__)
 
 HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
-MESSAGES_PER_PAGE = 100
+MESSAGES_PER_PAGE = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
 OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=1)).timestamp())
 
