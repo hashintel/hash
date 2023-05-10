@@ -23,12 +23,8 @@ export const useEntityTypeEntitiesContextValue = (
         // TODO: should we filter this by base URL when "STARTS_WITH" is implemented in HASH
         operation: {},
         graphResolveDepths: {
-          constrainsValuesOn: { outgoing: 0 },
           constrainsPropertiesOn: { outgoing: 1 },
-          constrainsLinksOn: { outgoing: 0 },
           isOfType: { outgoing: 1 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
         },
       },
     }).then((res) => {
