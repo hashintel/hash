@@ -5,7 +5,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { currentTemporalAxes } from "../../../graph";
+import { currentTemporalAxes, zeroedGraphResolveDepths } from "../../../graph";
 import {
   createEntityType,
   updateEntityType,
@@ -62,14 +62,11 @@ export const queryEntityTypesResolver: ResolverFn<
       equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     temporalAxes: currentTemporalAxes,
   });
@@ -101,14 +98,11 @@ export const getEntityTypeResolver: ResolverFn<
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     temporalAxes: currentTemporalAxes,
   });

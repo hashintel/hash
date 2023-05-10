@@ -5,7 +5,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { currentTemporalAxes } from "../../../graph";
+import { currentTemporalAxes, zeroedGraphResolveDepths } from "../../../graph";
 import {
   createPropertyType,
   updatePropertyType,
@@ -64,14 +64,9 @@ export const queryPropertyTypesResolver: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
+        ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
       temporalAxes: currentTemporalAxes,
     },
@@ -99,14 +94,9 @@ export const getPropertyTypeResolver: ResolverFn<
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
+        ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
       temporalAxes: currentTemporalAxes,
     },

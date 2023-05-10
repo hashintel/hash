@@ -12,7 +12,10 @@ import {
   UserInputError,
 } from "apollo-server-express";
 
-import { currentTemporalAxes } from "../../../../graph";
+import {
+  currentTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../../graph";
 import {
   archiveEntity,
   createEntityWithLinks,
@@ -131,7 +134,7 @@ export const queryEntitiesResolver: Extract<
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
@@ -184,7 +187,7 @@ export const getEntityResolver: ResolverFn<
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
@@ -193,23 +196,21 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: entityVersion
-            ? { kind: "inclusive", limit: entityVersion }
-            : null,
-          end: entityVersion
-            ? { kind: "inclusive", limit: entityVersion }
-            : null,
-        },
-      },
-    },
+    temporalAxes: entityVersion
+      ? {
+          pinned: {
+            axis: "transactionTime",
+            timestamp: null,
+          },
+          variable: {
+            axis: "decisionTime",
+            interval: {
+              start: { kind: "inclusive", limit: entityVersion },
+              end: { kind: "inclusive", limit: entityVersion },
+            },
+          },
+        }
+      : currentTemporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;
