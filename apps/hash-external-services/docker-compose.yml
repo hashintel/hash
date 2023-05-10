@@ -9,27 +9,26 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-    env_file:
-      - ../../.env
     environment:
+      HASH_OPENSEARCH_ENABLED: "${HASH_OPENSEARCH_ENABLED}"
       ## Tell OpenSearch that it's operating in single-node mode
-      - discovery.type=single-node
+      discovery.type: single-node
       ## Disable the security module for development so we can connect over plain HTTP
-      - plugins.security.disabled=true
+      plugins.security.disabled: true
       ## Docker volumes are ~10GB by default which is typically much smaller than the
       ## host's drive size. This can cause OpenSearch to shutdown if it thinks disk
       ## space is running low. Set the disk high watermark to 100% to ignore this.
-      - cluster.routing.allocation.disk.watermark.high=100%
-      - cluster.routing.allocation.disk.watermark.flood_stage=100%
+      cluster.routing.allocation.disk.watermark.high: 100%
+      cluster.routing.allocation.disk.watermark.flood_stage: 100%
     build:
       context: ./opensearch
     ports:
-      - 9200:9200
+      - "9200:9200"
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
-    ## Mouting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
+    ## Mounting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
     ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
     ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
     # volumes:
@@ -48,6 +47,10 @@ services:
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
       HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
       HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DEV_DATABASE}"
+      HASH_TEMPORAL_PG_USER: "${HASH_TEMPORAL_PG_USER}"
+      HASH_TEMPORAL_PG_PASSWORD: "${HASH_TEMPORAL_PG_PASSWORD}"
+      HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
+      HASH_TEMPORAL_VISIBILITY_PG_DATABASE: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
@@ -112,55 +115,13 @@ services:
       timeout: 2s
       retries: 10
     ports:
-      - 16686:16686
+      - "16686:16686"
       # To expose OTLP collector over gRPC on the host
-      - 4317:4317
+      - "4317:4317"
       # To expose OTLP collector over HTTP on the host
       # - 4318:4318
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
-
-  graph-test-server:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      graph-migrate:
-        condition: service_completed_successfully
-    image: hash-graph
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - log:/log
-    command: test-server
-    environment:
-      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/log/graph-test-service"
-      HASH_GRAPH_API_HOST: "0.0.0.0"
-      HASH_GRAPH_API_PORT: "4000"
-      RUST_LOG: "info"
-      RUST_BACKTRACE: 1
-    ports:
-      - "${HASH_GRAPH_TEST_API_PORT}:4000"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "/hash-graph",
-          "test-server",
-          "--healthcheck",
-          "--api-port",
-          "4000",
-        ]
-      interval: 2s
-      timeout: 2s
-      retries: 10
 
   graph:
     init: true
@@ -211,7 +172,7 @@ services:
       restart_policy:
         condition: on-failure
     ports:
-      - 6379:6379
+      - "6379:6379"
 
   kratos-migrate:
     build:
@@ -273,3 +234,125 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     ports:
       - "${HASH_AGENT_RUNNER_PORT}:80"
+
+  temporal-migrate:
+    build:
+      context: ./temporal
+      dockerfile: migrate.Dockerfile
+    read_only: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: "postgresql"
+      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DB_PORT: "5432"
+      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PWD: "${POSTGRES_PASSWORD}"
+      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
+      ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
+      ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
+      ES_VERSION: "v7"
+    security_opt:
+      - no-new-privileges:true
+
+  temporal-setup:
+    build:
+      context: ./temporal
+      dockerfile: setup.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    environment:
+      DB: "postgresql"
+      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DB_PORT: "5432"
+      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PWD: "${POSTGRES_PASSWORD}"
+      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
+      ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
+      ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
+      ES_VERSION: "v7"
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+      SKIP_DEFAULT_NAMESPACE_CREATION: "false" # left as a convenience as most temporal tooling expects default namespace
+    security_opt:
+      - no-new-privileges:true
+
+  temporal:
+    container_name: temporal
+    image: "temporalio/server:1.20.2.0"
+    deploy:
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal-migrate:
+        condition: service_completed_successfully
+      hash-dev-opensearch:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "workflow", "list"]
+      interval: 10s
+      timeout: 2s
+      retries: 10
+    environment:
+      DB: "postgresql"
+      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DB_PORT: "5432"
+      POSTGRES_USER: "${HASH_TEMPORAL_PG_USER}"
+      POSTGRES_PWD: "${HASH_TEMPORAL_PG_PASSWORD}"
+      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
+      #     DYNAMIC_CONFIG_FILE_PATH: "config/dynamicconfig/development-sql.yaml"
+      ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
+      ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
+      ES_VERSION: "v7"
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${HASH_TEMPORAL_SERVER_PORT}:7233"
+  #    volumes:
+  #      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+
+  temporal-ui:
+    image: temporalio/ui:2.13.3
+    container_name: temporal-ui
+    deploy:
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${HASH_TEMPORAL_UI_PORT}:8080"
+
+  hash-temporal-worker-ts:
+    image: hash-ai-worker-ts
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    # Environment variables are to be set manually here.
+    # We could load in the entirety of the `.env.local` file using `env_file`
+    # but to prevent bloating the environment and spilling everything
+    # into the process, it is constrained here.
+    environment:
+      HASH_TEMPORAL_HOST: "temporal"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

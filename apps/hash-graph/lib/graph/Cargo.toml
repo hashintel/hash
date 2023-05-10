@@ -12,8 +12,8 @@ async-trait = "0.1.68"
 axum = "0.6.18"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
-clap = { version = "4.2.5", features = ["derive", "env"], optional = true }
-time = { version = "0.3.20", features = ['serde', 'serde-well-known'] }
+clap = { version = "4.2.7", features = ["derive", "env"], optional = true }
+time = { version = "0.3.21", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.28"
@@ -24,9 +24,9 @@ postgres-types = { version = "0.2.5", default-features = false, features = ["der
 postgres-protocol = "0.6.5"
 regex = "1.8.1"
 semver = { version = "1.0.17", default-features = false, features = ["serde"] }
-serde = { version = "1.0.160", features = ["derive"] }
+serde = { version = "1.0.162", features = ["derive"] }
 serde_json = "1.0.96"
-tokio = { version = "1.27.0", default-features = false }
+tokio = { version = "1.28.0", default-features = false }
 tokio-postgres = { version = "0.7.8", default-features = false }
 tokio-util = { version = "0.7.7", default-features = false, features = ["codec", "io"] }
 tower = "0.4.13"
@@ -38,7 +38,7 @@ tracing-opentelemetry = "0.18.0"
 tonic = "0.8.3"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "808753" }
 uuid = { version = "1.3.2", features = ["v4", "serde"] }
 utoipa = { version = "3.3.0", features = ["uuid"] }
@@ -49,7 +49,7 @@ tarpc = { version = "0.33", features = ["serde-transport", "tcp"], optional = tr
 tokio-serde = { version = "0.8", features = ["json"], optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.28.0", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
