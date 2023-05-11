@@ -18,7 +18,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import {
-  currentTemporalAxes,
+  currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
@@ -92,7 +92,7 @@ export const getDataTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: subgraph }) =>
       getRoots(subgraph as Subgraph<DataTypeRootType>),

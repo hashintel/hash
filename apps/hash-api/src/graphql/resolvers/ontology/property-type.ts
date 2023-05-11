@@ -5,7 +5,10 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { currentTemporalAxes, zeroedGraphResolveDepths } from "../../../graph";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
 import {
   createPropertyType,
   updatePropertyType,
@@ -68,7 +71,7 @@ export const queryPropertyTypesResolver: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
       },
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 
@@ -98,7 +101,7 @@ export const getPropertyTypeResolver: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
       },
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 

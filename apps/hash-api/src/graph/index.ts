@@ -48,7 +48,7 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   hasRightEntity: { incoming: 0, outgoing: 0 },
 };
 
-export const currentTemporalAxes: QueryTemporalAxesUnresolved = {
+export const currentTimeInstantTemporalAxes: QueryTemporalAxesUnresolved = {
   pinned: {
     axis: "transactionTime",
     timestamp: null,

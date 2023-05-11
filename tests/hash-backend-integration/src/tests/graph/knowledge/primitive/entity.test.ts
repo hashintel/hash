@@ -1,5 +1,5 @@
 import {
-  currentTemporalAxes,
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
@@ -203,7 +203,7 @@ describe("Entity CRU", () => {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTemporalAxes,
+        temporalAxes: currentTimeInstantTemporalAxes,
       })
       .then(({ data }) =>
         getRoots(data as Subgraph<EntityRootType>).filter(

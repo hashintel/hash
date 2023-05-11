@@ -5,7 +5,10 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { currentTemporalAxes, zeroedGraphResolveDepths } from "../../../graph";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
 import {
   createEntityType,
   updateEntityType,
@@ -68,7 +71,7 @@ export const queryEntityTypesResolver: ResolverFn<
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
     },
-    temporalAxes: currentTemporalAxes,
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
@@ -104,7 +107,7 @@ export const getEntityTypeResolver: ResolverFn<
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
     },
-    temporalAxes: currentTemporalAxes,
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;

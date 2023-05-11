@@ -25,7 +25,7 @@ import {
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
 import {
-  currentTemporalAxes,
+  currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
@@ -111,7 +111,7 @@ export const getLatestEntityById: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: subgraph }) =>
       getRoots(subgraph as Subgraph<EntityRootType>),
@@ -470,7 +470,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => data as Subgraph<EntityRootType>);
 
@@ -571,7 +571,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => data as Subgraph<EntityRootType>);
 
@@ -631,7 +631,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       ...zeroedGraphResolveDepths,
       ...graphResolveDepths,
     },
-    temporalAxes: currentTemporalAxes,
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;

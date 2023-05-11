@@ -1,6 +1,9 @@
 import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
-import { currentTemporalAxes, zeroedGraphResolveDepths } from "../../../graph";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
 import {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
@@ -24,7 +27,7 @@ export const queryDataTypes: ResolverFn<
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
     },
-    temporalAxes: currentTemporalAxes,
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return dataTypeSubgraph as Subgraph<DataTypeRootType>;
@@ -47,7 +50,7 @@ export const getDataType: ResolverFn<
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
     },
-    temporalAxes: currentTemporalAxes,
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return dataTypeSubgraph as Subgraph<DataTypeRootType>;

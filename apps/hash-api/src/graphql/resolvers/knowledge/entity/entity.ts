@@ -13,7 +13,7 @@ import {
 } from "apollo-server-express";
 
 import {
-  currentTemporalAxes,
+  currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "../../../../graph";
 import {
@@ -143,7 +143,7 @@ export const queryEntitiesResolver: Extract<
       hasLeftEntity,
       hasRightEntity,
     },
-    temporalAxes: currentTemporalAxes,
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;
@@ -210,7 +210,7 @@ export const getEntityResolver: ResolverFn<
             },
           },
         }
-      : currentTemporalAxes,
+      : currentTimeInstantTemporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;

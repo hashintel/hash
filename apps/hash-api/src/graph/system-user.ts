@@ -14,7 +14,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
 import {
-  currentTemporalAxes,
+  currentTimeInstantTemporalAxes,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
 } from "./index";
@@ -48,7 +48,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTemporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     });
 
   const existingUserEntities = getEntities(
