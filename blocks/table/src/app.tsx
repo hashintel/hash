@@ -113,7 +113,6 @@ export const App: BlockComponent<BlockEntity> = ({
                   graphModule={graphModule}
                   query={query}
                   blockEntity={blockEntity}
-                  updateEntity={updateEntity}
                   readonly={readonly}
                 />
               ) : (

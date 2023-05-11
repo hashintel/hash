@@ -13,14 +13,10 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ColumnKey, RootKey } from "../../additional-types";
+import { RootKey } from "../../additional-types";
 import { BlockEntity } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 
-const localColumnsKey: RootKey =
-  "https://blockprotocol.org/@hash/types/property-type/table-local-column/";
-const localRowsKey: RootKey =
-  "https://blockprotocol.org/@hash/types/property-type/table-local-row/";
 const isStripedKey: RootKey =
   "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
@@ -28,14 +24,8 @@ const hideHeaderRowKey: RootKey =
 const hideRowNumbersKey: RootKey =
   "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
-const columnTitleKey: ColumnKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
-const columnIdKey: ColumnKey =
-  "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/";
-
 interface TableProps {
   blockEntity: BlockEntity;
-  updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
   readonly?: boolean;
   query: MultiFilter;
   graphModule: GraphBlockHandler;
@@ -43,7 +33,6 @@ interface TableProps {
 
 export const TableWithQuery = ({
   blockEntity,
-  updateEntity,
   readonly,
   query,
   graphModule,
@@ -79,13 +68,14 @@ export const TableWithQuery = ({
         },
       });
 
-      if (res.data) {
-        const roots = getRoots(res.data.results);
-        setLoading(false);
-        console.log("jej", roots);
-
-        setEntities(roots);
+      if (!res.data) {
+        throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
+
+      const roots = getRoots(res.data.results);
+      setLoading(false);
+
+      setEntities(roots);
     };
 
     void init();
@@ -102,32 +92,45 @@ export const TableWithQuery = ({
 
     return Array.from(uniqueEntityTypeIds).map((entityTypeId) => ({
       id: entityTypeId,
-      title: entityTypeId.split("/").slice(-2)[0],
+      title: entityTypeId.split("/").slice(-2)[0] ?? entityTypeId,
       width: 200,
     }));
   }, [entities]);
 
-  // const columns: GridColumn[] = localColumns.map((col) => ({
-  //   id: col[columnIdKey],
-  //   title: col[columnTitleKey] ?? "",
-  //   width: 200,
-  // }));
+  const handleCellEdited: DataEditorProps["onCellEdited"] = (
+    [colIndex, rowIndex],
+    newValue,
+  ) => {
+    setEntities((currentEntities) =>
+      currentEntities.map((entity, index) => {
+        if (index !== rowIndex) return entity;
 
-  const handleCellsEdited: DataEditorProps["onCellsEdited"] = (newValues) => {
-    // const newLocalRows = produce(rows, (draftRows) => {
-    //   for (const { value, location } of newValues) {
-    //     const [colIndex, rowIndex] = location;
+        const column = columns[colIndex];
+        const propertyTypeId = column?.id;
 
-    //     const columnId = columns[colIndex]?.id;
+        if (!column || !propertyTypeId) throw new Error("Column not found");
 
-    //     if (columnId) {
-    //       // @ts-expect-error -- type instantiation is deep and possibly infinite
-    //       draftRows[rowIndex][columnId] = value.data!;
-    //     }
-    //   }
-    // });
+        const newPropertyValue = newValue.data as string;
 
-    // updateStateAndEntity({ newLocalRows });
+        const newProperties = {
+          ...entity.properties,
+          [propertyTypeId]: newPropertyValue,
+        };
+
+        void graphModule.updateEntity({
+          data: {
+            entityId: entity.metadata.recordId.entityId,
+            entityTypeId: entity.metadata.entityTypeId,
+            properties: newProperties,
+          },
+        });
+
+        return {
+          ...entity,
+          properties: newProperties,
+        };
+      }),
+    );
 
     return true;
   };
@@ -149,7 +152,7 @@ export const TableWithQuery = ({
       rows={entities.length}
       columns={columns}
       getRowThemeOverride={getRowThemeOverride}
-      onCellsEdited={handleCellsEdited}
+      onCellEdited={handleCellEdited}
       headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
       rowMarkers={hideRowNumbers ? "none" : "number"}
       rowSelectionMode="multi"
@@ -165,14 +168,15 @@ export const TableWithQuery = ({
           };
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
-        const value = ((entities[rowIndex] as any)?.[key] ?? "") as JsonValue;
+        const entity = entities[rowIndex];
+        const hasValue = !!entity && key in entity.properties;
+        const value = (entity?.properties[key] ?? "") as JsonValue;
 
         return {
           kind: GridCellKind.Text,
           displayData: String(value),
           data: String(value),
-          allowOverlay: !readonly,
+          allowOverlay: hasValue && !readonly,
         };
       }}
     />
