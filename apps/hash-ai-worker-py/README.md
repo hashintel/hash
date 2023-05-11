@@ -4,6 +4,14 @@
 
 - Python 3.x > 3.10 (the version used in HASH is 3.11)
 
+## Configuration
+
+The service uses the following environment variables:
+
+- `HASH_TEMPORAL_HOST`: The hostname that the Temporal server is running on (defaults to `localhost`).
+- `HASH_TEMPORAL_PORT`: The port that the Temporal server is running on (defaults to `7233`).
+- `OPENAI_API_KEY`: The OpenAI API key that is made availble to workflows and activities.
+
 ## Setup
 
 `<PYTHON_CMD>` here should be the command you use to run Python.
@@ -26,13 +34,11 @@ Some potential candidates for `PYTHON_CMD`
   - Set the `OPENAI_API_KEY` environment variable in your shell
 - Install dependencies:
   - `poetry install`
-- Generate the Python typings for the agents:
-  - `yarn codegen`
 
 ### Subsequent Runs (or after Pre-Setup)
 
 - Ensure the OpenAI API key is available
 - If the requirements has been changed:
   - `poetry install`
-- If the typings for the agents have been changed:
-  - `yarn codegen`
+- Run the worker:
+  - `yarn dev` (or `poetry run python -m app`)

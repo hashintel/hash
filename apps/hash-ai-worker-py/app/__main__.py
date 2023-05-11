@@ -15,7 +15,11 @@ load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
 
 
 async def run_worker(stop_event: asyncio.Event):
-    client = await Client.connect("127.0.0.1:7233", namespace="default")
+    temporal_host = os.environ.get("HASH_TEMPORAL_HOST") or "localhost"
+    temporal_port = os.environ.get("HASH_TEMPORAL_PORT") or "7233"
+    temporal_target = f"{temporal_host}:{temporal_port}"
+
+    client = await Client.connect(temporal_target, namespace="default")
 
     worker = Worker(
         client,

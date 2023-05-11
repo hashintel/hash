@@ -1,8 +1,4 @@
-import asyncio
-import logging
 import os
-from dataclasses import dataclass
-from datetime import timedelta
 from temporalio import activity
 
 import openai
