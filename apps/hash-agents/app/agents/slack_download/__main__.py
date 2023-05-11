@@ -1,4 +1,6 @@
 """Provides the executable entry point for the agent."""
+import logging
+
 import structlog.stdlib
 
 from . import execute
@@ -23,5 +25,6 @@ if __name__ == "__main__":
 
     setup_prerun("dev")
 
+    structlog.stdlib.get_logger("slack_sdk.web.base_client").setLevel(logging.CRITICAL)
+
     execute()
-    logger.info()

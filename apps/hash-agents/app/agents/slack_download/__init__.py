@@ -18,8 +18,9 @@ logger = structlog.stdlib.get_logger(__name__)
 HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
 MESSAGES_PER_PAGE = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
-# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=1)).timestamp())
-OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
+OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=7)).timestamp())
+# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
+# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=180)).timestamp())
 
 
 def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
@@ -32,6 +33,8 @@ def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
             response = next(response_generator)
             response.validate()
             yield response
+            response_generator = response
+
         except StopIteration:
             break
         except SlackApiError as error:
@@ -81,7 +84,7 @@ def execute() -> None:
 
     page = 0
 
-    messages = []
+    messages = {}
 
     for response in handle_rate_limit(
         lambda: client.conversations_history(
@@ -98,14 +101,35 @@ def execute() -> None:
             channel=HASH_GRAPH_CHANNEL_ID,
         )
         response.validate()
-        messages.extend(extract_messages(response["messages"]))
 
-    for message in messages:
-        message["replies"] = get_threaded_replies(
+        for message in extract_messages(response["messages"]):
+            messages[message["ts"]] = message
+
+    logger.info(
+        "Finished retrieving messages in channel",
+        num_messages=len(messages),
+        channel=HASH_GRAPH_CHANNEL_ID,
+    )
+
+    message_ts_to_replies = {}
+
+    for message_ts in messages:
+        logger.debug("Retrieving replies for message", message_ts=message_ts)
+        message_ts_to_replies[message_ts] = get_threaded_replies(
             client,
             HASH_GRAPH_CHANNEL_ID,
-            message["ts"],
+            message_ts,
         )
 
+    logger.info(
+        "Finished retrieving all threads for messages",
+        total_replies=sum(map(len, message_ts_to_replies.values())),
+    )
+
     Path("out").mkdir(exist_ok=True)
-    Path("out/messages.json").write_text(json.dumps(messages, indent=2))
+    Path("out/messages.json").write_text(
+        json.dumps(
+            {"messages": messages, "message_ts_to_replies": message_ts_to_replies},
+            indent=2,
+        ),
+    )
