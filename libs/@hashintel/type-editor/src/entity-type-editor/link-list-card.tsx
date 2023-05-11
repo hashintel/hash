@@ -87,7 +87,7 @@ const LinkTypeRow = ({
 }) => {
   const isReadonly = useIsReadonly();
 
-  const { updateEntityType } = useOntologyFunctions();
+  const { updateEntityType, canEditResource } = useOntologyFunctions();
 
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
@@ -140,6 +140,19 @@ const LinkTypeRow = ({
     editModalPopupState.close();
   };
 
+  const editDisabledReason = useMemo(() => {
+    const canEdit = canEditResource({
+      kind: "link-type",
+      resource: link,
+    });
+
+    return !canEdit.allowed
+      ? canEdit.message
+      : currentVersion !== latestVersion
+      ? "Update the link type to the latest version to edit"
+      : undefined;
+  }, [canEditResource, link, currentVersion, latestVersion]);
+
   return (
     <>
       <EntityTypeTableRow flash={flash}>
@@ -170,12 +183,7 @@ const LinkTypeRow = ({
         <TypeMenuCell
           typeId={link.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
-          {...(currentVersion !== latestVersion
-            ? {
-                editButtonDisabled:
-                  "Update the link type to the latest version to edit",
-              }
-            : {})}
+          editButtonDisabled={editDisabledReason}
           variant="link"
           onRemove={onRemove}
         />

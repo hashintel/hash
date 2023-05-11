@@ -19,11 +19,11 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         <[T; N]>::reflection()
     }
 
-    fn visit_array<A>(self, mut array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
     where
         A: ArrayAccess<'de>,
     {
-        array.set_bounded(N).change_context(VisitorError)?;
+        let mut array = array.into_bound(N).change_context(VisitorError)?;
         let size_hint = array.size_hint();
 
         let mut result: Result<(), ArrayAccessError> = Ok(());
@@ -160,7 +160,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
 
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
         deserializer
-            .deserialize_array(ArrayVisitor(PhantomData::default()))
+            .deserialize_array(ArrayVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

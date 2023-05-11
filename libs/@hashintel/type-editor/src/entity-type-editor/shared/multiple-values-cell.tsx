@@ -277,7 +277,7 @@ export const MultipleValuesCell = ({
           placement="bottom"
           sx={{
             width: 1,
-            zIndex: 1,
+            zIndex: ({ zIndex }) => zIndex.drawer + 2,
           }}
           transition
           // Attempt to prevent this messing with the edit bar scroll freezing

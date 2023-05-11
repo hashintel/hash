@@ -46,6 +46,7 @@ import {
   PageSectionContainerProps,
 } from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
+import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -494,13 +495,14 @@ const Page: NextPageWithLayout<PageProps> = ({
         </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
-          <PageBlock
-            accountId={pageWorkspace.accountId}
-            contents={contents}
-            blocks={blocksMap}
-            pageComments={pageComments}
-            entityId={pageEntityId}
-          />
+          <UserBlocksProvider value={blocksMap}>
+            <PageBlock
+              accountId={pageWorkspace.accountId}
+              contents={contents}
+              pageComments={pageComments}
+              entityId={pageEntityId}
+            />
+          </UserBlocksProvider>
         </CollabPositionProvider>
       </PageContextProvider>
     </>

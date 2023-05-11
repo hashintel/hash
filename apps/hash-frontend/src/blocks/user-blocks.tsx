@@ -1,4 +1,7 @@
-import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import {
+  ComponentIdHashBlockMap,
+  fetchBlock,
+} from "@local/hash-isomorphic-utils/blocks";
 import {
   createContext,
   Dispatch,
@@ -12,11 +15,10 @@ import {
 
 import { useCachedDefaultState } from "../components/hooks/use-default-state";
 import { useGetBlockProtocolBlocks } from "../components/hooks/use-get-block-protocol-blocks";
-import { BlocksMap } from "./page/create-editor-view";
 
 interface UserBlocksContextState {
-  value: BlocksMap;
-  setValue: Dispatch<SetStateAction<BlocksMap>>;
+  value: ComponentIdHashBlockMap;
+  setValue: Dispatch<SetStateAction<ComponentIdHashBlockMap>>;
   blockFetchFailed: boolean;
 }
 
@@ -24,7 +26,7 @@ interface UserBlocksContextState {
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
 export const UserBlocksProvider: FunctionComponent<{
-  value: BlocksMap;
+  value: ComponentIdHashBlockMap;
   children?: ReactNode;
 }> = ({ value: initialUserBlocks, children }) => {
   const [value, setValue] = useCachedDefaultState(
@@ -43,7 +45,7 @@ export const UserBlocksProvider: FunctionComponent<{
         return;
       }
 
-      const apiProvidedBlocksMap: BlocksMap = {};
+      const apiProvidedBlocksMap: ComponentIdHashBlockMap = {};
       for (const { componentId } of data.getBlockProtocolBlocks) {
         apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
       }

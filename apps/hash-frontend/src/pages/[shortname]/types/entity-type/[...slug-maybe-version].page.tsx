@@ -34,6 +34,7 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
+import { EntityTypeDescription } from "./[...slug-maybe-version].page/entity-type-description";
 import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
 import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
@@ -280,7 +281,7 @@ const Page: NextPageWithLayout = () => {
                         </>
                       }
                     />
-                    <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
+                    <Typography variant="h1" fontWeight="bold" my={3}>
                       <FontAwesomeIcon
                         icon={faAsterisk}
                         sx={(theme) => ({
@@ -292,6 +293,10 @@ const Page: NextPageWithLayout = () => {
                       />
                       {entityType.title}
                     </Typography>
+
+                    <Box sx={{ mb: 5.25 }}>
+                      <EntityTypeDescription readonly={isReadonly} />
+                    </Box>
 
                     <EntityTypeTabs isDraft={isDraft} />
                   </Container>

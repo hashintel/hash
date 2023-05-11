@@ -2,7 +2,10 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
+import {
+  EntityTypeStructuralQuery,
+  UpdateEntityTypeRequest,
+} from "@local/hash-graph-client";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -71,6 +74,22 @@ export const createEntityType: ImpureGraphFunction<
 };
 
 /**
+ * Get entity types by a structural query.
+ *
+ * @param params.query the structural query to filter entity types by.
+ */
+export const getEntityTypes: ImpureGraphFunction<
+  {
+    query: EntityTypeStructuralQuery;
+  },
+  Promise<Subgraph<EntityTypeRootType>>
+> = async ({ graphApi }, { query }) => {
+  return await graphApi
+    .getEntityTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<EntityTypeRootType>);
+};
+
+/**
  * Get an entity type by its versioned URL.
  *
  * @param params.entityTypeId the unique versioned URL for an entity type.
@@ -80,11 +99,11 @@ export const getEntityTypeById: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
   },
   Promise<EntityTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entityTypeId } = params;
 
-  const [entityType] = await graphApi
-    .getEntityTypesByQuery({
+  const [entityType] = await getEntityTypes(context, {
+    query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
       },
@@ -102,10 +121,8 @@ export const getEntityTypeById: ImpureGraphFunction<
           },
         },
       },
-    })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<EntityTypeRootType>),
-    );
+    },
+  }).then(getRoots);
 
   if (!entityType) {
     throw new NotFoundError(
