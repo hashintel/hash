@@ -90,22 +90,6 @@ export const fullDecisionTimeAxis: QueryTemporalAxesUnresolved = {
   },
 };
 
-export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
-  pinned: {
-    axis: "decisionTime",
-    timestamp: null,
-  },
-  variable: {
-    axis: "transactionTime",
-    interval: {
-      start: {
-        kind: "unbounded",
-      },
-      end: null,
-    },
-  },
-};
-
 const agentConfig = {
   maxSockets: 128,
   maxFreeSockets: 20,
