@@ -48,6 +48,11 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   hasRightEntity: { incoming: 0, outgoing: 0 },
 };
 
+/**
+ * Slices the datastore across this instant of time.
+ *
+ * Used to be passed as `temporalAxes` to structural queries.
+ */
 export const currentTimeInstantTemporalAxes: QueryTemporalAxesUnresolved = {
   pinned: {
     axis: "transactionTime",
@@ -62,6 +67,13 @@ export const currentTimeInstantTemporalAxes: QueryTemporalAxesUnresolved = {
   },
 };
 
+/**
+ * According to the database's most up-to-date knowledge (transaction time),
+ * return the full history of entities and the times at which those decisions
+ * were made.
+ *
+ * Used to be passed as `temporalAxes` to structural queries.
+ */
 export const fullDecisionTimeAxis: QueryTemporalAxesUnresolved = {
   pinned: {
     axis: "transactionTime",
