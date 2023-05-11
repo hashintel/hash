@@ -56,7 +56,6 @@ async def main():
 
     stop_worker = asyncio.Event()
     await asyncio.gather(run_worker(stop_worker), site.start())
-    # await run_worker(stop_worker)
     stop_worker.set()
 
 
