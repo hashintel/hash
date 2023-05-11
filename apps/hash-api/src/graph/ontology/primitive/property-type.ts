@@ -2,7 +2,10 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
+import {
+  PropertyTypeStructuralQuery,
+  UpdatePropertyTypeRequest,
+} from "@local/hash-graph-client";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -71,6 +74,22 @@ export const createPropertyType: ImpureGraphFunction<
 };
 
 /**
+ * Get property types by a structural query.
+ *
+ * @param params.query the structural query to filter property types by.
+ */
+export const getPropertyTypes: ImpureGraphFunction<
+  {
+    query: PropertyTypeStructuralQuery;
+  },
+  Promise<Subgraph<PropertyTypeRootType>>
+> = async ({ graphApi }, { query }) => {
+  return await graphApi
+    .getPropertyTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<PropertyTypeRootType>);
+};
+
+/**
  * Get a property type by its versioned URL.
  *
  * @param params.propertyTypeId the unique versioned URL for a property type.
@@ -80,20 +99,18 @@ export const getPropertyTypeById: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
   },
   Promise<PropertyTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { propertyTypeId } = params;
 
-  const [propertyType] = await graphApi
-    .getPropertyTypesByQuery({
+  const [propertyType] = await getPropertyTypes(context, {
+    query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
-    })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<PropertyTypeRootType>),
-    );
+    },
+  }).then(getRoots);
 
   if (!propertyType) {
     throw new NotFoundError(
