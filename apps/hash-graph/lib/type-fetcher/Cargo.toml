@@ -8,7 +8,7 @@ description = "RPC service definition to fetch external BP types"
 [dependencies]
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "808753" }
 
-serde = { version = "1.0.162", features = ["derive"] }
+serde = { version = "1.0.163", features = ["derive"] }
 time = { version = "0.3.21", features = ['serde'] }
 tracing = "0.1.37"
 
