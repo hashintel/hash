@@ -383,25 +383,3 @@ jobs:
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} publish --all-features
-
-  merging-enabled:
-    name: Merging enabled
-    needs: [setup, lint, test, coverage, publish]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: check setup
-        run: |
-          [[ ${{ needs.setup.result }} = success ]]
-      - name: check lint
-        run: |
-          [[ ${{ needs.lint.result }} =~ success|skipped ]]
-      - name: check test
-        run: |
-          [[ ${{ needs.test.result }} =~ success|skipped ]]
-      - name: check coverage
-        run: |
-          [[ ${{ needs.coverage.result }} =~ success|skipped ]]
-      - name: check publish
-        run: |
-          [[ ${{ needs.publish.result }} =~ success|skipped ]]
