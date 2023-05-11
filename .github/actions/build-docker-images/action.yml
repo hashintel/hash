@@ -13,6 +13,10 @@ inputs:
     description: "Build hash-ai-worker-ts image"
     required: false
     default: "false"
+  hash-ai-worker-py:
+    description: "Build hash-ai-worker-py image"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -78,3 +82,21 @@ runs:
       with:
         name: hash-ai-worker-ts
         path: /tmp/hash-ai-worker-ts.tar
+
+    - name: Build hash-ai-worker-py image
+      if: inputs.hash-ai-worker-py == 'true'
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: apps/hash-ai-worker-py/docker/Dockerfile
+        tags: hash-ai-worker-py
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
+
+    - name: Upload artifact
+      if: inputs.hash-ai-worker-py == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: hash-ai-worker-py
+        path: /tmp/hash-ai-worker-py.tar
