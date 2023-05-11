@@ -1,4 +1,4 @@
-import { Filter } from "@local/hash-graph-client";
+import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
   Entity,
   EntityRootType,
@@ -184,6 +184,24 @@ export const getEntityResolver: ResolverFn<
     ],
   };
 
+  // If an entity version is specified, the result is constrained to that version.
+  // This is done by providing a time interval with the same start and end as given by the version.
+  const temporalAxes: QueryTemporalAxesUnresolved = entityVersion
+    ? {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
+        },
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: { kind: "inclusive", limit: entityVersion },
+            end: { kind: "inclusive", limit: entityVersion },
+          },
+        },
+      }
+    : currentTimeInstantTemporalAxes;
+
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
     graphResolveDepths: {
@@ -196,21 +214,7 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    temporalAxes: entityVersion
-      ? {
-          pinned: {
-            axis: "transactionTime",
-            timestamp: null,
-          },
-          variable: {
-            axis: "decisionTime",
-            interval: {
-              start: { kind: "inclusive", limit: entityVersion },
-              end: { kind: "inclusive", limit: entityVersion },
-            },
-          },
-        }
-      : currentTimeInstantTemporalAxes,
+    temporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;
