@@ -4,7 +4,7 @@ from temporalio.worker import Worker
 from temporalio.client import Client
 from aiohttp import web
 
-from app.workflows import DemoWorkflowPy
+from app.workflows import DemoWorkflow
 from app.activities import complete
 
 from dotenv import find_dotenv, load_dotenv
@@ -19,10 +19,10 @@ async def run_worker(stop_event: asyncio.Event):
 
     worker = Worker(
         client,
-        task_queue="ai",
+        task_queue="aipy",
         # Register workflows
         workflows=[
-            DemoWorkflowPy,
+            DemoWorkflow,
         ],
         # Register activities
         activities=[
@@ -46,11 +46,13 @@ async def main():
     app.add_routes(routes)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "::", 4200)
+    port = 4200
+    site = web.TCPSite(runner, "::", port)
+    print(f"HTTP server listening on port {port}")
 
     stop_worker = asyncio.Event()
-    asyncio.gather(run_worker(stop_worker), site.start())
-    await run_worker(stop_worker)
+    await asyncio.gather(run_worker(stop_worker), site.start())
+    # await run_worker(stop_worker)
     stop_worker.set()
 
 

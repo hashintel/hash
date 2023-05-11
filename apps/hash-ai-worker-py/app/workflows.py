@@ -6,7 +6,7 @@ with workflow.unsafe.imports_passed_through():
 
 
 @workflow.defn
-class DemoWorkflowPy:
+class DemoWorkflow:
     @workflow.run
     async def run(self, prompt: str) -> str:
         # Execute the `complete` activity with the given `prompt`
