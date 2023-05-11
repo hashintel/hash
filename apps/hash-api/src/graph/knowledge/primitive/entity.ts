@@ -662,60 +662,60 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   { entity: Entity; graphResolveDepths: Partial<GraphResolveDepths> },
   Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entity, graphResolveDepths } = params;
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter: {
-      all: [
-        {
-          equal: [
-            { path: ["uuid"] },
-            {
-              parameter: extractEntityUuidFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: extractOwnedByIdFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-      ],
-    },
-    graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
-      constrainsValuesOn: { outgoing: 0 },
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
-      ...graphResolveDepths,
-    },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
+  return await getEntities(context, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: extractOwnedByIdFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
+      graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
+        ...graphResolveDepths,
+      },
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
+        },
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },
   });
-
-  return entitySubgraph as Subgraph<EntityRootType>;
 };
