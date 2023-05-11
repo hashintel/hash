@@ -1,15 +1,15 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import {
+  fluidFontClassName,
   FontAwesomeIcon,
   IconArrowRight,
   IconButton,
 } from "@hashintel/design-system";
 import {
-  Box,
-  Collapse,
   Stack,
   svgIconClasses,
   Tooltip,
+  tooltipClasses,
   Typography,
 } from "@mui/material";
 
@@ -62,34 +62,31 @@ export const VersionUpgradeIndicator = ({
     </IconButton>
   );
 
-  const tooltip = (
-    <Tooltip
-      title={
-        <Stack direction="row" gap={1} alignItems="center">
-          <Typography variant="smallTextLabels" fontWeight={500}>
-            Update v{currentVersion}
-          </Typography>
-          <IconArrowRight
-            sx={{
-              color: ({ palette }) => palette.gray[50],
-              fontSize: 14,
-            }}
-          />
-          <Typography variant="smallTextLabels" fontWeight={500}>
-            v{latestVersion}
-          </Typography>
-        </Stack>
-      }
-      placement="bottom"
-    >
-      {updateButton}
-    </Tooltip>
-  );
-
   return (
     <Stack direction="row" gap={1} alignItems="center">
       {mode === "tooltip" ? (
-        tooltip
+        <Tooltip
+          classes={{ popper: fluidFontClassName }}
+          title={
+            <Stack direction="row" gap={1} alignItems="center">
+              <Typography variant="smallTextLabels" fontWeight={500}>
+                Update v{currentVersion}
+              </Typography>
+              <IconArrowRight
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 14,
+                }}
+              />
+              <Typography variant="smallTextLabels" fontWeight={500}>
+                v{latestVersion}
+              </Typography>
+            </Stack>
+          }
+          placement="top"
+        >
+          {updateButton}
+        </Tooltip>
       ) : (
         <>
           <Typography
