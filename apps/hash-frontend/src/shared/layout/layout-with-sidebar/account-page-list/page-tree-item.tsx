@@ -160,7 +160,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             enterNextDelay={300}
             componentsProps={{
               tooltip: {
-                sx: { ml: "32px !important" },
+                sx: { ml: "40px !important" },
               },
             }}
           >

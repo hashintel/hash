@@ -66,6 +66,7 @@ export const VersionUpgradeIndicator = ({
     <Stack direction="row" gap={1} alignItems="center">
       {mode === "tooltip" ? (
         <Tooltip
+          disableInteractive
           classes={{ popper: fluidFontClassName }}
           title={
             <Stack direction="row" gap={1} alignItems="center">
