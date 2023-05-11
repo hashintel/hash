@@ -18,11 +18,11 @@ import { BlockEntity } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 
 const isStripedKey: RootKey =
-  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
-  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/";
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/";
 const hideRowNumbersKey: RootKey =
-  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/";
 
 interface TableProps {
   blockEntity: BlockEntity;

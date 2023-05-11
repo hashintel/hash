@@ -21,7 +21,7 @@ import {
 } from "./types/generated/block-entity";
 
 const titleKey: RootKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
