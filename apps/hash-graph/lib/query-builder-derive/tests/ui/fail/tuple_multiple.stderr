@@ -1,0 +1,5 @@
+error: unable to determine reference to `Nested`, more than a single tuple element
+ --> tests/ui/fail/tuple_multiple.rs:6:5
+  |
+6 |     Nested(u8, u16),
+  |     ^^^^^^

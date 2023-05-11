@@ -8,7 +8,7 @@ mod ontology;
 mod restore;
 
 use async_trait::async_trait;
-use error_stack::{Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{ensure, Context, IntoReport, Report, Result, ResultExt};
 use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
 use hash_status::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -211,7 +211,7 @@ impl<C: AsClient> SnapshotStore<C> {
     ) -> Result<(), SnapshotRestoreError> {
         tracing::info!("snapshot restore started");
 
-        let (snapshot_record_tx, snapshot_record_rx) = restore::channel(chunk_size);
+        let (snapshot_record_tx, snapshot_record_rx, metadata_rx) = restore::channel(chunk_size);
 
         let read_thread = tokio::spawn(
             snapshot
@@ -277,6 +277,21 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .into_report()
             .change_context(SnapshotRestoreError::Read)??;
+
+        let mut found_metadata = false;
+        for metadata in metadata_rx.collect::<Vec<SnapshotMetadata>>().await {
+            if found_metadata {
+                tracing::warn!("found more than one metadata record in the snapshot");
+            }
+            found_metadata = true;
+
+            ensure!(
+                metadata.block_protocol_module_versions.graph == semver::Version::new(0, 3, 0),
+                SnapshotRestoreError::Unsupported
+            );
+        }
+
+        ensure!(found_metadata, SnapshotRestoreError::MissingMetadata);
 
         tracing::info!("snapshot restore finished");
 
