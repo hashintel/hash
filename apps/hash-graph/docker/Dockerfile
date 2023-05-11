@@ -1,4 +1,4 @@
-FROM node:16.18.1-alpine AS base
+FROM node:18.15-alpine AS base
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY . .
 RUN turbo prune --scope='@apps/hash-graph' --docker
 
 
-FROM node:16.18.1-alpine AS rust
+FROM node:18.15-alpine AS rust
 
 WORKDIR /usr/local/
 
