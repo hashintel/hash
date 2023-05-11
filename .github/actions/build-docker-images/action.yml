@@ -68,7 +68,7 @@ runs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: infra/docker/hash-ai-worker-ts/prod/Dockerfile
+        file: apps/hash-ai-worker-ts/docker/Dockerfile
         tags: hash-ai-worker-ts
         outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
 
