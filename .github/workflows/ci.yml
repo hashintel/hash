@@ -224,6 +224,7 @@ jobs:
   backend-integration-tests:
     name: Backend integration tests
     needs: [build-hash-graph, build-hash-agents, build-hash-ai-worker-ts]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -278,6 +279,7 @@ jobs:
   playwright-tests:
     name: Playwright tests
     needs: [build-hash-graph, build-hash-agents, build-hash-ai-worker-ts]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
