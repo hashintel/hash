@@ -17,6 +17,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Break CI
+      shell: bash
+      run: exit 1
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
