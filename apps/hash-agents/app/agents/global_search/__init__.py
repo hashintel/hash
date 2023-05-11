@@ -58,4 +58,6 @@ def execute(agent_input: Input) -> Output:
             break
 
         related_documents = get_related_documents(user_input, qdrant_client, limit=1)
-        print(related_documents)
+        # TODO: query bing
+        # TODO: decide on context
+        # TODO: query LLM
