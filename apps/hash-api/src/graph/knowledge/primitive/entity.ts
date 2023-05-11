@@ -1,5 +1,9 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
+import {
+  EntityStructuralQuery,
+  Filter,
+  GraphResolveDepths,
+} from "@local/hash-graph-client";
 import {
   AccountId,
   BaseUrl,
@@ -80,6 +84,22 @@ export const createEntity: ImpureGraphFunction<
 };
 
 /**
+ * Get entities by a structural query.
+ *
+ * @param params.query the structural query to filter entities by.
+ */
+export const getEntities: ImpureGraphFunction<
+  {
+    query: EntityStructuralQuery;
+  },
+  Promise<Subgraph<EntityRootType>>
+> = async ({ graphApi }, { query }) => {
+  return await graphApi
+    .getEntitiesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<EntityRootType>);
+};
+
+/**
  * Get the latest version of an entity by its entity ID.
  *
  * @param params.entityId - the id of the entity
@@ -89,13 +109,13 @@ export const getLatestEntityById: ImpureGraphFunction<
     entityId: EntityId;
   },
   Promise<Entity>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entityId } = params;
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const [entity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+  const [entity, ...unexpectedEntities] = await getEntities(context, {
+    query: {
       filter: {
         all: [
           {
@@ -130,10 +150,8 @@ export const getLatestEntityById: ImpureGraphFunction<
           },
         },
       },
-    })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<EntityRootType>),
-    );
+    },
+  }).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -443,7 +461,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     linkEntityType?: EntityTypeWithMetadata;
   },
   Promise<LinkEntity[]>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entity } = params;
   const filter: Filter = {
     all: [
@@ -498,13 +516,13 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  const incomingLinkEntitiesSubgraph = await graphApi
-    .getEntitiesByQuery({
+  const incomingLinkEntitiesSubgraph = await getEntities(context, {
+    query: {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes,
-    })
-    .then(({ data }) => data as Subgraph<EntityRootType>);
+    },
+  });
 
   const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -533,7 +551,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     rightEntity?: Entity;
   },
   Promise<LinkEntity[]>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entity } = params;
   const filter: Filter = {
     all: [
@@ -613,13 +631,13 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     },
   };
 
-  const outgoingLinkEntitiesSubgraph = await graphApi
-    .getEntitiesByQuery({
+  const outgoingLinkEntitiesSubgraph = await getEntities(context, {
+    query: {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes,
-    })
-    .then(({ data }) => data as Subgraph<EntityRootType>);
+    },
+  });
 
   const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
     (linkEntity) => {
