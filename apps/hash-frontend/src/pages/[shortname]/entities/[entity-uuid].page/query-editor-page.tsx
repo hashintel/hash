@@ -90,7 +90,9 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
   }, [queryEntityTypes, queryPropertyTypes]);
 
   const entity = getRoots(entityEditorProps.entitySubgraph)[0];
-  const defaultValue = entity?.properties[QUERY_PROPERTY_TYPE_BASE_URL];
+  const defaultValue = (entity?.properties as any)[
+    QUERY_PROPERTY_TYPE_BASE_URL
+  ];
 
   const handleQueryEntities = useCallback(
     async (multiFilter: MultiFilter) => {

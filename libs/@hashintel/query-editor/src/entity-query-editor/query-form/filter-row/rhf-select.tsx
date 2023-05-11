@@ -14,7 +14,13 @@ interface RHFSelectProps<
   children: ReactNode;
   selectProps?: Omit<
     SelectProps,
-    "name" | "onBlur" | "onChange" | "ref" | "value" | "defaultValue"
+    | "name"
+    | "onBlur"
+    | "onChange"
+    | "ref"
+    | "value"
+    | "defaultValue"
+    | "children"
   >;
 }
 
