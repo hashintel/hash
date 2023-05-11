@@ -23,27 +23,21 @@ import {
 const titleKey: RootKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 
-const query: MultiFilter = {
-  filters: [
-    {
-      field: ["metadata", "entityTypeId"],
-      operator: "EQUALS",
-      value: "https://example.com/types/entity-type/person/v/1",
-    },
-  ],
-  operator: "OR",
-};
-
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
-  const { rootEntity: blockEntity } = useEntitySubgraph<
+  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
     BlockEntity,
     TableBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
+
+  /** @todo use the real query object here, instead of the staging one */
+  const query = linkedEntities[0]?.rightEntity?.properties[
+    "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"
+  ] as MultiFilter | undefined;
 
   const {
     metadata: {
