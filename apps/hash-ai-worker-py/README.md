@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.x > 3.10 (the version used in HASH is 3.11)
+- Python 3.x > 3.11 (the version used in HASH is 3.11)
 
 ## Configuration
 

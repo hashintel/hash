@@ -6,7 +6,7 @@ This is a collection of LLM agents that are being used in HASH. The agents are d
 
 ## Requirements
 
-- Python 3.x > 3.10 (the version used in HASH is 3.11)
+- Python 3.x > 3.11 (the version used in HASH is 3.11)
 
 ## Setup
 
