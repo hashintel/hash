@@ -31,7 +31,7 @@ def get_search_prompt(threads, website_contents, user_input):
     return f"""\
 Given the following information:
 {json.dumps(threads)}
-${website_contents}
+{website_contents}
 
 Do your best to answer this explaining which bits of the information you have used to come to your \
 conclusion, and directly quote the information where available:
