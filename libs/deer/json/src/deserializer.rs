@@ -307,6 +307,15 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     where
         V: StructVisitor<'de>,
     {
-        todo!()
+        let token = self.next_value()?;
+
+        // JSON should only deserialize objects, not arrays! (even tho technically they could be
+        // supported)
+        match token {
+            ValueToken::Object => visitor
+                .visit_object(ObjectAccess::new(self)?)
+                .change_context(DeserializerError),
+            token => Err(self.error_invalid_type(&token, ValueToken::Object.schema())),
+        }
     }
 }
