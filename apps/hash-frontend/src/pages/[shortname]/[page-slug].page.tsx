@@ -46,6 +46,7 @@ import {
   PageSectionContainerProps,
 } from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
+import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -70,6 +71,7 @@ import {
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
@@ -134,10 +136,19 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     .query<QueryEntitiesQuery>({
       query: queryEntitiesQuery,
       variables: {
-        rootEntityTypeIds: [
-          types.entityType.user.entityTypeId,
-          types.entityType.org.entityTypeId,
-        ],
+        operation: {
+          multiFilter: {
+            filters: [
+              entityHasEntityTypeByVersionedUrlFilter(
+                types.entityType.user.entityTypeId,
+              ),
+              entityHasEntityTypeByVersionedUrlFilter(
+                types.entityType.org.entityTypeId,
+              ),
+            ],
+            operator: "OR",
+          },
+        },
         constrainsValuesOn: { outgoing: 0 },
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
@@ -484,13 +495,14 @@ const Page: NextPageWithLayout<PageProps> = ({
         </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
-          <PageBlock
-            accountId={pageWorkspace.accountId}
-            contents={contents}
-            blocks={blocksMap}
-            pageComments={pageComments}
-            entityId={pageEntityId}
-          />
+          <UserBlocksProvider value={blocksMap}>
+            <PageBlock
+              accountId={pageWorkspace.accountId}
+              contents={contents}
+              pageComments={pageComments}
+              entityId={pageEntityId}
+            />
+          </UserBlocksProvider>
         </CollabPositionProvider>
       </PageContextProvider>
     </>

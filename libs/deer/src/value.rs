@@ -5,12 +5,14 @@ mod string;
 
 pub use array::ArrayAccessDeserializer;
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
 use crate::{
-    error::DeserializerError, Context, Deserializer, EnumVisitor, Number, OptionalVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, TypeError, Variant},
+    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, StructVisitor,
+    Visitor,
 };
 
 macro_rules! impl_owned {
@@ -30,7 +32,7 @@ macro_rules! impl_owned {
         }
     };
 
-    (@INTERNAL IMPL, $ty:ty, $name:ident, $method:ident) => {
+    (@INTERNAL IMPL, $ty:ty $(as $conv:ty)?, $name:ident, $method:ident) => {
         impl<'a> $name<'a> {
             #[must_use]
             pub const fn new(value: $ty, context: &'a Context) -> Self {
@@ -43,8 +45,8 @@ macro_rules! impl_owned {
                 null
                 bool
                 number
-                i8 i16 i32 i64 i128 isize
-                u8 u16 u32 u64 u128 usize
+                i8 i16 i32 i64 i128
+                u8 u16 u32 u64 u128
                 f32 f64
                 char str string
                 bytes bytes_buffer
@@ -59,7 +61,7 @@ macro_rules! impl_owned {
             where
                 V: Visitor<'de>,
             {
-                visitor.$method(self.value).change_context(DeserializerError)
+                visitor.$method(self.value $(as $conv)?).change_context(DeserializerError)
             }
 
             fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
@@ -75,6 +77,20 @@ macro_rules! impl_owned {
             {
                 $crate::value::EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
             }
+
+            fn deserialize_struct<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+            where
+                V: StructVisitor<'de>
+            {
+                Err(
+                    Report::new(TypeError.into_error())
+                        .attach(ExpectedType::new(visitor.expecting()))
+                        // TODO: enable once String and Vec<u8> have reflection
+                        //  (or we rework this macro c:)
+                        // .attach(ReceivedType::new(<$ty>::reflection()))
+                        .change_context(DeserializerError)
+                )
+            }
         }
 
         impl<'de> IntoDeserializer<'de> for $ty {
@@ -88,9 +104,9 @@ macro_rules! impl_owned {
         }
     };
 
-    (copy: $ty:ty, $name:ident, $method:ident) => {
+    (copy: $ty:ty $(as $conv:ty)?, $name:ident, $method:ident) => {
         impl_owned!(@INTERNAL COPY, $ty, $name, $method);
-        impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
+        impl_owned!(@INTERNAL IMPL, $ty $(as $conv)?, $name, $method);
     };
 
     (!copy: $ty:ty, $name:ident, $method:ident) => {
@@ -98,12 +114,14 @@ macro_rules! impl_owned {
         impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
     };
 
-    ($ty:ty, $name:ident, $method:ident) => {
-        impl_owned!(copy: $ty, $name, $method);
+    ($ty:ty $(as $conv:ty)?, $name:ident, $method:ident) => {
+        impl_owned!(copy: $ty $(as $conv)?, $name, $method);
     };
 }
 
 use impl_owned;
+
+use crate::error::{MissingError, ReceivedType};
 
 pub trait IntoDeserializer<'de> {
     type Deserializer<'a>: Deserializer<'de>
@@ -167,8 +185,8 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -205,6 +223,15 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .visit_value(discriminant, self)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -224,8 +251,8 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -256,6 +283,16 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .attach(ReceivedType::new(<()>::reflection()))
+            .change_context(DeserializerError))
+    }
 }
 
 impl_owned!(bool, BoolDeserializer, visit_bool);
@@ -265,13 +302,35 @@ impl_owned!(u16, U16Deserializer, visit_u16);
 impl_owned!(u32, U32Deserializer, visit_u32);
 impl_owned!(u64, U64Deserializer, visit_u64);
 impl_owned!(u128, U128Deserializer, visit_u128);
-impl_owned!(usize, UsizeDeserializer, visit_usize);
+#[cfg(target_pointer_width = "16")]
+impl_owned!(usize as u16, UsizeDeserializer, visit_u16);
+#[cfg(target_pointer_width = "32")]
+impl_owned!(usize as u32, UsizeDeserializer, visit_u32);
+#[cfg(not(any(
+    target_pointer_width = "16",
+    target_pointer_width = "32",
+    target_pointer_width = "128"
+)))]
+impl_owned!(usize as u64, UsizeDeserializer, visit_u64);
+#[cfg(target_pointer_width = "128")]
+impl_owned!(usize as u128, UsizeDeserializer, visit_u128);
 impl_owned!(i8, I8Deserializer, visit_i8);
 impl_owned!(i16, I16Deserializer, visit_i16);
 impl_owned!(i32, I32Deserializer, visit_i32);
 impl_owned!(i64, I64Deserializer, visit_i64);
 impl_owned!(i128, I128Deserializer, visit_i128);
-impl_owned!(isize, IsizeDeserializer, visit_isize);
+#[cfg(target_pointer_width = "16")]
+impl_owned!(isize as i16, IsizeDeserializer, visit_u16);
+#[cfg(target_pointer_width = "32")]
+impl_owned!(isize as i32, IsizeDeserializer, visit_u32);
+#[cfg(not(any(
+    target_pointer_width = "16",
+    target_pointer_width = "32",
+    target_pointer_width = "128"
+)))]
+impl_owned!(isize as i64, IsizeDeserializer, visit_i64);
+#[cfg(target_pointer_width = "128")]
+impl_owned!(isize as i128, UsizeDeserializer, visit_i128);
 impl_owned!(f32, F32Deserializer, visit_f32);
 impl_owned!(f64, F64Deserializer, visit_f64);
 

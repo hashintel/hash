@@ -9,6 +9,7 @@ import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
+import { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
   DraftEntity,
@@ -32,21 +33,17 @@ const generatePlaceholderId = () => `placeholder-${uuid()}`;
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [VersionedUrl, UpdatePageAction[]];
-
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
  * determines what changes are needed to persist changes to the database.
  */
-const calculateSaveActions = async (
+const calculateSaveActions = (
   store: EntityStore,
   ownedById: OwnedById,
   textEntityTypeId: VersionedUrl,
   blocks: BlockEntity[],
   doc: Node,
-  getEntityTypeForComponent: (
-    componentId: string,
-  ) => EntityTypeForComponentResult | Promise<EntityTypeForComponentResult>,
+  getEntityTypeForComponent: (componentId: string) => VersionedUrl,
 ) => {
   const actions: UpdatePageAction[] = [];
 
@@ -97,7 +94,7 @@ const calculateSaveActions = async (
         },
       });
     } else {
-      // We need to create the entity, and possibly a new entity type too
+      // We need to create the entity.
 
       /**
        * Sometimes, by the time it comes to create new entities, we have already
@@ -122,14 +119,12 @@ const calculateSaveActions = async (
 
       if (isDraftTextEntity(draftEntity)) {
         /**
-         * Text types are built in, so we know in this case we don't need to
-         * create an entity type.
+         * Text types are built in, so we use our own text entity type ID
          */
         entityTypeId = textEntityTypeId;
       } else {
         /**
-         * At this point, we may need to create an entity type for the entity
-         * we want to insert.
+         * At this point, we will supply the assumed entity type ID based on the component ID
          */
         const blockEntity = Object.values(store.draft).find(
           (entity): entity is DraftEntity<BlockEntity> =>
@@ -141,12 +136,11 @@ const calculateSaveActions = async (
           throw new Error("Cannot find parent entity");
         }
 
-        const [assumedEntityTypeId, newTypeActions] =
-          await getEntityTypeForComponent(blockEntity.componentId ?? "");
+        const assumedEntityTypeId = getEntityTypeForComponent(
+          blockEntity.componentId ?? "",
+        );
 
         entityTypeId = assumedEntityTypeId;
-        // Placing at front to ensure latter actions can make use of this type
-        actions.unshift(...newTypeActions);
       }
 
       const action: UpdatePageAction = {
@@ -170,8 +164,7 @@ const calculateSaveActions = async (
        *       being handled here, so that's okay for now.
        */
       if (dependedOn) {
-        const idx = actions.findIndex((item) => !item.createEntityType);
-        actions.splice(idx === -1 ? 0 : idx, 0, action);
+        actions.unshift(action);
       } else {
         actions.push(action);
       }
@@ -379,6 +372,7 @@ export const save = async (
   pageEntityId: EntityId,
   doc: Node,
   store: EntityStore,
+  blocksMap: () => ComponentIdHashBlockMap,
 ) => {
   const blocks = await apolloClient
     .query<GetPageQuery, GetPageQueryVariables>({
@@ -390,7 +384,7 @@ export const save = async (
 
   // const entityTypeForComponentId = new Map<string, string>();
 
-  const [actions, placeholderToDraft] = await calculateSaveActions(
+  const [actions, placeholderToDraft] = calculateSaveActions(
     store,
     ownedById,
     /** @todo This type ID should *not* be hardcoded as is here. */
@@ -398,10 +392,11 @@ export const save = async (
     blocks,
     doc,
     /**
-     * @todo currently we use the text entity type for *every block* we don't know about.
+     * @todo Should the fallback be text here?
      */
-    (_componentId: string) => {
-      return [TEXT_ENTITY_TYPE_ID, []];
+    (componentId: string) => {
+      return (blocksMap()[componentId]?.meta.schema ??
+        TEXT_ENTITY_TYPE_ID) as VersionedUrl;
     },
   );
 

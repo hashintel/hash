@@ -40,8 +40,8 @@
 //! ## Example
 //!
 //! ```rust
-//! # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-//! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test with nightly, which means that `render()` is unused on earlier version
+//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! use std::fmt::{Display, Formatter};
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
@@ -110,12 +110,12 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # #[cfg(rust_1_65)]
+//! # #[cfg(nightly)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
 //! #
 //! println!("{report:?}");
 //!
-//! # #[cfg(rust_1_65)]
+//! # #[cfg(nightly)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
 //! println!("{report:#?}");

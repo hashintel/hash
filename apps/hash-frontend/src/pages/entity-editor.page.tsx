@@ -56,7 +56,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
   useEffect(() => {
     if (!queryEntitiesSubgraph) {
-      void queryEntities({ data: {} }).then(({ data }) => {
+      void queryEntities({ data: { operation: {} } }).then(({ data }) => {
         setQueryEntitiesSubgraph(data);
       });
     }

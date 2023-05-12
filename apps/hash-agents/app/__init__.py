@@ -1,49 +1,24 @@
-import os
-import secrets
-import json
+"""A python web-server that allows the orchestration of various AI-assisted tasks."""
+import structlog.stdlib
+from asgi_correlation_id import CorrelationIdMiddleware
+from beartype import beartype
+from fastapi import FastAPI
 
-from logging import getLogger
-from flask import Flask, request
-from dotenv import load_dotenv, find_dotenv
+from .logger import Environment, http_logging_middleware
+from .prerun import setup_prerun
+from .routes import router
 
-from .logger import setup_logging
-from .agents import call_agent
+logger = structlog.stdlib.get_logger(__name__)
 
 
-def create_app(base_logger=None):
-    setup(base_logger)
+@beartype
+def create_app(environment: Environment = "dev") -> FastAPI:
+    """Runs the app."""
+    setup_prerun(environment)
 
-    app = Flask(__name__, instance_relative_config=True)
-    secret_key = os.environ.get("HASH_AGENT_RUNNER_SECRET_KEY")
-    if not secret_key:
-        getLogger(__name__).warning(
-            "No secret key set for HASH-Agent-Runner, generating a random key!"
-        )
-        getLogger(__name__).info(
-            "Set the `HASH_AGENT_RUNNER_SECRET_KEY` variable to specify a secret key."
-        )
-        secret_key = secrets.token_hex(32)
-
-    app.config.from_mapping(
-        SECRET_KEY=secret_key,
-    )
-
-    @app.route("/health", methods=["GET"])
-    def health():
-        return ""
-
-    @app.route("/agents/<string:agent_name>", methods=["POST"])
-    def agent(agent_name):
-        try:
-            return call_agent(agent_name, **request.json)
-        except Exception as e:
-            getLogger(__name__).error(e)
-            return json.dumps({"error": "Could not execute agent. Look in logs for cause."})
+    app = FastAPI()
+    app.include_router(router)
+    app.middleware("http")(http_logging_middleware)
+    app.add_middleware(CorrelationIdMiddleware)
 
     return app
-
-
-def setup(base_logger=None):
-    setup_logging(base_logger)
-    load_dotenv()
-    load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)

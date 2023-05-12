@@ -47,7 +47,7 @@ This folder contains only the _HASH_ project README. The application is split ac
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/).
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
     Run each of these version commands and make sure the output is expected:
 
     ```sh
@@ -55,13 +55,25 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.15
+    ## ≥ 18.15
     
     yarn --version
     ## ≥ 1.16
     
     docker --version
     ## ≥ 20.10
+    
+    docker compose version
+    ## ≥ 2.17.2
+    
+    docker buildx version
+    ## ≥ 0.10.4
+    
+    java --version
+    ## ≥ 8
+    
+    python --version
+    ## ≥ 3.11
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -94,7 +106,7 @@ To run HASH locally, please follow these steps:
 
     1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
-    1.  When using `yarn external-services-offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+    1.  When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
 
 1.  Launch app services:
 
@@ -121,7 +133,7 @@ This is useful for situations where the database is used for tests that modify t
 To make use of this test mode, the external services can be started as follows:
 
 ```sh
-yarn external-services-test up
+yarn external-services:test up
 ```
 
 </details>
@@ -177,6 +189,17 @@ See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) pa
 ### The Graph Query Layer
 
 HASH's primary datastore is an entity graph. The service that provides this is located within the `/apps/hash-graph` folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
+
+### LLM prototyping
+
+HASH contains an experimental Docker compose file for prototyping LLM applications using relevant external services such as a vector database. This is located in the `/apps/hash-external-services` folder.
+You'll be able to execute the following command to start the prototyping external services:
+
+```sh
+yarn external-services:prototype up
+```
+
+Similarly to the external services used for HASH, the arguments passed after the script name are arguments for `docker compose`.
 
 ## Testing
 
@@ -372,6 +395,15 @@ The Postgres information for Kratos is configured through:
 - `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
 - `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
 - `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
+
+The Postgres information for Temporal is configured through:
+
+- `HASH_TEMPORAL_PG_USER` (default: `temporal`)
+- `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
+- `HASH_TEMPORAL_PG_DEV_DATABASE` (default: `dev_temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE` (default: `dev_temporal_visibility`)
+- `HASH_TEMPORAL_PG_TEST_DATABASE` (default: `test_temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_TEST_DATABASE` (default: `test_temporal_visibility`)
 
 The Postgres information for the graph query layer is configured through:
 

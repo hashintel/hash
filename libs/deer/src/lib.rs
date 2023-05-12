@@ -23,21 +23,24 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
-pub use crate::{context::Context, number::Number};
 use crate::{
+    bound::{BoundArrayAccess, BoundObjectAccess},
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
-        VisitorError,
+        ArrayAccessError, BoundedContractViolationError, DeserializeError, DeserializerError,
+        ExpectedType, MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError,
+        ValueError, Variant, VisitorError,
     },
     schema::visitor,
 };
+pub use crate::{context::Context, number::Number};
 
 mod context;
 pub mod error;
 mod impls;
 #[macro_use]
 mod macros;
+mod bound;
+mod ext;
 mod number;
 pub mod schema;
 pub mod value;
@@ -62,17 +65,23 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
     }
 }
 
-type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
-type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
+pub trait ObjectAccess<'de>: Sized {
+    /// Represent if the object has been accessed
+    ///
+    /// If [`Self::next`], [`Self::field`] or [`Self::try_field`] was called at least once this
+    /// **must** return `true`, otherwise it **must** return `false`.
+    ///
+    /// This value is used to ensure all invariants are upheld when creating the bound version
+    /// through [`Self::into_bound`]
+    fn is_dirty(&self) -> bool;
 
-pub trait ObjectAccess<'de> {
     fn context(&self) -> &Context;
 
-    /// This enables bound-checking for [`ObjectAccess`].
+    /// This enables bounds-checking for [`ObjectAccess`].
     ///
     /// After calling this [`ObjectAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
-    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
+    /// are not enough items present [`ObjectAccess`] will call [`Visitor::visit_none`].
     ///
     /// This is best suited for types where the length/amount of keys is already predetermined, like
     /// structs or enum variants.
@@ -81,7 +90,16 @@ pub trait ObjectAccess<'de> {
     ///
     /// This will error if a call to [`Self::next`] has been made before calling this function or
     /// this function has been called repeatably.
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
+    fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+        if self.is_dirty() {
+            Err(
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ObjectAccessError),
+            )
+        } else {
+            Ok(BoundObjectAccess::new(self, length))
+        }
+    }
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
@@ -91,7 +109,17 @@ pub trait ObjectAccess<'de> {
         self.field(GenericFieldVisitor(PhantomData))
     }
 
-    fn field<F>(&mut self, access: F) -> FieldResult<'de, F>
+    fn field<F>(&mut self, visitor: F) -> Option<Result<F::Value, ObjectAccessError>>
+    where
+        F: FieldVisitor<'de>,
+    {
+        self.try_field(visitor).ok()
+    }
+
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>;
 
@@ -116,7 +144,16 @@ pub trait FieldVisitor<'de> {
         D: Deserializer<'de>;
 }
 
-pub trait ArrayAccess<'de> {
+pub trait ArrayAccess<'de>: Sized {
+    /// Represent if the array has been accessed
+    ///
+    /// If [`Self::next`] was called at least once this **must** return `true`, otherwise it
+    /// **must** return `false`.
+    ///
+    /// This value is used to ensure all invariants are upheld when creating the bound version
+    /// through [`Self::into_bound`]
+    fn is_dirty(&self) -> bool;
+
     fn context(&self) -> &Context;
 
     /// Enables bound-checking for [`ArrayAccess`].
@@ -125,7 +162,7 @@ pub trait ArrayAccess<'de> {
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
     /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
     ///
-    /// One should still invoke [`Self::end`] to ensure that not too many items are supplied!
+    /// One must still invoke [`Self::end`] to ensure that not too many items are supplied!
     ///
     /// This is best suited for types where the length is already predetermined, like arrays or
     /// tuples, and should not be set on types like [`Vec`]!
@@ -133,8 +170,17 @@ pub trait ArrayAccess<'de> {
     /// # Errors
     ///
     /// This will error if a call to [`Self::next`] has been made before setting
-    /// [`Self::set_bounded`] or [`Self::set_bounded`] was called repeatedly.
-    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError>;
+    /// [`Self::into_bound`] or [`Self::into_bound`] was called repeatedly.
+    fn into_bound(self, length: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
+        if self.is_dirty() {
+            Err(
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ArrayAccessError),
+            )
+        } else {
+            Ok(BoundArrayAccess::new(self, length))
+        }
+    }
 
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
@@ -199,61 +245,61 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
+    fn visit_bool(self, value: bool) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(bool::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
+    fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Number::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_char(self, v: char) -> Result<Self::Value, VisitorError> {
+    fn visit_char(self, value: char) -> Result<Self::Value, VisitorError> {
         let mut buffer = [0; 4];
-        let v = v.encode_utf8(&mut buffer);
+        let v = value.encode_utf8(&mut buffer);
 
         self.visit_str(v)
             .attach(ReceivedType::new(char::reflection()))
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(<&str>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, VisitorError> {
-        self.visit_str(v)
+    fn visit_borrowed_str(self, value: &'de str) -> Result<Self::Value, VisitorError> {
+        self.visit_str(value)
     }
 
-    fn visit_string(self, v: String) -> Result<Self::Value, VisitorError> {
-        self.visit_str(&v)
+    fn visit_string(self, value: String) -> Result<Self::Value, VisitorError> {
+        self.visit_str(&value)
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(visitor::BinarySchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
-        self.visit_bytes(v)
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, VisitorError> {
+        self.visit_bytes(value)
     }
 
-    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
-        self.visit_bytes(&v)
+    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        self.visit_bytes(&value)
     }
 
-    fn visit_array<T>(self, v: T) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
     where
-        T: ArrayAccess<'de>,
+        A: ArrayAccess<'de>,
     {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(visitor::ArraySchema::document()))
@@ -261,9 +307,9 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_object<T>(self, v: T) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
     where
-        T: ObjectAccess<'de>,
+        A: ObjectAccess<'de>,
     {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(visitor::ObjectSchema::document()))
@@ -271,35 +317,29 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_i8(self, v: i8) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_i8(self, value: i8) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(i8::reflection()))
     }
 
-    fn visit_i16(self, v: i16) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_i16(self, value: i16) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(i16::reflection()))
     }
 
-    fn visit_i32(self, v: i32) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v)).attach(i32::reflection())
+    fn visit_i32(self, value: i32) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
+            .attach(i32::reflection())
     }
 
-    fn visit_i64(self, v: i64) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_i64(self, value: i64) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(i64::reflection()))
     }
 
-    fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
+    fn visit_i128(self, value: i128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(i128::reflection()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
-    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(isize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -309,31 +349,24 @@ pub trait Visitor<'de>: Sized {
             .attach(ReceivedType::new(u8::reflection()))
     }
 
-    fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_u16(self, value: u16) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u16::reflection()))
     }
 
-    fn visit_u32(self, v: u32) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_u32(self, value: u32) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u32::reflection()))
     }
 
-    fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u64::reflection()))
     }
 
-    fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
+    fn visit_u128(self, value: u128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(u128::reflection()))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
-    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(usize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -343,8 +376,8 @@ pub trait Visitor<'de>: Sized {
             .attach(ReceivedType::new(f32::reflection()))
     }
 
-    fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_f64(self, value: f64) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(f64::reflection()))
     }
 }
@@ -379,6 +412,36 @@ pub trait OptionalVisitor<'de>: Sized {
     }
 }
 
+#[allow(unused_variables)]
+pub trait StructVisitor<'de>: Sized {
+    type Value;
+
+    fn expecting(&self) -> Document;
+
+    // visit_none and visit_null are not implemented, as they can be used more expressively using
+    // `OptionalVisitor`
+
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    where
+        A: ArrayAccess<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(visitor::ArraySchema::document()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
+    where
+        A: ObjectAccess<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(visitor::ObjectSchema::document()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+}
+
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
 // `deserialize_u*` methods.
 struct NumberVisitor<T: Reflection>(PhantomData<fn() -> *const T>);
@@ -402,30 +465,18 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
         T::document()
     }
 
-    fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-        Ok(v)
+    fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+        Ok(value)
     }
 
-    fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
-        Number::from_i128(v)
-            .ok_or_else(|| self.value_error(v))
-            .and_then(|number| self.visit_number(number))
-    }
-
-    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        Number::from_isize(v)
-            .ok_or_else(|| self.value_error(v))
+    fn visit_i128(self, value: i128) -> Result<Self::Value, VisitorError> {
+        Number::from_i128(value)
+            .ok_or_else(|| self.value_error(value))
             .and_then(|number| self.visit_number(number))
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
         Number::from_u128(v)
-            .ok_or_else(|| self.value_error(v))
-            .and_then(|number| self.visit_number(number))
-    }
-
-    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        Number::from_usize(v)
             .ok_or_else(|| self.value_error(v))
             .and_then(|number| self.visit_number(number))
     }
@@ -626,20 +677,22 @@ pub trait Deserializer<'de>: Sized {
     where
         V: EnumVisitor<'de>;
 
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>;
+
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,
         deserialize_i16(to_i16: i16) -> visit_i16,
         deserialize_i32(to_i32: i32) -> visit_i32,
         deserialize_i64(to_i64: i64) -> visit_i64,
         deserialize_i128(to_i128: i128) -> visit_i128,
-        deserialize_isize(to_isize: isize) -> visit_isize,
 
         deserialize_u8(to_u8: u8) -> visit_u8,
         deserialize_u16(to_u16: u16) -> visit_u16,
         deserialize_u32(to_u32: u32) -> visit_u32,
         deserialize_u64(to_u64: u64) -> visit_u64,
         deserialize_u128(to_u128: u128) -> visit_u128,
-        deserialize_usize(to_usize: usize) -> visit_usize,
 
         deserialize_f32(to_f32: f32) -> visit_f32,
         deserialize_f64(to_f64: f64) -> visit_f64,
@@ -666,7 +719,9 @@ pub trait Deserialize<'de>: Sized {
     /// # Errors
     ///
     /// Deserialization was unsuccessful
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
+    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: Deserializer<'de>;
 
     #[must_use]
     fn reflection() -> Document {
@@ -718,7 +773,7 @@ pub(crate) mod test {
 
         let s: SerializeFrame<T> = SerializeFrame {
             frames: &frames,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         };
 
         serde_json::to_value(s)

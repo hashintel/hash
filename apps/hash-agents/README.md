@@ -23,49 +23,36 @@ Some potential candidates for `PYTHON_CMD`
 
 ### First-Time Pre-Setup
 
+- Install poetry:
+  - Please refer to the [poetry documentation](https://python-poetry.org/docs/#installation) for installation instructions
 - Acquire and set the OpenAI API key, either:
   - Set the `OPENAI_API_KEY` environment variable in `.env.local` (this folder or any parent folder), or
   - Set the `OPENAI_API_KEY` environment variable in your shell
-- Create a virtual environment:
-  - `<PYTHON_CMD> -m venv venv`
-- Activate the virtual environment:
-  - On **Linux/MacOS**
-    - `. venv/bin/activate` (if that doesn't work try `source venv/bin/activate`)
-  - On **Windows** (`cmd` or Powershell):
-    - `venv\Scripts\activate.bat`
-- Check that your environment has activated correctly, after this point you can just use `python` instead of `<PYTHON_CMD>`:
-  - On **Linux/MacOS**
-    - `which python` should point to `venv/bin/python`
-  - On **Windows** (`cmd` or Powershell):
-    - `where python` should point to `venv\Scripts\python.exe`
 - Install dependencies:
-  - `pip install --upgrade pip`
-  - `pip install -r requirements.txt`
+  - `poetry install`
+- Generate the Python typings for the agents:
+  - `yarn codegen`
 
 ### Subsequent Runs (or after Pre-Setup)
 
 - Ensure the OpenAI API key is available
-- Activate the virtual environment:
-  - On **Linux/MacOS**
-    - `. venv/bin/activate` (if that doesn't work try `source venv/bin/activate`)
-  - On **Windows** (`cmd` or Powershell):
-    - `venv\Scripts\activate.bat`
 - If the requirements has been changed:
-  - `pip install --upgrade pip`
-  - `pip install -r requirements.txt`
+  - `poetry install`
+- If the typings for the agents have been changed:
+  - `yarn codegen`
 
 ## Running
 
 To run the agent orchestrator, pass the agent name alongside the input you want to pass to the agent:
 
 ```bash
-python -m app.agents <AGENT_NAME> <INPUT>
+poetry run python -m app.agents <AGENT_NAME> <INPUT>
 ```
 
 A server is available to run the agents. To run the server, use the following command:
 
 ```bash
-python -m app
+yarn dev
 ```
 
 The server will read the `HASH_AGENT_RUNNER_HOST` and `HASH_AGENT_RUNNER_PORT` environment variables to determine the host and port to run on. If these are not set, the server will run on `localhost:5000`.
@@ -78,13 +65,13 @@ You can configure the logging level with the `HASH_AGENT_RUNNER_LOG_LEVEL` envir
 This can be set either in the `.env.local` or within the environment when you run the module.
 The possible values are those accepted by [Python's `logging` library](https://docs.python.org/3/library/logging.html#levels).
 
-The level defaults to `WARNING` if the environment variable is not set.
+If the environment variable is not set, it will default to `DEBUG` in a development environment and `WARNING` in a production environment.
 
 All logs will be output to a `$HASH_AGENT_RUNNER_LOG_FOLDER/run-TIMESTAMP.log` file, where `TIMESTAMP` is the time the module was started. If the environment variable is not set, the logs will be output to the `logs` directory.
 
 ## Developing agents
 
-> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn build` command to ensure the python typings are up to date.
+> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn codegen` command to ensure the python typings are up to date.
 
 ### Adding a new agent
 
@@ -95,7 +82,7 @@ You should have an `io_types.ts` file in this newly copied directory, this folde
 To avoid going through the top-level module it's possible to directly invoke the agent module, e.g.:
 
 ```bash
-python -m app.agents.my_agents
+poetry run python -m app.agents.my_agents
 ```
 
 When the server is running as an external service, the `agents` directory is mounted, so it's possible to add new agents or modify agents without restarting the server.

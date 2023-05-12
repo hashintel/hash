@@ -16,7 +16,6 @@
 // Good reference to begin with: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 #![no_std]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
-#![cfg_attr(nightly, feature(const_trait_impl))]
 #![cfg_attr(
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
@@ -34,12 +33,9 @@ pub use decorations::{Decorations, Frame};
 pub use font::FontScript;
 pub use font::{Blinking, Font, FontFamily, FontWeight, Underline};
 
-use crate::macros::impl_const;
-
 mod color;
 mod decorations;
 mod font;
-mod macros;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Foreground(Color);
@@ -56,14 +52,12 @@ impl Foreground {
     }
 }
 
-impl_const! {
-    impl<T> const? From<T> for Foreground
-    where
-        T: ~const Into<Color>
-    {
-        fn from(value: T) -> Self {
-            Self(value.into())
-        }
+impl<T> From<T> for Foreground
+where
+    T: Into<Color>,
+{
+    fn from(value: T) -> Self {
+        Self(value.into())
     }
 }
 
@@ -82,14 +76,12 @@ impl Background {
     }
 }
 
-impl_const! {
-    impl<T> const? From<T> for Background
-    where
-        T: ~const Into<Color>
-    {
-        fn from(value: T) -> Self {
-            Self(value.into())
-        }
+impl<T> From<T> for Background
+where
+    T: Into<Color>,
+{
+    fn from(value: T) -> Self {
+        Self(value.into())
     }
 }
 
@@ -112,14 +104,12 @@ impl UnderlineColor {
 }
 
 #[cfg(feature = "underline-color")]
-impl_const! {
-    impl<T> const? From<T> for UnderlineColor
-    where
-        T: ~const Into<Color>
-    {
-        fn from(value: T) -> Self {
-            Self(value.into())
-        }
+impl<T> From<T> for UnderlineColor
+where
+    T: Into<Color>,
+{
+    fn from(value: T) -> Self {
+        Self(value.into())
     }
 }
 
@@ -159,68 +149,6 @@ pub struct Style {
 }
 
 impl Style {
-    impl_const! {
-        #[nightly]
-        #[must_use]
-        pub const fn with_foreground(mut self, color: impl ~const Into<Foreground>) -> Self {
-            self.foreground = Some(color.into());
-
-            self
-        }
-    }
-
-    impl_const! {
-        #[stable]
-        #[must_use]
-        pub const fn with_foreground(mut self, color: Foreground) -> Self {
-            self.foreground = Some(color);
-
-            self
-        }
-    }
-
-    impl_const! {
-        #[nightly]
-        #[must_use]
-        pub const fn with_background(mut self, color: impl ~const Into<Background>) -> Self {
-            self.background = Some(color.into());
-
-            self
-        }
-    }
-
-    impl_const! {
-        #[stable]
-        #[must_use]
-        pub const fn with_background(mut self, color: Background) -> Self {
-            self.background = Some(color);
-
-            self
-        }
-    }
-
-    #[cfg(feature = "underline-color")]
-    impl_const! {
-        #[nightly]
-        #[must_use]
-        pub const fn with_underline_color(mut self, color: impl ~const Into<UnderlineColor>) -> Self {
-            self.underline_color = Some(color.into());
-
-            self
-        }
-    }
-
-    #[cfg(feature = "underline-color")]
-    impl_const! {
-        #[stable]
-        #[must_use]
-        pub const fn with_underline_color(mut self, color: UnderlineColor) -> Self {
-            self.underline_color = Some(color);
-
-            self
-        }
-    }
-
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -231,6 +159,28 @@ impl Style {
             #[cfg(feature = "underline-color")]
             underline_color: None,
         }
+    }
+
+    #[cfg(feature = "underline-color")]
+    #[must_use]
+    pub const fn with_underline_color(mut self, color: UnderlineColor) -> Self {
+        self.underline_color = Some(color);
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_background(mut self, color: Background) -> Self {
+        self.background = Some(color);
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_foreground(mut self, color: Foreground) -> Self {
+        self.foreground = Some(color);
+
+        self
     }
 
     #[must_use]
