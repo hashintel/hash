@@ -1,7 +1,7 @@
 use core::ops::Range;
 
 use deer::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    error::{DeserializerError, ExpectedType, ObjectAccessError, ReceivedType, TypeError, Variant},
     schema::Document,
     Context, Deserialize, EnumVisitor, Number, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
@@ -12,22 +12,40 @@ use justjson::{
 };
 
 use crate::{
-    error::{convert_tokenizer_error, BytesUnsupportedError, Position, SyntaxError},
+    error::{
+        convert_tokenizer_error, BytesUnsupportedError, Position, RecursionLimitError, SyntaxError,
+    },
     number::try_convert_number,
     object::ObjectAccess,
     skip::skip_tokens,
     token::ValueToken,
 };
 
-pub struct Stack {
+pub(crate) struct Stack {
     limit: usize,
     depth: usize,
+}
+
+impl Stack {
+    pub(crate) fn push(&mut self) -> Result<(), DeserializerError> {
+        self.depth += 1;
+
+        if self.depth >= self.limit {
+            Err(Report::new(RecursionLimitError.into_error()).change_context(DeserializerError))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(crate) fn pop(&mut self) {
+        self.depth = self.depth.saturating_sub(1);
+    }
 }
 
 pub struct Deserializer<'a, 'de> {
     pub(crate) tokenizer: Tokenizer<'de, false>,
     context: &'a Context,
-    stack: Stack,
+    pub(crate) stack: Stack,
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -225,7 +243,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         match token {
             ValueToken::Object => visitor
-                .visit_object(ObjectAccess::new(self))
+                .visit_object(ObjectAccess::new(self)?)
                 .change_context(DeserializerError),
             token => Err(self.error_invalid_type(&token, ValueToken::Object.schema())),
         }

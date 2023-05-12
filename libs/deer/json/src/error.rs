@@ -1,5 +1,5 @@
 use core::{
-    fmt::{Display, Formatter, Write},
+    fmt::{Display, Formatter},
     ops::Range,
 };
 
@@ -11,6 +11,31 @@ use error_stack::Report;
 use justjson::ErrorKind;
 
 const NAMESPACE: Namespace = Namespace::new("deer-json");
+
+#[derive(Debug)]
+pub(crate) struct RecursionLimitError;
+
+impl Display for RecursionLimitError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        // This message is vague by design to not encourage abuse from the consumers
+        f.write_str("Recursion limit has been exceeded")
+    }
+}
+
+impl Variant for RecursionLimitError {
+    type Properties = (Location,);
+
+    const ID: Id = id!["recursion"];
+    const NAMESPACE: Namespace = NAMESPACE;
+
+    fn message(
+        &self,
+        fmt: &mut Formatter,
+        _: &<Self::Properties as ErrorProperties>::Value<'_>,
+    ) -> core::fmt::Result {
+        Display::fmt(self, fmt)
+    }
+}
 
 #[derive(Debug)]
 pub(crate) struct BytesUnsupportedError;
@@ -72,8 +97,6 @@ impl Variant for NumberError {
         Ok(())
     }
 }
-
-// TODO: RecursionLimit our own error
 
 pub struct Position {
     offset: usize,

@@ -1,5 +1,5 @@
 use deer::{
-    error::{ObjectAccessError, ObjectLengthError, Variant},
+    error::{DeserializerError, ObjectAccessError, ObjectLengthError, Variant},
     Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -19,12 +19,16 @@ pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
 }
 
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
-    pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>) -> Self {
-        Self {
+    pub(crate) fn new(
+        deserializer: &'a mut Deserializer<'b, 'de>,
+    ) -> Result<Self, DeserializerError> {
+        deserializer.stack.push()?;
+
+        Ok(Self {
             deserializer,
             dirty: false,
             expected: 0,
-        }
+        })
     }
 }
 
@@ -132,6 +136,8 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
+        self.deserializer.stack.pop();
+
         let result = match self.deserializer.peek() {
             None => Err(Report::new(SyntaxError::UnexpectedEof.into_error())
                 .attach(Position::new(self.deserializer.offset()))),
