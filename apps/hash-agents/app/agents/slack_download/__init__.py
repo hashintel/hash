@@ -52,6 +52,7 @@ def extract_messages(messages):
             "text": message["text"],
             "user": message["user"],
             "ts": message["ts"],
+            "thread_ts": message["thread_ts"] if "thread_ts" in message else None,
         }
         for message in messages
         if message["type"] == "message"

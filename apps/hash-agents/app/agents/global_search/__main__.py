@@ -4,7 +4,6 @@ import logging
 import structlog.stdlib
 
 from . import execute
-from .io_types import Input
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -30,6 +29,12 @@ if __name__ == "__main__":
     structlog.stdlib.get_logger("openai").setLevel(logging.CRITICAL)
     structlog.stdlib.get_logger("httpx").setLevel(logging.CRITICAL)
     structlog.stdlib.get_logger("httpcore").setLevel(logging.CRITICAL)
+    structlog.stdlib.get_logger("trafilatura.readability_lxml").setLevel(
+        logging.CRITICAL,
+    )
+    structlog.stdlib.get_logger("trafilatura.core").setLevel(logging.CRITICAL)
+    structlog.stdlib.get_logger("trafilatura.xml").setLevel(logging.CRITICAL)
+    structlog.stdlib.get_logger("trafilatura.downloads").setLevel(logging.CRITICAL)
+    structlog.stdlib.get_logger("trafilatura.htmlprocessing").setLevel(logging.CRITICAL)
 
-    output = execute(Input(expression="round(pi * 13.37)"))
-    logger.info(output=output.result)
+    output = execute()
