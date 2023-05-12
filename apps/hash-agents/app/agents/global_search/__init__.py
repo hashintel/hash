@@ -32,7 +32,9 @@ def get_search_prompt(threads, website_contents, user_input):
 Given the following information:
 {json.dumps(threads)}
 ${website_contents}
-Do your best to answer this, citing information in your answer:
+
+Do your best to answer this explaining which bits of the information you have used to come to your \
+conclusion, and directly quote the information where available:
 {user_input}
 """
 
