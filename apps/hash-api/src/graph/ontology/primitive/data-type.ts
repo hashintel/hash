@@ -18,7 +18,11 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import {
+  currentTimeInstantTemporalAxes,
+  ImpureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -105,19 +109,7 @@ export const getDataTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   }).then(getRoots);
 

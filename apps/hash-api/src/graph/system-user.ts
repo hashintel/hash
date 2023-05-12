@@ -13,7 +13,11 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
-import { ImpureGraphContext, zeroedGraphResolveDepths } from "./index";
+import {
+  currentTimeInstantTemporalAxes,
+  ImpureGraphContext,
+  zeroedGraphResolveDepths,
+} from "./index";
 import {
   createUser,
   getUserByShortname,
@@ -44,19 +48,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     });
 
   const existingUserEntities = getEntities(

@@ -16,6 +16,7 @@ import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
+  currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
@@ -258,19 +259,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: subgraph }) =>
       getEntities(subgraph as Subgraph<EntityRootType>),

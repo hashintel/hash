@@ -17,7 +17,6 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  QueryTemporalAxesUnresolved,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -29,7 +28,11 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import {
+  currentTimeInstantTemporalAxes,
+  ImpureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {
   createLinkEntity,
@@ -141,6 +144,7 @@ export const getLatestEntityById: ImpureGraphFunction<
           },
         },
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   }).then(getRoots);
 
@@ -478,20 +482,6 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     ],
   };
 
-  const temporalAxes: QueryTemporalAxesUnresolved = {
-    pinned: {
-      axis: "transactionTime",
-      timestamp: null,
-    },
-    variable: {
-      axis: "decisionTime",
-      interval: {
-        start: null,
-        end: null,
-      },
-    },
-  };
-
   if (params.linkEntityType) {
     filter.all.push({
       equal: [
@@ -507,7 +497,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     query: {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
 
@@ -597,25 +587,11 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  const temporalAxes: QueryTemporalAxesUnresolved = {
-    pinned: {
-      axis: "transactionTime",
-      timestamp: null,
-    },
-    variable: {
-      axis: "decisionTime",
-      interval: {
-        start: null,
-        end: null,
-      },
-    },
-  };
-
   const outgoingLinkEntitiesSubgraph = await getEntities(context, {
     query: {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
 
@@ -676,19 +652,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
         ...zeroedGraphResolveDepths,
         ...graphResolveDepths,
       },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
 };
