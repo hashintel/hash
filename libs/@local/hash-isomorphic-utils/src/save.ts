@@ -389,7 +389,10 @@ export const save = async (
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,
     ownedById,
-    /** @todo This type ID should *not* be hardcoded as is here. */
+    /**
+     * If the text entity type is ever updated in the backend,
+     * the FE will need to be redeployed to avoid this being out of sync.
+     */
     TEXT_ENTITY_TYPE_ID,
     blocks,
     doc,
