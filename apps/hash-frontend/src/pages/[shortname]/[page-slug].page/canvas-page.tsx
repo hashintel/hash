@@ -2,7 +2,10 @@ import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
-import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import {
+  ComponentIdHashBlockMap,
+  fetchBlock,
+} from "@local/hash-isomorphic-utils/blocks";
 import { TldrawEditorConfig } from "@tldraw/editor";
 import {
   App,
@@ -15,15 +18,12 @@ import {
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import { BlocksMap } from "../../../blocks/page/create-editor-view";
+import { useUserBlocks } from "../../../blocks/user-blocks";
+import { PageContentItem } from "../../../graphql/api-types.gen";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
 import { BlockShapeDef, BlockTool } from "./canvas-page/block-shape";
 import { LockedCanvas } from "./canvas-page/locked-canvas";
-import {
-  CanvasProps,
-  defaultBlockHeight,
-  defaultBlockWidth,
-} from "./canvas-page/shared";
+import { defaultBlockHeight, defaultBlockWidth } from "./canvas-page/shared";
 
 const config = new TldrawEditorConfig({
   shapes: [BlockShapeDef],
@@ -32,12 +32,15 @@ const config = new TldrawEditorConfig({
 });
 
 export const CanvasPageBlock = ({
-  blocks: initialBlocks,
   contents,
-}: CanvasProps) => {
+}: {
+  contents: PageContentItem[];
+}) => {
   const { query } = useRouter();
 
-  const [blocks, setBlocks] = useState<BlocksMap | null>(null);
+  const { value: initialBlocks } = useUserBlocks();
+
+  const [blocks, setBlocks] = useState<ComponentIdHashBlockMap | null>(null);
 
   /**
    * This fetches the metadata for blocks that weren't included in the server-side fetch in [page-slug].page.tsx

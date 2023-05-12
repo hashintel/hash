@@ -1,4 +1,5 @@
-import { BlocksMap } from "../../../../blocks/page/create-editor-view";
+import { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
+
 import { BlockLoaderProps } from "../../../../components/block-loader/block-loader";
 import { PageContentItem } from "../../../../graphql/api-types.gen";
 
@@ -9,7 +10,7 @@ export type JsonSerializableBlockLoaderProps = Omit<
 
 export type CanvasProps = {
   contents: PageContentItem[];
-  blocks: BlocksMap;
+  blocks: ComponentIdHashBlockMap;
 };
 
 export const defaultBlockWidth = 600;

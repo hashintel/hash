@@ -507,7 +507,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <UserBlocksProvider value={blocksMap}>
             <BlockLoadedProvider routeHash={routeHash}>
               {canvasPage ? (
-                <CanvasPageBlock contents={contents} blocks={blocksMap} />
+                <CanvasPageBlock contents={contents} />
               ) : (
                 <PageBlock
                   accountId={pageWorkspace.accountId}

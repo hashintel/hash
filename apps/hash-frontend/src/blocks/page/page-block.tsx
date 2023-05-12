@@ -2,7 +2,6 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/design-system";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { AccountId, EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
@@ -13,6 +12,7 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
+import { PageContentItem } from "../../graphql/api-types.gen";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../on-block-loaded";
 import { useUserBlocks } from "../user-blocks";
@@ -27,7 +27,7 @@ import {
 } from "./page-section-container";
 
 type PageBlockProps = {
-  contents: BlockEntity[];
+  contents: PageContentItem[];
   pageComments: PageThread[];
   accountId: AccountId;
   entityId: EntityId;
@@ -97,7 +97,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       () => currentBlocks.current,
       isReadonlyMode,
       pageTitleRef,
-      () => currentContents.current,
+      () =>
+        currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
     );
 
