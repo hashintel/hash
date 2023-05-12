@@ -32,19 +32,30 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
         })
     }
 
-    fn try_skip_colon(&mut self) -> Option<Report<Error>> {
+    fn try_skip_colon(&mut self) -> Result<(), Error> {
         // skip `:`, be tolerant if someone forgot, but still propagate the error
         if self
             .deserializer
             .skip_if(PeekableTokenKind::Colon)
             .is_none()
         {
-            Some(
-                Report::new(SyntaxError::ExpectedColon.into_error())
-                    .attach(Position::new(self.deserializer.offset())),
-            )
+            Err(Report::new(SyntaxError::ExpectedColon.into_error())
+                .attach(Position::new(self.deserializer.offset())))
         } else {
-            None
+            Ok(())
+        }
+    }
+
+    fn try_skip_comma(&mut self) -> Result<(), Error> {
+        if self
+            .deserializer
+            .skip_if(PeekableTokenKind::Comma)
+            .is_none()
+        {
+            Err(Report::new(SyntaxError::ExpectedComma.into_error())
+                .attach(Position::new(self.deserializer.offset())))
+        } else {
+            Ok(())
         }
     }
 }
@@ -72,24 +83,10 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             // needs to parse the `,` that is the token, if that token is not present we will error
             // out, but(!) will still attempt deserialization, as we can tolerate that error.
 
-            match self.deserializer.peek() {
-                Some(PeekableTokenKind::Comma) => {
-                    let _ = self.deserializer.skip();
-                }
-                // create a new error that we expected a comma, but still try to parse!
-                Some(_) => {
-                    errors.extend_one(
-                        Report::new(SyntaxError::ExpectedComma.into_error())
-                            .attach(Position::new(self.deserializer.offset())),
-                    );
-                }
-                // the statement after this _will_ fail and return the visitor, therefore we don't
-                // need to duplicate the logic
-                None => {}
-            }
-
-            if self.deserializer.peek() == Some(PeekableTokenKind::Comma) {
-                self.deserializer.skip();
+            // the statement after this _will_ fail and return the visitor, therefore we don't
+            // need to check for EOF
+            if let Err(error) = self.try_skip_comma() {
+                errors.extend_one(error);
             }
         }
 
@@ -109,7 +106,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         if peek_key != Some(PeekableTokenKind::String) {
             let span = self.deserializer.skip(); // skip key
 
-            if let Some(skip) = self.try_skip_colon() {
+            if let Err(skip) = self.try_skip_colon() {
                 errors.extend_one(skip);
             }
 
@@ -131,7 +128,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             Err(error) => {
                 let mut error = error.change_context(ObjectAccessError);
 
-                if let Some(skip) = self.try_skip_colon() {
+                if let Err(skip) = self.try_skip_colon() {
                     error.extend_one(skip.change_context(ObjectAccessError))
                 }
 
@@ -143,7 +140,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
 
         // key value are separated by `:`, if one forgets we will still error out but _try_ to
         // deserialize
-        if let Some(skip) = self.try_skip_colon() {
+        if let Err(skip) = self.try_skip_colon() {
             errors.extend_one(skip);
         }
 

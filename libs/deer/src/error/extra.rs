@@ -9,7 +9,7 @@ use error_stack::Report;
 use super::{
     fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
 };
-use crate::{error::Error, id, ObjectAccess};
+use crate::{error::Error, id, ArrayAccess, ObjectAccess};
 
 #[derive(serde::Serialize)]
 pub struct ReceivedKey(String);
@@ -84,9 +84,9 @@ impl Display for ObjectItemsExtraError {
 pub struct ObjectLengthError;
 
 impl ObjectLengthError {
+    #[allow(clippy::new_ret_no_self)] // Reason: `Variant` are special
     pub fn new<'de, A: ObjectAccess<'de>>(access: &A, expected: usize) -> Report<Error> {
-        let mut error =
-            Report::new(ObjectLengthError.into_error()).attach(ExpectedLength::new(expected));
+        let mut error = Report::new(Self.into_error()).attach(ExpectedLength::new(expected));
 
         if let Some(length) = access.size_hint() {
             error = error.attach(ReceivedLength::new(length));
@@ -185,6 +185,19 @@ impl ErrorProperty for ReceivedLength {
 
 #[derive(Debug)]
 pub struct ArrayLengthError;
+
+impl ArrayLengthError {
+    #[allow(clippy::new_ret_no_self)] // Reason: `Variant` are special
+    pub fn new<'de, A: ArrayAccess<'de>>(access: &A, expected: usize) -> Report<Error> {
+        let mut error = Report::new(Self.into_error()).attach(ExpectedLength::new(expected));
+
+        if let Some(length) = access.size_hint() {
+            error = error.attach(ReceivedLength::new(length));
+        }
+
+        error
+    }
+}
 
 impl Variant for ArrayLengthError {
     type Properties = (Location, ExpectedLength, ReceivedLength);

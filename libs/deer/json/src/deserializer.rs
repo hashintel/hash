@@ -12,6 +12,7 @@ use justjson::{
 };
 
 use crate::{
+    array::ArrayAccess,
     error::{
         convert_tokenizer_error, BytesUnsupportedError, Position, RecursionLimitError, SyntaxError,
     },
@@ -44,6 +45,7 @@ impl Stack {
 
 pub struct Deserializer<'a, 'de> {
     pub(crate) tokenizer: Tokenizer<'de, false>,
+
     context: &'a Context,
     pub(crate) stack: Stack,
 }
@@ -89,12 +91,35 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         start..self.tokenizer.offset()
     }
 
+    pub(crate) fn eof(&mut self) -> bool {
+        self.peek().is_none()
+    }
+
+    pub(crate) fn skip_if(&mut self, token: PeekableTokenKind) -> Option<Range<usize>> {
+        let is_token = self.peek() == Some(token);
+
+        is_token.then(|| self.skip())
+    }
+
     pub(crate) fn peek(&mut self) -> Option<PeekableTokenKind> {
         self.tokenizer.peek()
     }
 
     pub(crate) const fn offset(&self) -> usize {
         self.tokenizer.offset()
+    }
+
+    pub(crate) fn try_stack_push(&mut self, token: &Token) -> Result<(), DeserializerError> {
+        if let Err(error) = self.stack.push() {
+            // we can still recover, we pop us again from the stack as we stopped before and do not
+            // commit. We still show the error, but we could continue, so we skip all tokens.
+            self.stack.pop();
+            skip_tokens(&mut self.tokenizer, token);
+
+            return Err(error);
+        }
+
+        Ok(())
     }
 
     fn error_invalid_type(
@@ -137,9 +162,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 visitor.visit_number(value)
             }
             ValueToken::Object => visitor.visit_object(ObjectAccess::new(self)?),
-            ValueToken::Array => {
-                todo!()
-            }
+            ValueToken::Array => visitor.visit_array(ArrayAccess::new(self)?),
         }
         .change_context(DeserializerError)
     }
@@ -230,7 +253,14 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     where
         V: Visitor<'de>,
     {
-        todo!()
+        let token = self.next_value()?;
+
+        match token {
+            ValueToken::Array => visitor
+                .visit_array(ArrayAccess::new(self)?)
+                .change_context(DeserializerError),
+            token => Err(self.error_invalid_type(&token, ValueToken::Array.schema())),
+        }
     }
 
     fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
