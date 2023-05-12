@@ -14,6 +14,7 @@ use justjson::{
 use crate::{
     error::{convert_tokenizer_error, BytesUnsupportedError, Position, SyntaxError},
     number::try_convert_number,
+    object::ObjectAccess,
     skip::skip_tokens,
     token::ValueToken,
 };
@@ -23,13 +24,13 @@ pub struct Stack {
     depth: usize,
 }
 
-pub struct Deserializer<'de, 'a> {
+pub struct Deserializer<'a, 'de> {
     pub(crate) tokenizer: Tokenizer<'de, false>,
     context: &'a Context,
     stack: Stack,
 }
 
-impl<'de, 'a> Deserializer<'de, 'a> {
+impl<'a, 'de> Deserializer<'a, 'de> {
     fn next(&mut self) -> Result<Token<'de>, DeserializerError> {
         let offset = self.tokenizer.offset();
         let Some(token) = self.tokenizer.next() else {
@@ -94,7 +95,7 @@ impl<'de, 'a> Deserializer<'de, 'a> {
 
 // TODO: stack check
 
-impl<'de> deer::Deserializer<'de> for &mut Deserializer<'de, '_> {
+impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     fn context(&self) -> &Context {
         self.context
     }
@@ -179,7 +180,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'de, '_> {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_str<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -220,10 +221,17 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'de, '_> {
     where
         V: Visitor<'de>,
     {
-        todo!()
+        let token = self.next_value()?;
+
+        match token {
+            ValueToken::Object => visitor
+                .visit_object(ObjectAccess::new(self))
+                .change_context(DeserializerError),
+            token => Err(self.error_invalid_type(&token, ValueToken::Object.schema())),
+        }
     }
 
-    fn deserialize_optional<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: OptionalVisitor<'de>,
     {

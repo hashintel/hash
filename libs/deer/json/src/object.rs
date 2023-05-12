@@ -1,5 +1,5 @@
 use deer::{
-    error::{ObjectAccessError, ObjectLengthError, ReceivedLength, Variant},
+    error::{ObjectAccessError, ObjectLengthError, Variant},
     Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -11,14 +11,24 @@ use crate::{
     skip::skip_tokens,
 };
 
-struct ObjectAccess<'de, 'a> {
-    deserializer: &'a mut Deserializer<'de, 'a>,
+pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
+    deserializer: &'a mut Deserializer<'b, 'de>,
 
     dirty: bool,
     expected: usize,
 }
 
-impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'de, '_> {
+impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
+    pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>) -> Self {
+        Self {
+            deserializer,
+            dirty: false,
+            expected: 0,
+        }
+    }
+}
+
+impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     fn is_dirty(&self) -> bool {
         self.dirty
     }
