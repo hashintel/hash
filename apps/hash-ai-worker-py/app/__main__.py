@@ -4,7 +4,7 @@ from temporalio.worker import Worker
 from temporalio.client import Client
 from aiohttp import web
 
-from app.workflows import DemoWorkflow
+from app.workflows import DemoWorkflowPy
 from app.activities import complete
 
 from dotenv import find_dotenv, load_dotenv
@@ -26,7 +26,7 @@ async def run_worker(stop_event: asyncio.Event):
         task_queue="aipy",
         # Register workflows
         workflows=[
-            DemoWorkflow,
+            DemoWorkflowPy,
         ],
         # Register activities
         activities=[
