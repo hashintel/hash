@@ -15,11 +15,10 @@ from slack_sdk.web import SlackResponse
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
 MESSAGES_PER_PAGE = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
-OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=7)).timestamp())
-# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
+# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=7)).timestamp())
+OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
 # OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=180)).timestamp())
 
 
@@ -88,17 +87,26 @@ def execute() -> None:
         exclude_archived=True,
     )["channels"]
 
-    for channel in channels:
-        history = client.conversations_history(
-            channel=channel["id"],
-            limit=1,
-        )["messages"]
-        channel["last_message_ts"] = history[0]["ts"] if len(history) > 0 else 0
+    # TODO: this tried sorting by last message, it's slow because it requires a lot of calls, and it's somewhat not
+    #   helpful because some of the channels contain a lot of activity from bots, etc.
+
+    # for channel in channels:
+    #     history = client.conversations_history(
+    #         channel=channel["id"],
+    #         limit=1,
+    #     )["messages"]r
+    #     channel["last_message_ts"] = history[0]["ts"] if len(history) > 0 else 0
+    #
+    # channels = sorted(
+    #     channels,
+    #     key=lambda channel: channel["last_message_ts"],
+    #     reverse=True,
+    # )
 
     channels = sorted(
         channels,
-        key=lambda channel: channel["last_message_ts"],
-        reverse=True,
+        key=lambda channel: channel["name"],
+        reverse=False,
     )
 
     print("Channels:")  # noqa: T201
