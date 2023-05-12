@@ -66,16 +66,16 @@ macro_rules! impl_tuple {
             }
 
             #[allow(non_snake_case)]
-            fn visit_array<T>(self, mut v: T) -> Result<Self::Value, VisitorError>
+            fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
             where
-                T: ArrayAccess<'de>,
+                A: ArrayAccess<'de>,
             {
-                v.set_bounded($expected).change_context(VisitorError)?;
+                let mut array = array.into_bound($expected).change_context(VisitorError)?;
 
                 let mut length = 0;
 
                 $(
-                let $elem = match v.next() {
+                let $elem = match array.next() {
                     None => {
                         return Err(Report::new(ArrayLengthError.into_error())
                             .attach(ExpectedLength::new($expected))
@@ -90,7 +90,7 @@ macro_rules! impl_tuple {
 
                 let value = ($($elem,)*).fold_reports();
 
-                (value, v.end())
+                (value, array.end())
                     .fold_reports()
                     .map(|(value, _)| value)
                     .change_context(VisitorError)

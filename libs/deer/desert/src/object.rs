@@ -1,9 +1,5 @@
 use deer::{
-    error::{
-        BoundedContractViolationError, ExpectedLength, ObjectAccessError, ObjectLengthError,
-        ReceivedLength, Variant,
-    },
-    value::NoneDeserializer,
+    error::{ExpectedLength, ObjectAccessError, ObjectLengthError, ReceivedLength, Variant},
     Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -13,87 +9,58 @@ use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
+    dirty: bool,
     length: Option<usize>,
-    remaining: Option<usize>,
-    consumed: usize,
+    expected: usize,
 }
 
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
         Self {
             deserializer,
+
+            dirty: false,
             length,
-            remaining: None,
-            consumed: 0,
+            expected: 0,
         }
     }
 }
 
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
+    fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+
     fn context(&self) -> &Context {
         self.deserializer.context()
     }
 
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
-        if self.consumed > 0 {
-            return Err(
-                Report::new(BoundedContractViolationError::SetDirty.into_error())
-                    .change_context(ObjectAccessError),
-            );
-        }
-
-        if self.remaining.is_some() {
-            return Err(Report::new(
-                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
-            )
-            .change_context(ObjectAccessError));
-        }
-
-        self.remaining = Some(length);
-
-        Ok(())
-    }
-
-    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>,
     {
-        if self.remaining == Some(0) {
-            return None;
+        self.dirty = true;
+
+        if self.deserializer.peek() == Token::ObjectEnd {
+            return Err(visitor);
         }
 
-        self.consumed += 1;
+        self.expected += 1;
 
-        if let Some(remaining) = &mut self.remaining {
-            *remaining = remaining.saturating_sub(1);
+        let key = visitor.visit_key(&mut *self.deserializer);
+
+        if key.is_err() {
+            // the key is an error, we need to swallow the value
+            let next = self.deserializer.next();
+            skip_tokens(self.deserializer, &next);
         }
 
-        let key_value = if self.deserializer.peek() == Token::ObjectEnd {
-            // we're not in bounded mode, which means we need to signal that we're done
-            self.remaining?;
+        let value = key.and_then(|key| visitor.visit_value(key, &mut *self.deserializer));
 
-            if self.remaining.is_some() {
-                let key = access.visit_key(NoneDeserializer::new(self.deserializer.context()));
-
-                key.and_then(|key| {
-                    access.visit_value(key, NoneDeserializer::new(self.deserializer.context()))
-                })
-            } else {
-                return None;
-            }
-        } else {
-            let key = access.visit_key(&mut *self.deserializer);
-
-            if key.is_err() {
-                // the key is an error, we need to swallow the value
-                let next = self.deserializer.next();
-                skip_tokens(self.deserializer, &next);
-            }
-
-            key.and_then(|key| access.visit_value(key, &mut *self.deserializer))
-        };
-
-        Some(key_value.change_context(ObjectAccessError))
+        Ok(value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {
@@ -102,11 +69,11 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
 
     fn end(self) -> Result<(), ObjectAccessError> {
         // ensure that we consume the last token, if it is the wrong token error out
-        let mut result = if self.deserializer.peek() == Token::ObjectEnd {
+        let result = if self.deserializer.peek() == Token::ObjectEnd {
             Ok(())
         } else {
             let mut error = Report::new(ObjectLengthError.into_error())
-                .attach(ExpectedLength::new(self.consumed));
+                .attach(ExpectedLength::new(self.expected));
 
             if let Some(length) = self.size_hint() {
                 error = error.attach(ReceivedLength::new(length));
@@ -117,18 +84,6 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!
         skip_tokens(self.deserializer, &Token::Object { length: None });
-
-        if let Some(remaining) = self.remaining {
-            if remaining > 0 {
-                let error =
-                    Report::new(BoundedContractViolationError::EndRemainingItems.into_error());
-
-                match &mut result {
-                    Err(result) => result.extend_one(error),
-                    result => *result = Err(error),
-                }
-            }
-        }
 
         result.change_context(ObjectAccessError)
     }

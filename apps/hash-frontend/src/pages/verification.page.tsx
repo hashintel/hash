@@ -6,16 +6,16 @@ import {
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useMemo, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
-  createFlowErrorHandler,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
+import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
 const VerificationPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
@@ -36,16 +36,11 @@ const VerificationPage: NextPageWithLayout = () => {
   const [code, setCode] = useState<string>();
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const handleFlowError = useMemo(
-    () =>
-      createFlowErrorHandler({
-        router,
-        flowType: "verification",
-        setFlow,
-        setErrorMessage,
-      }),
-    [router, setFlow, setErrorMessage],
-  );
+  const { handleFlowError } = useKratosErrorHandler({
+    flowType: "verification",
+    setFlow,
+    setErrorMessage,
+  });
 
   // This might be confusing, but we want to show the user an option
   // to sign out if they are performing two-factor authentication!

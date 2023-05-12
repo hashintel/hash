@@ -169,7 +169,7 @@ use crate::{
 ///     # assert!(report.contains::<ConfigError>());
 ///     # assert_eq!(report.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
-///     # #[cfg(rust_1_65)]
+///     # #[cfg(nightly)]
 ///     # fn render(value: String) -> String {
 ///     #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 ///     #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -179,11 +179,11 @@ use crate::{
 ///     #
 ///     #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 ///     # }
-///     # #[cfg(rust_1_65)]
+///     # #[cfg(nightly)]
 ///     # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display__doc.snap")].assert_eq(&render(format!("{report}")));
-///     # #[cfg(rust_1_65)]
+///     # #[cfg(nightly)]
 ///     # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display_alt__doc.snap")].assert_eq(&render(format!("{report:#}")));
-///     # #[cfg(rust_1_65)]
+///     # #[cfg(nightly)]
 ///     # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_debug__doc.snap")].assert_eq(&render(format!("{report:?}")));
 ///     # Ok(())
 /// }
