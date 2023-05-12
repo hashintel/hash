@@ -5,13 +5,7 @@ import {
   IconArrowRight,
   IconButton,
 } from "@hashintel/design-system";
-import {
-  Stack,
-  svgIconClasses,
-  Tooltip,
-  tooltipClasses,
-  Typography,
-} from "@mui/material";
+import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
 
 type VersionUpgradeIndicatorProps = {
   currentVersion: number;

@@ -10,7 +10,6 @@ import {
   Collapse,
   Stack,
   Tooltip,
-  tooltipClasses,
   Typography,
 } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
