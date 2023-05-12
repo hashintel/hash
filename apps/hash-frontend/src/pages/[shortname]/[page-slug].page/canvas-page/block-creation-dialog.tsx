@@ -5,7 +5,6 @@ import {
   updatePageContents,
 } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { TEXT_ENTITY_TYPE_ID } from "@local/hash-isomorphic-utils/entity-store";
 import { OwnedById } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
