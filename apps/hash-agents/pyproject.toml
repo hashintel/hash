@@ -23,6 +23,7 @@ rich = "^13.3.4"
 slack-sdk = "^3.21.3"
 qdrant-client = "^1.1.7"
 trafilatura = "^1.6.0"
+tenacity = "^8.2.2"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"

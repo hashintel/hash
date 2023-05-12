@@ -1,4 +1,4 @@
-"""A template agent, which provides a simple interface into LangChain's LLMMathChain."""
+import concurrent.futures
 import json
 import os
 from pathlib import Path
@@ -8,10 +8,20 @@ import structlog
 from beartype import beartype
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Batch, VectorParams
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 logger = structlog.stdlib.get_logger(__name__)
 
 COLLECTION_NAME = "SlackMessages"
+
+
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(10))
+def create_embedding_with_backoff(**kwargs):
+    return openai.Embedding.create(**kwargs)
 
 
 @beartype
@@ -50,17 +60,24 @@ def execute() -> None:
             ),
         )
 
-    embeddings = [
-        {
+    def create_embedding(message_ts, message):
+        embedding = create_embedding_with_backoff(
+            input=json.dumps(message),
+            model=embedding_model,
+        )["data"][0]["embedding"]
+        return {
             "ts": message_ts,
-            "embedding": openai.Embedding.create(
-                input=json.dumps(message),
-                model=embedding_model,
-            )["data"][0]["embedding"],
+            "embedding": embedding,
             "message": message,
         }
-        for [message_ts, message] in messages.items()
-    ]
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        embeddings = list(
+            executor.map(
+                lambda item: create_embedding(*item),
+                messages.items(),
+            ),
+        )
 
     logger.info("Created embeddings", num_embeddings=len(embeddings))
 
@@ -76,10 +93,14 @@ def execute() -> None:
         strict=True,
     )
 
-    # Qdrant IDs have to be unsigned integers, or UUIDs, and Slack message IDs are timestamps expressed as UTC epoch
-    # values (floats). If we take the timestamp to a specific precision, we can fit it into a 64-bit unsigned integer.
-    # The timestamps are strings, so we can just remove the decimal point and convert to an integer.
     ids = [int(timestamp.replace(".", "")) for timestamp in timestamps]
+
+    Path("out/embeddings.json").write_text(
+        json.dumps(
+            {"ids": ids, "vectors": vectors, "payloads": payloads},
+            indent=2,
+        ),
+    )
 
     qdrant_client.upsert(
         collection_name=COLLECTION_NAME,
