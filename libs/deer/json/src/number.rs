@@ -12,9 +12,9 @@ use lexical::{parse_float_options::JSON, parse_integer_options::STANDARD, FromLe
 use crate::error::NumberError;
 
 #[cfg(not(feature = "arbitrary-precision"))]
-pub(crate) fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
+pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
     let number_source = number.source();
-    let negative = number_source.as_bytes().get(0).copied() == Some(b'-');
+    let negative = number_source.as_bytes().first().copied() == Some(b'-');
 
     if memchr::memchr(b'.', number_source.as_bytes()).is_some() {
         // justjson ensures that the value itself is valid JSON, can only error out if there are too
@@ -23,7 +23,7 @@ pub(crate) fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
             .map(Number::from)
             .map_err(
                 // TODO: once stabilized use `Error` as base
-                |_| Report::new(NumberError::Unknown.into_error()),
+                |_error| Report::new(NumberError::Unknown.into_error()),
             )
     } else if negative {
         i64::from_lexical_with_options::<{ lexical::format::JSON }>(
@@ -53,7 +53,8 @@ pub(crate) fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
 }
 
 #[cfg(feature = "arbitrary-precision")]
-pub(crate) fn try_convert_number(number: JsonNumber) -> Result<Number, Error> {
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
     #[allow(unsafe_code)]
     // SAFETY: `justjson` ensures that the contained source is a valid JSON number, these are
     // accepted by the parse algorithm of Rust

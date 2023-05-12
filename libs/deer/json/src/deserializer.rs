@@ -65,7 +65,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         };
 
         token
-            .map_err(convert_tokenizer_error)
+            .map_err(|error| convert_tokenizer_error(&error))
             .change_context(DeserializerError)
     }
 
@@ -94,10 +94,6 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         }
 
         start..self.tokenizer.offset()
-    }
-
-    pub(crate) fn eof(&mut self) -> bool {
-        self.peek().is_none()
     }
 
     pub(crate) fn skip_if(&mut self, token: PeekableTokenKind) -> Option<Range<usize>> {
@@ -174,7 +170,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 AnyStr::Borrowed(value) => visitor.visit_borrowed_str(value),
             },
             ValueToken::Number(value) => {
-                let value = try_convert_number(value).change_context(DeserializerError)?;
+                let value = try_convert_number(&value).change_context(DeserializerError)?;
 
                 visitor.visit_number(value)
             }
@@ -216,7 +212,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         match token {
             ValueToken::Number(value) => visitor
-                .visit_number(try_convert_number(value).change_context(DeserializerError)?)
+                .visit_number(try_convert_number(&value).change_context(DeserializerError)?)
                 .change_context(DeserializerError),
             token => Err(self.error_invalid_type(&token, Number::reflection())),
         }

@@ -3,8 +3,10 @@ use core::{
     ops::Range,
 };
 
+#[cfg(not(feature = "arbitrary-precision"))]
+use deer::error::ReceivedValue;
 use deer::{
-    error::{ErrorProperties, ErrorProperty, Id, Location, Namespace, ReceivedValue, Variant},
+    error::{ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant},
     id,
 };
 use error_stack::Report;
@@ -61,13 +63,15 @@ impl Variant for BytesUnsupportedError {
     }
 }
 
+#[cfg(not(feature = "arbitrary-precision"))]
 #[derive(Debug)]
-pub enum NumberError {
+pub(crate) enum NumberError {
     Overflow,
     Underflow,
     Unknown,
 }
 
+#[cfg(not(feature = "arbitrary-precision"))]
 impl Display for NumberError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -78,6 +82,7 @@ impl Display for NumberError {
     }
 }
 
+#[cfg(not(feature = "arbitrary-precision"))]
 impl Variant for NumberError {
     type Properties = (Location, ReceivedValue);
 
@@ -98,7 +103,7 @@ impl Variant for NumberError {
     }
 }
 
-pub struct Position {
+pub(crate) struct Position {
     offset: usize,
 }
 
@@ -116,11 +121,11 @@ impl ErrorProperty for Position {
     }
 
     fn value<'a>(mut stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        stack.next().map(|Position { offset }| *offset)
+        stack.next().map(|Self { offset }| *offset)
     }
 }
 
-pub struct Span {
+pub(crate) struct Span {
     range: Range<usize>,
 }
 
@@ -132,8 +137,20 @@ impl Span {
     }
 }
 
+impl ErrorProperty for Span {
+    type Value<'a> = Option<&'a Range<usize>> where Self: 'a ;
+
+    fn key() -> &'static str {
+        "span"
+    }
+
+    fn value<'a>(mut stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
+        stack.next().map(|Self { range }| range)
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
-pub enum SyntaxError {
+pub(crate) enum SyntaxError {
     InvalidUtf8Sequence,
     UnexpectedEof,
     ExpectedColon,
@@ -162,8 +179,9 @@ impl Display for SyntaxError {
             Self::ExpectedColon => f.write_str("expected colon (`:`)"),
             Self::ExpectedComma => f.write_str("expected comma (`,`)"),
             Self::ExpectedExponent => f.write_str("expected exponent sign or digit"),
-            Self::ExpectedDecimalDigit => f.write_str("expected decimal digit"),
-            Self::ExpectedDigit => f.write_str("expected decimal digit"),
+            Self::ExpectedDigit | Self::ExpectedDecimalDigit => {
+                f.write_str("expected decimal digit")
+            }
             // TODO: do those even matter?
             Self::ExpectedString => f.write_str("expected string"),
             Self::ExpectedNumber => f.write_str("expected number"),
@@ -181,7 +199,7 @@ impl Display for SyntaxError {
 }
 
 impl Variant for SyntaxError {
-    type Properties = (Location, Position);
+    type Properties = (Location, Position, Span);
 
     const ID: Id = id!["syntax"];
     const NAMESPACE: Namespace = NAMESPACE;
@@ -192,10 +210,14 @@ impl Variant for SyntaxError {
         properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> core::fmt::Result {
         let position = properties.1;
+        let span = properties.2;
 
         // TODO: context via codespan -> Property (if fancy)
         if let Some(position) = position {
             fmt.write_fmt(format_args!("{self} at {position}"))
+        } else if let Some(span) = span {
+            let Range { start, end } = span;
+            fmt.write_fmt(format_args!("{self} at {start}..{end}"))
         } else {
             Display::fmt(&self, fmt)
         }
@@ -203,7 +225,7 @@ impl Variant for SyntaxError {
 }
 
 #[derive(Debug, Clone)]
-pub struct NativeError(justjson::ErrorKind);
+pub(crate) struct NativeError(justjson::ErrorKind);
 
 impl Display for NativeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
@@ -226,7 +248,7 @@ impl Variant for NativeError {
     }
 }
 
-pub(crate) fn convert_tokenizer_error(error: justjson::Error) -> Report<deer::error::Error> {
+pub(crate) fn convert_tokenizer_error(error: &justjson::Error) -> Report<deer::error::Error> {
     let offset = error.offset();
 
     let error = match error.kind() {
@@ -257,20 +279,6 @@ pub(crate) struct ErrorAccumulator<C> {
 impl<C> ErrorAccumulator<C> {
     pub(crate) const fn new() -> Self {
         Self { inner: None }
-    }
-
-    pub(crate) fn push<T>(&mut self, value: Result<T, Report<C>>) -> Option<T> {
-        match (&mut self.inner, value) {
-            (_, Ok(ok)) => Some(ok),
-            (Some(inner), Err(error)) => {
-                inner.extend_one(error);
-                None
-            }
-            (inner, Err(error)) => {
-                *inner = Some(error);
-                None
-            }
-        }
     }
 
     pub(crate) fn extend_one(&mut self, error: Report<C>) {

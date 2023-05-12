@@ -1,8 +1,8 @@
 use deer::{
-    error::{ExpectedLength, ObjectAccessError, ObjectLengthError, ReceivedLength, Variant},
+    error::{ObjectAccessError, ObjectLengthError},
     Context, Deserializer as _, FieldVisitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 

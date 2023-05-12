@@ -97,7 +97,8 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             self.deserializer.skip(); // skip value
 
             let error = errors.extend_existing(
-                Report::new(SyntaxError::ExpectedString.into_error()).attach(Span::new(span)),
+                Report::new(SyntaxError::ObjectKeyMustBeString.into_error())
+                    .attach(Span::new(span)),
             );
 
             return Ok(Err(error.change_context(ObjectAccessError)));
@@ -113,7 +114,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
                 let mut error = error.change_context(ObjectAccessError);
 
                 if let Err(skip) = self.try_skip_colon() {
-                    error.extend_one(skip.change_context(ObjectAccessError))
+                    error.extend_one(skip.change_context(ObjectAccessError));
                 }
 
                 self.deserializer.skip(); // skip value
