@@ -1,4 +1,4 @@
-import { Filter } from "@local/hash-graph-client";
+import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
   Entity,
   EntityRootType,
@@ -12,6 +12,10 @@ import {
   UserInputError,
 } from "apollo-server-express";
 
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../../graph";
 import {
   archiveEntity,
   createEntityWithLinks,
@@ -130,7 +134,7 @@ export const queryEntitiesResolver: Extract<
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
@@ -139,19 +143,7 @@ export const queryEntitiesResolver: Extract<
       hasLeftEntity,
       hasRightEntity,
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;
@@ -192,10 +184,28 @@ export const getEntityResolver: ResolverFn<
     ],
   };
 
+  // If an entity version is specified, the result is constrained to that version.
+  // This is done by providing a time interval with the same start and end as given by the version.
+  const temporalAxes: QueryTemporalAxesUnresolved = entityVersion
+    ? {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
+        },
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: { kind: "inclusive", limit: entityVersion },
+            end: { kind: "inclusive", limit: entityVersion },
+          },
+        },
+      }
+    : currentTimeInstantTemporalAxes;
+
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
@@ -204,23 +214,7 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: entityVersion
-            ? { kind: "inclusive", limit: entityVersion }
-            : null,
-          end: entityVersion
-            ? { kind: "inclusive", limit: entityVersion }
-            : null,
-        },
-      },
-    },
+    temporalAxes,
   });
 
   return entitySubgraph as Subgraph<EntityRootType>;
