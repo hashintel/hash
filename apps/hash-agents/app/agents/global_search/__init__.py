@@ -117,17 +117,19 @@ def execute():
         if user_input == "exit":
             break
 
-        related_documents = get_related_documents(user_input, qdrant_client, limit=5)
+        related_documents = get_related_documents(user_input, qdrant_client, limit=3)
         bing_results = search_bing(user_input)
 
-        website_contents = "\n".join(
-            [
-                trafilatura.extract(trafilatura.fetch_url(result["url"]))
-                for result in bing_results["webPages"]["value"][
-                    :3
-                ]  # only pick top 3 results
-            ],
-        )[
+        contents = [
+            trafilatura.extract(trafilatura.fetch_url(result["url"]))
+            for result in bing_results["webPages"]["value"][
+                :3
+            ]  # only pick top 3 results
+        ]
+
+        contents = [content for content in contents if content is not None]
+
+        website_contents = "\n".join(contents)[
             :1_000
         ]  # truncate the string to 1_000 chars to preserve token length
 
