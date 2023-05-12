@@ -46,8 +46,8 @@ export const temporalAxesForTimestamp = (
   };
 };
 
-const nameProperty: BaseUrl =
-  "http://localhost:3000/@alice/types/property-type/name/";
+const nameProperty =
+  "http://localhost:3000/@alice/types/property-type/name/" as BaseUrl;
 
 describe("Friendship Snapshot", () => {
   const graphContext = createTestImpureGraphContext();
