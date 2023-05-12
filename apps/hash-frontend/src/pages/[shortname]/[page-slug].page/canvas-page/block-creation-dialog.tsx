@@ -64,8 +64,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
               insertBlock: {
                 componentId: blockMeta.componentId,
                 entity: {
-                  // @todo this should be 'blockEntityTypeId' above but external types are not yet fully supported
-                  entityTypeId: TEXT_ENTITY_TYPE_ID,
+                  entityTypeId: blockEntityTypeId,
                   entityProperties: {},
                 },
                 ownedById: accountId as OwnedById,
