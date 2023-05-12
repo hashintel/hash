@@ -1,5 +1,5 @@
 use deer::{
-    error::{DeserializerError, ObjectAccessError, ObjectLengthError, Variant},
+    error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant},
     Context, Deserializer as _, FieldVisitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -22,20 +22,30 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     pub(crate) fn new(
         deserializer: &'a mut Deserializer<'b, 'de>,
     ) -> Result<Self, DeserializerError> {
-        if let Err(error) = deserializer.stack.push() {
-            // we can still recover, we pop us again from the stack as we stopped before and do not
-            // commit. We still show the error, but we could continue, so we skip all tokens.
-            deserializer.stack.pop();
-            skip_tokens(&mut deserializer.tokenizer, &Token::Object);
-
-            return Err(error);
-        }
+        deserializer.try_stack_push(&Token::Object)?;
 
         Ok(Self {
             deserializer,
+
             dirty: false,
             expected: 0,
         })
+    }
+
+    fn try_skip_colon(&mut self) -> Option<Report<Error>> {
+        // skip `:`, be tolerant if someone forgot, but still propagate the error
+        if self
+            .deserializer
+            .skip_if(PeekableTokenKind::Colon)
+            .is_none()
+        {
+            Some(
+                Report::new(SyntaxError::ExpectedColon.into_error())
+                    .attach(Position::new(self.deserializer.offset())),
+            )
+        } else {
+            None
+        }
     }
 }
 
@@ -99,6 +109,10 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         if peek_key != Some(PeekableTokenKind::String) {
             let span = self.deserializer.skip(); // skip key
 
+            if let Some(skip) = self.try_skip_colon() {
+                errors.extend_one(skip);
+            }
+
             self.deserializer.skip(); // skip value
 
             let error = errors.extend_existing(
@@ -115,12 +129,23 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
                 .visit_value(key, &mut *self.deserializer)
                 .change_context(ObjectAccessError),
             Err(error) => {
-                // we cannot continue, we need to skip the value to continue deserialization
-                self.deserializer.skip();
+                let mut error = error.change_context(ObjectAccessError);
 
-                Err(error.change_context(ObjectAccessError))
+                if let Some(skip) = self.try_skip_colon() {
+                    error.extend_one(skip.change_context(ObjectAccessError))
+                }
+
+                self.deserializer.skip(); // skip value
+
+                Err(error)
             }
         };
+
+        // key value are separated by `:`, if one forgets we will still error out but _try_ to
+        // deserialize
+        if let Some(skip) = self.try_skip_colon() {
+            errors.extend_one(skip);
+        }
 
         // same as `(result, errors).into_result()`
         let result = match (
