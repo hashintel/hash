@@ -21,16 +21,6 @@ export const QuestionIcon = ({
     <Tooltip
       title={tooltip}
       placement="top"
-      PopperProps={{
-        modifiers: [
-          {
-            name: "offset",
-            options: {
-              offset: [0, 8],
-            },
-          },
-        ],
-      }}
       classes={{ popper: fluidFontClassName }}
     >
       <Box display="inline" {...props}>
