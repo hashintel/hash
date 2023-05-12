@@ -164,9 +164,6 @@ pub(crate) enum SyntaxError {
     ObjectKeyMustBeString,
     InvalidHexadecimal,
     InvalidEscape,
-    // we need to create those ourselves!
-    // UnclosedObject,
-    // UnclosedArray,
     // TODO: trailing non whitespace?
     UnclosedString,
 }
