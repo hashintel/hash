@@ -32,16 +32,8 @@ impl<'a, 'b, 'de: 'a> ArrayAccess<'a, 'b, 'de> {
     }
 
     fn try_skip_comma(&mut self) -> Result<(), Error> {
-        if self
-            .deserializer
-            .skip_if(PeekableTokenKind::Comma)
-            .is_none()
-        {
-            Err(Report::new(SyntaxError::ExpectedComma.into_error())
-                .attach(Position::new(self.deserializer.offset())))
-        } else {
-            Ok(())
-        }
+        self.deserializer
+            .try_skip(PeekableTokenKind::Comma, SyntaxError::ExpectedComma)
     }
 }
 

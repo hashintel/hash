@@ -1,8 +1,12 @@
 use core::ops::Range;
 
 use deer::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    error::{
+        DeserializerError, Error, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedType,
+        TypeError, Variant,
+    },
     schema::Document,
+    value::NoneDeserializer,
     Context, Deserialize, EnumVisitor, Number, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -14,7 +18,8 @@ use justjson::{
 use crate::{
     array::ArrayAccess,
     error::{
-        convert_tokenizer_error, BytesUnsupportedError, Position, RecursionLimitError, SyntaxError,
+        convert_tokenizer_error, BytesUnsupportedError, ErrorAccumulator, Position,
+        RecursionLimitError, SyntaxError,
     },
     number::try_convert_number,
     object::ObjectAccess,
@@ -99,6 +104,18 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         let is_token = self.peek() == Some(token);
 
         is_token.then(|| self.skip())
+    }
+
+    pub(crate) fn try_skip(
+        &mut self,
+        token: PeekableTokenKind,
+        error: SyntaxError,
+    ) -> Result<(), Error> {
+        if self.skip_if(token).is_none() {
+            Err(Report::new(error.into_error()).attach(Position::new(self.offset())))
+        } else {
+            Ok(())
+        }
     }
 
     pub(crate) fn peek(&mut self) -> Option<PeekableTokenKind> {
@@ -300,7 +317,84 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     where
         V: EnumVisitor<'de>,
     {
-        todo!()
+        let token = self.peek();
+
+        let is_map = match token {
+            Some(PeekableTokenKind::Object) => {
+                // eat the token, so that we're at the key (that we need)
+                let _ = self.next();
+                true
+            }
+            Some(_) => false,
+            None => {
+                return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
+                    .attach(Position::new(self.offset()))
+                    .change_context(DeserializerError));
+            }
+        };
+
+        let result = visitor
+            .visit_discriminant(&mut *self)
+            .change_context(DeserializerError);
+
+        if is_map && result.is_err() {
+            // the key is an error, we need to swallow `:` and value
+            self.skip_if(PeekableTokenKind::Comma);
+            self.skip();
+        }
+
+        let discriminant = result?;
+
+        let mut value = if is_map {
+            let mut errors = ErrorAccumulator::new();
+
+            if let Err(error) = self.try_skip(PeekableTokenKind::Colon, SyntaxError::ExpectedColon)
+            {
+                errors.extend_one(error);
+            }
+
+            let errors = errors.into_result().change_context(DeserializerError);
+            let value = visitor
+                .visit_value(discriminant, &mut *self)
+                .change_context(DeserializerError);
+
+            // same as folding the tuple in main deer
+            match (value, errors) {
+                (Err(mut value), Err(errors)) => {
+                    value.extend_one(errors);
+                    Err(value)
+                }
+                (Err(error), Ok(_)) | (Ok(_), Err(error)) => Err(error),
+                (Ok(value), Ok(_)) => Ok(value),
+            }
+        } else {
+            visitor
+                .visit_value(discriminant, NoneDeserializer::new(self.context))
+                .change_context(DeserializerError)
+        };
+
+        if is_map {
+            if self.peek() == Some(PeekableTokenKind::ObjectEnd) {
+                // we can safely continue
+                // we know this won't error because parsing of `ObjectEnd` will never fail
+                let _ = self.next();
+            } else {
+                // we have received multiple objects, error out
+                // make sure we close the object
+                self.recover(&ValueToken::Object);
+
+                let error = Report::new(ObjectLengthError.into_error())
+                    .attach(ExpectedLength::new(1))
+                    .change_context(DeserializerError);
+
+                match &mut value {
+                    Err(value) => value.extend_one(error),
+                    value => *value = Err(error),
+                }
+            }
+        }
+
+        value
     }
 
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

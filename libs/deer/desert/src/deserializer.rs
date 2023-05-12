@@ -1,13 +1,18 @@
 use alloc::borrow::ToOwned;
 
 use deer::{
-    error::{DeserializerError, ExpectedType, MissingError, ReceivedType, TypeError, Variant},
+    error::{
+        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectLengthError,
+        ReceivedLength, ReceivedType, TypeError, Variant,
+    },
     value::NoneDeserializer,
     Context, EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
+use crate::{
+    array::ArrayAccess, object::ObjectAccess, skip::skip_tokens, tape::Tape, token::Token,
+};
 
 macro_rules! forward {
     ($($method:ident),*) => {
@@ -99,40 +104,63 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
     {
         let token = self.peek();
 
+        let mut map_length = None;
         let is_map = match token {
-            Token::Object { .. } => {
+            Token::Object { length } => {
                 // eat the token so that we're at the key
                 self.next();
+                map_length = length;
                 true
             }
             _ => false,
         };
 
-        let discriminant = visitor
+        let result = visitor
             .visit_discriminant(&mut *self)
-            .change_context(DeserializerError)?;
+            .change_context(DeserializerError);
 
-        let value = if is_map {
+        if is_map && result.is_err() {
+            // the key is an error, we need to swallow the value
+            let next = self.next();
+            skip_tokens(self, &next);
+        }
+
+        let discriminant = result?;
+
+        let mut value = if is_map {
             visitor.visit_value(discriminant, &mut *self)
         } else {
             visitor.visit_value(discriminant, NoneDeserializer::new(self.context))
         }
-        .change_context(DeserializerError)?;
+        .change_context(DeserializerError);
 
         if is_map {
             // make sure that we're close and that we have nothing dangling
             if self.peek() == Token::ObjectEnd {
                 self.next();
             } else {
-                // we received a unit type, therefore error should be a type error
-                // we cannot determine the type we received, just that it is a map
-                // TODO: once HashMap has a reflection use it here as ReceivedType (or
-                //  UnknownObjectSchema?)
-                return Err(Report::new(TypeError.into_error()).change_context(DeserializerError));
+                // TODO: we can move most of this logic into a helper that is in deer!
+                // we have received more than 1 object, therefore we need to indicate this
+                // make sure we close the object
+                skip_tokens(self, &Token::Object { length: None });
+
+                let mut error =
+                    Report::new(ObjectLengthError.into_error()).attach(ExpectedLength::new(1));
+
+                if let Some(length) = map_length {
+                    error = error.attach(ReceivedLength::new(length));
+                }
+
+                let error = error.change_context(DeserializerError);
+
+                match &mut value {
+                    Err(value) => value.extend_one(error),
+                    value => *value = Err(error),
+                }
             }
         }
 
-        Ok(value)
+        value
     }
 
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
