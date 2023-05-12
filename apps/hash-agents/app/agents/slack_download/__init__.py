@@ -15,7 +15,7 @@ from slack_sdk.web import SlackResponse
 
 logger = structlog.stdlib.get_logger(__name__)
 
-HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
+# HASH_GRAPH_CHANNEL_ID = "C03F7V6DU9M"
 MESSAGES_PER_PAGE = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
 OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=7)).timestamp())
@@ -82,13 +82,50 @@ def execute() -> None:
     api_key = os.getenv("SLACK_API_KEY")
     client = WebClient(token=api_key)
 
+    channels = client.conversations_list(
+        types="public_channel",
+        limit=1000,
+        exclude_archived=True,
+    )["channels"]
+
+    for channel in channels:
+        history = client.conversations_history(
+            channel=channel["id"],
+            limit=1,
+        )["messages"]
+        channel["last_message_ts"] = history[0]["ts"] if len(history) > 0 else 0
+
+    channels = sorted(
+        channels,
+        key=lambda channel: channel["last_message_ts"],
+        reverse=True,
+    )
+
+    print("Channels:")  # noqa: T201
+    for channel in channels:
+        print(channel["name"], channel["id"])  # noqa: T201
+
+    channel_id = None
+
+    while channel_id is None:
+        channel_identifier = input(
+            "Choose a channel to ingest by either specifying a name or ID: ",
+        )
+        for channel in channels:
+            if (
+                channel["name"] == channel_identifier
+                or channel["id"] == channel_identifier
+            ):
+                channel_id = channel["id"]
+                break
+
     page = 0
 
     messages = {}
 
     for response in handle_rate_limit(
         lambda: client.conversations_history(
-            channel=HASH_GRAPH_CHANNEL_ID,
+            channel=channel_id,
             limit=MESSAGES_PER_PAGE,
             oldest=OLDEST,
         ),
@@ -98,7 +135,7 @@ def execute() -> None:
         logger.info(
             "Retrieving page of channel history history",
             page=page,
-            channel=HASH_GRAPH_CHANNEL_ID,
+            channel=channel_id,
         )
         response.validate()
 
@@ -108,7 +145,7 @@ def execute() -> None:
     logger.info(
         "Finished retrieving messages in channel",
         num_messages=len(messages),
-        channel=HASH_GRAPH_CHANNEL_ID,
+        channel=channel_id,
     )
 
     message_ts_to_replies = {}
@@ -117,7 +154,7 @@ def execute() -> None:
         logger.debug("Retrieving replies for message", message_ts=message_ts)
         message_ts_to_replies[message_ts] = get_threaded_replies(
             client,
-            HASH_GRAPH_CHANNEL_ID,
+            channel_id,
             message_ts,
         )
 
