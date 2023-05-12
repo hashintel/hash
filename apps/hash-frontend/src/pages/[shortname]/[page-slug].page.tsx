@@ -72,6 +72,7 @@ import {
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
@@ -137,10 +138,19 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     .query<QueryEntitiesQuery>({
       query: queryEntitiesQuery,
       variables: {
-        rootEntityTypeIds: [
-          types.entityType.user.entityTypeId,
-          types.entityType.org.entityTypeId,
-        ],
+        operation: {
+          multiFilter: {
+            filters: [
+              entityHasEntityTypeByVersionedUrlFilter(
+                types.entityType.user.entityTypeId,
+              ),
+              entityHasEntityTypeByVersionedUrlFilter(
+                types.entityType.org.entityTypeId,
+              ),
+            ],
+            operator: "OR",
+          },
+        },
         constrainsValuesOn: { outgoing: 0 },
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
@@ -502,7 +512,6 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <PageBlock
                   accountId={pageWorkspace.accountId}
                   contents={contents}
-                  blocks={blocksMap}
                   pageComments={pageComments}
                   entityId={pageEntityId}
                 />

@@ -1,3 +1,4 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json"
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "exclude": ["scripts/create-block/**/*.d.ts"]
 }

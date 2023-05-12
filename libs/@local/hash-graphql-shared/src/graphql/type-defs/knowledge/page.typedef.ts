@@ -185,29 +185,6 @@ export const pageTypedef = gql`
   }
 
   """
-  Create an entity type, which you can then reference in future CreateEntityActions
-  """
-  input CreateEntityTypeAction {
-    ownedById: OwnedById!
-    """
-    The name for the type. Must be unique in the given account.
-    """
-    name: String!
-    """
-    A description for the type.
-    """
-    description: String
-    """
-    The schema definition for the entity type, in JSON Schema.
-    """
-    schema: JSONObject
-    """
-    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to UpdatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
-    """
-    placeholderId: ID!
-  }
-
-  """
   An action to perform when updating the contents of a page. Exactly one field must be
   specified.
 
@@ -221,7 +198,6 @@ export const pageTypedef = gql`
     updateEntity: UpdateEntityAction
     swapBlockData: SwapBlockDataAction
     createEntity: CreateEntityAction
-    createEntityType: CreateEntityTypeAction
   }
 
   """

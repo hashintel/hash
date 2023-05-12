@@ -184,13 +184,9 @@ export const getOrCreateEntity: ImpureGraphFunction<
       );
     }
 
-    const entityType = await getEntityTypeById(context, {
-      entityTypeId,
-    });
-
     entity = await createEntity(context, {
       ownedById,
-      entityTypeId: entityType.schema.$id,
+      entityTypeId,
       properties: entityProperties,
       actorId,
     });

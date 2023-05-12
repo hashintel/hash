@@ -1,12 +1,14 @@
 export const scalars = {
   Date: "string",
+
   JSONObject: "@blockprotocol/core#JsonObject",
+  QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
+  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
+
   UnknownEntityProperties:
     "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
   CanvasPosition: "@local/hash-graphql-shared/graphql/types#CanvasPosition",
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
-
-  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:

@@ -11,8 +11,8 @@ description = "The entity-graph query-layer for the HASH datastore"
 type-fetcher = { path = "../../lib/type-fetcher", optional = true }
 
 axum = "0.6.18"
-clap = { version = "4.2.5", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.2.1"
+clap = { version = "4.2.7", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.2.2"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = { version = "0.3.28" }
 graph = { path = "../../lib/graph", features = ["clap"] }
@@ -21,16 +21,16 @@ regex = "1.8.1"
 semver = { version = "1.0.17", default-features = false }
 serde_json = "1.0.96"
 tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"], optional = true }
-tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.28.1", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.8", default-features = false }
-tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
-tokio-util = { version = "0.7.7", default-features = false, features = ["codec"] }
+tokio-serde = { version = "0.8", features = ["json"], optional = true }
+tokio-util = { version = "0.7.8", default-features = false, features = ["codec"] }
 tracing = "0.1.37"
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "542836" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "808753" }
 uuid = "1.3.2"
 
 # Remove again when the type fetcher is used in the graph
-time = "0.3.20"
+time = "0.3.21"
 
 [features]
 test-server = ["graph/test-server"]

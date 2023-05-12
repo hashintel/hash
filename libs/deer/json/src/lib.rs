@@ -18,10 +18,9 @@ use std::any::Demand;
 
 use deer::{
     error::{
-        ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
-        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
-        ObjectItemsExtraError, ObjectLengthError, ReceivedKey, ReceivedLength, ReceivedType,
-        ReceivedValue, TypeError, ValueError, Variant,
+        ArrayAccessError, ArrayLengthError, DeserializeError, DeserializerError, ExpectedLength,
+        ExpectedType, MissingError, ObjectAccessError, ObjectItemsExtraError, ObjectLengthError,
+        ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
     },
     value::NoneDeserializer,
     Context, Deserialize, DeserializeOwned, Document, EnumVisitor, FieldVisitor, OptionalVisitor,
@@ -201,13 +200,6 @@ impl<'a> Deserializer<'a> {
     const fn new(value: Value, context: &'a Context) -> Self {
         Self {
             value: Some(value),
-            context,
-        }
-    }
-
-    const fn empty(context: &'a Context) -> Self {
-        Self {
-            value: None,
             context,
         }
     }
@@ -455,8 +447,6 @@ struct ArrayAccess<'a> {
 
     inner: IntoIter<Value>,
     context: &'a Context,
-
-    remaining: Option<usize>,
 }
 
 impl<'a> ArrayAccess<'a> {
@@ -467,35 +457,17 @@ impl<'a> ArrayAccess<'a> {
 
             inner: array.into_iter(),
             context,
-
-            remaining: None,
         }
     }
 }
 
 impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
-    fn context(&self) -> &Context {
-        self.context
+    fn is_dirty(&self) -> bool {
+        self.dirty
     }
 
-    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
-        if self.dirty {
-            return Err(
-                Report::new(BoundedContractViolationError::SetDirty.into_error())
-                    .change_context(ArrayAccessError),
-            );
-        }
-
-        if self.remaining.is_some() {
-            return Err(Report::new(
-                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
-            )
-            .change_context(ArrayAccessError));
-        }
-
-        self.remaining = Some(length);
-
-        Ok(())
+    fn context(&self) -> &Context {
+        self.context
     }
 
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
@@ -504,31 +476,13 @@ impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
     {
         self.dirty = true;
 
-        // early return because we have exhausted all entries
-        if self.remaining == Some(0) {
-            return None;
-        }
-
-        let value = self.inner.next();
+        let value = self.inner.next()?;
 
         // we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. tuple vs vec)
-        match (value, &mut self.remaining) {
-            (None, Some(remaining)) => {
-                *remaining -= 1;
-
-                // delegate calls to `Visitor::visit_none`
-                Some(
-                    T::deserialize(Deserializer::empty(self.context))
-                        .change_context(ArrayAccessError),
-                )
-            }
-            (None, None) => None,
-            (Some(value), _) => Some(
-                T::deserialize(Deserializer::new(value, self.context))
-                    .change_context(ArrayAccessError),
-            ),
-        }
+        Some(
+            T::deserialize(Deserializer::new(value, self.context)).change_context(ArrayAccessError),
+        )
     }
 
     fn size_hint(&self) -> Option<usize> {
@@ -554,10 +508,8 @@ struct ObjectAccess<'a> {
     dirty: bool,
     length: usize,
 
-    inner: Map<String, Value>,
+    inner: serde_json::map::IntoIter,
     context: &'a Context,
-
-    remaining: Option<usize>,
 }
 
 impl<'a> ObjectAccess<'a> {
@@ -565,87 +517,41 @@ impl<'a> ObjectAccess<'a> {
         Self {
             dirty: false,
             length: map.len(),
-            inner: map,
+            inner: map.into_iter(),
             context,
-            remaining: None,
         }
     }
 }
 
 impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
+    fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+
     fn context(&self) -> &Context {
         self.context
     }
 
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
-        if self.dirty {
-            return Err(
-                Report::new(BoundedContractViolationError::SetDirty.into_error())
-                    .change_context(ObjectAccessError),
-            );
-        }
-
-        if self.remaining.is_some() {
-            return Err(Report::new(
-                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
-            )
-            .change_context(ObjectAccessError));
-        }
-
-        self.remaining = Some(length);
-
-        Ok(())
-    }
-
-    fn field<F>(&mut self, access: F) -> Option<Result<F::Value, ObjectAccessError>>
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>,
     {
         self.dirty = true;
 
-        // early return because we have exhausted all entries
-        if self.remaining == Some(0) {
-            return None;
-        }
+        let Some((key, value)) = self.inner.next() else {
+            return Err(visitor);
+        };
 
-        if self.inner.is_empty() {
-            return match &mut self.remaining {
-                None => None,
-                Some(remaining) => {
-                    *remaining -= 1;
-
-                    // defer to `Visitor::visit_none`
-                    let key = access.visit_key(Deserializer::empty(self.context));
-
-                    Some(
-                        key.and_then(|key| {
-                            access.visit_value(key, Deserializer::empty(self.context))
-                        })
-                        .change_context(ObjectAccessError),
-                    )
-                }
-            };
-        }
-
-        // self.inner.is_empty() ensures that there is at least a single key
-        let next = self
-            .inner
-            .keys()
-            .next()
-            .expect("map should have at least a single item")
-            .clone();
-
-        // `next` comes from the `keys()` iterator, therefore the key is guaranteed to be in
-        // `self.inner`
-        let (key, value) = self.inner.remove_entry(&next).expect("key should exist");
-
-        let key = access.visit_key(Deserializer::new(Value::String(key), self.context));
+        let key = visitor.visit_key(Deserializer::new(Value::String(key), self.context));
         let value =
-            key.and_then(|key| access.visit_value(key, Deserializer::new(value, self.context)));
+            key.and_then(|key| visitor.visit_value(key, Deserializer::new(value, self.context)));
 
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)
-        Some(value.change_context(ObjectAccessError))
+        Ok(value.change_context(ObjectAccessError))
     }
 
     fn size_hint(&self) -> Option<usize> {
@@ -653,12 +559,14 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
-        if self.inner.is_empty() {
+        let remaining: Vec<_> = self.inner.map(|(key, _)| key).collect();
+
+        if remaining.is_empty() {
             Ok(())
         } else {
             let mut report = Report::new(ObjectItemsExtraError.into_error());
 
-            for key in self.inner.into_iter().map(|(key, _)| key) {
+            for key in remaining {
                 report = report.attach(ReceivedKey::new(key));
             }
 

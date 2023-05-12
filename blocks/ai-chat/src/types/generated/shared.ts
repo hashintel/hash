@@ -6,16 +6,16 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 export type AIChatRequestMessage = Entity<AIChatRequestMessageProperties>;
 
-export type AIChatRequestMessageHasResponseLinks = {
+export type AIChatRequestMessageHasResponseLink = {
   linkEntity: HasResponse;
   rightEntity: AIChatResponseMessage;
 };
 
 export type AIChatRequestMessageOutgoingLinkAndTarget =
-  AIChatRequestMessageHasResponseLinks;
+  AIChatRequestMessageHasResponseLink;
 
 export type AIChatRequestMessageOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/has-response/v/1": AIChatRequestMessageHasResponseLinks;
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/has-response/v/1": AIChatRequestMessageHasResponseLink;
 };
 
 /**
@@ -27,16 +27,16 @@ export type AIChatRequestMessageProperties = {
 
 export type AIChatResponseMessage = Entity<AIChatResponseMessageProperties>;
 
-export type AIChatResponseMessageFollowedByLinks = {
+export type AIChatResponseMessageFollowedByLink = {
   linkEntity: FollowedBy;
   rightEntity: AIChatRequestMessage;
 };
 
 export type AIChatResponseMessageOutgoingLinkAndTarget =
-  AIChatResponseMessageFollowedByLinks;
+  AIChatResponseMessageFollowedByLink;
 
 export type AIChatResponseMessageOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/followed-by/v/1": AIChatResponseMessageFollowedByLinks;
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/followed-by/v/1": AIChatResponseMessageFollowedByLink;
 };
 
 /**

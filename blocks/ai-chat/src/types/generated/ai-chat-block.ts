@@ -6,11 +6,26 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
   AIChatRequestMessage,
+  AIChatRequestMessageHasResponseLink,
+  AIChatRequestMessageOutgoingLinkAndTarget,
+  AIChatRequestMessageOutgoingLinksByLinkEntityTypeId,
   AIChatRequestMessageProperties,
   AIChatResponseMessage,
+  AIChatResponseMessageFollowedByLink,
+  AIChatResponseMessageOutgoingLinkAndTarget,
+  AIChatResponseMessageOutgoingLinksByLinkEntityTypeId,
   AIChatResponseMessageProperties,
+  FollowedBy,
+  FollowedByOutgoingLinkAndTarget,
+  FollowedByOutgoingLinksByLinkEntityTypeId,
   FollowedByProperties,
+  HasResponse,
+  HasResponseOutgoingLinkAndTarget,
+  HasResponseOutgoingLinksByLinkEntityTypeId,
   HasResponseProperties,
+  Link,
+  LinkOutgoingLinkAndTarget,
+  LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   Text,
   TextualContentPropertyValue,
@@ -18,11 +33,26 @@ import {
 
 export type {
   AIChatRequestMessage,
+  AIChatRequestMessageHasResponseLink,
+  AIChatRequestMessageOutgoingLinkAndTarget,
+  AIChatRequestMessageOutgoingLinksByLinkEntityTypeId,
   AIChatRequestMessageProperties,
   AIChatResponseMessage,
+  AIChatResponseMessageFollowedByLink,
+  AIChatResponseMessageOutgoingLinkAndTarget,
+  AIChatResponseMessageOutgoingLinksByLinkEntityTypeId,
   AIChatResponseMessageProperties,
+  FollowedBy,
+  FollowedByOutgoingLinkAndTarget,
+  FollowedByOutgoingLinksByLinkEntityTypeId,
   FollowedByProperties,
+  HasResponse,
+  HasResponseOutgoingLinkAndTarget,
+  HasResponseOutgoingLinksByLinkEntityTypeId,
   HasResponseProperties,
+  Link,
+  LinkOutgoingLinkAndTarget,
+  LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   Text,
   TextualContentPropertyValue,
@@ -30,18 +60,18 @@ export type {
 
 export type AIChatBlock = Entity<AIChatBlockProperties>;
 
-export type AIChatBlockHasMessageLinks = {
+export type AIChatBlockHasMessageLink = {
   linkEntity: HasMessage;
   rightEntity: AIChatResponseMessage | AIChatRequestMessage;
 };
 
 export type AIChatBlockOutgoingLinkAndTarget =
-  | AIChatBlockRootedAtLinks
-  | AIChatBlockHasMessageLinks;
+  | AIChatBlockRootedAtLink
+  | AIChatBlockHasMessageLink;
 
 export type AIChatBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/rooted-at/v/1": AIChatBlockRootedAtLinks;
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/has-message/v/1": AIChatBlockHasMessageLinks;
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/rooted-at/v/1": AIChatBlockRootedAtLink;
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/has-message/v/1": AIChatBlockHasMessageLink;
 };
 
 /**
@@ -65,7 +95,7 @@ export type AIChatBlockProperties = {
   "https://blockprotocol.org/@hash/types/property-type/ai-chat-block-preset-system-prompt-id/"?: AIChatBlockPresetSystemPromptIDPropertyValue;
 };
 
-export type AIChatBlockRootedAtLinks = {
+export type AIChatBlockRootedAtLink = {
   linkEntity: RootedAt;
   rightEntity: AIChatRequestMessage;
 };

@@ -20,7 +20,7 @@ export const useLatestPropertyTypesContextValue = () => {
             ...Object.fromEntries(
               getRoots<PropertyTypeRootType>(propertyTypesSubgraph).map(
                 (propertyType) => {
-                  return [propertyType.schema.$id, propertyType.schema];
+                  return [propertyType.schema.$id, propertyType];
                 },
               ),
             ),
