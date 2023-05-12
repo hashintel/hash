@@ -50,7 +50,7 @@ def execute() -> None:
     try:
         qdrant_client.get_collection(COLLECTION_NAME)
         logger.info("Found existing collection", collection_name=COLLECTION_NAME)
-    except:  # noqa E722
+    except:  # E722
         logger.info("Creating collection", collection_name=COLLECTION_NAME)
         qdrant_client.create_collection(
             COLLECTION_NAME,
@@ -60,7 +60,8 @@ def execute() -> None:
             ),
         )
 
-    def create_embedding(message_ts, message):
+    def create_embedding(message_ts, message, num: int | None, total: int | None):
+        logger.debug("Creating embedding", message_ts=message_ts, num=num, total=total)
         embedding = create_embedding_with_backoff(
             input=json.dumps(message),
             model=embedding_model,
@@ -74,8 +75,12 @@ def execute() -> None:
     with concurrent.futures.ThreadPoolExecutor() as executor:
         embeddings = list(
             executor.map(
-                lambda item: create_embedding(*item),
-                messages.items(),
+                lambda idx_item: create_embedding(
+                    *idx_item[1],
+                    num=idx_item[0],
+                    total=len(messages),
+                ),
+                enumerate(messages.items()),
             ),
         )
 
@@ -102,13 +107,25 @@ def execute() -> None:
         ),
     )
 
-    qdrant_client.upsert(
-        collection_name=COLLECTION_NAME,
-        points=Batch(
-            ids=ids,
-            vectors=vectors,
-            payloads=payloads,
-        ),
-        wait=True,
-    )
-    logger.info("Upserted embeddings into collection", collection_name=COLLECTION_NAME)
+    # embeddings = json.loads(Path("out/embeddings.json").read_text())
+    # ids = embeddings["ids"]
+    # vectors = embeddings["vectors"]
+    # payloads = embeddings["payloads"]
+
+    batch_size = 500
+    for batch_start in range(0, len(ids), batch_size):
+        qdrant_client.upsert(
+            collection_name=COLLECTION_NAME,
+            points=Batch(
+                ids=ids[batch_start : batch_start + batch_size],
+                vectors=vectors[batch_start : batch_start + batch_size],
+                payloads=payloads[batch_start : batch_start + batch_size],
+            ),
+            wait=False,
+        )
+        logger.info(
+            "Upserted embeddings into collection",
+            collection_name=COLLECTION_NAME,
+            batch_start=batch_start,
+            batch_size=batch_size,
+        )
