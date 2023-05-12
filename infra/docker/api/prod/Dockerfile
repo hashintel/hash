@@ -54,9 +54,11 @@ RUN yarn turbo codegen --filter '@apps/hash-api'
 
 FROM node:18.15-slim as runner
 
+RUN apt update && apt install -y curl
+
 COPY --from=installer /usr/local/src/hash /usr/local/src/hash
 WORKDIR /usr/local/src/hash/apps/hash-api
-RUN mkdir -p ./var/uploads
+RUN mkdir -p /usr/local/src/hash/var/uploads
 
 ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
 CMD ["start"]
