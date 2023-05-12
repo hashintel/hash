@@ -10,7 +10,6 @@ import {
   Collapse,
   Stack,
   Tooltip,
-  tooltipClasses,
   Typography,
 } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
@@ -164,11 +163,6 @@ export const ExpectedValueBadge = ({
             <Tooltip
               title={deleteTooltip ?? ""}
               placement="top"
-              PopperProps={{
-                sx: {
-                  [`.${tooltipClasses.tooltip}`]: { mb: "0px !important" },
-                },
-              }}
               classes={{ popper: fluidFontClassName }}
             >
               <Box
