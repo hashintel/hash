@@ -1,7 +1,7 @@
 use core::ops::Range;
 
 use deer::{
-    error::{DeserializerError, ExpectedType, ObjectAccessError, ReceivedType, TypeError, Variant},
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     schema::Document,
     Context, Deserialize, EnumVisitor, Number, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
@@ -136,9 +136,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
                 visitor.visit_number(value)
             }
-            ValueToken::Object => {
-                todo!()
-            }
+            ValueToken::Object => visitor.visit_object(ObjectAccess::new(self)?),
             ValueToken::Array => {
                 todo!()
             }

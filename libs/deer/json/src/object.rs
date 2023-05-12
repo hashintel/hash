@@ -22,7 +22,14 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     pub(crate) fn new(
         deserializer: &'a mut Deserializer<'b, 'de>,
     ) -> Result<Self, DeserializerError> {
-        deserializer.stack.push()?;
+        if let Err(error) = deserializer.stack.push() {
+            // we can still recover, we pop us again from the stack as we stopped before and do not
+            // commit. We still show the error, but we could continue, so we skip all tokens.
+            deserializer.stack.pop();
+            skip_tokens(&mut deserializer.tokenizer, &Token::Object);
+
+            return Err(error);
+        }
 
         Ok(Self {
             deserializer,
