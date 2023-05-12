@@ -1,4 +1,4 @@
-FROM node:16.18.1-alpine AS builder
+FROM node:18.15-alpine AS builder
 
 WORKDIR /app
 
@@ -66,7 +66,7 @@ RUN yarn next build
 
 #########################################################################################
 
-FROM node:16.18.1-alpine
+FROM node:18.15-alpine
 
 # Run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

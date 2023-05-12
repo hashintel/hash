@@ -32,6 +32,9 @@
         "@apps/hash-ai-worker-py#build:docker",
         "codegen"
       ]
+    },
+    "deploy:prototype": {
+      "cache": false
     }
   }
 }
