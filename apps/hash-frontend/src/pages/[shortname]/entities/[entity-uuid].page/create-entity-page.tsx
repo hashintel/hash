@@ -24,9 +24,9 @@ interface CreateEntityPageProps {
 
 /** @todo replace these with published system types */
 export const QUERY_ENTITY_TYPE_ID =
-  "http://localhost:3000/@alice/types/entity-type/query-entity/v/2" as VersionedUrl;
+  "http://localhost:3000/@alice/types/entity-type/query/v/1" as VersionedUrl;
 export const QUERY_PROPERTY_TYPE_BASE_URL =
-  "http://localhost:3000/@alice/types/property-type/query/" as BaseUrl;
+  "http://localhost:3000/@alice/types/property-type/query-object/" as BaseUrl;
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
