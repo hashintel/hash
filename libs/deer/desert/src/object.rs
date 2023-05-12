@@ -72,14 +72,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         let result = if self.deserializer.peek() == Token::ObjectEnd {
             Ok(())
         } else {
-            let mut error = Report::new(ObjectLengthError.into_error())
-                .attach(ExpectedLength::new(self.expected));
-
-            if let Some(length) = self.size_hint() {
-                error = error.attach(ReceivedLength::new(length));
-            }
-
-            Err(error)
+            Err(ObjectLengthError::new(&self, self.expected))
         };
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!

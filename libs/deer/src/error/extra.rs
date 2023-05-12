@@ -4,10 +4,12 @@ use core::{
     fmt::{Display, Formatter},
 };
 
+use error_stack::Report;
+
 use super::{
     fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
 };
-use crate::id;
+use crate::{error::Error, id, ObjectAccess};
 
 #[derive(serde::Serialize)]
 pub struct ReceivedKey(String);
@@ -80,6 +82,19 @@ impl Display for ObjectItemsExtraError {
 
 #[derive(Debug)]
 pub struct ObjectLengthError;
+
+impl ObjectLengthError {
+    pub fn new<'de, A: ObjectAccess<'de>>(access: &A, expected: usize) -> Report<Error> {
+        let mut error =
+            Report::new(ObjectLengthError.into_error()).attach(ExpectedLength::new(expected));
+
+        if let Some(length) = access.size_hint() {
+            error = error.attach(ReceivedLength::new(length));
+        }
+
+        error
+    }
+}
 
 impl Variant for ObjectLengthError {
     type Properties = (Location, ExpectedLength, ReceivedLength);

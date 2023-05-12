@@ -1,4 +1,7 @@
-use core::fmt::{Display, Formatter, Write};
+use core::{
+    fmt::{Display, Formatter, Write},
+    ops::Range,
+};
 
 use deer::{
     error::{ErrorProperties, ErrorProperty, Id, Location, Namespace, ReceivedValue, Variant},
@@ -94,11 +97,24 @@ impl ErrorProperty for Position {
     }
 }
 
+pub struct Span {
+    range: Range<usize>,
+}
+
+impl Span {
+    pub(crate) fn new(range: impl Into<Range<usize>>) -> Self {
+        Self {
+            range: range.into(),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum SyntaxError {
     InvalidUtf8Sequence,
     UnexpectedEof,
     ExpectedColon,
+    ExpectedComma,
     ExpectedExponent,
     ExpectedDecimalDigit,
     ExpectedDigit,
@@ -118,24 +134,25 @@ pub enum SyntaxError {
 impl Display for SyntaxError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            SyntaxError::InvalidUtf8Sequence => f.write_str("invalid utf-8 sequence"),
-            SyntaxError::UnexpectedEof => f.write_str("unexpected end of file"),
-            SyntaxError::ExpectedColon => f.write_str("expected color (`:`)"),
-            SyntaxError::ExpectedExponent => f.write_str("expected exponent sign or digit"),
-            SyntaxError::ExpectedDecimalDigit => f.write_str("expected decimal digit"),
-            SyntaxError::ExpectedDigit => f.write_str("expected decimal digit"),
+            Self::InvalidUtf8Sequence => f.write_str("invalid utf-8 sequence"),
+            Self::UnexpectedEof => f.write_str("unexpected end of file"),
+            Self::ExpectedColon => f.write_str("expected colon (`:`)"),
+            Self::ExpectedComma => f.write_str("expected comma (`,`)"),
+            Self::ExpectedExponent => f.write_str("expected exponent sign or digit"),
+            Self::ExpectedDecimalDigit => f.write_str("expected decimal digit"),
+            Self::ExpectedDigit => f.write_str("expected decimal digit"),
             // TODO: do those even matter?
-            SyntaxError::ExpectedString => f.write_str("expected string"),
-            SyntaxError::ExpectedNumber => f.write_str("expected number"),
-            SyntaxError::UnexpectedByte(character) => {
+            Self::ExpectedString => f.write_str("expected string"),
+            Self::ExpectedNumber => f.write_str("expected number"),
+            Self::UnexpectedByte(character) => {
                 f.write_fmt(format_args!("unexpected byte (`{character}`)"))
             }
-            SyntaxError::ObjectKeyMustBeString => f.write_str("object keys must be string"),
-            SyntaxError::InvalidHexadecimal => {
+            Self::ObjectKeyMustBeString => f.write_str("object keys must be string"),
+            Self::InvalidHexadecimal => {
                 f.write_str("invalid hexadecimal in unicode escape sequence")
             }
-            SyntaxError::InvalidEscape => f.write_str("invalid escape character"),
-            SyntaxError::UnclosedString => f.write_str(r#"expected end of string (`"`)"#),
+            Self::InvalidEscape => f.write_str("invalid escape character"),
+            Self::UnclosedString => f.write_str(r#"expected end of string (`"`)"#),
         }
     }
 }
@@ -206,4 +223,49 @@ pub(crate) fn convert_tokenizer_error(error: justjson::Error) -> Report<deer::er
     };
 
     Report::new(error).attach(Position::new(offset))
+}
+
+// In theory we could use `DropBomb` here to require that the accumulator is used
+#[must_use]
+pub(crate) struct ErrorAccumulator<C> {
+    inner: Option<Report<C>>,
+}
+
+impl<C> ErrorAccumulator<C> {
+    pub(crate) const fn new() -> Self {
+        Self { inner: None }
+    }
+
+    pub(crate) fn push<T>(&mut self, value: Result<T, Report<C>>) -> Option<T> {
+        match (&mut self.inner, value) {
+            (_, Ok(ok)) => Some(ok),
+            (Some(inner), Err(error)) => {
+                inner.extend_one(error);
+                None
+            }
+            (inner, Err(error)) => {
+                *inner = Some(error);
+                None
+            }
+        }
+    }
+
+    pub(crate) fn extend_one(&mut self, error: Report<C>) {
+        match &mut self.inner {
+            Some(inner) => inner.extend_one(error),
+            inner => *inner = Some(error),
+        }
+    }
+
+    pub(crate) fn into_result(self) -> Result<(), Report<C>> {
+        self.inner.map_or_else(|| Ok(()), Err)
+    }
+
+    pub(crate) fn extend_existing(self, mut error: Report<C>) -> Report<C> {
+        if let Some(inner) = self.inner {
+            error.extend_one(inner);
+        }
+
+        error
+    }
 }

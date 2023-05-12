@@ -1,7 +1,9 @@
+use core::ops::Range;
+
 use deer::{
     error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     schema::Document,
-    Context, Deserialize, EnumVisitor, Number, OptionalVisitor, Reflection, Visitor,
+    Context, Deserialize, EnumVisitor, Number, OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 use justjson::{
@@ -21,14 +23,14 @@ pub struct Stack {
     depth: usize,
 }
 
-pub struct Deserializer<'a, 'b> {
-    tokenizer: Tokenizer<'a, false>,
-    context: &'b Context,
+pub struct Deserializer<'de, 'a> {
+    pub(crate) tokenizer: Tokenizer<'de, false>,
+    context: &'a Context,
     stack: Stack,
 }
 
-impl<'a, 'b> Deserializer<'a, 'b> {
-    fn next(&mut self) -> Result<Token<'a>, DeserializerError> {
+impl<'de, 'a> Deserializer<'de, 'a> {
+    fn next(&mut self) -> Result<Token<'de>, DeserializerError> {
         let offset = self.tokenizer.offset();
         let Some(token) = self.tokenizer.next() else {
             return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
@@ -41,13 +43,13 @@ impl<'a, 'b> Deserializer<'a, 'b> {
             .change_context(DeserializerError)
     }
 
-    fn next_value(&mut self) -> Result<ValueToken<'a>, DeserializerError> {
+    fn next_value(&mut self) -> Result<ValueToken<'de>, DeserializerError> {
         let token = self.next()?;
 
         ValueToken::try_from(token).change_context(DeserializerError)
     }
 
-    fn recover(&mut self, token: &ValueToken<'a>) {
+    pub(crate) fn recover(&mut self, token: &ValueToken<'de>) {
         match token {
             ValueToken::Object => skip_tokens(&mut self.tokenizer, &Token::Object),
             ValueToken::Array => skip_tokens(&mut self.tokenizer, &Token::Array),
@@ -55,9 +57,30 @@ impl<'a, 'b> Deserializer<'a, 'b> {
         }
     }
 
+    pub(crate) fn skip(&mut self) -> Range<usize> {
+        // `.next()` will only error out if a string or number is malformed
+        // we can safely skip those as they do not affect how we skip
+        let start = self.tokenizer.offset();
+        let next = self.tokenizer.next();
+
+        if let Some(Ok(token)) = next {
+            skip_tokens(&mut self.tokenizer, &token);
+        }
+
+        start..self.tokenizer.offset()
+    }
+
+    pub(crate) fn peek(&mut self) -> Option<PeekableTokenKind> {
+        self.tokenizer.peek()
+    }
+
+    pub(crate) const fn offset(&self) -> usize {
+        self.tokenizer.offset()
+    }
+
     fn error_invalid_type(
         &mut self,
-        received: &ValueToken<'a>,
+        received: &ValueToken<'de>,
         expected: Document,
     ) -> Report<DeserializerError> {
         self.recover(received);
@@ -71,12 +94,12 @@ impl<'a, 'b> Deserializer<'a, 'b> {
 
 // TODO: stack check
 
-impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
+impl<'de> deer::Deserializer<'de> for &mut Deserializer<'de, '_> {
     fn context(&self) -> &Context {
         self.context
     }
 
-    fn deserialize_any<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -104,7 +127,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
         .change_context(DeserializerError)
     }
 
-    fn deserialize_null<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -116,7 +139,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
         }
     }
 
-    fn deserialize_bool<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -128,7 +151,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
         }
     }
 
-    fn deserialize_number<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -222,6 +245,13 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de, '_> {
     fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: EnumVisitor<'de>,
+    {
+        todo!()
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
     {
         todo!()
     }
