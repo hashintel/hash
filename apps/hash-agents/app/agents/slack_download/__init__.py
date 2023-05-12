@@ -18,7 +18,8 @@ logger = structlog.stdlib.get_logger(__name__)
 MESSAGES_PER_PAGE = 1_000
 # It wants a _string_ of the epoch timestamp (number)...
 # OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=7)).timestamp())
-OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
+# OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=30)).timestamp())
+OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=60)).timestamp())
 # OLDEST = str((datetime.now(tz=timezone.utc) - timedelta(days=180)).timestamp())
 
 
@@ -46,17 +47,26 @@ def handle_rate_limit(response_generator_func: Callable[[], SlackResponse]):
 
 
 def extract_messages(messages):
-    return [
-        # TODO: extract file information, etc. here
-        {
-            "text": message["text"],
-            "user": message["user"],
-            "ts": message["ts"],
-            "thread_ts": message["thread_ts"] if "thread_ts" in message else None,
-        }
-        for message in messages
-        if message["type"] == "message"
-    ]
+    parsed_messages = []
+    for message in messages:
+        if "subtype" in message:
+            continue
+        try:
+            parsed_messages.append(
+                {
+                    "text": message["text"],
+                    "user": message["user"],
+                    "ts": message["ts"],
+                    "thread_ts": (
+                        message["thread_ts"] if "thread_ts" in message else None
+                    ),
+                },
+            )
+        except KeyError:
+            logger.warning("Failed to parse message", message=message)
+            raise
+
+    return parsed_messages
 
 
 def get_threaded_replies(client: WebClient, channel_id, thread_ts):
@@ -114,63 +124,74 @@ def execute() -> None:
     for channel in channels:
         print(channel["name"], channel["id"])  # noqa: T201
 
-    channel_id = None
+    channel_ids = set()
 
-    while channel_id is None:
-        channel_identifier = input(
-            "Choose a channel to ingest by either specifying a name or ID: ",
+    while len(channel_ids) == 0:
+        channel_identifiers = input(
+            (
+                "Choose a set of channel to ingest by either specifying names or IDs of"
+                " channels separated by a comma (no space): "
+            ),
         )
-        for channel in channels:
-            if (
-                channel["name"] == channel_identifier
-                or channel["id"] == channel_identifier
-            ):
-                channel_id = channel["id"]
-                break
-
-    page = 0
+        channel_identifiers = channel_identifiers.split(",")
+        for channel_identifier in channel_identifiers:
+            for channel in channels:
+                if (
+                    channel["name"] == channel_identifier
+                    or channel["id"] == channel_identifier
+                ):
+                    channel_ids.add(channel["id"])
+                    break
 
     messages = {}
-
-    for response in handle_rate_limit(
-        lambda: client.conversations_history(
-            channel=channel_id,
-            limit=MESSAGES_PER_PAGE,
-            oldest=OLDEST,
-        ),
-    ):
-        page += 1
-
-        logger.info(
-            "Retrieving page of channel history history",
-            page=page,
-            channel=channel_id,
-        )
-        response.validate()
-
-        for message in extract_messages(response["messages"]):
-            messages[message["ts"]] = message
-
-    logger.info(
-        "Finished retrieving messages in channel",
-        num_messages=len(messages),
-        channel=channel_id,
-    )
-
     message_ts_to_replies = {}
 
-    for message_ts in messages:
-        logger.debug("Retrieving replies for message", message_ts=message_ts)
-        message_ts_to_replies[message_ts] = get_threaded_replies(
-            client,
-            channel_id,
-            message_ts,
+    for channel_id in channel_ids:
+        page = 0
+
+        channel_messages = {}
+
+        for response in handle_rate_limit(
+            lambda: client.conversations_history(
+                channel=channel_id,
+                limit=MESSAGES_PER_PAGE,
+                oldest=OLDEST,
+            ),
+        ):
+            page += 1
+
+            logger.info(
+                "Retrieving page of channel history history",
+                page=page,
+                channel=channel_id,
+            )
+            response.validate()
+
+            for message in extract_messages(response["messages"]):
+                channel_messages[message["ts"]] = message
+
+        logger.info(
+            "Finished retrieving messages in channel",
+            num_messages=len(channel_messages),
+            channel=channel_id,
         )
 
-    logger.info(
-        "Finished retrieving all threads for messages",
-        total_replies=sum(map(len, message_ts_to_replies.values())),
-    )
+        total = 0
+        for message_ts in channel_messages:
+            logger.debug("Retrieving replies for message", message_ts=message_ts)
+            message_ts_to_replies[message_ts] = get_threaded_replies(
+                client,
+                channel_id,
+                message_ts,
+            )
+            total += len(message_ts_to_replies[message_ts])
+
+        logger.info(
+            "Finished retrieving all threads for messages",
+            total_replies=total,
+        )
+
+        messages.update(channel_messages)
 
     Path("out").mkdir(exist_ok=True)
     Path("out/messages.json").write_text(
