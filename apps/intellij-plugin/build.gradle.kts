@@ -40,7 +40,9 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("223.7126")
-//        untilBuild.set("223.*")
+
+        untilBuild.set(null as String?)
+        untilBuild.convention(null as String?)
     }
 
     signPlugin {
