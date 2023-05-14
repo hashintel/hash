@@ -67,13 +67,16 @@ impl<'de> EnumVisitor<'de> for UnitEnumVisitor {
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
-        _: D,
+        deserializer: D,
     ) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
+        // TODO: next PR properly addresses this via `ExpectNone`
         match discriminant {
-            Discriminant::Variant => Ok(UnitEnum::Variant),
+            Discriminant::Variant => Option::<()>::deserialize(deserializer)
+                .map(|_| UnitEnum::Variant)
+                .change_context(VisitorError),
         }
     }
 }
@@ -103,9 +106,9 @@ fn unit_variant() {
                 ns: "deer",
                 id: ["type"],
                 properties: {
-                    "expected": null,
+                    "expected": <()>::reflection(),
                     "location": [],
-                    "received": null
+                    "received": bool::reflection()
                 }
             }
         ]),
