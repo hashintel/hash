@@ -36,7 +36,6 @@
       "dependsOn": [
         "@apps/hash-graph#build:docker:prod",
         "@apps/hash-agents#build:docker",
-        "@apps/hash-ai-worker-ts#build:docker",
         "codegen"
       ]
     },
