@@ -131,19 +131,6 @@ export const getLatestEntityById: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
       temporalAxes: currentTimeInstantTemporalAxes,
     },
   }).then(getRoots);
