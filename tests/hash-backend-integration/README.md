@@ -17,7 +17,7 @@ This will print the snapshot to the terminal. Copy the output and paste it into 
 just run snapshot dump > ../../tests/hash-backend-integration/src/tests/subgraph/pass/my-snapshot.jsonl
 ```
 
-To see a list of available commands command line arguments pass `--help` after the desired command, e.g.:
+To see a list of available command line arguments pass `--help` after the desired command, e.g.:
 
 ```bash
 just run snapshot --help
