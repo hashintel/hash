@@ -7,7 +7,7 @@
           "name": "BinaryScanner"
         }
       },
-      "artifact": [
+      "artifacts": [
         {
           "location": {
             "uri": "bin/example",

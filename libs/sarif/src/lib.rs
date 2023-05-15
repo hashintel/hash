@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
-#![feature(lint_reasons)]
+#![feature(lint_reasons, error_in_core)]
 #![cfg_attr(
     doc,
     feature(doc_auto_cfg),
@@ -13,3 +13,6 @@ extern crate alloc;
 extern crate std;
 
 pub mod schema;
+
+#[cfg(feature = "serde")]
+pub(crate) mod serde;

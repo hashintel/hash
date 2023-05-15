@@ -1,22 +1,17 @@
 //! The JSON schema of the SARIF log file format as a Rust module.
 
+mod address;
 mod log;
-mod multiformat_message_string;
-mod properties;
-mod reporting_descriptor;
-mod run;
-mod tool;
+
+mod plain;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub use self::{
+    address::{Address, AddressCalculationError, AddressValidationError},
     log::SarifLog,
-    multiformat_message_string::MultiformatMessageString,
-    properties::PropertyBag,
-    reporting_descriptor::ReportingDescriptor,
-    run::Run,
-    tool::{Tool, ToolComponent},
+    plain::*,
 };
 
 /// The schema version of the log file.

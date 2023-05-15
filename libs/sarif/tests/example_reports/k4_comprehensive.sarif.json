@@ -3,7 +3,7 @@
   "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
   "runs": [
     {
-      "automationId": {
+      "automationDetails": {
         "guid": "BC650830-A9FE-44CB-8818-AD6C387279A0",
         "id": "Nightly code scan/2018-10-08"
       },
@@ -126,11 +126,11 @@
           "uri": "file://build.example.com/work/"
         },
         "SRCROOT": {
-          "uri": " src/",
+          "uri": "src/",
           "uriBaseId": "PROJECTROOT"
         },
         "BINROOT": {
-          "uri": " bin/",
+          "uri": "bin/",
           "uriBaseId": "PROJECTROOT"
         }
       },
@@ -149,7 +149,6 @@
           "machine": "BLD01",
           "account": "buildAgent",
           "processId": 1218,
-          "fileName": "/bin/tools/CodeScanner",
           "workingDirectory": {
             "uri": "file:///home/buildAgent/src"
           },
@@ -164,7 +163,7 @@
                 "id": "UnknownRule"
               },
               "associatedRule": {
-                "ruleId": "ABC0001"
+                "id": "ABC0001"
               },
               "level": "warning",
               "message": {
@@ -209,9 +208,7 @@
               "timeUtc": "2016-07-16T14:18:43.119Z",
               "exception": {
                 "kind": "ExecutionEngine.RuleFailureException",
-                "message": {
-                  "text": "Unhandled exception during rule evaluation."
-                },
+                "message": "Unhandled exception during rule evaluation.",
                 "stack": {
                   "frames": [
                     {
@@ -226,7 +223,7 @@
                         ],
                         "physicalLocation": {
                           "address": {
-                            "offset": 4244988
+                            "offsetFromParent": 4244988
                           }
                         }
                       },
@@ -242,7 +239,7 @@
                         ],
                         "physicalLocation": {
                           "address": {
-                            "offset": 4245514
+                            "offsetFromParent": 4245514
                           }
                         }
                       },
@@ -370,7 +367,7 @@
         },
         {
           "name": "add_core",
-          "fullyQualfiedName": "collections::list::add_core",
+          "fullyQualifiedName": "collections::list::add_core",
           "decoratedName": "?add_core@list@collections@@QAEXH@Z",
           "kind": "function",
           "parentIndex": 1
@@ -378,6 +375,25 @@
         {
           "fullyQualifiedName": "main",
           "kind": "function"
+        }
+      ],
+      "addresses": [
+        {
+          "absoluteAddress": 4194304,
+          "fullyQualifiedName": "collections.dll",
+          "kind": "module",
+          "name": ".text"
+        },
+        {
+          "offsetFromParent": 100,
+          "fullyQualifiedName": "collections.dll!collections::list::add",
+          "kind": "function",
+          "parentIndex": 0
+        },
+        {
+          "offsetFromParent": 22,
+          "fullyQualifiedName": "collections.dll!collections::list::add+0x16",
+          "parentIndex": 1
         }
       ],
       "results": [
@@ -393,10 +409,10 @@
           "suppressions": [
             {
               "kind": "external",
-              "state": "accepted"
+              "status": "accepted"
             }
           ],
-          "baselineState": "existing",
+          "baselineState": "unchanged",
           "rank": 95,
           "analysisTarget": {
             "uri": "collections/list.cpp",
@@ -602,7 +618,7 @@
                         "startColumn": 15
                       },
                       "address": {
-                        "offset": 4229178
+                        "offsetFromParent": 4229178
                       }
                     },
                     "logicalLocations": [
@@ -629,7 +645,7 @@
                         "startColumn": 15
                       },
                       "address": {
-                        "offset": 4229268
+                        "offsetFromParent": 4229268
                       }
                     },
                     "logicalLocations": [
@@ -656,7 +672,7 @@
                         "startColumn": 9
                       },
                       "address": {
-                        "offset": 4229836
+                        "offsetFromParent": 4229836
                       }
                     },
                     "logicalLocations": [
@@ -670,25 +686,6 @@
                   "threadId": 52
                 }
               ]
-            }
-          ],
-          "addresses": [
-            {
-              "baseAddress": 4194304,
-              "fullyQualifiedName": "collections.dll",
-              "kind": "module",
-              "section": ".text"
-            },
-            {
-              "offset": 100,
-              "fullyQualifiedName": "collections.dll!collections::list::add",
-              "kind": "function",
-              "parentIndex": 0
-            },
-            {
-              "offset": 22,
-              "fullyQualifiedName": "collections.dll!collections::list::add+0x16",
-              "parentIndex": 1
             }
           ],
           "fixes": [
