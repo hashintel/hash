@@ -33,6 +33,14 @@
         "codegen"
       ]
     },
+    "deploy:prod": {
+      "cache": false,
+      "dependsOn": [
+        "@apps/hash-graph#build:docker:prod",
+        "@apps/hash-agents#build:docker",
+        "codegen"
+      ]
+    },
     "deploy:prototype": {
       "cache": false
     }

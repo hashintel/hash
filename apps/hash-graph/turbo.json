@@ -10,6 +10,9 @@
     "build:docker:offline": {
       "cache": false
     },
+    "build:docker:prod": {
+      "cache": false
+    },
     "codegen:generate-openapi-specs": {
       "outputs": ["openapi/openapi.json", "openapi/models/**"]
     }
