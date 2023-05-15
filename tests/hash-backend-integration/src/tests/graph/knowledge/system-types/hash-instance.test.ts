@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -15,10 +16,14 @@ import {
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
-import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import {
+  systemUser,
+  systemUserAccountId,
+} from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -35,6 +40,14 @@ describe("Hash Instance", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   let hashInstance: HashInstance;

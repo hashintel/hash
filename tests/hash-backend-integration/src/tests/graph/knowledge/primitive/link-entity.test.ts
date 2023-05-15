@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -15,6 +16,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
@@ -29,6 +31,7 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -150,6 +153,17 @@ describe("Link entity", () => {
         acquaintanceRightEntity = entity;
       }),
     ]);
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   let linkEntityFriend: LinkEntity;

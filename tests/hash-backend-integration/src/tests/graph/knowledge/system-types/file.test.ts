@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -8,11 +9,13 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -34,6 +37,17 @@ describe("File", () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "fileTest", logger);
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   it("createFileFromUploadRequest can create a file entity from a file", async () => {
