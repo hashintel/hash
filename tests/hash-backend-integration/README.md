@@ -2,7 +2,7 @@
 
 ## Mock Data
 
-The [`subgraph`](src/tests/subgraph) module contains two folders, which contains snapshots of the Graph, `pass` and `fail`. The Integration test suite is able to restore these snapshots to the Graph, and run the tests against them. In most cases, this requires a clean Graph, so the test suite will create a new Graph, and restore the snapshot to it. For this reason every test should ensure, that the Graph is cleaned up after the test is run.
+The [`subgraph`](src/tests/subgraph) module contains two subdirectories, `pass` and `fail`, each of which houses snapshots of the graph. The integration test suite is able to restore these snapshots to the graph, and run the tests against them. In most cases, this requires a clean graph, so the test suite will create a new graph, and restore the snapshot to it. Because of this, every test should ensure that the graph is cleaned up after it has run.
 
 To create a new snapshot from the existing Graph the [`@apps/hash-graph`] package should be used. While it's possible to create a snapshot by hand this is very error prune.
 To create a snapshot make sure the Graph contains the desired data and run the following command from the [`@apps/hash-graph`] package:
