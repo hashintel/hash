@@ -1,4 +1,4 @@
-FROM node:16.18.1-slim AS base
+FROM node:18.15-slim AS base
 
 WORKDIR /app
 
@@ -6,8 +6,7 @@ RUN yarn global add turbo
 COPY . .
 RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker
 
-FROM node:16.18.1-slim as installer
-
+FROM node:18.15-slim as installer
 
 WORKDIR /usr/local/src/
 
@@ -21,7 +20,7 @@ COPY --from=base /app/out/full/ .
 
 RUN yarn turbo build --filter '@apps/hash-ai-worker-ts'
 
-FROM node:16.18.1-slim as runner
+FROM node:18.15-slim as runner
 
 COPY --from=installer /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-ai-worker-ts
