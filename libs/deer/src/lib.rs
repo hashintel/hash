@@ -47,6 +47,10 @@ pub mod value;
 
 extern crate alloc;
 
+pub mod export {
+    pub use error_stack;
+}
+
 struct GenericFieldVisitor<T, U>(PhantomData<fn() -> *const (T, U)>);
 
 impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
