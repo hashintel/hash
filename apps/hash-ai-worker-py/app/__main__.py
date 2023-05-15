@@ -11,7 +11,7 @@ from dotenv import find_dotenv, load_dotenv
 
 
 load_dotenv()
-load_dotenv(dotenv_path=find_dotenv(filename=".env.local"), override=True)
+load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
 
 
 async def run_worker(stop_event: asyncio.Event):
