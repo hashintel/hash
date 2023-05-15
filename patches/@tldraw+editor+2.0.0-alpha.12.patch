@@ -1,0 +1,16 @@
+diff --git a/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs b/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs
+index 83e38b0..0004cfe 100644
+--- a/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs
++++ b/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs
+@@ -32,7 +32,10 @@ import {
+   TLPage
+ } from "@tldraw/tlschema";
+ import { annotateError, compact, dedupe, deepCopy, partition, structuredClone } from "@tldraw/utils";
+-import { EventEmitter } from "eventemitter3";
++/**
++ * This is patched as a quick fix for module resolution errors if it's left as named.
++ */
++import EventEmitter from "eventemitter3";
+ import { atom, computed, EMPTY_ARRAY, transact } from "signia";
+ import { TldrawEditorConfig } from "../config/TldrawEditorConfig.mjs";
+ import {

@@ -1,35 +1,30 @@
 import { Entity } from "@local/hash-subgraph";
-import { ApolloError } from "apollo-server-errors";
 
-import {
-  getPageBlocks,
-  getPageById,
-} from "../../../../graph/knowledge/system-types/page";
+import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
-import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
+import {
+  mapBlockToGQL,
+  mapEntityToGQL,
+  UnresolvedBlockGQL,
+  UnresolvedPageGQL,
+} from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
-  Promise<Entity[]>,
+  Promise<{ linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[]>,
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ metadata }, _, { dataSources }) => {
+> = async (page, _, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const entityId = metadata.recordId.entityId;
-  const page = await getPageById(context, { entityId });
+  const contentItems = await getPageBlocks(context, {
+    pageEntityId: page.metadata.recordId.entityId,
+  });
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  if (!page) {
-    throw new ApolloError(
-      `Page with entityId ${entityId} not found`,
-      "NOT_FOUND",
-    );
-  }
-
-  const blocks = await getPageBlocks(context, { page });
-
-  return blocks.map((block) => mapBlockToGQL(block));
+  return contentItems.map(({ linkEntity, rightEntity }) => ({
+    linkEntity: mapEntityToGQL(linkEntity),
+    rightEntity: mapBlockToGQL(rightEntity),
+  }));
 };

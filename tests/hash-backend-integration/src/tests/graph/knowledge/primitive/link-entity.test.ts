@@ -175,7 +175,7 @@ describe("Link entity", () => {
 
   it("can get all entity links", async () => {
     const allLinks = await getEntityOutgoingLinks(graphContext, {
-      entity: leftEntity,
+      entityId: leftEntity.metadata.recordId.entityId,
     });
     expect(allLinks).toHaveLength(2);
     expect(allLinks).toContainEqual(linkEntityFriend);
@@ -184,8 +184,8 @@ describe("Link entity", () => {
 
   it("can get a single entity link", async () => {
     const links = await getEntityOutgoingLinks(graphContext, {
-      entity: leftEntity,
-      linkEntityType: friendLinkEntityType,
+      entityId: leftEntity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: friendLinkEntityType.schema.$id,
     });
 
     expect(links).toHaveLength(1);
@@ -209,8 +209,8 @@ describe("Link entity", () => {
     });
 
     const links = await getEntityOutgoingLinks(graphContext, {
-      entity: leftEntity,
-      linkEntityType: acquaintanceLinkEntityType,
+      entityId: leftEntity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: acquaintanceLinkEntityType.schema.$id,
     });
 
     expect(links).toHaveLength(0);
