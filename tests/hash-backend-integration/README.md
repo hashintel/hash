@@ -5,7 +5,7 @@
 The [`subgraph`](src/tests/subgraph) module contains two subdirectories, `pass` and `fail`, each of which houses snapshots of the graph. The integration test suite is able to restore these snapshots to the graph, and run the tests against them. In most cases, this requires a clean graph, so the test suite will create a new graph, and restore the snapshot to it. Because of this, every test should ensure that the graph is cleaned up after it has run.
 
 To create a new snapshot of the existing graph the [`@apps/hash-graph`] package should be used. While it is also possible to create snapshots by hand doing so is comparatively error prone, and should be avoided.
-To create a snapshot make sure the Graph contains the desired data and run the following command from the [`@apps/hash-graph`] package:
+To create a snapshot first make sure the graph contains the desired data and then run the following command from the [`@apps/hash-graph`] package:
 
 ```bash
 just run snapshot dump
