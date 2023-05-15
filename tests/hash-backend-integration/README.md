@@ -2,13 +2,34 @@
 
 ## Mock Data
 
-Mock data may be inserted by running:
+The [`subgraph`](src/tests/subgraph) module contains two folders, which contains snapshots of the Graph, `pass` and `fail`. The Integration test suite is able to restore these snapshots to the Graph, and run the tests against them. In most cases, this requires a clean Graph, so the test suite will create a new Graph, and restore the snapshot to it. For this reason every test should ensure, that the Graph is cleaned up after the test is run.
 
-```sh
-yarn mock-data
+To create a new snapshot from the existing Graph the [`@apps/hash-graph`] package should be used. While it's possible to create a snapshot by hand this is very error prune.
+To create a snapshot make sure the Graph contains the desired data and run the following command from the [`@apps/hash-graph`] package:
+
+```bash
+just run snapshot dump
 ```
 
-Ensure that the API and database are running (see the API [README](../../apps/hash-api/README.md) for details).
+This will print the snapshot to the terminal. Copy the output and paste it into the desired snapshot file. As an alternative you can directly pass it into a file:
+
+```bash
+just run snapshot dump > ../../tests/hash-backend-integration/src/tests/subgraph/pass/my-snapshot.jsonl
+```
+
+To see a list of available commands command line arguments pass `--help` after the desired command, e.g.:
+
+```bash
+just run snapshot --help
+```
+
+or
+
+```bash
+just run snapshot dump --help
+```
+
+[`@apps/hash-graph`]: ../../apps/hash-graph
 
 ## Integration tests
 
