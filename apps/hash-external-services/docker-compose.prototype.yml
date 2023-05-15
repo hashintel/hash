@@ -12,7 +12,6 @@ services:
       - no-new-privileges:true
     volumes:
       - hash-qdrant:/qdrant/storage
-    tmpfs:
-      - /qdrant/snapshots
+      - hash-qdrant:/qdrant/snapshots
     ports:
       - "6333:6333"

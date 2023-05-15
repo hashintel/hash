@@ -39,13 +39,37 @@ conclusion, and directly quote the information where available:
 """
 
 
-def search_bing(query):
+def search_bing(query, n=3):
     api_key = os.getenv("BING_API_KEY")
 
     url = f"https://api.bing.microsoft.com/v7.0/search?q={query}"
     headers = {"Ocp-Apim-Subscription-Key": api_key}
     response = requests.get(url, headers=headers)
-    return response.json()
+    json = response.json()
+
+    return [
+        trafilatura.extract(trafilatura.fetch_url(result["url"]))
+        for result in json["webPages"]["value"][:n]
+    ]
+
+
+def search_serper(query, n=3):
+    api_key = os.getenv("SERPER_API_KEY")
+
+    url = "https://google.serper.dev/search"
+    headers = {
+        "X-API-KEY": api_key,
+        "Content-Type": "application/json",
+    }
+    params = {"q": query}
+    response = requests.post(url, headers=headers, params=params)
+    response.raise_for_status()
+    json = response.json()
+
+    return [
+        trafilatura.extract(trafilatura.fetch_url(result["link"]))
+        for result in json["organic"][:n]
+    ]
 
 
 def get_related_documents(
@@ -118,14 +142,8 @@ def execute():
             break
 
         related_documents = get_related_documents(user_input, qdrant_client, limit=3)
-        bing_results = search_bing(user_input)
-
-        contents = [
-            trafilatura.extract(trafilatura.fetch_url(result["url"]))
-            for result in bing_results["webPages"]["value"][
-                :3
-            ]  # only pick top 3 results
-        ]
+        # contents = search_bing(user_input)
+        contents = search_serper(user_input)
 
         contents = [content for content in contents if content is not None]
 
