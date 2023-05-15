@@ -12,7 +12,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { resetToSnapshot } from "../test-server";
+import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";
 
 jest.setTimeout(60000);
@@ -49,12 +49,16 @@ export const temporalAxesForTimestamp = (
 const nameProperty =
   "http://localhost:3000/@alice/types/property-type/name/" as BaseUrl;
 
+afterAll(async () => {
+  await resetGraph();
+});
+
 describe("Friendship Snapshot", () => {
   const graphContext = createTestImpureGraphContext();
 
   it("can upload snapshot", async () => {
     await expect(
-      resetToSnapshot(path.join(__dirname, "pass", "friendship.jsonl")),
+      restoreSnapshot(path.join(__dirname, "pass", "friendship.jsonl")),
     ).resolves.not.toThrowError();
   });
 
