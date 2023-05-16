@@ -554,33 +554,14 @@
         }
       },
       "CreateDataTypeRequest": {
-        "type": "object",
-        "required": [
-          "schema",
-          "ownedById",
-          "actorId"
-        ],
-        "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CreateOwnedDataTypeRequest"
           },
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
-          "schema": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/data_type"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/data_type"
-                }
-              }
-            ]
+          {
+            "$ref": "#/components/schemas/CreateExternalDataTypeRequest"
           }
-        }
+        ]
       },
       "CreateEntityRequest": {
         "type": "object",
@@ -620,6 +601,90 @@
         }
       },
       "CreateEntityTypeRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CreateOwnedEntityTypeRequest"
+          },
+          {
+            "$ref": "#/components/schemas/CreateExternalEntityTypeRequest"
+          }
+        ]
+      },
+      "CreateExternalDataTypeRequest": {
+        "type": "object",
+        "required": [
+          "schema",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateExternalEntityTypeRequest": {
+        "type": "object",
+        "required": [
+          "schema",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateExternalPropertyTypeRequest": {
+        "type": "object",
+        "required": [
+          "schema",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateOwnedDataTypeRequest": {
+        "type": "object",
+        "required": [
+          "schema",
+          "ownedById",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/data_type"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/data_type"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "CreateOwnedEntityTypeRequest": {
         "type": "object",
         "required": [
           "schema",
@@ -648,7 +713,7 @@
           }
         }
       },
-      "CreatePropertyTypeRequest": {
+      "CreateOwnedPropertyTypeRequest": {
         "type": "object",
         "required": [
           "schema",
@@ -676,6 +741,16 @@
             ]
           }
         }
+      },
+      "CreatePropertyTypeRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CreateOwnedPropertyTypeRequest"
+          },
+          {
+            "$ref": "#/components/schemas/CreateExternalPropertyTypeRequest"
+          }
+        ]
       },
       "DataTypeQueryToken": {
         "type": "string",

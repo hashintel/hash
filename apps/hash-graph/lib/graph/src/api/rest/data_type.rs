@@ -44,6 +44,8 @@ use crate::{
             DataTypeWithMetadata,
 
             CreateDataTypeRequest,
+            CreateOwnedDataTypeRequest,
+            CreateExternalDataTypeRequest,
             UpdateDataTypeRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
@@ -91,6 +93,7 @@ struct CreateOwnedDataTypeRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateExternalDataTypeRequest {
+    #[schema(value_type = String)]
     schema: VersionedUrl,
     actor_id: RecordCreatedById,
 }

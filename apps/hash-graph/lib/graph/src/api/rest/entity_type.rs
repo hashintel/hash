@@ -51,6 +51,8 @@ use crate::{
             EntityTypeWithMetadata,
 
             CreateEntityTypeRequest,
+            CreateOwnedEntityTypeRequest,
+            CreateExternalEntityTypeRequest,
             UpdateEntityTypeRequest,
             EntityTypeQueryToken,
             EntityTypeStructuralQuery,
@@ -101,6 +103,7 @@ struct CreateOwnedEntityTypeRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateExternalEntityTypeRequest {
+    #[schema(value_type = String)]
     schema: VersionedUrl,
     actor_id: RecordCreatedById,
 }

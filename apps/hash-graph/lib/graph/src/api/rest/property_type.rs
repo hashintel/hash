@@ -44,6 +44,8 @@ use crate::{
             PropertyTypeWithMetadata,
 
             CreatePropertyTypeRequest,
+            CreateOwnedPropertyTypeRequest,
+            CreateExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
@@ -93,6 +95,7 @@ struct CreateOwnedPropertyTypeRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateExternalPropertyTypeRequest {
+    #[schema(value_type = String)]
     schema: VersionedUrl,
     actor_id: RecordCreatedById,
 }
