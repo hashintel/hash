@@ -10,6 +10,8 @@ use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
+#[cfg(feature = "type-fetcher")]
+use crate::ontology::OntologyTypeReference;
 use crate::{
     api::rest::{
         json::Json,
@@ -71,13 +73,27 @@ impl RoutedResource for PropertyTypeResource {
         )
     }
 }
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", untagged)]
+enum CreatePropertyTypeRequest {
+    Owned(CreateOwnedPropertyTypeRequest),
+    #[cfg(feature = "type-fetcher")]
+    External(CreateExternalPropertyTypeRequest),
+}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreatePropertyTypeRequest {
+struct CreateOwnedPropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
+    actor_id: RecordCreatedById,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct CreateExternalPropertyTypeRequest {
+    schema: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -104,11 +120,31 @@ async fn create_property_type<P: StorePool + Send>(
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
-    let Json(CreatePropertyTypeRequest {
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    #[allow(clippy::infallible_destructuring_match)]
+    let CreateOwnedPropertyTypeRequest {
         schema,
         owned_by_id,
         actor_id,
-    }) = body;
+    } = match body.0 {
+        CreatePropertyTypeRequest::Owned(request) => request,
+        #[cfg(feature = "type-fetcher")]
+        CreatePropertyTypeRequest::External(request) => {
+            return Ok(Json(ListOrValue::Value(
+                store
+                    .load_external_type(
+                        &domain_validator,
+                        OntologyTypeReference::DataTypeReference((&request.schema).into()),
+                        request.actor_id,
+                    )
+                    .await?,
+            )));
+        }
+    };
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
@@ -141,11 +177,6 @@ where
 
         property_types.push(property_type);
     }
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
 
     store
         .create_property_types(
