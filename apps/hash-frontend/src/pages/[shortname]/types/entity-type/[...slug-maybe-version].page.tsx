@@ -23,6 +23,11 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import {
+  childMenu,
+  secondOption,
+  useCommandBarOption,
+} from "../../../../shared/command-bar";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -46,6 +51,10 @@ import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-ty
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+
+  useCommandBarOption(secondOption, {
+    options: childMenu,
+  });
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
