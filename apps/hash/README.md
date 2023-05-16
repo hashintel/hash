@@ -47,7 +47,7 @@ This folder contains only the _HASH_ project README. The application is split ac
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
     Run each of these version commands and make sure the output is expected:
 
     ```sh
@@ -55,7 +55,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.15
+    ## ≥ 18.15
     
     yarn --version
     ## ≥ 1.16
@@ -74,6 +74,9 @@ To run HASH locally, please follow these steps:
     
     python --version
     ## ≥ 3.11
+    
+    poetry --version
+    ## ≥ 1.4.2
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -189,6 +192,17 @@ See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) pa
 ### The Graph Query Layer
 
 HASH's primary datastore is an entity graph. The service that provides this is located within the `/apps/hash-graph` folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
+
+### LLM prototyping
+
+HASH contains an experimental Docker compose file for prototyping LLM applications using relevant external services such as a vector database. This is located in the `/apps/hash-external-services` folder.
+You'll be able to execute the following command to start the prototyping external services:
+
+```sh
+yarn external-services:prototype up
+```
+
+Similarly to the external services used for HASH, the arguments passed after the script name are arguments for `docker compose`.
 
 ## Testing
 
@@ -438,7 +452,6 @@ If the service should report metrics to a StatsD server, the following variables
 HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
 
 - Ahmad Sattar
-- Alexander Kachkaev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan

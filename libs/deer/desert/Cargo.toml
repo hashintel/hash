@@ -11,7 +11,7 @@ publish = false
 deer = { path = ".." }
 error-stack = { version = "0.3.1", default_features = false }
 serde_json = { version = "1.0.96", default_features = false, features = ['alloc'] }
-serde = { version = "1.0.162", default_features = false, features = ['alloc'] }
+serde = { version = "1.0.163", default_features = false, features = ['alloc'] }
 bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }
 num-traits = "0.2.15"
 

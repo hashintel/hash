@@ -44,7 +44,7 @@ type RemoteBlockProps = {
   graphProperties: Required<BlockGraphProperties["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
-  editableRef?: (node: HTMLElement | null) => void;
+  editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded?: () => void;
 };
 
@@ -102,7 +102,18 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           data.path[0] ===
             "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
         ) {
-          editableRef?.(data.node);
+          if (!editableRef) {
+            return {
+              errors: [
+                {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Hook text module not implemented in this context",
+                },
+              ],
+            };
+          }
+
+          editableRef(data.node);
 
           const hookId = data.hookId ?? uuid();
           return { data: { hookId } };

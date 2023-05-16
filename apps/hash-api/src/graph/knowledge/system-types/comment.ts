@@ -92,8 +92,8 @@ export const getCommentText: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { comment }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+    entityId: comment.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
   });
 
   const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
@@ -264,8 +264,8 @@ export const getCommentParent: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { comment }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    entityId: comment.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -295,8 +295,8 @@ export const getCommentAuthor: ImpureGraphFunction<
   Promise<User>
 > = async (ctx, { comment }) => {
   const authorLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.author,
+    entityId: comment.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.author.schema.$id,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;

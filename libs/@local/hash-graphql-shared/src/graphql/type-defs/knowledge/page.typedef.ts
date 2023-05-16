@@ -1,6 +1,15 @@
 import { gql } from "apollo-server-express";
 
 export const pageTypedef = gql`
+  """
+  A special return type to include blocks linked from pages and the link entity (as it might contain positioning data)
+  @todo – migrate from pages having special return types to returning subgraphs like other entities
+  """
+  type PageContentItem {
+    rightEntity: Block!
+    linkEntity: Entity!
+  }
+
   type Page {
     """
     The title of the page.
@@ -21,7 +30,7 @@ export const pageTypedef = gql`
     """
     The contents of the page.
     """
-    contents: [Block!]!
+    contents: [PageContentItem!]!
     """
     The fractional index of the page in the page tree.
     """
@@ -69,6 +78,8 @@ export const pageTypedef = gql`
     ): [Comment!]!
   }
 
+  scalar CanvasPosition
+
   """
   Insert a block into a page with a corresponding entity.
   """
@@ -78,9 +89,13 @@ export const pageTypedef = gql`
     """
     ownedById: OwnedById!
     """
-    The position in the page to place the block.
+    The index of the block among other blocks in the page (to be stored on the link between the two)
     """
     position: Int!
+    """
+    Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
+    """
+    canvasPosition: CanvasPosition
     """
     The block componentId.
     """
@@ -126,6 +141,10 @@ export const pageTypedef = gql`
     The position to move the block to.
     """
     newPosition: Int!
+    """
+    Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
+    """
+    canvasPosition: CanvasPosition
   }
 
   """
@@ -166,29 +185,6 @@ export const pageTypedef = gql`
   }
 
   """
-  Create an entity type, which you can then reference in future CreateEntityActions
-  """
-  input CreateEntityTypeAction {
-    ownedById: OwnedById!
-    """
-    The name for the type. Must be unique in the given account.
-    """
-    name: String!
-    """
-    A description for the type.
-    """
-    description: String
-    """
-    The schema definition for the entity type, in JSON Schema.
-    """
-    schema: JSONObject
-    """
-    Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to UpdatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
-    """
-    placeholderId: ID!
-  }
-
-  """
   An action to perform when updating the contents of a page. Exactly one field must be
   specified.
 
@@ -202,7 +198,6 @@ export const pageTypedef = gql`
     updateEntity: UpdateEntityAction
     swapBlockData: SwapBlockDataAction
     createEntity: CreateEntityAction
-    createEntityType: CreateEntityTypeAction
   }
 
   """

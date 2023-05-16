@@ -1,4 +1,6 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
@@ -15,6 +17,7 @@ import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -32,6 +35,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -148,6 +152,20 @@ describe("Entity CRU", () => {
     });
   });
 
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser2.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
+  });
+
   let createdEntity: Entity;
   it("can create an entity", async () => {
     createdEntity = await createEntity(graphContext, {
@@ -202,19 +220,7 @@ describe("Entity CRU", () => {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: {
-          pinned: {
-            axis: "transactionTime",
-            timestamp: null,
-          },
-          variable: {
-            axis: "decisionTime",
-            interval: {
-              start: null,
-              end: null,
-            },
-          },
-        },
+        temporalAxes: currentTimeInstantTemporalAxes,
       })
       .then(({ data }) =>
         getRoots(data as Subgraph<EntityRootType>).filter(
@@ -272,7 +278,7 @@ describe("Entity CRU", () => {
 
     const linkEntity = (
       await getEntityOutgoingLinks(graphContext, {
-        entity: aliceEntity,
+        entityId: aliceEntity.metadata.recordId.entityId,
       })
     )[0]!;
 

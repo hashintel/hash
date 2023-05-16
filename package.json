@@ -23,6 +23,8 @@
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
+    "external-services:prototype": "turbo deploy:prototype --filter '@apps/hash-external-services' --",
+    "external-services:prod": "turbo deploy:prod --filter '@apps/hash-external-services' --",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
     "fix:black": "turbo fix:black",
@@ -108,7 +110,7 @@
     "prettier-plugin-sh": "0.12.8",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.9.3",
+    "turbo": "1.9.4",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.1"
   }

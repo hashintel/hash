@@ -100,7 +100,7 @@ macro_rules! deserialize_struct {
     ($name:ident, $primitive:ty,error) => {
         deserialize_struct!($name, $primitive, error, <bool as Deserialize>::Reflection);
     };
-    ($name:ident, $primitive:ty,error, $received:ty) => {
+    ($name:ident, $primitive:ty,error, $expected:ty) => {
         fn deserialize_struct<V>(
             self,
             visitor: V,
@@ -110,7 +110,7 @@ macro_rules! deserialize_struct {
         {
             Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
-                .attach(ReceivedType::new(<$received>::document()))
+                .attach(ReceivedType::new(<$expected>::document()))
                 .change_context(DeserializerError))
         }
     };

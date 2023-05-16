@@ -1,4 +1,4 @@
-FROM node:16.18.1-alpine AS builder
+FROM node:18.15-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN --mount=type=cache,mode=0755,target=/yarn-cache \
 
   #########################################################################################
 
-FROM node:16.18.1-alpine
+FROM node:18.15-alpine
 
 COPY --from=builder /app /app
 

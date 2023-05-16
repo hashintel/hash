@@ -1,3 +1,4 @@
+import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   AccountId,
@@ -15,6 +16,7 @@ import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
+  currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
@@ -31,6 +33,7 @@ import {
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
+  LinkEntity,
   updateLinkEntity,
 } from "../primitive/link-entity";
 import {
@@ -194,8 +197,8 @@ export const getPageParentPage: ImpureGraphFunction<
   Promise<Page | null>
 > = async (ctx, { page }) => {
   const parentPageLinks = await getEntityOutgoingLinks(ctx, {
-    entity: page.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    entityId: page.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -256,19 +259,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: subgraph }) =>
       getEntities(subgraph as Subgraph<EntityRootType>),
@@ -349,8 +340,8 @@ export const removeParentPage: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { page } = params;
   const parentPageLinks = await getEntityOutgoingLinks(ctx, {
-    entity: page.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    entityId: page.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -440,12 +431,12 @@ export const setPageParentPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageBlocks: ImpureGraphFunction<
-  { page: Page },
-  Promise<Block[]>
-> = async (ctx, { page }) => {
+  { pageEntityId: EntityId },
+  Promise<{ linkEntity: LinkEntity; rightEntity: Block }[]>
+> = async (ctx, { pageEntityId }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: page.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
+    entityId: pageEntityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
   });
 
   return await Promise.all(
@@ -461,9 +452,12 @@ export const getPageBlocks: ImpureGraphFunction<
             b.metadata.temporalVersioning.decisionTime.start.limit,
           ),
       )
-      .map((linkEntity) => getLinkEntityRightEntity(ctx, { linkEntity })),
-  ).then((entities) =>
-    entities.map((entity) => getBlockFromEntity({ entity })),
+      .map(async (linkEntity) => ({
+        linkEntity,
+        rightEntity: await getLinkEntityRightEntity(ctx, { linkEntity }).then(
+          (entity) => getBlockFromEntity({ entity }),
+        ),
+      })),
   );
 };
 
@@ -478,12 +472,19 @@ export const addBlockToPage: ImpureGraphFunction<
   {
     page: Page;
     block: Block;
+    canvasPosition?: CanvasPosition;
     position?: number;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { position: specifiedPosition, actorId, page, block } = params;
+  const {
+    position: specifiedPosition,
+    canvasPosition,
+    actorId,
+    page,
+    block,
+  } = params;
 
   await createLinkEntity(ctx, {
     leftEntityId: page.entity.metadata.recordId.entityId,
@@ -492,11 +493,18 @@ export const addBlockToPage: ImpureGraphFunction<
     leftToRightOrder:
       specifiedPosition ??
       // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
-      ((await getPageBlocks(ctx, { page })).length === 0 ? 0 : undefined),
+      ((
+        await getPageBlocks(ctx, {
+          pageEntityId: page.entity.metadata.recordId.entityId,
+        })
+      ).length === 0
+        ? 0
+        : undefined),
     // assume that link to block is owned by the same account as the page
     ownedById: extractOwnedByIdFromEntityId(
       page.entity.metadata.recordId.entityId,
     ),
+    properties: canvasPosition ?? {},
     actorId,
   });
 };
@@ -512,17 +520,19 @@ export const addBlockToPage: ImpureGraphFunction<
 export const moveBlockInPage: ImpureGraphFunction<
   {
     page: Page;
+    canvasPosition?: CanvasPosition;
     currentPosition: number;
     newPosition: number;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { page, currentPosition, newPosition, actorId } = params;
+  const { page, canvasPosition, currentPosition, newPosition, actorId } =
+    params;
 
   const contentLinks = await getEntityOutgoingLinks(ctx, {
-    entity: page.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
+    entityId: page.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
   });
 
   if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -545,6 +555,10 @@ export const moveBlockInPage: ImpureGraphFunction<
   }
 
   await updateLinkEntity(ctx, {
+    properties: {
+      ...linkEntity.properties,
+      ...canvasPosition,
+    },
     linkEntity,
     leftToRightOrder: newPosition,
     actorId,
@@ -571,8 +585,8 @@ export const removeBlockFromPage: ImpureGraphFunction<
   const { page, allowRemovingFinal = false, position, actorId } = params;
 
   const contentLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entity: page.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
+    entityId: page.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
   });
 
   /**
@@ -609,10 +623,14 @@ export const getPageComments: ImpureGraphFunction<
   { page: Page },
   Promise<Comment[]>
 > = async (ctx, { page }) => {
-  const blocks = await getPageBlocks(ctx, { page });
+  const blocks = await getPageBlocks(ctx, {
+    pageEntityId: page.entity.metadata.recordId.entityId,
+  });
 
   const comments = await Promise.all(
-    blocks.map((block) => getBlockComments(ctx, { block })),
+    blocks.map(({ rightEntity }) =>
+      getBlockComments(ctx, { block: rightEntity }),
+    ),
   );
 
   return comments
