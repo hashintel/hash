@@ -48,6 +48,16 @@ use crate::{
     },
 };
 
+#[async_trait]
+pub trait TypeFetcher {
+    /// Fetches the provided type reference and inserts it to the Graph.
+    async fn insert_external_ontology_type(
+        &mut self,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, InsertionError>;
+}
+
 pub struct FetchingPool<P, A> {
     pool: P,
     address: A,
@@ -400,6 +410,22 @@ where
         }
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl<S, A> TypeFetcher for FetchingStore<S, A>
+where
+    A: ToSocketAddrs + Send + Sync,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+{
+    #[expect(clippy::todo, unused_variables, reason = "Not implemented yet")]
+    async fn insert_external_ontology_type(
+        &mut self,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, InsertionError> {
+        todo!("https://app.asana.com/0/0/1204596705932067/f")
     }
 }
 

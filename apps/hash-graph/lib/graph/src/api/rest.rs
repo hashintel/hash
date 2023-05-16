@@ -39,6 +39,8 @@ use utoipa::{
 };
 
 use self::{api_resource::RoutedResource, middleware::span_trace_layer};
+#[cfg(feature = "type-fetcher")]
+use crate::store::TypeFetcher;
 use crate::{
     api::rest::{
         middleware::log_request_and_response,
@@ -64,7 +66,7 @@ use crate::{
         OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{QueryError, StorePool},
+    store::{QueryError, Store, StorePool},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -78,9 +80,22 @@ use crate::{
     },
 };
 
+#[cfg(feature = "type-fetcher")]
+pub trait RestApiStore: Store + TypeFetcher {}
+#[cfg(feature = "type-fetcher")]
+impl<S> RestApiStore for S where S: Store + TypeFetcher {}
+
+#[cfg(not(feature = "type-fetcher"))]
+pub trait RestApiStore: Store {}
+#[cfg(not(feature = "type-fetcher"))]
+impl<S> RestApiStore for S where S: Store {}
+
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
+fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     vec![
         account::AccountResource::routes::<P>(),
         data_type::DataTypeResource::routes::<P>(),
@@ -131,7 +146,10 @@ pub fn openapi_only_router() -> Router {
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
 pub fn rest_api_router<P: StorePool + Send + 'static>(
     dependencies: RestRouterDependencies<P>,
-) -> Router {
+) -> Router
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()
         .into_iter()
