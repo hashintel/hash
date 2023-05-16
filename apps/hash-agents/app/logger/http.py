@@ -1,3 +1,4 @@
+"""Contains logic for logging in the HTTP layer."""
 import time
 from collections.abc import Callable
 
@@ -11,10 +12,7 @@ logger = structlog.stdlib.get_logger("api.access")
 
 
 async def logging_middleware(request: Request, call_next: Callable) -> Response:
-    """
-    Adapted from https://gist.github.com/nymous/f138c7f06062b7c43c060bf03759c29e
-    """
-
+    """Adapted from https://gist.github.com/nymous/f138c7f06062b7c43c060bf03759c29e."""
     structlog.contextvars.clear_contextvars()
     # These context vars will be added to all log entries emitted during the request
     request_id = correlation_id.get()
@@ -41,9 +39,14 @@ async def logging_middleware(request: Request, call_next: Callable) -> Response:
 
         # Recreate the Uvicorn access log format,
         # but add all parameters as structured information
-        client = f"{client_host}:{client_port}"
         logger.info(
-            f"""{client} - "{http_method} {url} HTTP/{http_version}" {status_code}""",
+            """{%s:%s} - "{%s} {%s} HTTP/{%s}" {%s}""",
+            client_host,
+            client_port,
+            http_method,
+            url,
+            http_version,
+            status_code,
             http={
                 "url": str(request.url),
                 "status_code": status_code,

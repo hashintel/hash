@@ -139,10 +139,13 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(
+    pub fn add_selection_path<'q>(
         &mut self,
-        path: &'c R::QueryPath<'_>,
-    ) -> impl RowIndex + Display + Copy {
+        path: &'c R::QueryPath<'q>,
+    ) -> impl RowIndex + Display + Copy
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let alias = self.add_join_statements(path);
         self.statement.selects.push(SelectExpression::from_column(
             path.terminating_column().aliased(alias),
@@ -155,12 +158,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_distinct_selection_with_ordering(
+    pub fn add_distinct_selection_with_ordering<'q>(
         &mut self,
-        path: &'c R::QueryPath<'_>,
+        path: &'c R::QueryPath<'q>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
-    ) -> impl RowIndex + Display + Copy {
+    ) -> impl RowIndex + Display + Copy
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let column = path
             .terminating_column()
             .aliased(self.add_join_statements(path));
@@ -177,7 +183,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) {
+    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         let condition = self.compile_filter(filter);
         self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
@@ -192,7 +201,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
-    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition<'c> {
+    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition<'c>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         if let Some(condition) = self.compile_special_filter(filter) {
             return condition;
         }
@@ -230,11 +242,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
     // When          more CTEs are needed, a test should be added to cover both CTEs in one
     // statement to          ensure compatibility
-    fn compile_latest_ontology_version_filter(
+    fn compile_latest_ontology_version_filter<'q>(
         &mut self,
-        path: &R::QueryPath<'_>,
+        path: &R::QueryPath<'q>,
         operator: EqualityOperator,
-    ) -> Condition<'c> {
+    ) -> Condition<'c>
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
@@ -290,7 +305,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
-    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>> {
+    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
@@ -323,7 +341,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
+    pub fn compile_path_column<'q>(&mut self, path: &'p R::QueryPath<'q>) -> AliasedColumn<'c>
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let column = match path.terminating_column() {
             Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
                 self.artifacts.parameters.push(field);
@@ -365,7 +386,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     pub fn compile_filter_expression<'f: 'p>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> Expression<'c> {
+    ) -> Expression<'c>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         match expression {
             FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
             FilterExpression::Parameter(parameter) => {
@@ -390,7 +414,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
-    fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
+    fn add_join_statements<'q>(&mut self, path: &R::QueryPath<'q>) -> Alias
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let mut current_table = self.statement.from;
 
         if current_table.table == Table::EntityTemporalMetadata {

@@ -6,10 +6,12 @@ import {
 import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import { useRef, useState } from "react";
+import { isMobile } from "react-device-detect";
+import { SizeMe } from "react-sizeme";
 
 import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
-import { Settings } from "./components/settings/settings";
+import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
 import {
   BlockEntity,
@@ -48,41 +50,60 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   };
 
+  const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
 
   return (
     <ThemeProvider theme={theme}>
-      <div className={styles.block} ref={blockRootRef}>
-        <div className={styles.titleWrapper}>
-          <div>
-            <EditableField
-              value={titleValue}
-              placeholder="Untitled Board"
-              onChange={(event) => setTitleValue(event.target.value)}
-              onBlur={(event) =>
-                updateEntity({ [titleKey]: event.target.value })
-              }
-              readonly={readonly}
-              sx={{
-                fontWeight: 700,
-                fontSize: "21px !important",
-                lineHeight: "1.2 !important",
-                color: "black",
-              }}
-              wrapperSx={{ mb: 1.5 }}
-            />
-          </div>
-          {!readonly && (
-            <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
-          )}
-        </div>
+      <SizeMe>
+        {({ size }) => {
+          const collapseSettings = (size.width ?? 0) < 670;
 
-        <Table
-          blockEntity={blockEntity}
-          updateEntity={updateEntity}
-          readonly={readonly}
-        />
-      </div>
+          return (
+            <div
+              className={styles.block}
+              ref={blockRootRef}
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
+            >
+              {!readonly ? (
+                <SettingsBar
+                  show={isMobile || hovered}
+                  collapseSettings={collapseSettings}
+                  blockEntity={blockEntity}
+                  updateEntity={updateEntity}
+                />
+              ) : null}
+              <div className={styles.titleWrapper}>
+                <div>
+                  <EditableField
+                    value={titleValue}
+                    placeholder="Untitled Board"
+                    onChange={(event) => setTitleValue(event.target.value)}
+                    onBlur={(event) =>
+                      updateEntity({ [titleKey]: event.target.value })
+                    }
+                    readonly={readonly}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "21px !important",
+                      lineHeight: "1.2 !important",
+                      color: "black",
+                    }}
+                    wrapperSx={{ mb: 1.5 }}
+                  />
+                </div>
+              </div>
+
+              <Table
+                blockEntity={blockEntity}
+                updateEntity={updateEntity}
+                readonly={readonly}
+              />
+            </div>
+          );
+        }}
+      </SizeMe>
     </ThemeProvider>
   );
 };

@@ -3,10 +3,13 @@ import { AxiosError } from "axios";
 import { DependencyList, useEffect, useState } from "react";
 
 import { resetLocalStorage } from "../../lib/config";
+import { useAuthInfo } from "../../pages/shared/auth-info-context";
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
 
 export const useLogoutFlow = (deps?: DependencyList) => {
   const client = useApolloClient();
+
+  const { refetch: refetchUser } = useAuthInfo();
 
   const [logoutToken, setLogoutToken] = useState<string>("");
 
@@ -32,9 +35,11 @@ export const useLogoutFlow = (deps?: DependencyList) => {
       if (logoutToken) {
         await oryKratosClient.updateLogoutFlow({ token: logoutToken });
 
+        await refetchUser();
+
         resetLocalStorage();
 
-        await client.resetStore();
+        await client.clearStore();
       }
     },
   };

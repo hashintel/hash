@@ -2,6 +2,42 @@
 
 set -euo pipefail
 
+touch ~/.bashrc
+
+# shellcheck disable=SC2016
+echo 'export PATH=/vercel/.local/bin:/usr/local/python/bin/:$PATH' >> ~/.bashrc
+
+# shellcheck disable=SC1090
+source ~/.bashrc
+
+echo "Changing dir to root"
+cd ../..
+
+echo "updating certificates"
+yum update ca-certificates -y
+
+echo "Installing prerequisites"
+yum install -y wget tar gzip
+
+echo "Installing eget"
+curl https://zyedidia.github.io/eget.sh | sh
+
+# Install Python and Poetry
+
+echo "Installing python"
+mkdir tmp
+cd tmp
+
+../eget indygreg/python-build-standalone -t 20230116 -a 3.11 -a x86_64-unknown-linux-gnu-install_only --download-only
+tar -axf cpython-* -C /usr/local
+
+cd ..
+rm -r tmp
+
+echo "Installing pipx and poetry"
+python3.11 -m pip install pipx
+python3.11 -m pipx install poetry
+
 # Setup TurboRepo and get a pruned src folder and lockfile
 
 echo "Installing turbo"

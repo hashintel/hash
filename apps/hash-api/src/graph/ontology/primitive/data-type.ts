@@ -2,6 +2,7 @@ import {
   DATA_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { DataTypeStructuralQuery } from "@local/hash-graph-client";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -17,7 +18,11 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import {
+  currentTimeInstantTemporalAxes,
+  ImpureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -70,6 +75,22 @@ export const createDataType: ImpureGraphFunction<
 };
 
 /**
+ * Get data types by a structural query.
+ *
+ * @param params.query the structural query to filter data types by.
+ */
+export const getDataTypes: ImpureGraphFunction<
+  {
+    query: DataTypeStructuralQuery;
+  },
+  Promise<Subgraph<DataTypeRootType>>
+> = async ({ graphApi }, { query }) => {
+  return await graphApi
+    .getDataTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<DataTypeRootType>);
+};
+
+/**
  * Get a data type by its versioned URL.
  *
  * @param params.dataTypeId the unique versioned URL for a data type.
@@ -79,32 +100,18 @@ export const getDataTypeById: ImpureGraphFunction<
     dataTypeId: VersionedUrl;
   },
   Promise<DataTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { dataTypeId } = params;
 
-  const [dataType] = await graphApi
-    .getDataTypesByQuery({
+  const [dataType] = await getDataTypes(context, {
+    query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
-    })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<DataTypeRootType>),
-    );
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then(getRoots);
 
   if (!dataType) {
     throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);

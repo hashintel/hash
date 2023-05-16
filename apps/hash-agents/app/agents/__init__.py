@@ -1,6 +1,8 @@
+"""A collection of AI-assisted tasks (agents) that can be executed by the app."""
 import importlib
 import os
 import runpy
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -11,35 +13,45 @@ logger = structlog.stdlib.get_logger(__name__)
 
 @beartype
 def find_allowed_agents() -> list[str]:
-    agents_dir = os.path.dirname(__file__)
+    """Searches the file-system to locate the agents that can be called."""
+    agents_dir = Path(__file__).parent
     allowed_agents = []
     for agent in os.listdir(agents_dir):
-        agent_dir = os.path.join(agents_dir, agent)
+        agent_dir = agents_dir / agent
         if (
-            os.path.isdir(agent_dir)
-            and os.path.exists(os.path.join(agent_dir, "__main__.py"))
-            and os.path.exists(os.path.join(agent_dir, "io_types.py"))
+            agent_dir.is_dir()
+            and Path.exists(agent_dir / "__main__.py")
+            and Path.exists(agent_dir / "io_types.py")
         ):
             allowed_agents.append(agent)
     return allowed_agents
 
 
 class InvalidAgentNameError(ValueError):
+    """Raised when an invalid agent name is provided."""
+
     @beartype
-    def __init__(self, agent_name: str, allowed_agents: list[str]) -> None:
+    def __init__(  # noqa: D107
+        self,
+        agent_name: str,
+        allowed_agents: list[str],
+    ) -> None:
         super().__init__(
-            f"Invalid agent name: {agent_name}. Allowed agents: {allowed_agents}"
+            f"Invalid agent name: {agent_name}. Allowed agents: {allowed_agents}",
         )
 
 
 class InvalidAgentOutputError(ValueError):
+    """Raised when an agent returns an unexpected output."""
+
     @beartype
-    def __init__(self, agent_name: str, output: Any) -> None:  # noqa: ANN401
+    def __init__(self, agent_name: str, output: Any) -> None:  # noqa: ANN401, D107
         super().__init__(f"Unexpected output for agent {agent_name}: {output}")
 
 
 @beartype
 def call_agent(agent: str, **kwargs: dict) -> dict:
+    """Calls an agent with the provided arguments."""
     allowed_agents = find_allowed_agents()
     if agent not in allowed_agents:
         raise InvalidAgentNameError(agent, allowed_agents)
@@ -53,12 +65,12 @@ def call_agent(agent: str, **kwargs: dict) -> dict:
         module,
         run_name="HASH",
         init_globals={
-            "IN": io_types.input_from_dict(kwargs),
+            "IN": io_types.Input.parse_obj(kwargs),
         },
     ).get("OUT")
 
     try:
-        agent_output = io_types.output_to_dict(out)
+        agent_output = io_types.Output.dict(out)
     except AssertionError as e:
         raise InvalidAgentOutputError(agent, out) from e
 

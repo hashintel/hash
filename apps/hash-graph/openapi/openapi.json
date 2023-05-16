@@ -1163,6 +1163,9 @@
                     },
                     {
                       "type": "string"
+                    },
+                    {
+                      "type": "number"
                     }
                   ]
                 }

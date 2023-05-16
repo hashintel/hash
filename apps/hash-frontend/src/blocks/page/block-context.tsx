@@ -1,8 +1,15 @@
 import { EntityRootType, Subgraph } from "@blockprotocol/graph/temporal";
-import { createContext, Dispatch, SetStateAction, useContext } from "react";
+import {
+  createContext,
+  Dispatch,
+  PropsWithChildren,
+  SetStateAction,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 export type BlockContextType = {
-  id: string;
   error: boolean;
   setError: (error: boolean) => void;
   blockSubgraph: Subgraph<EntityRootType> | undefined;
@@ -21,4 +28,25 @@ export const useBlockContext = () => {
   }
 
   return blockContext;
+};
+
+export const BlockContextProvider = ({ children }: PropsWithChildren) => {
+  const [error, setError] = useState(false);
+  const [blockSubgraph, setBlockSubgraph] = useState<
+    Subgraph<EntityRootType> | undefined
+  >();
+
+  const context = useMemo<BlockContextType>(
+    () => ({
+      error,
+      setError,
+      blockSubgraph,
+      setBlockSubgraph,
+    }),
+    [error, setError, blockSubgraph, setBlockSubgraph],
+  );
+
+  return (
+    <BlockContext.Provider value={context}>{children}</BlockContext.Provider>
+  );
 };

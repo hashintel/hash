@@ -6,7 +6,7 @@ This is a collection of LLM agents that are being used in HASH. The agents are d
 
 ## Requirements
 
-- Python 3.x > 3.10 (the version used in HASH is 3.11)
+- Python 3.x > 3.11 (the version used in HASH is 3.11)
 
 ## Setup
 
@@ -30,12 +30,16 @@ Some potential candidates for `PYTHON_CMD`
   - Set the `OPENAI_API_KEY` environment variable in your shell
 - Install dependencies:
   - `poetry install`
+- Generate the Python typings for the agents:
+  - `yarn codegen`
 
 ### Subsequent Runs (or after Pre-Setup)
 
 - Ensure the OpenAI API key is available
 - If the requirements has been changed:
   - `poetry install`
+- If the typings for the agents have been changed:
+  - `yarn codegen`
 
 ## Running
 
@@ -67,7 +71,7 @@ All logs will be output to a `$HASH_AGENT_RUNNER_LOG_FOLDER/run-TIMESTAMP.log` f
 
 ## Developing agents
 
-> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn build` command to ensure the python typings are up to date.
+> Whenever you're making changes to the `io_types.ts` file for an agent, be sure to re-run the `yarn codegen` command to ensure the python typings are up to date.
 
 ### Adding a new agent
 

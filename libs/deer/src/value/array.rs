@@ -2,7 +2,7 @@ use error_stack::{Result, ResultExt};
 
 use crate::{
     error::DeserializerError, value::EnumUnitDeserializer, ArrayAccess, Context, Deserializer,
-    EnumVisitor, OptionalVisitor, Visitor,
+    EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 
 // TODO: SliceDeserializer/IteratorDeserializer
@@ -61,5 +61,14 @@ where
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        visitor
+            .visit_array(self.value)
+            .change_context(DeserializerError)
     }
 }

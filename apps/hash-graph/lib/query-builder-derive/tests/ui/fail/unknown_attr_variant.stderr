@@ -1,0 +1,5 @@
+error: unrecognized attribute unknown
+ --> tests/ui/fail/unknown_attr_variant.rs:5:15
+  |
+5 |     #[builder(unknown = "value")]
+  |               ^^^^^^^
