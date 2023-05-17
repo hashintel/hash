@@ -70,7 +70,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   const isReadonlyMode = useIsReadonlyModeForResource(accountId);
 
-  const { setEditorView, pageTitleRef } = usePageContext();
+  const { setEditorContext, pageTitleRef } = usePageContext();
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -98,7 +98,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       client,
     );
 
-    setEditorView(view);
+    setEditorContext({ view, manager });
 
     prosemirrorSetup.current = {
       view,
@@ -119,7 +119,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     renderPortal,
     isReadonlyMode,
     clearPortals,
-    setEditorView,
+    setEditorContext,
     pageTitleRef,
     client,
   ]);

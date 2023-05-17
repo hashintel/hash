@@ -289,7 +289,7 @@ export class ProsemirrorManager {
   async createBlock(
     targetComponentId: string,
     draftBlockId: string | null,
-    targetVariant: BlockVariant,
+    targetVariant: BlockVariant | null,
   ) {
     if (!this.view) {
       throw new Error("Cannot trigger createBlock without view");
@@ -300,7 +300,7 @@ export class ProsemirrorManager {
     const { tr } = this.view.state;
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    const entityProperties = targetVariant.properties ?? {};
+    const entityProperties = targetVariant?.properties ?? {};
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
@@ -359,7 +359,7 @@ export class ProsemirrorManager {
 
   async insertBlock(
     targetComponentId: string,
-    variant: BlockVariant,
+    variant: BlockVariant | null,
     to: number,
   ) {
     const [tr, node] = await this.createBlock(targetComponentId, null, variant);
