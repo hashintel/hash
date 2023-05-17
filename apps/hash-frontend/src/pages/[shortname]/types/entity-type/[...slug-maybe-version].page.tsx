@@ -26,6 +26,7 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import {
   childMenu,
   secondOption,
+  thirdOption,
   useCommandBarOption,
 } from "../../../../shared/command-bar";
 import { isHrefExternal } from "../../../../shared/is-href-external";
@@ -52,9 +53,7 @@ import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-ty
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
-  useCommandBarOption(secondOption, {
-    options: childMenu,
-  });
+  useCommandBarOption(secondOption);
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;

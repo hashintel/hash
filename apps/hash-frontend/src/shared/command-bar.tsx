@@ -32,31 +32,49 @@ type CommandBarOptionCommand = {
   // Used to render a custom screen inside the popup when the option is selected
   renderCustomScreen?: (option: CommandBarOption) => ReactNode;
   // Used to render a submenu when the option is selected
-  options?: OptionWithoutPath[];
+  options?: CommandBarMenu;
   // Used to trigger a command when the option is selected
   command?: (option: CommandBarOption) => void;
+
+  asyncCommand?: (input: string) => Promise<CommandBarOption | null>;
 };
 
 class CommandBarOption {
   private command: CommandBarOptionCommand | null = null;
+  private active = false;
 
   constructor(
-    private readonly menu: CommandBarMenu,
+    public readonly menu: CommandBarMenu | null,
     public readonly label: string,
     public readonly group: string,
     public readonly keysList?: string[],
   ) {}
 
-  activate(command: CommandBarOptionCommand) {
+  setCommand(command: CommandBarOptionCommand) {
     this.command = command;
-    this.menu.update();
+    this.menu?.update();
+
+    return this;
+  }
+
+  activate(command?: CommandBarOptionCommand) {
+    if (command) {
+      this.command = command;
+    }
+
+    this.active = true;
+    this.menu?.update();
 
     let removed = false;
 
     return () => {
       if (!removed) {
-        this.command = null;
-        this.menu.update();
+        this.active = false;
+        if (command) {
+          this.command = null;
+        }
+
+        this.menu?.update();
       }
 
       removed = true;
@@ -64,7 +82,7 @@ class CommandBarOption {
   }
 
   isActive() {
-    return !!this.command;
+    return !!this.command && this.active;
   }
 
   getCommand() {
@@ -130,11 +148,31 @@ childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
   },
 });
 
-export const secondOption = menu.addOption("Second", "Page", ["Meta", "s"]);
+childMenu.addOption("Third", "General").activate({
+  renderCustomScreen: () => <div>Custom screen</div>,
+});
+
+childMenu.addOption("Fourth", "General").activate({
+  asyncCommand: async (input) => {
+    return new Promise((resolve) => {
+      setTimeout(resolve, 1_000);
+    }).then(() => {
+      return new CommandBarOption(null, input, "General").setCommand({
+        renderCustomScreen: () => <div>Custom screen 2 {input}</div>,
+      });
+    });
+  },
+});
+
+export const secondOption = menu
+  .addOption("Second", "Page", ["Meta", "s"])
+  .setCommand({
+    options: childMenu,
+  });
 
 export const useCommandBarOption = (
   option: CommandBarOption,
-  command: CommandBarOptionCommand,
+  command?: CommandBarOptionCommand,
 ) => {
   useEffect(() => {
     const deactivate = option.activate(command);
@@ -143,20 +181,6 @@ export const useCommandBarOption = (
       deactivate();
     };
   }, [option, command]);
-};
-
-// In order to make declaring the options easier, we use a type that doesn't require the path to be specified.
-// The path is added later by flattening the options
-type OptionWithoutPath = {
-  group: string;
-  label: string;
-  href?: string;
-  // Used to render a custom screen inside the popup when the option is selected
-  renderCustomScreen?: (option: OptionWithoutPath) => ReactNode;
-  // Used to render a submenu when the option is selected
-  options?: OptionWithoutPath[];
-  // Used to trigger a command when the option is selected
-  command?: (option: OptionWithoutPath) => void;
 };
 
 // The state of the command bar is not immediately reset when exited via the backdrop or command+K.
@@ -292,7 +316,9 @@ export const CommandBar = () => {
   const router = useRouter();
 
   const [inputValue, setInputValue] = useState("");
-  const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
+  const [selectedOptionPath, setSelectedOptionPath] = useState<
+    CommandBarOption[]
+  >([]);
 
   const [resetBar, cancelReset] = useDelayedCallback(() => {
     setSelectedOptionPath([]);
@@ -307,6 +333,16 @@ export const CommandBar = () => {
     [popupState, resetBar],
   );
 
+  useEffect(() => {
+    const handler = () => {
+      closeBar("immediate");
+    };
+    router.events.on("routeChangeStart", handler);
+    return () => {
+      router.events.off("routeChangeStart", handler);
+    };
+  }, [router.events, closeBar]);
+
   useKeys(["Meta", "k"], () => {
     if (popupState.isOpen) {
       closeBar("delayed");
@@ -318,20 +354,20 @@ export const CommandBar = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // const selectedOption = getSelectedOptions(selectedOptionPath, allOptions);
-  // const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
-  const customScreen = null;
-
   const triggerOption = useCallback(
     (option: CommandBarOption) => {
       const command = option.getCommand();
 
       if (command) {
-        if (command.options || command.renderCustomScreen) {
+        if (
+          command.options ||
+          command.renderCustomScreen ||
+          command.asyncCommand
+        ) {
           cancelReset();
           popupState.open();
 
-          setSelectedOptionPath((current) => [...current, option.label]);
+          setSelectedOptionPath((current) => [...current, option]);
         } else {
           closeBar("immediate");
 
@@ -365,13 +401,23 @@ export const CommandBar = () => {
     }
   };
 
+  const selectedOption = selectedOptionPath[selectedOptionPath.length - 1];
+  const selectedCommand = selectedOption?.getCommand();
+
+  const activeMenu =
+    selectedOptionPath.length > 0 ? selectedCommand?.options : menu;
+
+  const customScreen = selectedOption
+    ? selectedCommand?.renderCustomScreen?.(selectedOption)
+    : null;
+
   // This is used to render the input with the selected options as chips
   const renderInput = (props: AutocompleteRenderInputParams) => (
     <>
-      {selectedOptionPath.map((path, index) => (
+      {selectedOptionPath.map(({ label }, index) => (
         <Chip
-          key={path}
-          label={path}
+          key={label}
+          label={label}
           onDelete={() =>
             setSelectedOptionPath(selectedOptionPath.slice(0, index))
           }
@@ -383,8 +429,32 @@ export const CommandBar = () => {
         inputRef={inputRef}
         onKeyDown={(evt) => {
           // If the user presses backspace and there is no input value, then go back to the previous selectedOption
-          if (evt.key === "Backspace" && !inputRef.current?.value) {
-            setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+          switch (evt.key) {
+            case "Backspace":
+              if (!inputRef.current?.value) {
+                setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+              }
+              break;
+            case "Enter":
+              if (!inputValue) {
+                return;
+              }
+
+              if (selectedCommand?.asyncCommand) {
+                setInputValue("");
+
+                void selectedCommand
+                  .asyncCommand(inputValue)
+                  .then((nextOption) => {
+                    if (nextOption) {
+                      setSelectedOptionPath((current) =>
+                        current[current.length - 1] === selectedOption
+                          ? [...current, nextOption]
+                          : current,
+                      );
+                    }
+                  });
+              }
           }
         }}
         {...props}
@@ -396,12 +466,10 @@ export const CommandBar = () => {
 
   useEffect(() => {
     const remove = menu.addListener(forceRender);
-
     const mapping: Record<string, boolean | undefined> = {};
 
     // adapted from rooks to handle multiple sets of keys
     const handleKeyDown = (event: KeyboardEvent) => {
-      let pressedKeyIdentifier: string | null = null;
       // First detect the key that was pressed;
       for (const option of menu.options) {
         let areAllKeysFromListPressed = false;
@@ -410,7 +478,6 @@ export const CommandBar = () => {
           for (const identifier of option.keysList) {
             if (doesIdentifierMatchKeyboardEvent(event, identifier)) {
               mapping[identifier] = true;
-              pressedKeyIdentifier = identifier;
             }
           }
 
@@ -424,8 +491,8 @@ export const CommandBar = () => {
             event.preventDefault();
             triggerOption(option);
 
-            if (pressedKeyIdentifier) {
-              mapping[pressedKeyIdentifier] = false;
+            for (const key of Object.keys(mapping)) {
+              delete mapping[key];
             }
           }
         }
@@ -458,13 +525,44 @@ export const CommandBar = () => {
       <CenterContainer>
         <CustomScreenContext.Provider value={customScreen}>
           <Autocomplete
-            options={menu.options.filter((option) => option.isActive())}
+            options={
+              activeMenu?.subOptions.filter((option) => option.isActive()) ?? []
+            }
             sx={{ width: "100%" }}
             renderInput={renderInput}
             PaperComponent={CustomPaperComponent}
             onChange={handleChange}
             groupBy={(option) => option.group}
             getOptionLabel={(option) => option.label}
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box display="flex" alignItems="center" width="100%">
+                  {option.label}
+                  {option.keysList ? (
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      gap={0.5}
+                      marginLeft="auto"
+                      flexGrow={0}
+                    >
+                      {option.keysList.map((key) => (
+                        <Box
+                          key={key}
+                          borderRadius={1}
+                          bgcolor={(theme) => theme.palette.blue[30]}
+                          px={1}
+                        >
+                          {key.toLowerCase() === "meta"
+                            ? "⌘"
+                            : key.toUpperCase()}
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : null}{" "}
+                </Box>
+              </li>
+            )}
             // The popup should always be open when the modal is open
             open
             popupIcon={null}
@@ -478,21 +576,19 @@ export const CommandBar = () => {
             onInputChange={(_, value, reason) => {
               setInputValue(reason === "reset" ? "" : value);
             }}
-            // filterOptions={(optionsToFilter, state) =>
-            //   // Combine the default filtering with filtering by the selectedOptionPath
-            //   // so that only options that are in the selectedOptionPath are shown
-            //   defaultFilterOptions(
-            //     optionsToFilter.filter(
-            //       (option) =>
-            //         JSON.stringify(option.path) ===
-            //         JSON.stringify(selectedOptionPath),
-            //     ),
-            //     state,
-            //   )
-            // }
+            noOptionsText={
+              selectedCommand?.asyncCommand
+                ? inputValue
+                  ? "Press Enter to run command"
+                  : "Type your prompt and press enter"
+                : undefined
+            }
             onClose={(_, reason) => {
               // Prevent the autocomplete from closing when the user clicks on the input
-              if (reason !== "toggleInput") {
+              if (
+                reason !== "toggleInput" &&
+                (reason !== "blur" || !selectedCommand?.renderCustomScreen)
+              ) {
                 closeBar(reason === "escape" ? "immediate" : "delayed");
               }
             }}
