@@ -2,19 +2,17 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/design-system";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { AccountId, EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
-import { useRouter } from "next/router";
 import { EditorView } from "prosemirror-view";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
+import { PageContentItem } from "../../graphql/api-types.gen";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
-import { BlockLoadedProvider } from "../on-block-loaded";
 import { useUserBlocks } from "../user-blocks";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
@@ -27,7 +25,7 @@ import {
 } from "./page-section-container";
 
 type PageBlockProps = {
-  contents: BlockEntity[];
+  contents: PageContentItem[];
   pageComments: PageThread[];
   accountId: AccountId;
   entityId: EntityId;
@@ -70,8 +68,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     currentBlocks.current = newestBlocks;
   }, [newestBlocks]);
 
-  const router = useRouter();
-  const routeHash = router.asPath.split("#")[1] ?? "";
   const isReadonlyMode = useIsReadonlyModeForResource(accountId);
 
   const { setEditorView, pageTitleRef } = usePageContext();
@@ -97,7 +93,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       () => currentBlocks.current,
       isReadonlyMode,
       pageTitleRef,
-      () => currentContents.current,
+      () =>
+        currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
     );
 
@@ -128,7 +125,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   ]);
 
   return (
-    <BlockLoadedProvider routeHash={routeHash}>
+    <>
       {isReadonlyMode ? null : (
         <PageSectionContainer
           pageComments={pageComments}
@@ -206,6 +203,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
           Restart Collab Instance
         </Button>
       ) : null}
-    </BlockLoadedProvider>
+    </>
   );
 };

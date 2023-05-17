@@ -10,6 +10,7 @@
         "@apps/hash-graph#build:docker",
         "@apps/hash-agents#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
+        "@apps/hash-ai-worker-py#build:docker",
         "codegen"
       ]
     },
@@ -28,6 +29,15 @@
         "@apps/hash-graph#build:docker:offline",
         "@apps/hash-agents#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
+        "@apps/hash-ai-worker-py#build:docker",
+        "codegen"
+      ]
+    },
+    "deploy:prod": {
+      "cache": false,
+      "dependsOn": [
+        "@apps/hash-graph#build:docker:prod",
+        "@apps/hash-agents#build:docker",
         "codegen"
       ]
     },
