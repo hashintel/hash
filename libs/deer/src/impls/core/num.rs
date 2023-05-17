@@ -5,6 +5,8 @@ use core::num::{
     NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize, Wrapping,
 };
 
+#[cfg(all(not(nightly), not(feature = "std")))]
+use error_stack::IntoReport;
 use error_stack::{Report, ResultExt};
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
@@ -92,3 +94,108 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Saturating<T> {
         T::deserialize(deserializer).map(Self)
     }
 }
+
+macro_rules! impl_num {
+    (
+        $primitive:ident:: $deserialize:ident;
+        $reflection:ident;
+        $($method:ident !($($val:ident:: $visit:ident),*);)*
+    ) => {
+        $reflection!($primitive);
+
+        impl<'de> Deserialize<'de> for $primitive {
+            type Reflection = Self;
+
+            fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+            where
+                D: Deserializer<'de>,
+            {
+                struct PrimitiveVisitor;
+
+                impl<'de> Visitor<'de> for PrimitiveVisitor {
+                    type Value = $primitive;
+
+                    fn expecting(&self) -> Document {
+                        Self::Value::reflection()
+                    }
+
+                    $($($method!($val :: $visit);)*)*
+                }
+
+                deserializer.$deserialize(PrimitiveVisitor).change_context(DeserializeError)
+            }
+        }
+    };
+}
+
+macro_rules! num_self {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(value)
+        }
+    };
+}
+
+macro_rules! num_from {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(Self::Value::from(value))
+        }
+    };
+}
+
+#[cfg(any(nightly, feature = "std"))]
+macro_rules! num_try_from {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Self::Value::try_from(value)
+                .into_report()
+                .change_context(ValueError.into_error())
+                .attach(ExpectedType::new(self.expecting()))
+                .attach(ReceivedValue::new(value))
+                .change_context(VisitorError)
+        }
+    };
+}
+
+// error_in_core is not stabilized just yet
+#[cfg(all(not(nightly), not(feature = "std")))]
+macro_rules! num_try_from {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            if let Ok(value) = Self::Value::try_from(value) {
+                Ok(value)
+            } else {
+                Err(Report::new(ValueError.into_error())
+                    .attach(ExpectedType::new(self.expecting()))
+                    .attach(ReceivedValue::new(value))
+                    .change_context(VisitorError))
+            }
+        }
+    };
+}
+
+macro_rules! num_as_lossy {
+    ($primitive:ident:: $visit:ident) => {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+            Ok(value as Self::Value)
+        }
+    };
+}
+
+macro_rules! num_number {
+    ($primitive:ident:: $to:ident) => {
+        fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+            value.$to().ok_or_else(|| {
+                Report::new(ValueError.into_error())
+                    .attach(ExpectedType::new(self.expecting()))
+                    .attach(ReceivedValue::new(value))
+                    .change_context(VisitorError)
+            })
+        }
+    };
+}
+
+// these imports are down here as they make use of the macros declared above
+mod floating;
+mod integral;
