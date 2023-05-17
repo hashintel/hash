@@ -116,7 +116,7 @@ export const queryEntitiesResolver: Extract<
     hasLeftEntity,
     hasRightEntity,
   },
-  { dataSources },
+  { logger, dataSources },
   __,
 ) => {
   const { graphApi } = dataSources;
@@ -130,6 +130,12 @@ export const queryEntitiesResolver: Extract<
   const filter = operation.multiFilter
     ? bpMultiFilterToGraphFilter(operation.multiFilter)
     : { any: [] };
+
+  if ("any" in filter && filter.any.length === 0) {
+    logger.warn(
+      "QueryEntities called with empty filter, which means returning an empty subgraph. This is probably not what you want.",
+    );
+  }
 
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter,
