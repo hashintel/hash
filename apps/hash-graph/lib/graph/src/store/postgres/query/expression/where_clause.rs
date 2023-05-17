@@ -3,12 +3,12 @@ use std::fmt;
 use crate::store::postgres::query::{Condition, Transpile};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
-pub struct WhereExpression<'p> {
-    conditions: Vec<Condition<'p>>,
+pub struct WhereExpression {
+    conditions: Vec<Condition>,
 }
 
-impl<'p> WhereExpression<'p> {
-    pub fn add_condition(&mut self, condition: Condition<'p>) {
+impl WhereExpression {
+    pub fn add_condition(&mut self, condition: Condition) {
         self.conditions.push(condition);
     }
 
@@ -21,7 +21,7 @@ impl<'p> WhereExpression<'p> {
     }
 }
 
-impl Transpile for WhereExpression<'_> {
+impl Transpile for WhereExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.conditions.is_empty() {
             return Ok(());

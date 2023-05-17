@@ -3,18 +3,18 @@ use std::fmt::{self, Write};
 use crate::store::postgres::query::{Statement, Table, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct CommonTableExpression<'p> {
+pub struct CommonTableExpression {
     table: Table,
-    statement: Statement<'p>,
+    statement: Statement,
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Hash)]
-pub struct WithExpression<'p> {
-    common_table_expressions: Vec<CommonTableExpression<'p>>,
+pub struct WithExpression {
+    common_table_expressions: Vec<CommonTableExpression>,
 }
 
-impl<'p> WithExpression<'p> {
-    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement<'p>>) {
+impl WithExpression {
+    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement>) {
         self.common_table_expressions.push(CommonTableExpression {
             table,
             statement: statement.into(),
@@ -30,7 +30,7 @@ impl<'p> WithExpression<'p> {
     }
 }
 
-impl Transpile for WithExpression<'_> {
+impl Transpile for WithExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.common_table_expressions.is_empty() {
             return Ok(());
@@ -53,8 +53,6 @@ impl Transpile for WithExpression<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
-
     use super::*;
     use crate::store::postgres::query::{
         expression::OrderByExpression,
@@ -72,10 +70,7 @@ mod tests {
             distinct: Vec::new(),
             selects: vec![
                 SelectExpression::new(Expression::Asterisk, None),
-                SelectExpression::new(
-                    max_version_expression(),
-                    Some(Cow::Borrowed("latest_version")),
-                ),
+                SelectExpression::new(max_version_expression(), Some("latest_version")),
             ],
             from: Table::OntologyIds.aliased(Alias {
                 condition_index: 0,
