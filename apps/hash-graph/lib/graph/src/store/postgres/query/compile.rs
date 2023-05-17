@@ -15,7 +15,7 @@ use crate::{
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
             WindowStatement, WithExpression,
         },
-        query::{Filter, FilterExpression, Parameter},
+        query::{Filter, FilterExpression, Parameter, ParameterType},
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -225,28 +225,68 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
             Filter::Not(filter) => Condition::Not(Box::new(self.compile_filter(filter))),
             Filter::Equal(lhs, rhs) => Condition::Equal(
                 lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
             ),
             Filter::NotEqual(lhs, rhs) => Condition::NotEqual(
                 lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
             ),
-            Filter::StartsWith(lhs, rhs) => Condition::StartsWith(
-                self.compile_filter_expression(lhs),
-                self.compile_filter_expression(rhs),
-            ),
-            Filter::EndsWith(lhs, rhs) => Condition::EndsWith(
-                self.compile_filter_expression(lhs),
-                self.compile_filter_expression(rhs),
-            ),
-            Filter::Contains(lhs, rhs) => Condition::Contains(
-                self.compile_filter_expression(lhs),
-                self.compile_filter_expression(rhs),
-            ),
+            Filter::StartsWith(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                dbg!(&left_filter, left_parameter);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::StartsWith(left_filter, right_filter)
+            }
+            Filter::EndsWith(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::EndsWith(left_filter, right_filter)
+            }
+            Filter::ContainsSegment(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::ContainsSegment(left_filter, right_filter)
+            }
         }
     }
 
@@ -398,24 +438,47 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     pub fn compile_filter_expression<'f: 'p>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> Expression<'c>
+    ) -> (Expression<'c>, ParameterType)
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
         match expression {
-            FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
+            FilterExpression::Path(path) => {
+                let column = self.compile_path_column(path);
+                let parameter_type = column.column.parameter_type();
+                (Expression::Column(column), parameter_type)
+            }
             FilterExpression::Parameter(parameter) => {
-                match parameter {
-                    Parameter::Number(number) => self.artifacts.parameters.push(number),
-                    Parameter::Text(text) => self.artifacts.parameters.push(text),
-                    Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
-                    Parameter::Any(json) => self.artifacts.parameters.push(json),
-                    Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
+                let parameter_type = match parameter {
+                    Parameter::Number(number) => {
+                        self.artifacts.parameters.push(number);
+                        ParameterType::Number
+                    }
+                    Parameter::Text(text) => {
+                        self.artifacts.parameters.push(text);
+                        ParameterType::Text
+                    }
+                    Parameter::Boolean(bool) => {
+                        self.artifacts.parameters.push(bool);
+                        ParameterType::Boolean
+                    }
+                    Parameter::Any(json) => {
+                        self.artifacts.parameters.push(json);
+                        ParameterType::Any
+                    }
+                    Parameter::Uuid(uuid) => {
+                        self.artifacts.parameters.push(uuid);
+                        ParameterType::Uuid
+                    }
                     Parameter::OntologyTypeVersion(version) => {
                         self.artifacts.parameters.push(version);
+                        ParameterType::OntologyTypeVersion
                     }
-                }
-                Expression::Parameter(self.artifacts.parameters.len())
+                };
+                (
+                    Expression::Parameter(self.artifacts.parameters.len()),
+                    parameter_type,
+                )
             }
         }
     }

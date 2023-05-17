@@ -16,7 +16,7 @@ pub enum Condition<'p> {
     Overlap(Expression<'p>, Expression<'p>),
     StartsWith(Expression<'p>, Expression<'p>),
     EndsWith(Expression<'p>, Expression<'p>),
-    Contains(Expression<'p>, Expression<'p>),
+    ContainsSegment(Expression<'p>, Expression<'p>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -103,7 +103,7 @@ impl Transpile for Condition<'_> {
                 fmt.write_str(" LIKE '%' || ")?;
                 rhs.transpile(fmt)
             }
-            Condition::Contains(lhs, rhs) => {
+            Condition::ContainsSegment(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" LIKE '%' || ")?;
                 rhs.transpile(fmt)?;
