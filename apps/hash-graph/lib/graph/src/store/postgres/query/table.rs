@@ -7,7 +7,10 @@ use std::{
 
 use crate::{
     identifier::time::TimeAxis,
-    store::{postgres::query::Transpile, query::JsonPath},
+    store::{
+        postgres::query::Transpile,
+        query::{JsonPath, ParameterType},
+    },
     subgraph::edges::EdgeDirection,
 };
 
@@ -281,6 +284,16 @@ impl OntologyIds<'_> {
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::BaseUrl => ParameterType::Text,
+            Self::TransactionTime => ParameterType::TimeInterval,
+            Self::Version | Self::LatestVersion => ParameterType::OntologyTypeVersion,
+            Self::AdditionalMetadata(_) => ParameterType::Any,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -297,6 +310,12 @@ impl OwnedOntologyMetadata {
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+        }
     }
 }
 
@@ -329,6 +348,14 @@ macro_rules! impl_ontology_column {
                     };
                     table.transpile(fmt)?;
                     write!(fmt, r#"."{}""#, column)
+                }
+
+                pub const fn parameter_type(self) -> ParameterType {
+                    match self {
+                        Self::OntologyId => ParameterType::Uuid,
+                        Self::Schema(Some(JsonField::StaticText(_))) => ParameterType::Text,
+                        Self::Schema(_) => ParameterType::Any,
+                    }
                 }
             }
         )*
@@ -369,6 +396,13 @@ impl EntityTemporalMetadata {
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OwnedById | Self::EntityUuid | Self::EditionId => ParameterType::Uuid,
+            Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -406,6 +440,15 @@ impl EntityEditions<'_> {
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::Properties(_) => ParameterType::Any,
+            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
+            Self::Archived => ParameterType::Boolean,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -422,6 +465,12 @@ impl EntityIsOfType {
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
+        }
     }
 }
 
@@ -444,6 +493,15 @@ impl EntityHasLeftEntity {
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OwnedById
+            | Self::EntityUuid
+            | Self::LeftEntityOwnedById
+            | Self::LeftEntityUuid => ParameterType::Uuid,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -465,6 +523,15 @@ impl EntityHasRightEntity {
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OwnedById
+            | Self::EntityUuid
+            | Self::RightEntityOwnedById
+            | Self::RightEntityUuid => ParameterType::Uuid,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -480,6 +547,14 @@ impl PropertyTypeConstrainsValuesOn {
             Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
             Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
         })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourcePropertyTypeOntologyId | Self::TargetDataTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
     }
 }
 
@@ -497,6 +572,14 @@ impl PropertyTypeConstrainsPropertiesOn {
             Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
         })
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourcePropertyTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -512,6 +595,14 @@ impl EntityTypeConstrainsPropertiesOn {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
             Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
         })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
     }
 }
 
@@ -529,6 +620,14 @@ impl EntityTypeInheritsFrom {
             Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
         })
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -545,6 +644,14 @@ impl EntityTypeConstrainsLinksOn {
             Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
         })
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -560,6 +667,14 @@ impl EntityTypeConstrainsLinkDestinationsOn {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
             Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
         })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
     }
 }
 
@@ -652,6 +767,26 @@ impl<'p> Column<'p> {
             Self::EntityIsOfType(column) => column.transpile_column(table, fmt),
             Self::EntityHasLeftEntity(column) => column.transpile_column(table, fmt),
             Self::EntityHasRightEntity(column) => column.transpile_column(table, fmt),
+        }
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyIds(column) => column.parameter_type(),
+            Self::DataTypes(column) => column.parameter_type(),
+            Self::PropertyTypes(column) => column.parameter_type(),
+            Self::EntityTypes(column) => column.parameter_type(),
+            Self::EntityTemporalMetadata(column) => column.parameter_type(),
+            Self::EntityEditions(column) => column.parameter_type(),
+            Self::PropertyTypeConstrainsValuesOn(column) => column.parameter_type(),
+            Self::PropertyTypeConstrainsPropertiesOn(column) => column.parameter_type(),
+            Self::EntityTypeConstrainsPropertiesOn(column) => column.parameter_type(),
+            Self::EntityTypeInheritsFrom(column) => column.parameter_type(),
+            Self::EntityTypeConstrainsLinksOn(column) => column.parameter_type(),
+            Self::EntityTypeConstrainsLinkDestinationsOn(column) => column.parameter_type(),
+            Self::EntityIsOfType(column) => column.parameter_type(),
+            Self::EntityHasLeftEntity(column) => column.parameter_type(),
+            Self::EntityHasRightEntity(column) => column.parameter_type(),
         }
     }
 }
