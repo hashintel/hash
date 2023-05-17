@@ -15,6 +15,7 @@ use crate::{
         json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
+        RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -54,7 +55,10 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-types",
@@ -93,7 +97,10 @@ async fn create_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
