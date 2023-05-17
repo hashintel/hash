@@ -5,7 +5,10 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
+import clsx from "clsx";
 import { FunctionComponent } from "react";
+
+import { fluidFontClassName } from "./fluid-fonts";
 
 const style: SxProps<Theme> = {
   position: "absolute",
@@ -40,6 +43,10 @@ export const Modal: FunctionComponent<ModalProps> = ({
       onClose={onClose}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
+      classes={{
+        ...(props.classes ?? {}),
+        root: clsx(props.classes?.root, fluidFontClassName),
+      }}
       {...props}
     >
       <Box

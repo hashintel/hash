@@ -9,12 +9,15 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
-import { ImpureGraphContext } from "./index";
+import {
+  currentTimeInstantTemporalAxes,
+  ImpureGraphContext,
+  zeroedGraphResolveDepths,
+} from "./index";
 import {
   createUser,
   getUserByShortname,
@@ -44,33 +47,12 @@ export const ensureSystemUserAccountIdExists = async (params: {
           { parameter: types.entityType.user.entityTypeId },
         ],
       },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { outgoing: 0, incoming: 0 },
-        hasRightEntity: { outgoing: 0, incoming: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
     });
 
   const existingUserEntities = getEntities(
-    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<EntityRootType>,
+    existingUserEntitiesSubgraph as Subgraph<EntityRootType>,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(

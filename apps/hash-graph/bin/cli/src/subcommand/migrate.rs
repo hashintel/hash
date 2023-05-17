@@ -24,27 +24,27 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), GraphError> {
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
         })?;
 
     let mut connection = pool
         .acquire()
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to acquire database connection");
+            report
         })?;
 
     connection
         .run_migrations()
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to run migrations");
+            report
         })?;
 
     Ok(())

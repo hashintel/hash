@@ -3,6 +3,7 @@ import {
   AutocompleteDropdown,
   Button,
   Chip,
+  fluidFontClassName,
   FontAwesomeIcon,
   StyledPlusCircleIcon,
   TextField,
@@ -196,10 +197,15 @@ export const ExpectedValueSelector = ({
           } else {
             newExpectedValues.push(expectedValue);
           }
-          propertyTypeFormMethods.setValue("expectedValues", newExpectedValues);
+          propertyTypeFormMethods.setValue(
+            "expectedValues",
+            newExpectedValues,
+            { shouldDirty: true },
+          );
           propertyTypeFormMethods.setValue(
             "flattenedCustomExpectedValueList",
             newValues,
+            { shouldDirty: true },
           );
           closeCustomExpectedValueBuilder();
         },
@@ -336,6 +342,7 @@ export const ExpectedValueSelector = ({
           }}
           componentsProps={{
             popper: {
+              className: fluidFontClassName,
               sx: { minWidth: 520 },
               placement: "bottom-start",
               modifiers: [

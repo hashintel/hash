@@ -278,7 +278,7 @@ The F# Feliz library supports making use of the Model-View-Update architecture o
 For those unfamiliar with MVU, it prescribes how state (the model) can can be updated through messages dispatched to the view, which itself is a pure function of the state.
 
 <img
-  src="blog/0005_build-blocks-in-any-language/mvu.png"
+  src="/blog/0005_build-blocks-in-any-language/mvu.png"
   width={1004}
   height={178}
   alt="A diagram showing how the MVU architecture propagates changes."
@@ -289,7 +289,7 @@ For those unfamiliar with MVU, it prescribes how state (the model) can can be up
 The calculation block will operate on distinct Block Protocol Entity Types which are selected for each spreadsheet row. Selecting an Entity Type will fetch entities of that type and make them available to the row. The only aggregation functions currently supported by the block are: `count`, `sum`, and `avg`.
 
 <img
-  src="blog/0005_build-blocks-in-any-language/person_count.png"
+  src="/blog/0005_build-blocks-in-any-language/person_count.png"
   width={418}
   height={118}
   alt="The calculation block with `Person` selected in row one, containing `=count()` in cell A1."
@@ -481,7 +481,7 @@ With the parser in place, the application's view can try to parse the values of 
 Inputting an expression in a cell, such as:
 
 <img
-  src="blog/0005_build-blocks-in-any-language/expression_math.png"
+  src="/blog/0005_build-blocks-in-any-language/expression_math.png"
   width={290}
   height={123}
   alt="The calculation block with `Person` selected in row one, `Company`in row two, containing `=count()/A2` in cell A1 and `=count()` in cell A2."

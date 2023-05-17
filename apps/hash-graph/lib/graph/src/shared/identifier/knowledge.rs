@@ -1,7 +1,4 @@
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    str::FromStr,
-};
+use std::{fmt, str::FromStr};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -13,13 +10,11 @@ use crate::{
         account::AccountId,
         time::{
             DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
-            VariableAxis,
         },
-        EntityVertexId,
     },
-    knowledge::{Entity, EntityUuid},
+    knowledge::EntityUuid,
     provenance::OwnedById,
-    subgraph::{Subgraph, SubgraphIndex},
+    subgraph::temporal_axes::VariableAxis,
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,12 +23,18 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 }
 
+impl fmt::Display for EntityId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}%{}", self.owned_by_id, self.entity_uuid)
+    }
+}
+
 impl Serialize for EntityId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{}%{}", self.owned_by_id, self.entity_uuid))
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -96,7 +97,19 @@ impl EntityTemporalMetadata {
 }
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    FromSql,
+    ToSql,
+    ToSchema,
 )]
 #[postgres(transparent)]
 #[repr(transparent)]
@@ -114,18 +127,9 @@ impl EntityEditionId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {
     pub entity_id: EntityId,
     pub edition_id: EntityEditionId,
-}
-
-impl SubgraphIndex<Entity> for EntityVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
-        subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
 }

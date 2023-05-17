@@ -1,36 +1,43 @@
 {
   "name": "@blocks/heading",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
     "directory": "blocks/heading"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.18",
-    "@blockprotocol/hook": "0.0.8"
+    "@blockprotocol/graph": "0.3.0",
+    "@blockprotocol/hook": "0.1.3"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "block-scripts": "0.0.14",
+    "block-scripts": "0.3.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.0.38",
+    "mock-block-dock": "0.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "4.9.4"
+    "typescript": "5.0.4"
   },
   "peerDependencies": {
     "react": "^18.2.0",
@@ -50,11 +57,22 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "text": "Hello World!",
-        "level": 2,
-        "color": "black"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "Hello World!",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/html-heading-level/": 2,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/css-text-color/": "black"
       }
     ],
-    "protocol": "0.2"
+    "protocol": "0.3",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/heading-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
   }
 }

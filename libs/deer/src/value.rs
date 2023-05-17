@@ -1,93 +1,10 @@
-mod array;
-mod bytes;
-mod object;
-mod string;
+use error_stack::{Report, Result, ResultExt};
 
-pub use array::ArrayAccessDeserializer;
-pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
-use error_stack::ResultExt;
-pub use object::ObjectAccessDeserializer;
-pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
-
-use crate::{error::DeserializerError, Context, Deserializer, Number, Visitor};
-
-macro_rules! impl_owned {
-    (@INTERNAL COPY, $ty:ty, $name:ident, $method:ident) => {
-        #[derive(Debug, Copy, Clone)]
-        pub struct $name<'a> {
-            context: &'a Context,
-            value: $ty
-        }
-    };
-
-    (@INTERNAL CLONE, $ty:ty, $name:ident, $method:ident) => {
-        #[derive(Debug, Clone)]
-        pub struct $name<'a> {
-            context: &'a Context,
-            value: $ty
-        }
-    };
-
-    (@INTERNAL IMPL, $ty:ty, $name:ident, $method:ident) => {
-        impl<'a> $name<'a> {
-            #[must_use]
-            pub const fn new(value: $ty, context: &'a Context) -> Self {
-                Self { value, context }
-            }
-        }
-
-        impl<'de, 'a> Deserializer<'de> for $name<'a> {
-            forward_to_deserialize_any!(
-                null
-                bool
-                number
-                i8 i16 i32 i64 i128 isize
-                u8 u16 u32 u64 u128 usize
-                f32 f64
-                char str string
-                bytes bytes_buffer
-                array object
-            );
-
-            fn context(&self) -> &Context {
-                self.context
-            }
-
-            fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
-            where
-                V: Visitor<'de>,
-            {
-                visitor.$method(self.value).change_context(DeserializerError)
-            }
-        }
-
-        impl<'de> IntoDeserializer<'de> for $ty {
-            type Deserializer<'a> = $name<'a> where Self: 'a;
-
-            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
-            where
-                Self: 'a {
-                $name::new(self, context)
-            }
-        }
-    };
-
-    (copy: $ty:ty, $name:ident, $method:ident) => {
-        impl_owned!(@INTERNAL COPY, $ty, $name, $method);
-        impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
-    };
-
-    (!copy: $ty:ty, $name:ident, $method:ident) => {
-        impl_owned!(@INTERNAL CLONE, $ty, $name, $method);
-        impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
-    };
-
-    ($ty:ty, $name:ident, $method:ident) => {
-        impl_owned!(copy: $ty, $name, $method);
-    };
-}
-
-use impl_owned;
+use crate::{
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    Context, Deserialize, Deserializer, EnumVisitor, Number, OptionalVisitor, Reflection,
+    StructVisitor, Visitor,
+};
 
 pub trait IntoDeserializer<'de> {
     type Deserializer<'a>: Deserializer<'de>
@@ -98,6 +15,410 @@ pub trait IntoDeserializer<'de> {
     where
         Self: 'a;
 }
+
+pub(crate) struct EnumUnitDeserializer<'a, D> {
+    context: &'a Context,
+    deserializer: D,
+}
+
+impl<'a, D> EnumUnitDeserializer<'a, D> {
+    #[must_use]
+    pub(crate) const fn new(context: &'a Context, deserializer: D) -> Self {
+        Self {
+            context,
+            deserializer,
+        }
+    }
+}
+
+impl<'de, D> EnumUnitDeserializer<'_, D>
+where
+    D: Deserializer<'de>,
+{
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let context = self.context;
+
+        let discriminant = visitor
+            .visit_discriminant(self.deserializer)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, NoneDeserializer::new(context))
+            .change_context(DeserializerError)
+    }
+}
+
+macro_rules! deserialize_any {
+    ($name:ident, $primitive:ty,as, $cast:ident, $visit:ident) => {
+        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: Visitor<'de>,
+        {
+            visitor
+                .$visit(self.value as $cast)
+                .change_context(DeserializerError)
+        }
+    };
+
+    ($name:ident, $primitive:ty, $visit:ident) => {
+        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: Visitor<'de>,
+        {
+            visitor.$visit(self.value).change_context(DeserializerError)
+        }
+    };
+}
+
+macro_rules! deserialize_optional {
+    ($name:ident, $primitive:ty) => {
+        fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: OptionalVisitor<'de>,
+        {
+            visitor.visit_some(self).change_context(DeserializerError)
+        }
+    };
+}
+
+macro_rules! deserialize_enum {
+    ($name:ident, $primitive:ty) => {
+        fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: EnumVisitor<'de>,
+        {
+            $crate::value::EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+        }
+    };
+}
+
+macro_rules! deserialize_struct {
+    ($name:ident, $primitive:ty,error) => {
+        deserialize_struct!($name, $primitive, error, <bool as Deserialize>::Reflection);
+    };
+    ($name:ident, $primitive:ty,error, $expected:ty) => {
+        fn deserialize_struct<V>(
+            self,
+            visitor: V,
+        ) -> error_stack::Result<V::Value, DeserializerError>
+        where
+            V: StructVisitor<'de>,
+        {
+            Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(<$expected>::document()))
+                .change_context(DeserializerError))
+        }
+    };
+}
+
+macro_rules! impl_deserializer {
+    (@derive Copy, $name:ident, $primitive:ty $(, $lifetime:lifetime)?) => {
+        #[derive(Debug, Copy, Clone)]
+        pub struct $name<'a $(, $lifetime)?> {
+            context: &'a Context,
+            value: $(& $lifetime)? $primitive
+        }
+    };
+
+    (@derive Clone, $name:ident, $primitive:ty $(, $lifetime:lifetime)?) => {
+        #[derive(Debug, Clone)]
+        pub struct $name<'a $(, $lifetime)?> {
+            context: &'a Context,
+            value: $(& $lifetime)? $primitive
+        }
+    };
+
+    (@impl $name:ident, $primitive:ty, 'de { $($body:tt)* }) => {
+        impl<'a, 'de> $name<'a, 'de> {
+            #[must_use]
+            pub const fn new(value: &'de $primitive, context: &'a Context) -> Self {
+                Self { context, value }
+            }
+        }
+
+        impl<'de> Deserializer<'de> for $name<'_, 'de> {
+            $($body)*
+        }
+    };
+
+    (@impl $name:ident, $primitive:ty, $lifetime:lifetime { $($body:tt)* }) => {
+        impl<'a, $lifetime> $name<'a, $lifetime> {
+            #[must_use]
+            pub const fn new(value: &$lifetime $primitive, context: &'a Context) -> Self {
+                Self { context, value }
+            }
+        }
+
+        impl<'de> Deserializer<'de> for $name<'_, '_> {
+            $($body)*
+        }
+
+        impl<'de, $lifetime> IntoDeserializer<'de> for &$lifetime $primitive {
+            type Deserializer<'a> = $name<'a, $lifetime> where Self: 'a;
+
+            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+            where
+                Self: 'a {
+                $name::new(self, context)
+            }
+        }
+    };
+
+    (@impl $name:ident, $primitive:ty { $($body:tt)* }) => {
+        impl<'a> $name<'a> {
+            #[must_use]
+            pub const fn new(value: $primitive, context: &'a Context) -> Self {
+                Self { context, value }
+            }
+        }
+
+        impl<'de> Deserializer<'de> for $name<'_> {
+            $($body)*
+        }
+
+        impl<'de> IntoDeserializer<'de> for $primitive {
+            type Deserializer<'a> = $name<'a> where Self: 'a;
+
+            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+            where
+                Self: 'a {
+                $name::new(self, context)
+            }
+        }
+    };
+
+    (
+        #[derive($mode:ident)]
+        $name:ident$(<$lifetime:lifetime>)?($primitive:ty);
+        $($extra:ident!($($arg1:tt $(, $arg2:tt $(, $arg3:tt)?)?)?);)*
+    ) => {
+        impl_deserializer!(@derive $mode, $name, $primitive $(, $lifetime)?);
+
+        impl_deserializer!(@impl $name, $primitive $(, $lifetime)? {
+            forward_to_deserialize_any!(
+                null
+                bool
+                number
+                i8 i16 i32 i64 i128
+                u8 u16 u32 u64 u128
+                f32 f64
+                char str string
+                bytes bytes_buffer
+                array object
+            );
+
+            fn context(&self) -> &Context {
+                self.context
+            }
+
+            $($extra!($name, $primitive$(, $arg1 $(, $arg2 $(, $arg3)?)?)?);)*
+        });
+    };
+}
+
+impl_deserializer!(
+    #[derive(Copy)] BoolDeserializer(bool);
+    deserialize_any!(visit_bool);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] CharDeserializer(char);
+    deserialize_any!(visit_char);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] U8Deserializer(u8);
+    deserialize_any!(visit_u8);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] U16Deserializer(u16);
+    deserialize_any!(visit_u16);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] U32Deserializer(u32);
+    deserialize_any!(visit_u32);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] U64Deserializer(u64);
+    deserialize_any!(visit_u64);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] U128Deserializer(u128);
+    deserialize_any!(visit_u128);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(target_pointer_width = "16")]
+impl_deserializer!(
+    #[derive(Copy)] UsizeDeserializer(usize);
+    deserialize_any!(as, u16, visit_u16);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(target_pointer_width = "32")]
+impl_deserializer!(
+    #[derive(Copy)] UsizeDeserializer(usize);
+    deserialize_any!(as, u32, visit_u32);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(not(any(
+    target_pointer_width = "16",
+    target_pointer_width = "32",
+    target_pointer_width = "128"
+)))]
+impl_deserializer!(
+    #[derive(Copy)] UsizeDeserializer(usize);
+    deserialize_any!(as, u64, visit_u64);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(target_pointer_width = "128")]
+impl_deserializer!(
+    #[derive(Copy)] UsizeDeserializer(isize);
+    deserialize_any!(as, u128, visit_u128);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] I8Deserializer(i8);
+    deserialize_any!(visit_i8);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] I16Deserializer(i16);
+    deserialize_any!(visit_i16);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] I32Deserializer(i32);
+    deserialize_any!(visit_i32);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] I64Deserializer(i64);
+    deserialize_any!(visit_i64);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] I128Deserializer(i128);
+    deserialize_any!(visit_i128);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(target_pointer_width = "16")]
+impl_deserializer!(
+    #[derive(Copy)] IsizeDeserializer(isize);
+    deserialize_any!(as, i16, visit_i16);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(target_pointer_width = "32")]
+impl_deserializer!(
+    #[derive(Copy)] IsizeDeserializer(isize);
+    deserialize_any!(as, i32, visit_i32);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(not(any(
+    target_pointer_width = "16",
+    target_pointer_width = "32",
+    target_pointer_width = "128"
+)))]
+impl_deserializer!(
+    #[derive(Copy)] IsizeDeserializer(isize);
+    deserialize_any!(as, i64, visit_i64);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+#[cfg(target_pointer_width = "128")]
+impl_deserializer!(
+    #[derive(Copy)] IsizeDeserializer(isize);
+    deserialize_any!(as, i128, visit_i128);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] F32Deserializer(f32);
+    deserialize_any!(visit_f32);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Copy)] F64Deserializer(f64);
+    deserialize_any!(visit_f64);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
+
+impl_deserializer!(
+    #[derive(Clone)] NumberDeserializer(Number);
+    deserialize_any!(visit_number);
+    deserialize_enum!();
+    deserialize_optional!();
+    deserialize_struct!(error);
+);
 
 #[derive(Debug, Copy, Clone)]
 pub struct NoneDeserializer<'a> {
@@ -116,8 +437,8 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -128,11 +449,40 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, self)
+            .change_context(DeserializerError)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }
 
@@ -153,8 +503,8 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
         null
         bool
         number
-        i8 i16 i32 i64 i128 isize
-        u8 u16 u32 u64 u128 usize
+        i8 i16 i32 i64 i128
+        u8 u16 u32 u64 u128
         f32 f64
         char str string
         bytes bytes_buffer
@@ -165,31 +515,47 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
         visitor.visit_null().change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        visitor.visit_null().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .attach(ReceivedType::new(<()>::reflection()))
+            .change_context(DeserializerError))
+    }
 }
 
-impl_owned!(bool, BoolDeserializer, visit_bool);
-impl_owned!(char, CharDeserializer, visit_char);
-impl_owned!(u8, U8Deserializer, visit_u8);
-impl_owned!(u16, U16Deserializer, visit_u16);
-impl_owned!(u32, U32Deserializer, visit_u32);
-impl_owned!(u64, U64Deserializer, visit_u64);
-impl_owned!(u128, U128Deserializer, visit_u128);
-impl_owned!(usize, UsizeDeserializer, visit_usize);
-impl_owned!(i8, I8Deserializer, visit_i8);
-impl_owned!(i16, I16Deserializer, visit_i16);
-impl_owned!(i32, I32Deserializer, visit_i32);
-impl_owned!(i64, I64Deserializer, visit_i64);
-impl_owned!(i128, I128Deserializer, visit_i128);
-impl_owned!(isize, IsizeDeserializer, visit_isize);
-impl_owned!(f32, F32Deserializer, visit_f32);
-impl_owned!(f64, F64Deserializer, visit_f64);
+// down here so that they can make use of the macros
+mod array;
+mod bytes;
+mod object;
+mod string;
 
-impl_owned!(!copy: Number, NumberDeserializer, visit_number);
+pub use array::ArrayAccessDeserializer;
+pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
+pub use object::ObjectAccessDeserializer;
+pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
-// TODO: test
+use crate::error::MissingError;

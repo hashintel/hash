@@ -2,12 +2,13 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
+    api::rest::json::Json,
     identifier::account::AccountId,
     store::{AccountStore, StorePool},
 };
@@ -42,7 +43,7 @@ impl RoutedResource for AccountResource {
     path = "/accounts",
     tag = "Account",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created account", body = AccountId),
+        (status = 200, content_type = "application/json", description = "The schema of the created account", body = AccountId),
 
         (status = 500, description = "Store error occurred"),
     )

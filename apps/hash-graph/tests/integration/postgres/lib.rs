@@ -21,7 +21,6 @@ use graph::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
         time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
-        GraphElementVertexId, OntologyTypeVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -32,15 +31,18 @@ use graph::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         query::{Filter, FilterExpression, Parameter},
-        AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
+        PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths,
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::{
+            DataTypeVertexId, EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId,
+        },
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -129,13 +131,15 @@ impl DatabaseTestWrapper {
 
             let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 data_type.id().clone().into(),
-                ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
                 OwnedById::new(account_id),
             ));
 
             (data_type, metadata)
         });
-        store.create_data_types(data_types_iter).await?;
+        store
+            .create_data_types(data_types_iter, ConflictBehavior::Skip)
+            .await?;
 
         let property_types_iter = property_types.into_iter().map(|property_type_str| {
             let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
@@ -145,13 +149,15 @@ impl DatabaseTestWrapper {
 
             let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 property_type.id().clone().into(),
-                ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
                 OwnedById::new(account_id),
             ));
 
             (property_type, metadata)
         });
-        store.create_property_types(property_types_iter).await?;
+        store
+            .create_property_types(property_types_iter, ConflictBehavior::Skip)
+            .await?;
 
         let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
             let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
@@ -161,13 +167,15 @@ impl DatabaseTestWrapper {
 
             let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 entity_type.id().clone().into(),
-                ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
                 OwnedById::new(account_id),
             ));
 
             (entity_type, metadata)
         });
-        store.create_entity_types(entity_types_iter).await?;
+        store
+            .create_entity_types(entity_types_iter, ConflictBehavior::Skip)
+            .await?;
 
         Ok(DatabaseApi { store, account_id })
     }
@@ -194,7 +202,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
             data_type.id().clone().into(),
-            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
         ));
 
@@ -209,7 +217,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
             data_type.id().clone().into(),
-            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
             OffsetDateTime::now_utc(),
         ));
 
@@ -238,7 +246,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeVertexId::from(url.clone()))
+            .remove(&DataTypeVertexId::from(url.clone()))
             .expect("no data type found"))
     }
 
@@ -247,7 +255,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_data_type(data_type, UpdatedById::new(self.account_id))
+            .update_data_type(data_type, RecordCreatedById::new(self.account_id))
             .await
     }
 
@@ -257,7 +265,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
             property_type.id().clone().into(),
-            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
         ));
 
@@ -288,7 +296,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeVertexId::from(url.clone()))
+            .remove(&PropertyTypeVertexId::from(url.clone()))
             .expect("no property type found"))
     }
 
@@ -297,7 +305,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_property_type(property_type, UpdatedById::new(self.account_id))
+            .update_property_type(property_type, RecordCreatedById::new(self.account_id))
             .await
     }
 
@@ -307,7 +315,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
             entity_type.id().clone().into(),
-            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
         ));
 
@@ -338,7 +346,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeVertexId::from(url.clone()))
+            .remove(&EntityTypeVertexId::from(url.clone()))
             .expect("no entity type found"))
     }
 
@@ -347,7 +355,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_entity_type(entity_type, UpdatedById::new(self.account_id))
+            .update_entity_type(entity_type, RecordCreatedById::new(self.account_id))
             .await
     }
 
@@ -362,7 +370,7 @@ impl DatabaseApi<'_> {
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 Some(generate_decision_time()),
-                UpdatedById::new(self.account_id),
+                RecordCreatedById::new(self.account_id),
                 false,
                 entity_type_id,
                 properties,
@@ -450,7 +458,7 @@ impl DatabaseApi<'_> {
             .update_entity(
                 entity_id,
                 Some(generate_decision_time()),
-                UpdatedById::new(self.account_id),
+                RecordCreatedById::new(self.account_id),
                 false,
                 entity_type_id,
                 properties,
@@ -472,7 +480,7 @@ impl DatabaseApi<'_> {
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 None,
-                UpdatedById::new(self.account_id),
+                RecordCreatedById::new(self.account_id),
                 false,
                 entity_type_id,
                 properties,
@@ -495,33 +503,39 @@ impl DatabaseApi<'_> {
     ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Type(
-                    EntityTypeQueryPath::BaseUrl,
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::BaseUrl,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     link_type_id.base_url.as_str(),
                 )))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Type(
-                    EntityTypeQueryPath::Version,
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::Version,
+                })),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
                     OntologyTypeVersion::new(link_type_id.version),
                 ))),
@@ -547,10 +561,10 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
-                GraphElementVertexId::Ontology(_) => None,
                 GraphElementVertexId::KnowledgeGraph(vertex_id) => {
                     subgraph.vertices.entities.remove(&vertex_id)
                 }
+                _ => None,
             })
             .collect::<Vec<_>>();
 
@@ -566,17 +580,21 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<Entity>, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id.as_uuid(),
                 ))),
@@ -603,10 +621,10 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
-                GraphElementVertexId::Ontology(_) => None,
                 GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
                 }
+                _ => None,
             })
             .collect())
     }
@@ -622,7 +640,7 @@ impl DatabaseApi<'_> {
             .update_entity(
                 entity_id,
                 None,
-                UpdatedById::new(self.account_id),
+                RecordCreatedById::new(self.account_id),
                 true,
                 entity_type_id,
                 properties,

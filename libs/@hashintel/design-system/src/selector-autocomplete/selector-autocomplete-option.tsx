@@ -9,14 +9,14 @@ export const SelectorAutocompleteOption = ({
   liProps,
   description,
   title,
-  $id,
+  typeId,
 }: {
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
   title: string;
-  $id: string;
+  typeId: string;
 }) => {
-  const ontology = parseUrlForOntologyChip($id);
+  const ontology = parseUrlForOntologyChip(typeId);
 
   return (
     <li

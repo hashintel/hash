@@ -58,8 +58,8 @@ export const extractEntityUuidFromEntityId = (
   return splitEntityId(entityId)[1]!;
 };
 
-/** An account ID of an actor that has updated something */
-export type UpdatedById = Brand<AccountId, "UpdatedById">;
+/** An account ID of an actor that has created a record */
+export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
 
 /** An `EntityId` which is the base of an Account Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;

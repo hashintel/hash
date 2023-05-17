@@ -5,15 +5,18 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 pub use self::{
-    edges::{Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, OntologyRootedEdges},
+    edges::{
+        Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, OntologyOutwardEdge,
+        OntologyRootedEdges,
+    },
     vertices::{
-        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices, Vertex,
-        Vertices,
+        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyTypeVertexId, OntologyVertex,
+        OntologyVertices, Vertex, Vertices,
     },
 };
-use crate::{
-    identifier::GraphElementVertexId,
-    subgraph::{edges::GraphResolveDepths, SubgraphTemporalAxes},
+use crate::subgraph::{
+    edges::GraphResolveDepths, identifier::GraphElementVertexId,
+    temporal_axes::SubgraphTemporalAxes,
 };
 
 #[derive(Serialize, ToSchema)]
@@ -28,16 +31,10 @@ pub struct Subgraph {
 
 impl From<crate::subgraph::Subgraph> for Subgraph {
     fn from(subgraph: crate::subgraph::Subgraph) -> Self {
-        let vertices = subgraph.vertices.into();
-        let edges = Edges::from_vertices_and_store_edges(
-            subgraph.edges,
-            &vertices,
-            subgraph.temporal_axes.resolved.variable_time_axis(),
-        );
         Self {
             roots: subgraph.roots.into_iter().collect(),
-            vertices,
-            edges,
+            vertices: subgraph.vertices.into(),
+            edges: subgraph.edges.into(),
             depths: subgraph.depths,
             temporal_axes: subgraph.temporal_axes,
         }

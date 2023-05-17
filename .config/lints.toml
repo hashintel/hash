@@ -1,6 +1,9 @@
 allow = [
-    # "This encourages importing `as` which breaks IDEs"
-    "clippy::module_name_repetitions"
+    # This encourages importing `as` which breaks IDEs
+    "clippy::module_name_repetitions",
+
+    # The lint is great, but sadly it has too many false positives
+    "clippy::significant_drop_tightening",
 ]
 
 warn = [

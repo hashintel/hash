@@ -219,11 +219,12 @@ export const EditBarContainer = styled(Box)(({ theme }) => ({
   alignItems: "center",
 }));
 
-export const EditBarCollapse = styled(Collapse)({
+export const EditBarCollapse = styled(Collapse)(({ theme }) => ({
   position: "sticky",
   top: 0,
-  zIndex: 100,
-});
+  // Above table sticky footers
+  zIndex: theme.zIndex.drawer + 2,
+}));
 
 export const EditBar = ({
   discardButtonProps,

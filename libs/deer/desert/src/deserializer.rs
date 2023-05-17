@@ -1,8 +1,11 @@
 use alloc::borrow::ToOwned;
-use core::ops::Range;
 
-use deer::{error::DeserializerError, Context, Visitor};
-use error_stack::{Result, ResultExt};
+use deer::{
+    error::{DeserializerError, ExpectedType, MissingError, ReceivedType, TypeError, Variant},
+    value::NoneDeserializer,
+    Context, EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
+};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
 
@@ -22,13 +25,7 @@ macro_rules! forward {
 #[derive(Debug)]
 pub struct Deserializer<'a, 'de> {
     context: &'a Context,
-    tape: Tape<'a, 'de>,
-}
-
-impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) fn erase(&mut self, range: Range<usize>) {
-        self.tape.set_trivia(range);
-    }
+    tape: Tape<'de>,
 }
 
 impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
@@ -38,8 +35,6 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         deserialize_number,
         deserialize_u128,
         deserialize_i128,
-        deserialize_usize,
-        deserialize_isize,
         deserialize_char,
         deserialize_string,
         deserialize_str,
@@ -64,8 +59,6 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             Token::Number(value) => visitor.visit_number(value),
             Token::I128(value) => visitor.visit_i128(value),
             Token::U128(value) => visitor.visit_u128(value),
-            Token::ISize(value) => visitor.visit_isize(value),
-            Token::USize(value) => visitor.visit_usize(value),
             Token::Char(value) => visitor.visit_char(value),
             Token::Str(value) => visitor.visit_str(value),
             Token::BorrowedStr(value) => visitor.visit_borrowed_str(value),
@@ -82,10 +75,89 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        let token = self.peek();
+
+        match token {
+            Token::Null => {
+                // only eat the token if we're going to visit null
+                self.next();
+                visitor.visit_null()
+            }
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let token = self.peek();
+
+        let is_map = match token {
+            Token::Object { .. } => {
+                // eat the token so that we're at the key
+                self.next();
+                true
+            }
+            _ => false,
+        };
+
+        let discriminant = visitor
+            .visit_discriminant(&mut *self)
+            .change_context(DeserializerError)?;
+
+        let value = if is_map {
+            visitor.visit_value(discriminant, &mut *self)
+        } else {
+            visitor.visit_value(discriminant, NoneDeserializer::new(self.context))
+        }
+        .change_context(DeserializerError)?;
+
+        if is_map {
+            // make sure that we're close and that we have nothing dangling
+            if self.peek() == Token::ObjectEnd {
+                self.next();
+            } else {
+                // we received a unit type, therefore error should be a type error
+                // we cannot determine the type we received, just that it is a map
+                // TODO: once HashMap has a reflection use it here as ReceivedType (or
+                //  UnknownObjectSchema?)
+                return Err(Report::new(TypeError.into_error()).change_context(DeserializerError));
+            }
+        }
+
+        Ok(value)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        let token = self.next();
+
+        match token {
+            Token::Array { length } => visitor
+                .visit_array(ArrayAccess::new(self, length))
+                .change_context(DeserializerError),
+            Token::Object { length } => visitor
+                .visit_object(ObjectAccess::new(self, length))
+                .change_context(DeserializerError),
+            other => Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(other.schema()))
+                .change_context(DeserializerError)),
+        }
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) const fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
+    pub(crate) const fn new_bare(tape: Tape<'de>, context: &'a Context) -> Self {
         Self { context, tape }
     }
 
@@ -105,11 +177,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) const fn tape(&self) -> &Tape<'a, 'de> {
-        &self.tape
-    }
-
-    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'a, 'de> {
+    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'de> {
         &mut self.tape
     }
 
@@ -122,7 +190,8 @@ impl<'a, 'de> Deserializer<'a, 'de> {
     }
 }
 
-#[derive(Debug)]
+// TODO: replace w/ NoneDeserializer
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct DeserializerNone<'a> {
     pub(crate) context: &'a Context,
 }
@@ -150,5 +219,34 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
         V: Visitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let discriminant = visitor
+            .visit_discriminant(self)
+            .change_context(DeserializerError)?;
+
+        visitor
+            .visit_value(discriminant, self)
+            .change_context(DeserializerError)
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(visitor.expecting()))
+            .change_context(DeserializerError))
     }
 }

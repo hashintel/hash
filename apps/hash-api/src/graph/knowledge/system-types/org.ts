@@ -11,10 +11,10 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
+  currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
@@ -196,22 +196,10 @@ export const getOrgByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {

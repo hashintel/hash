@@ -36,8 +36,8 @@ import {
   OntologyTypeRecordId,
   OntologyVertex,
   ProvenanceMetadata,
+  RecordCreatedById,
   Timestamp,
-  UpdatedById,
   Vertices,
 } from "@local/hash-subgraph";
 
@@ -101,7 +101,7 @@ const mapProvenanceMetadata = (
   metadata: ProvenanceMetadataGraphApi,
 ): ProvenanceMetadata => {
   return {
-    updatedById: metadata.updatedById as UpdatedById,
+    recordCreatedById: metadata.recordCreatedById as RecordCreatedById,
   };
 };
 

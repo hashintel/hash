@@ -1,232 +1,55 @@
-use std::collections::{HashSet, VecDeque};
-
-use futures::{stream, TryStreamExt};
+use futures::{stream, StreamExt, TryStreamExt};
 use reqwest::{
     header::{ACCEPT, USER_AGENT},
     Client,
 };
 use tarpc::context::Context;
 use time::OffsetDateTime;
-use type_system::{
-    url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference,
-};
+use type_system::url::VersionedUrl;
 
-use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError, OntologyType, TypeFetchResponse};
+use crate::fetcher::{Fetcher, FetcherError, OntologyTypeRepr};
 
 #[derive(Clone)]
-pub struct FetchServer;
+pub struct FetchServer {
+    pub buffer_size: usize,
+}
 
 #[tarpc::server]
 impl Fetcher for FetchServer {
-    async fn fetch_ontology_type_exhaustive(
+    async fn fetch_ontology_types(
         self,
         _context: Context,
-        ontology_type_url: VersionedUrl,
-    ) -> Result<TypeFetchResponse, FetcherError> {
-        fetch_ontology_type_exhaustive(ontology_type_url).await
-    }
-}
+        ontology_type_urls: Vec<VersionedUrl>,
+    ) -> Result<Vec<(OntologyTypeRepr, OffsetDateTime)>, FetcherError> {
+        let client = Client::new();
+        stream::iter(ontology_type_urls)
+            .map(|url| {
+                let client = client.clone();
+                async move {
+                    let ontology_type = client
+                        .get(url.to_url())
+                        .header(ACCEPT, "application/json")
+                        .header(USER_AGENT, "HASH Graph")
+                        .send()
+                        .await
+                        .map_err(|err| {
+                            tracing::error!(error=?err, %url, "Could not fetch ontology type");
+                            FetcherError::NetworkError(format!("Error fetching {url}: {err:?}"))
+                        })?
+                        .json::<OntologyTypeRepr>()
+                        .await
+                        .map_err(|err| {
+                            tracing::error!(error=?err, %url, "Could not deserialize response");
+                            FetcherError::SerializationError(format!(
+                                "Error deserializing {url}: {err:?}"
+                            ))
+                        })?;
 
-#[derive(Debug)]
-struct StreamState {
-    seen: HashSet<VersionedUrl>,
-    queue: VecDeque<VersionedUrl>,
-}
-
-impl StreamState {
-    fn new(seen: HashSet<VersionedUrl>, queue: VecDeque<VersionedUrl>) -> Self {
-        Self { seen, queue }
-    }
-
-    fn with_intitial_state(start: VersionedUrl) -> Self {
-        let mut seen = HashSet::new();
-        seen.insert(start.clone());
-        let mut queue = VecDeque::new();
-        queue.push_back(start);
-
-        Self::new(seen, queue)
-    }
-}
-
-async fn fetch_ontology_type_exhaustive(
-    ontology_type_url: VersionedUrl,
-) -> Result<TypeFetchResponse, FetcherError> {
-    let http_client = Client::new();
-    let res = stream::try_unfold(
-        StreamState::with_intitial_state(ontology_type_url),
-        |mut state| async {
-            let client = http_client.clone();
-            let next_url = state.queue.pop_front();
-
-            let Some(url) = next_url else { return Ok(None) };
-            let response = fetch_ontology_type(client, url).await?;
-
-            let urls: Vec<VersionedUrl> = match response.ontology_type.clone() {
-                OntologyType::EntityType(schema) => {
-                    let entity_type: EntityType = schema.try_into().map_err(|error| {
-                        tracing::error!(error=?error, "Couldn't convert schema to Entity Type");
-                        FetcherError::TypeParsingError(format!(
-                            "Error parsing ontology type: {error:?}"
-                        ))
-                    })?;
-                    traverse_entity_type_references(&entity_type)
-                        .map(|reference| reference.url().clone())
-                        .collect()
+                    Ok::<_, FetcherError>((ontology_type, OffsetDateTime::now_utc()))
                 }
-                OntologyType::PropertyType(schema) => {
-                    let property_type: PropertyType = schema.try_into().map_err(|error| {
-                        tracing::error!(error=?error, "Couldn't convert schema to Property Type");
-                        FetcherError::TypeParsingError(format!(
-                            "Error parsing ontology type: {error:?}"
-                        ))
-                    })?;
-
-                    traverse_property_type_references(&property_type)
-                        .map(|reference| reference.url().clone())
-                        .collect()
-                }
-                OntologyType::DataType(schema) => {
-                    let data_type: DataType = schema.try_into().map_err(|error| {
-                        tracing::error!(error=?error, "Couldn't convert schema to Data Type");
-                        FetcherError::TypeParsingError(format!(
-                            "Error parsing ontology type: {error:?}"
-                        ))
-                    })?;
-
-                    traverse_data_type_references(&data_type)
-                        .map(|reference| reference.url().clone())
-                        .collect()
-                }
-            };
-
-            for url in urls {
-                if !state.seen.contains(&url) {
-                    state.seen.insert(url.clone());
-                    state.queue.push_back(url);
-                }
-            }
-
-            Ok(Some((response, state)))
-        },
-    )
-    .try_collect::<Vec<_>>()
-    .await?;
-
-    Ok(TypeFetchResponse::new(res))
-}
-
-/// # Errors
-///
-/// - If the client fails to fetch the ontology type
-/// - If the client fails to deserialize the response
-pub async fn fetch_ontology_type(
-    client: Client,
-    url: VersionedUrl,
-) -> Result<FetchedOntologyType, FetcherError> {
-    let ontology_type = client
-        .get(url.to_url())
-        .header(ACCEPT, "application/json")
-        .header(USER_AGENT, "HASH Graph")
-        .send()
-        .await
-        .map_err(|err| {
-            tracing::error!(error=?err, %url, "Could not fetch ontology type");
-            FetcherError::NetworkError(format!("Error fetching {url}: {err:?}"))
-        })?
-        .json::<OntologyType>()
-        .await
-        .map_err(|err| {
-            tracing::error!(error=?err, %url, "Could not deserialize response");
-            FetcherError::SerializationError(format!("Error deserializing {url}: {err:?}"))
-        })?;
-
-    Ok(FetchedOntologyType {
-        ontology_type,
-        fetched_at: OffsetDateTime::now_utc(),
-    })
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(clippy::enum_variant_names)]
-pub enum OntologyTypeReference<'a> {
-    EntityTypeReference(&'a EntityTypeReference),
-    PropertyTypeReference(&'a PropertyTypeReference),
-    DataTypeReference(&'a DataTypeReference),
-}
-
-impl OntologyTypeReference<'_> {
-    #[must_use]
-    pub const fn url(&self) -> &VersionedUrl {
-        match self {
-            OntologyTypeReference::EntityTypeReference(r) => r.url(),
-            OntologyTypeReference::PropertyTypeReference(r) => r.url(),
-            OntologyTypeReference::DataTypeReference(r) => r.url(),
-        }
+            })
+            .buffer_unordered(self.buffer_size)
+            .try_collect()
+            .await
     }
-}
-
-impl<'a> From<OntologyTypeReference<'a>> for String {
-    fn from(val: OntologyTypeReference<'a>) -> Self {
-        match val {
-            OntologyTypeReference::EntityTypeReference(r) => r.url(),
-            OntologyTypeReference::PropertyTypeReference(r) => r.url(),
-            OntologyTypeReference::DataTypeReference(r) => r.url(),
-        }
-        .to_string()
-    }
-}
-
-pub fn traverse_entity_type_references(
-    entity_type: &EntityType,
-) -> impl Iterator<Item = OntologyTypeReference> + '_ {
-    entity_type
-        .property_type_references()
-        .into_iter()
-        .map(OntologyTypeReference::PropertyTypeReference)
-        .chain(
-            entity_type
-                .inherits_from()
-                .all_of()
-                .iter()
-                .map(OntologyTypeReference::EntityTypeReference),
-        )
-        .chain(entity_type.link_mappings().into_iter().flat_map(
-            |(link_entity_type, destination_entity_type_constraint)| {
-                let mut references = Vec::new();
-                references.push(OntologyTypeReference::EntityTypeReference(link_entity_type));
-
-                if let Some(entity_type_constraint) = destination_entity_type_constraint {
-                    references.extend(
-                        entity_type_constraint
-                            .iter()
-                            .map(OntologyTypeReference::EntityTypeReference),
-                    );
-                }
-
-                references
-            },
-        ))
-}
-
-pub fn traverse_property_type_references(
-    property_type: &PropertyType,
-) -> impl Iterator<Item = OntologyTypeReference> + '_ {
-    property_type
-        .property_type_references()
-        .into_iter()
-        .map(OntologyTypeReference::PropertyTypeReference)
-        .chain(
-            property_type
-                .data_type_references()
-                .into_iter()
-                .map(OntologyTypeReference::DataTypeReference),
-        )
-}
-
-pub fn traverse_data_type_references(
-    _data_type: &DataType,
-) -> impl Iterator<Item = OntologyTypeReference> + '_ {
-    // Doesn't currently have other references.
-    std::iter::empty()
 }

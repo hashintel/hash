@@ -2,24 +2,22 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/design-system";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { AccountId, EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
-import { useRouter } from "next/router";
 import { EditorView } from "prosemirror-view";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
+import { PageContentItem } from "../../graphql/api-types.gen";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
-import { BlockLoadedProvider } from "../on-block-loaded";
-import { UserBlocksProvider } from "../user-blocks";
+import { useUserBlocks } from "../user-blocks";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
 import { CommentThread } from "./comments/comment-thread";
-import { BlocksMap, createEditorView } from "./create-editor-view";
+import { createEditorView } from "./create-editor-view";
 import { usePageContext } from "./page-context";
 import {
   getPageSectionContainerStyles,
@@ -27,8 +25,7 @@ import {
 } from "./page-section-container";
 
 type PageBlockProps = {
-  contents: BlockEntity[];
-  blocks: BlocksMap;
+  contents: PageContentItem[];
   pageComments: PageThread[];
   accountId: AccountId;
   entityId: EntityId;
@@ -42,7 +39,6 @@ type PageBlockProps = {
  */
 export const PageBlock: FunctionComponent<PageBlockProps> = ({
   contents,
-  blocks,
   pageComments,
   accountId,
   entityId,
@@ -66,8 +62,12 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
-  const router = useRouter();
-  const routeHash = router.asPath.split("#")[1] ?? "";
+  const { value: newestBlocks } = useUserBlocks();
+  const currentBlocks = useRef(newestBlocks);
+  useLayoutEffect(() => {
+    currentBlocks.current = newestBlocks;
+  }, [newestBlocks]);
+
   const isReadonlyMode = useIsReadonlyModeForResource(accountId);
 
   const { setEditorView, pageTitleRef } = usePageContext();
@@ -90,10 +90,11 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       renderPortal,
       accountId,
       entityId,
-      blocks,
+      () => currentBlocks.current,
       isReadonlyMode,
       pageTitleRef,
-      () => currentContents.current,
+      () =>
+        currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
     );
 
@@ -113,7 +114,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     };
   }, [
     accountId,
-    blocks,
+    currentBlocks,
     entityId,
     renderPortal,
     isReadonlyMode,
@@ -124,86 +125,84 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   ]);
 
   return (
-    <UserBlocksProvider value={blocks}>
-      <BlockLoadedProvider routeHash={routeHash}>
-        {isReadonlyMode ? null : (
-          <PageSectionContainer
-            pageComments={pageComments}
-            readonly={isReadonlyMode}
-            sx={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              left: 0,
-              width: "100%",
-            }}
-          >
-            <Box width="100%" position="relative">
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 16,
-                  left: "calc(100% + 48px)",
-                  zIndex: 1,
-                }}
-              >
-                {pageComments.map((comment) => (
-                  <CommentThread
-                    key={comment.metadata.recordId.entityId}
-                    pageId={entityId}
-                    comment={comment}
-                  />
-                ))}
-              </Box>
+    <>
+      {isReadonlyMode ? null : (
+        <PageSectionContainer
+          pageComments={pageComments}
+          readonly={isReadonlyMode}
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            left: 0,
+            width: "100%",
+          }}
+        >
+          <Box width="100%" position="relative">
+            <Box
+              sx={{
+                position: "absolute",
+                top: 16,
+                left: "calc(100% + 48px)",
+                zIndex: 1,
+              }}
+            >
+              {pageComments.map((comment) => (
+                <CommentThread
+                  key={comment.metadata.recordId.entityId}
+                  pageId={entityId}
+                  comment={comment}
+                />
+              ))}
             </Box>
-          </PageSectionContainer>
-        )}
-        <Box
-          id="root"
-          ref={root}
-          sx={
-            {
-              /**
-               * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-               * so it automatically handles focusing on closest node on margin-clicking
-               */
-              ".ProseMirror": [
-                getPageSectionContainerStyles(pageComments, isReadonlyMode),
-                { paddingTop: 0, paddingBottom: "320px" },
-              ],
-              // prevents blue outline on selected nodes
-              ".ProseMirror-selectednode": { outline: "none" },
-            } as SxProps
-          }
-        />
-        {portals}
-        {/**
-         * @todo position this better
-         */}
-        {(
-          typeof debugging === "boolean"
-            ? debugging
-            : debugging.restartCollabButton
-        ) ? (
-          <Button
-            sx={{
-              position: "fixed",
-              bottom: 2.5,
-              right: 2.5,
-              opacity: 0.3,
+          </Box>
+        </PageSectionContainer>
+      )}
+      <Box
+        id="root"
+        ref={root}
+        sx={
+          {
+            /**
+             * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+             * so it automatically handles focusing on closest node on margin-clicking
+             */
+            ".ProseMirror": [
+              getPageSectionContainerStyles(pageComments, isReadonlyMode),
+              { paddingTop: 0, paddingBottom: "320px" },
+            ],
+            // prevents blue outline on selected nodes
+            ".ProseMirror-selectednode": { outline: "none" },
+          } as SxProps
+        }
+      />
+      {portals}
+      {/**
+       * @todo position this better
+       */}
+      {(
+        typeof debugging === "boolean"
+          ? debugging
+          : debugging.restartCollabButton
+      ) ? (
+        <Button
+          sx={{
+            position: "fixed",
+            bottom: 2.5,
+            right: 2.5,
+            opacity: 0.3,
 
-              "&:hover": {
-                opacity: 1,
-              },
-            }}
-            onClick={() => {
-              prosemirrorSetup.current?.connection?.restart();
-            }}
-          >
-            Restart Collab Instance
-          </Button>
-        ) : null}
-      </BlockLoadedProvider>
-    </UserBlocksProvider>
+            "&:hover": {
+              opacity: 1,
+            },
+          }}
+          onClick={() => {
+            prosemirrorSetup.current?.connection?.restart();
+          }}
+        >
+          Restart Collab Instance
+        </Button>
+      ) : null}
+    </>
   );
 };

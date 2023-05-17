@@ -11,7 +11,6 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   kratosIdentityApi,
@@ -20,6 +19,7 @@ import {
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
+  currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
@@ -148,22 +148,10 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -209,22 +197,10 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
+      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -509,8 +485,9 @@ export const getUserOrgMemberships: ImpureGraphFunction<
   Promise<OrgMembership[]>
 > = async (ctx, { user }) => {
   const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entity: user.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
+    entityId: user.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
   });
 
   return outgoingOrgMembershipLinkEntities.map((linkEntity) =>
@@ -555,9 +532,9 @@ export const isUserHashInstanceAdmin: ImpureGraphFunction<
   const hashInstance = await getHashInstance(ctx, {});
 
   const outgoingAdminLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entity: hashInstance.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    rightEntity: user.entity,
+    entityId: hashInstance.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+    rightEntityId: user.entity.metadata.recordId.entityId,
   });
 
   if (outgoingAdminLinkEntities.length > 1) {

@@ -1,0 +1,22 @@
+name: Fix
+on: workflow_dispatch
+jobs:
+  yarn:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Warm up repo
+        uses: ./.github/actions/warm-up-repo
+
+      - name: Fix
+        run: yarn fix
+
+      - name: Commit
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m '`yarn fix`'
+          git push

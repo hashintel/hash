@@ -27,24 +27,6 @@ pub enum TimeAxis {
     TransactionTime,
 }
 
-/// Time axis for the variable temporal axis used in [`QueryTemporalAxes`]s.
-///
-/// This is used as the generic argument to time-related structs. Please refer to the documentation
-/// of [`QueryTemporalAxes`] for more information.
-///
-/// [`QueryTemporalAxes`]: crate::subgraph::temporal_axes::QueryTemporalAxes
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct VariableAxis;
-
-/// Time axis for the pinned temporal axis used in [`QueryTemporalAxes`]s.
-///
-/// This is used as the generic argument to time-related structs. Please refer to the documentation
-/// of [`QueryTemporalAxes`] for more information.
-///
-/// [`QueryTemporalAxes`]: crate::subgraph::temporal_axes::QueryTemporalAxes
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct PinnedAxis;
-
 pub trait TemporalTagged {
     type Axis;
     type Tagged<A>: TemporalTagged<Axis = A>;

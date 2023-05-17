@@ -3,7 +3,7 @@ use std::mem::ManuallyDrop;
 use graph::{
     identifier::account::AccountId,
     ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
@@ -202,7 +202,7 @@ pub async fn seed<D, P, E, C>(
                 data_type.clone(),
                 &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                     data_type.id().clone().into(),
-                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
                     OwnedById::new(account_id),
                 )),
             )
@@ -212,7 +212,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_data_type(data_type, UpdatedById::new(account_id))
+                        .update_data_type(data_type, RecordCreatedById::new(account_id))
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -233,7 +233,7 @@ pub async fn seed<D, P, E, C>(
                 property_type.clone(),
                 &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                     property_type.id().clone().into(),
-                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
                     OwnedById::new(account_id),
                 )),
             )
@@ -243,7 +243,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(property_type, UpdatedById::new(account_id))
+                        .update_property_type(property_type, RecordCreatedById::new(account_id))
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -264,7 +264,7 @@ pub async fn seed<D, P, E, C>(
                 entity_type.clone(),
                 &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                     entity_type.id().clone().into(),
-                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
                     OwnedById::new(account_id),
                 )),
             )
@@ -274,7 +274,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(entity_type, UpdatedById::new(account_id))
+                        .update_entity_type(entity_type, RecordCreatedById::new(account_id))
                         .await
                         .expect("failed to update entity type");
                 } else {

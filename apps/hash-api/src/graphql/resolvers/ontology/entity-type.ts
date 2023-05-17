@@ -1,10 +1,14 @@
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
 import {
   createEntityType,
   updateEntityType,
@@ -61,31 +65,16 @@ export const queryEntityTypesResolver: ResolverFn<
       equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -112,31 +101,16 @@ export const getEntityTypeResolver: ResolverFn<
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const updateEntityTypeResolver: ResolverFn<

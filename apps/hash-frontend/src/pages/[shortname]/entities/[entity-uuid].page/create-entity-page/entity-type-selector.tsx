@@ -31,7 +31,8 @@ export const EntityTypeSelector: FunctionComponent<{
       }}
       options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
-        $id,
+        uniqueId: $id,
+        typeId: $id,
         title,
         description,
       })}

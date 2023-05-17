@@ -1,6 +1,9 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
+import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
+  faCheck,
+  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   MenuItem,
@@ -18,21 +21,42 @@ import {
   listItemTextClasses,
   Menu,
   menuItemClasses,
+  styled,
   TableCell,
   tableRowClasses,
   Tooltip,
+  tooltipClasses,
+  TooltipProps,
   Typography,
 } from "@mui/material";
+import clsx from "clsx";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useCallback, useId } from "react";
+import {
+  Fragment,
+  MouseEventHandler,
+  useCallback,
+  useId,
+  useState,
+} from "react";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 
 export const TYPE_MENU_CELL_WIDTH = 70;
+
+const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip
+    {...props}
+    classes={{ popper: clsx(className, fluidFontClassName) }}
+  />
+))({
+  [`& .${tooltipClasses.tooltip}`]: {
+    maxWidth: "none",
+  },
+});
 
 export const TypeMenuCell = ({
   typeId,
@@ -80,6 +104,21 @@ export const TypeMenuCell = ({
     ),
     [editButtonDisabled, popupState, editButtonProps, variant],
   );
+
+  const [hasCopied, setHasCopied] = useState<boolean>(false);
+  const copyEntityTypeId = useCallback<MouseEventHandler>(
+    (event) => {
+      event.preventDefault();
+
+      setHasCopied(true);
+      return navigator.clipboard.writeText(typeId);
+    },
+    [typeId, setHasCopied],
+  );
+
+  const handleTooltipOpen = () => {
+    setHasCopied(false);
+  };
 
   return (
     <TableCell
@@ -145,7 +184,11 @@ export const TypeMenuCell = ({
               </Typography>,
 
               editButtonDisabled ? (
-                <Tooltip key="edit" title={editButtonDisabled}>
+                <Tooltip
+                  key="edit"
+                  title={editButtonDisabled}
+                  classes={{ popper: fluidFontClassName }}
+                >
                   <Box>
                     <EditButton />
                   </Box>
@@ -170,37 +213,55 @@ export const TypeMenuCell = ({
           Source
         </Typography>
         <ListItem sx={{ pt: "0 !important" }}>
-          <Tooltip
+          <NoMaxWidthTooltip
+            enterDelay={250}
+            onOpen={handleTooltipOpen}
             title={
-              <>
-                {ontology.domain}/{ontology.path}
-              </>
+              <Typography
+                sx={{
+                  display: "block",
+                  width: "100%",
+                }}
+                align="center"
+                variant="smallTextLabels"
+              >
+                <FontAwesomeIcon
+                  icon={{ icon: hasCopied ? faCheck : faCopy.icon }}
+                  sx={{ mr: 1 }}
+                />
+                {hasCopied ? "Copied" : "Click to copy"}
+              </Typography>
             }
             placement="bottom"
           >
-            <OntologyChip
-              {...ontology}
-              path={
-                <>
-                  {ontology.path.split("/").map((part, idx, parts) => {
-                    const last = idx === parts.length - 1;
-                    return (
-                      // eslint-disable-next-line react/no-array-index-key
-                      <Fragment key={idx}>
-                        <Typography
-                          component="span"
-                          maxWidth={last ? "5ch" : "6ch"}
-                        >
-                          {part}
-                        </Typography>
-                        {last ? null : <>/</>}
-                      </Fragment>
-                    );
-                  })}
-                </>
-              }
-            />
-          </Tooltip>
+            <Box onClick={copyEntityTypeId}>
+              <OntologyChip
+                {...ontology}
+                sx={{
+                  cursor: "pointer",
+                }}
+                path={
+                  <>
+                    {ontology.path.split("/").map((part, idx, parts) => {
+                      const last = idx === parts.length - 1;
+                      return (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <Fragment key={idx}>
+                          <Typography
+                            component="span"
+                            maxWidth={last ? "5ch" : "6ch"}
+                          >
+                            {part}
+                          </Typography>
+                          {last ? null : <>/</>}
+                        </Fragment>
+                      );
+                    })}
+                  </>
+                }
+              />
+            </Box>
+          </NoMaxWidthTooltip>
         </ListItem>
         <Divider />
         <ListItem>

@@ -9,6 +9,7 @@
 import { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import {
   CreateResourceError,
+  QueryOperationInput,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
@@ -80,7 +81,7 @@ export type UploadFileRequestCallback = MessageCallback<
 >;
 
 export type QueryEntitiesRequest = {
-  rootEntityTypeIds?: VersionedUrl[];
+  operation: QueryOperationInput;
   graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 

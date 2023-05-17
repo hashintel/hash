@@ -15,6 +15,7 @@ export type BlogPostPagePhoto = {
   src: string;
   width: number;
   height: number;
+  blurDataURL: string;
 };
 
 export type BlogPagePhotos = {
@@ -70,7 +71,7 @@ export const BlogPostHead: FunctionComponent<{
 }) => {
   const photos = useBlogPostPhotos();
 
-  const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH for Developers`;
+  const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH Developer Blog`;
 
   const date = dateInput ? new Date(dateInput) : null;
   const dateIso = date ? date.toISOString() : null;
@@ -219,7 +220,11 @@ export const BlogPostHead: FunctionComponent<{
                 width={{ xs: 1, md: "auto" }}
                 mb={{ xs: 3, md: 0 }}
               >
-                <Image {...photos.post} layout="responsive" />
+                <Image
+                  {...photos.post}
+                  layout="responsive"
+                  placeholder="blur"
+                />
               </Box>
             ) : null}
           </Stack>
@@ -237,7 +242,8 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
       sx={{
         display: "grid",
         gridTemplateColumns: "1fr min(calc(var(--step-0) * 37.7), 100%) 1fr",
-        margin: "0 auto",
+        margin: "auto",
+        overflow: "auto",
 
         "> *": {
           gridColumn: 2,
@@ -266,6 +272,14 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
           mt: 5,
           mb: 2,
           color: "gray.90",
+        },
+        /** Headers that come after headers shouldn't have a top margin */
+        "& h2 + h3, h2 + h4, h2 + h5, h2 + h6, h3 + h4, h3 + h5, h3 + h6, h4 + h5, h4 + h6, h5 + h6":
+          {
+            marginTop: 0,
+          },
+        "& > h1:first-of-type": {
+          marginTop: 0,
         },
         [`> .${mdxImageClasses.root}`]: {
           width: 1,

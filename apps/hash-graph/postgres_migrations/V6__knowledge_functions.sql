@@ -25,26 +25,45 @@ OR REPLACE FUNCTION "create_entity" (
 
       INSERT INTO entity_ids (
         owned_by_id,
-        entity_uuid,
-        left_owned_by_id,
-        left_entity_uuid,
-        right_owned_by_id,
-        right_entity_uuid
+        entity_uuid
       ) VALUES (
         _owned_by_id,
-        _entity_uuid,
-        _left_owned_by_id,
-        _left_entity_uuid,
-        _right_owned_by_id,
-        _right_entity_uuid
+        _entity_uuid
       );
+
+      IF _left_entity_uuid IS NOT NULL THEN
+        INSERT INTO entity_has_left_entity (
+          owned_by_id,
+          entity_uuid,
+          left_owned_by_id,
+          left_entity_uuid
+        ) VALUES (
+          _owned_by_id,
+          _entity_uuid,
+          _left_owned_by_id,
+          _left_entity_uuid
+        );
+      END IF;
+
+      IF _right_entity_uuid IS NOT NULL THEN
+        INSERT INTO entity_has_right_entity (
+          owned_by_id,
+          entity_uuid,
+          right_owned_by_id,
+          right_entity_uuid
+        ) VALUES (
+          _owned_by_id,
+          _entity_uuid,
+          _right_owned_by_id,
+          _right_entity_uuid
+        );
+      END IF;
 
       -- insert the data of the entity
       INSERT INTO entity_editions (
         entity_edition_id,
         record_created_by_id,
         archived,
-        entity_type_ontology_id,
         properties,
         left_to_right_order,
         right_to_left_order
@@ -52,11 +71,18 @@ OR REPLACE FUNCTION "create_entity" (
         gen_random_uuid(),
         _record_created_by_id,
         _archived,
-        _entity_type_ontology_id,
         _properties,
         _left_to_right_order,
         _right_to_left_order
       ) RETURNING entity_editions.entity_edition_id INTO _entity_edition_id;
+
+      INSERT INTO entity_is_of_type (
+        entity_edition_id,
+        entity_type_ontology_id
+      ) VALUES (
+        _entity_edition_id,
+        _entity_type_ontology_id
+      );
 
       RETURN QUERY
       INSERT INTO entity_temporal_metadata (
@@ -100,7 +126,6 @@ OR REPLACE FUNCTION "update_entity" (
         entity_edition_id,
         record_created_by_id,
         archived,
-        entity_type_ontology_id,
         properties,
         left_to_right_order,
         right_to_left_order
@@ -108,12 +133,19 @@ OR REPLACE FUNCTION "update_entity" (
         gen_random_uuid(),
         _record_created_by_id,
         _archived,
-        _entity_type_ontology_id,
         _properties,
         _left_to_right_order,
         _right_to_left_order
       )
       RETURNING entity_editions.entity_edition_id INTO _new_entity_edition_id;
+
+      INSERT INTO entity_is_of_type (
+        entity_edition_id,
+        entity_type_ontology_id
+      ) VALUES (
+        _new_entity_edition_id,
+        _entity_type_ontology_id
+      );
 
       RETURN QUERY
       UPDATE entity_temporal_metadata

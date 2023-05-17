@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "codegen": {
+      // Outputs of GraphQL generation
+      "outputs": ["./src/**/*.gen.*"],
+      "dependsOn": ["^build"]
+    }
+  }
+}

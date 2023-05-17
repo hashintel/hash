@@ -1,6 +1,11 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity, EntityId, Timestamp, UpdatedById } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  RecordCreatedById,
+  Timestamp,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import produce from "immer";
@@ -39,7 +44,7 @@ export const createDraftLinkEntity = ({
       archived: false,
       recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
-      provenance: { updatedById: "" as UpdatedById },
+      provenance: { recordCreatedById: "" as RecordCreatedById },
       temporalVersioning: {
         decisionTime: {
           start: {

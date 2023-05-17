@@ -1,6 +1,9 @@
-import { Subgraph } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
+import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
 import {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
@@ -21,31 +24,13 @@ export const queryDataTypes: ResolverFn<
       equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return mapSubgraph(dataTypeSubgraph);
+  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };
 
 export const getDataType: ResolverFn<
@@ -62,29 +47,11 @@ export const getDataType: ResolverFn<
     },
     /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return mapSubgraph(dataTypeSubgraph);
+  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };

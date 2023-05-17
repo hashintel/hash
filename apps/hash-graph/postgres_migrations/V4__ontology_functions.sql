@@ -37,7 +37,8 @@ BEGIN
   SET
     "ontology_id" = update_ontology_id.ontology_id,
     "version" = update_ontology_id.version,
-    "record_created_by_id" = update_ontology_id.record_created_by_id
+    "record_created_by_id" = update_ontology_id.record_created_by_id,
+    "transaction_time" = tstzrange(now(), NULL, '[)')
   WHERE ontology_ids.base_url = update_ontology_id.base_url
     AND ontology_ids.version = update_ontology_id.version_to_update
   RETURNING update_ontology_id.ontology_id;

@@ -3,6 +3,7 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   ButtonProps,
+  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   Modal,
@@ -32,6 +33,7 @@ import {
   Ref,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -220,6 +222,7 @@ export const TypeFormModal: PolymorphicComponent = forwardRef(
           border: 1,
           borderColor: theme.palette.gray[20],
         })}
+        classes={{ root: fluidFontClassName }}
       >
         {inner}
       </Modal>
@@ -237,12 +240,14 @@ export type TypeFormProps<T extends TypeFormDefaults = TypeFormDefaults> = {
   submitButtonProps: TypeFormSubmitProps;
   disabledFields?: (keyof DeepPartial<T>)[];
   getDefaultValues: () => DeepPartial<T>;
+  getDirtyFields?: () => DeepPartial<T>;
 };
 
 export const TypeForm = <T extends TypeFormDefaults>({
   children,
   disabledFields = [],
   getDefaultValues,
+  getDirtyFields,
   onClose,
   modalTitle,
   popupState,
@@ -254,6 +259,10 @@ export const TypeForm = <T extends TypeFormDefaults>({
   validateTitle: (title: string) => ReturnType<TitleValidationFunction>;
 } & TypeFormProps<T>) => {
   const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
+  const defaultDirtyValues = useMemo(
+    () => getDirtyFields?.(),
+    [getDirtyFields],
+  );
 
   const formMethods = useForm<T>({
     defaultValues,
@@ -264,11 +273,42 @@ export const TypeForm = <T extends TypeFormDefaults>({
 
   const {
     handleSubmit: wrapHandleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, isDirty },
     setFocus,
+    setValue,
   } = formMethods;
 
-  const defaultField = defaultValues.name ? "description" : "name";
+  const lastDefaultDirtyValues = useRef<null | typeof defaultDirtyValues>(null);
+
+  useEffect(() => {
+    if (lastDefaultDirtyValues.current === defaultDirtyValues) {
+      return;
+    }
+
+    lastDefaultDirtyValues.current = defaultDirtyValues;
+
+    if (defaultDirtyValues) {
+      for (const [key, value] of Object.entries(defaultDirtyValues)) {
+        /**
+         * I tried typing Object.entries but it didn't fix the issue – I think
+         * this is an issue with react-hook-form's types,not ours.
+         */
+        setValue(
+          // @ts-expect-error key is already equivalent to Path<T> (or would be if using typed entries)
+          key,
+          value,
+          {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          },
+        );
+      }
+    }
+  }, [setValue, defaultDirtyValues]);
+
+  const defaultField =
+    defaultDirtyValues?.name ?? defaultValues.name ? "description" : "name";
 
   useEffect(() => {
     setFocus(
@@ -350,7 +390,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
           <Button
             {...submitButtonProps}
             loading={isSubmitting}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isDirty}
             type="submit"
             size="small"
           >

@@ -11,9 +11,11 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 
 import { parseNameFromFileName } from "./client-mdx-util";
+import { imageMetadata } from "./image-metadata";
 
 type Node = {
   type: string;
+  name?: string;
 };
 
 type Parent = {
@@ -29,7 +31,15 @@ type Image = {
   alt?: null | string;
 } & Parent;
 
+type TalkSlide = {
+  name: "TalkSlide";
+  attributes: Record<string, string>[];
+} & Parent;
+
 const isImage = (node: Node): node is Image => node.type === "image";
+
+const isTalkSlide = (node: Node): node is TalkSlide =>
+  node.name === "TalkSlide";
 
 type ParsedAST = {
   type: "root";
@@ -43,9 +53,31 @@ export const parseAST = (mdxFileContent: string) =>
     .use(remarkMdxDisableExplicitJsx)
     .parse(mdxFileContent) as ParsedAST;
 
-// Recursively returns all the headings in an MDX AST
+const mapTalkSlidesToImages = (talkSlides: TalkSlide[]): Image[] => {
+  const map = (talkSlide: TalkSlide): Image | undefined => {
+    const url = talkSlide.attributes.find(({ name }) => name === "src")?.value;
+
+    if (typeof url !== "undefined") {
+      const format = /[^.]+$/.exec(url);
+      if (format === null || format[0] === "mp4") {
+        return undefined;
+      }
+
+      return { name: "img", type: "image", url, children: [] };
+    }
+
+    return undefined;
+  };
+
+  return talkSlides
+    .map(map)
+    .filter((value) => typeof value !== "undefined") as Image[];
+};
+
+// Recursively returns all the images in an MDX AST
 const getImagesFromParent = (parent: Parent): Image[] => [
   ...parent.children.filter(isImage),
+  ...mapTalkSlidesToImages(parent.children.filter(isTalkSlide)),
   ...parent.children
     .filter(isParent)
     .flatMap((child) => getImagesFromParent(child)),
@@ -102,7 +134,7 @@ export const getSerializedPage = async (params: {
     // Optionally pass remark/rehype plugins
     mdxOptions: {
       remarkPlugins: [remarkMdxDisableExplicitJsx],
-      rehypePlugins: [],
+      rehypePlugins: [imageMetadata],
     },
     scope: data,
   });

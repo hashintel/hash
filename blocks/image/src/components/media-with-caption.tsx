@@ -51,6 +51,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
             imageSrc={src}
             width={props.width}
             updateWidth={props.onWidthChange}
+            readonly={readonly}
           />
 
           {captionNode}

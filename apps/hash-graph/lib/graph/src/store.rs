@@ -48,3 +48,11 @@ impl<S> Store for S where
     S: AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
 {
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ConflictBehavior {
+    /// If a conflict is detected, the operation will fail.
+    Fail,
+    /// If a conflict is detected, the operation will be skipped.
+    Skip,
+}

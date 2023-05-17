@@ -102,6 +102,7 @@ rustflags = [
     "-Aclippy::missing_errors_doc",
     "-Aclippy::module_name_repetitions",
     "-Aclippy::redundant_pub_crate",
+    "-Aclippy::significant_drop_tightening",
     "-Amissing_docs",
     ## END CLIPPY LINTS ##
 ]

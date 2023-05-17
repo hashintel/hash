@@ -9,12 +9,12 @@ import {
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import {
+  Box,
   Checkbox,
   Collapse,
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableRow,
 } from "@mui/material";
@@ -51,14 +51,18 @@ import { CollapsibleRowLine } from "./shared/collapsible-row-line";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
-  EntityTypeTableButtonRow,
   EntityTypeTableCenteredCell,
+  EntityTypeTableFooter,
+  EntityTypeTableFooterButton,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
-import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import {
+  InsertTypeField,
+  InsertTypeFieldProps,
+} from "./shared/insert-type-field";
 import {
   MULTIPLE_VALUES_CELL_WIDTH,
   MultipleValuesCell,
@@ -352,18 +356,18 @@ export const PropertyTypeRow = ({
   const propertyTypesOptions = usePropertyTypesOptions();
   const property = propertyTypesOptions[propertyId];
 
-  const { updatePropertyType } = useOntologyFunctions();
+  const { updatePropertyType, canEditResource } = useOntologyFunctions();
 
   const [currentVersion, latestVersion] = useTypeVersions(
     propertyId,
     propertyTypesOptions,
   );
 
-  const getDefaultValues = useCallback(() => {
-    if (!property) {
-      throw new Error("Missing property type");
-    }
+  if (!property) {
+    throw new Error(`Property type with ${propertyId} not found in options`);
+  }
 
+  const getDefaultValues = useCallback(() => {
     const [expectedValues, flattenedCustomExpectedValueList] =
       propertyTypeToFormDataExpectedValues(property);
 
@@ -375,11 +379,18 @@ export const PropertyTypeRow = ({
     };
   }, [property]);
 
-  if (!property) {
-    return null;
-  }
+  const editDisabledReason = useMemo(() => {
+    const canEdit = canEditResource({
+      kind: "property-type",
+      resource: property,
+    });
 
-  const $id = property.$id;
+    return !canEdit.allowed
+      ? canEdit.message
+      : currentVersion !== latestVersion
+      ? "Update the property type to the latest version to edit"
+      : undefined;
+  }, [canEditResource, property, currentVersion, latestVersion]);
 
   return (
     <>
@@ -407,12 +418,7 @@ export const PropertyTypeRow = ({
             onRemove={onRemove}
             typeId={property.$id}
             variant="property"
-            {...(currentVersion !== latestVersion
-              ? {
-                  editButtonDisabled:
-                    "Update the property type to the latest version to edit",
-                }
-              : {})}
+            editButtonDisabled={editDisabledReason}
           />
         }
         onUpdateVersion={onUpdateVersion}
@@ -421,13 +427,13 @@ export const PropertyTypeRow = ({
 
       <TypeFormModal
         as={PropertyTypeForm}
-        baseUrl={extractBaseUrl($id)}
+        baseUrl={extractBaseUrl(propertyId)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data: PropertyTypeFormValues) => {
           const res = await updatePropertyType({
             data: {
-              propertyTypeId: $id,
+              propertyTypeId: propertyId,
               propertyType: getPropertyTypeSchema(data),
             },
           });
@@ -448,8 +454,8 @@ export const PropertyTypeRow = ({
   );
 };
 
-const InsertPropertyRow = (
-  props: Omit<InsertTypeRowProps<PropertyType>, "options" | "variant">,
+const InsertPropertyField = (
+  props: Omit<InsertTypeFieldProps<PropertyType>, "options" | "variant">,
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const properties = useWatch({ control, name: "properties" });
@@ -463,13 +469,20 @@ const InsertPropertyRow = (
   });
 
   return (
-    <InsertTypeRow
+    <InsertTypeField
       {...props}
       options={filteredPropertyTypes}
       variant="property"
     />
   );
 };
+
+const propertyDefaultValues = (): PropertyTypeFormValues => ({
+  expectedValues: [],
+  flattenedCustomExpectedValueList: {},
+  name: "",
+  description: "",
+});
 
 export const PropertyListCard = () => {
   const { control, getValues, setValue } =
@@ -502,16 +515,17 @@ export const PropertyListCard = () => {
   const [searchText, setSearchText] = useState("");
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
-  const cancelAddingNewProperty = () => {
-    setAddingNewProperty(false);
-    setSearchText("");
-  };
-
   const modalTooltipId = useId();
   const createModalPopupState = usePopupState({
     variant: "popover",
     popupId: `createProperty-${modalTooltipId}`,
   });
+
+  const cancelAddingNewProperty = () => {
+    createModalPopupState.close();
+    setAddingNewProperty(false);
+    setSearchText("");
+  };
   const [flashingRows, flashRow] = useFlashRow();
 
   const handleAddPropertyType = (propertyType: PropertyType) => {
@@ -547,6 +561,11 @@ export const PropertyListCard = () => {
 
     handleAddPropertyType(res.data.schema);
   };
+
+  const propertyDirtyFields = useCallback(
+    () => (searchText ? { name: searchText } : {}),
+    [searchText],
+  );
 
   if (!addingNewProperty && fields.length === 0) {
     return (
@@ -617,49 +636,49 @@ export const PropertyListCard = () => {
           />
         ))}
       </TableBody>
-      <TableFooter>
-        {addingNewProperty ? (
-          <>
-            <InsertPropertyRow
-              inputRef={addingNewPropertyRef}
-              onCancel={cancelAddingNewProperty}
-              onAdd={handleAddPropertyType}
-              createModalPopupState={createModalPopupState}
-              searchText={searchText}
-              onSearchTextChange={setSearchText}
-            />
-            <TypeFormModal
-              as={PropertyTypeForm}
-              modalTitle={
-                <>
-                  Create new property type
-                  <QuestionIcon
-                    sx={{
-                      display: "flex",
-                      ml: 1.25,
-                    }}
-                    tooltip={
-                      <>
-                        You should only create a new property type if you can't
-                        find an existing one which corresponds to the
-                        information you're trying to capture.
-                      </>
-                    }
-                  />
-                </>
-              }
-              popupState={createModalPopupState}
-              onSubmit={handleSubmit}
-              submitButtonProps={{ children: <>Create new property type</> }}
-              getDefaultValues={() => ({
-                expectedValues: [],
-                ...(searchText.length ? { name: searchText } : {}),
-              })}
-            />
-          </>
-        ) : (
-          !isReadonly && (
-            <EntityTypeTableButtonRow
+      {isReadonly ? (
+        <Box sx={{ height: "var(--table-padding)" }} />
+      ) : (
+        <EntityTypeTableFooter enableShadow={fields.length > 0}>
+          {addingNewProperty ? (
+            <>
+              <InsertPropertyField
+                inputRef={addingNewPropertyRef}
+                onCancel={cancelAddingNewProperty}
+                onAdd={handleAddPropertyType}
+                createModalPopupState={createModalPopupState}
+                searchText={searchText}
+                onSearchTextChange={setSearchText}
+              />
+              <TypeFormModal
+                as={PropertyTypeForm}
+                modalTitle={
+                  <>
+                    Create new property type
+                    <QuestionIcon
+                      sx={{
+                        display: "flex",
+                        ml: 1.25,
+                      }}
+                      tooltip={
+                        <>
+                          You should only create a new property type if you
+                          can't find an existing one which corresponds to the
+                          information you're trying to capture.
+                        </>
+                      }
+                    />
+                  </>
+                }
+                popupState={createModalPopupState}
+                onSubmit={handleSubmit}
+                submitButtonProps={{ children: <>Create new property type</> }}
+                getDefaultValues={propertyDefaultValues}
+                getDirtyFields={propertyDirtyFields}
+              />
+            </>
+          ) : (
+            <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
                 setAddingNewProperty(true, () => {
@@ -668,10 +687,10 @@ export const PropertyListCard = () => {
               }}
             >
               Add a property
-            </EntityTypeTableButtonRow>
-          )
-        )}
-      </TableFooter>
+            </EntityTypeTableFooterButton>
+          )}
+        </EntityTypeTableFooter>
+      )}
     </EntityTypeTable>
   );
 };

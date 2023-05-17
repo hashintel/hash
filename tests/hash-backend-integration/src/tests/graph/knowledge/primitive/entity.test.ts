@@ -1,4 +1,6 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
@@ -15,6 +17,7 @@ import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -31,8 +34,8 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -149,6 +152,20 @@ describe("Entity CRU", () => {
     });
   });
 
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser2.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
+  });
+
   let createdEntity: Entity;
   it("can create an entity", async () => {
     createdEntity = await createEntity(graphContext, {
@@ -177,7 +194,7 @@ describe("Entity CRU", () => {
 
   let updatedEntity: Entity;
   it("can update an entity", async () => {
-    expect(createdEntity.metadata.provenance.updatedById).toBe(
+    expect(createdEntity.metadata.provenance.recordCreatedById).toBe(
       testUser.accountId,
     );
 
@@ -191,7 +208,7 @@ describe("Entity CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntity.metadata.provenance.updatedById).toBe(
+    expect(updatedEntity.metadata.provenance.recordCreatedById).toBe(
       testUser2.accountId,
     );
   });
@@ -203,22 +220,10 @@ describe("Entity CRU", () => {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: {
-          pinned: {
-            axis: "transactionTime",
-            timestamp: null,
-          },
-          variable: {
-            axis: "decisionTime",
-            interval: {
-              start: null,
-              end: null,
-            },
-          },
-        },
+        temporalAxes: currentTimeInstantTemporalAxes,
       })
       .then(({ data }) =>
-        getRoots(mapSubgraph(data) as Subgraph<EntityRootType>).filter(
+        getRoots(data as Subgraph<EntityRootType>).filter(
           (entity) =>
             extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,
@@ -273,7 +278,7 @@ describe("Entity CRU", () => {
 
     const linkEntity = (
       await getEntityOutgoingLinks(graphContext, {
-        entity: aliceEntity,
+        entityId: aliceEntity.metadata.recordId.entityId,
       })
     )[0]!;
 

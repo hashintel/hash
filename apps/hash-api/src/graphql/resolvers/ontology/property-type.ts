@@ -1,10 +1,14 @@
 import {
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
 import {
   createPropertyType,
   updatePropertyType,
@@ -63,31 +67,15 @@ export const queryPropertyTypesResolver: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
+        ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
-  return mapSubgraph(propertyTypeSubgraph);
+
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -109,32 +97,15 @@ export const getPropertyTypeResolver: ResolverFn<
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
+        ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 
-  return mapSubgraph(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

@@ -42,3 +42,11 @@ export const createKratosIdentity = async (
 
   return kratosUserIdentity;
 };
+
+export const deleteKratosIdentity = async (params: {
+  kratosIdentityId: string;
+}): Promise<void> => {
+  await kratosIdentityApi.deleteIdentity({
+    id: params.kratosIdentityId,
+  });
+};

@@ -29,6 +29,8 @@ type RemoteBlockProps = {
     | "queryPropertyTypes"
     | "updatePropertyType"
     | "getPropertyType"
+    | "getDataType"
+    | "queryDataTypes"
     | "createEntityType"
     | "queryEntityTypes"
     | "updateEntityType"
@@ -42,7 +44,7 @@ type RemoteBlockProps = {
   graphProperties: Required<BlockGraphProperties["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
-  editableRef?: (node: HTMLElement | null) => void;
+  editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded?: () => void;
 };
 
@@ -94,16 +96,24 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
       async hook({ data }) {
-        /*
-         *@todo-0.3 - update this when we update the text blocks, we should stop checking for typeof string,
-         *      it should become an array with a base URL
-         */
         if (
           data?.type === "text" &&
-          typeof data.path === "string" &&
-          data.path === "$.text"
+          data.path.length === 1 &&
+          data.path[0] ===
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
         ) {
-          editableRef?.(data.node);
+          if (!editableRef) {
+            return {
+              errors: [
+                {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Hook text module not implemented in this context",
+                },
+              ],
+            };
+          }
+
+          editableRef(data.node);
 
           const hookId = data.hookId ?? uuid();
           return { data: { hookId } };

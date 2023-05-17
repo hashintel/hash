@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -8,6 +9,7 @@ import {
   getDataTypeById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -17,6 +19,7 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -45,6 +48,20 @@ beforeAll(async () => {
   testUser2 = await createTestUser(graphContext, "data-type-test-2", logger);
 });
 
+afterAll(async () => {
+  await deleteKratosIdentity({
+    kratosIdentityId: systemUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser2.kratosIdentityId,
+  });
+
+  await resetGraph();
+});
+
 describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
@@ -68,7 +85,7 @@ describe("Data type CRU", () => {
   it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
-        createdDataType.metadata.provenance.updatedById,
+        createdDataType.metadata.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
     const updatedDataType = await updateDataType(graphContext, {
@@ -79,7 +96,7 @@ describe("Data type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
-        updatedDataType.metadata.provenance.updatedById,
+        updatedDataType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
   });
 });

@@ -1,11 +1,12 @@
-import { Button, ButtonProps, Link } from "@mui/material";
+import { Button, ButtonProps } from "@hashintel/design-system";
+import { Link } from "@mui/material";
 
 export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
   return (
     <Link
       href={href}
       sx={{
-        textDecoration: "none",
+        textDecoration: "none !important",
       }}
     >
       <Button
@@ -24,6 +25,7 @@ export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
             paddingY: 1.5,
             paddingX: 2.5,
           }),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO why is this inferred as any?
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >

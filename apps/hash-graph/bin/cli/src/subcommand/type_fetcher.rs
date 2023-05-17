@@ -9,7 +9,7 @@ use tarpc::{
     server::{self, Channel},
 };
 use tokio::time::timeout;
-use tokio_serde::formats::MessagePack;
+use tokio_serde::formats::Json;
 use type_fetcher::{
     fetcher::{Fetcher, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
@@ -57,7 +57,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
             args.address.type_fetcher_host,
             args.address.type_fetcher_port,
         ),
-        MessagePack::default,
+        Json::default,
     )
     .await
     .into_report()
@@ -74,7 +74,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
         .filter_map(|r| future::ready(r.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
-            let server = FetchServer;
+            let server = FetchServer { buffer_size: 10 };
             channel.execute(server.serve())
         })
         .buffer_unordered(255)
@@ -87,7 +87,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), HealthcheckError> {
     let transport = tarpc::serde_transport::tcp::connect(
         (address.type_fetcher_host, address.type_fetcher_port),
-        MessagePack::default,
+        Json::default,
     );
 
     let _: Transport<_, FetcherRequest, FetcherResponse, _> =

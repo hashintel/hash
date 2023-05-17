@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-02-20&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-05-15&color=blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -151,8 +151,8 @@
 //! [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
-//! # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
-//! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test the snapshot on nightly, therefore report is unused (so is render)
+//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
 //! # use error_stack::{Context, IntoReport, Report, ResultExt};
 //! # pub type Config = String;
@@ -198,7 +198,7 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # #[cfg(rust_1_65)]
+//! # #[cfg(nightly)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
 //! ```
 //!

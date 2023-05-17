@@ -46,9 +46,6 @@ macro_rules! forward_to_deserialize_any_helper {
     (i128 < $l:tt, $v:ident >) => {
         forward_to_deserialize_any_method! {deserialize_i128<$l, $v>()}
     };
-    (isize < $l:tt, $v:ident >) => {
-        forward_to_deserialize_any_method! {deserialize_isize<$l, $v>()}
-    };
     (u8 < $l:tt, $v:ident >) => {
         forward_to_deserialize_any_method! {deserialize_u8<$l, $v>()}
     };
@@ -63,9 +60,6 @@ macro_rules! forward_to_deserialize_any_helper {
     };
     (u128 < $l:tt, $v:ident >) => {
         forward_to_deserialize_any_method! {deserialize_u128<$l, $v>()}
-    };
-    (usize < $l:tt, $v:ident >) => {
-        forward_to_deserialize_any_method! {deserialize_usize<$l, $v>()}
     };
     (f32 < $l:tt, $v:ident >) => {
         forward_to_deserialize_any_method! {deserialize_f32<$l, $v>()}
@@ -99,5 +93,8 @@ macro_rules! forward_to_deserialize_any_helper {
     };
     (array < $l:tt, $v:ident >) => {
         forward_to_deserialize_any_method! {deserialize_array<$l, $v>()}
+    };
+    (optional < $l:tt, $v:ident >) => {
+        forward_to_deserialize_any_method! {deserialize_optional<$l, $v>()}
     };
 }
