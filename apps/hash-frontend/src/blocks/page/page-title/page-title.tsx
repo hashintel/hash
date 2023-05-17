@@ -59,7 +59,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   const [prevValue, setPrevValue] = useState(value);
   const [inputValue, setInputValue] = useState(value);
 
-  const { editorView, pageTitleRef } = usePageContext();
+  const { editorContext, pageTitleRef } = usePageContext();
 
   const handleInputChange: ChangeEventHandler<HTMLTextAreaElement> = (
     event,
@@ -70,9 +70,18 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   const handleInputKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (
     event,
   ) => {
-    const { currentTarget, key } = event;
-    if (key === "Enter" || key === "Escape") {
+    const { currentTarget, key, shiftKey } = event;
+    if (key === "Escape") {
       currentTarget.blur();
+    }
+
+    if (key === "Enter" && !shiftKey) {
+      event.preventDefault();
+      void focusEditorBeginning(
+        editorContext?.view,
+        editorContext?.manager,
+        true,
+      );
     }
 
     if (key === "ArrowDown") {
@@ -81,7 +90,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       const isAtEnd = currentTarget.selectionEnd === inputValue.length;
 
       if (isCaret && isAtEnd) {
-        focusEditorBeginning(editorView);
+        void focusEditorBeginning(editorContext?.view, editorContext?.manager);
       }
     }
   };
