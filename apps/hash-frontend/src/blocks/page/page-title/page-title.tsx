@@ -77,7 +77,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
     if (key === "Enter" && !shiftKey) {
       event.preventDefault();
-      focusEditorBeginning(editorContext?.view, editorContext?.manager);
+      focusEditorBeginning(editorContext?.view, editorContext?.manager, true);
     }
 
     if (key === "ArrowDown") {
