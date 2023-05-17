@@ -1,8 +1,10 @@
+import {
+  isHashTextBlock,
+  paragraphBlockComponentId,
+} from "@local/hash-isomorphic-utils/blocks";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { Selection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
-import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 
 export const cleanUpTitle = (value: string): string =>
   value.trim().replace(/\s+/g, " ");

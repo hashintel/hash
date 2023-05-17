@@ -77,7 +77,11 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
     if (key === "Enter" && !shiftKey) {
       event.preventDefault();
-      focusEditorBeginning(editorContext?.view, editorContext?.manager, true);
+      void focusEditorBeginning(
+        editorContext?.view,
+        editorContext?.manager,
+        true,
+      );
     }
 
     if (key === "ArrowDown") {
@@ -86,7 +90,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       const isAtEnd = currentTarget.selectionEnd === inputValue.length;
 
       if (isCaret && isAtEnd) {
-        focusEditorBeginning(editorContext?.view, editorContext?.manager);
+        void focusEditorBeginning(editorContext?.view, editorContext?.manager);
       }
     }
   };
