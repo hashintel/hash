@@ -891,69 +891,6 @@ Content-Type: application/json
     });
 %}
 
-### Get all entities where the name property contains "Alice"
-POST http://127.0.0.1:4000/entities/query
-Content-Type: application/json
-
-{
-  "filter": {
-    "containsSegment": [
-      { "path": ["properties", "http://localhost:3000/@alice/types/property-type/name/"] },
-      { "parameter": "Alice" }
-    ]
-  },
-  "graphResolveDepths": {
-    "inheritsFrom": {
-      "outgoing": 0
-    },
-    "constrainsValuesOn": {
-      "outgoing": 0
-    },
-    "constrainsPropertiesOn": {
-      "outgoing": 0
-    },
-    "constrainsLinksOn": {
-      "outgoing": 0
-    },
-    "constrainsLinkDestinationsOn": {
-      "outgoing": 0
-    },
-    "isOfType": {
-      "outgoing": 0
-    },
-    "hasLeftEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    },
-    "hasRightEntity": {
-      "incoming": 0,
-      "outgoing": 0
-    }
-  },
-  "temporalAxes": {
-    "pinned": {
-      "axis": "transactionTime",
-      "timestamp": null
-    },
-    "variable": {
-      "axis": "decisionTime",
-      "interval": {
-        "start": {
-          "kind": "unbounded"
-        },
-        "end": null
-      }
-    }
-  }
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 2, "Unexpected number of entity types");
-    });
-%}
-
 ### Get all entity types, where the title ends with "ship"
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
@@ -1492,4 +1429,68 @@ Content-Type: application/json
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
+%}
+
+
+### Get all entities where the name property contains "Alice"
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "containsSegment": [
+      { "path": ["properties", "http://localhost:3000/@alice/types/property-type/name/"] },
+      { "parameter": "Alice" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.roots.length === 2, "Unexpected number of entity types");
+  });
 %}
