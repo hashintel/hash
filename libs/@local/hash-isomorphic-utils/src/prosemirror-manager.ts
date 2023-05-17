@@ -299,7 +299,6 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     const entityProperties = targetVariant?.properties ?? {};
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
