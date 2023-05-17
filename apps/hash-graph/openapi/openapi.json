@@ -1130,6 +1130,57 @@
                 "minItems": 2
               }
             }
+          },
+          {
+            "type": "object",
+            "title": "StartsWithFilter",
+            "required": [
+              "startsWith"
+            ],
+            "properties": {
+              "startsWith": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EndsWithFilter",
+            "required": [
+              "endsWith"
+            ],
+            "properties": {
+              "endsWith": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ContainsSegmentFilter",
+            "required": [
+              "containsSegment"
+            ],
+            "properties": {
+              "containsSegment": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
           }
         ]
       },
