@@ -8,6 +8,7 @@ import {
   Box,
   Modal,
   Paper,
+  Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
@@ -307,6 +308,109 @@ const doesIdentifierMatchKeyboardEvent = (
   error.which === identifier ||
   error.charCode === identifier;
 
+const Command = ({
+  label,
+  keysList,
+}: {
+  label: string;
+  keysList?: string[];
+}) => (
+  <Box
+    display="flex"
+    alignItems="center"
+    width="100%"
+    justifyContent="space-between"
+  >
+    {label}
+    {keysList ? (
+      <Box display="flex" alignItems="center" gap={0.5} flexGrow={0}>
+        {keysList.map((key) => (
+          <Box
+            key={key}
+            borderRadius={1}
+            bgcolor={(theme) => theme.palette.blue[30]}
+            px={1}
+          >
+            {key.toLowerCase() === "meta" ? "⌘" : key.toUpperCase()}
+          </Box>
+        ))}
+      </Box>
+    ) : null}
+  </Box>
+);
+
+const CheatSheet = () => {
+  const [open, setOpen] = useState(false);
+  const [, forceRender] = useReducer((count: number) => count + 1, 0);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = menu.addListener(forceRender);
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const groups = menu.options.reduce<Record<string, CommandBarOption[]>>(
+    (acc, option) => {
+      if (option.keysList && (showAll || option.isActive())) {
+        const group = acc[option.group] ?? [];
+        group.push(option);
+        acc[option.group] = group;
+      }
+
+      return acc;
+    },
+    {},
+  );
+
+  useKeys(
+    ["?"],
+    (evt) => {
+      // Hack to detect if pressed inside an input or textarea
+      if (!("defaultValue" in (evt.target as any))) {
+        setOpen(true);
+      }
+    },
+    {},
+  );
+
+  return (
+    <Modal open={open} onClose={() => setOpen(false)}>
+      <Box bgcolor="white" margin="40px auto" width={600} px={2} py={1}>
+        <label>
+          <input
+            type="checkbox"
+            checked={showAll}
+            onChange={(evt) => setShowAll(evt.target.checked)}
+          />{" "}
+          Show All
+        </label>
+        <ul>
+          {Object.entries(groups).map(([group, options]) => (
+            <Box component="li" mb={2} key={group}>
+              <Typography variant="mediumCaps">{group}</Typography>
+              <ul>
+                {options.map((option) => (
+                  <Box
+                    component="li"
+                    sx={{ opacity: option.isActive() ? 1 : 0.5 }}
+                    mb={1}
+                    key={option.label}
+                  >
+                    <Command label={option.label} keysList={option.keysList} />
+                  </Box>
+                ))}
+              </ul>
+            </Box>
+          ))}
+        </ul>
+      </Box>
+    </Modal>
+  );
+};
+
 export const CommandBar = () => {
   const popupState = usePopupState({
     popupId: "kbar",
@@ -521,80 +625,60 @@ export const CommandBar = () => {
   });
 
   return (
-    <Modal open={popupState.isOpen} onClose={closeBar}>
-      <CenterContainer>
-        <CustomScreenContext.Provider value={customScreen}>
-          <Autocomplete
-            options={
-              activeMenu?.subOptions.filter((option) => option.isActive()) ?? []
-            }
-            sx={{ width: "100%" }}
-            renderInput={renderInput}
-            PaperComponent={CustomPaperComponent}
-            onChange={handleChange}
-            groupBy={(option) => option.group}
-            getOptionLabel={(option) => option.label}
-            renderOption={(props, option) => (
-              <li {...props}>
-                <Box display="flex" alignItems="center" width="100%">
-                  {option.label}
-                  {option.keysList ? (
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      gap={0.5}
-                      marginLeft="auto"
-                      flexGrow={0}
-                    >
-                      {option.keysList.map((key) => (
-                        <Box
-                          key={key}
-                          borderRadius={1}
-                          bgcolor={(theme) => theme.palette.blue[30]}
-                          px={1}
-                        >
-                          {key.toLowerCase() === "meta"
-                            ? "⌘"
-                            : key.toUpperCase()}
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : null}{" "}
-                </Box>
-              </li>
-            )}
-            // The popup should always be open when the modal is open
-            open
-            popupIcon={null}
-            // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
-            disableCloseOnSelect
-            // The first option should be highlighted by default to make activating the first option quicker
-            autoHighlight
-            // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
-            value={null}
-            inputValue={inputValue}
-            onInputChange={(_, value, reason) => {
-              setInputValue(reason === "reset" ? "" : value);
-            }}
-            noOptionsText={
-              selectedCommand?.asyncCommand
-                ? inputValue
-                  ? "Press Enter to run command"
-                  : "Type your prompt and press enter"
-                : undefined
-            }
-            onClose={(_, reason) => {
-              // Prevent the autocomplete from closing when the user clicks on the input
-              if (
-                reason !== "toggleInput" &&
-                (reason !== "blur" || !selectedCommand?.renderCustomScreen)
-              ) {
-                closeBar(reason === "escape" ? "immediate" : "delayed");
+    <>
+      <Modal open={popupState.isOpen} onClose={closeBar}>
+        <CenterContainer>
+          <CustomScreenContext.Provider value={customScreen}>
+            <Autocomplete
+              options={
+                activeMenu?.subOptions.filter((option) => option.isActive()) ??
+                []
               }
-            }}
-          />
-        </CustomScreenContext.Provider>
-      </CenterContainer>
-    </Modal>
+              sx={{ width: "100%" }}
+              renderInput={renderInput}
+              PaperComponent={CustomPaperComponent}
+              onChange={handleChange}
+              groupBy={(option) => option.group}
+              getOptionLabel={(option) => option.label}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Command keysList={option.keysList} label={option.label} />
+                </li>
+              )}
+              // The popup should always be open when the modal is open
+              open
+              popupIcon={null}
+              // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
+              disableCloseOnSelect
+              // The first option should be highlighted by default to make activating the first option quicker
+              autoHighlight
+              // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
+              value={null}
+              inputValue={inputValue}
+              onInputChange={(_, value, reason) => {
+                setInputValue(reason === "reset" ? "" : value);
+              }}
+              noOptionsText={
+                selectedCommand?.asyncCommand
+                  ? inputValue
+                    ? "Press Enter to run command"
+                    : "Type your prompt and press enter"
+                  : undefined
+              }
+              onClose={(_, reason) => {
+                // Prevent the autocomplete from closing when the user clicks on the input
+                if (
+                  reason !== "toggleInput" &&
+                  (reason !== "blur" || !selectedCommand?.renderCustomScreen)
+                ) {
+                  closeBar(reason === "escape" ? "immediate" : "delayed");
+                }
+              }}
+            />
+          </CustomScreenContext.Provider>
+        </CenterContainer>
+      </Modal>
+      <CheatSheet />
+    </>
   );
 };
