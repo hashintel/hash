@@ -10,6 +10,8 @@ use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
+#[cfg(feature = "type-fetcher")]
+use crate::ontology::OntologyTypeReference;
 use crate::{
     api::rest::{
         json::Json,
@@ -42,6 +44,8 @@ use crate::{
             DataTypeWithMetadata,
 
             CreateDataTypeRequest,
+            CreateOwnedDataTypeRequest,
+            CreateExternalDataTypeRequest,
             UpdateDataTypeRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
@@ -70,11 +74,27 @@ impl RoutedResource for DataTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", untagged)]
+enum CreateDataTypeRequest {
+    Owned(CreateOwnedDataTypeRequest),
+    #[cfg(feature = "type-fetcher")]
+    External(CreateExternalDataTypeRequest),
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateDataTypeRequest {
+struct CreateOwnedDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
+    actor_id: RecordCreatedById,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct CreateExternalDataTypeRequest {
+    #[schema(value_type = String)]
+    data_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -101,11 +121,31 @@ async fn create_data_type<P: StorePool + Send>(
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
-    let Json(CreateDataTypeRequest {
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    #[allow(clippy::infallible_destructuring_match)]
+    let CreateOwnedDataTypeRequest {
         schema,
         owned_by_id,
         actor_id,
-    }) = body;
+    } = match body.0 {
+        CreateDataTypeRequest::Owned(request) => request,
+        #[cfg(feature = "type-fetcher")]
+        CreateDataTypeRequest::External(request) => {
+            return Ok(Json(ListOrValue::Value(
+                store
+                    .load_external_type(
+                        &domain_validator,
+                        OntologyTypeReference::DataTypeReference((&request.data_type_id).into()),
+                        request.actor_id,
+                    )
+                    .await?,
+            )));
+        }
+    };
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
@@ -136,11 +176,6 @@ where
 
         data_types.push(data_type);
     }
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
 
     store
         .create_data_types(

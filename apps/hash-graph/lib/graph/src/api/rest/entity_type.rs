@@ -12,6 +12,8 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
+#[cfg(feature = "type-fetcher")]
+use crate::ontology::OntologyTypeReference;
 use crate::{
     api::{
         error::{ErrorInfo, Status, StatusPayloads},
@@ -49,6 +51,8 @@ use crate::{
             EntityTypeWithMetadata,
 
             CreateEntityTypeRequest,
+            CreateOwnedEntityTypeRequest,
+            CreateExternalEntityTypeRequest,
             UpdateEntityTypeRequest,
             EntityTypeQueryToken,
             EntityTypeStructuralQuery,
@@ -80,11 +84,27 @@ impl RoutedResource for EntityTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", untagged)]
+enum CreateEntityTypeRequest {
+    Owned(CreateOwnedEntityTypeRequest),
+    #[cfg(feature = "type-fetcher")]
+    External(CreateExternalEntityTypeRequest),
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateEntityTypeRequest {
+struct CreateOwnedEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
+    actor_id: RecordCreatedById,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct CreateExternalEntityTypeRequest {
+    #[schema(value_type = String)]
+    entity_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -113,11 +133,68 @@ async fn create_entity_type<P: StorePool + Send>(
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
-    let Json(CreateEntityTypeRequest {
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        status_to_response(Status::new(
+            hash_status::StatusCode::Internal,
+            Some(
+                "Could not acquire store. This is an internal error, please report to the \
+                 developers of the HASH Graph with whatever information you can provide including \
+                 request details and logs."
+                    .to_owned(),
+            ),
+            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                // TODO: add information from the report here
+                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
+                HashMap::new(),
+                // TODO: We should encapsulate these Reasons within the type system, perhaps
+                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                //  or perhaps as a big enum, or as an attachment
+                "STORE_ACQUISITION_FAILURE".to_owned(),
+            ))],
+        ))
+    })?;
+
+    #[allow(clippy::infallible_destructuring_match)]
+    let CreateOwnedEntityTypeRequest {
         schema,
         owned_by_id,
         actor_id,
-    }) = body;
+    } = match body.0 {
+        CreateEntityTypeRequest::Owned(request) => request,
+        #[cfg(feature = "type-fetcher")]
+        CreateEntityTypeRequest::External(request) => {
+            return Ok(Json(ListOrValue::Value(
+                store
+                    .load_external_type(
+                        &domain_validator,
+                        OntologyTypeReference::EntityTypeReference(
+                            (&request.entity_type_id).into(),
+                        ),
+                        request.actor_id,
+                    )
+                    .await
+                    .map_err(|error| {
+                        if error == StatusCode::CONFLICT {
+                            status_to_response(Status::new(
+                                hash_status::StatusCode::AlreadyExists,
+                                Some("Provided schema entity type does already exist.".to_owned()),
+                                vec![],
+                            ))
+                        } else {
+                            status_to_response(Status::new(
+                                hash_status::StatusCode::AlreadyExists,
+                                Some(
+                                    "Unknown error occurred when loading external entity type."
+                                        .to_owned(),
+                                ),
+                                vec![],
+                            ))
+                        }
+                    })?,
+            )));
+        }
+    };
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
@@ -176,28 +253,6 @@ where
 
         entity_types.push(entity_type);
     }
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        status_to_response(Status::new(
-            hash_status::StatusCode::Internal,
-            Some(
-                "Could not acquire store. This is an internal error, please report to the \
-                 developers of the HASH Graph with whatever information you can provide including \
-                 request details and logs."
-                    .to_owned(),
-            ),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                // TODO: add information from the report here
-                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                HashMap::new(),
-                // TODO: We should encapsulate these Reasons within the type system, perhaps
-                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                //  or perhaps as a big enum, or as an attachment
-                "STORE_ACQUISITION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
 
     store
         .create_entity_types(
