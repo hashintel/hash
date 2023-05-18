@@ -231,7 +231,6 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
             ),
             Filter::StartsWith(lhs, rhs) => {
                 let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
-                dbg!(&left_filter, left_parameter);
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {

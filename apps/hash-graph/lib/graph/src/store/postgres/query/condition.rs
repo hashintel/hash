@@ -92,18 +92,18 @@ impl Transpile for Condition {
                 fmt.write_str(" && ")?;
                 rhs.transpile(fmt)
             }
-            Condition::StartsWith(lhs, rhs) => {
+            Self::StartsWith(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" LIKE ")?;
                 rhs.transpile(fmt)?;
                 fmt.write_str(" || '%'")
             }
-            Condition::EndsWith(lhs, rhs) => {
+            Self::EndsWith(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" LIKE '%' || ")?;
                 rhs.transpile(fmt)
             }
-            Condition::ContainsSegment(lhs, rhs) => {
+            Self::ContainsSegment(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" LIKE '%' || ")?;
                 rhs.transpile(fmt)?;
