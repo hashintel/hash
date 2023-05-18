@@ -150,7 +150,7 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(FRONTEND_URL)) {
     await context.graphApi.createPropertyType({
       actorId,
-      schema: propertyTypeId,
+      propertyTypeId,
     });
 
     subgraph = await getPropertyTypes(context, {

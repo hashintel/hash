@@ -151,7 +151,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
   if (subgraph.roots.length === 0 && !entityTypeId.startsWith(FRONTEND_URL)) {
     await context.graphApi.createEntityType({
       actorId,
-      schema: entityTypeId,
+      entityTypeId,
     });
 
     subgraph = await getEntityTypes(context, {
