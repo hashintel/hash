@@ -25,10 +25,6 @@ runs:
         # extract components from the rust-toolchain.toml 
         COMPONENTS=$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')
 
-        rm /home/runner/.cargo/bin/rust-analyzer || true
-        rm /home/runner/.cargo/bin/cargo-fmt || true
-        rm /home/runner/.cargo/bin/rustfmt || true
-
         rustup toolchain install "${{ inputs.toolchain }}"
 
         for component in $COMPONENTS; do
