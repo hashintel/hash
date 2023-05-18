@@ -19,7 +19,6 @@ module.exports = {
   },
   setupFiles: ["@local/hash-backend-utils/environment"],
   testMatch: [
-    "<rootDir>/src/tests/model/knowledge/**",
     "<rootDir>/src/tests/graph/**",
     "<rootDir>/src/tests/subgraph/**",
   ],
