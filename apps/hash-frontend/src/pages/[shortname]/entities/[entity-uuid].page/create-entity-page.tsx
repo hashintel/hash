@@ -1,5 +1,9 @@
 import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
+import {
+  EntityPropertiesObject,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
@@ -12,7 +16,6 @@ import { EditBar } from "../../types/entity-type/[...slug-maybe-version].page/sh
 import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { QueryEditorPage } from "./query-editor-page";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
@@ -24,7 +27,7 @@ interface CreateEntityPageProps {
 
 /** @todo replace these with published system types */
 export const QUERY_ENTITY_TYPE_ID =
-  "http://localhost:3000/@alice/types/entity-type/query/v/1" as VersionedUrl;
+  "http://localhost:3000/@alice/types/entity-type/query/v/2" as VersionedUrl;
 export const QUERY_PROPERTY_TYPE_BASE_URL =
   "http://localhost:3000/@alice/types/property-type/query-object/" as BaseUrl;
 
@@ -56,7 +59,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
    * I tried calling handleCreateEntity after setting the draftEntity state, but state was not updating
    * @todo find a better way to do this
    */
-  const handleCreateEntity = async (overrideProperties: any) => {
+  const handleCreateEntity = async (
+    overrideProperties?: EntityPropertiesObject,
+  ) => {
     if (!draftEntitySubgraph || !activeWorkspace) {
       return;
     }
@@ -121,25 +126,6 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     refetch: async () => {},
   };
 
-  if (isQueryEntity) {
-    return (
-      <QueryEditorPage
-        mode="create"
-        handleSaveQuery={async (value) => {
-          const properties = {
-            [QUERY_PROPERTY_TYPE_BASE_URL]: value,
-          };
-
-          await handleCreateEntity(properties);
-        }}
-        entityLabel={entityLabel}
-        entityUuid="draft"
-        owner={`@${activeWorkspace?.shortname}`}
-        {...entityEditorProps}
-      />
-    );
-  }
-
   return (
     <EntityEditorPage
       editBar={
@@ -151,7 +137,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
             children: "Discard entity",
           }}
           confirmButtonProps={{
-            onClick: handleCreateEntity,
+            onClick: () => handleCreateEntity(),
             loading: creating,
             children: "Create entity",
           }}
@@ -160,6 +146,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       entityLabel={entityLabel}
       entityUuid="draft"
       owner={`@${activeWorkspace?.shortname}`}
+      isQueryEntity={isQueryEntity}
+      isDraft
+      handleSaveChanges={handleCreateEntity}
       {...entityEditorProps}
     />
   );

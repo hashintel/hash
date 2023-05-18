@@ -1,16 +1,18 @@
 import { GraphResolveDepths, MultiFilter } from "@blockprotocol/graph";
-import { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
-import { useBlockProtocolQueryEntityTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
-import { useBlockProtocolQueryPropertyTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
+import {
+  useEntityTypesLoading,
+  useEntityTypesOptional,
+} from "../../../../shared/entity-types-context/hooks";
+import { useLatestPropertyTypesContextValue } from "../../types/entity-type/[...slug-maybe-version].page/shared/use-latest-property-types-context-value";
 import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
@@ -49,45 +51,18 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
-  const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [queryEditorKey, setQueryEditorKey] = useState(0);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
-  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
-  const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
+  const { propertyTypes } = useLatestPropertyTypesContextValue();
+  const entityTypes = useEntityTypesOptional();
+  const entityTypesLoading = useEntityTypesLoading();
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const { data: entityTypesSubgraph } = await queryEntityTypes({
-          data: {},
-        });
-        const { data: propertyTypesSubgraph } = await queryPropertyTypes({
-          data: {},
-        });
+  const entityTypeSchemas = entityTypes?.map((type) => type.schema) ?? [];
 
-        if (!entityTypesSubgraph || !propertyTypesSubgraph) {
-          return;
-        }
-
-        const mappedEntityTypes = getRoots(entityTypesSubgraph).map(
-          (type) => type.schema,
-        );
-        const mappedPropertyTypes = getRoots(propertyTypesSubgraph).map(
-          (type) => type.schema,
-        );
-
-        setEntityTypes(mappedEntityTypes);
-        setPropertyTypes(mappedPropertyTypes);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void init();
-  }, [queryEntityTypes, queryPropertyTypes]);
+  const propertyTypeSchemas = propertyTypes
+    ? Object.values(propertyTypes).map((type) => type.schema)
+    : [];
 
   const entity = getRoots(entityEditorProps.entitySubgraph)[0];
   const defaultValue = (entity?.properties as any)[
@@ -158,15 +133,15 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
             <TypesSection />
 
-            {loading ? (
-              <Box>Loading...</Box>
+            {entityTypesLoading ? (
+              <Box>Loading</Box>
             ) : (
               <EntityQueryEditor
                 key={queryEditorKey}
                 readonly={entityEditorProps.readonly}
                 defaultValue={defaultValue}
-                entityTypes={entityTypes}
-                propertyTypes={propertyTypes}
+                entityTypes={entityTypeSchemas}
+                propertyTypes={propertyTypeSchemas}
                 queryEntities={handleQueryEntities}
                 onDiscard={() => {
                   if (mode === "create") {

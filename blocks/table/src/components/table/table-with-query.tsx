@@ -82,13 +82,9 @@ export const TableWithQuery = ({
   }, [graphModule, query]);
 
   const columns = useMemo<GridColumn[]>(() => {
-    const uniqueEntityTypeIds = new Set<string>();
-
-    for (const entity of entities) {
-      for (const key of Object.keys(entity.properties)) {
-        uniqueEntityTypeIds.add(key);
-      }
-    }
+    const uniqueEntityTypeIds = new Set<string>(
+      entities.flatMap(({ properties }) => Object.keys(properties)),
+    );
 
     return Array.from(uniqueEntityTypeIds).map((entityTypeId) => ({
       id: entityTypeId,
