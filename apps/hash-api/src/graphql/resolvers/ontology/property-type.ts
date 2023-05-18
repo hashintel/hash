@@ -93,14 +93,14 @@ export const getPropertyTypeResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   return await getPropertyTypeSubgraphById(context, {
+    propertyTypeId,
+    actorId: user.accountId,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
-    propertyTypeId,
-    actorId: user.accountId,
   });
 };
 

@@ -95,23 +95,20 @@ export const getEntityTypeResolver: ResolverFn<
   { dataSources, user },
   __,
 ) => {
-  const { graphApi, uploadProvider } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  return await getEntityTypeSubgraphById(
-    { graphApi, uploadProvider },
-    {
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      entityTypeId,
-      actorId: user.accountId,
+  return await getEntityTypeSubgraphById(context, {
+    entityTypeId,
+    actorId: user.accountId,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
+      constrainsLinksOn,
+      constrainsLinkDestinationsOn,
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 };
 
 export const updateEntityTypeResolver: ResolverFn<
