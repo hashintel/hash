@@ -13,8 +13,8 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
-import { Box, Container, Theme, Typography } from "@mui/material";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { Box, Container, Theme, Tooltip, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
@@ -23,6 +23,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { LinkedIcon } from "../../../../shared/icons/linked-icon";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -43,6 +44,9 @@ import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].pa
 import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
+
+const isLinkEntityType = (type: EntityType) =>
+  !!type.allOf?.some((parent) => parent.$ref === linkEntityTypeUrl);
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -186,6 +190,8 @@ const Page: NextPageWithLayout = () => {
 
   const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
 
+  const entityTypeIsLink = isLinkEntityType(entityType);
+
   return (
     <>
       <Head>
@@ -282,15 +288,34 @@ const Page: NextPageWithLayout = () => {
                       }
                     />
                     <Typography variant="h1" fontWeight="bold" my={3}>
-                      <FontAwesomeIcon
-                        icon={faAsterisk}
-                        sx={(theme) => ({
-                          fontSize: 40,
-                          mr: 3,
-                          color: theme.palette.gray[70],
-                          verticalAlign: "middle",
-                        })}
-                      />
+                      {entityTypeIsLink ? (
+                        <Tooltip
+                          title="This is a 'link' entity type. It is used to link other entities together."
+                          placement="top"
+                        >
+                          <Box display="inline-flex">
+                            <LinkedIcon
+                              sx={({ palette }) => ({
+                                fontSize: 40,
+                                mr: 3,
+                                stroke: palette.gray[50],
+                                verticalAlign: "middle",
+                              })}
+                            />
+                          </Box>
+                        </Tooltip>
+                      ) : (
+                        <FontAwesomeIcon
+                          icon={faAsterisk}
+                          sx={({ palette }) => ({
+                            fontSize: 40,
+                            mr: 3,
+                            color: palette.gray[70],
+                            verticalAlign: "middle",
+                          })}
+                        />
+                      )}
+
                       {entityType.title}
                     </Typography>
 
