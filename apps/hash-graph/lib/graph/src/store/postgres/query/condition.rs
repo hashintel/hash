@@ -6,17 +6,17 @@ use crate::store::postgres::query::{Expression, Transpile};
 ///
 /// [`Filter`]: crate::store::query::Filter
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Condition<'p> {
+pub enum Condition {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<Expression<'p>>, Option<Expression<'p>>),
-    NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
-    TimeIntervalContainsTimestamp(Expression<'p>, Expression<'p>),
-    Overlap(Expression<'p>, Expression<'p>),
-    StartsWith(Expression<'p>, Expression<'p>),
-    EndsWith(Expression<'p>, Expression<'p>),
-    ContainsSegment(Expression<'p>, Expression<'p>),
+    Equal(Option<Expression>, Option<Expression>),
+    NotEqual(Option<Expression>, Option<Expression>),
+    TimeIntervalContainsTimestamp(Expression, Expression),
+    Overlap(Expression, Expression),
+    StartsWith(Expression, Expression),
+    EndsWith(Expression, Expression),
+    ContainsSegment(Expression, Expression),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -25,12 +25,12 @@ pub enum EqualityOperator {
     NotEqual,
 }
 
-impl Transpile for Condition<'_> {
+impl Transpile for Condition {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Condition::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
-            Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
-            Condition::All(conditions) => {
+            Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
+            Self::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
+            Self::All(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
                     if idx > 0 {
                         fmt.write_str(" AND ")?;
@@ -41,7 +41,7 @@ impl Transpile for Condition<'_> {
                 }
                 Ok(())
             }
-            Condition::Any(conditions) => {
+            Self::Any(conditions) => {
                 if conditions.len() > 1 {
                     fmt.write_char('(')?;
                 }
@@ -58,36 +58,36 @@ impl Transpile for Condition<'_> {
                 }
                 Ok(())
             }
-            Condition::Not(condition) => {
+            Self::Not(condition) => {
                 fmt.write_str("NOT(")?;
                 condition.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Condition::Equal(value, None) | Condition::Equal(None, value) => {
+            Self::Equal(value, None) | Self::Equal(None, value) => {
                 value.transpile(fmt)?;
                 fmt.write_str(" IS NULL")
             }
-            Condition::Equal(lhs, rhs) => {
+            Self::Equal(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" = ")?;
                 rhs.transpile(fmt)
             }
-            Condition::NotEqual(value, None) | Condition::NotEqual(None, value) => {
+            Self::NotEqual(value, None) | Self::NotEqual(None, value) => {
                 value.transpile(fmt)?;
                 fmt.write_str(" IS NOT NULL")
             }
-            Condition::NotEqual(lhs, rhs) => {
+            Self::NotEqual(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
-            Condition::TimeIntervalContainsTimestamp(lhs, rhs) => {
+            Self::TimeIntervalContainsTimestamp(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" @> ")?;
                 rhs.transpile(fmt)?;
                 fmt.write_str("::TIMESTAMPTZ")
             }
-            Condition::Overlap(lhs, rhs) => {
+            Self::Overlap(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" && ")?;
                 rhs.transpile(fmt)

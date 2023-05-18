@@ -21,6 +21,7 @@ use crate::{
             report_to_status_code,
             status::status_to_response,
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
+            RestApiStore,
         },
     },
     ontology::{
@@ -61,7 +62,10 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-types",
@@ -105,7 +109,10 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,

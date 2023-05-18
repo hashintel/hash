@@ -160,7 +160,7 @@ impl Serialize for SerializeDefinitions<'_> {
 }
 
 pub struct Document {
-    id: TypeId,
+    pub(crate) id: TypeId,
     schemas: BTreeMap<TypeId, Schema>,
     references: BTreeMap<TypeId, Reference>,
 
