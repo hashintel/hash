@@ -1,9 +1,10 @@
 use std::{
-    borrow::Cow,
     fmt::{self, Debug},
     hash::Hash,
     iter::{once, Chain, Once},
 };
+
+use postgres_types::ToSql;
 
 use crate::{
     identifier::time::TimeAxis,
@@ -210,13 +211,31 @@ impl Transpile for Table {
     }
 }
 
-// TODO: We should add another enum to only contain variants, which may be passed as parameters,
-//       so the lifetime of that struct will be `'static`.
-//   see https://app.asana.com/0/0/1203821263193164/f
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
-    Json(&'p Cow<'p, str>),
     JsonPath(&'p JsonPath<'p>),
+    JsonPathParameter(usize),
+    StaticText(&'static str),
+}
+
+impl<'p> JsonField<'p> {
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (JsonField<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::JsonPath(path) => (
+                JsonField::JsonPathParameter(current_parameter_index),
+                Some(path),
+            ),
+            Self::JsonPathParameter(index) => (JsonField::JsonPathParameter(index), None),
+            Self::StaticText(text) => (JsonField::StaticText(text), None),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StaticJsonField {
     JsonPathParameter(usize),
     StaticText(&'static str),
     StaticJson(&'static str),
@@ -234,20 +253,17 @@ pub enum OntologyIds<'p> {
 }
 
 fn transpile_json_field(
-    path: &JsonField,
+    path: &JsonField<'static>,
     name: &'static str,
     table: &impl Transpile,
     fmt: &mut fmt::Formatter,
 ) -> fmt::Result {
     match path {
-        JsonField::Json(field) => panic!(
-            "attempting to access JSON field `{field}` on `{name}` column without preparing the \
-             value"
-        ),
-        JsonField::JsonPath(path) => panic!(
-            "attempting to access JSON path `{path}` on `{name}` column without preparing the \
-             value"
-        ),
+        JsonField::JsonPath(path) => {
+            write!(fmt, "jsonb_path_query_first(")?;
+            table.transpile(fmt)?;
+            write!(fmt, r#"."{name}", {path})"#)
+        }
         JsonField::JsonPathParameter(index) => {
             write!(fmt, "jsonb_path_query_first(")?;
             table.transpile(fmt)?;
@@ -257,14 +273,31 @@ fn transpile_json_field(
             table.transpile(fmt)?;
             write!(fmt, r#"."{name}"->>'{field}'"#)
         }
-        JsonField::StaticJson(field) => {
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}"->'{field}'"#)
+    }
+}
+
+impl<'p> OntologyIds<'p> {
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (OntologyIds<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::OntologyId => (OntologyIds::OntologyId, None),
+            Self::BaseUrl => (OntologyIds::BaseUrl, None),
+            Self::Version => (OntologyIds::Version, None),
+            Self::RecordCreatedById => (OntologyIds::RecordCreatedById, None),
+            Self::LatestVersion => (OntologyIds::LatestVersion, None),
+            Self::TransactionTime => (OntologyIds::TransactionTime, None),
+            Self::AdditionalMetadata(None) => (OntologyIds::AdditionalMetadata(None), None),
+            Self::AdditionalMetadata(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (OntologyIds::AdditionalMetadata(Some(path)), parameter)
+            }
         }
     }
 }
 
-impl OntologyIds<'_> {
+impl OntologyIds<'static> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
@@ -309,16 +342,30 @@ macro_rules! impl_ontology_column {
                 Schema(Option<JsonField<'p>>),
             }
 
-            impl $name<'_> {
+            impl<'p> $name<'p> {
                 pub const fn nullable(self) -> bool {
                     match self {
                         Self::OntologyId => false,
                         Self::Schema(_) => true,
                     }
                 }
+
+                pub const fn into_owned(
+                    self,
+                    current_parameter_index: usize,
+                ) -> ($name<'static>, Option<&'p (dyn ToSql + Sync)>) {
+                    match self {
+                        Self::OntologyId => ($name::OntologyId, None),
+                        Self::Schema(None) => ($name::Schema(None), None),
+                        Self::Schema(Some(path)) => {
+                            let (path, parameter) = path.into_owned(current_parameter_index);
+                            ($name::Schema(Some(path)), parameter)
+                        }
+                    }
+                }
             }
 
-            impl $name<'_> {
+            impl $name<'static> {
                 fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
                         Self::OntologyId => "ontology_id",
@@ -381,16 +428,34 @@ pub enum EntityEditions<'p> {
     Archived,
 }
 
-impl EntityEditions<'_> {
+impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EditionId | Self::Archived | Self::RecordCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
+
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (EntityEditions<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::EditionId => (EntityEditions::EditionId, None),
+            Self::LeftToRightOrder => (EntityEditions::LeftToRightOrder, None),
+            Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
+            Self::RecordCreatedById => (EntityEditions::RecordCreatedById, None),
+            Self::Archived => (EntityEditions::Archived, None),
+            Self::Properties(None) => (EntityEditions::Properties(None), None),
+            Self::Properties(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityEditions::Properties(Some(path)), parameter)
+            }
+        }
+    }
 }
 
-impl EntityEditions<'_> {
+impl EntityEditions<'static> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EditionId => "entity_edition_id",
@@ -626,7 +691,57 @@ impl<'p> Column<'p> {
         }
     }
 
-    pub const fn aliased(self, alias: Alias) -> AliasedColumn<'p> {
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (Column<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::OntologyIds(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::OntologyIds(column), parameter)
+            }
+            Self::DataTypes(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::DataTypes(column), parameter)
+            }
+            Self::PropertyTypes(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::PropertyTypes(column), parameter)
+            }
+            Self::EntityTypes(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::EntityTypes(column), parameter)
+            }
+            Self::EntityEditions(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::EntityEditions(column), parameter)
+            }
+            Self::EntityTemporalMetadata(column) => (Column::EntityTemporalMetadata(column), None),
+            Self::PropertyTypeConstrainsValuesOn(column) => {
+                (Column::PropertyTypeConstrainsValuesOn(column), None)
+            }
+            Self::PropertyTypeConstrainsPropertiesOn(column) => {
+                (Column::PropertyTypeConstrainsPropertiesOn(column), None)
+            }
+            Self::EntityTypeConstrainsPropertiesOn(column) => {
+                (Column::EntityTypeConstrainsPropertiesOn(column), None)
+            }
+            Self::EntityTypeInheritsFrom(column) => (Column::EntityTypeInheritsFrom(column), None),
+            Self::EntityTypeConstrainsLinksOn(column) => {
+                (Column::EntityTypeConstrainsLinksOn(column), None)
+            }
+            Self::EntityTypeConstrainsLinkDestinationsOn(column) => {
+                (Column::EntityTypeConstrainsLinkDestinationsOn(column), None)
+            }
+            Self::EntityIsOfType(column) => (Column::EntityIsOfType(column), None),
+            Self::EntityHasLeftEntity(column) => (Column::EntityHasLeftEntity(column), None),
+            Self::EntityHasRightEntity(column) => (Column::EntityHasRightEntity(column), None),
+        }
+    }
+}
+
+impl Column<'static> {
+    pub const fn aliased(self, alias: Alias) -> AliasedColumn {
         AliasedColumn {
             column: self,
             alias,
@@ -656,7 +771,7 @@ impl<'p> Column<'p> {
     }
 }
 
-impl Transpile for Column<'_> {
+impl Transpile for Column<'static> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.transpile_column(&self.table(), fmt)
     }
@@ -719,18 +834,18 @@ impl Transpile for AliasedTable {
 
 /// A column available in the statement.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AliasedColumn<'param> {
-    pub column: Column<'param>,
+pub struct AliasedColumn {
+    pub column: Column<'static>,
     pub alias: Alias,
 }
 
-impl AliasedColumn<'_> {
+impl AliasedColumn {
     pub const fn table(&self) -> AliasedTable {
         self.column.table().aliased(self.alias)
     }
 }
 
-impl Transpile for AliasedColumn<'_> {
+impl Transpile for AliasedColumn {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.column.transpile_column(&self.table(), fmt)
     }

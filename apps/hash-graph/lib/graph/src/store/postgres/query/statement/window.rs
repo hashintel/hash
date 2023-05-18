@@ -3,19 +3,19 @@ use std::fmt;
 use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct WindowStatement<'p> {
-    partition: Vec<Expression<'p>>,
+pub struct WindowStatement {
+    partition: Vec<Expression>,
 }
 
-impl<'p> WindowStatement<'p> {
-    pub fn partition_by(column: AliasedColumn<'p>) -> Self {
+impl WindowStatement {
+    pub fn partition_by(column: AliasedColumn) -> Self {
         Self {
             partition: vec![Expression::Column(column)],
         }
     }
 }
 
-impl Transpile for WindowStatement<'_> {
+impl Transpile for WindowStatement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str("PARTITION BY ")?;
         for (idx, partition) in self.partition.iter().enumerate() {
