@@ -380,14 +380,19 @@ export const save = async (
       variables: { entityId: pageEntityId },
       fetchPolicy: "network-only",
     })
-    .then((res) => res.data.page.contents);
+    .then((res) =>
+      res.data.page.contents.map((contentItem) => contentItem.rightEntity),
+    );
 
   // const entityTypeForComponentId = new Map<string, string>();
 
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,
     ownedById,
-    /** @todo This type ID should *not* be hardcoded as is here. */
+    /**
+     * If the text entity type is ever updated in the backend,
+     * the FE will need to be redeployed to avoid this being out of sync.
+     */
     TEXT_ENTITY_TYPE_ID,
     blocks,
     doc,
@@ -418,7 +423,9 @@ export const save = async (
       throw new Error("Failed");
     }
 
-    currentBlocks = res.data.updatePageContents.page.contents;
+    currentBlocks = res.data.updatePageContents.page.contents.map(
+      (contentItem) => contentItem.rightEntity,
+    );
     placeholders = res.data.updatePageContents.placeholders;
   }
   const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);

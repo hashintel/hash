@@ -20,8 +20,18 @@ export const useEntityTypeEntitiesContextValue = (
   useEffect(() => {
     void queryEntities({
       data: {
-        // TODO: should we filter this by base URL when "STARTS_WITH" is implemented in HASH
-        operation: {},
+        operation: {
+          multiFilter: {
+            filters: [
+              {
+                field: ["metadata", "entityTypeBaseUrl"],
+                operator: "EQUALS",
+                value: typeBaseUrl,
+              },
+            ],
+            operator: "AND",
+          },
+        },
         graphResolveDepths: {
           constrainsPropertiesOn: { outgoing: 1 },
           isOfType: { outgoing: 1 },
@@ -32,7 +42,7 @@ export const useEntityTypeEntitiesContextValue = (
         setSubgraph(res.data);
       }
     });
-  }, [queryEntities]);
+  }, [queryEntities, typeBaseUrl]);
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {

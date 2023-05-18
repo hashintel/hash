@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -21,10 +22,12 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -45,6 +48,17 @@ describe("Page", () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "pageTest", logger);
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   const createTestBlock = async () =>
@@ -71,7 +85,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, { page: testPage });
+    const initialBlocks = await getPageBlocks(graphContext, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
+    });
 
     expect(initialBlocks).toHaveLength(1);
   });
@@ -92,9 +108,11 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, {
-      page: testPage2,
-    });
+    const initialBlocks = (
+      await getPageBlocks(graphContext, {
+        pageEntityId: testPage2.entity.metadata.recordId.entityId,
+      })
+    ).map((block) => block.rightEntity);
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -165,12 +183,12 @@ describe("Page", () => {
 
   it("can insert blocks", async () => {
     const existingBlocks = await getPageBlocks(graphContext, {
-      page: testPage,
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
     });
 
     expect(existingBlocks).toHaveLength(1);
 
-    testBlock1 = existingBlocks[0]!;
+    testBlock1 = existingBlocks[0]!.rightEntity!;
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),
@@ -191,7 +209,11 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const blocks = await getPageBlocks(graphContext, { page: testPage });
+    const blocks = (
+      await getPageBlocks(graphContext, {
+        pageEntityId: testPage.entity.metadata.recordId.entityId,
+      })
+    ).map((contentItem) => contentItem.rightEntity);
     const expectedBlocks = [testBlock1, testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);
@@ -206,7 +228,11 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, { page: testPage });
+    const initialBlocks = (
+      await getPageBlocks(graphContext, {
+        pageEntityId: testPage.entity.metadata.recordId.entityId,
+      })
+    ).map((contentItem) => contentItem.rightEntity);
     const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -221,7 +247,11 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const updatedBlocks = await getPageBlocks(graphContext, { page: testPage });
+    const updatedBlocks = (
+      await getPageBlocks(graphContext, {
+        pageEntityId: testPage.entity.metadata.recordId.entityId,
+      })
+    ).map((contentItem) => contentItem.rightEntity);
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
     expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
     expect(updatedBlocks).toEqual(
@@ -236,7 +266,11 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const blocks = await getPageBlocks(graphContext, { page: testPage });
+    const blocks = (
+      await getPageBlocks(graphContext, {
+        pageEntityId: testPage.entity.metadata.recordId.entityId,
+      })
+    ).map((contentItem) => contentItem.rightEntity);
     const expectedBlocks = [testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);

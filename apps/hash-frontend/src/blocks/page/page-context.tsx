@@ -1,3 +1,4 @@
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { EntityId } from "@local/hash-subgraph";
 import { EditorView } from "prosemirror-view";
 import {
@@ -11,10 +12,14 @@ import {
   useState,
 } from "react";
 
+interface EditorContext {
+  view: EditorView;
+  manager: ProsemirrorManager;
+}
 interface PageContextProps {
   pageEntityId: EntityId;
-  editorView: EditorView | undefined;
-  setEditorView: (view: EditorView) => void;
+  editorContext: EditorContext | undefined;
+  setEditorContext: (context: EditorContext) => void;
   pageTitleRef: RefObject<HTMLTextAreaElement>;
 }
 
@@ -26,11 +31,11 @@ export const PageContextProvider: FunctionComponent<
   PageContextProviderProps
 > = ({ children, pageEntityId }) => {
   const pageTitleRef = useRef<HTMLTextAreaElement>(null);
-  const [editorView, setEditorView] = useState<EditorView>();
+  const [editorContext, setEditorContext] = useState<EditorContext>();
 
   const value = useMemo(
-    () => ({ pageEntityId, editorView, setEditorView, pageTitleRef }),
-    [editorView, setEditorView, pageTitleRef, pageEntityId],
+    () => ({ pageEntityId, editorContext, setEditorContext, pageTitleRef }),
+    [editorContext, setEditorContext, pageTitleRef, pageEntityId],
   );
 
   return <PageContext.Provider value={value}>{children}</PageContext.Provider>;

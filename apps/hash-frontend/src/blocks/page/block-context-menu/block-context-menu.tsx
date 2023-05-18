@@ -87,7 +87,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const menuItems = useMemo(() => {
     /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
     const hasChildEntity =
-      !!(blockEntity?.properties as DraftEntity["properties"]).entity &&
+      !!(blockEntity?.properties as DraftEntity["properties"] | undefined)
+        ?.entity &&
       Object.keys(
         (
           (blockEntity!.properties as DraftEntity["properties"]).entity as {

@@ -46,6 +46,16 @@ const bpMultiFilterFieldPathToPathExpression = (
           return ["type", "versionedUrl"];
         }
 
+        if (metadataRoot === "entityTypeBaseUrl") {
+          if (metadataRest.length > 0) {
+            throw new InvalidEntityQueryError(
+              `Invalid filter field path, unable to index inside \`metadata.entityTypeBaseUrl\``,
+            );
+          }
+
+          return ["type", "baseUrl"];
+        }
+
         if (metadataRoot === "recordId") {
           if (metadataRest.length === 0) {
             throw new InvalidEntityQueryError(
