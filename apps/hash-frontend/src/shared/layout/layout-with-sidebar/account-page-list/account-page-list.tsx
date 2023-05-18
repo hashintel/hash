@@ -295,6 +295,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 entityId,
                 getLastIndex(treeItemList, entityId),
               );
+
+              setExpandedPageIds((expandedIds) => [...expandedIds, entityId]);
             }}
             archivePage={archivePage}
           />
