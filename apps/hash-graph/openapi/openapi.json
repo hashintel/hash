@@ -613,14 +613,14 @@
       "CreateExternalDataTypeRequest": {
         "type": "object",
         "required": [
-          "schema",
+          "dataTypeId",
           "actorId"
         ],
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
           },
-          "schema": {
+          "dataTypeId": {
             "type": "string"
           }
         }
@@ -628,14 +628,14 @@
       "CreateExternalEntityTypeRequest": {
         "type": "object",
         "required": [
-          "schema",
+          "entityTypeId",
           "actorId"
         ],
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
           },
-          "schema": {
+          "entityTypeId": {
             "type": "string"
           }
         }
@@ -643,14 +643,14 @@
       "CreateExternalPropertyTypeRequest": {
         "type": "object",
         "required": [
-          "schema",
+          "propertyTypeId",
           "actorId"
         ],
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
           },
-          "schema": {
+          "propertyTypeId": {
             "type": "string"
           }
         }

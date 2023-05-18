@@ -104,7 +104,7 @@ struct CreateOwnedEntityTypeRequest {
 #[serde(rename_all = "camelCase")]
 struct CreateExternalEntityTypeRequest {
     #[schema(value_type = String)]
-    schema: VersionedUrl,
+    entity_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -168,7 +168,7 @@ where
                 store
                     .load_external_type(
                         &domain_validator,
-                        OntologyTypeReference::DataTypeReference((&request.schema).into()),
+                        OntologyTypeReference::EntityTypeReference((&request.entity_type_id).into()),
                         request.actor_id,
                     )
                     .await

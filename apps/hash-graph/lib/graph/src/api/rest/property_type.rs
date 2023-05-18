@@ -96,7 +96,7 @@ struct CreateOwnedPropertyTypeRequest {
 #[serde(rename_all = "camelCase")]
 struct CreateExternalPropertyTypeRequest {
     #[schema(value_type = String)]
-    schema: VersionedUrl,
+    property_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -141,7 +141,7 @@ where
                 store
                     .load_external_type(
                         &domain_validator,
-                        OntologyTypeReference::DataTypeReference((&request.schema).into()),
+                        OntologyTypeReference::PropertyTypeReference((&request.property_type_id).into()),
                         request.actor_id,
                     )
                     .await?,

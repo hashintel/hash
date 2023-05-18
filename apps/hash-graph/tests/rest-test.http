@@ -111,7 +111,7 @@ Accept: application/json
 
 {
   "actorId": "{{account_id}}",
-  "schema": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+  "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
 }
 
 > {%
