@@ -1,13 +1,16 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
+  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
+  getEntityTypeSubgraphById,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
@@ -220,5 +223,23 @@ describe("Entity type CRU", () => {
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
         updatedEntityType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can load an external type on demand", async () => {
+    const entityTypeId =
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
+
+    await expect(
+      getEntityTypeById(graphContext, { entityTypeId }),
+    ).rejects.toThrow("Could not find entity type with ID");
+
+    await expect(
+      getEntityTypeSubgraphById(graphContext, {
+        entityTypeId,
+        actorId: testUser.accountId,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).resolves.not.toThrow();
   });
 });
