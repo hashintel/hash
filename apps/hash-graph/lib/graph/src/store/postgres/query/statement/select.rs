@@ -6,14 +6,14 @@ use crate::store::postgres::query::{
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectStatement<'p> {
-    pub with: WithExpression<'p>,
-    pub distinct: Vec<AliasedColumn<'p>>,
-    pub selects: Vec<SelectExpression<'p>>,
+pub struct SelectStatement {
+    pub with: WithExpression,
+    pub distinct: Vec<AliasedColumn>,
+    pub selects: Vec<SelectExpression>,
     pub from: AliasedTable,
-    pub joins: Vec<JoinExpression<'p>>,
-    pub where_expression: WhereExpression<'p>,
-    pub order_by_expression: OrderByExpression<'p>,
+    pub joins: Vec<JoinExpression>,
+    pub where_expression: WhereExpression,
+    pub order_by_expression: OrderByExpression,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -22,7 +22,7 @@ pub enum Distinctness {
     Distinct,
 }
 
-impl Transpile for SelectStatement<'_> {
+impl Transpile for SelectStatement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if !self.with.is_empty() {
             self.with.transpile(fmt)?;
@@ -99,10 +99,10 @@ mod tests {
         },
     };
 
-    fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(
-        compiler: &SelectCompiler<'f, 'p, T>,
+    fn test_compilation<'p, T: PostgresRecord + 'static>(
+        compiler: &SelectCompiler<'p, T>,
         expected_statement: &'static str,
-        expected_parameters: &[&'f dyn ToSql],
+        expected_parameters: &[&'p dyn ToSql],
     ) {
         let (compiled_statement, compiled_parameters) = compiler.compile();
 
