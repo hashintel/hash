@@ -168,7 +168,9 @@ where
                 store
                     .load_external_type(
                         &domain_validator,
-                        OntologyTypeReference::EntityTypeReference((&request.entity_type_id).into()),
+                        OntologyTypeReference::EntityTypeReference(
+                            (&request.entity_type_id).into(),
+                        ),
                         request.actor_id,
                     )
                     .await

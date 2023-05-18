@@ -141,7 +141,9 @@ where
                 store
                     .load_external_type(
                         &domain_validator,
-                        OntologyTypeReference::PropertyTypeReference((&request.property_type_id).into()),
+                        OntologyTypeReference::PropertyTypeReference(
+                            (&request.property_type_id).into(),
+                        ),
                         request.actor_id,
                     )
                     .await?,
