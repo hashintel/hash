@@ -26,7 +26,6 @@ import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
 import { QUERY_ENTITY_TYPE_ID } from "./[entity-uuid].page/create-entity-page";
-import { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -200,20 +199,6 @@ const Page: NextPageWithLayout = () => {
   const isQueryEntity =
     draftEntity?.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
 
-  const entityEditorProps: EntityEditorProps = {
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-    entitySubgraph: draftEntitySubgraph,
-    readonly,
-    refetch,
-    setEntity: (changedEntity) => {
-      setIsDirty(true);
-      updateEntitySubgraphStateByEntity(changedEntity, setDraftEntitySubgraph);
-    },
-  };
-
   return (
     <EntityEditorPage
       editBar={
@@ -234,7 +219,20 @@ const Page: NextPageWithLayout = () => {
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
       isQueryEntity={isQueryEntity}
-      {...entityEditorProps}
+      draftLinksToCreate={draftLinksToCreate}
+      setDraftLinksToCreate={setDraftLinksToCreate}
+      draftLinksToArchive={draftLinksToArchive}
+      setDraftLinksToArchive={setDraftLinksToArchive}
+      entitySubgraph={draftEntitySubgraph}
+      readonly={readonly}
+      refetch={refetch}
+      setEntity={(changedEntity) => {
+        setIsDirty(true);
+        updateEntitySubgraphStateByEntity(
+          changedEntity,
+          setDraftEntitySubgraph,
+        );
+      }}
     />
   );
 };

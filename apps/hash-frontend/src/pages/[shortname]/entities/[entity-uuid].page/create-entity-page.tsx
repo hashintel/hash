@@ -13,7 +13,6 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
-import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
@@ -113,19 +112,6 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const isQueryEntity = entityTypeId === QUERY_ENTITY_TYPE_ID;
 
-  const entityEditorProps: EntityEditorProps = {
-    setEntity: (entity) => {
-      updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
-    },
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-    entitySubgraph: draftEntitySubgraph,
-    readonly: false,
-    refetch: async () => {},
-  };
-
   return (
     <EntityEditorPage
       editBar={
@@ -149,7 +135,16 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       isQueryEntity={isQueryEntity}
       isDraft
       handleSaveChanges={handleCreateEntity}
-      {...entityEditorProps}
+      setEntity={(entity) => {
+        updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+      }}
+      draftLinksToCreate={draftLinksToCreate}
+      setDraftLinksToCreate={setDraftLinksToCreate}
+      draftLinksToArchive={draftLinksToArchive}
+      setDraftLinksToArchive={setDraftLinksToArchive}
+      entitySubgraph={draftEntitySubgraph}
+      readonly={false}
+      refetch={async () => {}}
     />
   );
 };
