@@ -24,9 +24,7 @@ import { useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
-  childMenu,
   secondOption,
-  thirdOption,
   useCommandBarOption,
 } from "../../../../shared/command-bar";
 import { isHrefExternal } from "../../../../shared/is-href-external";
