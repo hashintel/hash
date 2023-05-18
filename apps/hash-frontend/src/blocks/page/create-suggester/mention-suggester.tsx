@@ -1,26 +1,28 @@
 import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import ArticleIcon from "@mui/icons-material/Article";
+import { Box } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
+import { useAllEntities } from "../../../components/hooks/use-all-entities";
 import { useUsers } from "../../../components/hooks/use-users";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import { Suggester } from "./suggester";
 
+type MentionType = "user" | "page" | "entity";
 export interface MentionSuggesterProps {
   search?: string;
-
-  onChange(entityId: EntityId, mentionType: "user" | "page"): void;
-
+  onChange(entityId: EntityId, mentionType: MentionType): void;
   accountId: AccountId;
 }
 
 type SearchableItem = {
   shortname?: string;
   name: string;
+  desc?: string;
   entityId: EntityId;
-  mentionType: "user" | "page";
+  mentionType: MentionType;
   isActiveOrgMember?: boolean;
 };
 
@@ -30,13 +32,15 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   accountId,
 }) => {
   const { users, loading: usersLoading } = useUsers();
+  /** @todo instead of all entities, query entities that are "not users" and "not pages" */
+  const { entities, loading: entitiesLoading } = useAllEntities();
   const { data: pages, loading: pagesLoading } = useAccountPages(
     accountId as OwnedById,
   );
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
-  const loading = usersLoading && pagesLoading;
+  const loading = usersLoading && pagesLoading && entitiesLoading;
 
   const options = useMemo(() => {
     const iterableAccounts: Array<SearchableItem> =
@@ -57,6 +61,16 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       mentionType: "page",
     }));
 
+    const iterableEntities: Array<SearchableItem> =
+      entities?.map(({ entity, label, entityTypeTitle }) => {
+        return {
+          entityId: entity.metadata.recordId.entityId,
+          mentionType: "entity",
+          name: label,
+          desc: entityTypeTitle,
+        };
+      }) ?? [];
+
     const peopleSearch = fuzzySearchBy(iterableAccounts, search, (option) =>
       [option.shortname, option.name].map((str) => str ?? "").join(" "),
     ).sort((a, b) => {
@@ -69,14 +83,20 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       return 0;
     });
 
+    const entitiesSearch = fuzzySearchBy(
+      iterableEntities,
+      search,
+      (option) => option.name,
+    );
+
     const pagesSearch = fuzzySearchBy(
       iterablePages,
       search,
       (option) => option.name,
     );
 
-    return [...peopleSearch, ...pagesSearch];
-  }, [search, users, activeWorkspaceAccountId, pages]);
+    return [...peopleSearch, ...pagesSearch, ...entitiesSearch];
+  }, [search, users, activeWorkspaceAccountId, pages, entities]);
 
   return (
     <Suggester
@@ -92,7 +112,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             paddingTop: "0.25rem",
           }}
         >
-          {option.mentionType === "user" ? (
+          {option.mentionType === "page" && (
             <div
               style={{
                 alignItems: "center",
@@ -109,7 +129,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             >
               {option.name[0]?.toUpperCase()}
             </div>
-          ) : (
+          )}
+          {option.mentionType === "user" && (
             <div
               style={{
                 alignItems: "center",
@@ -124,14 +145,28 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               <ArticleIcon style={{ fontSize: "1em" }} />
             </div>
           )}
-          <p
-            style={{
+          <Box
+            component="p"
+            sx={{
               fontSize: "0.875rem",
               lineHeight: "1.25rem",
             }}
           >
             {option.name}
-          </p>
+          </Box>
+          {option.mentionType === "entity" && (
+            <Box
+              component="p"
+              sx={{
+                fontSize: "0.75rem",
+                lineHeight: "1.25rem",
+                ml: 0.5,
+                color: ({ palette }) => palette.gray[70],
+              }}
+            >
+              {option.desc}
+            </Box>
+          )}
         </div>
       )}
       itemKey={(option) => option.entityId}
