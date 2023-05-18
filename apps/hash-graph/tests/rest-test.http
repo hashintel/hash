@@ -70,7 +70,7 @@ Content-Type: application/json
     });
 %}
 
-### Insert Text data type
+### Insert owned data types
 POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
@@ -102,6 +102,23 @@ Accept: application/json
     });
     client.global.set("text_data_type_id", `${response.body[0].recordId.baseUrl}v/${response.body[0].recordId.version}`);
     client.assert(response.body.length === 2, "Unexpected number of data types");
+%}
+
+### Insert external data types
+POST http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "actorId": "{{account_id}}",
+  "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("text_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Text data type
