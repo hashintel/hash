@@ -6,6 +6,7 @@ use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
+    JsonExtractText(Box<Expression>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
     JsonBuildArray(Vec<Expression>),
@@ -37,6 +38,11 @@ impl Transpile for Function {
                     expression.transpile(fmt)?;
                 }
                 fmt.write_char(')')
+            }
+            Self::JsonExtractText(expression) => {
+                fmt.write_str("((")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(") #>> '{}'::text[])")
             }
             Self::JsonContains(json, value) => {
                 fmt.write_str("jsonb_contains(")?;

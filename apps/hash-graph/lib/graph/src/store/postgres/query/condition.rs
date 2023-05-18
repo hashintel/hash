@@ -14,6 +14,9 @@ pub enum Condition {
     NotEqual(Option<Expression>, Option<Expression>),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
+    StartsWith(Expression, Expression),
+    EndsWith(Expression, Expression),
+    ContainsSegment(Expression, Expression),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -88,6 +91,23 @@ impl Transpile for Condition {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" && ")?;
                 rhs.transpile(fmt)
+            }
+            Self::StartsWith(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" || '%'")
+            }
+            Self::EndsWith(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE '%' || ")?;
+                rhs.transpile(fmt)
+            }
+            Self::ContainsSegment(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE '%' || ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" || '%'")
             }
         }
     }

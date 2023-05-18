@@ -549,6 +549,42 @@ impl Modify for FilterSchemaAddon {
                                 )
                                 .required("notEqual"),
                         )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("StartsWithFilter"))
+                                .property(
+                                    "startsWith",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("startsWith"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("EndsWithFilter"))
+                                .property(
+                                    "endsWith",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("endsWith"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("ContainsSegmentFilter"))
+                                .property(
+                                    "containsSegment",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("containsSegment"),
+                        )
                         .build(),
                 )
                 .into(),
