@@ -2,6 +2,7 @@ import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
+  Button,
   FontAwesomeIcon,
   OntologyChip,
   OntologyIcon,
@@ -192,6 +193,21 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeIsLink = isLinkEntityType(entityType);
 
+  const convertToEntityType = wrapHandleSubmit(async (data) => {
+    const entityTypeSchema = getSchemaFromFormData(data);
+
+    const res = await updateEntityType({
+      ...entityTypeSchema,
+      allOf: [],
+    });
+
+    if (!res.errors?.length) {
+      reset(data);
+    } else {
+      throw new Error("Could not publish changes");
+    }
+  });
+
   return (
     <>
       <Head>
@@ -317,6 +333,8 @@ const Page: NextPageWithLayout = () => {
                       )}
 
                       {entityType.title}
+
+                      <Button onClick={convertToEntityType}>Convert</Button>
                     </Typography>
 
                     <Box sx={{ mb: 5.25 }}>
