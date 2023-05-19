@@ -4,6 +4,7 @@ use deer::{
         ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
+    helpers::ExpectNone,
     schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
@@ -74,7 +75,7 @@ impl<'de> EnumVisitor<'de> for UnitEnumVisitor {
     {
         // TODO: next PR properly addresses this via `ExpectNone`
         match discriminant {
-            Discriminant::Variant => Option::<()>::deserialize(deserializer)
+            Discriminant::Variant => ExpectNone::deserialize(deserializer)
                 .map(|_| UnitEnum::Variant)
                 .change_context(VisitorError),
         }

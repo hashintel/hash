@@ -20,7 +20,7 @@ run *arguments:
 
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-specs:
-  @just run server --write-openapi-specs
+  cargo run --features type-fetcher --bin hash-graph -- server --write-openapi-specs
 
 [private]
 test *arguments:

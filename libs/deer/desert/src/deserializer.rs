@@ -104,63 +104,17 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
     {
         let token = self.peek();
 
-        let mut map_length = None;
-        let is_map = match token {
-            Token::Object { length } => {
-                // eat the token so that we're at the key
-                self.next();
-                map_length = length;
-                true
-            }
-            _ => false,
-        };
-
-        let result = visitor
-            .visit_discriminant(&mut *self)
-            .change_context(DeserializerError);
-
-        if is_map && result.is_err() {
-            // the key is an error, we need to swallow the value
-            let next = self.next();
-            skip_tokens(self, &next);
-        }
-
-        let discriminant = result?;
-
-        let mut value = if is_map {
-            visitor.visit_value(discriminant, &mut *self)
+        if matches!(token, Token::Object { .. }) {
+            self.deserialize_object(EnumObjectVisitor::new(visitor))
         } else {
-            visitor.visit_value(discriminant, NoneDeserializer::new(self.context))
+            let discriminant = visitor
+                .visit_discriminant(&mut *self)
+                .change_context(DeserializerError)?;
+
+            visitor
+                .visit_value(discriminant, NoneDeserializer::new(self.context))
+                .change_context(DeserializerError)
         }
-        .change_context(DeserializerError);
-
-        if is_map {
-            // make sure that we're close and that we have nothing dangling
-            if self.peek() == Token::ObjectEnd {
-                self.next();
-            } else {
-                // TODO: we can move most of this logic into a helper that is in deer!
-                // we have received more than 1 object, therefore we need to indicate this
-                // make sure we close the object
-                skip_tokens(self, &Token::Object { length: None });
-
-                let mut error =
-                    Report::new(ObjectLengthError.into_error()).attach(ExpectedLength::new(1));
-
-                if let Some(length) = map_length {
-                    error = error.attach(ReceivedLength::new(length));
-                }
-
-                let error = error.change_context(DeserializerError);
-
-                match &mut value {
-                    Err(value) => value.extend_one(error),
-                    value => *value = Err(error),
-                }
-            }
-        }
-
-        value
     }
 
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
