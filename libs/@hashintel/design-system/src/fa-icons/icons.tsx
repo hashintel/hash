@@ -6,6 +6,7 @@ export { faCheck } from "./fa-check";
 export { faCirclePlus } from "./fa-circle-plus";
 export { faCube } from "./fa-cube";
 export { faCubes } from "./fa-cubes";
+export { faDiagramSubtask } from "./fa-diagram-subtask";
 export { faEmptySet } from "./fa-empty-set";
 export { faListTree } from "./fa-list-tree";
 export { faPen } from "./fa-pen";
