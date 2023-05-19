@@ -485,8 +485,9 @@ export const getUserOrgMemberships: ImpureGraphFunction<
   Promise<OrgMembership[]>
 > = async (ctx, { user }) => {
   const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entity: user.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
+    entityId: user.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
   });
 
   return outgoingOrgMembershipLinkEntities.map((linkEntity) =>
@@ -531,9 +532,9 @@ export const isUserHashInstanceAdmin: ImpureGraphFunction<
   const hashInstance = await getHashInstance(ctx, {});
 
   const outgoingAdminLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entity: hashInstance.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    rightEntity: user.entity,
+    entityId: hashInstance.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+    rightEntityId: user.entity.metadata.recordId.entityId,
   });
 
   if (outgoingAdminLinkEntities.length > 1) {

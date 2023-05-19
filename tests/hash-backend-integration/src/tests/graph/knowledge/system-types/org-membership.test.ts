@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -10,9 +11,11 @@ import {
   OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
+import { resetGraph } from "../../../test-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -41,6 +44,17 @@ describe("OrgMembership", () => {
     testUser = await createTestUser(graphContext, "orgMembershipTest", logger);
 
     testOrg = await createTestOrg(graphContext, "orgMembershipTest", logger);
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   let testOrgMembership: OrgMembership;

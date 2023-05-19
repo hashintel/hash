@@ -6,8 +6,10 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "@local/hash-isomorphic-utils/entity-store";
+import { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {
   FunctionComponent,
   useCallback,
@@ -26,11 +28,11 @@ import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
-type BlockLoaderProps = {
+export type BlockLoaderProps = {
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeId: VersionedUrl;
   blockMetadata: HashBlockMeta;
-  editableRef: (node: HTMLElement | null) => void;
+  editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded: () => void;
   wrappingEntityId: string;
   readonly: boolean;
@@ -62,10 +64,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   useEffect(() => {
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
-      (newBlockSubgraph) =>
+      (newBlockSubgraph) => {
         setBlockSubgraph(
           newBlockSubgraph as unknown as Subgraph<EntityRootType>,
-        ),
+        );
+      },
     );
   }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
 
@@ -97,6 +100,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           blockEntityTypeId,
           blockEntityId,
         );
+
         setBlockSubgraph(
           newBlockSubgraph as unknown as Subgraph<EntityRootType>,
         );
@@ -167,6 +171,33 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
     if (!rootEntity) {
       throw new Error("Root entity not present in blockEntitySubgraph");
+    }
+
+    /**
+     * Our text blocks ask for a BP `textual-content` property, which is plain `Text`.
+     * Because they use the hook service, we actually generate text as text tokens and persist it under a different property.
+     * The BP spec says that blocks should receive the data they expect even if the hook service is used
+     * – this code makes sure we provide rich text as a plain string for this specific property.
+     * It is useful for making sure that blocks have string fallbacks in contexts where the hook service is not available,
+     * which at the time of writing (May 2023) is when viewing/editing a page in 'canvas' mode.
+     *
+     * This code has the following issues:
+     * 1. It assumes that any entity with `tokens` stored on it is actually expected as `textual-content`
+     *   - we should instead be able to identify which property on the entity the hook service was used for
+     * 2. It does not do this translation for any entities that are not the root entity
+     * @todo address the issues described above
+     */
+    const textTokens = rootEntity.properties[
+      TEXT_TOKEN_PROPERTY_TYPE_BASE_URL as BaseUrl
+    ] as TextToken[] | undefined;
+    if (textTokens) {
+      rootEntity.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as BaseUrl
+      ] = textTokens
+        .map((token) =>
+          "text" in token ? token.text : "hardBreak" in token ? "\n" : "",
+        )
+        .join("");
     }
 
     return {

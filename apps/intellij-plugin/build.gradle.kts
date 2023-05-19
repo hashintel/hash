@@ -2,8 +2,8 @@ import org.gradle.api.JavaVersion.VERSION_17
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.7.20"
-    id("org.jetbrains.intellij") version "1.12.0"
+    id("org.jetbrains.kotlin.jvm") version "1.8.21"
+    id("org.jetbrains.intellij") version "1.13.3"
 }
 
 group = "ai.hash"
@@ -40,7 +40,9 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("223.7126")
-//        untilBuild.set("223.*")
+
+        untilBuild.set(null as String?)
+        untilBuild.convention(null as String?)
     }
 
     signPlugin {

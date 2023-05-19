@@ -4,6 +4,7 @@ use crate::{
     error::{
         DeserializerError, ExpectedLength, ObjectLengthError, ReceivedLength, Variant, VisitorError,
     },
+    ext::TupleExt,
     Context, Deserializer, EnumVisitor, FieldVisitor, ObjectAccess, OptionalVisitor, StructVisitor,
     Visitor,
 };
@@ -104,9 +105,11 @@ where
                 .change_context(DeserializerError))
         };
 
-        // TODO: fold_results
-        access.end().change_context(DeserializerError)?;
-        value.change_context(DeserializerError)
+        let (value, _) = (value, access.end())
+            .fold_reports()
+            .change_context(DeserializerError)?;
+
+        Ok(value)
     }
 
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

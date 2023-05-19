@@ -205,9 +205,9 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
   const hashInstance = await getHashInstance(ctx, {});
 
   const outgoingAdminLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entity: hashInstance.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    rightEntity: user.entity,
+    entityId: hashInstance.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+    rightEntityId: user.entity.metadata.recordId.entityId,
   });
 
   if (outgoingAdminLinkEntities.length > 1) {

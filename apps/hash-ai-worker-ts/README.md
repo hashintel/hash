@@ -1,4 +1,4 @@
-# HASH AI workers (ts)
+# HASH AI worker (ts)
 
 This app is a Temporal.io worker that is able to run workflows and activities.
 

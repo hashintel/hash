@@ -44,7 +44,19 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
         );
 
         const { data: subgraph } = await getEntity({
-          data: { entityId },
+          data: {
+            entityId,
+            graphResolveDepths: {
+              constrainsLinkDestinationsOn: { outgoing: 0 },
+              constrainsLinksOn: { outgoing: 0 },
+              constrainsValuesOn: { outgoing: 0 },
+              constrainsPropertiesOn: { outgoing: 0 },
+              isOfType: { outgoing: 0 },
+              inheritsFrom: { outgoing: 0 },
+              hasLeftEntity: { incoming: 0, outgoing: 0 },
+              hasRightEntity: { incoming: 0, outgoing: 0 },
+            },
+          },
         });
 
         if (!subgraph) {

@@ -75,17 +75,14 @@ export const restoreSnapshot = async (snapshotPath: string) => {
 };
 
 /**
- * Reset the Graph to the state of the snapshot.
+ * Reset the Graph.
  *
- * This is a convenience function for deleting all entities, entity types, property types, data types, and accounts, and
- * then restoring the snapshot.
+ * This is a convenience function for deleting all entities, entity types, property types, data types, and accounts.
  */
-export const resetToSnapshot = async (snapshotPath: string) => {
+export const resetGraph = async () => {
   await deleteEntities();
   await deleteEntityTypes();
   await deletePropertyTypes();
   await deleteDataTypes();
   await deleteAccounts();
-
-  await restoreSnapshot(snapshotPath);
 };

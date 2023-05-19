@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -9,6 +10,7 @@ import {
   getPropertyTypeById,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -19,6 +21,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -61,6 +64,20 @@ beforeAll(async () => {
       },
     ],
   };
+});
+
+afterAll(async () => {
+  await deleteKratosIdentity({
+    kratosIdentityId: systemUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser2.kratosIdentityId,
+  });
+
+  await resetGraph();
 });
 
 describe("Property type CRU", () => {
