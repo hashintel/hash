@@ -5,7 +5,7 @@ use deer::{
     error::{
         DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
         Variant,
-	},
+    },
     helpers::EnumObjectVisitor,
     value::NoneDeserializer,
     Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
