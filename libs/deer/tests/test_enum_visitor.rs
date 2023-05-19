@@ -4,6 +4,7 @@ use deer::{
         ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
+    helpers::ExpectNone,
     schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
@@ -67,13 +68,15 @@ impl<'de> EnumVisitor<'de> for UnitEnumVisitor {
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
-        _: D,
+        deserializer: D,
     ) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
         match discriminant {
-            Discriminant::Variant => Ok(UnitEnum::Variant),
+            Discriminant::Variant => ExpectNone::deserialize(deserializer)
+                .map(|_| UnitEnum::Variant)
+                .change_context(VisitorError),
         }
     }
 }
@@ -105,7 +108,7 @@ fn unit_variant() {
                 properties: {
                     "expected": null,
                     "location": [],
-                    "received": null
+                    "received": bool::reflection()
                 }
             }
         ]),

@@ -17,7 +17,7 @@ mod postgres;
 use async_trait::async_trait;
 
 #[cfg(feature = "type-fetcher")]
-pub use self::fetcher::FetchingPool;
+pub use self::fetcher::{FetchingPool, TypeFetcher};
 pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},

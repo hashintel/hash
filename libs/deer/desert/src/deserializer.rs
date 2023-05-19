@@ -5,7 +5,8 @@ use deer::{
     error::{
         DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
         Variant,
-    },
+	},
+    helpers::EnumObjectVisitor,
     value::NoneDeserializer,
     Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
@@ -106,40 +107,17 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
     {
         let token = self.peek();
 
-        let is_map = match token {
-            Token::Object { .. } => {
-                // eat the token so that we're at the key
-                self.next();
-                true
-            }
-            _ => false,
-        };
-
-        let discriminant = visitor
-            .visit_discriminant(&mut *self)
-            .change_context(DeserializerError)?;
-
-        let value = if is_map {
-            visitor.visit_value(discriminant, &mut *self)
+        if matches!(token, Token::Object { .. }) {
+            self.deserialize_object(EnumObjectVisitor::new(visitor))
         } else {
-            visitor.visit_value(discriminant, NoneDeserializer::new(self.context))
-        }
-        .change_context(DeserializerError)?;
+            let discriminant = visitor
+                .visit_discriminant(&mut *self)
+                .change_context(DeserializerError)?;
 
-        if is_map {
-            // make sure that we're close and that we have nothing dangling
-            if self.peek() == Token::ObjectEnd {
-                self.next();
-            } else {
-                // we received a unit type, therefore error should be a type error
-                // we cannot determine the type we received, just that it is a map
-                // TODO: once HashMap has a reflection use it here as ReceivedType (or
-                //  UnknownObjectSchema?)
-                return Err(Report::new(TypeError.into_error()).change_context(DeserializerError));
-            }
+            visitor
+                .visit_value(discriminant, NoneDeserializer::new(self.context))
+                .change_context(DeserializerError)
         }
-
-        Ok(value)
     }
 
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

@@ -41,6 +41,7 @@ mod impls;
 mod macros;
 mod bound;
 mod ext;
+pub mod helpers;
 mod number;
 pub mod schema;
 pub mod value;
@@ -595,6 +596,10 @@ macro_rules! derive_from_number {
 #[must_use]
 pub trait Deserializer<'de>: Sized {
     fn context(&self) -> &Context;
+
+    fn is_human_readable(&self) -> bool {
+        true
+    }
 
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///

@@ -1,8 +1,11 @@
 use alloc::format;
-use core::fmt::{Display, Formatter};
+use core::{
+    any::TypeId,
+    fmt::{Display, Formatter},
+};
 
 use super::{ErrorProperties, ErrorProperty, Id, Namespace, Variant, NAMESPACE};
-use crate::{error::Location, id, schema::Document};
+use crate::{error::Location, helpers::ExpectNone, id, schema::Document};
 
 #[derive(serde::Serialize)]
 pub struct ExpectedType(Document);
@@ -26,7 +29,9 @@ impl ErrorProperty for ExpectedType {
     }
 
     fn value<'a>(mut stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        stack.next()
+        // TODO: once 0.2 drops with correct schemas remove this hack, this special cases
+        //  `ExpectNone` and will effectively drop it from the chain.
+        stack.find(|frame| frame.document().id != TypeId::of::<ExpectNone>())
     }
 }
 
