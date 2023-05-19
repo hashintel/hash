@@ -1,16 +1,17 @@
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
-import ArticleIcon from "@mui/icons-material/Article";
 import { Box } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
-import { useAllEntities } from "../../../components/hooks/use-all-entities";
+import { useAllEntitiesExcept } from "../../../components/hooks/use-all-entities-except";
 import { useUsers } from "../../../components/hooks/use-users";
+import { PageIcon } from "../../../components/page-icon";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import { Suggester } from "./suggester";
 
-type MentionType = "user" | "page" | "entity";
+export type MentionType = "user" | "page" | "entity";
 export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: EntityId, mentionType: MentionType): void;
@@ -32,8 +33,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   accountId,
 }) => {
   const { users, loading: usersLoading } = useUsers();
-  /** @todo instead of all entities, query entities that are "not users" and "not pages" */
-  const { entities, loading: entitiesLoading } = useAllEntities();
+  const { entities, loading: entitiesLoading } = useAllEntitiesExcept([
+    types.entityType.user.entityTypeId,
+    types.entityType.page.entityTypeId,
+  ]);
   const { data: pages, loading: pagesLoading } = useAccountPages(
     accountId as OwnedById,
   );
@@ -102,19 +105,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     <Suggester
       options={options}
       renderItem={(option) => (
-        <div
-          style={{
-            alignItems: "center",
-            display: "flex",
-            paddingBottom: "0.25rem",
-            paddingLeft: "0.5rem",
-            paddingRight: "0.5rem",
-            paddingTop: "0.25rem",
-          }}
-        >
-          {option.mentionType === "page" && (
-            <div
-              style={{
+        <Box sx={{ display: "flex", alignItems: "center", px: 0.5, py: 0.25 }}>
+          {option.mentionType === "user" && (
+            <Box
+              sx={{
                 alignItems: "center",
                 backgroundColor: "#E5E7EB",
                 borderRadius: "9999px",
@@ -123,27 +117,26 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 height: "1.5rem",
                 justifyContent: "center",
                 lineHeight: "1.25rem",
-                marginRight: "0.5rem",
+                mr: 0.5,
                 width: "1.5rem",
               }}
             >
               {option.name[0]?.toUpperCase()}
-            </div>
+            </Box>
           )}
-          {option.mentionType === "user" && (
-            <div
-              style={{
-                alignItems: "center",
+          {option.mentionType === "page" && (
+            <Box
+              sx={{
+                alignItems: "cønter",
                 display: "flex",
                 height: "1.5rem",
                 justifyContent: "center",
-                marginRight: "0.5rem",
+                mr: 0.5,
                 width: "1.5rem",
               }}
             >
-              {/* @todo display page emoji/icon when available */}
-              <ArticleIcon style={{ fontSize: "1em" }} />
-            </div>
+              <PageIcon entityId={option.entityId} size="small" />
+            </Box>
           )}
           <Box
             component="p"
@@ -167,7 +160,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               {option.desc}
             </Box>
           )}
-        </div>
+        </Box>
       )}
       itemKey={(option) => option.entityId}
       onChange={(option) => onChange(option.entityId, option.mentionType)}

@@ -15,7 +15,7 @@ import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../block-portals";
 import { BlockSuggester } from "./block-suggester";
-import { MentionSuggester } from "./mention-suggester";
+import { MentionSuggester, MentionType } from "./mention-suggester";
 
 interface Trigger {
   char: "@" | "/";
@@ -289,7 +289,7 @@ export const createSuggester = (
 
           const onMentionChange = (
             entityId: EntityId,
-            mentionType: "page" | "user",
+            mentionType: MentionType,
           ) => {
             const { tr } = view.state;
 

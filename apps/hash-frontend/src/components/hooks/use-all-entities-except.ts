@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -10,8 +11,8 @@ import {
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { generateEntityLabel } from "../../lib/entities";
 
-export const useAllEntities = (
-  cache = false,
+export const useAllEntitiesExcept = (
+  exceptedEntityTypeIds: VersionedUrl[],
 ): {
   loading: boolean;
   entities?: { entity: Entity; label: string; entityTypeTitle: string }[];
@@ -23,7 +24,11 @@ export const useAllEntities = (
     variables: {
       operation: {
         multiFilter: {
-          filters: [],
+          filters: exceptedEntityTypeIds.map((entityTypeId) => ({
+            field: ["metadata", "entityTypeId"],
+            operator: "DOES_NOT_EQUAL",
+            value: entityTypeId,
+          })),
           operator: "AND",
         },
       },
@@ -36,7 +41,7 @@ export const useAllEntities = (
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: cache ? "cache-first" : "no-cache",
+    fetchPolicy: "no-cache",
   });
 
   const { queryEntities: subgraph } = data ?? {};

@@ -12,10 +12,11 @@ import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useUsers } from "../../../components/hooks/use-users";
 import { constructPageRelativeUrl } from "../../../lib/routes";
 import { Link } from "../../../shared/ui";
+import { MentionType } from "../create-suggester/mention-suggester";
 
 interface MentionDisplayProps {
   entityId: EntityId;
-  mentionType: "page" | "user";
+  mentionType: MentionType;
   accountId: AccountId;
 }
 
