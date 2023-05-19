@@ -1,18 +1,14 @@
 use alloc::borrow::ToOwned;
 
 use deer::{
-    error::{
-        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectLengthError,
-        ReceivedLength, ReceivedType, TypeError, Variant,
-    },
+    error::{DeserializerError, ExpectedType, MissingError, ReceivedType, TypeError, Variant},
+    helpers::EnumObjectVisitor,
     value::NoneDeserializer,
     Context, EnumVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 
-use crate::{
-    array::ArrayAccess, object::ObjectAccess, skip::skip_tokens, tape::Tape, token::Token,
-};
+use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
 
 macro_rules! forward {
     ($($method:ident),*) => {

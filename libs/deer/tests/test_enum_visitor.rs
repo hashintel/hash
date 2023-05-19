@@ -107,7 +107,7 @@ fn unit_variant() {
                 ns: "deer",
                 id: ["type"],
                 properties: {
-                    "expected": <()>::reflection(),
+                    "expected": null,
                     "location": [],
                     "received": bool::reflection()
                 }
