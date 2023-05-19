@@ -19,7 +19,7 @@ import { MentionSuggester, MentionType } from "./mention-suggester";
 
 interface Trigger {
   char: "@" | "/";
-  /** matched search string */
+  /** matched search string excluding its leading trigger-char */
   search: string;
   /** starting prosemirror document position */
   from: number;
