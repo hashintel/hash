@@ -2,14 +2,18 @@ import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
   AccountId,
   EntityId,
+  EntityUuid,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   OwnedById,
+  Uuid,
 } from "@local/hash-subgraph";
 import { FunctionComponent, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
 import { useUsers } from "../../../components/hooks/use-users";
+import { useWorkspaceShortnameByEntityUuid } from "../../../components/hooks/use-workspace-shortname-by-entity-uuid";
 import { PageIcon } from "../../../components/page-icon";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
@@ -32,6 +36,13 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     accountId as OwnedById,
   );
   const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
+
+  const { workspaceShortname, loading: workspaceShortnameLoading } =
+    useWorkspaceShortnameByEntityUuid({
+      entityUuid: extractOwnedByIdFromEntityId(entityId) as Uuid as EntityUuid,
+      // no need to call this hook if the mention type is not an entity, see below to see how shortname is generated for other mention types
+      disabled: mentionType !== "entity",
+    });
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
@@ -107,20 +118,19 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         };
       }
       case "entity": {
-        /** @todo fix this shortname */
-        const ownerShortname = "TODO";
-        const entityHref = `/@${ownerShortname}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`;
-
-        if (!entitySubgraph || entityLoading) {
+        if (!entitySubgraph || entityLoading || workspaceShortnameLoading) {
           /** @todo consider showing a loading state instead of saying "entity", same for the pages & users above */
           return {
             title: "Entity",
-            href: entityHref,
+            href: "",
             icon: "@",
           };
         }
+
+        const entityHref = `/@${workspaceShortname}/entities/${extractEntityUuidFromEntityId(
+          entityId,
+        )}`;
+
         const entityLabel = generateEntityLabel(entitySubgraph);
 
         return {
@@ -141,6 +151,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     usersLoading,
     entitySubgraph,
     entityLoading,
+    workspaceShortname,
+    workspaceShortnameLoading,
   ]);
 
   return (
