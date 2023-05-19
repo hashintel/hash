@@ -310,7 +310,7 @@ export const createSuggester = (
               if (getManager) {
                 jsx = (
                   <BlockSuggester
-                    search={search.substring(1)}
+                    search={search}
                     onChange={onBlockSuggesterChange}
                   />
                 );
@@ -319,7 +319,7 @@ export const createSuggester = (
             case "@":
               jsx = (
                 <MentionSuggester
-                  search={search.substring(1)}
+                  search={search}
                   onChange={onMentionChange}
                   accountId={accountId}
                 />
