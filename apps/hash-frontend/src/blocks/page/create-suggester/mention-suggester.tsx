@@ -59,7 +59,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
-      name: page.title,
+      name: page.title || "Untitled",
       entityId: page.entityId,
       mentionType: "page",
     }));
@@ -105,7 +105,15 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     <Suggester
       options={options}
       renderItem={(option) => (
-        <Box sx={{ display: "flex", alignItems: "center", px: 0.5, py: 0.25 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            px: 0.5,
+            py: 0.25,
+            minHeight: "1.75rem",
+          }}
+        >
           {option.mentionType === "user" && (
             <Box
               sx={{
@@ -143,23 +151,24 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             sx={{
               fontSize: "0.875rem",
               lineHeight: "1.25rem",
+              pl: option.mentionType === "entity" ? 1 : 0,
             }}
           >
             {option.name}
+            {option.mentionType === "entity" && (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: "0.75rem",
+                  lineHeight: "1.25rem",
+                  ml: 0.5,
+                  color: ({ palette }) => palette.gray[70],
+                }}
+              >
+                {option.desc}
+              </Box>
+            )}
           </Box>
-          {option.mentionType === "entity" && (
-            <Box
-              component="p"
-              sx={{
-                fontSize: "0.75rem",
-                lineHeight: "1.25rem",
-                ml: 0.5,
-                color: ({ palette }) => palette.gray[70],
-              }}
-            >
-              {option.desc}
-            </Box>
-          )}
         </Box>
       )}
       itemKey={(option) => option.entityId}
