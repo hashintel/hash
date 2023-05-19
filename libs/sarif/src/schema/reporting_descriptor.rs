@@ -363,6 +363,7 @@ impl<'s> ReportingDescriptor<'s> {
 #[cfg(all(feature = "serde", test))]
 mod tests {
     use alloc::{
+        borrow::Cow,
         format,
         string::{String, ToString},
     };
@@ -370,7 +371,7 @@ mod tests {
 
     use url::Url;
 
-    use crate::schema::{MultiformatMessageString, ReportingDescriptor};
+    use crate::schema::{MultiformatMessageString, PropertyBag, ReportingDescriptor};
 
     fn error_code_to_uri(code: u32) -> String {
         format!("https://doc.rust-lang.org/error-index.html#E{code:04}")
@@ -393,13 +394,21 @@ mod tests {
 
         let descriptor = ReportingDescriptor::new(format!("E{code:04}"))
             .with_name("mismatched types")
-            .with_short_description(MultiformatMessageString::new(
-                "Expected type did not match the received type.",
-            ))
-            .with_full_description(MultiformatMessageString::new(
-                "The compiler expected one type but found another.",
-            ))
-            .with_help(MultiformatMessageString::new(&help))
+            .with_short_description(MultiformatMessageString {
+                text: Cow::Borrowed("Expected type did not match the received type."),
+                markdown: None,
+                properties: PropertyBag::default(),
+            })
+            .with_full_description(MultiformatMessageString {
+                text: Cow::Borrowed("The compiler expected one type but found another."),
+                markdown: None,
+                properties: PropertyBag::default(),
+            })
+            .with_help(MultiformatMessageString {
+                text: Cow::Borrowed(&help),
+                markdown: None,
+                properties: PropertyBag::default(),
+            })
             .with_help_uri(Url::parse(&uri).expect("failed to parse URL"));
 
         assert_eq!(descriptor.id, format!("E{code:04}"));
