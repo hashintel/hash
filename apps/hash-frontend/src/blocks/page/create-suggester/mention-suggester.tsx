@@ -135,7 +135,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           {option.mentionType === "page" && (
             <Box
               sx={{
-                alignItems: "cønter",
+                alignItems: "center",
                 display: "flex",
                 height: "1.5rem",
                 justifyContent: "center",
