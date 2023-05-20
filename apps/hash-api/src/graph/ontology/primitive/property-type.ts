@@ -2,7 +2,10 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
+import {
+  PropertyTypeStructuralQuery,
+  UpdatePropertyTypeRequest,
+} from "@local/hash-graph-client";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -18,7 +21,11 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import {
+  currentTimeInstantTemporalAxes,
+  ImpureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -67,6 +74,22 @@ export const createPropertyType: ImpureGraphFunction<
 };
 
 /**
+ * Get property types by a structural query.
+ *
+ * @param params.query the structural query to filter property types by.
+ */
+export const getPropertyTypes: ImpureGraphFunction<
+  {
+    query: PropertyTypeStructuralQuery;
+  },
+  Promise<Subgraph<PropertyTypeRootType>>
+> = async ({ graphApi }, { query }) => {
+  return await graphApi
+    .getPropertyTypesByQuery(query)
+    .then(({ data: subgraph }) => subgraph as Subgraph<PropertyTypeRootType>);
+};
+
+/**
  * Get a property type by its versioned URL.
  *
  * @param params.propertyTypeId the unique versioned URL for a property type.
@@ -76,32 +99,18 @@ export const getPropertyTypeById: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
   },
   Promise<PropertyTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { propertyTypeId } = params;
 
-  const [propertyType] = await graphApi
-    .getPropertyTypesByQuery({
+  const [propertyType] = await getPropertyTypes(context, {
+    query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
-    })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<PropertyTypeRootType>),
-    );
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then(getRoots);
 
   if (!propertyType) {
     throw new NotFoundError(

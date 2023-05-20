@@ -32,6 +32,7 @@
     "@glideapps/glide-data-grid": "5.2.1",
     "@hashintel/block-design-system": "0.0.0",
     "@hashintel/design-system": "0.0.6",
+    "@hashintel/query-editor": "0.0.1",
     "@hashintel/type-editor": "0.0.22",
     "@lit-labs/react": "1.0.6",
     "@local/advanced-types": "0.0.0-private",
@@ -46,6 +47,10 @@
     "@sentry/nextjs": "7.30.0",
     "@sentry/react": "7.30.0",
     "@svgr/webpack": "6.2.1",
+    "@tldraw/editor": "2.0.0-alpha.12",
+    "@tldraw/primitives": "2.0.0-alpha.12",
+    "@tldraw/tldraw": "2.0.0-alpha.12",
+    "@tldraw/tlvalidate": "2.0.0-alpha.12",
     "axios": "0.27.2",
     "buffer": "6.0.3",
     "clsx": "1.2.1",
@@ -81,8 +86,10 @@
     "react-modal-hook": "3.0.0",
     "react-responsive-carousel": "3.2.23",
     "react-transition-group": "4.4.5",
-    "rooks": "7.11.1",
+    "rooks": "7.14.1",
     "setimmediate": "1.0.5",
+    "signia": "0.1.1",
+    "signia-react": "0.1.1",
     "ts-node": "10.9.1",
     "url-regex-safe": "2.0.2",
     "use-font-face-observer": "1.2.1",
@@ -112,6 +119,6 @@
     "typescript": "5.0.4"
   },
   "engines": {
-    "node": ">=16.15.0"
+    "node": ">=v18.15.0"
   }
 }

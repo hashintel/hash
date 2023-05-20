@@ -44,7 +44,7 @@ pub trait PostgresQueryPath {
 }
 
 /// Renders the object into a Postgres compatible format.
-pub trait Transpile {
+pub trait Transpile: 'static {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
@@ -75,7 +75,7 @@ mod test_helper {
             .join(" ")
     }
 
-    pub fn max_version_expression() -> Expression<'static> {
+    pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
                 Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(

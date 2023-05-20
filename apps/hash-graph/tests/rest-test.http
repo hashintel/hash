@@ -70,7 +70,7 @@ Content-Type: application/json
     });
 %}
 
-### Insert Text data type
+### Insert owned data types
 POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
@@ -102,6 +102,23 @@ Accept: application/json
     });
     client.global.set("text_data_type_id", `${response.body[0].recordId.baseUrl}v/${response.body[0].recordId.version}`);
     client.assert(response.body.length === 2, "Unexpected number of data types");
+%}
+
+### Insert external data types
+POST http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "actorId": "{{account_id}}",
+  "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("text_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Text data type
@@ -828,7 +845,132 @@ Content-Type: application/json
     });
 %}
 
+### Get all entity types starting with "http://localhost:3000/@alice"
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
 
+{
+  "filter": {
+    "startsWith": [
+      { "path": ["versionedUrl"] },
+      { "parameter": "http://localhost:3000/@alice" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 3, "Unexpected number of entity types");
+    });
+%}
+
+### Get all entity types, where the title ends with "ship"
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "endsWith": [
+      { "path": ["title"] },
+      { "parameter": "ship" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entity types");
+        client.assert(response.body.roots[0].baseId === "http://localhost:3000/@alice/types/entity-type/friendship/", "Unexpected number of entity types");
+    });
+%}
 
 ### Insert Person entity
 POST http://127.0.0.1:4000/entities
@@ -1304,4 +1446,68 @@ Content-Type: application/json
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
+%}
+
+
+### Get all entities where the name property contains "Alice"
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "containsSegment": [
+      { "path": ["properties", "http://localhost:3000/@alice/types/property-type/name/"] },
+      { "parameter": "Alice" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": {
+          "kind": "unbounded"
+        },
+        "end": null
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.roots.length === 2, "Unexpected number of entity types");
+  });
 %}

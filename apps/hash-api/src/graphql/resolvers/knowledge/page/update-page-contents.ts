@@ -53,7 +53,6 @@ export const updatePageContents: ResolverFn<
         action.updateEntity,
         action.swapBlockData,
         action.createEntity,
-        action.createEntityType,
       )
     ) {
       throw new UserInputError(
@@ -68,18 +67,6 @@ export const updatePageContents: ResolverFn<
     context,
     placeholderResults,
   );
-
-  /**
-   * @todo Figure out how we want to implement entity type creation
-   *   in update-page-contents
-   *   see https://app.asana.com/0/1202805690238892/1203057486837598/f
-   */
-  // Create any _new_ entity types
-  filterForAction(actions, "createEntityType").map(({ index }) => {
-    throw new Error(
-      `createEntityType: not implemented yet, action index: ${index}`,
-    );
-  });
 
   /**
    * Create any _new_ entities. This is done one at a time in order to allow
@@ -141,6 +128,7 @@ export const updatePageContents: ResolverFn<
         await addBlockToPage(context, {
           page,
           block: insertedBlocks[insertCount]!,
+          canvasPosition: action.insertBlock.canvasPosition ?? undefined,
           position: action.insertBlock.position,
           actorId: user.accountId,
         });
@@ -148,6 +136,7 @@ export const updatePageContents: ResolverFn<
       } else if (action.moveBlock) {
         await moveBlockInPage(context, {
           ...action.moveBlock,
+          canvasPosition: action.moveBlock.canvasPosition ?? undefined,
           page,
           actorId: user.accountId,
         });

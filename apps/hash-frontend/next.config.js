@@ -7,12 +7,17 @@ const withTM = require("next-transpile-modules")([
   "@hashintel/design-system",
   "@hashintel/block-design-system",
   "@hashintel/type-editor",
+  "@hashintel/query-editor",
   "@local/advanced-types",
   "@local/hash-graph-client",
   "@local/hash-graphql-shared",
   "@local/hash-isomorphic-utils",
   "@local/hash-subgraph",
   "react-syntax-highlighter",
+  "@tldraw/polyfills",
+  "@tldraw/tldraw",
+  "@tldraw/tlschema",
+  "@tldraw/ui",
 ]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",

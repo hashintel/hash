@@ -3,6 +3,16 @@ import { Components, Theme } from "@mui/material";
 export const MuiTooltipThemeOptions: Components<Theme>["MuiTooltip"] = {
   defaultProps: {
     placement: "right",
+    PopperProps: {
+      modifiers: [
+        {
+          name: "offset",
+          options: {
+            offset: [0, -8],
+          },
+        },
+      ],
+    },
   },
   styleOverrides: {
     tooltip: ({ theme }) => ({

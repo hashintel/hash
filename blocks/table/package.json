@@ -42,7 +42,7 @@
     "react-device-detect": "2.2.3",
     "react-laag": "2.0.5",
     "react-sizeme": "3.0.2",
-    "rooks": "7.11.1"
+    "rooks": "7.14.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
@@ -99,7 +99,7 @@
     "image": "public/block-preview.png",
     "name": "@hash/table",
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/3",
+    "blockEntityType": "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/entity-type/table-block/v/4",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

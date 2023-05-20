@@ -43,20 +43,20 @@ impl JoinType {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct JoinOn<'p> {
-    pub join: Column<'p>,
-    pub on: Column<'p>,
+pub struct JoinOn {
+    pub join: Column<'static>,
+    pub on: Column<'static>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct JoinExpression<'p> {
+pub struct JoinExpression {
     pub join: JoinType,
     pub table: AliasedTable,
     pub on_alias: Alias,
-    pub on: Vec<JoinOn<'p>>,
+    pub on: Vec<JoinOn>,
 }
 
-impl<'p> JoinExpression<'p> {
+impl JoinExpression {
     pub fn from_foreign_key(
         foreign_key_reference: ForeignKeyReference,
         on_alias: Alias,
@@ -94,7 +94,7 @@ impl<'p> JoinExpression<'p> {
     }
 }
 
-impl Transpile for JoinExpression<'_> {
+impl Transpile for JoinExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.join.transpile(fmt)?;
         fmt.write_char(' ')?;

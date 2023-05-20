@@ -41,6 +41,7 @@ mod impls;
 mod macros;
 mod bound;
 mod ext;
+pub mod helpers;
 mod number;
 pub mod schema;
 pub mod value;
@@ -192,10 +193,6 @@ pub trait ArrayAccess<'de>: Sized {
 }
 
 pub trait EnumVisitor<'de>: Sized {
-    // TODO: interesting part: serde actually has `deserialize_identifier` which can be used
-    //  deserialize implementations can then use that to their advantage by default it also
-    //  generates an index version for all fields, that is gated behind `deserialize_identifier`.
-    //  Maybe we want something like a `DiscriminantVisitor` and `visit_enum_discriminant`?
     type Discriminant: Deserialize<'de>;
 
     // the value we will end up with
@@ -211,6 +208,9 @@ pub trait EnumVisitor<'de>: Sized {
             .change_context(VisitorError)
     }
 
+    // TODO: make clear in docs that the deserializer *must* be used (even if just
+    //  `deserialize_none` is called), otherwise the `Deserializer` might get into an
+    //  undefined state
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
@@ -219,10 +219,6 @@ pub trait EnumVisitor<'de>: Sized {
     where
         D: Deserializer<'de>;
 }
-
-// pub trait VariantAccess<'de>: Sized {}
-//
-// pub trait EnumAccess<'de> {}
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
@@ -548,8 +544,13 @@ macro_rules! derive_from_number {
 /// [`Deserializer`] and either return the value requested or return an error.
 ///
 /// [`serde`]: https://serde.rs/
+#[must_use]
 pub trait Deserializer<'de>: Sized {
     fn context(&self) -> &Context;
+
+    fn is_human_readable(&self) -> bool {
+        true
+    }
 
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
@@ -669,7 +670,7 @@ pub trait Deserializer<'de>: Sized {
     where
         V: OptionalVisitor<'de>;
 
-    /// Hint that the `Deserialize` type expect an enum
+    /// Hint that the `Deserialize` type expects an enum
     ///
     /// Due to the very special nature of an enum (being a fundamental type) a special visitor is
     /// used.

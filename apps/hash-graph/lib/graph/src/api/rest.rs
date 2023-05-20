@@ -20,6 +20,8 @@ mod property_type;
 
 use std::{collections::HashMap, fs, io, sync::Arc};
 
+#[cfg(feature = "type-fetcher")]
+use async_trait::async_trait;
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -64,7 +66,7 @@ use crate::{
         OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{QueryError, StorePool},
+    store::{QueryError, Store, StorePool},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -77,10 +79,68 @@ use crate::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
+#[cfg(feature = "type-fetcher")]
+use crate::{
+    ontology::OntologyTypeReference,
+    store::{error::VersionedUrlAlreadyExists, TypeFetcher},
+};
+
+#[cfg(feature = "type-fetcher")]
+#[async_trait]
+pub trait RestApiStore: Store + TypeFetcher {
+    async fn load_external_type(
+        &mut self,
+        domain_validator: &DomainValidator,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, StatusCode>;
+}
+
+#[cfg(feature = "type-fetcher")]
+#[async_trait]
+impl<S> RestApiStore for S
+where
+    S: Store + TypeFetcher + Send,
+{
+    async fn load_external_type(
+        &mut self,
+        domain_validator: &DomainValidator,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, StatusCode> {
+        if domain_validator.validate_url(reference.url().base_url.as_str()) {
+            tracing::error!(id=%reference.url(), "Ontology type is not external");
+            return Err(StatusCode::UNPROCESSABLE_ENTITY);
+        }
+
+        self
+            .insert_external_ontology_type(
+                reference,
+                actor_id,
+            )
+            .await
+            .map_err(|report| {
+                tracing::error!(error=?report, id=%reference.url(), "Could not insert external type");
+                if report.contains::<VersionedUrlAlreadyExists>() {
+                    StatusCode::CONFLICT
+                } else {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+            })
+    }
+}
+
+#[cfg(not(feature = "type-fetcher"))]
+pub trait RestApiStore: Store {}
+#[cfg(not(feature = "type-fetcher"))]
+impl<S> RestApiStore for S where S: Store {}
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
+fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     vec![
         account::AccountResource::routes::<P>(),
         data_type::DataTypeResource::routes::<P>(),
@@ -131,7 +191,10 @@ pub fn openapi_only_router() -> Router {
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
 pub fn rest_api_router<P: StorePool + Send + 'static>(
     dependencies: RestRouterDependencies<P>,
-) -> Router {
+) -> Router
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()
         .into_iter()
@@ -485,6 +548,42 @@ impl Modify for FilterSchemaAddon {
                                         .max_items(Some(2)),
                                 )
                                 .required("notEqual"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("StartsWithFilter"))
+                                .property(
+                                    "startsWith",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("startsWith"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("EndsWithFilter"))
+                                .property(
+                                    "endsWith",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("endsWith"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("ContainsSegmentFilter"))
+                                .property(
+                                    "containsSegment",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("containsSegment"),
                         )
                         .build(),
                 )

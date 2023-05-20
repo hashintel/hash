@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -15,6 +16,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
@@ -29,6 +31,7 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -152,6 +155,17 @@ describe("Link entity", () => {
     ]);
   });
 
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
+  });
+
   let linkEntityFriend: LinkEntity;
   let linkEntityAcquaintance: LinkEntity;
 
@@ -175,7 +189,7 @@ describe("Link entity", () => {
 
   it("can get all entity links", async () => {
     const allLinks = await getEntityOutgoingLinks(graphContext, {
-      entity: leftEntity,
+      entityId: leftEntity.metadata.recordId.entityId,
     });
     expect(allLinks).toHaveLength(2);
     expect(allLinks).toContainEqual(linkEntityFriend);
@@ -184,8 +198,8 @@ describe("Link entity", () => {
 
   it("can get a single entity link", async () => {
     const links = await getEntityOutgoingLinks(graphContext, {
-      entity: leftEntity,
-      linkEntityType: friendLinkEntityType,
+      entityId: leftEntity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: friendLinkEntityType.schema.$id,
     });
 
     expect(links).toHaveLength(1);
@@ -209,8 +223,8 @@ describe("Link entity", () => {
     });
 
     const links = await getEntityOutgoingLinks(graphContext, {
-      entity: leftEntity,
-      linkEntityType: acquaintanceLinkEntityType,
+      entityId: leftEntity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: acquaintanceLinkEntityType.schema.$id,
     });
 
     expect(links).toHaveLength(0);
