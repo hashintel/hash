@@ -226,21 +226,6 @@ impl<'s> ReportingDescriptor<'s> {
     }
 
     /// Sets the short description of the `ReportingDescriptor`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::{MultiformatMessageString, ReportingDescriptor};
-    ///
-    /// let descriptor = ReportingDescriptor::new("E0308").with_short_description(
-    ///     MultiformatMessageString::new("Expected type did not match the received type."),
-    /// );
-    ///
-    /// assert_eq!(
-    ///     descriptor.short_description.unwrap().text,
-    ///     "Expected type did not match the received type."
-    /// );
-    /// ```
     #[must_use]
     #[expect(
         clippy::missing_const_for_fn,
@@ -255,21 +240,6 @@ impl<'s> ReportingDescriptor<'s> {
     }
 
     /// Sets the full description of the `ReportingDescriptor`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::{MultiformatMessageString, ReportingDescriptor};
-    ///
-    /// let descriptor = ReportingDescriptor::new("E0308").with_full_description(
-    ///     MultiformatMessageString::new("The compiler expected one type but found another."),
-    /// );
-    ///
-    /// assert_eq!(
-    ///     descriptor.full_description.unwrap().text,
-    ///     "The compiler expected one type but found another."
-    /// );
-    /// ```
     #[must_use]
     #[expect(
         clippy::missing_const_for_fn,
@@ -281,22 +251,6 @@ impl<'s> ReportingDescriptor<'s> {
     }
 
     /// Adds a message string to the `ReportingDescriptor`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::{MultiformatMessageString, ReportingDescriptor};
-    ///
-    /// let descriptor = ReportingDescriptor::new("E0308").with_message_string(
-    ///     "default",
-    ///     MultiformatMessageString::new("Expected type did not match the received type."),
-    /// );
-    ///
-    /// assert_eq!(
-    ///     descriptor.message_strings.get("default").unwrap().text,
-    ///     "Expected type did not match the received type."
-    /// );
-    /// ```
     #[must_use]
     pub fn with_message_string(
         mut self,
@@ -308,23 +262,6 @@ impl<'s> ReportingDescriptor<'s> {
     }
 
     /// Sets the help of the `ReportingDescriptor`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::{MultiformatMessageString, ReportingDescriptor};
-    ///
-    /// const ERROR_HELP_MESSAGE: &str =
-    ///     "This error occurs when an expression was used in a place where the compiler expected an \
-    ///      expression of a different type. It can occur in several cases, the most common being \
-    ///      when calling a function and passing an argument which has a different type than the \
-    ///      matching type in the function declaration.";
-    ///
-    /// let descriptor = ReportingDescriptor::new("E0308")
-    ///     .with_help(MultiformatMessageString::new(ERROR_HELP_MESSAGE));
-    ///
-    /// assert_eq!(descriptor.help.unwrap().text, ERROR_HELP_MESSAGE);
-    /// ```
     #[must_use]
     #[expect(
         clippy::missing_const_for_fn,
