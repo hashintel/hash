@@ -106,7 +106,7 @@ use crate::schema::PropertyBag;
 ///
 /// A message string **may** include one or more “placeholders". The syntax of a placeholder is:
 ///
-/// ```text
+/// ```ebnf
 /// placeholder = "{", index, "}";
 ///
 /// index = non negative integer;
@@ -167,7 +167,7 @@ use crate::schema::PropertyBag;
 /// conform to the following syntax (which is a greatly restricted subset of the GFM link syntax)
 /// before JSON encoding:
 ///
-/// ```text
+/// ```ebnf
 /// escaped link character = "\" | "[" | "]";
 ///
 /// normal link character = ? JSON string character ? – escaped link character;
