@@ -4,12 +4,15 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "../../../graph";
+import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
+import { systemUserAccountId } from "../../../graph/system-user";
 import {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { dataSourcesToImpureGraphContext } from "../util";
 
 export const queryDataTypes: ResolverFn<
   Promise<Subgraph>,
@@ -38,13 +41,12 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources }) => {
-  const { graphApi } = dataSources;
+> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources, user }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery({
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-    },
+  return await getDataTypeSubgraphById(context, {
+    dataTypeId,
+    actorId: user ? user.accountId : systemUserAccountId,
     /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
@@ -52,6 +54,4 @@ export const getDataType: ResolverFn<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
   });
-
-  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };
