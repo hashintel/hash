@@ -2,7 +2,6 @@ import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
-  Button,
   FontAwesomeIcon,
   OntologyChip,
   OntologyIcon,
@@ -33,6 +32,7 @@ import {
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+import { ConvertTypeButton } from "./[...slug-maybe-version].page/convert-type-button";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
@@ -56,8 +56,7 @@ const Page: NextPageWithLayout = () => {
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
-  const [convertEntityTypeLoading, setConvertEntityTypeLoading] =
-    useState(false);
+  const [convertTypeLoading, setConvertTypeLoading] = useState(false);
 
   const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
     string,
@@ -196,22 +195,24 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeIsLink = isLinkEntityType(entityType);
 
-  const convertToEntityType = wrapHandleSubmit(async (data) => {
+  const convertToLinkType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
 
-    setConvertEntityTypeLoading(true);
+    setConvertTypeLoading(true);
     const res = await updateEntityType({
       ...entityTypeSchema,
-      allOf: [],
+      allOf: [{ $ref: linkEntityTypeUrl }],
     });
 
-    setConvertEntityTypeLoading(false);
+    setConvertTypeLoading(false);
     if (!res.errors?.length) {
       reset(data);
     } else {
       throw new Error("Could not publish changes");
     }
   });
+
+  const isDirty = formMethods.formState.isDirty;
 
   return (
     <>
@@ -345,17 +346,13 @@ const Page: NextPageWithLayout = () => {
                         {entityType.title}
                       </Typography>
 
-                      <Box>
-                        {entityTypeIsLink ? (
-                          <Button
-                            variant="tertiary"
-                            onClick={convertToEntityType}
-                            loading={convertEntityTypeLoading}
-                          >
-                            Convert to Entity Type
-                          </Button>
-                        ) : null}
-                      </Box>
+                      {!entityTypeIsLink ? (
+                        <ConvertTypeButton
+                          onSubmit={convertToLinkType}
+                          loading={convertTypeLoading}
+                          disabled={isDirty}
+                        />
+                      ) : null}
                     </Box>
 
                     <Box sx={{ mb: 5.25 }}>
