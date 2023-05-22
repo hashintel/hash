@@ -36,7 +36,7 @@ enum AdditionalOntologyMetadata {
         owned_by_id: OwnedById,
     },
     External {
-        #[serde(with = "time::serde::iso8601")]
+        #[serde(with = "crate::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }
