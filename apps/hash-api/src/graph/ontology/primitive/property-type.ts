@@ -124,7 +124,9 @@ export const getPropertyTypeById: ImpureGraphFunction<
 };
 
 /**
- * Get an property type rooted subgraph by its versioned URL and if it's not available in the Graph and is an external type it will load this type into the Graph.
+ * Get a property type rooted subgraph by its versioned URL.
+ *
+ * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   Omit<PropertyTypeStructuralQuery, "filter"> & {

@@ -125,7 +125,9 @@ export const getEntityTypeById: ImpureGraphFunction<
 };
 
 /**
- * Get an entity type rooted subgraph by its versioned URL and if it's not available in the Graph and is an external type it will load this type into the Graph.
+ * Get an entity type rooted subgraph by its versioned URL.
+ *
+ * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
   Omit<EntityTypeStructuralQuery, "filter"> & {
