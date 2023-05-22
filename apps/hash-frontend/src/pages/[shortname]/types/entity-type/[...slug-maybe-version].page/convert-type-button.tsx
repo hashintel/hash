@@ -26,7 +26,10 @@ export const ConvertTypeButton = ({
 
   return (
     <>
-      <Tooltip title="Please publish or discard the current changes before converting to a Link Type.">
+      <Tooltip
+        title="Please publish or discard the current changes before converting to a Link Type."
+        disableHoverListener={!disabled}
+      >
         <Box>
           <Button
             variant="tertiary"
