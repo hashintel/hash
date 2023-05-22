@@ -1,0 +1,11 @@
+{
+  "<a href='struct.Run.html#structfield.results'>results</a>": {
+    "<a href='struct.Result.html#structfield.rule_id'>ruleId</a>": "CA2101",
+    "<a href='struct.Result.html#structfield.message'>message</a>": {
+      "<a href='struct.Message.html#structfield.text'>text</a>": "Variable '{0}' is uninitialized.",
+      "<a href='struct.Message.html#structfield.arguments'>arguments</a>": [
+        "pBuffer"
+      ]
+    }
+  }
+}

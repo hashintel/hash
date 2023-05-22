@@ -1,0 +1,33 @@
+{
+  "<a href='struct.Result.html#structfield.rule_id'>ruleId</a>": "TNT0001",
+  "<a href='struct.Result.html#structfield.message'>message</a>": {
+    "<a href='#structfield.text'>text</a>": "Tainted data was used. The data came from [here](3)."
+  },
+  "<a href='struct.Result.html#structfield.locations'>locations</a>": [
+    {
+      "<a href='struct.Location.html#structfield.physical_location'>physicalLocation</a>": {
+        "<a href='struct.PhysicalLocation.html#structfield.artifact_location'>artifactLocation</a>": {
+          "<a href='struct.ArtifactLocation.html#structfield.uri'>uri</a>": "file:///C:/code/main.c"
+        },
+        "<a href='struct.PhysicalLocation.html#structfield.region'>region</a>": {
+          "<a href='struct.Region.html#structfield.start_line'>startLine</a>": 15,
+          "<a href='struct.Region.html#structfield.start_column'>startColumn</a>": 9
+        }
+      }
+    }
+  ],
+  "<a href='struct.Result.html#structfield.related_locations'>relatedLocations</a>": [
+    {
+      "<a href='struct.Location.html#structfield.id'>id</a>": 3,
+      "<a href='struct.Location.html#structfield.physical_location'>physicalLocation</a>": {
+        "<a href='struct.PhysicalLocation.html#structfield.artifact_location'>artifactLocation</a>": {
+          "<a href='struct.ArtifactLocation.html#structfield.uri'>uri</a>": "file:///C:/code/input.c"
+        },
+        "<a href='struct.PhysicalLocation.html#structfield.region'>region</a>": {
+          "<a href='struct.Region.html#structfield.start_line'>startLine</a>": 25,
+          "<a href='struct.Region.html#structfield.start_column'>startColumn</a>": 19
+        }
+      }
+    }
+  ]
+}

@@ -32,6 +32,7 @@
     "@glideapps/glide-data-grid": "5.2.1",
     "@hashintel/block-design-system": "0.0.0",
     "@hashintel/design-system": "0.0.6",
+    "@hashintel/query-editor": "0.0.1",
     "@hashintel/type-editor": "0.0.22",
     "@lit-labs/react": "1.0.6",
     "@local/advanced-types": "0.0.0-private",
