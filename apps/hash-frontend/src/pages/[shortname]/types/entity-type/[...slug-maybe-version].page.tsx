@@ -346,7 +346,7 @@ const Page: NextPageWithLayout = () => {
                         {entityType.title}
                       </Typography>
 
-                      {!entityTypeIsLink ? (
+                      {!isDraft && !entityTypeIsLink ? (
                         <ConvertTypeButton
                           onSubmit={convertToLinkType}
                           loading={convertTypeLoading}
