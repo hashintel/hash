@@ -5,22 +5,27 @@ use serde::{Deserialize, Serialize};
 
 use crate::schema::PropertyBag;
 
-/// A message string or message format string rendered in multiple formats.
+/// A message string or message format string rendered in multiple formats ([§3.12]).
 ///
-/// It groups together all available textual formats for a message string
 ///
-/// See the [SARIF specification §3.12][spec] for more information.
+/// # General
 ///
-/// [spec]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html#_Toc34317473.
+/// A `MultiformatMessageString` object groups together all available textual formats for a message
+/// string.
 ///
-/// ## Localization
 ///
-/// Certain `MultiformatMessageString`-value properties, for example
-/// [`ReportingDescriptor::short_description`], can be translated into other languages. These
-/// properties are described as "localizable". The description of every localizable property will
-/// state that it is localizable.
+/// # Localization
+///
+/// Certain `MultiformatMessageString`-valued properties in this document, for example,
+/// [`ReportingDescriptor::short_description`] ([§3.49.9]), can be translated into other languages.
+/// We describe these properties as being “localizable”. The description of every localizable
+/// property will state that it is localizable.
+///
 ///
 /// [`ReportingDescriptor::short_description`]: crate::schema::ReportingDescriptor::short_description
+///
+/// [§3.12]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317473
+/// [§3.49.9]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317845
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
@@ -28,113 +33,57 @@ use crate::schema::PropertyBag;
     serde(rename_all = "camelCase", deny_unknown_fields)
 )]
 pub struct MultiformatMessageString<'s> {
-    /// A plain text representation of the message.
+    /// A plain text message string or format string ([§3.12.3]).
     ///
-    /// ## Note
     ///
-    /// This property is required to ensure that the message is viewable even in contexts that do
-    /// not support the rendering of formatted text
+    /// A `MultiformatMessageString` object **shall** contain a property named `text` whose value
+    /// is a non-empty string containing a plain text representation of the message.
     ///
-    /// See the [SARIF specification §3.12.3][spec] for more information.
+    /// > ## Note
+    /// >
+    /// > This property is required to ensure that the message is viewable even in contexts that do
+    /// > not support the rendering of formatted text
     ///
-    /// [spec]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html#_Toc34317476
-    ///
-    /// ## Note
-    ///
-    /// The SARIF specification requires a non-empty `text` property, but this crate does not
-    /// enforce this requirement. The JSON Schema for SARIF v2.1.0 does **not** enforce this
-    /// requirement.
+    /// [§3.12.3]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317476
     #[cfg_attr(feature = "serde", serde(borrow))]
     pub text: Cow<'s, str>,
 
-    /// A formatted message expressed in [GitHub-Flavored Markdown].
+    /// A Markdown message string or format string ([§3.12.4]).
     ///
-    /// SARIF consumers that cannot (or choose not to) render formatted text should ignore the
-    /// `markdown` property and use the [`text`] property instead.
     ///
-    /// See the [SARIF specification §3.12.4][spec] for more information.
+    /// A `MultiformatMessageString` object **may** contain a property named `markdown` whose value
+    /// is a non-empty string containing a [formatted message] ([§3.11.4]) expressed in
+    /// [GitHub-Flavored Markdown][GFM].
     ///
-    /// [GitHub-Flavored Markdown]: https://github.github.com/gfm/
-    /// [`text`]: Self::text
-    /// [spec]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html#_Toc34317477
+    /// SARIF consumers that cannot (or choose not to) render formatted text **shall** ignore the
+    /// markdown property and use the text property ([§3.12.3]) instead.
     ///
-    /// ## Note
+    /// [formatted message]: struct.Message.html#formatted-messages
     ///
-    /// The SARIF specification requires a non-empty `markdown` property, but this crate does not
-    /// enforce this requirement. The JSON Schema for SARIF v2.1.0 does **not** enforce this.
+    /// [§3.11.4]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317463
+    /// [§3.12.3]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317476
+    /// [§3.12.4]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317477
+    ///
+    /// [GFM]: https://github.github.com/gfm/
     #[cfg_attr(
         feature = "serde",
-        serde(borrow, default, skip_serializing_if = "Option::is_none")
+        serde(
+            borrow,
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "crate::serde::optional"
+        )
     )]
     pub markdown: Option<Cow<'s, str>>,
 
-    /// Key/value pairs that provide additional information about the message.
+    /// Key/value pairs that provide additional information about this message.
+    ///
+    /// See the [`PropertyBag`] object ([§3.8]) for details.
+    ///
+    /// [§3.11.11]: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317448
     #[cfg_attr(
         feature = "serde",
         serde(borrow, default, skip_serializing_if = "PropertyBag::is_empty")
     )]
     pub properties: PropertyBag<'s>,
-}
-
-impl<'s> MultiformatMessageString<'s> {
-    /// Creates a new `ReportingDescriptor` with the provided [`text`] property.
-    ///
-    /// [`text`]: Self::text
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::MultiformatMessageString;
-    ///
-    /// let message = MultiformatMessageString::new("mismatched types");
-    ///
-    /// assert_eq!(message.text, "mismatched types");
-    /// ```
-    #[must_use]
-    pub fn new(text: impl Into<Cow<'s, str>>) -> Self {
-        Self {
-            text: text.into(),
-            markdown: None,
-            properties: PropertyBag::new(),
-        }
-    }
-
-    /// Sets the name of the `ReportingDescriptor`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::MultiformatMessageString;
-    ///
-    /// let message =
-    ///     MultiformatMessageString::new("mismatched types").with_markdown("mismatched **types**");
-    ///
-    /// assert_eq!(message.markdown.unwrap(), "mismatched **types**");
-    /// ```
-    #[must_use]
-    pub fn with_markdown(mut self, markdown: impl Into<Cow<'s, str>>) -> Self {
-        self.markdown = Some(markdown.into());
-        self
-    }
-
-    /// Add additional properties to the message.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use sarif::schema::MultiformatMessageString;
-    ///
-    /// let message = MultiformatMessageString::new("mismatched types")
-    ///     .with_properties(|properties| properties.with_property("foo", "bar"));
-    ///
-    /// assert_eq!(message.properties.additional.get("foo").unwrap(), "bar");
-    /// ```
-    #[must_use]
-    pub fn with_properties(
-        mut self,
-        properties: impl FnOnce(PropertyBag<'s>) -> PropertyBag<'s>,
-    ) -> Self {
-        self.properties = properties(self.properties);
-        self
-    }
 }

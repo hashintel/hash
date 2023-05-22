@@ -1,12 +1,15 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
+  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
+  getDataTypeSubgraphById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
@@ -98,5 +101,23 @@ describe("Data type CRU", () => {
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
         updatedDataType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can load an external type on demand", async () => {
+    const dataTypeId =
+      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
+
+    await expect(getDataTypeById(graphContext, { dataTypeId })).rejects.toThrow(
+      "Could not find data type with ID",
+    );
+
+    await expect(
+      getDataTypeSubgraphById(graphContext, {
+        dataTypeId,
+        actorId: testUser.accountId,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).resolves.not.toThrow();
   });
 });

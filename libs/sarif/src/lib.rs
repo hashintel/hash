@@ -13,3 +13,6 @@ extern crate alloc;
 extern crate std;
 
 pub mod schema;
+
+#[cfg(feature = "serde")]
+pub(crate) mod serde;

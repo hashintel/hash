@@ -11,6 +11,7 @@ import {
 } from "../../../graph";
 import {
   createPropertyType,
+  getPropertyTypeSubgraphById,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 import {
@@ -86,26 +87,21 @@ export const getPropertyTypeResolver: ResolverFn<
 > = async (
   _,
   { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
-    {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
+  return await getPropertyTypeSubgraphById(context, {
+    propertyTypeId,
+    actorId: user.accountId,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
     },
-  );
-
-  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 };
 
 export const updatePropertyTypeResolver: ResolverFn<
