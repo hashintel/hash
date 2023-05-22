@@ -1,0 +1,308 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+
+### Create account
+POST http://127.0.0.1:4000/accounts
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("account_id", response.body.toString());
+%}
+
+### Insert entity type
+POST http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
+    "type": "object",
+    "title": "Object",
+    "properties": {},
+    "links": {
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "http://localhost:3000/@snapshot/types/entity-type/object/v/1"
+            }
+          ]
+        },
+        "ordered": false
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
+### Insert entity A
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("entity_a", response.body.recordId.entityId);
+%}
+
+### Insert entity B
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("entity_b", response.body.recordId.entityId);
+%}
+
+### Insert entity C
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("entity_c", response.body.recordId.entityId);
+%}
+
+### Insert entity D
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("entity_d", response.body.recordId.entityId);
+%}
+
+### Insert link between A and B
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_a}}",
+    "rightEntityId": "{{entity_b}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### Insert link between B and C
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_b}}",
+    "rightEntityId": "{{entity_c}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### Insert link between C and D
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_c}}",
+    "rightEntityId": "{{entity_d}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### Insert link between D and A
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_d}}",
+    "rightEntityId": "{{entity_a}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
+### Insert link between B and A
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_b}}",
+    "rightEntityId": "{{entity_a}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
+
+### Insert link between C and B
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_c}}",
+    "rightEntityId": "{{entity_b}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
+
+### Insert link between D and C
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_d}}",
+    "rightEntityId": "{{entity_c}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
+
+### Insert link between A and D
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "linkData": {
+    "leftEntityId": "{{entity_a}}",
+    "rightEntityId": "{{entity_d}}"
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
