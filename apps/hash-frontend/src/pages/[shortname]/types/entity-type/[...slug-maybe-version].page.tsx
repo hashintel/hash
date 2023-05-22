@@ -21,7 +21,7 @@ import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
 import { LinkedIcon } from "../../../../shared/icons/linked-icon";
@@ -55,6 +55,9 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
+
+  const [convertEntityTypeLoading, setConvertEntityTypeLoading] =
+    useState(false);
 
   const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
     string,
@@ -196,11 +199,13 @@ const Page: NextPageWithLayout = () => {
   const convertToEntityType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
 
+    setConvertEntityTypeLoading(true);
     const res = await updateEntityType({
       ...entityTypeSchema,
       allOf: [],
     });
 
+    setConvertEntityTypeLoading(false);
     if (!res.errors?.length) {
       reset(data);
     } else {
@@ -303,39 +308,55 @@ const Page: NextPageWithLayout = () => {
                         </>
                       }
                     />
-                    <Typography variant="h1" fontWeight="bold" my={3}>
-                      {entityTypeIsLink ? (
-                        <Tooltip
-                          title="This is a 'link' entity type. It is used to link other entities together."
-                          placement="top"
-                        >
-                          <Box display="inline-flex">
-                            <LinkedIcon
-                              sx={({ palette }) => ({
-                                fontSize: 40,
-                                mr: 3,
-                                stroke: palette.gray[50],
-                                verticalAlign: "middle",
-                              })}
-                            />
-                          </Box>
-                        </Tooltip>
-                      ) : (
-                        <FontAwesomeIcon
-                          icon={faAsterisk}
-                          sx={({ palette }) => ({
-                            fontSize: 40,
-                            mr: 3,
-                            color: palette.gray[70],
-                            verticalAlign: "middle",
-                          })}
-                        />
-                      )}
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography variant="h1" fontWeight="bold" my={3}>
+                        {entityTypeIsLink ? (
+                          <Tooltip
+                            title="This is a 'link' entity type. It is used to link other entities together."
+                            placement="top"
+                          >
+                            <Box display="inline-flex">
+                              <LinkedIcon
+                                sx={({ palette }) => ({
+                                  fontSize: 40,
+                                  mr: 3,
+                                  stroke: palette.gray[50],
+                                  verticalAlign: "middle",
+                                })}
+                              />
+                            </Box>
+                          </Tooltip>
+                        ) : (
+                          <FontAwesomeIcon
+                            icon={faAsterisk}
+                            sx={({ palette }) => ({
+                              fontSize: 40,
+                              mr: 3,
+                              color: palette.gray[70],
+                              verticalAlign: "middle",
+                            })}
+                          />
+                        )}
 
-                      {entityType.title}
+                        {entityType.title}
+                      </Typography>
 
-                      <Button onClick={convertToEntityType}>Convert</Button>
-                    </Typography>
+                      <Box>
+                        {entityTypeIsLink ? (
+                          <Button
+                            variant="tertiary"
+                            onClick={convertToEntityType}
+                            loading={convertEntityTypeLoading}
+                          >
+                            Convert to Entity Type
+                          </Button>
+                        ) : null}
+                      </Box>
+                    </Box>
 
                     <Box sx={{ mb: 5.25 }}>
                       <EntityTypeDescription readonly={isReadonly} />
