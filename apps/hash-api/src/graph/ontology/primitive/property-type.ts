@@ -28,6 +28,8 @@ import {
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
+const { FRONTEND_URL } = require("../../../lib/config");
+
 /**
  * Create a property type.
  *
@@ -119,6 +121,52 @@ export const getPropertyTypeById: ImpureGraphFunction<
   }
 
   return propertyType;
+};
+
+/**
+ * Get a property type rooted subgraph by its versioned URL.
+ *
+ * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
+ */
+export const getPropertyTypeSubgraphById: ImpureGraphFunction<
+  Omit<PropertyTypeStructuralQuery, "filter"> & {
+    propertyTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<Subgraph<PropertyTypeRootType>>
+> = async (context, params) => {
+  const { graphResolveDepths, temporalAxes, propertyTypeId, actorId } = params;
+
+  const query: PropertyTypeStructuralQuery = {
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
+    },
+    graphResolveDepths,
+    temporalAxes,
+  };
+
+  let subgraph = await getPropertyTypes(context, {
+    query,
+  });
+
+  if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(FRONTEND_URL)) {
+    await context.graphApi.createPropertyType({
+      actorId,
+      propertyTypeId,
+    });
+
+    subgraph = await getPropertyTypes(context, {
+      query,
+    });
+  }
+
+  if (subgraph.roots.length === 0) {
+    throw new NotFoundError(
+      `Could not find property type with ID "${propertyTypeId}"`,
+    );
+  }
+
+  return subgraph;
 };
 
 /**

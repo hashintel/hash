@@ -11,6 +11,7 @@ import {
 } from "../../../graph";
 import {
   createEntityType,
+  getEntityTypeSubgraphById,
   updateEntityType,
 } from "../../../graph/ontology/primitive/entity-type";
 import {
@@ -91,15 +92,14 @@ export const getEntityTypeResolver: ResolverFn<
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
   },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-    },
+  return await getEntityTypeSubgraphById(context, {
+    entityTypeId,
+    actorId: user.accountId,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
@@ -109,8 +109,6 @@ export const getEntityTypeResolver: ResolverFn<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
   });
-
-  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const updateEntityTypeResolver: ResolverFn<

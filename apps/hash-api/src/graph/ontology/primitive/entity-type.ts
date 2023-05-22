@@ -30,6 +30,8 @@ import {
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
+const { FRONTEND_URL } = require("../../../lib/config");
+
 /**
  * Create an entity type.
  *
@@ -120,6 +122,52 @@ export const getEntityTypeById: ImpureGraphFunction<
   }
 
   return entityType;
+};
+
+/**
+ * Get an entity type rooted subgraph by its versioned URL.
+ *
+ * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
+ */
+export const getEntityTypeSubgraphById: ImpureGraphFunction<
+  Omit<EntityTypeStructuralQuery, "filter"> & {
+    entityTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<Subgraph<EntityTypeRootType>>
+> = async (context, params) => {
+  const { graphResolveDepths, temporalAxes, entityTypeId, actorId } = params;
+
+  const query: EntityTypeStructuralQuery = {
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+    },
+    graphResolveDepths,
+    temporalAxes,
+  };
+
+  let subgraph = await getEntityTypes(context, {
+    query,
+  });
+
+  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(FRONTEND_URL)) {
+    await context.graphApi.createEntityType({
+      actorId,
+      entityTypeId,
+    });
+
+    subgraph = await getEntityTypes(context, {
+      query,
+    });
+  }
+
+  if (subgraph.roots.length === 0) {
+    throw new NotFoundError(
+      `Could not find entity type with ID "${entityTypeId}"`,
+    );
+  }
+
+  return subgraph;
 };
 
 /**
