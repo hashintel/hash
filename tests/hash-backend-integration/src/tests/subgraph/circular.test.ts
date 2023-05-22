@@ -8,7 +8,7 @@ afterAll(async () => {
   await resetGraph();
 });
 
-describe("Friendship Snapshot", () => {
+describe("Circular Snapshot", () => {
   it("can upload snapshot", async () => {
     await expect(
       restoreSnapshot(path.join(__dirname, "pass", "circular.jsonl")),
