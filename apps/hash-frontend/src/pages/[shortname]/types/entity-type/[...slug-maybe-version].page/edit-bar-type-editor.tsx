@@ -34,15 +34,14 @@ export const EditBarTypeEditor = ({
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
 }) => {
-  const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();
+  const { isDirty, isSubmitting } =
+    useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
 
   const collapseIn = currentVersion === 0 || isDirty;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
-
-  const { isSubmitting } = useEntityTypeFormState<EntityTypeEditorFormData>();
 
   const frozenSubmitting = useFrozenValue(isSubmitting);
 
