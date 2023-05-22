@@ -6,6 +6,7 @@ const CONFIG: iso8601::EncodedConfig = iso8601::Config::DEFAULT
 const FORMAT: Iso8601<CONFIG> = Iso8601::<CONFIG>;
 ::time::serde::format_description!(time_format, OffsetDateTime, FORMAT);
 
+// The macro above creates a private macro so we re-export it here publicly.
 pub mod time {
     pub use super::time_format::*;
 
