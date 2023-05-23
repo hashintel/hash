@@ -1,4 +1,4 @@
-# HASH-agents
+# HASH Agents
 
 ## Description
 

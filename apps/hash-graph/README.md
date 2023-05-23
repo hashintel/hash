@@ -1,6 +1,8 @@
-# The HASH Graph Query Layer
+# HASH Graph
 
-To run the HASH Graph Query Layer make sure `just` is installed:
+## Overview
+
+This directory contains the code pertaining to the HASH Graph Query Layer. To run the HASH Graph Query Layer make sure `just` is installed:
 
 ```shell
 cargo install just
