@@ -38,7 +38,7 @@ export interface ArrayExpectedValue {
 export interface Property {
   id: VersionedUrl;
   required: boolean;
-  /** JEJ ask Nate about this, not sure if this is correct */
+  /** @todo ask Nate about this, not sure if this is correct */
   minValue: number | string;
   maxValue: number | string;
   infinity: boolean;
