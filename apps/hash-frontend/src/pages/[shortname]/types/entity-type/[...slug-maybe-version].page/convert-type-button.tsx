@@ -5,13 +5,13 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { ConvertTypeConfirmationModal } from "./convert-type-button/convert-type-confirmation-modal";
 
 interface ConvertTypeButtonProps {
-  onSubmit: () => void;
+  onClick: () => void;
   loading?: boolean;
   disabled?: boolean;
 }
 
 export const ConvertTypeButton = ({
-  onSubmit,
+  onClick,
   loading,
   disabled,
 }: ConvertTypeButtonProps) => {
@@ -44,7 +44,7 @@ export const ConvertTypeButton = ({
 
       <ConvertTypeConfirmationModal
         popupState={popupState}
-        onSubmit={onSubmit}
+        onSubmit={onClick}
       />
     </>
   );
