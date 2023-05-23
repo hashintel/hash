@@ -31,10 +31,11 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 ## Other projects
 
-The following applications are available but not currently stable. As with our main projects, we remain open to accepting contributions to these. Please see our [contributing guidelines] for more information.
+The following applications are available but currently unsupported. However, as with our main projects, we remain open to accepting contributions to these in accordance with our [contributing guidelines].
 
 | Subdirectory       | Description                                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- |
 | [`engine`](engine) | Codebase for the alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
+| [`intellij-plugin`](intellij-plugin) | Plugin for JetBrains IntelliJ-based IDEs to assist development in common HASH workflows. |
 
-Source code for the _Block Protocol_ can be found in the [blockprotocol/blockprotocol repo] on GitHub.
+Source code for the _Block Protocol_ can be found separately in the [blockprotocol/blockprotocol repo] on GitHub.
