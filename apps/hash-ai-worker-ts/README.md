@@ -1,6 +1,6 @@
-# HASH AI worker (ts)
+# HASH AI Worker (TypeScript)
 
-This app is a Temporal.io worker that is able to run workflows and activities.
+This app is a Temporal worker that is able to run workflows and activities.
 
 ## Configuration
 
