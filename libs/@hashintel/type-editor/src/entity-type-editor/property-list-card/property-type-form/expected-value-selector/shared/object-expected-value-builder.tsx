@@ -21,6 +21,7 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { usePropertyTypesOptions } from "../../../../../shared/property-types-options-context";
+import { MultipleValuesCell } from "../../../../shared/multiple-values-cell";
 import { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
@@ -77,7 +78,7 @@ const ObjectExpectedValueRow: FunctionComponent<
     }
   }, [propertyType]);
 
-  const { allowArrays, required, animatingOut } = property;
+  const { required, animatingOut } = property;
 
   return propertyType ? (
     <Collapse in={show && !animatingOut} sx={{ width: 1 }}>
@@ -112,21 +113,19 @@ const ObjectExpectedValueRow: FunctionComponent<
             size="xs"
           />
         </StyledTableBodyCell>
-        <StyledTableBodyCell
+
+        <MultipleValuesCell
+          /**
+           * @todo this component works with formContext,
+           * not sure if it's easily going to work with the form structure of object-expected-value-builder.
+           * it might require some changes on this component
+           * */
           sx={{
             width: allowArraysColumnWidth,
           }}
-        >
-          <Checkbox
-            checked={allowArrays}
-            onChange={(evt) => {
-              setValue(
-                `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.allowArrays`,
-                evt.target.checked,
-              );
-            }}
-          />
-        </StyledTableBodyCell>
+          index={propertyIndex}
+          variant="property"
+        />
         <StyledTableBodyCell
           sx={{
             width: requiredColumnWidth,
@@ -305,7 +304,10 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                       ...properties,
                       {
                         id: details.option,
-                        allowArrays: false,
+                        array: false,
+                        minValue: 0,
+                        maxValue: 1,
+                        infinity: true,
                         required: false,
                       },
                     ],

@@ -38,7 +38,11 @@ export interface ArrayExpectedValue {
 export interface Property {
   id: VersionedUrl;
   required: boolean;
-  allowArrays: boolean;
+  /** @todo JEJ ask Nate about this, not sure if this is correct */
+  minValue: number | string;
+  maxValue: number | string;
+  infinity: boolean;
+  array: boolean;
   animatingOut?: boolean;
 }
 
