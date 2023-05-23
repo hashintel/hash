@@ -9,6 +9,7 @@ import {
 } from "@hashintel/design-system";
 import {
   Box,
+  BoxProps,
   Checkbox,
   ClickAwayListener,
   Collapse,
@@ -90,9 +91,11 @@ export const MULTIPLE_VALUES_CELL_WIDTH = 170;
 export const MultipleValuesCell = ({
   index,
   variant,
+  sx = [],
 }: {
   index: number;
   variant: "property" | "link";
+  sx?: BoxProps["sx"];
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
 
@@ -182,10 +185,13 @@ export const MultipleValuesCell = ({
     <>
       <TableCell
         ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
-        sx={{
-          p: "0 !important",
-          position: "relative",
-        }}
+        sx={[
+          {
+            p: "0 !important",
+            position: "relative",
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
         width={MULTIPLE_VALUES_CELL_WIDTH}
       >
         <Box
