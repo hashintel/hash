@@ -21,6 +21,8 @@ pub mod knowledge;
 pub mod ontology;
 pub mod subgraph;
 
+mod serde;
+
 pub mod store;
 
 pub mod snapshot;
