@@ -149,7 +149,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
   });
 
   if (subgraph.roots.length === 0 && !dataTypeId.startsWith(FRONTEND_URL)) {
-    await context.graphApi.createDataType({
+    await context.graphApi.loadExternalDataType({
       actorId,
       dataTypeId,
     });
