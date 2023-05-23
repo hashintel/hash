@@ -36,6 +36,7 @@ use crate::{
 #[openapi(
     paths(
         create_data_type,
+        load_external_data_type,
         get_data_types_by_query,
         update_data_type
     ),
@@ -44,8 +45,7 @@ use crate::{
             DataTypeWithMetadata,
 
             CreateDataTypeRequest,
-            CreateOwnedDataTypeRequest,
-            CreateExternalDataTypeRequest,
+            LoadExternalDataTypeRequest,
             UpdateDataTypeRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
@@ -68,33 +68,18 @@ impl RoutedResource for DataTypeResource {
             "/data-types",
             Router::new()
                 .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
-                .route("/query", post(get_data_types_by_query::<P>)),
+                .route("/query", post(get_data_types_by_query::<P>))
+                .route("/load", post(load_external_data_type::<P>)),
         )
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", untagged)]
-enum CreateDataTypeRequest {
-    Owned(CreateOwnedDataTypeRequest),
-    #[cfg(feature = "type-fetcher")]
-    External(CreateExternalDataTypeRequest),
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateOwnedDataTypeRequest {
+struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
-    actor_id: RecordCreatedById,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct CreateExternalDataTypeRequest {
-    #[schema(value_type = String)]
-    data_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -110,7 +95,6 @@ struct CreateExternalDataTypeRequest {
         (status = 409, description = "Unable to create data type in the store as the base data type URL already exists"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = CreateDataTypeRequest,
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_data_type<P: StorePool + Send>(
@@ -127,25 +111,11 @@ where
     })?;
 
     #[allow(clippy::infallible_destructuring_match)]
-    let CreateOwnedDataTypeRequest {
+    let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
         actor_id,
-    } = match body.0 {
-        CreateDataTypeRequest::Owned(request) => request,
-        #[cfg(feature = "type-fetcher")]
-        CreateDataTypeRequest::External(request) => {
-            return Ok(Json(ListOrValue::Value(
-                store
-                    .load_external_type(
-                        &domain_validator,
-                        OntologyTypeReference::DataTypeReference((&request.data_type_id).into()),
-                        request.actor_id,
-                    )
-                    .await?,
-            )));
-        }
-    };
+    }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
@@ -202,6 +172,58 @@ where
             metadata.pop().expect("metadata does not contain a value"),
         )))
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct LoadExternalDataTypeRequest {
+    #[schema(value_type = String)]
+    data_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/load",
+    request_body = LoadExternalDataTypeRequest,
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = OntologyElementMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 409, description = "Unable to load data type in the store as the base data type ID already exists"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
+async fn load_external_data_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
+    body: Json<LoadExternalDataTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    #[allow(clippy::infallible_destructuring_match)]
+    let Json(LoadExternalDataTypeRequest {
+        data_type_id,
+        actor_id,
+    }) = body;
+
+    Ok(Json(
+        store
+            .load_external_type(
+                &domain_validator,
+                OntologyTypeReference::DataTypeReference((&data_type_id).into()),
+                actor_id,
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(
