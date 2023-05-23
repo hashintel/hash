@@ -7,6 +7,7 @@ import {
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -27,8 +28,6 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-
-const { FRONTEND_URL } = require("../../../lib/config");
 
 /**
  * Create a property type.
@@ -149,7 +148,7 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(FRONTEND_URL)) {
+  if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(frontendUrl)) {
     await context.graphApi.createPropertyType({
       actorId,
       propertyTypeId,
