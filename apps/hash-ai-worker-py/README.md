@@ -1,4 +1,4 @@
-# HASH AI worker (Python)
+# HASH AI Worker (Python)
 
 ## Requirements
 
