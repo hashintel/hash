@@ -90,8 +90,8 @@ Accept: application/json
       "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
       "kind": "dataType",
       "$id": "http://localhost:3000/@alice/types/data-type/number/v/1",
-      "title": "Text",
-      "type": "string"
+      "title": "Number",
+      "type": "number"
     }
   ]
 }
