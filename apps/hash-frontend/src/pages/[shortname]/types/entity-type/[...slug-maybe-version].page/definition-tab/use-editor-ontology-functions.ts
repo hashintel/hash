@@ -108,6 +108,13 @@ export const useEditorOntologyFunctions = (
         : getPropertyType({ data: { propertyTypeId: versionedUrl } }));
 
       if (!res.data) {
+        if (res.errors?.[0]?.code === "NOT_FOUND") {
+          return {
+            allowed: true,
+            message: "ok",
+          };
+        }
+
         return {
           allowed: false,
           message: "Error checking whether title exists",
