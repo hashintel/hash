@@ -1,4 +1,6 @@
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(any(nightly, feature = "std"))]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use num_traits::NumCast;
 
 use crate::{
@@ -190,6 +192,7 @@ macro_rules! deserialize_identifier {
     };
 
     ($name:ident, $primitive:ty,try_visit, $visit:ident) => {
+        #[cfg(any(nightly, feature = "std"))]
         fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
         where
             V: IdentifierVisitor<'de>,
@@ -202,6 +205,23 @@ macro_rules! deserialize_identifier {
                 .attach(ExpectedType::new(visitor.expecting()))
                 .attach(ReceivedType::new(<$primitive>::document()))
                 .change_context(DeserializerError)?;
+
+            visitor.$visit(value).change_context(DeserializerError)
+        }
+
+        #[cfg(not(any(nightly, feature = "std")))]
+        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        where
+            V: IdentifierVisitor<'de>,
+        {
+            let Ok(value) = self.value.try_into() else {
+                                        let error = Report::new(TypeError.into_error())
+                                            .attach(ExpectedType::new(visitor.expecting()))
+                                            .attach(ReceivedType::new(<$primitive>::document()))
+                                            .change_context(DeserializerError);
+
+                                        return Err(error);
+                                    };
 
             visitor.$visit(value).change_context(DeserializerError)
         }
