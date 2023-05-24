@@ -348,7 +348,7 @@ const Page: NextPageWithLayout = () => {
 
                       {!isDraft && !entityTypeIsLink ? (
                         <ConvertTypeButton
-                          onSubmit={convertToLinkType}
+                          onClick={convertToLinkType}
                           loading={convertTypeLoading}
                           disabled={isDirty}
                         />
