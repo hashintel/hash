@@ -94,6 +94,7 @@ services:
   hash-graph:
     init: true
     image: hash-graph:prod
+    read_only: true
     build:
       dockerfile: apps/hash-graph/docker/Dockerfile
       context: ../../
@@ -107,6 +108,8 @@ services:
     command: server
     volumes:
       - log:/log
+    security_opt:
+      - no-new-privileges:true
     environment:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
