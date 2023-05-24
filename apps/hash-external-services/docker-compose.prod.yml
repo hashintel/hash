@@ -45,6 +45,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    image: hash-graph:prod
     build:
       dockerfile: apps/hash-graph/docker/Dockerfile
       context: ../../
@@ -65,6 +66,7 @@ services:
 
   type-fetcher:
     init: true
+    image: hash-graph:prod
     build:
       dockerfile: apps/hash-graph/docker/Dockerfile
       context: ../../
@@ -91,6 +93,7 @@ services:
 
   hash-graph:
     init: true
+    image: hash-graph:prod
     build:
       dockerfile: apps/hash-graph/docker/Dockerfile
       context: ../../
