@@ -9,7 +9,7 @@ afterAll(async () => {
 });
 
 describe("Circular Snapshot", () => {
-  it("can upload snapshot", async () => {
+  it("can restore snapshot", async () => {
     await expect(
       restoreSnapshot(path.join(__dirname, "pass", "circular.jsonl")),
     ).resolves.not.toThrowError();
