@@ -1,5 +1,6 @@
 FROM python:3.11.3-slim-bullseye as python-base
 
+
 FROM node:18.15-slim AS pruned
 
 WORKDIR /app
@@ -7,13 +8,18 @@ WORKDIR /app
 RUN yarn global add turbo
 COPY . .
 RUN turbo prune --scope='@apps/hash-api' --docker
+# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
+# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
+COPY patches /app/out/full/patches
+
 
 FROM pruned as installer
 
 WORKDIR /usr/local/src/hash
 
 COPY --from=pruned /app/out/json/ .
-COPY --from=pruned /app/out/yarn.lock ./yarn.lock
+COPY --from=pruned /app/out/yarn.lock yarn.lock
+COPY --from=pruned /app/out/full/patches patches
 
 RUN yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean
@@ -50,7 +56,10 @@ RUN apt-get install -y python-is-python3
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-RUN yarn turbo codegen --filter '@apps/hash-api'
+ENV NODE_ENV production
+
+RUN yarn turbo build --filter '@apps/hash-api'
+
 
 FROM node:18.15-slim as runner
 
