@@ -38,6 +38,7 @@ import { useIsReadonly } from "../../shared/read-only-context";
 const EDIT_BAR_HEIGHT = 66;
 
 const isSafariBrowser = () =>
+  typeof window !== "undefined" &&
   navigator.userAgent.indexOf("Safari") > -1 &&
   navigator.userAgent.indexOf("Chrome") <= -1;
 
