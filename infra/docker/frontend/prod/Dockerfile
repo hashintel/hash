@@ -7,6 +7,9 @@ WORKDIR /app
 RUN yarn global add turbo
 COPY . .
 RUN turbo prune --scope='@apps/hash-frontend' --docker
+# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
+# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
+COPY patches /app/out/full/patches
 
 FROM pruned as installer
 
