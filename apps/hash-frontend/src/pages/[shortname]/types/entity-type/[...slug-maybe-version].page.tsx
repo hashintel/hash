@@ -23,6 +23,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { LinkedIcon } from "../../../../shared/icons/linked-icon";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -42,6 +43,7 @@ import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
 import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].page/shared/latest-property-types-context";
 import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
+import { TypePreviewSlide } from "./[...slug-maybe-version].page/type-preview-slide";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
 
@@ -60,6 +62,8 @@ const Page: NextPageWithLayout = () => {
     "v" | undefined,
     `${number}` | undefined,
   ]; // @todo validate that the URL is formatted as expected;
+
+  const entityTypesContext = useEntityTypesContextRequired();
 
   const baseEntityTypeUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
@@ -346,6 +350,11 @@ const Page: NextPageWithLayout = () => {
                   </Container>
                 </Box>
               </Box>
+              <TypePreviewSlide
+                type={entityTypeAndPropertyTypes?.entityType}
+                entityTypeOptions={entityTypesContext.entityTypes}
+                propertyTypeOptions={entityTypeAndPropertyTypes?.propertyTypes}
+              />
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </LatestPropertyTypesContextProvider>

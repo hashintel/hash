@@ -33,6 +33,7 @@ export type CustomizationOptions = {
    *  If defined, default anchor behavior will be prevented on click.
    */
   onNavigateToType?: (url: string) => void;
+  onTypePreview?: (entityType: EntityType) => void;
 };
 
 export type EntityTypeEditorProps = {

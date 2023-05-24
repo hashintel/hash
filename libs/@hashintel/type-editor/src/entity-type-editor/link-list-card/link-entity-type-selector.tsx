@@ -1,6 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { faAsterisk, faExpand } from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
   FontAwesomeIcon,
@@ -11,7 +11,7 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, PopperPlacementType, Stack } from "@mui/material";
+import { Box, IconButton, PopperPlacementType, Stack } from "@mui/material";
 import { ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -23,17 +23,20 @@ import { useIsReadonly } from "../../shared/read-only-context";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 import { useTypeVersions } from "../shared/use-type-versions";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
+import { useCustomizationSettings } from "../../shared/customization-context";
 
 const TypeChipLabel = ({
   children,
   currentVersion,
   latestVersion,
   onUpdate,
+  onOpen,
 }: {
   children: ReactNode;
   currentVersion?: number;
   latestVersion?: number;
   onUpdate?: () => void;
+  onOpen?: () => void;
 }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
     <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
@@ -52,16 +55,29 @@ const TypeChipLabel = ({
         />
       </Box>
     ) : null}
+
+    {onOpen ? (
+      <IconButton
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen();
+        }}
+      >
+        <FontAwesomeIcon icon={faExpand} sx={{ fontSize: "inherit" }} />
+      </IconButton>
+    ) : null}
   </Stack>
 );
 
 const ChosenEntityType = ({
   updateVersion,
   onDelete,
+  onOpen,
   entityType,
 }: {
   updateVersion: (newVersion: VersionedUrl) => void;
   onDelete?: () => void;
+  onOpen?: () => void;
   entityType: EntityType;
 }) => {
   const { entityTypes } = useEntityTypesOptions();
@@ -83,6 +99,7 @@ const ChosenEntityType = ({
           currentVersion={currentVersion}
           latestVersion={latestVersion}
           onUpdate={() => updateVersion(`${baseUrl}v/${latestVersion}`)}
+          onOpen={onOpen}
         >
           {entityType.title}
         </TypeChipLabel>
@@ -106,6 +123,7 @@ export const LinkEntityTypeSelector = ({
   linkIndex: number;
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
+  const { onTypePreview } = useCustomizationSettings();
 
   const isReadonly = useIsReadonly();
 
@@ -249,6 +267,7 @@ export const LinkEntityTypeSelector = ({
                       },
                     }
                   : {})}
+                onOpen={() => onTypePreview?.(entityType)}
               />
             );
           })

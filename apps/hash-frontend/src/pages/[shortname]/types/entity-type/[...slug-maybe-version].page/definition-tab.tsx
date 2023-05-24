@@ -93,9 +93,13 @@ export const DefinitionTab = ({
     }
   };
 
+  const onTypePreview = (entityType: EntityType) => {
+    console.log(entityType);
+  };
+
   return (
     <EntityTypeEditor
-      customization={{ onNavigateToType }}
+      customization={{ onNavigateToType, onTypePreview }}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
       ontologyFunctions={ontologyFunctions}
