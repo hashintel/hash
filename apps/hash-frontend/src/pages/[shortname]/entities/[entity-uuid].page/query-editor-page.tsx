@@ -8,10 +8,6 @@ import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
-import {
-  useEntityTypesLoading,
-  useEntityTypesOptional,
-} from "../../../../shared/entity-types-context/hooks";
 import { useLatestPropertyTypesContextValue } from "../../types/entity-type/[...slug-maybe-version].page/shared/use-latest-property-types-context-value";
 import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditorProps } from "./entity-editor";
@@ -55,10 +51,6 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const { queryEntities } = useBlockProtocolQueryEntities();
   const { propertyTypes } = useLatestPropertyTypesContextValue();
-  const entityTypes = useEntityTypesOptional();
-  const entityTypesLoading = useEntityTypesLoading();
-
-  const entityTypeSchemas = entityTypes?.map((type) => type.schema) ?? [];
 
   const propertyTypeSchemas = propertyTypes
     ? Object.values(propertyTypes).map((type) => type.schema)
@@ -133,33 +125,28 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
             <TypesSection />
 
-            {entityTypesLoading ? (
-              <Box>Loading</Box>
-            ) : (
-              <EntityQueryEditor
-                key={queryEditorKey}
-                readonly={entityEditorProps.readonly}
-                defaultValue={defaultValue}
-                entityTypes={entityTypeSchemas}
-                propertyTypes={propertyTypeSchemas}
-                queryEntities={handleQueryEntities}
-                onDiscard={() => {
-                  if (mode === "create") {
-                    return router.push("/new/entity");
-                  }
+            <EntityQueryEditor
+              key={queryEditorKey}
+              readonly={entityEditorProps.readonly}
+              defaultValue={defaultValue}
+              propertyTypes={propertyTypeSchemas}
+              queryEntities={handleQueryEntities}
+              onDiscard={() => {
+                if (mode === "create") {
+                  return router.push("/new/entity");
+                }
 
-                  /**
-                   * this is not the best way to do this, but it works for now
-                   * to discard changes, we just change the key to make `EntityQueryEditor` re-render,
-                   * which resets the state of `EntityQueryEditor`, and thus discards the changes
-                   */
-                  setQueryEditorKey((key) => key + 1);
-                }}
-                discardTitle={mode === "edit" ? "Discard changes" : undefined}
-                saveTitle={mode === "edit" ? "Save changes" : undefined}
-                onSave={handleSaveQuery}
-              />
-            )}
+                /**
+                 * this is not the best way to do this, but it works for now
+                 * to discard changes, we just change the key to make `EntityQueryEditor` re-render,
+                 * which resets the state of `EntityQueryEditor`, and thus discards the changes
+                 */
+                setQueryEditorKey((key) => key + 1);
+              }}
+              discardTitle={mode === "edit" ? "Discard changes" : undefined}
+              saveTitle={mode === "edit" ? "Save changes" : undefined}
+              onSave={handleSaveQuery}
+            />
           </Box>
         </EntityEditorContextProvider>
       </EntityPageWrapper>

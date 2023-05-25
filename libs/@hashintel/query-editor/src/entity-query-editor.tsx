@@ -1,4 +1,4 @@
-import { EntityType, MultiFilter, PropertyType } from "@blockprotocol/graph";
+import { MultiFilter, PropertyType } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
 import { BoxProps } from "@mui/system";
@@ -21,7 +21,6 @@ export interface EntityQueryEditorProps {
   onDiscard: () => void;
   discardTitle?: string;
   sx?: BoxProps["sx"];
-  entityTypes: EntityType[];
   propertyTypes: PropertyType[];
   defaultValue?: MultiFilter;
   queryEntities: QueryEntitiesFunc;
@@ -31,7 +30,6 @@ export interface EntityQueryEditorProps {
 export const EntityQueryEditor = ({
   onDiscard,
   onSave,
-  entityTypes,
   propertyTypes,
   sx = [],
   defaultValue,
@@ -94,7 +92,7 @@ export const EntityQueryEditor = ({
         >
           <EditorTitle />
 
-          <QueryForm entityTypes={entityTypes} propertyTypes={propertyTypes} />
+          <QueryForm propertyTypes={propertyTypes} />
 
           <Stack direction="row" gap={1}>
             <Button

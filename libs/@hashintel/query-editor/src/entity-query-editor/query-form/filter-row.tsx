@@ -1,4 +1,4 @@
-import { EntityType, PropertyType } from "@blockprotocol/graph";
+import { PropertyType } from "@blockprotocol/graph";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
@@ -18,14 +18,12 @@ import { ValueInput } from "./filter-row/value-input";
 interface FilterRowProps {
   index: number;
   onRemove: () => void;
-  entityTypes: EntityType[];
   propertyTypes: PropertyType[];
 }
 
 export const FilterRow = ({
   onRemove,
   index,
-  entityTypes,
   propertyTypes,
 }: FilterRowProps) => {
   const readonly = useReadonlyContext();
@@ -68,7 +66,7 @@ export const FilterRow = ({
         <OperatorSelector index={index} />
         {watchedOperatorHasValue &&
           (watchedType === "Type" ? (
-            <EntityTypeSelector index={index} entityTypes={entityTypes} />
+            <EntityTypeSelector index={index} />
           ) : (
             <ValueInput index={index} />
           ))}

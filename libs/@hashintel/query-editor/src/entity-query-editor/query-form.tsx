@@ -9,11 +9,10 @@ import { useReadonlyContext } from "./readonly-context";
 import { FormValues } from "./types";
 
 interface QueryFormProps {
-  entityTypes: EntityType[];
   propertyTypes: PropertyType[];
 }
 
-export const QueryForm = ({ entityTypes, propertyTypes }: QueryFormProps) => {
+export const QueryForm = ({ propertyTypes }: QueryFormProps) => {
   const readonly = useReadonlyContext();
   const form = useFormContext<FormValues>();
 
@@ -44,7 +43,6 @@ export const QueryForm = ({ entityTypes, propertyTypes }: QueryFormProps) => {
               index={index}
               key={field.id}
               onRemove={() => fieldArray.remove(index)}
-              entityTypes={entityTypes}
               propertyTypes={propertyTypes}
             />
           ))}
