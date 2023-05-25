@@ -159,12 +159,6 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     });
   }
 
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(
-      `Could not find property type with ID "${propertyTypeId}"`,
-    );
-  }
-
   return subgraph;
 };
 
