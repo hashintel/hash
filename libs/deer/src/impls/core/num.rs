@@ -5,8 +5,6 @@ use core::num::{
     NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize, Wrapping,
 };
 
-#[cfg(all(not(nightly), not(feature = "std")))]
-use error_stack::IntoReport;
 use error_stack::{Report, ResultExt};
 use serde::{ser::SerializeMap, Serialize, Serializer};
 

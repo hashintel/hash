@@ -1,8 +1,3 @@
-#![expect(
-    clippy::let_underscore_untyped,
-    reason = "Upstream issue of `derivative`"
-)]
-
 use std::{error::Error, fmt, ops::Bound};
 
 use derivative::Derivative;

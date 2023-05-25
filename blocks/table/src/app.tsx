@@ -1,3 +1,4 @@
+import { MultiFilter } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -13,13 +14,14 @@ import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
 import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
+import { TableWithQuery } from "./components/table/table-with-query";
 import {
   BlockEntity,
   TableBlockOutgoingLinkAndTarget,
 } from "./types/generated/block-entity";
 
 const titleKey: RootKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -27,10 +29,15 @@ export const App: BlockComponent<BlockEntity> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
-  const { rootEntity: blockEntity } = useEntitySubgraph<
+  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
     BlockEntity,
     TableBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
+
+  /** @todo use the real query object here, instead of the staging one */
+  const query = linkedEntities[0]?.rightEntity?.properties[
+    "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"
+  ] as MultiFilter | undefined;
 
   const {
     metadata: {
@@ -95,11 +102,20 @@ export const App: BlockComponent<BlockEntity> = ({
                 </div>
               </div>
 
-              <Table
-                blockEntity={blockEntity}
-                updateEntity={updateEntity}
-                readonly={readonly}
-              />
+              {query ? (
+                <TableWithQuery
+                  graphModule={graphModule}
+                  query={query}
+                  blockEntity={blockEntity}
+                  readonly={readonly}
+                />
+              ) : (
+                <Table
+                  blockEntity={blockEntity}
+                  updateEntity={updateEntity}
+                  readonly={readonly}
+                />
+              )}
             </div>
           );
         }}
