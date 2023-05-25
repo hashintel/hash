@@ -8,7 +8,6 @@ import {
   Box,
   Modal,
   Paper,
-  Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
@@ -27,112 +26,15 @@ import {
   useState,
 } from "react";
 import { useKeys } from "rooks";
-
-type CommandBarOptionCommand = {
-  href?: string;
-  // Used to render a custom screen inside the popup when the option is selected
-  renderCustomScreen?: (option: CommandBarOption) => ReactNode;
-  // Used to render a submenu when the option is selected
-  options?: CommandBarMenu;
-  // Used to trigger a command when the option is selected
-  command?: (option: CommandBarOption) => void;
-
-  asyncCommand?: (input: string) => Promise<CommandBarOption | null>;
-};
-
-class CommandBarOption {
-  private command: CommandBarOptionCommand | null = null;
-  private active = false;
-
-  constructor(
-    public readonly menu: CommandBarMenu | null,
-    public readonly label: string,
-    public readonly group: string,
-    public readonly keysList?: string[],
-  ) {}
-
-  setCommand(command: CommandBarOptionCommand) {
-    this.command = command;
-    this.menu?.update();
-
-    return this;
-  }
-
-  activate(command?: CommandBarOptionCommand) {
-    if (command) {
-      this.command = command;
-    }
-
-    this.active = true;
-    this.menu?.update();
-
-    let removed = false;
-
-    return () => {
-      if (!removed) {
-        this.active = false;
-        if (command) {
-          this.command = null;
-        }
-
-        this.menu?.update();
-      }
-
-      removed = true;
-    };
-  }
-
-  isActive() {
-    return !!this.command && this.active;
-  }
-
-  getCommand() {
-    return this.command;
-  }
-}
-
-class CommandBarMenu {
-  public subOptions: CommandBarOption[] = [];
-  public options: CommandBarOption[] = [];
-
-  protected listeners: (() => void)[] = [];
-
-  private readonly root: CommandBarMenu;
-
-  constructor(root?: CommandBarMenu) {
-    this.root = root ?? this;
-  }
-
-  addOption(label: string, group: string, keysList?: string[]) {
-    const option = new CommandBarOption(this, label, group, keysList);
-
-    this.subOptions.push(option);
-    this.root.options.push(option);
-
-    return option;
-  }
-
-  addListener(listener: () => void) {
-    this.root.listeners.push(listener);
-
-    return () => {
-      this.root.listeners.splice(this.root.listeners.indexOf(listener), 1);
-    };
-  }
-
-  update() {
-    this.root.triggerListeners();
-  }
-
-  protected triggerListeners() {
-    for (const listener of this.listeners) {
-      listener();
-    }
-  }
-}
-
-const menu = new CommandBarMenu();
-const testOption = menu.addOption("Test", "General", ["Meta", "g"]);
+import { CheatSheet } from "./command-bar/cheat-sheet";
+import {
+  childMenu,
+  CommandBarOption,
+  CommandBarOptionCommand,
+  menu,
+  testOption,
+} from "./command-bar/command-bar-options";
+import { HotKey } from "./command-bar/hot-key";
 
 testOption.activate({
   command: () => {
@@ -140,8 +42,6 @@ testOption.activate({
     console.log("Test activated");
   },
 });
-
-export const childMenu = new CommandBarMenu(menu);
 
 childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
   command: () => {
@@ -164,12 +64,6 @@ childMenu.addOption("Fourth", "General").activate({
     });
   },
 });
-
-export const secondOption = menu
-  .addOption("Second", "Page", ["Meta", "s"])
-  .setCommand({
-    options: childMenu,
-  });
 
 export const useCommandBarOption = (
   option: CommandBarOption,
@@ -307,109 +201,6 @@ const doesIdentifierMatchKeyboardEvent = (
   error.keyCode === identifier ||
   error.which === identifier ||
   error.charCode === identifier;
-
-const Command = ({
-  label,
-  keysList,
-}: {
-  label: string;
-  keysList?: string[];
-}) => (
-  <Box
-    display="flex"
-    alignItems="center"
-    width="100%"
-    justifyContent="space-between"
-  >
-    {label}
-    {keysList ? (
-      <Box display="flex" alignItems="center" gap={0.5} flexGrow={0}>
-        {keysList.map((key) => (
-          <Box
-            key={key}
-            borderRadius={1}
-            bgcolor={(theme) => theme.palette.blue[30]}
-            px={1}
-          >
-            {key.toLowerCase() === "meta" ? "⌘" : key.toUpperCase()}
-          </Box>
-        ))}
-      </Box>
-    ) : null}
-  </Box>
-);
-
-const CheatSheet = () => {
-  const [open, setOpen] = useState(false);
-  const [, forceRender] = useReducer((count: number) => count + 1, 0);
-  const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = menu.addListener(forceRender);
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  const groups = menu.options.reduce<Record<string, CommandBarOption[]>>(
-    (acc, option) => {
-      if (option.keysList && (showAll || option.isActive())) {
-        const group = acc[option.group] ?? [];
-        group.push(option);
-        acc[option.group] = group;
-      }
-
-      return acc;
-    },
-    {},
-  );
-
-  useKeys(
-    ["?"],
-    (evt) => {
-      // Hack to detect if pressed inside an input or textarea
-      if (!("defaultValue" in (evt.target as any))) {
-        setOpen(true);
-      }
-    },
-    {},
-  );
-
-  return (
-    <Modal open={open} onClose={() => setOpen(false)}>
-      <Box bgcolor="white" margin="40px auto" width={600} px={2} py={1}>
-        <label>
-          <input
-            type="checkbox"
-            checked={showAll}
-            onChange={(evt) => setShowAll(evt.target.checked)}
-          />{" "}
-          Show All
-        </label>
-        <ul>
-          {Object.entries(groups).map(([group, options]) => (
-            <Box component="li" mb={2} key={group}>
-              <Typography variant="mediumCaps">{group}</Typography>
-              <ul>
-                {options.map((option) => (
-                  <Box
-                    component="li"
-                    sx={{ opacity: option.isActive() ? 1 : 0.5 }}
-                    mb={1}
-                    key={option.label}
-                  >
-                    <Command label={option.label} keysList={option.keysList} />
-                  </Box>
-                ))}
-              </ul>
-            </Box>
-          ))}
-        </ul>
-      </Box>
-    </Modal>
-  );
-};
 
 export const CommandBar = () => {
   const popupState = usePopupState({
@@ -642,7 +433,7 @@ export const CommandBar = () => {
               getOptionLabel={(option) => option.label}
               renderOption={(props, option) => (
                 <li {...props}>
-                  <Command keysList={option.keysList} label={option.label} />
+                  <HotKey keysList={option.keysList} label={option.label} />
                 </li>
               )}
               // The popup should always be open when the modal is open
