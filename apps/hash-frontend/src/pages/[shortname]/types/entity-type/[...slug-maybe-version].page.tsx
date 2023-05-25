@@ -350,11 +350,11 @@ const Page: NextPageWithLayout = () => {
                   </Container>
                 </Box>
               </Box>
-              <TypePreviewSlide
+              {/* <TypePreviewSlide
                 type={entityTypeAndPropertyTypes?.entityType}
                 entityTypeOptions={entityTypesContext.entityTypes}
                 propertyTypeOptions={entityTypeAndPropertyTypes?.propertyTypes}
-              />
+              /> */}
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </LatestPropertyTypesContextProvider>

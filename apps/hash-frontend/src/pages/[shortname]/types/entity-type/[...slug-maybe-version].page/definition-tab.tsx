@@ -2,17 +2,20 @@ import { EntityType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
 import {
+  BaseUrl,
   EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isHrefExternal } from "../../../../../shared/is-href-external";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
+import { TypePreviewSlide } from "./type-preview-slide";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 
 const getTypesWithoutMetadata = <
   T extends EntityTypeWithMetadata | PropertyTypeWithMetadata,
@@ -42,6 +45,9 @@ export const DefinitionTab = ({
   readonly,
 }: DefinitionTabProps) => {
   const router = useRouter();
+
+  const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
+    useState<BaseUrl | null>(null);
 
   const entityTypesContext = useEntityTypesContextRequired();
   const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
@@ -95,16 +101,28 @@ export const DefinitionTab = ({
 
   const onTypePreview = (entityType: EntityType) => {
     console.log(entityType);
+    setPreviewEntityTypeUrl(extractBaseUrl(entityType.$id) as BaseUrl);
   };
 
   return (
-    <EntityTypeEditor
-      customization={{ onNavigateToType, onTypePreview }}
-      entityType={entityTypeAndPropertyTypes.entityType}
-      entityTypeOptions={entityTypeOptions}
-      ontologyFunctions={ontologyFunctions}
-      propertyTypeOptions={propertyTypeOptions}
-      readonly={readonly}
-    />
+    <>
+      <EntityTypeEditor
+        customization={{ onNavigateToType, onTypePreview }}
+        entityType={entityTypeAndPropertyTypes.entityType}
+        entityTypeOptions={entityTypeOptions}
+        ontologyFunctions={ontologyFunctions}
+        propertyTypeOptions={propertyTypeOptions}
+        readonly={readonly}
+      />
+      {previewEntityTypeUrl ? (
+        <TypePreviewSlide
+          typeUrl={previewEntityTypeUrl}
+          type={entityTypeAndPropertyTypes.entityType}
+          entityTypeOptions={entityTypeOptions}
+          propertyTypeOptions={propertyTypeOptions}
+          onClose={() => setPreviewEntityTypeUrl(null)}
+        />
+      ) : null}
+    </>
   );
 };
