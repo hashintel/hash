@@ -31,8 +31,8 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.0",
-    "@hashintel/block-design-system": "0.0.0",
-    "@hashintel/design-system": "0.0.6",
+    "@hashintel/block-design-system": "0.0.1",
+    "@hashintel/design-system": "0.0.7",
     "@mui/material": "5.11.9",
     "uuid": "9.0.0"
   },
