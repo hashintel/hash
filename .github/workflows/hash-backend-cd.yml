@@ -5,14 +5,12 @@ on:
     branches:
       - main
     paths:
+      - "apps/hash-graph/**"
       - "apps/hash-api/**"
       - "apps/hash-external-services/kratos/**"
       - "libs/@local/hash-backend-utils-utils/**"
       - "libs/@local/hash-isomorphic-utils/**"
       - "libs/@local/status/**"
-      # TODO: remove/rewrite these as we remove the package directory.
-      - "apps/hash-graph/**"
-      - "apps/hash/**"
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
