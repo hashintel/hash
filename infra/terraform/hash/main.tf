@@ -18,9 +18,32 @@ locals {
   region_az_names = module.variables.region_az_names
 }
 
+provider "vault" {
+  # Uses the VAULT_TOKEN environment variable OR ~/.vault-token file to authenticate.
+  # The using the vault at VAULT_ADDR
+}
+
+data "vault_kv_secret_v2" "secrets" {
+  mount = "automation"
+  # Remove leading and trailing slashes from the path so we ensure it's a path and not a file
+  name = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
+}
+
+# TODO: consider making a module for Vault auth/AWS configuration
+#   This conditional is to allow CI to only issue one set of credentials.
+data "vault_aws_access_credentials" "aws_credentials" {
+  count   = var.in_ci ? 0 : 1
+  backend = "aws"
+  region  = local.region
+  role    = "${local.env}-deploy"
+  type    = "sts"
+}
+
 provider "aws" {
-  profile = "default"
-  region  = var.region
+  region     = local.region
+  access_key = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].access_key
+  secret_key = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].secret_key
+  token      = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].security_token
 
   default_tags {
     tags = {
