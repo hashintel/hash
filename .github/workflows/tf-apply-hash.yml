@@ -98,7 +98,7 @@ jobs:
         id: validate
         run: terraform validate -no-color
 
-      - name: "[${{ matrix.env }}] Terraform Plan"
+      - name: "[${{ matrix.env }}] Terraform Apply"
         id: apply
         env:
           TF_WORKSPACE: ${{ matrix.env }}
@@ -123,7 +123,7 @@ jobs:
                 "Validation Output 🤖 (${{ steps.validate.outcome }})",
                 `<pre><code>${{ steps.validate.outputs.stdout }}</code></pre>`
               )
-              .addDetails("Plan Output 📖 (${{ steps.apply.outcome }})", 
+              .addDetails("Apply Output 📖 (${{ steps.apply.outcome }})", 
                 `<pre><code lang="diff">${apply}</code></pre>`
               )
               .write();
