@@ -29,12 +29,12 @@ const getObjectSchema = (
   const propertyList: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
   const requiredArray: BaseUrl[] = [];
 
-  for (const { id, allowArrays, required } of properties) {
+  for (const { id, array, required } of properties) {
     const baseUrl = extractBaseUrl(id);
 
     const propertyTypeReference = getPrimitiveSchema(id);
 
-    if (allowArrays) {
+    if (array) {
       propertyList[baseUrl] = {
         type: "array",
         items: propertyTypeReference,

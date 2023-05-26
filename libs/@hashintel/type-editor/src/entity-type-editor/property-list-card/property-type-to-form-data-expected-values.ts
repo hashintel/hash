@@ -74,9 +74,9 @@ export const propertyTypeToFormDataExpectedValues = (
                 properties: Object.values(expectedValue.properties).flatMap(
                   (itemProperty) => {
                     let propertyId: VersionedUrl;
-                    let allowArrays = false;
+                    let isArray = false;
                     if ("type" in itemProperty) {
-                      allowArrays = true;
+                      isArray = true;
                       propertyId = itemProperty.items.$ref;
                     } else {
                       propertyId = itemProperty.$ref;
@@ -84,7 +84,10 @@ export const propertyTypeToFormDataExpectedValues = (
 
                     return {
                       id: propertyId,
-                      allowArrays,
+                      array: isArray,
+                      infinity: true,
+                      maxValue: 1,
+                      minValue: 0,
                       required:
                         expectedValue.required?.includes(
                           extractBaseUrl(propertyId),
