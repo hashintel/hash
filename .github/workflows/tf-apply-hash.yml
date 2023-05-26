@@ -60,6 +60,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-terraform@v2
 
+      - name: Prepare SSH key
+        working-directory: ${{ env.working-directory }}
+        run: |
+          echo "${{ secrets.BASTION_SSH_KEY }}" > h-hash-prod-usea1-bastionkey.pem
+
       - name: Authenticate Vault
         id: secrets
         uses: hashicorp/vault-action@v2
