@@ -160,12 +160,6 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     });
   }
 
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(
-      `Could not find entity type with ID "${entityTypeId}"`,
-    );
-  }
-
   return subgraph;
 };
 

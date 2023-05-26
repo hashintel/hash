@@ -158,10 +158,6 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     });
   }
 
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
-  }
-
   return subgraph;
 };
 
