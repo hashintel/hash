@@ -50,16 +50,6 @@ export const useBlockProtocolGetPropertyType = (): {
         },
       });
 
-      const hasNotFoundError = response.error?.message.startsWith(
-        "Could not find property type with ID",
-      );
-
-      if (hasNotFoundError) {
-        return {
-          errors: [{ code: "NOT_FOUND", message: "Property type not found" }],
-        };
-      }
-
       if (!response.data) {
         return {
           errors: [
