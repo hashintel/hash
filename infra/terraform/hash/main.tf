@@ -83,7 +83,7 @@ module "postgres" {
   pg_port               = 5432
   instance_class        = "db.t3.small"
   pg_superuser_username = "superuser"
-  pg_superuser_password = sensitive(var.pg_superuser_password)
+  pg_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
 }
 
 
@@ -103,7 +103,7 @@ provider "postgresql" {
   host      = module.tunnel.host
   username  = "superuser"
   port      = module.tunnel.port
-  password  = sensitive(var.pg_superuser_password)
+  password  = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
   superuser = false
 }
 
@@ -113,10 +113,10 @@ module "postgres_roles" {
   source                = "../modules/postgres_roles"
   pg_db_name            = module.postgres.pg_db_name
   pg_superuser_username = "superuser"
-  pg_superuser_password = var.pg_superuser_password
+  pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
 
-  pg_kratos_user_password_hash = var.pg_kratos_user_password.hash
-  pg_graph_user_password_hash  = var.pg_graph_user_password.hash
+  pg_kratos_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
+  pg_graph_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
 }
 
 module "redis" {
@@ -172,7 +172,7 @@ module "application" {
     { name = "HASH_GRAPH_TYPE_FETCHER_HOST", secret = false, value = "127.0.0.1" },
     { name = "HASH_GRAPH_TYPE_FETCHER_PORT", secret = false, value = "4444" },
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
-    { name = "HASH_GRAPH_PG_PASSWORD", secret = true, value = sensitive(var.pg_graph_user_password.raw) },
+    { name = "HASH_GRAPH_PG_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_raw"]) },
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
@@ -186,17 +186,17 @@ module "application" {
   ])
   kratos_image = module.kratos_ecr
   kratos_env_vars = concat(var.kratos_env_vars, [
-    { name = "SECRETS_COOKIE", secret = true, value = sensitive(var.kratos_secrets_cookie) },
-    { name = "SECRETS_CIPHER", secret = true, value = sensitive(var.kratos_secrets_cipher) },
-    { name = "DSN", secret = true, value = "postgres://kratos:${sensitive(var.pg_kratos_user_password.raw)}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos" },
+    { name = "SECRETS_COOKIE", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cookie"]) },
+    { name = "SECRETS_CIPHER", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cipher"]) },
+    { name = "DSN", secret = true, value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos" },
   ])
   api_image = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
     { name = "AWS_REGION", secret = false, value = local.region },
-    { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(var.hash_system_user_password) },
-    { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(var.hash_block_protocol_api_key) },
-    { name = "KRATOS_API_KEY", secret = true, value = sensitive(var.kratos_api_key) },
-    { name = "HASH_SEED_USERS", secret = true, value = sensitive(jsonencode(var.hash_seed_users)) },
+    { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_system_user_password"]) },
+    { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_block_protocol_api_key"]) },
+    { name = "KRATOS_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_api_key"]) },
+    { name = "HASH_SEED_USERS", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_seed_users"]) },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
   ])
