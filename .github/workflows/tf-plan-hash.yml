@@ -104,7 +104,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ matrix.env }}
         working-directory: ${{ env.working-directory }}
-        run: terraform plan -no-color -var-file=${{ matrix.env }}-usea1.tfvars
+        run: terraform plan -no-color -var-file=${{ matrix.env }}-usea1.tfvars -refresh=false
 
       - uses: actions/github-script@v6
         id: set-result
@@ -112,7 +112,7 @@ jobs:
           script: |
             const plan = `${{ steps.plan.outputs.stdout }}`.replaceAll(/^~/g, "!");
 
-            const heading = `Terraform [${{matrix.env}}] **plan** results 🧪`
+            const heading = `Terraform [${{matrix.env}}] plan results 🧪`
 
             await core.summary
               .addHeading(heading)
