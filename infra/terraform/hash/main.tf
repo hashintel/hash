@@ -89,7 +89,7 @@ module "postgres" {
 
 
 module "tunnel" {
-  source             = "../modules/tunnel"
+  source             = "git@github.com:hashintel/infra-modules.git//terraform/tunnel?ref=v0.0.1"
   ssh_host           = module.bastion.ssh_info.host
   ssh_port           = 22
   ssh_user           = module.bastion.ssh_info.user
