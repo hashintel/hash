@@ -93,18 +93,18 @@ jobs:
         env:
           TF_WORKSPACE: ${{ matrix.env }}
         working-directory: ${{ env.working-directory }}
-        run: terraform init -no-color
+        run: terraform init -no-color 2>&1
 
       - name: Terraform Validate
         id: validate
-        run: terraform validate -no-color
+        run: terraform validate -no-color 2>&1
 
       - name: "[${{ matrix.env }}] Terraform Plan"
         id: plan
         env:
           TF_WORKSPACE: ${{ matrix.env }}
         working-directory: ${{ env.working-directory }}
-        run: terraform plan -no-color -var-file=${{ matrix.env }}-usea1.tfvars -refresh=false
+        run: terraform plan -no-color -var-file=${{ matrix.env }}-usea1.tfvars -refresh=false 2>&1
 
       - uses: actions/github-script@v6
         id: set-result
