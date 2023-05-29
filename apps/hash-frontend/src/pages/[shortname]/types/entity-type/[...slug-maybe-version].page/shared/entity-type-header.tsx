@@ -22,7 +22,7 @@ export const EntityTypeHeader = ({
   const entityTypeIsLink = isLinkEntityType(entityType);
 
   return (
-    <>
+    <Box>
       {ontologyChip}
       <Typography variant="h1" fontWeight="bold" my={3}>
         {entityTypeIsLink ? (
@@ -59,6 +59,6 @@ export const EntityTypeHeader = ({
       <Box sx={{ mb: 5.25 }}>
         <EntityTypeDescription readonly={isReadonly} />
       </Box>
-    </>
+    </Box>
   );
 };

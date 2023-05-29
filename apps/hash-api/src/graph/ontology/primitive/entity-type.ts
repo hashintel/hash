@@ -7,6 +7,7 @@ import {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -29,8 +30,6 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-
-const { FRONTEND_URL } = require("../../../lib/config");
 
 /**
  * Create an entity type.
@@ -150,7 +149,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(FRONTEND_URL)) {
+  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
     await context.graphApi.createEntityType({
       actorId,
       entityTypeId,
@@ -159,12 +158,6 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     subgraph = await getEntityTypes(context, {
       query,
     });
-  }
-
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(
-      `Could not find entity type with ID "${entityTypeId}"`,
-    );
   }
 
   return subgraph;
