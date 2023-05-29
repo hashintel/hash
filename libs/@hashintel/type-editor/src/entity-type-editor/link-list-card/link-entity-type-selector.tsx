@@ -17,13 +17,13 @@ import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
+import { useCustomizationSettings } from "../../shared/customization-context";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 import { useTypeVersions } from "../shared/use-type-versions";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
-import { useCustomizationSettings } from "../../shared/customization-context";
 
 const TypeChipLabel = ({
   children,
@@ -61,6 +61,11 @@ const TypeChipLabel = ({
         onClick={(event) => {
           event.stopPropagation();
           onOpen();
+        }}
+        sx={{
+          padding: 0,
+          background: "transparent !important",
+          color: "inherit",
         }}
       >
         <FontAwesomeIcon icon={faExpand} sx={{ fontSize: "inherit" }} />
@@ -267,7 +272,9 @@ export const LinkEntityTypeSelector = ({
                       },
                     }
                   : {})}
-                onOpen={() => onTypePreview?.(entityType)}
+                onOpen={
+                  onTypePreview ? () => onTypePreview(entityType) : undefined
+                }
               />
             );
           })
