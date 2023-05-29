@@ -30,12 +30,9 @@ jobs:
         env:
           ENV: ${{ github.event.inputs.env }}
         run: |
-          # If no env is specified, run both dev and prod
-          if [ "$ENV" == "prod" ]; then
-            echo "matrix=[\"$ENV\"]" >> $GITHUB_OUTPUT
-          else
-            echo "matrix=[\"prod\"]" >> $GITHUB_OUTPUT
-          fi
+          # We only have a single environment, so that's all we need to plan
+          # TODO: use the `env` input to determine which environments to plan
+          echo "matrix=[\"prod\"]" >> $GITHUB_OUTPUT
 
   terraform:
     runs-on: ubuntu-latest
