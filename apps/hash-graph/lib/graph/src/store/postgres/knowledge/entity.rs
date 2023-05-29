@@ -89,7 +89,7 @@ impl<C: AsClient> PostgresStore<C> {
                 );
 
                 let edge_entity_vertex_id = edge_entity.vertex_id(time_axis);
-                subgraph.insert_vertex(&edge_entity_vertex_id, edge_entity);
+                subgraph.insert_vertex(edge_entity_vertex_id, edge_entity);
 
                 items.push((
                     edge_entity_vertex_id,
