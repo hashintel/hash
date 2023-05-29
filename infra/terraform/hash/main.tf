@@ -30,21 +30,17 @@ data "vault_kv_secret_v2" "secrets" {
   name = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
 }
 
-# TODO: consider making a module for Vault auth/AWS configuration
-#   This conditional is to allow CI to only issue one set of credentials.
-data "vault_aws_access_credentials" "aws_credentials" {
-  count   = var.in_ci ? 0 : 1
-  backend = "aws"
-  region  = local.region
-  role    = "${local.env}-deploy"
-  type    = "sts"
+module "vault_aws_auth" {
+  source = "git@github.com:hashintel/infra-modules.git//terraform/vault_aws_auth?ref=v0.0.1"
+  region = local.region
+  env    = local.env
 }
 
 provider "aws" {
   region     = local.region
-  access_key = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].access_key
-  secret_key = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].secret_key
-  token      = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].security_token
+  access_key = module.vault_aws_auth.access_key
+  secret_key = module.vault_aws_auth.secret_key
+  token      = module.vault_aws_auth.token
 
   default_tags {
     tags = {
