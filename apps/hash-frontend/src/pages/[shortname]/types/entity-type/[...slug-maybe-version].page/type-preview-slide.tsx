@@ -1,4 +1,9 @@
-import { LoadingSpinner } from "@hashintel/design-system";
+import {
+  LoadingSpinner,
+  OntologyChip,
+  OntologyIcon,
+  parseUrlForOntologyChip,
+} from "@hashintel/design-system";
 import {
   EntityTypeEditor,
   EntityTypeEditorFormData,
@@ -7,16 +12,18 @@ import {
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { BaseUrl } from "@local/hash-subgraph";
-import { Backdrop, Box, Slide } from "@mui/material";
+import { Backdrop, Box, Slide, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { Link } from "../../../../../shared/ui";
 import { useRouteNamespace } from "../../../shared/use-route-namespace";
 import { getTypesWithoutMetadata } from "./definition-tab";
 import { EntityTypeContext } from "./shared/entity-type-context";
+import { EntityTypeHeader } from "./shared/entity-type-header";
 import { useEntityTypeValue } from "./use-entity-type-value";
 
-const SLIDE_WIDTH = 800;
+const SLIDE_WIDTH = 1000;
 
 interface TypePreviewSlideProps {
   typeUrl: BaseUrl;
@@ -53,6 +60,8 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
   const [animateOut, setAnimateOut] = useState(false);
 
   const entityTypesContext = useEntityTypesContextRequired();
+
+  const ontology = parseUrlForOntologyChip(remoteEntityType?.$id ?? "");
 
   const entityTypeOptions = useMemo(
     () =>
@@ -113,16 +122,43 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
               <LoadingSpinner size={24} />
             </Box>
           ) : (
-            <EntityTypeFormProvider {...formMethods}>
-              <EntityTypeContext.Provider value={remoteEntityType}>
-                <EntityTypeEditor
-                  entityType={remoteEntityType}
-                  entityTypeOptions={entityTypeOptions}
-                  propertyTypeOptions={propertyTypeOptions}
-                  readonly
-                />
-              </EntityTypeContext.Provider>
-            </EntityTypeFormProvider>
+            <Box padding={8}>
+              <EntityTypeFormProvider {...formMethods}>
+                <EntityTypeContext.Provider value={remoteEntityType}>
+                  <EntityTypeHeader
+                    ontologyChip={
+                      <Link
+                        href={remoteEntityType.$id}
+                        target="_blank"
+                        style={{ textDecoration: "none" }}
+                      >
+                        <OntologyChip
+                          icon={<OntologyIcon />}
+                          domain={ontology.domain}
+                          path={
+                            <Typography
+                              component="span"
+                              fontWeight="bold"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              {ontology.path}
+                            </Typography>
+                          }
+                        />
+                      </Link>
+                    }
+                    entityType={remoteEntityType}
+                    isReadonly
+                  />
+                  <EntityTypeEditor
+                    entityType={remoteEntityType}
+                    entityTypeOptions={entityTypeOptions}
+                    propertyTypeOptions={propertyTypeOptions}
+                    readonly
+                  />
+                </EntityTypeContext.Provider>
+              </EntityTypeFormProvider>
+            </Box>
           )}
         </Box>
       </Slide>
