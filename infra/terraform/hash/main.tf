@@ -4,7 +4,7 @@
 */
 
 module "variables" {
-  source          = "git@github.com:hashintel/infra-modules.git//terraform/variables?ref=v0.0.1"
+  source          = "git@github.com:hashintel/infra-modules.git//terraform/variables?ref=v0.0.2"
   env             = terraform.workspace
   region          = var.region
   region_az_count = var.region_az_count
@@ -31,7 +31,7 @@ data "vault_kv_secret_v2" "secrets" {
 }
 
 module "vault_aws_auth" {
-  source = "git@github.com:hashintel/infra-modules.git//terraform/vault_aws_auth?ref=v0.0.1"
+  source = "git@github.com:hashintel/infra-modules.git//terraform/vault_aws_auth?ref=v0.0.2"
   region = local.region
   env    = local.env
 }
@@ -60,7 +60,7 @@ module "networking" {
 }
 
 module "bastion" {
-  source     = "git@github.com:hashintel/infra-modules.git//terraform/bastion?ref=v0.0.1"
+  source     = "git@github.com:hashintel/infra-modules.git//terraform/bastion?ref=v0.0.2"
   region     = var.region
   env        = local.env
   prefix     = local.prefix
@@ -85,7 +85,7 @@ module "postgres" {
 
 
 module "tunnel" {
-  source             = "git@github.com:hashintel/infra-modules.git//terraform/tunnel?ref=v0.0.1"
+  source             = "git@github.com:hashintel/infra-modules.git//terraform/tunnel?ref=v0.0.2"
   ssh_host           = module.bastion.ssh_info.host
   ssh_port           = 22
   ssh_user           = module.bastion.ssh_info.user
@@ -135,19 +135,19 @@ module "application_ecs" {
 }
 
 module "graph_ecr" {
-  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.1"
+  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.2"
   prefix   = local.prefix
   ecr_name = "graphecr"
 }
 
 module "kratos_ecr" {
-  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.1"
+  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.2"
   prefix   = local.prefix
   ecr_name = "kratosecr"
 }
 
 module "api_ecr" {
-  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.1"
+  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.2"
   prefix   = local.prefix
   ecr_name = "apiecr"
 }
