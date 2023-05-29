@@ -17,7 +17,8 @@ on:
     branches:
       - main
     paths:
-      - "infra/internal-api/**"
+      - "infra/terraform/hash/**"
+      - "infra/terraform/modules/**"
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
