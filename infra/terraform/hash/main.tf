@@ -4,10 +4,11 @@
 */
 
 module "variables" {
-  source          = "../modules/variables"
+  source          = "git@github.com:hashintel/infra-modules.git//terraform/variables?ref=c27f0ca"
   env             = terraform.workspace
   region          = var.region
   region_az_count = var.region_az_count
+  project         = "hash"
 }
 
 locals {
@@ -138,19 +139,19 @@ module "application_ecs" {
 }
 
 module "graph_ecr" {
-  source   = "../modules/container_registry"
+  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=c27f0ca"
   prefix   = local.prefix
   ecr_name = "graphecr"
 }
 
 module "kratos_ecr" {
-  source   = "../modules/container_registry"
+  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=c27f0ca"
   prefix   = local.prefix
   ecr_name = "kratosecr"
 }
 
 module "api_ecr" {
-  source   = "../modules/container_registry"
+  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=c27f0ca"
   prefix   = local.prefix
   ecr_name = "apiecr"
 }
