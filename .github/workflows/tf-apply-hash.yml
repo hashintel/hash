@@ -16,9 +16,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "infra/terraform/hash/**"
-      - "infra/terraform/modules/**"
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}

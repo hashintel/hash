@@ -14,9 +14,6 @@ on:
         default: "prod"
 
   pull_request:
-    paths:
-      - "infra/terraform/hash/**"
-      - "infra/terraform/modules/**"
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
