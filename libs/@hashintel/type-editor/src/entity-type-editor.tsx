@@ -45,7 +45,7 @@ export type EntityTypeEditorProps = {
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
   propertyTypeOptions: Record<VersionedUrl, PropertyType>;
   // functions for creating and updating entity and property types that the editor will call
-  ontologyFunctions: EditorOntologyFunctions;
+  ontologyFunctions?: EditorOntologyFunctions | null;
   // whether or not the type editor should be in readonly mode
   readonly: boolean;
 };
@@ -55,7 +55,7 @@ export const EntityTypeEditor = ({
   entityType,
   entityTypeOptions,
   propertyTypeOptions,
-  ontologyFunctions,
+  ontologyFunctions = null,
   readonly,
 }: EntityTypeEditorProps) => {
   return (

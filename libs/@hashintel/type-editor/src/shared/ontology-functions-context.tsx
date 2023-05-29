@@ -38,9 +38,5 @@ export const OntologyFunctionsContext =
 export const useOntologyFunctions = () => {
   const ontologyFunctions = useContext(OntologyFunctionsContext);
 
-  if (!ontologyFunctions) {
-    throw new Error("no OntologyFunctionsContext value has been provided");
-  }
-
   return ontologyFunctions;
 };

@@ -11,10 +11,14 @@ export const PropertyTypeForm = ({
 }: TypeFormProps<PropertyTypeFormValues> & {
   baseUrl?: BaseUrl;
 }) => {
-  const { validateTitle: remoteValidation } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
+
+  if (!ontologyFunctions) {
+    return null;
+  }
 
   const validateTitle = async (title: string) =>
-    remoteValidation({
+    ontologyFunctions.validateTitle({
       kind: "property-type",
       title,
     });

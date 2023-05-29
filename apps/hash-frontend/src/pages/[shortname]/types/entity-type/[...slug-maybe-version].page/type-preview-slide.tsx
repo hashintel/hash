@@ -1,92 +1,131 @@
+import { LoadingSpinner } from "@hashintel/design-system";
 import {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { EntityTypeEditor } from "@hashintel/type-editor";
-import { Box, Button, Slide } from "@mui/material";
+  EntityTypeEditor,
+  EntityTypeEditorFormData,
+  EntityTypeFormProvider,
+  getFormDataFromSchema,
+  useEntityTypeForm,
+} from "@hashintel/type-editor";
+import { BaseUrl } from "@local/hash-subgraph";
+import { Backdrop, Box, Slide } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
-import { useEntityTypeValue } from "./use-entity-type-value";
+
+import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useRouteNamespace } from "../../../shared/use-route-namespace";
+import { getTypesWithoutMetadata } from "./definition-tab";
+import { EntityTypeContext } from "./shared/entity-type-context";
+import { useEntityTypeValue } from "./use-entity-type-value";
+
+const SLIDE_WIDTH = 800;
 
 interface TypePreviewSlideProps {
-  typeUrl: VersionedUrl;
-  type: EntityType;
-  entityTypeOptions: Record<VersionedUrl, EntityType>;
-  propertyTypeOptions: Record<VersionedUrl, PropertyType>;
+  typeUrl: BaseUrl;
+  onClose: () => void;
 }
 
 export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
   typeUrl,
-  type,
-  entityTypeOptions,
-  propertyTypeOptions,
+  onClose,
 }) => {
-  console.log(typeUrl);
-
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
+
+  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
+    defaultValues: { properties: [], links: [] },
+  });
+  const { reset } = formMethods;
 
   const [
     remoteEntityType,
     remotePropertyTypes,
+    _updateEntityType,
+    _publishDraft,
     { loading: loadingRemoteEntityType },
-  ] = useEntityTypeValue(typeUrl, routeNamespace?.accountId ?? null);
+  ] = useEntityTypeValue(
+    typeUrl,
+    routeNamespace?.accountId ?? null,
+    (fetchedEntityType) => {
+      reset(getFormDataFromSchema(fetchedEntityType));
+    },
+  );
 
-  console.log(remoteEntityType);
-  console.log(remotePropertyTypes);
+  const open = !!typeUrl;
 
-  // const propertyTypeOptions2 = useMemo(() => {
-  //   return Object.fromEntries(
-  //     propertyTypeOptions.map((propertyType) => [
-  //       propertyType.schema.$id,
-  //       propertyType.schema,
-  //     ]),
-  //   );
-  // }, [propertyTypeOptions]);
+  const [animateOut, setAnimateOut] = useState(false);
 
-  // const propertyTypeOptions2 = useMemo(() => {
-  //   return Object.fromEntries(
-  //     Object.entries(propertyTypeOptions).map(([$id, propertyType]) => [
-  //       $id,
-  //       propertyType.schema,
-  //     ]),
-  //   );
-  // }, [propertyTypeOptions]);
+  const entityTypesContext = useEntityTypesContextRequired();
 
-  // const entityTypeOptions2 = useMemo(() => {
-  //   return Object.fromEntries(
-  //     entityTypeOptions.map((entityType) => [
-  //       entityType.schema.$id,
-  //       entityType.schema,
-  //     ]),
-  //   );
-  // }, [entityTypeOptions]);
+  const entityTypeOptions = useMemo(
+    () =>
+      Object.fromEntries(
+        (entityTypesContext.entityTypes ?? []).map((entityType) => [
+          entityType.schema.$id,
+          entityType.schema,
+        ]),
+      ),
+    [entityTypesContext.entityTypes],
+  );
 
-  const [open, setOpen] = useState(false);
+  if (!remotePropertyTypes) {
+    return null;
+  }
+
+  const propertyTypeOptions = getTypesWithoutMetadata(remotePropertyTypes);
+
   return (
-    <>
-      <Button onClick={() => setOpen(!open)}>open</Button>
-      <Slide in={open} direction="left">
+    <Backdrop
+      open={open}
+      onClick={() => {
+        setAnimateOut(true);
+
+        setTimeout(() => {
+          onClose();
+          setAnimateOut(false);
+        }, 300);
+      }}
+      sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
+    >
+      <Slide
+        in={open && !animateOut}
+        direction="left"
+        onClick={(event) => event.stopPropagation()}
+      >
         <Box
           sx={{
             height: 1,
-            width: 800,
+            width: SLIDE_WIDTH,
             background: "white",
             position: "absolute",
             top: 0,
             right: 0,
-            zIndex: 9999,
           }}
         >
-          <EntityTypeEditor
-            entityType={remoteEntityType}
-            entityTypeOptions={entityTypeOptions}
-            propertyTypeOptions={propertyTypeOptions}
-            ontologyFunctions={{ canEditResource: () => ({ allowed: false }) }}
-            readonly
-          />
+          {loadingNamespace || loadingRemoteEntityType || !remoteEntityType ? (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 1,
+                height: 1,
+                color: ({ palette }) => palette.primary.main,
+              }}
+            >
+              <LoadingSpinner size={24} />
+            </Box>
+          ) : (
+            <EntityTypeFormProvider {...formMethods}>
+              <EntityTypeContext.Provider value={remoteEntityType}>
+                <EntityTypeEditor
+                  entityType={remoteEntityType}
+                  entityTypeOptions={entityTypeOptions}
+                  propertyTypeOptions={propertyTypeOptions}
+                  readonly
+                />
+              </EntityTypeContext.Provider>
+            </EntityTypeFormProvider>
+          )}
         </Box>
       </Slide>
-    </>
+    </Backdrop>
   );
 };

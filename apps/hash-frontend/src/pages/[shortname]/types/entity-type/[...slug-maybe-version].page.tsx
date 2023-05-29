@@ -1,4 +1,8 @@
-import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractVersion,
+  validateEntityType,
+} from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -13,17 +17,16 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { BaseUrl, linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Tooltip, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
-import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { LinkedIcon } from "../../../../shared/icons/linked-icon";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -62,8 +65,6 @@ const Page: NextPageWithLayout = () => {
     "v" | undefined,
     `${number}` | undefined,
   ]; // @todo validate that the URL is formatted as expected;
-
-  const entityTypesContext = useEntityTypesContextRequired();
 
   const baseEntityTypeUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
@@ -175,6 +176,13 @@ const Page: NextPageWithLayout = () => {
   });
 
   const currentTab = useCurrentTab();
+
+  const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
+    useState<BaseUrl | null>(null);
+
+  const onTypePreview = (targetEntityType: EntityType) => {
+    setPreviewEntityTypeUrl(extractBaseUrl(targetEntityType.$id) as BaseUrl);
+  };
 
   if (!entityType) {
     if (loadingRemoteEntityType) {
@@ -341,6 +349,7 @@ const Page: NextPageWithLayout = () => {
                           }
                           ownedById={routeNamespace.accountId as OwnedById}
                           readonly={isReadonly}
+                          onTypePreview={onTypePreview}
                         />
                       ) : (
                         "Loading..."
@@ -350,15 +359,18 @@ const Page: NextPageWithLayout = () => {
                   </Container>
                 </Box>
               </Box>
-              {/* <TypePreviewSlide
-                type={entityTypeAndPropertyTypes?.entityType}
-                entityTypeOptions={entityTypesContext.entityTypes}
-                propertyTypeOptions={entityTypeAndPropertyTypes?.propertyTypes}
-              /> */}
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </LatestPropertyTypesContextProvider>
       </EntityTypeFormProvider>
+
+      {previewEntityTypeUrl ? (
+        <TypePreviewSlide
+          typeUrl={previewEntityTypeUrl}
+          onClose={() => setPreviewEntityTypeUrl(null)}
+        />
+      ) : null}
+
       <GlobalStyles<Theme>
         styles={(theme) => ({
           body: {

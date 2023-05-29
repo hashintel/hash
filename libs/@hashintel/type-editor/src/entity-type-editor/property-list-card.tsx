@@ -356,7 +356,8 @@ export const PropertyTypeRow = ({
   const propertyTypesOptions = usePropertyTypesOptions();
   const property = propertyTypesOptions[propertyId];
 
-  const { updatePropertyType, canEditResource } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
+  const isReadonly = useIsReadonly();
 
   const [currentVersion, latestVersion] = useTypeVersions(
     propertyId,
@@ -380,17 +381,17 @@ export const PropertyTypeRow = ({
   }, [property]);
 
   const editDisabledReason = useMemo(() => {
-    const canEdit = canEditResource({
+    const canEdit = ontologyFunctions?.canEditResource({
       kind: "property-type",
       resource: property,
     });
 
-    return !canEdit.allowed
-      ? canEdit.message
+    return !canEdit?.allowed
+      ? canEdit?.message
       : currentVersion !== latestVersion
       ? "Update the property type to the latest version to edit"
       : undefined;
-  }, [canEditResource, property, currentVersion, latestVersion]);
+  }, [ontologyFunctions, property, currentVersion, latestVersion]);
 
   return (
     <>
@@ -425,31 +426,33 @@ export const PropertyTypeRow = ({
         flash={flash}
       />
 
-      <TypeFormModal
-        as={PropertyTypeForm}
-        baseUrl={extractBaseUrl(propertyId)}
-        popupState={editModalPopupState}
-        modalTitle={<>Edit Property Type</>}
-        onSubmit={async (data: PropertyTypeFormValues) => {
-          const res = await updatePropertyType({
-            data: {
-              propertyTypeId: propertyId,
-              propertyType: getPropertyTypeSchema(data),
-            },
-          });
+      {!isReadonly && ontologyFunctions ? (
+        <TypeFormModal
+          as={PropertyTypeForm}
+          baseUrl={extractBaseUrl(propertyId)}
+          popupState={editModalPopupState}
+          modalTitle={<>Edit Property Type</>}
+          onSubmit={async (data: PropertyTypeFormValues) => {
+            const res = await ontologyFunctions.updatePropertyType({
+              data: {
+                propertyTypeId: propertyId,
+                propertyType: getPropertyTypeSchema(data),
+              },
+            });
 
-          if (!res.data) {
-            throw new Error("Failed to update property type");
-          }
+            if (!res.data) {
+              throw new Error("Failed to update property type");
+            }
 
-          onUpdateVersionRef.current(res.data.schema.$id);
+            onUpdateVersionRef.current(res.data.schema.$id);
 
-          editModalPopupState.close();
-        }}
-        submitButtonProps={{ children: <>Edit property type</> }}
-        disabledFields={["name"]}
-        getDefaultValues={getDefaultValues}
-      />
+            editModalPopupState.close();
+          }}
+          submitButtonProps={{ children: <>Edit property type</> }}
+          disabledFields={["name"]}
+          getDefaultValues={getDefaultValues}
+        />
+      ) : null}
     </>
   );
 };
@@ -495,9 +498,10 @@ export const PropertyListCard = () => {
     control,
     name: "properties",
   });
+
   const propertyTypeOptions = usePropertyTypesOptions();
 
-  const { createPropertyType } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
 
   const isReadonly = useIsReadonly();
 
@@ -544,11 +548,11 @@ export const PropertyListCard = () => {
   };
 
   const handleSubmit = async (data: PropertyTypeFormValues) => {
-    if (isReadonly) {
+    if (isReadonly || !ontologyFunctions) {
       return;
     }
 
-    const res = await createPropertyType({
+    const res = await ontologyFunctions.createPropertyType({
       data: {
         propertyType: getPropertyTypeSchema(data),
       },
