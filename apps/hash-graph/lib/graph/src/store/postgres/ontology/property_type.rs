@@ -97,7 +97,7 @@ impl<C: AsClient> PostgresStore<C> {
                 property_type_queue.extend(
                     self.read_ontology_edges::<PropertyTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
-                        ReferenceTable::PropertyTypeConstrainsValuesOn,
+                        ReferenceTable::PropertyTypeConstrainsPropertiesOn,
                     )
                     .await?
                     .map(|edge| {
