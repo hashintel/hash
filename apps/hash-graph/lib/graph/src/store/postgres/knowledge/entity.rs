@@ -14,12 +14,11 @@ use crate::{
         time::{DecisionTime, LeftClosedTemporalInterval, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    ontology::EntityTypeWithMetadata,
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
-        postgres::TraversalContext,
+        postgres::{knowledge::entity::read::EntityEdgeTraversalData, TraversalContext},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -116,6 +115,8 @@ impl<C: AsClient> PostgresStore<C> {
         let mut entity_type_queue = Vec::new();
 
         while !entity_queue.is_empty() {
+            let mut shared_edges_to_traverse = Option::<EntityEdgeTraversalData>::None;
+
             // TODO: We could re-use the memory here but we expect to batch the processing of this
             //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
             for (entity_vertex_id, graph_resolve_depths, temporal_axes) in
@@ -152,33 +153,18 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
-                    for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
-                        self,
-                        &Filter::for_shared_edge_by_entity_id(
-                            entity_vertex_id.base_id,
-                            SharedEdgeKind::IsOfType,
-                        ),
-                        Some(&temporal_axes),
-                    )
-                    .await?
-                    {
-                        let entity_type_vertex_id = entity_type.vertex_id(time_axis);
-
-                        subgraph.insert_edge(
-                            &entity_vertex_id,
-                            SharedEdgeKind::IsOfType,
-                            EdgeDirection::Outgoing,
-                            entity_type_vertex_id.clone(),
-                        );
-
-                        traversal_context.add_entity_type_id(entity_type_vertex_id.clone());
-
-                        entity_type_queue.push((
-                            entity_type_vertex_id,
+                    shared_edges_to_traverse
+                        .get_or_insert_with(|| {
+                            EntityEdgeTraversalData::new(
+                                subgraph.temporal_axes.resolved.pinned_timestamp(),
+                                time_axis,
+                            )
+                        })
+                        .push(
+                            entity_vertex_id,
+                            temporal_axes.variable_interval(),
                             new_graph_resolve_depths,
-                            temporal_axes.clone(),
-                        ));
-                    }
+                        );
                 }
 
                 for (edge_kind, edge_direction) in &[
@@ -213,6 +199,23 @@ impl<C: AsClient> PostgresStore<C> {
                         .await?,
                     );
                 }
+            }
+
+            if let Some(traversal_data) = shared_edges_to_traverse.take() {
+                entity_type_queue.extend(self.read_shared_edges(&traversal_data).await?.map(
+                    |edge| {
+                        subgraph.insert_edge(
+                            &edge.left_endpoint,
+                            SharedEdgeKind::IsOfType,
+                            EdgeDirection::Outgoing,
+                            edge.right_endpoint.clone(),
+                        );
+
+                        traversal_context.add_entity_type_id(edge.right_endpoint.clone());
+
+                        (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
+                    },
+                ));
             }
         }
 

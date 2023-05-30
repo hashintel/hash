@@ -301,6 +301,36 @@ pub enum QueryTemporalAxes {
 
 impl QueryTemporalAxes {
     #[must_use]
+    pub fn from_variable_time_axis(
+        time_axis: TimeAxis,
+        pinned: Timestamp<PinnedAxis>,
+        variable: RightBoundedTemporalInterval<VariableAxis>,
+    ) -> Self {
+        match time_axis {
+            TimeAxis::DecisionTime => Self::DecisionTime {
+                pinned: PinnedTemporalAxis {
+                    axis: TransactionTime::TransactionTime,
+                    timestamp: pinned.cast(),
+                },
+                variable: VariableTemporalAxis {
+                    axis: DecisionTime::DecisionTime,
+                    interval: variable.cast(),
+                },
+            },
+            TimeAxis::TransactionTime => Self::TransactionTime {
+                pinned: PinnedTemporalAxis {
+                    axis: DecisionTime::DecisionTime,
+                    timestamp: pinned.cast(),
+                },
+                variable: VariableTemporalAxis {
+                    axis: TransactionTime::TransactionTime,
+                    interval: variable.cast(),
+                },
+            },
+        }
+    }
+
+    #[must_use]
     pub const fn pinned_time_axis(&self) -> TimeAxis {
         match self {
             Self::DecisionTime { .. } => TimeAxis::TransactionTime,

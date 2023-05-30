@@ -247,7 +247,7 @@ impl OntologyTypeTraversalData {
     }
 }
 
-pub struct OntologyEdgeRecordIds<L, R> {
+pub struct OntologyEdgeTraversal<L, R> {
     pub left_endpoint: L,
     pub right_endpoint: R,
     pub resolve_depths: GraphResolveDepths,
@@ -259,7 +259,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         record_ids: &'r OntologyTypeTraversalData,
         reference_table: ReferenceTable,
-    ) -> Result<impl Iterator<Item = OntologyEdgeRecordIds<L, R>> + 'r, QueryError>
+    ) -> Result<impl Iterator<Item = OntologyEdgeTraversal<L, R>> + 'r, QueryError>
     where
         L: From<VersionedUrl>,
         R: From<VersionedUrl>,
@@ -316,7 +316,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // `record_ids` vectors that was just passed in.
                     unreachable!("invalid index: {error}")
                 });
-                OntologyEdgeRecordIds {
+                OntologyEdgeTraversal {
                     left_endpoint: L::from(VersionedUrl {
                         base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
                             // The `BaseUrl` was just inserted as a parameter to the query
