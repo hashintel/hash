@@ -70,7 +70,7 @@ impl<C: AsClient> PostgresStore<C> {
                             property_type_vertex_id.clone(),
                         );
 
-                        subgraph.insert_vertex(&property_type_vertex_id, property_type);
+                        traversal_context.add_property_type_id(property_type_vertex_id.clone());
 
                         property_type_queue.push((
                             property_type_vertex_id,
@@ -106,7 +106,7 @@ impl<C: AsClient> PostgresStore<C> {
                             referenced_entity_type_vertex_id.clone(),
                         );
 
-                        subgraph.insert_vertex(&referenced_entity_type_vertex_id, referenced_entity_type);
+                        traversal_context.add_entity_type_id(referenced_entity_type_vertex_id.clone());
 
                         entity_type_queue.push((
                             referenced_entity_type_vertex_id,
@@ -142,7 +142,7 @@ impl<C: AsClient> PostgresStore<C> {
                             referenced_entity_type_vertex_id.clone(),
                         );
 
-                        subgraph.insert_vertex(&referenced_entity_type_vertex_id, referenced_entity_type);
+                        traversal_context.add_entity_type_id(referenced_entity_type_vertex_id.clone());
 
                         entity_type_queue.push((
                             referenced_entity_type_vertex_id,
@@ -178,7 +178,7 @@ impl<C: AsClient> PostgresStore<C> {
                             referenced_entity_type_vertex_id.clone(),
                         );
 
-                        subgraph.insert_vertex(&referenced_entity_type_vertex_id, referenced_entity_type);
+                        traversal_context.add_entity_type_id(referenced_entity_type_vertex_id.clone());
 
                         entity_type_queue.push((
                             referenced_entity_type_vertex_id,
@@ -317,6 +317,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             subgraph.roots.insert(vertex_id.clone().into());
         }
 
+        let mut traversal_context = TraversalContext::default();
+
         // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
         //       vertices and have to `.collect()` the keys.
         self.traverse_entity_types(
@@ -332,10 +334,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     )
                 })
                 .collect(),
-            &mut TraversalContext,
+            &mut traversal_context,
             &mut subgraph,
         )
         .await?;
+
+        traversal_context
+            .read_traversed_vertices(self, &mut subgraph)
+            .await?;
 
         Ok(subgraph)
     }
