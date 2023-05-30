@@ -1,5 +1,5 @@
 module "base_network" {
-  source          = "git@github.com:hashintel/infra-modules.git//terraform/base_network?ref=v0.0.2"
+  source          = "../../modules/base_network"
   region          = var.region
   prefix          = var.prefix
   region_az_names = var.region_az_names
