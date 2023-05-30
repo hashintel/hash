@@ -51,7 +51,7 @@ tokio-serde = { version = "0.8", features = ["json"], optional = true }
 [dev-dependencies]
 tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
-criterion = "0.4.0"
+criterion = "0.5.1"
 
 [features]
 test-server = []
