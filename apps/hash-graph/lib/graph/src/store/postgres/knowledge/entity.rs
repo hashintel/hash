@@ -89,7 +89,7 @@ impl<C: AsClient> PostgresStore<C> {
                 );
 
                 let edge_entity_vertex_id = edge_entity.vertex_id(time_axis);
-                subgraph.insert_vertex(&edge_entity_vertex_id, edge_entity);
+                subgraph.insert_vertex(edge_entity_vertex_id, edge_entity);
 
                 items.push((
                     edge_entity_vertex_id,
@@ -171,7 +171,7 @@ impl<C: AsClient> PostgresStore<C> {
                             entity_type_vertex_id.clone(),
                         );
 
-                        subgraph.insert_vertex(&entity_type_vertex_id, entity_type);
+                        traversal_context.add_entity_type_id(entity_type_vertex_id.clone());
 
                         entity_type_queue.push((
                             entity_type_vertex_id,
@@ -490,6 +490,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             subgraph.roots.insert((*vertex_id).into());
         }
 
+        let mut traversal_context = TraversalContext::default();
+
         // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
         //       vertices and have to `.collect()` the keys.
         self.traverse_entities(
@@ -505,10 +507,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     )
                 })
                 .collect(),
-            &mut TraversalContext,
+            &mut traversal_context,
             &mut subgraph,
         )
         .await?;
+
+        traversal_context
+            .read_traversed_vertices(self, &mut subgraph)
+            .await?;
 
         Ok(subgraph)
     }

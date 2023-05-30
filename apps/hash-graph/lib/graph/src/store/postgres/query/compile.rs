@@ -12,7 +12,7 @@ use crate::{
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
             WindowStatement, WithExpression,
         },
-        query::{Filter, FilterExpression, Parameter, ParameterType},
+        query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -228,6 +228,10 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                     .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression).0),
+            ),
+            Filter::In(lhs, rhs) => Condition::In(
+                self.compile_filter_expression(lhs).0,
+                self.compile_parameter_list(rhs).0,
             ),
             Filter::StartsWith(lhs, rhs) => {
                 let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
@@ -452,6 +456,26 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 )
             }
         }
+    }
+
+    pub fn compile_parameter_list<'f: 'p>(
+        &mut self,
+        parameters: &'p ParameterList<'f>,
+    ) -> (Expression, ParameterType) {
+        let parameter_type = match parameters {
+            ParameterList::VersionedUrls(ontology_ids) => {
+                self.artifacts.parameters.push(ontology_ids);
+                ParameterType::Text
+            }
+            ParameterList::Uuid(uuids) => {
+                self.artifacts.parameters.push(uuids);
+                ParameterType::Uuid
+            }
+        };
+        (
+            Expression::Parameter(self.artifacts.parameters.len()),
+            parameter_type,
+        )
     }
 
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.

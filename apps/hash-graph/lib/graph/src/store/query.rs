@@ -4,7 +4,7 @@ mod path;
 use std::fmt;
 
 pub use self::{
-    filter::{Filter, FilterExpression, Parameter, ParameterConversionError},
+    filter::{Filter, FilterExpression, Parameter, ParameterConversionError, ParameterList},
     path::{JsonPath, PathToken},
 };
 
