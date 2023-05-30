@@ -7,10 +7,10 @@ use postgres_types::{FromSql, Type};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
-use type_system::url::BaseUrl;
+use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{
-    identifier::ontology::OntologyTypeRecordId,
+    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
@@ -22,11 +22,14 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::query::{Distinctness, PostgresQueryPath, PostgresRecord, SelectCompiler},
+        postgres::query::{
+            Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord, ReferenceTable,
+            SelectCompiler, Table, Transpile,
+        },
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError, Record,
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxes},
 };
 
 #[derive(Deserialize)]
@@ -218,5 +221,120 @@ where
                     ))
                 });
         Ok(stream)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct OntologyTypeTraversalData {
+    base_urls: Vec<String>,
+    versions: Vec<OntologyTypeVersion>,
+    resolve_depths: Vec<GraphResolveDepths>,
+    temporal_axes: Vec<QueryTemporalAxes>,
+}
+
+impl OntologyTypeTraversalData {
+    pub fn push(
+        &mut self,
+        versioned_url: &VersionedUrl,
+        resolve_depth: GraphResolveDepths,
+        temporal_axis: QueryTemporalAxes,
+    ) {
+        self.base_urls.push(versioned_url.base_url.to_string());
+        self.versions
+            .push(OntologyTypeVersion::new(versioned_url.version));
+        self.resolve_depths.push(resolve_depth);
+        self.temporal_axes.push(temporal_axis);
+    }
+}
+
+pub struct OntologyEdgeRecordIds<L, R> {
+    pub left_endpoint: L,
+    pub right_endpoint: R,
+    pub resolve_depths: GraphResolveDepths,
+    pub temporal_axes: QueryTemporalAxes,
+}
+
+impl<C: AsClient> PostgresStore<C> {
+    pub(crate) async fn read_ontology_edges<'r, L, R>(
+        &self,
+        record_ids: &'r OntologyTypeTraversalData,
+        reference_table: ReferenceTable,
+    ) -> Result<impl Iterator<Item = OntologyEdgeRecordIds<L, R>> + 'r, QueryError>
+    where
+        L: From<VersionedUrl>,
+        R: From<VersionedUrl>,
+    {
+        let table = Table::Reference(reference_table).transpile_to_string();
+        let source =
+            if let ForeignKeyReference::Single { join, .. } = reference_table.source_relation() {
+                join.transpile_to_string()
+            } else {
+                unreachable!("Ontology reference tables don't have multiple conditions")
+            };
+        let target =
+            if let ForeignKeyReference::Single { on, .. } = reference_table.target_relation() {
+                on.transpile_to_string()
+            } else {
+                unreachable!("Ontology reference tables don't have multiple conditions")
+            };
+
+        Ok(self
+            .client
+            .as_client()
+            .query(
+                &format!(
+                    r#"
+                        SELECT
+                            filter.idx      AS idx,
+                            source.base_url AS source_base_url,
+                            source.version  AS source_version,
+                            target.base_url AS target_base_url,
+                            target.version  AS target_version
+                        FROM {table}
+
+                        JOIN ontology_ids as source
+                          ON {source} = source.ontology_id
+
+                        JOIN unnest($1::text[], $2::int8[])
+                             WITH ORDINALITY AS filter(url, version, idx)
+                          ON filter.url = source.base_url
+                         AND filter.version = source.version
+
+                        JOIN ontology_ids as target
+                          ON {target} = target.ontology_id;
+                    "#
+                ),
+                &[&record_ids.base_urls, &record_ids.versions],
+            )
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| {
+                let index = usize::try_from(row.get::<_, i64>(0) - 1).unwrap_or_else(|error| {
+                    // The index is always a valid `usize` because it is the index of the
+                    // `record_ids` vectors that was just passed in.
+                    unreachable!("invalid index: {error}")
+                });
+                OntologyEdgeRecordIds {
+                    left_endpoint: L::from(VersionedUrl {
+                        base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
+                            // The `BaseUrl` was just inserted as a parameter to the query
+                            unreachable!("invalid URL: {error}")
+                        }),
+                        version: row.get::<_, OntologyTypeVersion>(2).inner(),
+                    }),
+                    right_endpoint: R::from(VersionedUrl {
+                        base_url: BaseUrl::new(row.get(3)).unwrap_or_else(|error| {
+                            // The `BaseUrl` was already validated when it was inserted into
+                            // the database, so this should never happen.
+                            unreachable!("invalid URL: {error}")
+                        }),
+                        version: row.get::<_, OntologyTypeVersion>(4).inner(),
+                    }),
+                    resolve_depths: record_ids.resolve_depths[index],
+                    temporal_axes: record_ids.temporal_axes[index].clone(),
+                }
+            }))
     }
 }
