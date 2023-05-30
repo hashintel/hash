@@ -512,7 +512,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         )
         .await?;
 
-        traversal_context.load_vertices(self, &mut subgraph).await?;
+        traversal_context
+            .read_traversed_vertices(self, &mut subgraph)
+            .await?;
 
         Ok(subgraph)
     }

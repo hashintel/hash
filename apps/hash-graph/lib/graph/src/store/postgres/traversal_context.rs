@@ -149,7 +149,7 @@ pub struct TraversalContext {
 }
 
 impl TraversalContext {
-    pub async fn load_vertices<C: AsClient>(
+    pub async fn read_traversed_vertices<C: AsClient>(
         &self,
         store: &PostgresStore<C>,
         subgraph: &mut Subgraph,
