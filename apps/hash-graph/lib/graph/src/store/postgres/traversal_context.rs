@@ -1,9 +1,9 @@
-use std::collections::HashSet;
+use std::{collections::HashMap, hash::Hash};
 
 use error_stack::Result;
 
 use crate::{
-    identifier::knowledge::EntityEditionId,
+    identifier::{knowledge::EntityEditionId, time::RightBoundedTemporalInterval},
     knowledge::{Entity, EntityQueryPath},
     ontology::{
         DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
@@ -15,7 +15,9 @@ use crate::{
         AsClient, PostgresStore, QueryError, Record,
     },
     subgraph::{
+        edges::GraphResolveDepths,
         identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
+        temporal_axes::VariableAxis,
         Subgraph,
     },
 };
@@ -139,44 +141,60 @@ impl<C: AsClient> PostgresStore<C> {
 }
 
 #[derive(Debug)]
-pub struct OntologyTraversalContext<R: Record> {
-    vertex_ids: HashSet<R::VertexId>,
-}
+struct TraversalContextMap<K>(
+    HashMap<
+        K,
+        Vec<(
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
+    >,
+);
 
-impl<R: Record> Default for OntologyTraversalContext<R> {
+impl<K> Default for TraversalContextMap<K> {
     fn default() -> Self {
-        Self {
-            vertex_ids: HashSet::new(),
+        Self(HashMap::new())
+    }
+}
+
+impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
+    /// Adds a new entry to the map if it does not already exist.
+    ///
+    /// Returns `true` if the entry was added, `false` if it already existed. The entry is added
+    /// if there is not already an existing entry with another `GraphResolveDepths` that contains
+    /// the new `GraphResolveDepths` and the new interval is not contained in any existing
+    /// interval.
+    ///
+    /// The provided key will only be cloned on demand.
+    fn add_id(
+        &mut self,
+        key: &K,
+        graph_resolve_depths: GraphResolveDepths,
+        interval: RightBoundedTemporalInterval<VariableAxis>,
+    ) -> bool {
+        let (_, values) = self
+            .0
+            .raw_entry_mut()
+            .from_key(key)
+            .or_insert_with(|| (key.clone(), Vec::new()));
+        if values.iter().any(|&(existing_depths, traversed_interval)| {
+            existing_depths.contains(graph_resolve_depths)
+                && traversed_interval.contains_interval(&interval)
+        }) {
+            false
+        } else {
+            values.push((graph_resolve_depths, interval));
+            true
         }
-    }
-}
-
-impl<R: Record> OntologyTraversalContext<R>
-where
-    R::VertexId: Clone + Eq + std::hash::Hash,
-{
-    pub fn add_id(&mut self, vertex_id: R::VertexId) {
-        self.vertex_ids.insert(vertex_id);
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct EntityTraversalContext {
-    edition_ids: HashSet<EntityEditionId>,
-}
-
-impl EntityTraversalContext {
-    pub fn add_id(&mut self, edition_id: EntityEditionId) {
-        self.edition_ids.insert(edition_id);
     }
 }
 
 #[derive(Debug, Default)]
 pub struct TraversalContext {
-    data_types: OntologyTraversalContext<DataTypeWithMetadata>,
-    property_types: OntologyTraversalContext<PropertyTypeWithMetadata>,
-    entity_types: OntologyTraversalContext<EntityTypeWithMetadata>,
-    entities: EntityTraversalContext,
+    data_types: TraversalContextMap<DataTypeVertexId>,
+    property_types: TraversalContextMap<PropertyTypeVertexId>,
+    entity_types: TraversalContextMap<EntityTypeVertexId>,
+    entities: TraversalContextMap<EntityEditionId>,
 }
 
 impl TraversalContext {
@@ -185,44 +203,68 @@ impl TraversalContext {
         store: &PostgresStore<C>,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        if !self.data_types.vertex_ids.is_empty() {
+        if !self.data_types.0.is_empty() {
             store
-                .read_data_types_by_ids(&self.data_types.vertex_ids, subgraph)
+                .read_data_types_by_ids(self.data_types.0.keys(), subgraph)
                 .await?;
         }
-        if !self.property_types.vertex_ids.is_empty() {
+        if !self.property_types.0.is_empty() {
             store
-                .read_property_types_by_ids(&self.property_types.vertex_ids, subgraph)
+                .read_property_types_by_ids(self.property_types.0.keys(), subgraph)
                 .await?;
         }
-        if !self.entity_types.vertex_ids.is_empty() {
+        if !self.entity_types.0.is_empty() {
             store
-                .read_entity_types_by_ids(&self.entity_types.vertex_ids, subgraph)
+                .read_entity_types_by_ids(self.entity_types.0.keys(), subgraph)
                 .await?;
         }
 
-        if !self.entities.edition_ids.is_empty() {
+        if !self.entities.0.is_empty() {
             store
-                .read_entities_by_ids(self.entities.edition_ids.iter().copied(), subgraph)
+                .read_entities_by_ids(self.entities.0.keys().copied(), subgraph)
                 .await?;
         }
 
         Ok(())
     }
 
-    pub fn add_data_type_id(&mut self, vertex_id: DataTypeVertexId) {
-        self.data_types.add_id(vertex_id);
+    pub fn add_data_type_id(
+        &mut self,
+        vertex_id: &DataTypeVertexId,
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
+    ) -> bool {
+        self.data_types
+            .add_id(vertex_id, graph_resolve_depths, traversal_interval)
     }
 
-    pub fn add_property_type_id(&mut self, vertex_id: PropertyTypeVertexId) {
-        self.property_types.add_id(vertex_id);
+    pub fn add_property_type_id(
+        &mut self,
+        vertex_id: &PropertyTypeVertexId,
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
+    ) -> bool {
+        self.property_types
+            .add_id(vertex_id, graph_resolve_depths, traversal_interval)
     }
 
-    pub fn add_entity_type_id(&mut self, vertex_id: EntityTypeVertexId) {
-        self.entity_types.add_id(vertex_id);
+    pub fn add_entity_type_id(
+        &mut self,
+        vertex_id: &EntityTypeVertexId,
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
+    ) -> bool {
+        self.entity_types
+            .add_id(vertex_id, graph_resolve_depths, traversal_interval)
     }
 
-    pub fn add_entity_id(&mut self, edition_id: EntityEditionId) {
-        self.entities.add_id(edition_id);
+    pub fn add_entity_id(
+        &mut self,
+        edition_id: EntityEditionId,
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
+    ) -> bool {
+        self.entities
+            .add_id(&edition_id, graph_resolve_depths, traversal_interval)
     }
 }

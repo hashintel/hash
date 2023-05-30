@@ -78,7 +78,7 @@ impl<C: AsClient> PostgresStore<C> {
                         ReferenceTable::EntityTypeConstrainsPropertiesOn,
                     )
                     .await?
-                    .map(|edge| {
+                    .filter_map(|edge| {
                         subgraph.insert_edge(
                             &edge.left_endpoint,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
@@ -86,9 +86,17 @@ impl<C: AsClient> PostgresStore<C> {
                             edge.right_endpoint.clone(),
                         );
 
-                        traversal_context.add_property_type_id(edge.right_endpoint.clone());
-
-                        (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
+                        traversal_context
+                            .add_property_type_id(
+                                &edge.right_endpoint,
+                                edge.resolve_depths,
+                                edge.temporal_axes.variable_interval(),
+                            )
+                            .then_some((
+                                edge.right_endpoint,
+                                edge.resolve_depths,
+                                edge.temporal_axes,
+                            ))
                     }),
                 );
             }
@@ -114,7 +122,7 @@ impl<C: AsClient> PostgresStore<C> {
                             table,
                         )
                         .await?
-                        .map(|edge| {
+                        .filter_map(|edge| {
                             subgraph.insert_edge(
                                 &edge.left_endpoint,
                                 edge_kind,
@@ -122,9 +130,17 @@ impl<C: AsClient> PostgresStore<C> {
                                 edge.right_endpoint.clone(),
                             );
 
-                            traversal_context.add_entity_type_id(edge.right_endpoint.clone());
-
-                            (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
+                            traversal_context
+                                .add_entity_type_id(
+                                    &edge.right_endpoint,
+                                    edge.resolve_depths,
+                                    edge.temporal_axes.variable_interval(),
+                                )
+                                .then_some((
+                                    edge.right_endpoint,
+                                    edge.resolve_depths,
+                                    edge.temporal_axes,
+                                ))
                         }),
                     );
                 }

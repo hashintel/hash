@@ -186,20 +186,30 @@ impl<C: AsClient> PostgresStore<C> {
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                entity_type_queue.extend(self.read_shared_edges(&traversal_data).await?.map(
-                    |edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            SharedEdgeKind::IsOfType,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+                entity_type_queue.extend(
+                    self.read_shared_edges(&traversal_data)
+                        .await?
+                        .filter_map(|edge| {
+                            subgraph.insert_edge(
+                                &edge.left_endpoint,
+                                SharedEdgeKind::IsOfType,
+                                EdgeDirection::Outgoing,
+                                edge.right_endpoint.clone(),
+                            );
 
-                        traversal_context.add_entity_type_id(edge.right_endpoint.clone());
-
-                        (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
-                    },
-                ));
+                            traversal_context
+                                .add_entity_type_id(
+                                    &edge.right_endpoint,
+                                    edge.resolve_depths,
+                                    edge.temporal_axes.variable_interval(),
+                                )
+                                .then_some((
+                                    edge.right_endpoint,
+                                    edge.resolve_depths,
+                                    edge.temporal_axes,
+                                ))
+                        }),
+                );
             }
 
             for (edge_kind, edge_direction, table) in entity_edges {
@@ -209,7 +219,7 @@ impl<C: AsClient> PostgresStore<C> {
                     entity_queue.extend(
                         self.read_knowledge_edges(traversal_data, table, edge_direction)
                             .await?
-                            .map(|edge| {
+                            .filter_map(|edge| {
                                 subgraph.insert_edge(
                                     &edge.left_endpoint,
                                     edge_kind,
@@ -220,9 +230,17 @@ impl<C: AsClient> PostgresStore<C> {
                                     },
                                 );
 
-                                traversal_context.add_entity_id(edge.right_endpoint_edition_id);
-
-                                (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
+                                traversal_context
+                                    .add_entity_id(
+                                        edge.right_endpoint_edition_id,
+                                        edge.resolve_depths,
+                                        edge.temporal_axes.variable_interval(),
+                                    )
+                                    .then_some((
+                                        edge.right_endpoint,
+                                        edge.resolve_depths,
+                                        edge.temporal_axes,
+                                    ))
                             }),
                     );
                 }
