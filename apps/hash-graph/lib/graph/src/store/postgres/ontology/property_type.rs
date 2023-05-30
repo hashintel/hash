@@ -5,6 +5,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use type_system::{url::VersionedUrl, PropertyType};
 
 use crate::{
+    identifier::time::RightBoundedTemporalInterval,
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::RecordCreatedById,
     store::{
@@ -22,7 +23,7 @@ use crate::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
-        temporal_axes::QueryTemporalAxes,
+        temporal_axes::VariableAxis,
         Subgraph,
     },
 };
@@ -34,7 +35,11 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_property_types(
         &self,
-        mut property_type_queue: Vec<(PropertyTypeVertexId, GraphResolveDepths, QueryTemporalAxes)>,
+        mut property_type_queue: Vec<(
+            PropertyTypeVertexId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
         traversal_context: &mut TraversalContext,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
@@ -45,7 +50,7 @@ impl<C: AsClient> PostgresStore<C> {
             edges_to_traverse.clear();
 
             #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (property_type_vertex_id, graph_resolve_depths, temporal_axes) in
+            for (property_type_vertex_id, graph_resolve_depths, traversal_interval) in
                 property_type_queue.drain(..)
             {
                 for edge_kind in [
@@ -61,7 +66,7 @@ impl<C: AsClient> PostgresStore<C> {
                                 version: property_type_vertex_id.revision_id.inner(),
                             },
                             new_graph_resolve_depths,
-                            temporal_axes.clone(),
+                            traversal_interval,
                         );
                     }
                 }
@@ -76,7 +81,7 @@ impl<C: AsClient> PostgresStore<C> {
                         ReferenceTable::PropertyTypeConstrainsValuesOn,
                     )
                     .await?
-                    .filter_map(|edge| {
+                    .flat_map(|edge| {
                         subgraph.insert_edge(
                             &edge.left_endpoint,
                             OntologyEdgeKind::ConstrainsValuesOn,
@@ -84,17 +89,11 @@ impl<C: AsClient> PostgresStore<C> {
                             edge.right_endpoint.clone(),
                         );
 
-                        traversal_context
-                            .add_data_type_id(
-                                &edge.right_endpoint,
-                                edge.resolve_depths,
-                                edge.temporal_axes.variable_interval(),
-                            )
-                            .then_some((
-                                edge.right_endpoint,
-                                edge.resolve_depths,
-                                edge.temporal_axes,
-                            ))
+                        traversal_context.add_data_type_id(
+                            &edge.right_endpoint,
+                            edge.resolve_depths,
+                            edge.traversal_interval,
+                        )
                     }),
                 );
             }
@@ -108,7 +107,7 @@ impl<C: AsClient> PostgresStore<C> {
                         ReferenceTable::PropertyTypeConstrainsPropertiesOn,
                     )
                     .await?
-                    .filter_map(|edge| {
+                    .flat_map(|edge| {
                         subgraph.insert_edge(
                             &edge.left_endpoint,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
@@ -116,17 +115,11 @@ impl<C: AsClient> PostgresStore<C> {
                             edge.right_endpoint.clone(),
                         );
 
-                        traversal_context
-                            .add_property_type_id(
-                                &edge.right_endpoint,
-                                edge.resolve_depths,
-                                edge.temporal_axes.variable_interval(),
-                            )
-                            .then_some((
-                                edge.right_endpoint,
-                                edge.resolve_depths,
-                                edge.temporal_axes,
-                            ))
+                        traversal_context.add_property_type_id(
+                            &edge.right_endpoint,
+                            edge.resolve_depths,
+                            edge.traversal_interval,
+                        )
                     }),
                 );
             };
@@ -270,7 +263,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     (
                         id.clone(),
                         subgraph.depths,
-                        subgraph.temporal_axes.resolved.clone(),
+                        subgraph.temporal_axes.resolved.variable_interval(),
                     )
                 })
                 .collect(),

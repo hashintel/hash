@@ -241,7 +241,7 @@ pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
     pub resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxes,
+    pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
 pub struct KnowledgeEdgeTraversal {
@@ -250,7 +250,7 @@ pub struct KnowledgeEdgeTraversal {
     pub right_endpoint_edition_id: EntityEditionId,
     pub resolve_depths: GraphResolveDepths,
     pub edge_interval: LeftClosedTemporalInterval<VariableAxis>,
-    pub temporal_axes: QueryTemporalAxes,
+    pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
 impl<C: AsClient> PostgresStore<C> {
@@ -318,11 +318,7 @@ impl<C: AsClient> PostgresStore<C> {
                         revision_id: row.get(2),
                     },
                     resolve_depths: traversal_data.resolve_depths[index],
-                    temporal_axes: QueryTemporalAxes::from_variable_time_axis(
-                        traversal_data.variable_axis,
-                        traversal_data.pinned_timestamp,
-                        row.get(3),
-                    ),
+                    traversal_interval: row.get(3),
                 }
             }))
     }
@@ -425,11 +421,7 @@ impl<C: AsClient> PostgresStore<C> {
                     right_endpoint_edition_id: row.get(4),
                     edge_interval: row.get(5),
                     resolve_depths: traversal_data.resolve_depths[index],
-                    temporal_axes: QueryTemporalAxes::from_variable_time_axis(
-                        traversal_data.variable_axis,
-                        traversal_data.pinned_timestamp,
-                        row.get(6),
-                    ),
+                    traversal_interval: row.get(6),
                 }
             }))
     }

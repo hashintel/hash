@@ -160,7 +160,7 @@ impl<K> Default for TraversalContextMap<K> {
 impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
     /// Adds a new entry to the map if it does not already exist.
     ///
-    /// Returns `true` if the entry was added, `false` if it already existed. The entry is added
+    /// Returns an iterator of entries which has to be resolved further. The entry is added
     /// if there is not already an existing entry with another `GraphResolveDepths` that contains
     /// the new `GraphResolveDepths` and the new interval is not contained in any existing
     /// interval.
@@ -171,20 +171,30 @@ impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
         key: &K,
         graph_resolve_depths: GraphResolveDepths,
         interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> bool {
-        let (_, values) = self
+    ) -> impl Iterator<
+        Item = (
+            K,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > {
+        let (key, values) = self
             .0
             .raw_entry_mut()
             .from_key(key)
             .or_insert_with(|| (key.clone(), Vec::new()));
+
+        // TODO: Further optimization could happen here. It's possible to return none, a single, or
+        //       multiple entries depending on the existing depths and traversed interval.
+        //   See https://app.asana.com/0/0/1204117847656667/f
         if values.iter().any(|&(existing_depths, traversed_interval)| {
             existing_depths.contains(graph_resolve_depths)
                 && traversed_interval.contains_interval(&interval)
         }) {
-            false
+            None.into_iter()
         } else {
             values.push((graph_resolve_depths, interval));
-            true
+            Some((key.clone(), graph_resolve_depths, interval)).into_iter()
         }
     }
 }
@@ -233,7 +243,13 @@ impl TraversalContext {
         vertex_id: &DataTypeVertexId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> bool {
+    ) -> impl Iterator<
+        Item = (
+            DataTypeVertexId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > {
         self.data_types
             .add_id(vertex_id, graph_resolve_depths, traversal_interval)
     }
@@ -243,7 +259,13 @@ impl TraversalContext {
         vertex_id: &PropertyTypeVertexId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> bool {
+    ) -> impl Iterator<
+        Item = (
+            PropertyTypeVertexId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > {
         self.property_types
             .add_id(vertex_id, graph_resolve_depths, traversal_interval)
     }
@@ -253,7 +275,13 @@ impl TraversalContext {
         vertex_id: &EntityTypeVertexId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> bool {
+    ) -> impl Iterator<
+        Item = (
+            EntityTypeVertexId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > {
         self.entity_types
             .add_id(vertex_id, graph_resolve_depths, traversal_interval)
     }
@@ -263,7 +291,13 @@ impl TraversalContext {
         edition_id: EntityEditionId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> bool {
+    ) -> impl Iterator<
+        Item = (
+            EntityEditionId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        ),
+    > {
         self.entities
             .add_id(&edition_id, graph_resolve_depths, traversal_interval)
     }

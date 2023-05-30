@@ -5,6 +5,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
+    identifier::time::RightBoundedTemporalInterval,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::RecordCreatedById,
     store::{
@@ -16,7 +17,7 @@ use crate::{
     },
     subgraph::{
         edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
-        temporal_axes::QueryTemporalAxes, Subgraph,
+        temporal_axes::VariableAxis, Subgraph,
     },
 };
 
@@ -27,7 +28,11 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
     pub(crate) async fn traverse_data_types(
         &self,
-        queue: Vec<(DataTypeVertexId, GraphResolveDepths, QueryTemporalAxes)>,
+        queue: Vec<(
+            DataTypeVertexId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
         _traversal_context: &mut TraversalContext,
         _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
@@ -135,7 +140,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     (
                         id.clone(),
                         subgraph.depths,
-                        subgraph.temporal_axes.resolved.clone(),
+                        subgraph.temporal_axes.resolved.variable_interval(),
                     )
                 })
                 .collect(),

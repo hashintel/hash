@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{DecisionTime, LeftClosedTemporalInterval, Timestamp},
+        time::{DecisionTime, LeftClosedTemporalInterval, RightBoundedTemporalInterval, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
@@ -109,7 +109,11 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) async fn traverse_entities(
         &self,
-        mut entity_queue: Vec<(EntityVertexId, GraphResolveDepths, QueryTemporalAxes)>,
+        mut entity_queue: Vec<(
+            EntityVertexId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
         traversal_context: &mut TraversalContext,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
@@ -146,7 +150,9 @@ impl<C: AsClient> PostgresStore<C> {
             ];
 
             #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (entity_vertex_id, graph_resolve_depths, temporal_axes) in entity_queue.drain(..) {
+            for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
+                entity_queue.drain(..)
+            {
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
@@ -159,7 +165,7 @@ impl<C: AsClient> PostgresStore<C> {
                         })
                         .push(
                             entity_vertex_id,
-                            temporal_axes.variable_interval(),
+                            traversal_interval,
                             new_graph_resolve_depths,
                         );
                 }
@@ -178,7 +184,7 @@ impl<C: AsClient> PostgresStore<C> {
                             })
                             .push(
                                 entity_vertex_id,
-                                temporal_axes.variable_interval(),
+                                traversal_interval,
                                 new_graph_resolve_depths,
                             );
                     }
@@ -186,30 +192,22 @@ impl<C: AsClient> PostgresStore<C> {
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                entity_type_queue.extend(
-                    self.read_shared_edges(&traversal_data)
-                        .await?
-                        .filter_map(|edge| {
-                            subgraph.insert_edge(
-                                &edge.left_endpoint,
-                                SharedEdgeKind::IsOfType,
-                                EdgeDirection::Outgoing,
-                                edge.right_endpoint.clone(),
-                            );
+                entity_type_queue.extend(self.read_shared_edges(&traversal_data).await?.flat_map(
+                    |edge| {
+                        subgraph.insert_edge(
+                            &edge.left_endpoint,
+                            SharedEdgeKind::IsOfType,
+                            EdgeDirection::Outgoing,
+                            edge.right_endpoint.clone(),
+                        );
 
-                            traversal_context
-                                .add_entity_type_id(
-                                    &edge.right_endpoint,
-                                    edge.resolve_depths,
-                                    edge.temporal_axes.variable_interval(),
-                                )
-                                .then_some((
-                                    edge.right_endpoint,
-                                    edge.resolve_depths,
-                                    edge.temporal_axes,
-                                ))
-                        }),
-                );
+                        traversal_context.add_entity_type_id(
+                            &edge.right_endpoint,
+                            edge.resolve_depths,
+                            edge.traversal_interval,
+                        )
+                    },
+                ));
             }
 
             for (edge_kind, edge_direction, table) in entity_edges {
@@ -219,7 +217,7 @@ impl<C: AsClient> PostgresStore<C> {
                     entity_queue.extend(
                         self.read_knowledge_edges(traversal_data, table, edge_direction)
                             .await?
-                            .filter_map(|edge| {
+                            .flat_map(|edge| {
                                 subgraph.insert_edge(
                                     &edge.left_endpoint,
                                     edge_kind,
@@ -234,13 +232,11 @@ impl<C: AsClient> PostgresStore<C> {
                                     .add_entity_id(
                                         edge.right_endpoint_edition_id,
                                         edge.resolve_depths,
-                                        edge.temporal_axes.variable_interval(),
+                                        edge.traversal_interval,
                                     )
-                                    .then_some((
-                                        edge.right_endpoint,
-                                        edge.resolve_depths,
-                                        edge.temporal_axes,
-                                    ))
+                                    .map(move |(_, resolve_depths, interval)| {
+                                        (edge.right_endpoint, resolve_depths, interval)
+                                    })
                             }),
                     );
                 }
@@ -534,7 +530,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     (
                         *id,
                         subgraph.depths,
-                        subgraph.temporal_axes.resolved.clone(),
+                        subgraph.temporal_axes.resolved.variable_interval(),
                     )
                 })
                 .collect(),
