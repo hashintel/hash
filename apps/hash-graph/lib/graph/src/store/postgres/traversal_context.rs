@@ -64,14 +64,14 @@ impl<C: AsClient> PostgresStore<C> {
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         for vertex_id in vertex_ids {
-            for enttity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
+            for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
                 self,
                 &EntityTypeWithMetadata::create_filter_for_vertex_id(vertex_id),
                 Some(&subgraph.temporal_axes.resolved),
             )
             .await?
             {
-                subgraph.insert_vertex(vertex_id, enttity_type);
+                subgraph.insert_vertex(vertex_id, entity_type);
             }
         }
 
