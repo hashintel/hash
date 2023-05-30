@@ -4,7 +4,7 @@
 */
 
 module "variables" {
-  source          = "git@github.com:hashintel/infra-modules.git//terraform/variables?ref=v0.0.2"
+  source          = "../modules/variables"
   env             = terraform.workspace
   region          = var.region
   region_az_count = var.region_az_count
@@ -31,7 +31,7 @@ data "vault_kv_secret_v2" "secrets" {
 }
 
 module "vault_aws_auth" {
-  source = "git@github.com:hashintel/infra-modules.git//terraform/vault_aws_auth?ref=v0.0.2"
+  source = "../modules/vault_aws_auth"
   region = local.region
   env    = local.env
 }
@@ -53,14 +53,14 @@ provider "aws" {
 }
 
 module "networking" {
-  source          = "../modules/networking"
+  source          = "./networking"
   region          = var.region
   prefix          = local.prefix
   region_az_names = local.region_az_names
 }
 
 module "bastion" {
-  source     = "git@github.com:hashintel/infra-modules.git//terraform/bastion?ref=v0.0.2"
+  source     = "../modules/bastion"
   region     = var.region
   env        = local.env
   prefix     = local.prefix
@@ -70,7 +70,7 @@ module "bastion" {
 
 module "postgres" {
   depends_on            = [module.networking]
-  source                = "../modules/postgres"
+  source                = "./postgres"
   prefix                = local.prefix
   subnets               = module.networking.snpriv
   vpc_id                = module.networking.vpc.id
@@ -85,7 +85,7 @@ module "postgres" {
 
 
 module "tunnel" {
-  source             = "git@github.com:hashintel/infra-modules.git//terraform/tunnel?ref=v0.0.2"
+  source             = "../modules/tunnel"
   ssh_host           = module.bastion.ssh_info.host
   ssh_port           = 22
   ssh_user           = module.bastion.ssh_info.user
@@ -107,7 +107,7 @@ provider "postgresql" {
 module "postgres_roles" {
   depends_on            = [module.postgres, module.bastion, module.tunnel.host]
   providers             = { postgresql = postgresql }
-  source                = "../modules/postgres_roles"
+  source                = "./postgres_roles"
   pg_db_name            = module.postgres.pg_db_name
   pg_superuser_username = "superuser"
   pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
@@ -118,7 +118,7 @@ module "postgres_roles" {
 
 module "redis" {
   depends_on      = [module.networking]
-  source          = "../modules/redis"
+  source          = "./redis"
   prefix          = local.prefix
   node_type       = "cache.t3.micro"
   vpc_id          = module.networking.vpc.id
@@ -129,32 +129,32 @@ module "redis" {
 
 module "application_ecs" {
   depends_on = [module.networking]
-  source     = "../modules/container_cluster"
+  source     = "./container_cluster"
   prefix     = local.prefix
   ecs_name   = "ecs"
 }
 
 module "graph_ecr" {
-  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.2"
+  source   = "../modules/container_registry"
   prefix   = local.prefix
   ecr_name = "graphecr"
 }
 
 module "kratos_ecr" {
-  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.2"
+  source   = "../modules/container_registry"
   prefix   = local.prefix
   ecr_name = "kratosecr"
 }
 
 module "api_ecr" {
-  source   = "git@github.com:hashintel/infra-modules.git//terraform/container_registry?ref=v0.0.2"
+  source   = "../modules/container_registry"
   prefix   = local.prefix
   ecr_name = "apiecr"
 }
 
 module "application" {
   depends_on                   = [module.networking, module.postgres]
-  source                       = "../modules/hash_application"
+  source                       = "./hash_application"
   subnets                      = module.networking.snpub
   env                          = local.env
   region                       = local.region
