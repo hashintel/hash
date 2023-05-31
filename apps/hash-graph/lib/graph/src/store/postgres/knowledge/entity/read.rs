@@ -231,6 +231,7 @@ impl EntityEdgeTraversalData {
     }
 }
 
+/// The result of an entity-to-ontology edge traversal.
 pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
