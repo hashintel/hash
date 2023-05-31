@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{mem::swap, str::FromStr};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -10,15 +10,20 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{RightBoundedTemporalInterval, TimeAxis, Timestamp},
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
+        time::{
+            LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis,
+            Timestamp,
+        },
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
-        postgres::query::{Distinctness, SelectCompiler},
+        postgres::query::{
+            Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+        },
         query::Filter,
         AsClient, PostgresStore, QueryError,
     },
@@ -239,6 +244,15 @@ pub struct SharedEdgeTraversal {
     pub temporal_axes: QueryTemporalAxes,
 }
 
+pub struct KnowledgeEdgeTraversal {
+    pub left_endpoint: EntityVertexId,
+    pub right_endpoint: EntityVertexId,
+    pub right_endpoint_edition_id: EntityEditionId,
+    pub resolve_depths: GraphResolveDepths,
+    pub edge_interval: LeftClosedTemporalInterval<VariableAxis>,
+    pub temporal_axes: QueryTemporalAxes,
+}
+
 impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn read_shared_edges<'t>(
         &self,
@@ -308,6 +322,113 @@ impl<C: AsClient> PostgresStore<C> {
                         traversal_data.variable_axis,
                         traversal_data.pinned_timestamp,
                         row.get(3),
+                    ),
+                }
+            }))
+    }
+
+    pub(crate) async fn read_knowledge_edges<'t>(
+        &self,
+        traversal_data: &'t EntityEdgeTraversalData,
+        reference_table: ReferenceTable,
+        edge_direction: EdgeDirection,
+    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + 't, QueryError> {
+        let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
+            TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
+            TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
+        };
+
+        let table = Table::Reference(reference_table).transpile_to_string();
+        let [mut source_1, mut source_2] =
+            if let ForeignKeyReference::Double { join, .. } = reference_table.source_relation() {
+                [join[0].transpile_to_string(), join[1].transpile_to_string()]
+            } else {
+                unreachable!("entity reference tables don't have single conditions")
+            };
+        let [mut target_1, mut target_2] =
+            if let ForeignKeyReference::Double { on, .. } = reference_table.target_relation() {
+                [on[0].transpile_to_string(), on[1].transpile_to_string()]
+            } else {
+                unreachable!("entity reference tables don't have single conditions")
+            };
+
+        if edge_direction == EdgeDirection::Incoming {
+            swap(&mut source_1, &mut target_1);
+            swap(&mut source_2, &mut target_2);
+        }
+
+        Ok(self
+            .client
+            .as_client()
+            .query(
+                &format!(
+                    r#"
+                        SELECT
+                             filter.idx,
+                             target.owned_by_id,
+                             target.entity_uuid,
+                             lower(target.{variable_axis}),
+                             target.entity_edition_id,
+                             source.{variable_axis} * target.{variable_axis},
+                             source.{variable_axis} * target.{variable_axis} * filter.interval
+                        FROM unnest($1::uuid[], $2::uuid[], $3::timestamptz[], $4::tstzrange[])
+                             WITH ORDINALITY
+                             AS filter(owned_by_id, entity_uuid, entity_version, interval, idx)
+
+                        JOIN entity_temporal_metadata AS source
+                          ON source.{pinned_axis} @> $5::timestamptz
+                         AND lower(source.{variable_axis}) = filter.entity_version
+                         AND source.owned_by_id = filter.owned_by_id
+                         AND source.entity_uuid = filter.entity_uuid
+
+                        JOIN {table}
+                          ON {source_1} = source.owned_by_id
+                         AND {source_2} = source.entity_uuid
+
+                        JOIN entity_temporal_metadata AS target
+                          ON target.{pinned_axis} @> $5::timestamptz
+                         AND target.{variable_axis} && source.{variable_axis}
+                         AND target.{variable_axis} && filter.interval
+                         AND target.owned_by_id = {target_1}
+                         AND target.entity_uuid = {target_2}
+                    "#
+                ),
+                &[
+                    &traversal_data.owned_by_ids,
+                    &traversal_data.entity_uuids,
+                    &traversal_data.entity_revision_ids,
+                    &traversal_data.intervals,
+                    &traversal_data.pinned_timestamp,
+                ],
+            )
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| {
+                let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
+                KnowledgeEdgeTraversal {
+                    left_endpoint: EntityVertexId {
+                        base_id: EntityId {
+                            owned_by_id: traversal_data.owned_by_ids[index],
+                            entity_uuid: traversal_data.entity_uuids[index],
+                        },
+                        revision_id: traversal_data.entity_revision_ids[index],
+                    },
+                    right_endpoint: EntityVertexId {
+                        base_id: EntityId {
+                            owned_by_id: row.get(1),
+                            entity_uuid: row.get(2),
+                        },
+                        revision_id: row.get::<_, Timestamp<()>>(3).cast(),
+                    },
+                    right_endpoint_edition_id: row.get(4),
+                    edge_interval: row.get(5),
+                    resolve_depths: traversal_data.resolve_depths[index],
+                    temporal_axes: QueryTemporalAxes::from_variable_time_axis(
+                        traversal_data.variable_axis,
+                        traversal_data.pinned_timestamp,
+                        row.get(6),
                     ),
                 }
             }))

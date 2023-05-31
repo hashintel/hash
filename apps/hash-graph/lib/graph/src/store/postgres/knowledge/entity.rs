@@ -1,6 +1,6 @@
 mod read;
 
-use std::mem;
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -18,7 +18,10 @@ use crate::{
     store::{
         crud::Read,
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
-        postgres::{knowledge::entity::read::EntityEdgeTraversalData, TraversalContext},
+        postgres::{
+            knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
+            TraversalContext,
+        },
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -110,46 +113,40 @@ impl<C: AsClient> PostgresStore<C> {
         traversal_context: &mut TraversalContext,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
+        let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
         let mut entity_type_queue = Vec::new();
 
         while !entity_queue.is_empty() {
             let mut shared_edges_to_traverse = Option::<EntityEdgeTraversalData>::None;
+            let mut knowledge_edges_to_traverse =
+                HashMap::<(KnowledgeGraphEdgeKind, EdgeDirection), EntityEdgeTraversalData>::new();
 
-            // TODO: We could re-use the memory here but we expect to batch the processing of this
-            //       for-loop. See https://app.asana.com/0/0/1204117847656663/f
-            for (entity_vertex_id, graph_resolve_depths, temporal_axes) in
-                mem::take(&mut entity_queue)
-            {
-                let entity_interval = subgraph
-                    .get_vertex::<Entity>(&entity_vertex_id)
-                    .unwrap_or_else(|| {
-                        // Entities are always inserted into the subgraph before they are resolved,
-                        // so this should never happen. If it does, it is a bug.
-                        unreachable!("entity should already be in the subgraph");
-                    })
-                    .metadata
-                    .temporal_versioning()
-                    .variable_time_interval(time_axis);
+            let entity_edges = [
+                (
+                    KnowledgeGraphEdgeKind::HasLeftEntity,
+                    EdgeDirection::Incoming,
+                    ReferenceTable::EntityHasLeftEntity,
+                ),
+                (
+                    KnowledgeGraphEdgeKind::HasRightEntity,
+                    EdgeDirection::Incoming,
+                    ReferenceTable::EntityHasRightEntity,
+                ),
+                (
+                    KnowledgeGraphEdgeKind::HasLeftEntity,
+                    EdgeDirection::Outgoing,
+                    ReferenceTable::EntityHasLeftEntity,
+                ),
+                (
+                    KnowledgeGraphEdgeKind::HasRightEntity,
+                    EdgeDirection::Outgoing,
+                    ReferenceTable::EntityHasRightEntity,
+                ),
+            ];
 
-                // Intersects the version interval of the entity with the variable axis's time
-                // interval. We only want to resolve the entity further for the overlap of these two
-                // intervals.
-                let temporal_axes = temporal_axes
-                    .clone()
-                    .intersect_variable_interval(entity_interval)
-                    .unwrap_or_else(|| {
-                        // `traverse_entity` is called with the returned entities from `read` with
-                        // `temporal_axes`. This implies, that the version interval of `entity`
-                        // overlaps with `temporal_axes`. `variable_interval` returns `None` if
-                        // there are no overlapping points, so this should never happen.
-                        unreachable!(
-                            "the version interval of the entity does not overlap with the \
-                             variable axis's time interval"
-                        );
-                    });
-
+            #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
+            for (entity_vertex_id, graph_resolve_depths, temporal_axes) in entity_queue.drain(..) {
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
@@ -157,7 +154,7 @@ impl<C: AsClient> PostgresStore<C> {
                         .get_or_insert_with(|| {
                             EntityEdgeTraversalData::new(
                                 subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                time_axis,
+                                variable_axis,
                             )
                         })
                         .push(
@@ -167,37 +164,24 @@ impl<C: AsClient> PostgresStore<C> {
                         );
                 }
 
-                for (edge_kind, edge_direction) in &[
-                    (
-                        KnowledgeGraphEdgeKind::HasLeftEntity,
-                        EdgeDirection::Incoming,
-                    ),
-                    (
-                        KnowledgeGraphEdgeKind::HasRightEntity,
-                        EdgeDirection::Incoming,
-                    ),
-                    (
-                        KnowledgeGraphEdgeKind::HasLeftEntity,
-                        EdgeDirection::Outgoing,
-                    ),
-                    (
-                        KnowledgeGraphEdgeKind::HasRightEntity,
-                        EdgeDirection::Outgoing,
-                    ),
-                ] {
-                    entity_queue.extend(
-                        self.traverse_knowledge_graph_edge(
-                            entity_vertex_id,
-                            entity_interval,
-                            *edge_kind,
-                            *edge_direction,
-                            graph_resolve_depths,
-                            &temporal_axes,
-                            traversal_context,
-                            subgraph,
-                        )
-                        .await?,
-                    );
+                for (edge_kind, edge_direction, _) in entity_edges {
+                    if let Some(new_graph_resolve_depths) =
+                        graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
+                    {
+                        knowledge_edges_to_traverse
+                            .entry((edge_kind, edge_direction))
+                            .or_insert_with(|| {
+                                EntityEdgeTraversalData::new(
+                                    subgraph.temporal_axes.resolved.pinned_timestamp(),
+                                    variable_axis,
+                                )
+                            })
+                            .push(
+                                entity_vertex_id,
+                                temporal_axes.variable_interval(),
+                                new_graph_resolve_depths,
+                            );
+                    }
                 }
             }
 
@@ -216,6 +200,32 @@ impl<C: AsClient> PostgresStore<C> {
                         (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
                     },
                 ));
+            }
+
+            for (edge_kind, edge_direction, table) in entity_edges {
+                if let Some(traversal_data) =
+                    knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
+                {
+                    entity_queue.extend(
+                        self.read_knowledge_edges(traversal_data, table, edge_direction)
+                            .await?
+                            .map(|edge| {
+                                subgraph.insert_edge(
+                                    &edge.left_endpoint,
+                                    edge_kind,
+                                    edge_direction,
+                                    EntityIdWithInterval {
+                                        entity_id: edge.right_endpoint.base_id,
+                                        interval: edge.edge_interval,
+                                    },
+                                );
+
+                                traversal_context.add_entity_id(edge.right_endpoint_edition_id);
+
+                                (edge.right_endpoint, edge.resolve_depths, edge.temporal_axes)
+                            }),
+                    );
+                }
             }
         }
 
