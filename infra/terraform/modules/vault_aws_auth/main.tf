@@ -1,11 +1,11 @@
-terraform {
-  required_providers {
-    vault = {
-      source  = "hashicorp/vault"
-      version = "~> 3.15"
-    }
-  }
-}
+/**
+  * # Terraform AWS module: Vault AWS Auth
+  *
+  * Module responsible for creating AWS credentials through Vault.
+  * Our infrastructure is set up in a way that allows us to create
+  * temporary AWS STS credentials, which this module will conditionally
+  * do depending on whether or not we're in a CI/CD pipeline.
+  */
 
 data "external" "env" {
   program = ["${path.module}/env.sh"]

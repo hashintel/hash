@@ -1,3 +1,17 @@
+/**
+  * # Terraform AWS module: Base network
+  *
+  * Module responsible for creating the base network infrastructure.
+  *
+  * This includes:
+  * - VPC
+  * - Subnets (public and private)
+  * - Internet gateway
+  * - Route tables
+  * - Flow logs
+  * - Basic IAM
+  */
+
 resource "aws_vpc" "main" {
   # IP address range 10.0.0.0 - 10.0.255.255 (131072 addresses)
   # We will have 10.0.0.0 - 10.0.127.0 contain the private subnet
