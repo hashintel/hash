@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{DecisionTime, LeftClosedTemporalInterval, RightBoundedTemporalInterval, Timestamp},
+        time::{DecisionTime, RightBoundedTemporalInterval, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
@@ -22,87 +22,18 @@ use crate::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
-        query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         query::StructuralQuery,
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
+        temporal_axes::VariableAxis,
         Subgraph,
     },
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// # Errors
-    ///
-    /// Returns an error if querying the entities with the specified edge fails.
-    #[expect(clippy::too_many_arguments)]
-    pub async fn traverse_knowledge_graph_edge(
-        &self,
-        entity_vertex_id: EntityVertexId,
-        entity_interval: LeftClosedTemporalInterval<VariableAxis>,
-        edge_kind: KnowledgeGraphEdgeKind,
-        edge_direction: EdgeDirection,
-        graph_resolve_depths: GraphResolveDepths,
-        temporal_axes: &QueryTemporalAxes,
-        _traversal_context: &mut TraversalContext,
-        subgraph: &mut Subgraph,
-    ) -> Result<
-        impl Iterator<Item = (EntityVertexId, GraphResolveDepths, QueryTemporalAxes)>,
-        QueryError,
-    > {
-        let mut items = vec![];
-
-        if let Some(new_graph_resolve_depths) =
-            graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
-        {
-            let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
-
-            for edge_entity in <Self as Read<Entity>>::read_vec(
-                self,
-                &Filter::for_knowledge_graph_edge_by_entity_id(
-                    entity_vertex_id.base_id,
-                    edge_kind,
-                    edge_direction.reversed(),
-                ),
-                Some(temporal_axes),
-            )
-            .await?
-            {
-                let edge_interval = edge_entity
-                    .metadata
-                    .temporal_versioning()
-                    .variable_time_interval(time_axis)
-                    .intersect(entity_interval)
-                    .unwrap_or_else(|| {
-                        unreachable!("The edge interval and the entity interval do not overlap")
-                    });
-
-                subgraph.insert_edge(
-                    &entity_vertex_id,
-                    edge_kind,
-                    edge_direction,
-                    EntityIdWithInterval {
-                        entity_id: edge_entity.metadata.record_id().entity_id,
-                        interval: edge_interval,
-                    },
-                );
-
-                let edge_entity_vertex_id = edge_entity.vertex_id(time_axis);
-                subgraph.insert_vertex(edge_entity_vertex_id, edge_entity);
-
-                items.push((
-                    edge_entity_vertex_id,
-                    new_graph_resolve_depths,
-                    temporal_axes.clone(),
-                ));
-            }
-        }
-        Ok(items.into_iter())
-    }
-
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
