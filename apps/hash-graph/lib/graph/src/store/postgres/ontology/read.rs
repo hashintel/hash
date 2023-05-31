@@ -10,7 +10,10 @@ use tokio_postgres::GenericClient;
 use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{
-    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
+    identifier::{
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
+        time::RightBoundedTemporalInterval,
+    },
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
@@ -29,7 +32,10 @@ use crate::{
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError, Record,
     },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxes},
+    subgraph::{
+        edges::GraphResolveDepths,
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
+    },
 };
 
 #[derive(Deserialize)]
@@ -229,7 +235,7 @@ pub struct OntologyTypeTraversalData {
     base_urls: Vec<String>,
     versions: Vec<OntologyTypeVersion>,
     resolve_depths: Vec<GraphResolveDepths>,
-    temporal_axes: Vec<QueryTemporalAxes>,
+    traversal_intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
 }
 
 impl OntologyTypeTraversalData {
@@ -237,13 +243,13 @@ impl OntologyTypeTraversalData {
         &mut self,
         versioned_url: &VersionedUrl,
         resolve_depth: GraphResolveDepths,
-        temporal_axis: QueryTemporalAxes,
+        traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) {
         self.base_urls.push(versioned_url.base_url.to_string());
         self.versions
             .push(OntologyTypeVersion::new(versioned_url.version));
         self.resolve_depths.push(resolve_depth);
-        self.temporal_axes.push(temporal_axis);
+        self.traversal_intervals.push(traversal_interval);
     }
 }
 
@@ -251,7 +257,7 @@ pub struct OntologyEdgeTraversal<L, R> {
     pub left_endpoint: L,
     pub right_endpoint: R,
     pub resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxes,
+    pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
 impl<C: AsClient> PostgresStore<C> {
@@ -333,7 +339,7 @@ impl<C: AsClient> PostgresStore<C> {
                         version: row.get::<_, OntologyTypeVersion>(4).inner(),
                     }),
                     resolve_depths: record_ids.resolve_depths[index],
-                    temporal_axes: record_ids.temporal_axes[index].clone(),
+                    traversal_interval: record_ids.traversal_intervals[index],
                 }
             }))
     }
