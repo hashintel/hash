@@ -165,7 +165,7 @@ impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
     ///  - **and** a `GraphResolveDepths` where all entries are greater than or equal to the new
     ///    resolve depth,
     ///  - **and** the new interval is contained in the existing interval.
-    /// 
+    ///
     /// An iterator is returned that yields the key, graph resolve depths, and interval for each
     /// entry that has to be traversed further. If no entry was added, the iterator will be empty.
     ///
