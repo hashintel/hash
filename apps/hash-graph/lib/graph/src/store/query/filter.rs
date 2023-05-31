@@ -446,9 +446,6 @@ where
             Self::In(lhs, rhs) => {
                 if let FilterExpression::Parameter(parameter) = lhs {
                     match rhs {
-                        ParameterList::VersionedUrls(_) => {
-                            parameter.convert_to_parameter_type(ParameterType::Text)?;
-                        }
                         ParameterList::Uuid(_) => {
                             parameter.convert_to_parameter_type(ParameterType::Uuid)?;
                         }
@@ -502,8 +499,6 @@ pub enum Parameter<'p> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParameterList<'p> {
-    // TODO: Use the internal ontology id instead to avoid allocating a string
-    VersionedUrls(&'p [String]),
     Uuid(&'p [Uuid]),
 }
 

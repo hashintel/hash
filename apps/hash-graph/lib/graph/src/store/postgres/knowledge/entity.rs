@@ -202,7 +202,7 @@ impl<C: AsClient> PostgresStore<C> {
                         );
 
                         traversal_context.add_entity_type_id(
-                            &edge.right_endpoint,
+                            edge.right_endpoint_ontology_id,
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )

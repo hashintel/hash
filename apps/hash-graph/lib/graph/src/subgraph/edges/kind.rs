@@ -192,6 +192,11 @@ pub struct GraphResolveDepths {
 
 impl GraphResolveDepths {
     #[must_use]
+    pub fn is_empty(self) -> bool {
+        self == Self::default()
+    }
+
+    #[must_use]
     pub fn contains(self, other: Self) -> bool {
         [
             self.inherits_from.contains(other.inherits_from),
