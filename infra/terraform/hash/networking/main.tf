@@ -5,58 +5,6 @@ module "base_network" {
   region_az_names = var.region_az_names
 }
 
-# TODO: Remove `moved` blocks after applying changes to _all_ environments
-moved {
-  from = aws_vpc.main
-  to   = module.base_network.aws_vpc.main
-}
-moved {
-  from = aws_cloudwatch_log_group.flow_log
-  to   = module.base_network.aws_cloudwatch_log_group.flow_log
-}
-moved {
-  from = aws_flow_log.flow_log
-  to   = module.base_network.aws_flow_log.flow_log
-}
-moved {
-  from = aws_iam_role.flow_log
-  to   = module.base_network.aws_iam_role.flow_log
-}
-moved {
-  from = aws_iam_role_policy.flow_log
-  to   = module.base_network.aws_iam_role_policy.flow_log
-}
-moved {
-  from = aws_internet_gateway.igw
-  to   = module.base_network.aws_internet_gateway.igw
-}
-moved {
-  from = aws_route_table.rtpriv
-  to   = module.base_network.aws_route_table.rtpriv
-}
-moved {
-  from = aws_route_table.rtpub
-  to   = module.base_network.aws_route_table.rtpub
-}
-moved {
-  from = aws_subnet.snpriv
-  to   = module.base_network.aws_subnet.snpriv
-}
-moved {
-  from = aws_subnet.snpub
-  to   = module.base_network.aws_subnet.snpub
-}
-moved {
-  from = aws_route_table_association.snpriv
-  to   = module.base_network.aws_route_table_association.snpriv
-}
-moved {
-  from = aws_route_table_association.snpub
-  to   = module.base_network.aws_route_table_association.snpub
-}
-# END OF TODO: Remove `moved` blocks after applying changes to _all_ environments
-
-
 ####################################
 # PrivateLink interface endpoints
 # Allows for services in private subnets to connect to particular AWS services
