@@ -37,8 +37,11 @@ runs:
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
+        # TODO: As caching does not work very reliably, we use `dev` for now
+        #   see https://app.asana.com/0/0/1202790039552161/f
+        #       https://app.asana.com/0/0/1203893407788521/f
         build-args: |
-          PROFILE=release
+          PROFILE=dev
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
 
