@@ -160,10 +160,14 @@ impl<K> Default for TraversalContextMap<K> {
 impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
     /// Adds a new entry to the map if it does not already exist.
     ///
-    /// Returns an iterator of entries which has to be resolved further. The entry is added
-    /// if there is not already an existing entry with another `GraphResolveDepths` that contains
-    /// the new `GraphResolveDepths` and the new interval is not contained in any existing
-    /// interval.
+    /// Inserting the entry is skipped if there is already an existing entry with:
+    ///  - the same key
+    ///  - **and** a `GraphResolveDepths` where all entries are greater than or equal to the new
+    ///    resolve depth,
+    ///  - **and** the new interval is contained in the existing interval.
+    /// 
+    /// An iterator is returned that yields the key, graph resolve depths, and interval for each
+    /// entry that has to be traversed further. If no entry was added, the iterator will be empty.
     ///
     /// The provided key will only be cloned on demand.
     fn add_id(
