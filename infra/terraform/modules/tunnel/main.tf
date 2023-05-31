@@ -1,3 +1,13 @@
+/**
+  * # Terraform module: Tunnel
+  *
+  * Module responsible for creating the SSH tunnel infrastructure.
+  * For some resouces in private subnets, we need to create an SSH tunnel
+  * through a bastion host to access them.
+  *
+  * The module calls out to a bash script that establishes an SSH tunnel.
+  */
+
 data "external" "ssh_tunnel" {
   program = ["${path.module}/ssh_tunnel.sh"]
   query = {

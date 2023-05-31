@@ -8,6 +8,7 @@ module "variables" {
   env             = terraform.workspace
   region          = var.region
   region_az_count = var.region_az_count
+  project         = "hash"
 }
 
 locals {
@@ -29,21 +30,17 @@ data "vault_kv_secret_v2" "secrets" {
   name = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
 }
 
-# TODO: consider making a module for Vault auth/AWS configuration
-#   This conditional is to allow CI to only issue one set of credentials.
-data "vault_aws_access_credentials" "aws_credentials" {
-  count   = var.in_ci ? 0 : 1
-  backend = "aws"
-  region  = local.region
-  role    = "${local.env}-deploy"
-  type    = "sts"
+module "vault_aws_auth" {
+  source = "../modules/vault_aws_auth"
+  region = local.region
+  env    = local.env
 }
 
 provider "aws" {
   region     = local.region
-  access_key = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].access_key
-  secret_key = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].secret_key
-  token      = var.in_ci ? null : data.vault_aws_access_credentials.aws_credentials[0].security_token
+  access_key = module.vault_aws_auth.access_key
+  secret_key = module.vault_aws_auth.secret_key
+  token      = module.vault_aws_auth.token
 
   default_tags {
     tags = {
@@ -56,7 +53,7 @@ provider "aws" {
 }
 
 module "networking" {
-  source          = "../modules/networking"
+  source          = "./networking"
   region          = var.region
   prefix          = local.prefix
   region_az_names = local.region_az_names
@@ -73,7 +70,7 @@ module "bastion" {
 
 module "postgres" {
   depends_on            = [module.networking]
-  source                = "../modules/postgres"
+  source                = "./postgres"
   prefix                = local.prefix
   subnets               = module.networking.snpriv
   vpc_id                = module.networking.vpc.id
@@ -110,7 +107,7 @@ provider "postgresql" {
 module "postgres_roles" {
   depends_on            = [module.postgres, module.bastion, module.tunnel.host]
   providers             = { postgresql = postgresql }
-  source                = "../modules/postgres_roles"
+  source                = "./postgres_roles"
   pg_db_name            = module.postgres.pg_db_name
   pg_superuser_username = "superuser"
   pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
@@ -121,7 +118,7 @@ module "postgres_roles" {
 
 module "redis" {
   depends_on      = [module.networking]
-  source          = "../modules/redis"
+  source          = "./redis"
   prefix          = local.prefix
   node_type       = "cache.t3.micro"
   vpc_id          = module.networking.vpc.id
@@ -132,7 +129,7 @@ module "redis" {
 
 module "application_ecs" {
   depends_on = [module.networking]
-  source     = "../modules/container_cluster"
+  source     = "./container_cluster"
   prefix     = local.prefix
   ecs_name   = "ecs"
 }
@@ -157,7 +154,7 @@ module "api_ecr" {
 
 module "application" {
   depends_on                   = [module.networking, module.postgres]
-  source                       = "../modules/hash_application"
+  source                       = "./hash_application"
   subnets                      = module.networking.snpub
   env                          = local.env
   region                       = local.region
