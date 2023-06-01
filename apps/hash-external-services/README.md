@@ -32,6 +32,8 @@ postgres-backup:
     POSTGRES_PORT: 5432
     # Change the name of the dumps here
     ARCHIVE_FILENAME: "$$(date +'%Y-%m-%dT%H-%M-%S').gz"
+    # These are the args passed to the `pg_dump` command
+    # read more at https://www.postgresql.org/docs/current/app-pgdump.html#PG-DUMP-OPTIONS
     DUMP_ARGS: -Fp -Z9
     # Change the cron here for the desired backup schedule
     # This is set to 00:00 UTC every day
