@@ -12,6 +12,12 @@ resource "aws_db_parameter_group" "postgres" {
     name  = "password_encryption"
     value = "scram-sha-256"
   }
+
+  parameter {
+    name  = "rds.force_ssl"
+    value = "0"
+  }
+
   # Currently we do not use logical replication
   # parameter {
   #   apply_method = "pending-reboot"
