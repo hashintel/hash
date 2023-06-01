@@ -2,7 +2,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
+use futures::{Stream, StreamExt, TryStreamExt};
 use postgres_types::{FromSql, Type};
 use serde::Deserialize;
 use time::OffsetDateTime;
@@ -25,9 +25,12 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::query::{
-            Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord, ReferenceTable,
-            SelectCompiler, Table, Transpile,
+        postgres::{
+            ontology::OntologyId,
+            query::{
+                Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord,
+                ReferenceTable, SelectCompiler, Table, Transpile,
+            },
         },
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError, Record,
@@ -232,8 +235,7 @@ where
 
 #[derive(Debug, Default)]
 pub struct OntologyTypeTraversalData {
-    base_urls: Vec<String>,
-    versions: Vec<OntologyTypeVersion>,
+    ontology_ids: Vec<OntologyId>,
     resolve_depths: Vec<GraphResolveDepths>,
     traversal_intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
 }
@@ -241,13 +243,11 @@ pub struct OntologyTypeTraversalData {
 impl OntologyTypeTraversalData {
     pub fn push(
         &mut self,
-        versioned_url: &VersionedUrl,
+        ontology_id: OntologyId,
         resolve_depth: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) {
-        self.base_urls.push(versioned_url.base_url.to_string());
-        self.versions
-            .push(OntologyTypeVersion::new(versioned_url.version));
+        self.ontology_ids.push(ontology_id);
         self.resolve_depths.push(resolve_depth);
         self.traversal_intervals.push(traversal_interval);
     }
@@ -256,11 +256,58 @@ impl OntologyTypeTraversalData {
 pub struct OntologyEdgeTraversal<L, R> {
     pub left_endpoint: L,
     pub right_endpoint: R,
+    pub right_endpoint_ontology_id: OntologyId,
     pub resolve_depths: GraphResolveDepths,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
 impl<C: AsClient> PostgresStore<C> {
+    pub(crate) async fn read_ontology_ids<R>(
+        &self,
+        filter: &Filter<'_, R>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<impl Stream<Item = Result<(R::VertexId, OntologyId), QueryError>>, QueryError>
+    where
+        R: for<'p> Record<QueryPath<'p>: PostgresQueryPath + OntologyQueryPath> + PostgresRecord,
+        R::VertexId: From<VersionedUrl>,
+    {
+        let mut compiler = SelectCompiler::new(temporal_axes);
+
+        let ontology_id_path = <R::QueryPath<'static> as OntologyQueryPath>::ontology_id();
+        let base_url_path = <R::QueryPath<'static> as OntologyQueryPath>::base_url();
+        let version_path = <R::QueryPath<'static> as OntologyQueryPath>::version();
+
+        let ontology_id_index = compiler.add_distinct_selection_with_ordering(
+            &ontology_id_path,
+            Distinctness::Distinct,
+            None,
+        );
+        let base_url_index = compiler.add_selection_path(&base_url_path);
+        let version_index = compiler.add_selection_path(&version_path);
+
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        Ok(self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .map(|row| row.into_report().change_context(QueryError))
+            .map_ok(move |row| {
+                (
+                    VersionedUrl {
+                        base_url: BaseUrl::new(row.get(base_url_index))
+                            .expect("Ontology type record base URL should always be a valid URL"),
+                        version: row.get::<_, OntologyTypeVersion>(version_index).inner(),
+                    }
+                    .into(),
+                    row.get(ontology_id_index),
+                )
+            }))
+    }
+
     pub(crate) async fn read_ontology_edges<'r, L, R>(
         &self,
         record_ids: &'r OntologyTypeTraversalData,
@@ -291,26 +338,26 @@ impl<C: AsClient> PostgresStore<C> {
                 &format!(
                     r#"
                         SELECT
-                            filter.idx      AS idx,
-                            source.base_url AS source_base_url,
-                            source.version  AS source_version,
-                            target.base_url AS target_base_url,
-                            target.version  AS target_version
+                            filter.idx         AS idx,
+                            source.base_url    AS source_base_url,
+                            source.version     AS source_version,
+                            target.base_url    AS target_base_url,
+                            target.version     AS target_version,
+                            target.ontology_id AS target_ontology_id
                         FROM {table}
 
                         JOIN ontology_ids as source
                           ON {source} = source.ontology_id
 
-                        JOIN unnest($1::text[], $2::int8[])
-                             WITH ORDINALITY AS filter(url, version, idx)
-                          ON filter.url = source.base_url
-                         AND filter.version = source.version
+                        JOIN unnest($1::uuid[])
+                             WITH ORDINALITY AS filter(id, idx)
+                          ON filter.id = source.ontology_id
 
                         JOIN ontology_ids as target
                           ON {target} = target.ontology_id;
                     "#
                 ),
-                &[&record_ids.base_urls, &record_ids.versions],
+                &[&record_ids.ontology_ids],
             )
             .await
             .into_report()
@@ -338,6 +385,7 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                         version: row.get::<_, OntologyTypeVersion>(4).inner(),
                     }),
+                    right_endpoint_ontology_id: row.get(5),
                     resolve_depths: record_ids.resolve_depths[index],
                     traversal_interval: record_ids.traversal_intervals[index],
                 }
