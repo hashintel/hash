@@ -463,10 +463,6 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         parameters: &'p ParameterList<'f>,
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameters {
-            ParameterList::VersionedUrls(ontology_ids) => {
-                self.artifacts.parameters.push(ontology_ids);
-                ParameterType::Text
-            }
             ParameterList::Uuid(uuids) => {
                 self.artifacts.parameters.push(uuids);
                 ParameterType::Uuid

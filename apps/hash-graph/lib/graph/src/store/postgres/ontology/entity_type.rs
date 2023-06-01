@@ -2,7 +2,8 @@ use std::{borrow::Borrow, collections::HashMap};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-use type_system::{url::VersionedUrl, EntityType};
+use futures::TryStreamExt;
+use type_system::EntityType;
 
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
@@ -36,7 +37,7 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
-            EntityTypeVertexId,
+            OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -50,7 +51,7 @@ impl<C: AsClient> PostgresStore<C> {
                 HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
 
             #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (entity_type_vertex_id, graph_resolve_depths, traversal_interval) in
+            for (entity_type_ontology_id, graph_resolve_depths, traversal_interval) in
                 entity_type_queue.drain(..)
             {
                 for edge_kind in [
@@ -63,10 +64,7 @@ impl<C: AsClient> PostgresStore<C> {
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            &VersionedUrl {
-                                base_url: entity_type_vertex_id.base_id.clone(),
-                                version: entity_type_vertex_id.revision_id.inner(),
-                            },
+                            entity_type_ontology_id,
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -92,7 +90,7 @@ impl<C: AsClient> PostgresStore<C> {
                         );
 
                         traversal_context.add_property_type_id(
-                            &edge.right_endpoint,
+                            edge.right_endpoint_ontology_id,
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -130,7 +128,7 @@ impl<C: AsClient> PostgresStore<C> {
                             );
 
                             traversal_context.add_entity_type_id(
-                                &edge.right_endpoint,
+                                edge.right_endpoint_ontology_id,
                                 edge.resolve_depths,
                                 edge.traversal_interval,
                             )
@@ -249,49 +247,46 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entity_types =
-            Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
-                .await?
-                .into_iter()
-                .map(|entity| (entity.vertex_id(time_axis), entity))
-                .collect();
-
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        subgraph.vertices.entity_types = entity_types;
 
-        for vertex_id in subgraph.vertices.entity_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
-
-        let mut traversal_context = TraversalContext::default();
-
-        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
-        //       vertices and have to `.collect()` the keys.
-        self.traverse_entity_types(
-            subgraph
-                .vertices
-                .entity_types
-                .keys()
-                .map(|id| {
+        if graph_resolve_depths.is_empty() {
+            subgraph.vertices.entity_types =
+                Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
+                    .await?
+                    .into_iter()
+                    .map(|entity_type| (entity_type.vertex_id(time_axis), entity_type))
+                    .collect();
+            for vertex_id in subgraph.vertices.entity_types.keys() {
+                subgraph.roots.insert(vertex_id.clone().into());
+            }
+        } else {
+            let traversal_data = self
+                .read_ontology_ids::<EntityTypeWithMetadata>(filter, Some(&temporal_axes))
+                .await?
+                .map_ok(|(vertex_id, ontology_id)| {
+                    subgraph.roots.insert(vertex_id.into());
                     (
-                        id.clone(),
-                        subgraph.depths,
-                        subgraph.temporal_axes.resolved.variable_interval(),
+                        ontology_id,
+                        graph_resolve_depths,
+                        temporal_axes.variable_interval(),
                     )
                 })
-                .collect(),
-            &mut traversal_context,
-            &mut subgraph,
-        )
-        .await?;
+                .try_collect::<Vec<_>>()
+                .await?;
 
-        traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
-            .await?;
+            let mut traversal_context = TraversalContext::default();
+
+            self.traverse_entity_types(traversal_data, &mut traversal_context, &mut subgraph)
+                .await?;
+
+            traversal_context
+                .read_traversed_vertices(self, &mut subgraph)
+                .await?;
+        }
 
         Ok(subgraph)
     }

@@ -21,8 +21,11 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
-        postgres::query::{
-            Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+        postgres::{
+            ontology::OntologyId,
+            query::{
+                Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+            },
         },
         query::Filter,
         AsClient, PostgresStore, QueryError,
@@ -240,6 +243,7 @@ impl EntityEdgeTraversalData {
 pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
+    pub right_endpoint_ontology_id: OntologyId,
     pub resolve_depths: GraphResolveDepths,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
@@ -273,6 +277,7 @@ impl<C: AsClient> PostgresStore<C> {
                              filter.idx,
                              ontology_ids.base_url,
                              ontology_ids.version,
+                             ontology_ids.ontology_id,
                              filter.interval * source.{variable_axis}
                         FROM unnest($1::uuid[], $2::uuid[], $3::timestamptz[], $4::tstzrange[])
                              WITH ORDINALITY
@@ -317,8 +322,9 @@ impl<C: AsClient> PostgresStore<C> {
                         base_id: BaseUrl::new(row.get(1)).expect("invalid URL"),
                         revision_id: row.get(2),
                     },
+                    right_endpoint_ontology_id: row.get(3),
                     resolve_depths: traversal_data.resolve_depths[index],
-                    traversal_interval: row.get(3),
+                    traversal_interval: row.get(4),
                 }
             }))
     }

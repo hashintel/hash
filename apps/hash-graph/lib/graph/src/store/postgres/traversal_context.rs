@@ -11,33 +11,29 @@ use crate::{
     },
     store::{
         crud::Read,
+        postgres::ontology::OntologyId,
         query::{Filter, FilterExpression, ParameterList},
         AsClient, PostgresStore, QueryError, Record,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-        temporal_axes::VariableAxis,
-        Subgraph,
-    },
+    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
     async fn read_data_types_by_ids(
         &self,
-        vertex_ids: impl IntoIterator<Item = &DataTypeVertexId, IntoIter: Send> + Send,
+        vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         let ids = vertex_ids
             .into_iter()
-            .map(|id| format!("{}v/{}", id.base_id, id.revision_id.inner()))
+            .map(OntologyId::as_uuid)
             .collect::<Vec<_>>();
 
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
             self,
             &Filter::<DataTypeWithMetadata>::In(
-                FilterExpression::Path(DataTypeQueryPath::VersionedUrl),
-                ParameterList::VersionedUrls(&ids),
+                FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
         )
@@ -54,19 +50,19 @@ impl<C: AsClient> PostgresStore<C> {
 
     async fn read_property_types_by_ids(
         &self,
-        vertex_ids: impl IntoIterator<Item = &PropertyTypeVertexId, IntoIter: Send> + Send,
+        vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         let ids = vertex_ids
             .into_iter()
-            .map(|id| format!("{}v/{}", id.base_id, id.revision_id.inner()))
+            .map(OntologyId::as_uuid)
             .collect::<Vec<_>>();
 
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
             self,
             &Filter::<PropertyTypeWithMetadata>::In(
-                FilterExpression::Path(PropertyTypeQueryPath::VersionedUrl),
-                ParameterList::VersionedUrls(&ids),
+                FilterExpression::Path(PropertyTypeQueryPath::OntologyId),
+                ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
         )
@@ -83,19 +79,19 @@ impl<C: AsClient> PostgresStore<C> {
 
     async fn read_entity_types_by_ids(
         &self,
-        vertex_ids: impl IntoIterator<Item = &EntityTypeVertexId, IntoIter: Send> + Send,
+        vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         let ids = vertex_ids
             .into_iter()
-            .map(|id| format!("{}v/{}", id.base_id, id.revision_id.inner()))
+            .map(OntologyId::as_uuid)
             .collect::<Vec<_>>();
 
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
             self,
             &Filter::<EntityTypeWithMetadata>::In(
-                FilterExpression::Path(EntityTypeQueryPath::VersionedUrl),
-                ParameterList::VersionedUrls(&ids),
+                FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
         )
@@ -157,7 +153,7 @@ impl<K> Default for TraversalContextMap<K> {
     }
 }
 
-impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
+impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
     /// Adds a new entry to the map if it does not already exist.
     ///
     /// Inserting the entry is skipped if there is already an existing entry with:
@@ -168,11 +164,9 @@ impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
     ///
     /// An iterator is returned that yields the key, graph resolve depths, and interval for each
     /// entry that has to be traversed further. If no entry was added, the iterator will be empty.
-    ///
-    /// The provided key will only be cloned on demand.
     fn add_id(
         &mut self,
-        key: &K,
+        key: K,
         graph_resolve_depths: GraphResolveDepths,
         interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> impl Iterator<
@@ -182,11 +176,7 @@ impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
             RightBoundedTemporalInterval<VariableAxis>,
         ),
     > {
-        let (key, values) = self
-            .0
-            .raw_entry_mut()
-            .from_key(key)
-            .or_insert_with(|| (key.clone(), Vec::new()));
+        let values = self.0.entry(key).or_default();
 
         // TODO: Further optimization could happen here. It's possible to return none, a single, or
         //       multiple entries depending on the existing depths and traversed interval.
@@ -198,16 +188,16 @@ impl<K: Eq + Hash + Clone> TraversalContextMap<K> {
             None.into_iter()
         } else {
             values.push((graph_resolve_depths, interval));
-            Some((key.clone(), graph_resolve_depths, interval)).into_iter()
+            Some((key, graph_resolve_depths, interval)).into_iter()
         }
     }
 }
 
 #[derive(Debug, Default)]
 pub struct TraversalContext {
-    data_types: TraversalContextMap<DataTypeVertexId>,
-    property_types: TraversalContextMap<PropertyTypeVertexId>,
-    entity_types: TraversalContextMap<EntityTypeVertexId>,
+    data_types: TraversalContextMap<OntologyId>,
+    property_types: TraversalContextMap<OntologyId>,
+    entity_types: TraversalContextMap<OntologyId>,
     entities: TraversalContextMap<EntityEditionId>,
 }
 
@@ -219,17 +209,17 @@ impl TraversalContext {
     ) -> Result<(), QueryError> {
         if !self.data_types.0.is_empty() {
             store
-                .read_data_types_by_ids(self.data_types.0.keys(), subgraph)
+                .read_data_types_by_ids(self.data_types.0.keys().copied(), subgraph)
                 .await?;
         }
         if !self.property_types.0.is_empty() {
             store
-                .read_property_types_by_ids(self.property_types.0.keys(), subgraph)
+                .read_property_types_by_ids(self.property_types.0.keys().copied(), subgraph)
                 .await?;
         }
         if !self.entity_types.0.is_empty() {
             store
-                .read_entity_types_by_ids(self.entity_types.0.keys(), subgraph)
+                .read_entity_types_by_ids(self.entity_types.0.keys().copied(), subgraph)
                 .await?;
         }
 
@@ -244,50 +234,50 @@ impl TraversalContext {
 
     pub fn add_data_type_id(
         &mut self,
-        vertex_id: &DataTypeVertexId,
+        ontology_id: OntologyId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> impl Iterator<
         Item = (
-            DataTypeVertexId,
+            OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         ),
     > {
         self.data_types
-            .add_id(vertex_id, graph_resolve_depths, traversal_interval)
+            .add_id(ontology_id, graph_resolve_depths, traversal_interval)
     }
 
     pub fn add_property_type_id(
         &mut self,
-        vertex_id: &PropertyTypeVertexId,
+        ontology_id: OntologyId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> impl Iterator<
         Item = (
-            PropertyTypeVertexId,
+            OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         ),
     > {
         self.property_types
-            .add_id(vertex_id, graph_resolve_depths, traversal_interval)
+            .add_id(ontology_id, graph_resolve_depths, traversal_interval)
     }
 
     pub fn add_entity_type_id(
         &mut self,
-        vertex_id: &EntityTypeVertexId,
+        ontology_id: OntologyId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> impl Iterator<
         Item = (
-            EntityTypeVertexId,
+            OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         ),
     > {
         self.entity_types
-            .add_id(vertex_id, graph_resolve_depths, traversal_interval)
+            .add_id(ontology_id, graph_resolve_depths, traversal_interval)
     }
 
     pub fn add_entity_id(
@@ -303,6 +293,6 @@ impl TraversalContext {
         ),
     > {
         self.entities
-            .add_id(&edition_id, graph_resolve_depths, traversal_interval)
+            .add_id(edition_id, graph_resolve_depths, traversal_interval)
     }
 }

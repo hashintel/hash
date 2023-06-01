@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use futures::TryStreamExt;
 use type_system::DataType;
 
 use crate::{
@@ -16,8 +17,7 @@ use crate::{
         Record, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
-        temporal_axes::VariableAxis, Subgraph,
+        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
     },
 };
 
@@ -29,7 +29,7 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn traverse_data_types(
         &self,
         queue: Vec<(
-            DataTypeVertexId,
+            OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -110,48 +110,46 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let data_types = Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
-            .await?
-            .into_iter()
-            .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect();
-
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        subgraph.vertices.data_types = data_types;
 
-        for vertex_id in subgraph.vertices.data_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
-
-        let mut traversal_context = TraversalContext::default();
-
-        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
-        //       vertices and have to `.collect()` the keys.
-        self.traverse_data_types(
-            subgraph
-                .vertices
-                .data_types
-                .keys()
-                .map(|id| {
+        if graph_resolve_depths.is_empty() {
+            subgraph.vertices.data_types =
+                Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
+                    .await?
+                    .into_iter()
+                    .map(|data_type| (data_type.vertex_id(time_axis), data_type))
+                    .collect();
+            for vertex_id in subgraph.vertices.data_types.keys() {
+                subgraph.roots.insert(vertex_id.clone().into());
+            }
+        } else {
+            let traversal_data = self
+                .read_ontology_ids::<DataTypeWithMetadata>(filter, Some(&temporal_axes))
+                .await?
+                .map_ok(|(vertex_id, ontology_id)| {
+                    subgraph.roots.insert(vertex_id.into());
                     (
-                        id.clone(),
-                        subgraph.depths,
-                        subgraph.temporal_axes.resolved.variable_interval(),
+                        ontology_id,
+                        graph_resolve_depths,
+                        temporal_axes.variable_interval(),
                     )
                 })
-                .collect(),
-            &mut traversal_context,
-            &mut subgraph,
-        )
-        .await?;
+                .try_collect::<Vec<_>>()
+                .await?;
 
-        traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
-            .await?;
+            let mut traversal_context = TraversalContext::default();
+
+            self.traverse_data_types(traversal_data, &mut traversal_context, &mut subgraph)
+                .await?;
+
+            traversal_context
+                .read_traversed_vertices(self, &mut subgraph)
+                .await?;
+        }
 
         Ok(subgraph)
     }
