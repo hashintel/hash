@@ -5,8 +5,8 @@ resource "aws_db_subnet_group" "postgres" {
 }
 
 resource "aws_db_parameter_group" "postgres" {
-  name   = "${var.prefix}-pgparamgrp14"
-  family = "postgres14"
+  name   = "${var.prefix}-pgparamgrp15"
+  family = "postgres15"
 
   parameter {
     name  = "password_encryption"
@@ -18,6 +18,10 @@ resource "aws_db_parameter_group" "postgres" {
   #   name         = "rds.logical_replication"
   #   value        = "1"
   # }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 resource "aws_security_group" "pg" {
   name   = "${var.prefix}-pg"
@@ -57,7 +61,7 @@ resource "aws_db_instance" "postgres" {
   parameter_group_name            = aws_db_parameter_group.postgres.name
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   engine                          = "postgres"
-  engine_version                  = "14.6"
+  engine_version                  = "15.3"
   allow_major_version_upgrade     = true
   instance_class                  = var.instance_class
   db_name                         = "postgres" # Initial database name
