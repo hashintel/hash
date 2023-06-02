@@ -991,8 +991,8 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_a_entity_id", response.body.recordId.entityId);
-    client.global.set("person_a_owned_by_id", response.body.recordId.entityId.split("%")[0])
-    client.global.set("person_a_entity_uuid", response.body.recordId.entityId.split("%")[1])
+    client.global.set("person_a_owned_by_id", response.body.recordId.entityId.split("~")[0])
+    client.global.set("person_a_entity_uuid", response.body.recordId.entityId.split("~")[1])
 %}
 
 ### Get latest Person entity
@@ -1118,7 +1118,7 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_b_entity_id", response.body.recordId.entityId);
-    client.global.set("person_b_entity_uuid", response.body.recordId.entityId.split("%")[1])
+    client.global.set("person_b_entity_uuid", response.body.recordId.entityId.split("~")[1])
 %}
 
 ### Get all latest entities by using a query

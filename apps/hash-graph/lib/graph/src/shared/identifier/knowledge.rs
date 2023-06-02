@@ -23,9 +23,15 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 }
 
+pub const ENTITY_ID_SEPARATOR: char = '~';
+
 impl fmt::Display for EntityId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}%{}", self.owned_by_id, self.entity_uuid)
+        write!(
+            fmt,
+            "{}{}{}",
+            self.owned_by_id, ENTITY_ID_SEPARATOR, self.entity_uuid
+        )
     }
 }
 
@@ -43,24 +49,23 @@ impl<'de> Deserialize<'de> for EntityId {
     where
         D: Deserializer<'de>,
     {
-        // We can be more efficient than this, we know the byte sizes of all the elements
-        let as_string = String::deserialize(deserializer)?;
-        let mut parts = as_string.split('%');
-
-        Ok(Self {
-            owned_by_id: OwnedById::new(AccountId::new(
-                uuid::Uuid::from_str(parts.next().ok_or_else(|| {
-                    D::Error::custom("failed to find first component of `%` delimited string")
-                })?)
-                .map_err(|err| D::Error::custom(err.to_string()))?,
-            )),
-            entity_uuid: EntityUuid::new(
-                uuid::Uuid::from_str(parts.next().ok_or_else(|| {
-                    D::Error::custom("failed to find second component of `%` delimited string")
-                })?)
-                .map_err(|err| D::Error::custom(err.to_string()))?,
-            ),
-        })
+        String::deserialize(deserializer)?
+            .split_once(ENTITY_ID_SEPARATOR)
+            .ok_or_else(|| {
+                Error::custom(format!(
+                    "failed to find `{ENTITY_ID_SEPARATOR}` delimited string",
+                ))
+            })
+            .and_then(|(owned_by_id, entity_uuid)| {
+                Ok(Self {
+                    owned_by_id: OwnedById::new(AccountId::new(
+                        Uuid::from_str(owned_by_id).map_err(Error::custom)?,
+                    )),
+                    entity_uuid: EntityUuid::new(
+                        Uuid::from_str(entity_uuid).map_err(Error::custom)?,
+                    ),
+                })
+            })
     }
 }
 

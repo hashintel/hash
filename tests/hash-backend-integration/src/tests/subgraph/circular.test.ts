@@ -9,6 +9,7 @@ import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity
 import { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   Entity,
+  ENTITY_ID_SEPARATOR,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
@@ -100,7 +101,7 @@ beforeAll(async () => {
     return entities.find((entity) => {
       return (
         (entity.metadata.recordId.entityId as string).toLowerCase() ===
-        `00000000-0001-0000-0000-000000000000%${name
+        `00000000-0001-0000-0000-000000000000${ENTITY_ID_SEPARATOR}${name
           .toLowerCase()
           .padStart(8, "0")}-0001-0000-0000-000000000000`
       );
