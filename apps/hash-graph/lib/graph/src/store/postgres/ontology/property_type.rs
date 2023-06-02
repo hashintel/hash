@@ -1,8 +1,8 @@
 use std::{borrow::Borrow, collections::HashMap};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
-use futures::TryStreamExt;
+use error_stack::{IntoReport, Report, Result, ResultExt};
+use futures::{stream, TryStreamExt};
 use type_system::PropertyType;
 
 use crate::{
@@ -247,21 +247,25 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 subgraph.roots.insert(vertex_id.clone().into());
             }
         } else {
+            let mut traversal_context = TraversalContext::default();
             let traversal_data = self
                 .read_ontology_ids::<PropertyTypeWithMetadata>(filter, Some(&temporal_axes))
                 .await?
                 .map_ok(|(vertex_id, ontology_id)| {
                     subgraph.roots.insert(vertex_id.into());
-                    (
-                        ontology_id,
-                        graph_resolve_depths,
-                        temporal_axes.variable_interval(),
+                    stream::iter(
+                        traversal_context
+                            .add_property_type_id(
+                                ontology_id,
+                                graph_resolve_depths,
+                                temporal_axes.variable_interval(),
+                            )
+                            .map(Ok::<_, Report<QueryError>>),
                     )
                 })
+                .try_flatten()
                 .try_collect::<Vec<_>>()
                 .await?;
-
-            let mut traversal_context = TraversalContext::default();
 
             self.traverse_property_types(traversal_data, &mut traversal_context, &mut subgraph)
                 .await?;
