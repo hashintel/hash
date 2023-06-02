@@ -23,14 +23,14 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 }
 
-pub const ENTITY_ID_SEPARATOR: char = '~';
+pub const ENTITY_ID_DELIMITER: char = '~';
 
 impl fmt::Display for EntityId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             fmt,
             "{}{}{}",
-            self.owned_by_id, ENTITY_ID_SEPARATOR, self.entity_uuid
+            self.owned_by_id, ENTITY_ID_DELIMITER, self.entity_uuid
         )
     }
 }
@@ -50,10 +50,10 @@ impl<'de> Deserialize<'de> for EntityId {
         D: Deserializer<'de>,
     {
         String::deserialize(deserializer)?
-            .split_once(ENTITY_ID_SEPARATOR)
+            .split_once(ENTITY_ID_DELIMITER)
             .ok_or_else(|| {
                 Error::custom(format!(
-                    "failed to find `{ENTITY_ID_SEPARATOR}` delimited string",
+                    "failed to find `{ENTITY_ID_DELIMITER}` delimited string",
                 ))
             })
             .and_then(|(owned_by_id, entity_uuid)| {

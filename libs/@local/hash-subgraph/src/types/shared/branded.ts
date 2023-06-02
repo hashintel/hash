@@ -23,16 +23,16 @@ export type OwnedById = Brand<AccountId, "OwnedById">;
 /** A `Uuid` that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;
 
-export const ENTITY_ID_SEPARATOR = "~";
+export const ENTITY_ID_DELIMITER = "~";
 
 /** An ID to uniquely identify an entity */
 export type EntityId = Brand<
-  `${OwnedById}${typeof ENTITY_ID_SEPARATOR}${EntityUuid}`,
+  `${OwnedById}${typeof ENTITY_ID_DELIMITER}${EntityUuid}`,
   "EntityId"
 >;
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
-  const [accountId, entityUuid] = entityId.split(ENTITY_ID_SEPARATOR);
+  const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
   return (
     accountId != null &&
     entityUuid != null &&
@@ -45,11 +45,11 @@ export const entityIdFromOwnedByIdAndEntityUuid = (
   ownedById: OwnedById,
   entityUuid: EntityUuid,
 ): EntityId => {
-  return `${ownedById}${ENTITY_ID_SEPARATOR}${entityUuid}` as EntityId;
+  return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
 };
 
 export const splitEntityId = (entityId: EntityId): [OwnedById, EntityUuid] => {
-  const [ownedById, entityUuid] = entityId.split(ENTITY_ID_SEPARATOR);
+  const [ownedById, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
   return [ownedById as OwnedById, entityUuid as EntityUuid];
 };
 
