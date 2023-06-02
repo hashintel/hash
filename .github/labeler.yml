@@ -3,6 +3,7 @@ A-infra:
   - ".github/**"
   - ".*ignore"
   - ".markdownlint*"
+  - "infra/**"
   - "*.json"
   - "*.md"
   - "*.yml"

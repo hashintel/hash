@@ -46,6 +46,8 @@ pub enum Filter<'p, R: Record + ?Sized> {
         Option<FilterExpression<'p, R>>,
         Option<FilterExpression<'p, R>>,
     ),
+    #[serde(skip)]
+    In(FilterExpression<'p, R>, ParameterList<'p>),
     StartsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
     EndsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
     ContainsSegment(FilterExpression<'p, R>, FilterExpression<'p, R>),
@@ -441,6 +443,15 @@ where
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
+            Self::In(lhs, rhs) => {
+                if let FilterExpression::Parameter(parameter) = lhs {
+                    match rhs {
+                        ParameterList::Uuid(_) => {
+                            parameter.convert_to_parameter_type(ParameterType::Uuid)?;
+                        }
+                    }
+                }
+            }
             Self::StartsWith(lhs, rhs)
             | Self::EndsWith(lhs, rhs)
             | Self::ContainsSegment(lhs, rhs) => {
@@ -484,6 +495,11 @@ pub enum Parameter<'p> {
     Uuid(Uuid),
     #[serde(skip)]
     OntologyTypeVersion(OntologyTypeVersion),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ParameterList<'p> {
+    Uuid(&'p [Uuid]),
 }
 
 impl Parameter<'_> {
