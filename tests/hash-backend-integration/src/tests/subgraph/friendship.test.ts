@@ -7,7 +7,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { getEntityTypeById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { getDataTypes } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import {
+  getEntityTypeById,
+  getEntityTypes,
+} from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { getPropertyTypes } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   BaseUrl,
@@ -19,7 +24,7 @@ import {
   Timestamp,
 } from "@local/hash-subgraph";
 import {
-  getEntityTypes,
+  getEntityTypes as getEntityTypesFromSubgraph,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -181,6 +186,68 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await resetGraph();
+});
+
+describe("Ontology queries", () => {
+  it("read data types", async () => {
+    const subgraph = await getDataTypes(graphContext, {
+      query: {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 1 },
+        },
+        temporalAxes: fullDecisionTimeAxis,
+      },
+    });
+    expect(subgraph.roots.length).toEqual(3);
+    expect(Object.keys(subgraph.edges).length).toEqual(0);
+    const data_types = getRoots(subgraph);
+
+    expect(data_types.length).toBe(3);
+  });
+
+  it("read property types", async () => {
+    const subgraph = await getPropertyTypes(graphContext, {
+      query: {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 1 },
+        },
+        temporalAxes: fullDecisionTimeAxis,
+      },
+    });
+    expect(subgraph.roots.length).toEqual(2);
+    expect(Object.keys(subgraph.edges).length).toEqual(0);
+    const property_types = getRoots(subgraph);
+
+    expect(property_types.length).toBe(2);
+  });
+
+  it("read entity types", async () => {
+    const subgraph = await getEntityTypes(graphContext, {
+      query: {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 1 },
+        },
+        temporalAxes: fullDecisionTimeAxis,
+      },
+    });
+    expect(subgraph.roots.length).toEqual(4);
+    expect(Object.keys(subgraph.edges).length).toEqual(1);
+    const entity_types = getRoots(subgraph);
+
+    expect(entity_types.length).toBe(4);
+  });
 });
 
 describe("Simple queries", () => {
@@ -515,7 +582,7 @@ describe("non-zero, simple resolve depths", () => {
     const friendship_entity = roots[0]!;
     expect(friendship_entity).toStrictEqual(linkEntities[0]);
 
-    const entityTypes = getEntityTypes(subgraph);
+    const entityTypes = getEntityTypesFromSubgraph(subgraph);
     expect(entityTypes).toStrictEqual([friendshipEntityType]);
   });
 
