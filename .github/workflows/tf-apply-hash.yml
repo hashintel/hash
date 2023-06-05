@@ -1,8 +1,5 @@
 name: HASH Terraform Apply
 
-# TODO: While this workflow is specific to HASH, we should consider
-#  making this a reusable workflow, parameterized on the directory and environment.
-
 on:
   workflow_dispatch:
     inputs:
@@ -41,6 +38,8 @@ jobs:
 
   terraform:
     runs-on: ubuntu-latest
+    # The following permissions are required for the Vault step used in the
+    # Terraform Plan composite action.
     permissions:
       id-token: write
       contents: read

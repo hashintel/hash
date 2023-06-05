@@ -19,8 +19,6 @@ jobs:
   matrix-eval:
     name: Prepare environments to be planned
     runs-on: ubuntu-latest
-    # The following permissions are required for the Vault step used in the
-    # Terraform Plan composite action.
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -35,6 +33,8 @@ jobs:
 
   terraform:
     runs-on: ubuntu-latest
+    # The following permissions are required for the Vault step used in the
+    # Terraform Plan composite action.
     permissions:
       id-token: write
       contents: read
