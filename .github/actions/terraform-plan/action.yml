@@ -1,0 +1,87 @@
+name: Terraform Plan
+description: Run `terraform plan` with AWS credentials fetched through Vault.
+
+inputs:
+  vault-address:
+    description: Vault address
+    required: true
+  env:
+    description: Environment to run the plan for
+    required: true
+  working-directory:
+    description: Directory to run the plan in
+    required: false
+    default: .
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v2
+
+    - name: Authenticate Vault
+      id: secrets
+      uses: hashicorp/vault-action@v2
+      with:
+        exportToken: true
+        url: ${{ inputs.vault-address }}
+        method: jwt
+        role: ${{ inputs.env }}
+        # Even though it could look like separate calls to fetch the secrets
+        # the responses here are cached, so we're only issuing a single set of credentials
+        secrets: |
+          aws/creds/${{ inputs.env }}-deploy access_key | AWS_ACCESS_KEY_ID ;
+          aws/creds/${{ inputs.env }}-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+          aws/creds/${{ inputs.env }}-deploy security_token | AWS_SESSION_TOKEN
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+        aws-region: us-east-1
+
+    - name: "[${{ inputs.env }}] Terraform Init"
+      id: init
+      env:
+        TF_WORKSPACE: ${{ inputs.env }}
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: terraform init -no-color 2>&1
+
+    - name: Terraform Validate
+      id: validate
+      shell: bash
+      run: terraform validate -no-color 2>&1
+
+    - name: "[${{ inputs.env }}] Terraform Plan"
+      id: plan
+      env:
+        TF_VAR_in_ci: true
+        TF_WORKSPACE: ${{ inputs.env }}
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: terraform plan -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1
+
+    - uses: actions/github-script@v6
+      id: set-result
+      with:
+        script: |
+          const plan = `${{ steps.plan.outputs.stdout }}`.replaceAll(/^~/g, "!");
+
+          const heading = `Terraform [${{inputs.env}}] plan results 🧪`
+
+          await core.summary
+            .addHeading(heading)
+            .addDetails(
+              "Terraform Initialization ⚙️ (${{ steps.init.outcome }})", 
+              `<pre><code>${{ steps.init.outputs.stdout }}</code></pre>`
+            )
+            .addDetails(
+              "Validation Output 🤖 (${{ steps.validate.outcome }})",
+              `<pre><code>${{ steps.validate.outputs.stdout }}</code></pre>`
+            )
+            .addDetails("Plan Output 📖 (${{ steps.plan.outcome }})", 
+              `<pre><code lang="diff">${plan}</code></pre>`
+            )
+            .write();
