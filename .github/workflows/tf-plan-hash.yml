@@ -34,7 +34,7 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     # The following permissions are required for the Vault step used in the
-    # Terraform Plan composite action.
+    # Terraform composite action.
     permissions:
       id-token: write
       contents: read
