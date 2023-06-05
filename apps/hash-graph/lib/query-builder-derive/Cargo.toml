@@ -7,7 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-virtue = "0.0.13"
+virtue = "0.0.14"
 syn = "2.0.18"
 
 [dev-dependencies]
