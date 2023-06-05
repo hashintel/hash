@@ -66,6 +66,7 @@ runs:
       env:
         TF_VAR_in_ci: true
         TF_WORKSPACE: ${{ inputs.env }}
+        VAULT_ADDR: ${{ inputs.vault-address }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
       run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1
