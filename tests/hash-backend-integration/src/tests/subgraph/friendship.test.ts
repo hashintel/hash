@@ -189,136 +189,124 @@ afterAll(async () => {
 });
 
 describe("Ontology queries", () => {
-  it("read data types", async () => {
-    const resolve_depths = [
-      zeroedGraphResolveDepths,
-      {
-        ...zeroedGraphResolveDepths,
-        inheritsFrom: { outgoing: 1 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        inheritsFrom: { outgoing: 255 },
-      },
-    ];
-
-    for (const resolve_depth of resolve_depths) {
-      const subgraph = await getDataTypes(graphContext, {
-        query: {
-          filter: {
-            all: [],
-          },
-          graphResolveDepths: resolve_depth,
-          temporalAxes: fullDecisionTimeAxis,
+  it.each([
+    zeroedGraphResolveDepths,
+    {
+      ...zeroedGraphResolveDepths,
+      inheritsFrom: { outgoing: 1 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      inheritsFrom: { outgoing: 255 },
+    },
+  ])("read data types %#", async (resolve_depths) => {
+    const subgraph = await getDataTypes(graphContext, {
+      query: {
+        filter: {
+          all: [],
         },
-      });
-      expect(subgraph.roots.length).toEqual(3);
-      expect(Object.keys(subgraph.edges).length).toEqual(0);
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
+      },
+    });
+    expect(subgraph.roots.length).toEqual(3);
+    expect(Object.keys(subgraph.edges).length).toEqual(0);
 
-      expect(
-        getRoots(subgraph)
-          .map(({ schema }) => schema.$id)
-          .sort(),
-      ).toStrictEqual([
-        "http://localhost:3000/@alice/types/data-type/number/v/1",
-        "http://localhost:3000/@alice/types/data-type/text/v/1",
-        "http://localhost:3000/@alice/types/data-type/text/v/2",
-      ]);
-    }
+    expect(
+      getRoots(subgraph)
+        .map(({ schema }) => schema.$id)
+        .sort(),
+    ).toStrictEqual([
+      "http://localhost:3000/@alice/types/data-type/number/v/1",
+      "http://localhost:3000/@alice/types/data-type/text/v/1",
+      "http://localhost:3000/@alice/types/data-type/text/v/2",
+    ]);
   });
 
-  it("read property types", async () => {
-    const resolve_depths = [
-      zeroedGraphResolveDepths,
-      {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn: { outgoing: 1 },
-        constrainsPropertiesOn: { outgoing: 1 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn: { outgoing: 255 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        constrainsPropertiesOn: { outgoing: 255 },
-      },
-    ];
-
-    for (const resolve_depth of resolve_depths) {
-      const subgraph = await getPropertyTypes(graphContext, {
-        query: {
-          filter: {
-            all: [],
-          },
-          graphResolveDepths: resolve_depth,
-          temporalAxes: fullDecisionTimeAxis,
+  it.each([
+    zeroedGraphResolveDepths,
+    {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn: { outgoing: 1 },
+      constrainsPropertiesOn: { outgoing: 1 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn: { outgoing: 255 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      constrainsPropertiesOn: { outgoing: 255 },
+    },
+  ])("read property types %#", async (resolve_depths) => {
+    const subgraph = await getPropertyTypes(graphContext, {
+      query: {
+        filter: {
+          all: [],
         },
-      });
-      expect(subgraph.roots.length).toEqual(2);
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
+      },
+    });
+    expect(subgraph.roots.length).toEqual(2);
 
-      expect(
-        getRoots(subgraph)
-          .map(({ schema }) => schema.$id)
-          .sort(),
-      ).toStrictEqual([
-        "http://localhost:3000/@alice/types/property-type/name/v/1",
-        "http://localhost:3000/@alice/types/property-type/name/v/2",
-      ]);
-    }
+    expect(
+      getRoots(subgraph)
+        .map(({ schema }) => schema.$id)
+        .sort(),
+    ).toStrictEqual([
+      "http://localhost:3000/@alice/types/property-type/name/v/1",
+      "http://localhost:3000/@alice/types/property-type/name/v/2",
+    ]);
   });
 
-  it("read entity types", async () => {
-    const resolve_depths = [
-      zeroedGraphResolveDepths,
-      {
-        ...zeroedGraphResolveDepths,
-        inheritsFrom: { outgoing: 1 },
-        constrainsPropertiesOn: { outgoing: 1 },
-        constrainsLinksOn: { outgoing: 1 },
-        constrainsLinkDestinationsOn: { outgoing: 1 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        inheritsFrom: { outgoing: 255 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        constrainsPropertiesOn: { outgoing: 255 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        constrainsLinksOn: { outgoing: 255 },
-      },
-      {
-        ...zeroedGraphResolveDepths,
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-      },
-    ];
-
-    for (const resolve_depth of resolve_depths) {
-      const subgraph = await getEntityTypes(graphContext, {
-        query: {
-          filter: {
-            all: [],
-          },
-          graphResolveDepths: resolve_depth,
-          temporalAxes: fullDecisionTimeAxis,
+  it.each([
+    zeroedGraphResolveDepths,
+    {
+      ...zeroedGraphResolveDepths,
+      inheritsFrom: { outgoing: 1 },
+      constrainsPropertiesOn: { outgoing: 1 },
+      constrainsLinksOn: { outgoing: 1 },
+      constrainsLinkDestinationsOn: { outgoing: 1 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      inheritsFrom: { outgoing: 255 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      constrainsPropertiesOn: { outgoing: 255 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      constrainsLinksOn: { outgoing: 255 },
+    },
+    {
+      ...zeroedGraphResolveDepths,
+      constrainsLinkDestinationsOn: { outgoing: 255 },
+    },
+  ])("read entity types %#", async (resolve_depths) => {
+    const subgraph = await getEntityTypes(graphContext, {
+      query: {
+        filter: {
+          all: [],
         },
-      });
-      expect(subgraph.roots.length).toEqual(4);
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
+      },
+    });
+    expect(subgraph.roots.length).toEqual(4);
 
-      expect(
-        getRoots(subgraph)
-          .map(({ schema }) => schema.$id)
-          .sort(),
-      ).toStrictEqual([
-        "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
-        "http://localhost:3000/@alice/types/entity-type/person/v/1",
-        "http://localhost:3000/@alice/types/entity-type/person/v/2",
-        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
-      ]);
-    }
+    expect(
+      getRoots(subgraph)
+        .map(({ schema }) => schema.$id)
+        .sort(),
+    ).toStrictEqual([
+      "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
+      "http://localhost:3000/@alice/types/entity-type/person/v/1",
+      "http://localhost:3000/@alice/types/entity-type/person/v/2",
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    ]);
   });
 });
 
