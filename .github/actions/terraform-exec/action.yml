@@ -61,7 +61,7 @@ runs:
       shell: bash
       run: terraform validate -no-color 2>&1
 
-    - name: "[${{ inputs.env }}] Terraform Plan"
+    - name: "[${{ inputs.env }}] Terraform ${{ inputs.command }}"
       id: cmd
       env:
         TF_VAR_in_ci: true
