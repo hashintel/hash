@@ -35,14 +35,14 @@ jobs:
 
   terraform:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     needs:
       - matrix-eval
     strategy:
       matrix:
         env: ${{ fromJson(needs.matrix-eval.outputs.matrix) }}
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v3
 

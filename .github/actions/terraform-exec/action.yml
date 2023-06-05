@@ -6,7 +6,7 @@ inputs:
     description: Vault address
     required: true
   working-directory:
-    description: Directory to run the plan in
+    description: Directory to run the command in
     required: false
     default: .
   command:
@@ -17,7 +17,7 @@ inputs:
       - plan
       - apply
   env:
-    description: Environment to run the plan for
+    description: Environment to run the command within
     required: true
 
 runs:
@@ -62,7 +62,7 @@ runs:
       run: terraform validate -no-color 2>&1
 
     - name: "[${{ inputs.env }}] Terraform Plan"
-      id: plan
+      id: cmd
       env:
         TF_VAR_in_ci: true
         TF_WORKSPACE: ${{ inputs.env }}
@@ -74,7 +74,7 @@ runs:
       id: set-result
       with:
         script: |
-          const plan = `${{ steps.plan.outputs.stdout }}`.replaceAll(/^~/g, "!");
+          const cmd = `${{ steps.cmd.outputs.stdout }}`.replaceAll(/^~/g, "!");
 
           const heading = `Terraform [${{inputs.env}}] ${{ inputs.command }} results 🧪`
 
@@ -83,14 +83,14 @@ runs:
           await core.summary
             .addHeading(heading)
             .addDetails(
-              "Terraform Initialization ⚙️ (${{ steps.init.outcome }})", 
+              "Output of Terraform initialization ⚙️ (${{ steps.init.outcome }})", 
               `<pre><code>${{ steps.init.outputs.stdout }}</code></pre>`
             )
             .addDetails(
-              "Validation Output 🤖 (${{ steps.validate.outcome }})",
+              "Output of validation 🤖 (${{ steps.validate.outcome }})",
               `<pre><code>${{ steps.validate.outputs.stdout }}</code></pre>`
             )
-            .addDetails("Plan Output 📖 (${{ steps.plan.outcome }})", 
-              `<pre><code lang="diff">${plan}</code></pre>`
+            .addDetails("Output of ${{ inputs.command }} 📖 (${{ steps.cmd.outcome }})", 
+              `<pre><code lang="diff">${cmd}</code></pre>`
             )
             .write();
