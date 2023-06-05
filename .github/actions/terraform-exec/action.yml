@@ -48,7 +48,7 @@ runs:
         aws-session-token: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
         aws-region: us-east-1
 
-    - name: "[${{ inputs.env }}] Terraform Init"
+    - name: "[${{ inputs.env }}] Terraform init"
       id: init
       env:
         TF_WORKSPACE: ${{ inputs.env }}
