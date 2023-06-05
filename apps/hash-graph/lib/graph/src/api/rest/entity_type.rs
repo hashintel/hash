@@ -12,8 +12,6 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-#[cfg(feature = "type-fetcher")]
-use crate::ontology::OntologyTypeReference;
 use crate::{
     api::{
         error::{ErrorInfo, Status, StatusPayloads},
@@ -29,7 +27,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata,
+        OntologyTypeReference, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -87,7 +85,6 @@ impl RoutedResource for EntityTypeResource {
 #[serde(rename_all = "camelCase", untagged)]
 enum CreateEntityTypeRequest {
     Owned(CreateOwnedEntityTypeRequest),
-    #[cfg(feature = "type-fetcher")]
     External(CreateExternalEntityTypeRequest),
 }
 
@@ -162,7 +159,6 @@ where
         actor_id,
     } = match body.0 {
         CreateEntityTypeRequest::Owned(request) => request,
-        #[cfg(feature = "type-fetcher")]
         CreateEntityTypeRequest::External(request) => {
             return Ok(Json(ListOrValue::Value(
                 store

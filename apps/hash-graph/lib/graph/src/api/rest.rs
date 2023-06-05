@@ -20,7 +20,6 @@ mod property_type;
 
 use std::{collections::HashMap, fs, io, sync::Arc};
 
-#[cfg(feature = "type-fetcher")]
 use async_trait::async_trait;
 use axum::{
     extract::Path,
@@ -63,10 +62,10 @@ use crate::{
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
-        OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
+        OntologyElementMetadata, OntologyTypeReference, OwnedOntologyElementMetadata, Selector,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{QueryError, Store, StorePool},
+    store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -79,13 +78,7 @@ use crate::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
-#[cfg(feature = "type-fetcher")]
-use crate::{
-    ontology::OntologyTypeReference,
-    store::{error::VersionedUrlAlreadyExists, TypeFetcher},
-};
 
-#[cfg(feature = "type-fetcher")]
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
     async fn load_external_type(
@@ -96,7 +89,6 @@ pub trait RestApiStore: Store + TypeFetcher {
     ) -> Result<OntologyElementMetadata, StatusCode>;
 }
 
-#[cfg(feature = "type-fetcher")]
 #[async_trait]
 impl<S> RestApiStore for S
 where
@@ -129,11 +121,6 @@ where
             })
     }
 }
-
-#[cfg(not(feature = "type-fetcher"))]
-pub trait RestApiStore: Store {}
-#[cfg(not(feature = "type-fetcher"))]
-impl<S> RestApiStore for S where S: Store {}
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
