@@ -1,17 +1,24 @@
-name: Terraform Plan
-description: Run `terraform plan` with AWS credentials fetched through Vault.
+name: Terraform execute
+description: Run `terraform` [command] with AWS credentials fetched through Vault.
 
 inputs:
   vault-address:
     description: Vault address
     required: true
-  env:
-    description: Environment to run the plan for
-    required: true
   working-directory:
     description: Directory to run the plan in
     required: false
     default: .
+  command:
+    type: choice
+    description: Terraform command to run
+    required: true
+    options:
+      - plan
+      - apply
+  env:
+    description: Environment to run the plan for
+    required: true
 
 runs:
   using: composite
@@ -61,7 +68,7 @@ runs:
         TF_WORKSPACE: ${{ inputs.env }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: terraform plan -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1
+      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1
 
     - uses: actions/github-script@v6
       id: set-result
@@ -69,7 +76,7 @@ runs:
         script: |
           const plan = `${{ steps.plan.outputs.stdout }}`.replaceAll(/^~/g, "!");
 
-          const heading = `Terraform [${{inputs.env}}] plan results 🧪`
+          const heading = `Terraform [${{inputs.env}}] ${{ inputs.command }} results 🧪`
 
           // TODO: these "addDetail" calls are not ideal as it seems the stdout
           // is rendered as markdown within the code block.

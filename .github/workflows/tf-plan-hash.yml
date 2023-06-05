@@ -50,8 +50,9 @@ jobs:
         run: |
           echo "${{ secrets.BASTION_SSH_KEY }}" > h-hash-prod-usea1-bastionkey.pem
 
-      - uses: ./.github/actions/terraform-plan
+      - uses: ./.github/actions/terraform-exec
         with:
           vault-address: ${{ env.VAULT_ADDR }}
-          env: ${{ matrix.env }}
           working-directory: infra/terraform/hash
+          command: plan
+          env: ${{ matrix.env }}
