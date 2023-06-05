@@ -898,7 +898,6 @@ dependencies = [
  "semver",
  "serde_json",
  "tarpc",
- "time",
  "tokio",
  "tokio-postgres",
  "tokio-serde",

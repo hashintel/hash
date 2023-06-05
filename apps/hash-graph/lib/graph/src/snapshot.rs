@@ -27,7 +27,10 @@ pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{
     knowledge::Entity,
     snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
-    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
+    store::{
+        crud::Read, error::VersionedUrlAlreadyExists, query::Filter, AsClient, InsertionError,
+        PostgresStore,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -257,9 +260,9 @@ impl<C: AsClient> SnapshotStore<C> {
                         SqlState::FOREIGN_KEY_VIOLATION => {
                             report.attach_printable(StatusCode::NotFound)
                         }
-                        SqlState::UNIQUE_VIOLATION => {
-                            report.attach_printable(StatusCode::AlreadyExists)
-                        }
+                        SqlState::UNIQUE_VIOLATION => report
+                            .attach_printable(StatusCode::AlreadyExists)
+                            .attach(VersionedUrlAlreadyExists),
                         _ => report,
                     }
                 } else {
