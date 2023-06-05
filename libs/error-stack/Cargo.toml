@@ -35,7 +35,7 @@ insta = { version = "1.29.0", features = ['filters', 'ron'] }
 regex = "1.8.4"
 expect-test = "1.4.1"
 ansi-to-html = "0.1.3"
-once_cell = "1.17.2"
+once_cell = "1.18.0"
 supports-color = "2.0.0"
 supports-unicode = "2.0.0"
 owo-colors = "3.5.0"
