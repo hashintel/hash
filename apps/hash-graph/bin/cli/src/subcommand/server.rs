@@ -100,7 +100,7 @@ pub struct ServerArgs {
     pub write_openapi_specs: bool,
 
     /// Starts a server without connecting to the type fetcher
-    #[clap(long, default_value_t = false)]
+    #[clap(long, default_value_t = false, conflicts_with = "type_fetcher")]
     pub offline: bool,
 }
 
