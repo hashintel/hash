@@ -23,18 +23,12 @@ pub struct TypeFetcherAddress {
     #[clap(
         long,
         default_value = "127.0.0.1",
-        env = "HASH_GRAPH_TYPE_FETCHER_HOST",
-        group = "type_fetcher"
+        env = "HASH_GRAPH_TYPE_FETCHER_HOST"
     )]
     pub type_fetcher_host: String,
 
     /// The port the type fetcher RPC server is listening at.
-    #[clap(
-        long,
-        default_value_t = 4444,
-        env = "HASH_GRAPH_TYPE_FETCHER_PORT",
-        group = "type_fetcher"
-    )]
+    #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
     pub type_fetcher_port: u16,
 }
 
