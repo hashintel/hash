@@ -34,7 +34,6 @@ This folder contains only the _HASH_ project README. The application is split ac
 - [hash-graph](../hash-graph): application graph query layer
 - [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
 - [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
-- [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
 
 <!-- It would be nice to add a dependency graph here showing which services rely on one another -->
 
