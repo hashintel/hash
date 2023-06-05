@@ -12,8 +12,6 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-#[cfg(feature = "type-fetcher")]
-use crate::ontology::OntologyTypeReference;
 use crate::{
     api::{
         error::{ErrorInfo, Status, StatusPayloads},
@@ -29,7 +27,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata,
+        OntologyTypeReference, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -273,7 +271,6 @@ where
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "type-fetcher")]
 struct LoadExternalEntityTypeRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUrl,

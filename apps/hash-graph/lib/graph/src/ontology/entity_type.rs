@@ -304,6 +304,10 @@ pub enum EntityTypeQueryPath<'p> {
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
+    fn ontology_id() -> Self {
+        Self::OntologyId
+    }
+
     fn base_url() -> Self {
         Self::BaseUrl
     }

@@ -6,54 +6,54 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
-type-fetcher = { path = "../type-fetcher", optional = true }
+hash-status = { path = "../../../../libs/@local/status/crate" }
+type-fetcher = { path = "../type-fetcher" }
+
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
 
 async-trait = "0.1.68"
 axum = "0.6.18"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
 clap = { version = "4.3.0", features = ["derive", "env"], optional = true }
-time = { version = "0.3.21", features = ["serde", "formatting", "macros"] }
 derivative = "2.2.0"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.28"
-hash-status = { path = "../../../../libs/@local/status/crate" }
 hyper = "0.14.26"
+include_dir = "0.7.3"
 mime = "0.3.17"
-postgres-types = { version = "0.2.5", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
+opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
+opentelemetry-otlp = "0.11.0"
 postgres-protocol = "0.6.5"
-regex = "1.8.2"
+postgres-types = { version = "0.2.5", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
+refinery = { version = "0.8", features = ["tokio-postgres"] }
+regex = "1.8.3"
 semver = { version = "1.0.17", default-features = false, features = ["serde"] }
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
-tokio = { version = "1.28.1", default-features = false }
+tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
+time = { version = "0.3.21", features = ["serde", "formatting", "macros"] }
+tokio = { version = "1.28.2", default-features = false }
 tokio-postgres = { version = "0.7.8", default-features = false }
+tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec", "io"] }
+tonic = "0.8.3"
 tower = "0.4.13"
 tower-http = { version = "0.4.0", features = ["trace"] }
 tracing = "0.1.37"
 tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.18.0"
-tonic = "0.8.3"
-opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "808753" }
-uuid = { version = "1.3.3", features = ["v4", "serde"] }
 utoipa = { version = "3.3.0", features = ["uuid"] }
-include_dir = "0.7.3"
-refinery = { version = "0.8", features = ["tokio-postgres"] }
-
-tarpc = { version = "0.33", features = ["serde-transport", "tcp"], optional = true }
-tokio-serde = { version = "0.8", features = ["json"], optional = true }
+uuid = { version = "1.3.3", features = ["v4", "serde"] }
 
 [dev-dependencies]
-tokio = { version = "1.28.1", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
-criterion = "0.4.0"
+
+criterion = "0.5.1"
+tokio = { version = "1.28.1", features = ["rt-multi-thread", "macros", "tracing"] }
 
 [features]
 test-server = []
 clap = ["dep:clap"]
-type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]

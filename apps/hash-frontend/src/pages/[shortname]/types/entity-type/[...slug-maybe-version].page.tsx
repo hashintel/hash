@@ -20,7 +20,7 @@ import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
 import { LinkedIcon } from "../../../../shared/icons/linked-icon";
@@ -32,6 +32,7 @@ import {
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+import { ConvertTypeButton } from "./[...slug-maybe-version].page/convert-type-button";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
@@ -54,6 +55,8 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
+
+  const [convertTypeLoading, setConvertTypeLoading] = useState(false);
 
   const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
     string,
@@ -192,6 +195,25 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeIsLink = isLinkEntityType(entityType);
 
+  const convertToLinkType = wrapHandleSubmit(async (data) => {
+    const entityTypeSchema = getSchemaFromFormData(data);
+
+    setConvertTypeLoading(true);
+    const res = await updateEntityType({
+      ...entityTypeSchema,
+      allOf: [{ $ref: linkEntityTypeUrl }],
+    });
+
+    setConvertTypeLoading(false);
+    if (!res.errors?.length) {
+      reset(data);
+    } else {
+      throw new Error("Could not publish changes");
+    }
+  });
+
+  const isDirty = formMethods.formState.isDirty;
+
   return (
     <>
       <Head>
@@ -287,37 +309,51 @@ const Page: NextPageWithLayout = () => {
                         </>
                       }
                     />
-                    <Typography variant="h1" fontWeight="bold" my={3}>
-                      {entityTypeIsLink ? (
-                        <Tooltip
-                          title="This is a 'link' entity type. It is used to link other entities together."
-                          placement="top"
-                        >
-                          <Box display="inline-flex">
-                            <LinkedIcon
-                              sx={({ palette }) => ({
-                                fontSize: 40,
-                                mr: 3,
-                                stroke: palette.gray[50],
-                                verticalAlign: "middle",
-                              })}
-                            />
-                          </Box>
-                        </Tooltip>
-                      ) : (
-                        <FontAwesomeIcon
-                          icon={faAsterisk}
-                          sx={({ palette }) => ({
-                            fontSize: 40,
-                            mr: 3,
-                            color: palette.gray[70],
-                            verticalAlign: "middle",
-                          })}
-                        />
-                      )}
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography variant="h1" fontWeight="bold" my={3}>
+                        {entityTypeIsLink ? (
+                          <Tooltip
+                            title="This is a 'link' entity type. It is used to link other entities together."
+                            placement="top"
+                          >
+                            <Box display="inline-flex">
+                              <LinkedIcon
+                                sx={({ palette }) => ({
+                                  fontSize: 40,
+                                  mr: 3,
+                                  stroke: palette.gray[50],
+                                  verticalAlign: "middle",
+                                })}
+                              />
+                            </Box>
+                          </Tooltip>
+                        ) : (
+                          <FontAwesomeIcon
+                            icon={faAsterisk}
+                            sx={({ palette }) => ({
+                              fontSize: 40,
+                              mr: 3,
+                              color: palette.gray[70],
+                              verticalAlign: "middle",
+                            })}
+                          />
+                        )}
 
-                      {entityType.title}
-                    </Typography>
+                        {entityType.title}
+                      </Typography>
+
+                      {!isDraft && !entityTypeIsLink ? (
+                        <ConvertTypeButton
+                          onClick={convertToLinkType}
+                          loading={convertTypeLoading}
+                          disabled={isDirty}
+                        />
+                      ) : null}
+                    </Box>
 
                     <Box sx={{ mb: 5.25 }}>
                       <EntityTypeDescription readonly={isReadonly} />

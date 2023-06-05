@@ -4,6 +4,7 @@ import {
 } from "@blockprotocol/type-system";
 import { DataTypeStructuralQuery } from "@local/hash-graph-client";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -24,8 +25,6 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-
-const { FRONTEND_URL } = require("../../../lib/config");
 
 /**
  * Create a data type.
@@ -148,7 +147,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !dataTypeId.startsWith(FRONTEND_URL)) {
+  if (subgraph.roots.length === 0 && !dataTypeId.startsWith(frontendUrl)) {
     await context.graphApi.loadExternalDataType({
       actorId,
       dataTypeId,
@@ -157,10 +156,6 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     subgraph = await getDataTypes(context, {
       query,
     });
-  }
-
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
   }
 
   return subgraph;

@@ -4,7 +4,7 @@ mod path;
 use std::fmt;
 
 pub use self::{
-    filter::{Filter, FilterExpression, Parameter, ParameterConversionError},
+    filter::{Filter, FilterExpression, Parameter, ParameterConversionError, ParameterList},
     path::{JsonPath, PathToken},
 };
 
@@ -43,6 +43,9 @@ impl fmt::Display for ParameterType {
 }
 
 pub trait OntologyQueryPath {
+    /// Returns the path identifying the internal ontology id.
+    fn ontology_id() -> Self;
+
     /// Returns the path identifying the [`BaseUrl`].
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl

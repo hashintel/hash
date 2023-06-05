@@ -8,6 +8,9 @@ inputs:
   AWS_SECRET_ACCESS_KEY:
     description: AWS secret access key
     required: true
+  AWS_SESSION_TOKEN:
+    description: AWS session token
+    required: true
   AWS_REGION:
     description: AWS region
     required: true
@@ -21,6 +24,7 @@ runs:
       with:
         aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
         aws-region: ${{ inputs.AWS_REGION }}
 
     - name: Login to Amazon ECR

@@ -37,6 +37,11 @@ import { useIsReadonly } from "../../shared/read-only-context";
  */
 const EDIT_BAR_HEIGHT = 66;
 
+const isSafariBrowser = () =>
+  typeof window !== "undefined" &&
+  navigator.userAgent.indexOf("Safari") > -1 &&
+  navigator.userAgent.indexOf("Chrome") <= -1;
+
 export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
   theme.unstable_sx({
     px: "0px !important",
@@ -397,6 +402,8 @@ export const EntityTypeTableFooterButton = ({
 };
 
 export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
+  const isSafari = isSafariBrowser();
+
   return (
     <WhiteCard sx={{ overflow: "visible" }}>
       <Box
@@ -406,8 +413,13 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
           "--header-height": "42px",
           "--footer-height": "42px",
           "--body-height": "40px",
-          "--footer-top-offset":
-            "calc(var(--body-height) + var(--header-height) + var(--header-gap))",
+          /**
+           * footer-top-offset is used with the combination of giving `position: relative` elements `top` values.
+           * safari does not support that, so this trick does not work on safari
+           */
+          "--footer-top-offset": isSafari
+            ? 0
+            : "calc(var(--body-height) + var(--header-height) + var(--header-gap))",
           "--table-cell-left-padding": theme.spacing(3.5),
 
           p: "var(--table-padding)",

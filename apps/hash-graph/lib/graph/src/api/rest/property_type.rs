@@ -10,8 +10,6 @@ use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
-#[cfg(feature = "type-fetcher")]
-use crate::ontology::OntologyTypeReference;
 use crate::{
     api::rest::{
         json::Json,
@@ -21,8 +19,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
-        PropertyTypeQueryToken, PropertyTypeWithMetadata,
+        patch_id_and_parse, OntologyElementMetadata, OntologyTypeReference,
+        OwnedOntologyElementMetadata, PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{

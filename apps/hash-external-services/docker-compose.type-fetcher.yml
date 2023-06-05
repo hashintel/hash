@@ -26,6 +26,7 @@ services:
       retries: 10
 
   graph:
+    command: server
     depends_on:
       type-fetcher:
         condition: service_healthy
