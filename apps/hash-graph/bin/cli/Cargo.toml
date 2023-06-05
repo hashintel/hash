@@ -8,6 +8,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
+hash-status = { path = "../../../../libs/@local/status/crate" }
 graph = { path = "../../lib/graph", features = ["clap"] }
 type-fetcher = { path = "../../lib/type-fetcher" }
 

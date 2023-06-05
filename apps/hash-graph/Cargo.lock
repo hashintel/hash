@@ -893,6 +893,7 @@ dependencies = [
  "error-stack",
  "futures",
  "graph",
+ "hash-status",
  "regex",
  "reqwest",
  "semver",

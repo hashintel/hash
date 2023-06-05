@@ -18,6 +18,7 @@ use graph::{
         PostgresStorePool, StorePool,
     },
 };
+use hash_status::StatusCode;
 use regex::Regex;
 use reqwest::Client;
 use tokio::{io, time::timeout};
@@ -118,7 +119,7 @@ async fn restore_built_in_types<C: AsClient>(
         .await;
 
     if let Err(err) = restore_result {
-        if err.contains::<VersionedUrlAlreadyExists>() {
+        if let Some(StatusCode::AlreadyExists) = err.request_ref().next() {
             tracing::info!("tried to restore built-in type, but they already exist");
             return Ok(());
         }
