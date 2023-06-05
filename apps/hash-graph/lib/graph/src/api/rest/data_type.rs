@@ -108,7 +108,6 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    #[allow(clippy::infallible_destructuring_match)]
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
@@ -207,7 +206,6 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    #[allow(clippy::infallible_destructuring_match)]
     let Json(LoadExternalDataTypeRequest {
         data_type_id,
         actor_id,

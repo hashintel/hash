@@ -137,7 +137,6 @@ where
         ))
     })?;
 
-    #[allow(clippy::infallible_destructuring_match)]
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,

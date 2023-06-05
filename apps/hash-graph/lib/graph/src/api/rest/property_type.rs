@@ -111,7 +111,6 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    #[allow(clippy::infallible_destructuring_match)]
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
@@ -211,7 +210,6 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    #[allow(clippy::infallible_destructuring_match)]
     let Json(LoadExternalPropertyTypeRequest {
         property_type_id,
         actor_id,
