@@ -10,8 +10,6 @@ use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
-#[cfg(feature = "type-fetcher")]
-use crate::ontology::OntologyTypeReference;
 use crate::{
     api::rest::{
         json::Json,
@@ -22,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata,
+        OntologyTypeReference, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -77,7 +75,6 @@ impl RoutedResource for DataTypeResource {
 #[serde(rename_all = "camelCase", untagged)]
 enum CreateDataTypeRequest {
     Owned(CreateOwnedDataTypeRequest),
-    #[cfg(feature = "type-fetcher")]
     External(CreateExternalDataTypeRequest),
 }
 
@@ -133,7 +130,6 @@ where
         actor_id,
     } = match body.0 {
         CreateDataTypeRequest::Owned(request) => request,
-        #[cfg(feature = "type-fetcher")]
         CreateDataTypeRequest::External(request) => {
             return Ok(Json(ListOrValue::Value(
                 store
