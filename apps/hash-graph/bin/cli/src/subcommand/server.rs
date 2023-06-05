@@ -104,7 +104,9 @@ pub struct ServerArgs {
     pub offline: bool,
 }
 
-async fn restore_builtin_types<C: AsClient>(mut store: SnapshotStore<C>) -> Result<(), GraphError> {
+async fn restore_built_in_types<C: AsClient>(
+    mut store: SnapshotStore<C>,
+) -> Result<(), GraphError> {
     let restore_result = store
         .restore_snapshot(
             FramedRead::new(
@@ -182,7 +184,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         .attach_printable("Connection to database failed")?;
 
     let pool = if args.offline {
-        restore_builtin_types(SnapshotStore::new(store)).await?;
+        restore_built_in_types(SnapshotStore::new(store)).await?;
 
         FetchingPool::new_offline(pool)
     } else {
