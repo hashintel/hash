@@ -71,6 +71,8 @@ runs:
 
           const heading = `Terraform [${{inputs.env}}] plan results 🧪`
 
+          // TODO: these "addDetail" calls are not ideal as it seems the stdout
+          // is rendered as markdown within the code block.
           await core.summary
             .addHeading(heading)
             .addDetails(
