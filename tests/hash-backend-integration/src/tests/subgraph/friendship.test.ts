@@ -204,9 +204,16 @@ describe("Ontology queries", () => {
     });
     expect(subgraph.roots.length).toEqual(3);
     expect(Object.keys(subgraph.edges).length).toEqual(0);
-    const data_types = getRoots(subgraph);
 
-    expect(data_types.length).toBe(3);
+    expect(
+      getRoots(subgraph)
+        .map(({ schema }) => schema.$id)
+        .sort(),
+    ).toStrictEqual([
+      "http://localhost:3000/@alice/types/data-type/number/v/1",
+      "http://localhost:3000/@alice/types/data-type/text/v/1",
+      "http://localhost:3000/@alice/types/data-type/text/v/2",
+    ]);
   });
 
   it("read property types", async () => {
@@ -224,9 +231,15 @@ describe("Ontology queries", () => {
     });
     expect(subgraph.roots.length).toEqual(2);
     expect(Object.keys(subgraph.edges).length).toEqual(0);
-    const property_types = getRoots(subgraph);
 
-    expect(property_types.length).toBe(2);
+    expect(
+      getRoots(subgraph)
+        .map(({ schema }) => schema.$id)
+        .sort(),
+    ).toStrictEqual([
+      "http://localhost:3000/@alice/types/property-type/name/v/1",
+      "http://localhost:3000/@alice/types/property-type/name/v/2",
+    ]);
   });
 
   it("read entity types", async () => {
@@ -244,9 +257,17 @@ describe("Ontology queries", () => {
     });
     expect(subgraph.roots.length).toEqual(4);
     expect(Object.keys(subgraph.edges).length).toEqual(1);
-    const entity_types = getRoots(subgraph);
 
-    expect(entity_types.length).toBe(4);
+    expect(
+      getRoots(subgraph)
+        .map(({ schema }) => schema.$id)
+        .sort(),
+    ).toStrictEqual([
+      "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
+      "http://localhost:3000/@alice/types/entity-type/person/v/1",
+      "http://localhost:3000/@alice/types/entity-type/person/v/2",
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    ]);
   });
 });
 
