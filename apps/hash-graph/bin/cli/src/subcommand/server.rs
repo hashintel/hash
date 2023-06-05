@@ -126,7 +126,7 @@ async fn restore_builtin_types<C: AsClient>(mut store: SnapshotStore<C>) -> Resu
         )
     }
 
-    tracing::info!("restored built-in type");
+    tracing::info!("restored built-in types");
 
     Ok(())
 }
