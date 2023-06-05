@@ -26,15 +26,17 @@ We will be developing HASH into a production-grade application which can be self
 
 ## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-about-directory] &nbsp; About the HASH application
 
-This folder contains only the _HASH_ project README. The application is split across several different modules which can be found colocated alongside this directory:
+This folder contains only the _HASH_ project README. The application itself is split across several different services which can be found co-located alongside this directory.
+See the [respective section in the parent README](../README.md#hash) for descriptions of the following services:
 
-- [hash-api](../hash-api): API for accessing HASH
-- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)_
-- [hash-frontend](../hash-frontend): GUI for accessing HASH
-- [hash-graph](../hash-graph): application graph query layer
-- [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
-- [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
-- [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
+
+- [hash-api](../hash-api)
+- [hash-external-services](../hash-external-services)
+- [hash-frontend](../hash-frontend)
+- [hash-graph](../hash-graph)
+- [hash-realtime](../hash-realtime)
+- [hash-search-loader](../hash-search-loader)
+- [hash-task-executor](../hash-task-executor)
 
 <!-- It would be nice to add a dependency graph here showing which services rely on one another -->
 
