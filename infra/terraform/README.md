@@ -203,6 +203,10 @@ where the `TASKID` is the ID of the Fargate service task. Note that this would s
 
 # Troubleshooting and guides
 
+## What to do if the HASH DB needs **Disaster Recovery**
+
+There's a [playbook](./playbooks/db_recovery.md) on what we should do when the DB is on fire, please follow it to recover a snapshot.
+
 ## Help! I need access to the private subnet!
 
 You can access the private subnet using the Bastion host. See [this readme](./hash/bastion.md) for more information. You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
@@ -274,7 +278,6 @@ Under the [`./modules/`](./modules/) folder we define the HASH application throu
 - [`bastion`](./modules/bastion/) - a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) that resides in the public subnet with access to the private subnet. Accessible through SSH.
 - [`container_cluster`](./modules/container_cluster/) - is a thin wrapper around the `aws_ecs_cluster` resource with container capacity providers.
 - [`container_registry`](./modules/container_registry/) - is a thin wrapper around the `aws_ecr_repository` resource with container evicition policies.
-- [`postgres`](./modules/postgres/) - [external service] a multi Availability Zone Postgres RDS cluster with encryption enabled.
 - [`redis`](./modules/redis/) - [external service] a multi Availability Zone Redis cluster with encryption enabled.
 - [`tunnel`](./modules/tunnel/) - a custom SSH tunnel using an external data source to allow terraform to connect to services on the private subnet of the VPC.
 - [`variables`](./modules/variables/) - contains global variable validation/definitions generally useful for our Terraform infrastructure.
@@ -283,6 +286,7 @@ Under the [`./modules/`](./modules/) folder we define the HASH application throu
 **HASH specefic modules**:
 
 - [`networking`](./modules/hash/networking/) - contains PrivateLink definitions for the various required AWS resources.
+- [`postgres`](./modules/postgres/) - [external service] a multi Availability Zone Postgres RDS cluster with encryption enabled.
 - [`postgres_roles`](./modules/postgres_roles/) - SQL configurations for the HASH application defining grants, roles and databases (requires an SSH tunnel to connect to the RDS instance).
 - [`hash_application`](./modules/hash_application/)` - the ECS Fargate container definition using the previous ECR and ECS cluster definitions to start the Graph layer, the HASH API and Kratos.
 
