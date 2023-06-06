@@ -4,7 +4,7 @@ use crate::{error::VisitorError, Deserialize, Document, OptionalVisitor};
 
 mod core;
 
-pub struct UnitVariantVisitor;
+pub(crate) struct UnitVariantVisitor;
 
 impl<'de> OptionalVisitor<'de> for UnitVariantVisitor {
     type Value = ();

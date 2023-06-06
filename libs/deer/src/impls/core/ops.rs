@@ -7,10 +7,8 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, ExpectedField,
-        ExpectedLength, ExpectedVariant, Location, ObjectAccessError, ReceivedField,
-        ReceivedLength, ReceivedVariant, ResultExtPrivate, UnknownFieldError, UnknownVariantError,
-        Variant, VisitorError,
+        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location,
+        ObjectAccessError, ResultExtPrivate, Variant, VisitorError,
     },
     ext::TupleExt,
     helpers::Properties,
@@ -19,7 +17,7 @@ use crate::{
     schema::Reference,
     value::NoneDeserializer,
     ArrayAccess, Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess,
-    Reflection, Schema, StructVisitor, Visitor,
+    Reflection, Schema, StructVisitor,
 };
 
 identifier! {
@@ -117,7 +115,7 @@ struct RangeFieldVisitor<'a, T, U> {
     end: &'a mut Option<U>,
 }
 
-impl<'de, T, U> FieldVisitor<'de> for RangeFieldVisitor<'de, T, U>
+impl<'a, 'de, T, U> FieldVisitor<'de> for RangeFieldVisitor<'a, T, U>
 where
     T: Deserialize<'de>,
     U: Deserialize<'de>,
