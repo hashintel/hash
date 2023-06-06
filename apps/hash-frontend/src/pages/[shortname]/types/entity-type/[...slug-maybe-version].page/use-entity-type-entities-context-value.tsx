@@ -20,13 +20,21 @@ export const useEntityTypeEntitiesContextValue = (
   useEffect(() => {
     void queryEntities({
       data: {
+        operation: {
+          multiFilter: {
+            filters: [
+              {
+                field: ["metadata", "entityTypeBaseUrl"],
+                operator: "EQUALS",
+                value: typeBaseUrl,
+              },
+            ],
+            operator: "AND",
+          },
+        },
         graphResolveDepths: {
-          constrainsValuesOn: { outgoing: 0 },
           constrainsPropertiesOn: { outgoing: 1 },
-          constrainsLinksOn: { outgoing: 0 },
           isOfType: { outgoing: 1 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
         },
       },
     }).then((res) => {
@@ -34,7 +42,7 @@ export const useEntityTypeEntitiesContextValue = (
         setSubgraph(res.data);
       }
     });
-  }, [queryEntities]);
+  }, [queryEntities, typeBaseUrl]);
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {

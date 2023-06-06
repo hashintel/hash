@@ -3,7 +3,7 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { getPageInfoQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { EntityId } from "@local/hash-subgraph";
-import { Box } from "@mui/material";
+import { Box, BoxProps } from "@mui/material";
 
 import {
   GetPageInfoQuery,
@@ -23,9 +23,14 @@ export const pageIconVariantSizes: Record<
 interface PageIconProps {
   entityId: EntityId;
   size?: SizeVariant;
+  sx?: BoxProps["sx"];
 }
 
-export const PageIcon = ({ entityId, size = "medium" }: PageIconProps) => {
+export const PageIcon = ({
+  entityId,
+  size = "medium",
+  sx = [],
+}: PageIconProps) => {
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
@@ -37,14 +42,17 @@ export const PageIcon = ({ entityId, size = "medium" }: PageIconProps) => {
 
   return (
     <Box
-      sx={{
-        width: sizes.container,
-        height: sizes.container,
-        fontSize: sizes.font,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
+      sx={[
+        {
+          width: sizes.container,
+          height: sizes.container,
+          fontSize: sizes.font,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       {data?.page.icon ?? (
         <FontAwesomeIcon

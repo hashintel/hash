@@ -15,11 +15,12 @@ use crate::{
         json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
+        RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
-        PropertyTypeQueryToken, PropertyTypeWithMetadata,
+        patch_id_and_parse, OntologyElementMetadata, OntologyTypeReference,
+        OwnedOntologyElementMetadata, PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -33,14 +34,16 @@ use crate::{
 #[openapi(
     paths(
         create_property_type,
+        load_external_property_type,
         get_property_types_by_query,
-        update_property_type
+        update_property_type,
     ),
     components(
         schemas(
             PropertyTypeWithMetadata,
 
             CreatePropertyTypeRequest,
+            LoadExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
@@ -54,7 +57,10 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-types",
@@ -63,7 +69,8 @@ impl RoutedResource for PropertyTypeResource {
                     "/",
                     post(create_property_type::<P>).put(update_property_type::<P>),
                 )
-                .route("/query", post(get_property_types_by_query::<P>)),
+                .route("/query", post(get_property_types_by_query::<P>))
+                .route("/load", post(load_external_property_type::<P>)),
         )
     }
 }
@@ -89,14 +96,21 @@ struct CreatePropertyTypeRequest {
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = CreatePropertyTypeRequest,
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
@@ -135,11 +149,6 @@ async fn create_property_type<P: StorePool + Send>(
         property_types.push(property_type);
     }
 
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
     store
         .create_property_types(
             property_types.into_iter().zip(metadata.iter()),
@@ -164,6 +173,57 @@ async fn create_property_type<P: StorePool + Send>(
             metadata.pop().expect("metadata does not contain a value"),
         )))
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct LoadExternalPropertyTypeRequest {
+    #[schema(value_type = String)]
+    property_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/property-types/load",
+    request_body = LoadExternalPropertyTypeRequest,
+    tag = "PropertyType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = OntologyElementMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 409, description = "Unable to load property type in the store as the base property type ID already exists"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
+async fn load_external_property_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
+    body: Json<LoadExternalPropertyTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let Json(LoadExternalPropertyTypeRequest {
+        property_type_id,
+        actor_id,
+    }) = body;
+
+    Ok(Json(
+        store
+            .load_external_type(
+                &domain_validator,
+                OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
+                actor_id,
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(

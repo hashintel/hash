@@ -4,6 +4,7 @@ use deer::{
         ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
+    helpers::ExpectNone,
     schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
@@ -23,12 +24,12 @@ impl<'de> Visitor<'de> for DiscriminantVisitor {
     }
 
     // usually we'd also check for bytes, but meh :shrug:
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        match value {
             "Variant" => Ok(Discriminant::Variant),
             _ => Err(Report::new(UnknownVariantError.into_error())
                 .attach(ExpectedVariant::new("Variant"))
-                .attach(ReceivedVariant::new(v))
+                .attach(ReceivedVariant::new(value))
                 .change_context(VisitorError)),
         }
     }
@@ -47,8 +48,9 @@ impl Reflection for Discriminant {
 impl<'de> Deserialize<'de> for Discriminant {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(DiscriminantVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_str(DiscriminantVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -66,13 +68,15 @@ impl<'de> EnumVisitor<'de> for UnitEnumVisitor {
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
-        _: D,
+        deserializer: D,
     ) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
         match discriminant {
-            Discriminant::Variant => Ok(UnitEnum::Variant),
+            Discriminant::Variant => ExpectNone::deserialize(deserializer)
+                .map(|_| UnitEnum::Variant)
+                .change_context(VisitorError),
         }
     }
 }
@@ -85,8 +89,9 @@ enum UnitEnum {
 impl<'de> Deserialize<'de> for UnitEnum {
     type Reflection = Discriminant;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(UnitEnumVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(UnitEnumVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -103,7 +108,7 @@ fn unit_variant() {
                 properties: {
                     "expected": null,
                     "location": [],
-                    "received": null
+                    "received": bool::reflection()
                 }
             }
         ]),
@@ -177,8 +182,9 @@ impl<'de> Deserialize<'de> for NewtypeEnum {
     // TODO: this is wrong
     type Reflection = Discriminant;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(NewtypeEnumVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(NewtypeEnumVisitor)
             .change_context(DeserializeError)
     }
 }
@@ -266,9 +272,9 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
         Self::Value::reflection()
     }
 
-    fn visit_object<T>(self, mut v: T) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
     where
-        T: ObjectAccess<'de>,
+        A: ObjectAccess<'de>,
     {
         match self.field {
             Discriminant::Variant => {
@@ -295,8 +301,8 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                         Self::Value::reflection()
                     }
 
-                    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-                        match v {
+                    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+                        match value {
                             "id" => Ok(VariantFieldIdent::Id),
                             _ => Err(Report::new(UnknownVariantError.into_error())
                                 .attach(ExpectedVariant::new("id"))
@@ -310,8 +316,11 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                 impl<'de> Deserialize<'de> for VariantFieldIdent {
                     type Reflection = Self;
 
-                    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-                        de.deserialize_str(VariantFieldVisitor)
+                    fn deserialize<D: Deserializer<'de>>(
+                        deserializer: D,
+                    ) -> Result<Self, DeserializeError> {
+                        deserializer
+                            .deserialize_str(VariantFieldVisitor)
                             .change_context(DeserializeError)
                     }
                 }
@@ -338,12 +347,12 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     }
                 }
 
-                v.set_bounded(1).change_context(VisitorError)?;
+                let mut object = object.into_bound(1).change_context(VisitorError)?;
 
                 let mut id = None;
                 let mut errors: Result<(), VisitorError> = Ok(());
 
-                match v.field(VariantFieldAccess) {
+                match object.field(VariantFieldAccess) {
                     None => {
                         // not enough items
                         let error = Report::new(ObjectLengthError.into_error())
@@ -376,7 +385,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
 
                 errors?;
 
-                v.end().change_context(VisitorError)?;
+                object.end().change_context(VisitorError)?;
 
                 Ok(StructEnum::Variant {
                     id: id.expect("should be infallible"),
@@ -417,8 +426,9 @@ impl<'de> EnumVisitor<'de> for StructEnumIdentVisitor {
 impl<'de> Deserialize<'de> for StructEnum {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(StructEnumIdentVisitor)
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(StructEnumIdentVisitor)
             .change_context(DeserializeError)
     }
 }

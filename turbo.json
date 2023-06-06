@@ -16,7 +16,6 @@
       "dependsOn": ["^build", "codegen"]
     },
     "fix:eslint": {
-      "cache": false,
       "dependsOn": ["^build", "codegen"]
     },
     "dev": {
@@ -31,6 +30,7 @@
   "globalDependencies": [
     "**/turbo.json",
     ".env",
+    ".env.local",
     ".justfile",
     ".yarnrc",
     "package.json"

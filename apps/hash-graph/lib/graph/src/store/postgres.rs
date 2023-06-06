@@ -4,10 +4,11 @@ mod ontology;
 mod migration;
 mod pool;
 mod query;
+mod traversal_context;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-#[cfg(feature = "__internal_bench")]
+#[cfg(hash_graph_test_environment)]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
@@ -15,7 +16,10 @@ use type_system::{
     PropertyTypeReference,
 };
 
-pub use self::pool::{AsClient, PostgresStorePool};
+pub use self::{
+    pool::{AsClient, PostgresStorePool},
+    traversal_context::TraversalContext,
+};
 use crate::{
     identifier::{
         account::AccountId,
@@ -26,13 +30,16 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
-        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+        error::{
+            DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+            VersionedUrlAlreadyExists,
+        },
         postgres::ontology::{OntologyDatabaseType, OntologyId},
         AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError,
         StoreError, UpdateError,
     },
 };
-#[cfg(feature = "__internal_bench")]
+#[cfg(hash_graph_test_environment)]
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
@@ -40,9 +47,6 @@ use crate::{
     },
     knowledge::{EntityProperties, LinkOrder},
 };
-
-#[derive(Default)]
-pub struct TraversalContext;
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
@@ -613,7 +617,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_ids(
         &self,
         entity_uuids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
@@ -650,7 +654,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_is_of_type(
         &self,
         entity_edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
@@ -687,7 +691,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_links(
         &self,
         left_right: &'static str,
@@ -733,7 +737,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_records(
         &self,
         entities: impl IntoIterator<
@@ -842,7 +846,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
@@ -963,6 +967,21 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)
             .attach_printable(account_id)?;
+
+        Ok(())
+    }
+}
+
+impl<C: AsClient> PostgresStore<C> {
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_accounts(&mut self) -> Result<(), DeletionError> {
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM accounts;")
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
 
         Ok(())
     }

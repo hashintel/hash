@@ -1,11 +1,18 @@
 import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
+import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
+import { systemUserAccountId } from "../../../graph/system-user";
+import {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { dataSourcesToImpureGraphContext } from "../util";
 
 export const queryDataTypes: ResolverFn<
   Promise<Subgraph>,
@@ -20,28 +27,10 @@ export const queryDataTypes: ResolverFn<
       equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
   return dataTypeSubgraph as Subgraph<DataTypeRootType>;
@@ -52,38 +41,17 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources }) => {
-  const { graphApi } = dataSources;
+> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources, user }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery({
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-    },
+  return await getDataTypeSubgraphById(context, {
+    dataTypeId,
+    actorId: user ? user.accountId : systemUserAccountId,
     /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
-
-  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };

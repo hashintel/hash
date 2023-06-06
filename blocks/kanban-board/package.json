@@ -1,6 +1,6 @@
 {
   "name": "@blocks/kanban-board",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Capture information in cards, and drag cards flexibly between customizable columns",
   "keywords": [
     "blockprotocol",
@@ -29,10 +29,12 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.2.2",
+    "@blockprotocol/graph": "0.3.0",
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
+    "@hashintel/block-design-system": "0.0.1",
+    "@mui/material": "5.11.9",
     "clsx": "1.2.1",
     "lodash.clonedeep": "4.5.0",
     "lodash.debounce": "4.0.8",
@@ -44,9 +46,9 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.clonedeep": "4.5.7",
     "@types/react-dom": "18.0.9",
-    "block-scripts": "0.2.3",
+    "block-scripts": "0.3.0",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.4",
+    "mock-block-dock": "0.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

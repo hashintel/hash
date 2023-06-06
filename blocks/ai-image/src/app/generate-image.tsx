@@ -4,7 +4,7 @@ import {
   BlockPromptInput,
   BlockSettingsButton,
   GetHelpLink,
-} from "@hashintel/design-system";
+} from "@hashintel/block-design-system";
 import { Box, Collapse, Fade, Typography } from "@mui/material";
 import { useCallback, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";

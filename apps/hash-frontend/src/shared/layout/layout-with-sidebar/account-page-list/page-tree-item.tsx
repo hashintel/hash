@@ -120,6 +120,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           {...attributes}
         >
           <IconButton
+            data-testid="page-tree-item-expand-button"
             onClick={(event) => {
               stopEvent(event);
               onCollapse?.();
@@ -159,7 +160,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             enterNextDelay={300}
             componentsProps={{
               tooltip: {
-                sx: { ml: "32px !important" },
+                sx: { ml: "40px !important" },
               },
             }}
           >
