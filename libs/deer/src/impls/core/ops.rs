@@ -1,12 +1,14 @@
-use core::{marker::PhantomData, ops::Bound};
-use std::ops::{Range, RangeInclusive};
+use core::{
+    marker::PhantomData,
+    ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
+};
 
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        ArrayAccessError, ArrayLengthError, DeserializeError, DuplicateField, DuplicateFieldError,
-        ExpectedField, ExpectedLength, ExpectedVariant, Location, ObjectAccessError, ReceivedField,
+        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, ExpectedField,
+        ExpectedLength, ExpectedVariant, Location, ObjectAccessError, ReceivedField,
         ReceivedLength, ReceivedVariant, ResultExtPrivate, UnknownFieldError, UnknownVariantError,
         Variant, VisitorError,
     },
@@ -103,8 +105,6 @@ where
     }
 }
 
-// TODO: Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive
-
 identifier! {
     enum RangeIdent {
         Start = "start" | b"start" | 0,
@@ -112,14 +112,15 @@ identifier! {
     }
 }
 
-struct RangeFieldVisitor<'a, T> {
+struct RangeFieldVisitor<'a, T, U> {
     start: &'a mut Option<T>,
-    end: &'a mut Option<T>,
+    end: &'a mut Option<U>,
 }
 
-impl<'de, T> FieldVisitor<'de> for RangeFieldVisitor<'de, T>
+impl<'de, T, U> FieldVisitor<'de> for RangeFieldVisitor<'de, T, U>
 where
     T: Deserialize<'de>,
+    U: Deserialize<'de>,
 {
     type Key = RangeIdent;
     type Value = ();
@@ -143,7 +144,7 @@ where
                 Ok(())
             }
             RangeIdent::End => {
-                let value = T::deserialize(deserializer)
+                let value = U::deserialize(deserializer)
                     .attach(Location::Field("end"))
                     .change_context(VisitorError)?;
 
@@ -159,14 +160,18 @@ where
     }
 }
 
-struct RangeVisitor<T, R: ?Sized>(PhantomData<fn() -> *const T>, PhantomData<fn() -> *const R>);
+struct RangeVisitor<T, U, R: ?Sized>(
+    PhantomData<fn() -> *const (T, U)>,
+    PhantomData<fn() -> *const R>,
+);
 
-impl<'de, T, R> StructVisitor<'de> for RangeVisitor<T, R>
+impl<'de, T, U, R> StructVisitor<'de> for RangeVisitor<T, U, R>
 where
     T: Deserialize<'de>,
+    U: Deserialize<'de>,
     R: Reflection + ?Sized,
 {
-    type Value = (T, T);
+    type Value = (T, U);
 
     fn expecting(&self) -> Document {
         R::document()
@@ -208,7 +213,7 @@ where
         A: ObjectAccess<'de>,
     {
         let mut start: Option<T> = None;
-        let mut end: Option<T> = None;
+        let mut end: Option<U> = None;
 
         let mut errors: Result<(), ObjectAccessError> = Ok(());
 
@@ -251,18 +256,19 @@ where
     }
 }
 
-struct RangeReflection<T: ?Sized>(fn() -> *const T);
+pub struct RangeReflection<T: ?Sized, U: ?Sized>(fn() -> *const T, fn() -> *const U);
 
-impl<T> Reflection for RangeReflection<T>
+impl<T, U> Reflection for RangeReflection<T, U>
 where
     T: Reflection + ?Sized,
+    U: Reflection + ?Sized,
 {
     fn schema(doc: &mut Document) -> Schema {
         Schema::new("object").with(
             "properties",
             Properties([
                 ("start", doc.add::<T>()), //
-                ("end", doc.add::<T>()),
+                ("end", doc.add::<U>()),
             ]),
         )
     }
@@ -272,14 +278,14 @@ impl<'de, T> Deserialize<'de> for Range<T>
 where
     T: Deserialize<'de>,
 {
-    type Reflection = RangeReflection<T::Reflection>;
+    type Reflection = RangeReflection<T::Reflection, T::Reflection>;
 
     fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
     where
         D: Deserializer<'de>,
     {
         deserializer
-            .deserialize_struct(RangeVisitor::<T, Self::Reflection>(
+            .deserialize_struct(RangeVisitor::<T, T, Self::Reflection>(
                 PhantomData,
                 PhantomData,
             ))
@@ -292,18 +298,108 @@ impl<'de, T> Deserialize<'de> for RangeInclusive<T>
 where
     T: Deserialize<'de>,
 {
-    type Reflection = RangeReflection<T::Reflection>;
+    type Reflection = RangeReflection<T::Reflection, T::Reflection>;
 
     fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
     where
         D: Deserializer<'de>,
     {
         deserializer
-            .deserialize_struct(RangeVisitor::<T, Self::Reflection>(
+            .deserialize_struct(RangeVisitor::<T, T, Self::Reflection>(
                 PhantomData,
                 PhantomData,
             ))
             .map(|(start, end)| start..=end)
+            .change_context(DeserializeError)
+    }
+}
+
+// We follow the same deserialization rules as serde, but we also implement `Range` for all types
+// This means we need to adapt the existing `Range` deserialization rules to our own
+// RangeFrom: {"start": T, "end": null} => RangeFrom { start: T }
+// RangeTo: {"start": null, "end": T} => RangeTo { end: T }
+// RangeToInclusive: {"start": null, "end": T} => RangeToInclusive { end: T }
+// RangeFull: {"start": null, "end": null} => RangeFull
+// on an object the keys are optional and on arrays the end can be omitted if it is always null
+
+impl<'de, T> Deserialize<'de> for RangeFrom<T>
+where
+    T: Deserialize<'de>,
+{
+    type Reflection = RangeReflection<T::Reflection, <Option<()> as Deserialize<'de>>::Reflection>;
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: Deserializer<'de>,
+    {
+        // `Option<()>` allows us to deserialize `null` and(!) `none`, `ExpectNone` only allows
+        // `none`, `()` only allows `null`
+        deserializer
+            .deserialize_struct(RangeVisitor::<T, Option<()>, Self::Reflection>(
+                PhantomData,
+                PhantomData,
+            ))
+            .map(|(start, _)| start..)
+            .change_context(DeserializeError)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for RangeTo<T>
+where
+    T: Deserialize<'de>,
+{
+    type Reflection = RangeReflection<<Option<()> as Deserialize<'de>>::Reflection, T::Reflection>;
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer
+            .deserialize_struct(RangeVisitor::<Option<()>, T, Self::Reflection>(
+                PhantomData,
+                PhantomData,
+            ))
+            .map(|(_, end)| ..end)
+            .change_context(DeserializeError)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for RangeToInclusive<T>
+where
+    T: Deserialize<'de>,
+{
+    type Reflection = RangeReflection<<Option<()> as Deserialize<'de>>::Reflection, T::Reflection>;
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer
+            .deserialize_struct(RangeVisitor::<Option<()>, T, Self::Reflection>(
+                PhantomData,
+                PhantomData,
+            ))
+            .map(|(_, end)| ..=end)
+            .change_context(DeserializeError)
+    }
+}
+
+impl<'de> Deserialize<'de> for RangeFull {
+    type Reflection = RangeReflection<
+        <Option<()> as Deserialize<'de>>::Reflection,
+        <Option<()> as Deserialize<'de>>::Reflection,
+    >;
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer
+            .deserialize_struct(RangeVisitor::<Option<()>, Option<()>, Self::Reflection>(
+                PhantomData,
+                PhantomData,
+            ))
+            .map(|(..)| ..)
             .change_context(DeserializeError)
     }
 }

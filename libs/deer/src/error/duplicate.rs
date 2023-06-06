@@ -107,3 +107,5 @@ impl Display for DuplicateKeyError {
         f.write_str("duplicate key")
     }
 }
+
+// TODO: unit test
