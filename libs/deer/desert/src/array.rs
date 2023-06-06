@@ -1,8 +1,8 @@
 use deer::{
-    error::{ArrayAccessError, ArrayLengthError, ExpectedLength, ReceivedLength, Variant},
+    error::{ArrayAccessError, ArrayLengthError},
     Context, Deserialize, Deserializer as _,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
@@ -59,14 +59,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         let result = if self.deserializer.peek() == Token::ArrayEnd {
             Ok(())
         } else {
-            let mut error = Report::new(ArrayLengthError.into_error())
-                .attach(ExpectedLength::new(self.expected));
-
-            if let Some(length) = self.size_hint() {
-                error = error.attach(ReceivedLength::new(length));
-            }
-
-            Err(error)
+            Err(ArrayLengthError::new(&self, self.expected))
         };
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!

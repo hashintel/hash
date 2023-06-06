@@ -73,6 +73,7 @@ impl<'de> EnumVisitor<'de> for UnitEnumVisitor {
     where
         D: Deserializer<'de>,
     {
+        // TODO: next PR properly addresses this via `ExpectNone`
         match discriminant {
             Discriminant::Variant => ExpectNone::deserialize(deserializer)
                 .map(|_| UnitEnum::Variant)
