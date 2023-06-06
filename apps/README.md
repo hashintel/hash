@@ -35,7 +35,6 @@ The workspace depends on a suite of constituent services, which are briefly desc
 | `hash-external-services` | Defines the running configurations of external (not internally-developed) services that HASH depends on, such as Postgres, Ory Kratos, and Temporal. _(pending refactoring)_ |
 | `hash-realtime`          | Implements a different view over the graph datastore that allows services to subscribe to realtime updates on entities.                                                      |
 | `hash-search-loader`     | Loads the change-stream published by the realtime service into a search index.                                                                                               |
-| `hash-task-executor`     | An experimental service that allows for the execution of pre-defined tasks. (Pending removal in favor of Temporal)                                                           |
 
 ## Websites
 
