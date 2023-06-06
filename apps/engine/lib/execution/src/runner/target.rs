@@ -37,7 +37,7 @@ impl From<Language> for MessageTarget {
         match l {
             Language::Rust => Self::Rust,
             Language::Python => Self::Python,
-            Language::JavaScript => Self::JavaScript,
+            Language::JavaScript | Language::TypeScript => Self::JavaScript,
         }
     }
 }

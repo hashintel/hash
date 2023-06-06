@@ -105,6 +105,8 @@ pub struct SendableBehaviorKeys {
     built_in_key_use: Option<Vec<String>>,
 }
 
+/// Create the initial `BehaviorDescription`s that go in the experiment initialization
+/// message that goes to the worker.
 pub fn exp_init_message(
     behavior_ids: &BehaviorIds,
     behavior_map: &BehaviorMap,
@@ -116,16 +118,19 @@ pub fn exp_init_message(
             let shared = behavior.shared();
             let keys = behavior.keys();
 
-            let language = Language::from_file_name(file_name)
-                .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
+            let language = shared.language().map_err(|_| {
+                Error::from(format!(
+                    "Couldn't get language from behavior file name {file_name}"
+                ))
+            })?;
             let id = behavior_ids
                 .name_to_index
                 .get(shared.name.as_bytes())
                 .ok_or_else(|| Error::from("Couldn't get index from behavior name"))?;
             let source = shared
-                .behavior_src
-                .clone()
+                .get_runner_source()?
                 .ok_or_else(|| Error::from("SharedBehavior didn't have an attached source"))?;
+
             let required_field_keys = keys
                 .inner
                 .iter()

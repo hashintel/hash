@@ -29,7 +29,7 @@ pub struct ManifestError;
 
 pub type Result<T, E = ManifestError> = error_stack::Result<T, E>;
 
-const BEHAVIOR_FILE_EXTENSIONS: [&str; 3] = ["js", "py", "rs"];
+const BEHAVIOR_FILE_EXTENSIONS: [&str; 4] = ["js", "py", "rs", "ts"];
 const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
 
 /// Contains all the necessary information required to run a simulation.
@@ -615,7 +615,7 @@ fn get_behavior_from_dependency_projects(
         } else {
             name_root.replace('_', "-")
         };
-        let full_name = "@hash/".to_string() + &dir + "/" + file_name;
+        let full_name = format!("@hash/{dir}/{file_name}");
 
         if file_extension == "rs" {
             possible_names.push(name_root.to_string());

@@ -68,6 +68,7 @@ impl ExperimentRun {
         #[allow(clippy::match_like_matches_macro)]
         let requires_init = match (language, &self.simulation.package_init.initial_state.name) {
             (Language::JavaScript, InitialStateName::InitJs) => true,
+            (Language::TypeScript, InitialStateName::InitJs) => true,
             (Language::Python, InitialStateName::InitPy) => true,
             _ => false,
         };
@@ -81,7 +82,7 @@ impl ExperimentRun {
                 .any(|behavior| {
                     behavior
                         .language()
-                        .map(|behavior_lang| behavior_lang == language)
+                        .map(|behavior_lang| behavior_lang.uses_same_runner(&language))
                         .unwrap_or(false)
                 })
     }

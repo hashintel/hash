@@ -11,6 +11,8 @@ const BEHAVIOR_IDS_FIELD_KEY = "_PRIVATE_7_behavior_ids";
 // middle of running the behavior execution package, but `__behaviors`
 // contains behavior ids and shouldn't be modified.
 
+const supported_languages = ["JavaScript", "TypeScript"];
+
 const prepare_user_trace = (error, trace) => {
   let behavior_index = -1;
   for (var i = trace.length - 1; i >= 0; --i) {
@@ -73,14 +75,17 @@ const load_behaviors = (experiment, behavior_descs) => {
   const behaviors = {};
   for (var i = 0; i < behavior_descs.length; ++i) {
     const desc = behavior_descs[i];
-    if (desc.language !== "JavaScript") {
+
+    if (!supported_languages.includes(desc.language)) {
       behaviors[desc.id] = {
         language: desc.language,
       };
+
       continue;
     }
 
     const code = desc.source;
+
     let fn;
     try {
       fn = new Function(
@@ -102,7 +107,7 @@ const load_behaviors = (experiment, behavior_descs) => {
         trace.msg;
       throw new Error(JSON.stringify(trace));
     }
-
+     
     let t = typeof fn;
     if (t !== "function") {
       throw new TypeError(
@@ -209,7 +214,7 @@ export const run_task = (
       // We do this because behavior ids are shallow-loaded and
       // `b_id` is an Arrow Vec rather than a clean array
       const behavior = experiment.behaviors[[b_id.get(0), b_id.get(1)]];
-      if (behavior.language !== "JavaScript") {
+      if (!supported_languages.includes(behavior.language)) {
         // TODO: A simple optimization would be to count the number of
         //       next-up behaviors in each language (other than JS) and
         //       (ignoring ties) choose the language with the most. This

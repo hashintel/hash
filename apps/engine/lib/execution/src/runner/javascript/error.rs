@@ -91,6 +91,9 @@ pub enum JavaScriptError {
         None => String::new()
     })]
     JavascriptException(String, Option<String>),
+
+    #[error("Could not compile TypeScript file {filename}: {error}")]
+    TypeScriptCompilation { filename: String, error: String },
 }
 
 impl From<&str> for JavaScriptError {

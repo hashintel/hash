@@ -13,7 +13,7 @@ pub(in crate::runner::javascript) fn get_next_task<'s>(
             let target = target.to_rust_string_lossy(scope);
 
             match target.as_str() {
-                "JavaScript" => MessageTarget::JavaScript,
+                "JavaScript" | "TypeScript" => MessageTarget::JavaScript,
                 "Python" => MessageTarget::Python,
                 "Rust" => MessageTarget::Rust,
                 "Dynamic" => MessageTarget::Dynamic,

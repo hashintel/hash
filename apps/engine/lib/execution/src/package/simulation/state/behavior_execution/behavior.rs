@@ -31,6 +31,19 @@ impl Behavior {
     pub fn language(&self) -> Result<Language> {
         Language::from_file_name(&self.name)
     }
+
+    /// Returns the source code the runner should execute internally, compiling
+    /// the user code if necessary.
+    /// May analyze the source code for validity.
+    pub fn get_runner_source(&self) -> Result<Option<String>> {
+        let language = self.language()?;
+        let compiled = self
+            .behavior_src
+            .as_ref()
+            .map(|src| language.compile_source(&self.name, &src));
+
+        compiled.transpose()
+    }
 }
 
 impl fmt::Debug for Behavior {
