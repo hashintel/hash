@@ -201,20 +201,92 @@ $ aws ecs execute-command --cluster h-hash-prod-usea1-ecs --task TASKID --contai
 
 where the `TASKID` is the ID of the Fargate service task. Note that this would start an `sh` session directly into your production container, and should be done with caution (if it ever should be done). It's recommended not to run commands against the production environment like this, and we may at some point restrict access to Fargate Exec.
 
+# Troubleshooting and guides
+
+## Help! I need access to the private subnet!
+
+You can access the private subnet using the Bastion host. See [this readme](./hash/bastion.md) for more information. You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
+
+## How do I get the Terraform state from S3?
+
+Install the AWS CLI and follow instructions to add credentials. Credentials are generated in the IAM User security credentials page. `https://us-east-1.console.aws.amazon.com/iam/home#/users/NAME?section=security_credentials` for a user with the name `NAME`.
+
+Once the CLI has been configured, you shoukd have a `.aws` folder in your home directory. Terraform will automatically pick this up and connect to the S3 Terraform State backend.
+
+## How do I log in to AWS ECR container registry?
+
+If you wish to pull/push container images to ECR, AWS CLI allows you to do so with the following command:
+
+```console
+$ aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ACCOUNTID.dkr.ecr.us-east-1.amazonaws.com
+..
+```
+
+This will log into the given ECR in the `us-east-1` region.
+
+## How do I migrate the database after it has been deployed?
+
+Using the Terraform scripts to deploy an instance of RDS will give you an empty DB (with appropriate DBs/users), which will need to be migrated. From the `hashintel/hash` repo you can run the following command assuming you've set up an SSH tunnel (see [this readme](./hash/bastion.md)) and have the appropriate environment variables set for the DB connection:
+
+```console
+$ docker run --rm \
+  --network host \
+  -e HASH_GRAPH_PG_USER \
+  -e HASH_GRAPH_PG_PASSWORD \
+  -e HASH_GRAPH_PG_HOST \
+  -e HASH_GRAPH_PG_PORT \
+  -e HASH_GRAPH_PG_DATABASE \
+  -e RUST_LOG \
+  HASH_GRAPH_IMAGE \
+  migrate
+..
+```
+
+```console
+$ docker run --rm \
+  --network host \
+  -e LOG_LEVEL \
+  -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_KRATOS_PG_HOST}:${HASH_KRATOS_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
+  KRATOS_IMAGE \
+  migrate sql -e --yes
+```
+
+Be sure to replace `HASH_GRAPH_IMAGE` and `KRATOS_IMAGE` with the appropriate image names that corresponds with the image tags you've built locally.
+
+## How do I redeploy a running Fargate task?
+
+The current Terraform modules define Fargate task definitions, which are parameterized over ECR container tags. This means that one can push a new Docker image with the same task, and trigger a new Fargate deployment to refresh the image of a service. Assuming an image has been pushed to ECR with the same tag defined in the task definition (e.g. `latest`), it is possible to trigger a redeploy with
+
+```console
+$ aws ecs update-service --cluster h-hash-prod-usea1-ecscluster --service h-hash-prod-usea1-apisvc --force-new-deployment
+..
+```
+
+Where `prod` is the Terraform workspace name, `usea1` is the region, and `apisvc` is the name of the service and `ecscluster` is the name of the ECS cluster.
+
 # Structure of the modules
 
 Under the [`./modules/`](./modules/) folder we define the HASH application through an ECS Fargate service and various external services.
 
-- [`variables`](./modules/variables/) - contains global variable validation/definitions used for the rest of the modules through the [`./hash/`](./hash/) entrypoint.
-- [`networking`](./modules/networking/) - contains the VPC (Virtual Private Cloud) definitions and networking setup defining private and public subnets.
+**Shared modules**:
+
+- [`base_network`](./modules/base_network/) - contains global VPC (Virtual Private Cloud) definitions and networking setup defining private and public subnets.
 - [`bastion`](./modules/bastion/) - a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) that resides in the public subnet with access to the private subnet. Accessible through SSH.
-- [`tunnel`](./modules/tunnel/) - a custom SSH tunnel using an external data source to allow terraform to connect to services on the private subnet of the VPC.
-- [`container_registry`](./modules/container_registry/) - is a thin wrapper around the `aws_ecr_repository` resource with container evicition policies
-- [`container_cluster`](./modules/container_cluster/) - is a thin wrapper around the `aws_ecs_cluster` resource.
-- [`redis`](./modules/redis/) - [external service] a multi Availability Zone Redis cluster with encryption enabled.
+- [`container_cluster`](./modules/container_cluster/) - is a thin wrapper around the `aws_ecs_cluster` resource with container capacity providers.
+- [`container_registry`](./modules/container_registry/) - is a thin wrapper around the `aws_ecr_repository` resource with container evicition policies.
 - [`postgres`](./modules/postgres/) - [external service] a multi Availability Zone Postgres RDS cluster with encryption enabled.
+- [`redis`](./modules/redis/) - [external service] a multi Availability Zone Redis cluster with encryption enabled.
+- [`tunnel`](./modules/tunnel/) - a custom SSH tunnel using an external data source to allow terraform to connect to services on the private subnet of the VPC.
+- [`variables`](./modules/variables/) - contains global variable validation/definitions generally useful for our Terraform infrastructure.
+- [`vault_aws_auth`](./modules/vault_aws_auth/) - contains the configuration for authenticating the AWS provider through the Vault AWS authentication backend.
+
+**HASH specefic modules**:
+
+- [`networking`](./modules/hash/networking/) - contains PrivateLink definitions for the various required AWS resources.
 - [`postgres_roles`](./modules/postgres_roles/) - SQL configurations for the HASH application defining grants, roles and databases (requires an SSH tunnel to connect to the RDS instance).
 - [`hash_application`](./modules/hash_application/)` - the ECS Fargate container definition using the previous ECR and ECS cluster definitions to start the Graph layer, the HASH API and Kratos.
+
+**HASH infrastructure diagram**:
 
 ```mermaid
 graph TD;
