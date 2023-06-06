@@ -70,7 +70,7 @@ module "bastion" {
 
 module "postgres" {
   depends_on            = [module.networking]
-  source                = "./postgres"
+  source                = "../modules/postgres"
   prefix                = local.prefix
   subnets               = module.networking.snpriv
   vpc_id                = module.networking.vpc.id
@@ -118,7 +118,7 @@ module "postgres_roles" {
 
 module "redis" {
   depends_on      = [module.networking]
-  source          = "./redis"
+  source          = "../modules/redis"
   prefix          = local.prefix
   node_type       = "cache.t3.micro"
   vpc_id          = module.networking.vpc.id
@@ -128,10 +128,11 @@ module "redis" {
 }
 
 module "application_ecs" {
-  depends_on = [module.networking]
-  source     = "./container_cluster"
-  prefix     = local.prefix
-  ecs_name   = "ecs"
+  depends_on         = [module.networking]
+  source             = "../modules/container_cluster"
+  prefix             = local.prefix
+  ecs_name           = "ecs"
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 }
 
 module "graph_ecr" {
