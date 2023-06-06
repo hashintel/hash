@@ -15,7 +15,7 @@ extern crate alloc;
 use deer::{error::DeserializeError, Context, Deserialize};
 use error_stack::Result;
 
-pub use crate::deserializer::Deserializer;
+pub use crate::deserializer::{Deserializer, StackLimit};
 
 pub fn from_slice<'de, T>(slice: &'de [u8], context: &Context) -> Result<T, DeserializeError>
 where
