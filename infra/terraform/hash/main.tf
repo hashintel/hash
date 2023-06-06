@@ -70,7 +70,7 @@ module "bastion" {
 
 module "postgres" {
   depends_on            = [module.networking]
-  source                = "../modules/postgres"
+  source                = "./postgres"
   prefix                = local.prefix
   subnets               = module.networking.snpriv
   vpc_id                = module.networking.vpc.id
