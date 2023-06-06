@@ -53,8 +53,8 @@ The following applications are available but currently unsupported. However, as 
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [`engine`](engine)                       | Codebase for the alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
 | [`intellij-plugin`](intellij-plugin)     | Plugin for JetBrains IntelliJ-based IDEs to assist development in common HASH workflows                    |
-| [`hash-agents`](hash-agents)             | An experimental setup for writing Python-based 'agents' that interface with LLMs.                          |
-| [`hash-ai-worker-py`](hash-ai-worker-py) | A Python-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows.                 |
-| [`hash-ai-worker-ts`](hash-ai-worker-ts) | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows.             |
+| [`hash-agents`](hash-agents)             | An experimental setup for writing Python-based 'agents' that interface with LLMs                           |
+| [`hash-ai-worker-py`](hash-ai-worker-py) | A Python-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows                  |
+| [`hash-ai-worker-ts`](hash-ai-worker-ts) | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows              |
 
 Source code for the _Block Protocol_ can be found separately in the [blockprotocol/blockprotocol repo] on GitHub.
