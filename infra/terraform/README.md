@@ -19,6 +19,26 @@ $ terraform workspace select prod
 prod
 ```
 
+# Naming convention
+
+Resources use the following naming convention:
+
+```
+{OWNER}-{PROJECT}-{ENV}-{REGION}-{RESOURCE DESCRIPTION}
+
+OWNER : 'h' for hash
+PROJECT : 'hash'
+ENV : 'dev' or 'prod'  (maybe others too later)
+REGION : AWS region shortened -- 'usea1' etc.
+RESOURCE DESCRIPTION : a short description of the resource e.g. 'subnetpub1'
+```
+
+Fields may _not_ include any hyphens. Example names: `h-hash-prod-usea1-vpc`, `h-hash-dev-usea2-apisvc`.
+
+(Inspired by https://stepan.wtf/cloud-naming-convention/)
+
+The region and environment fields are set by the variables supplied in the `*.tfvars` file. The config automatically shortens AWS region names, for example, `us-east-1` will be converted to `usea1`.
+
 By default, the selected region is `us-east-1` and can be configured by editing the TF variables used for applying the TF plan, e.g. the one in [`./hash/prod-usea1.tfvars`](./hash/prod-usea1.tfvars).
 
 # Deploying
