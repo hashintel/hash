@@ -5503,26 +5503,18 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.8.0.tgz#fe2aa90e6df050a11cd57f5c0f47b0641fd2cad3"
   integrity "sha1-/iqpDm3wUKEc1X9cD0ewZB/SytM= sha512-TYh1MRcm4JnvpqtqOwT9WYaBYY4KERHdToxs/suDTLviGRsQkIjS5yYROTYTSJQUnYLOn/TuOh5GoMwfLSU+Ew=="
 
-"@ory/client@1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.0.2.tgz#1f026cb998251d34df19e1913d51c5f5f95cf82c"
-  integrity "sha1-HwJsuZglHTTfGeGRPVHF9flc+Cw= sha512-Hf+KIUFlKsvtez1byxolqrf0qg5jtgihkgTUzzgvTNh3ZjgvsLfyOptQcPpNz5cpHkCJeKjv1j4xky4eLg/t4A=="
+"@ory/client@1.1.33":
+  version "1.1.33"
+  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.1.33.tgz#2a3253897128fac7e3ea62674a3a4322f759eef7"
+  integrity sha512-IC7SJpF6AqPxLrW/JBAPPaetA8LOfj1NHnRY2LoU8K6snY7jIj9moYvUn9H1fbwsWdnaPupKoM93NRfuP3pcbQ==
   dependencies:
     axios "^0.21.4"
 
-"@ory/client@^0.2.0-alpha.16":
-  version "0.2.0-alpha.60"
-  resolved "https://registry.yarnpkg.com/@ory/client/-/client-0.2.0-alpha.60.tgz#891589f64912d865febadae5acf587dfb421e171"
-  integrity "sha1-iRWJ9kkS2GX+utrlrPWH37Qh4XE= sha512-fGovJ/xIl7dvJJP9/IL4Xu1yiOCy9pvmkfj2xnHZbPrIbL9c9tqVcC3CSlzBq6zJQZMC3XI7VmZ8uEQ+cF4suw=="
+"@ory/integrations@1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-1.1.1.tgz#f29162c57a9726dcd795bc37de7d0e9658e43816"
+  integrity sha512-vynmVE92+f0KkRaoHtqg/CBSPxQ5ozH8pZ96N6n+fBfS2EmHYrpIqKR5riGxlJtLFStE+h8bCnlaJQb/EqqSYA==
   dependencies:
-    axios "^0.21.4"
-
-"@ory/integrations@0.2.8":
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-0.2.8.tgz#8931c295a87c841a336783cf69ae711584916aa4"
-  integrity "sha1-iTHClah8hBozZ4PPaa5xFYSRaqQ= sha512-khK2lVUQm+TZ+Mtq+aArrJCw1IldILp1CnmrdC/R9XMgEEVuA4hjkIqKx/z72KSfXtaQvdVgMKmcLgYs+8V0bQ=="
-  dependencies:
-    "@ory/client" "^0.2.0-alpha.16"
     "@types/tldjs" "^2.3.1"
     cookie "^0.4.1"
     istextorbinary "^6.0.0"
