@@ -8,74 +8,18 @@ use crate::{
         Location, ObjectAccessError, ReceivedField, ReceivedLength, ReceivedVariant,
         UnknownFieldError, UnknownVariantError, Variant, VisitorError,
     },
+    identifier,
     impls::UnitVariantVisitor,
     schema::Reference,
     ArrayAccess, Deserialize, Deserializer, Document, EnumVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
 };
 
-enum BoundDiscriminant {
-    Included,
-    Excluded,
-    Unbounded,
-}
-
-impl Reflection for BoundDiscriminant {
-    fn schema(_: &mut Document) -> Schema {
-        Schema::new("string").with("enum", ["Included", "Excluded", "Unbounded"])
-    }
-}
-
-struct BoundDiscriminantVisitor;
-
-impl<'de> Visitor<'de> for BoundDiscriminantVisitor {
-    type Value = BoundDiscriminant;
-
-    fn expecting(&self) -> Document {
-        Self::Value::reflection()
-    }
-
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        match v {
-            "Included" => Ok(BoundDiscriminant::Included),
-            "Excluded" => Ok(BoundDiscriminant::Excluded),
-            "Unbounded" => Ok(BoundDiscriminant::Unbounded),
-            _ => Err(Report::new(UnknownVariantError.into_error())
-                .attach(ExpectedVariant::new("Included"))
-                .attach(ExpectedVariant::new("Excluded"))
-                .attach(ExpectedVariant::new("Unbounded"))
-                .attach(ReceivedVariant::new(v))
-                .change_context(VisitorError)),
-        }
-    }
-
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        match v {
-            b"Included" => Ok(BoundDiscriminant::Included),
-            b"Excluded" => Ok(BoundDiscriminant::Excluded),
-            b"Unbounded" => Ok(BoundDiscriminant::Unbounded),
-            _ => {
-                let mut error = Report::new(UnknownVariantError.into_error())
-                    .attach(ExpectedVariant::new("Included"))
-                    .attach(ExpectedVariant::new("Excluded"))
-                    .attach(ExpectedVariant::new("Unbounded"));
-
-                if let Ok(received) = core::str::from_utf8(v) {
-                    error = error.attach(ReceivedVariant::new(received));
-                }
-
-                Err(error.change_context(VisitorError))
-            }
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for BoundDiscriminant {
-    type Reflection = Self;
-
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_str(BoundDiscriminantVisitor)
-            .change_context(DeserializeError)
+identifier! {
+    enum BoundDiscriminant {
+        Unbounded = "Unbounded" | b"Unbounded" | 0,
+        Included = "Included" | b"Included" | 1,
+        Excluded = "Excluded" | b"Excluded" | 2,
     }
 }
 
