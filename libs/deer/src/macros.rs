@@ -113,8 +113,9 @@ macro_rules! forward_to_deserialize_any_helper {
 ///         VariantName = "StrVariant" | b"ByteVariant" | 2,
 ///         // You can exclude a specific variant from one of the `visit_` method implementations
 ///         // by replacing the value with `_`
-///         VariantName = _ | b"ByteVariant" | 2,
+///         VariantName2 = _ | b"ByteVariant" | 2,
 ///         // if there's a duplicate value for a variant, the first one declared will be used.
+///         // duplicate variants (not their value(!)) will lead to a compile error
 ///     }
 /// }
 /// ```
