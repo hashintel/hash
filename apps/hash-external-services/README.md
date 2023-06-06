@@ -7,7 +7,7 @@ This directory contains a number of external services used throughout HASH (Ory 
 ### LLM prototyping
 
 This also contains an experimental Docker compose file for prototyping LLM-based services using relevant external services such as a vector database.
-You'll be able to execute the following command to start the prototyping external services:
+You'll be able to execute the following command from the repository root directory to start the prototyping external services:
 
 ```sh
 yarn external-services:prototype up
