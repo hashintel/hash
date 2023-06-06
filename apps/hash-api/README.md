@@ -1,8 +1,8 @@
-# HASH backend
+# HASH Backend
 
 ## Configuration
 
-The backend API service is configured using the following environment variables:
+The HASH Backend API service is configured using the following environment variables:
 
 - `NODE_ENV`: ("development" or "production") the runtime environment. Controls
   default logging levels and output formatting.

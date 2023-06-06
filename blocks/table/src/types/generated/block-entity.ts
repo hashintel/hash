@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
+import { Entity, LinkData } from "@blockprotocol/graph";
 
 export type BlockEntity = TableBlock;
 
@@ -14,68 +14,108 @@ export type BlockEntityOutgoingLinkAndTarget = TableBlockOutgoingLinkAndTarget;
 export type Boolean = boolean;
 
 /**
+ * An arbitrary ID
+ */
+export type IDPropertyValue = Text;
+
+export type Link = Entity<LinkProperties>;
+
+export type LinkOutgoingLinkAndTarget = never;
+
+export type LinkOutgoingLinksByLinkEntityTypeId = {};
+
+export type LinkProperties = {};
+
+export type LinkedQuery = Entity<LinkedQueryProperties> & {
+  linkData: LinkData;
+};
+
+export type LinkedQueryOutgoingLinkAndTarget = never;
+
+export type LinkedQueryOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * 123
+ */
+export type LinkedQueryProperties = LinkedQueryProperties1 &
+  LinkedQueryProperties2;
+export type LinkedQueryProperties1 = LinkProperties;
+
+export type LinkedQueryProperties2 = {};
+
+/**
  * An opaque, untyped JSON object
  */
 export type Object = {};
 
-export type TableBlock = Entity<TableBlockProperties>;
-
-export type TableBlockOutgoingLinkAndTarget = never;
-
-export type TableBlockOutgoingLinksByLinkEntityTypeId = {};
+export type Query = Entity<QueryProperties>;
 
 /**
- * The block entity of the "Table" block.
- *
- * See: https://blockprotocol.org/@hash/blocks/table
+ * 12312
  */
+export type QueryObjectPropertyValue = Object;
+
+export type QueryOutgoingLinkAndTarget = never;
+
+export type QueryOutgoingLinksByLinkEntityTypeId = {};
+
+export type QueryProperties = {
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"?: QueryObjectPropertyValue;
+};
+
+export type TableBlock = Entity<TableBlockProperties>;
+
+export type TableBlockLinkedQueryLink = {
+  linkEntity: LinkedQuery;
+  rightEntity: Query;
+};
+
+export type TableBlockOutgoingLinkAndTarget = TableBlockLinkedQueryLink;
+
+export type TableBlockOutgoingLinksByLinkEntityTypeId = {
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/entity-type/linked-query/v/1": TableBlockLinkedQueryLink;
+};
+
 export type TableBlockProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
-  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
-  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
+  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
   /**
    * @minItems 0
    */
-  "https://blockprotocol.org/@hash/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
   /**
    * @minItems 0
    */
-  "https://blockprotocol.org/@hash/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
+  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
 };
 
 /**
- * Whether the table header row is hidden.
+ * 123
  */
 export type TableHeaderRowIsHiddenPropertyValue = Boolean;
 
 /**
- * A unique identifier for a local column stored on the "Table" block.
- */
-export type TableLocalColumnIDPropertyValue = Text;
-
-/**
- * Local column stored on "Table" block.
+ * Local column stored on "Table" block
  */
 export type TableLocalColumnPropertyValue = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": TableLocalColumnIDPropertyValue;
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
 };
 
 /**
- * An object representing a local row stored on the "Table" block. The keys of this object must be one of the local column IDs.
- *
- * See: https://blockprotocol.org/@hash/types/property-type/table-local-column/
+ * Local row stored on "Table" block
  */
 export type TableLocalRowPropertyValue = Object;
 
 /**
- * Whether the table row numbers are hidden.
+ * 123
  */
 export type TableRowNumbersAreHiddenPropertyValue = Boolean;
 
 /**
- * Whether the alternating table rows are zebra striped.
+ * 123
  */
 export type TableRowsAreStripedPropertyValue = Boolean;
 
@@ -85,6 +125,6 @@ export type TableRowsAreStripedPropertyValue = Boolean;
 export type Text = string;
 
 /**
- * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
+ * The title of something
  */
 export type TitlePropertyValue = Text;

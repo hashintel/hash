@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fmt, fs,
     net::{AddrParseError, SocketAddr},
     sync::Arc,
@@ -7,22 +8,35 @@ use std::{
 
 use clap::Parser;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-#[cfg(feature = "type-fetcher")]
-use graph::store::FetchingPool;
 use graph::{
     api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
+    identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
-    ontology::domain_validator::DomainValidator,
-    store::{DatabaseConnectionInfo, PostgresStorePool},
+    ontology::{
+        domain_validator::DomainValidator, ExternalOntologyElementMetadata, OntologyElementMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordCreatedById},
+    store::{
+        error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, DatabaseConnectionInfo,
+        EntityTypeStore, FetchingPool, PostgresStorePool, StorePool,
+    },
 };
 use regex::Regex;
 use reqwest::Client;
+use serde_json::json;
+use time::OffsetDateTime;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    AllOf, DataType, EntityType, Links, Object,
+};
+use uuid::Uuid;
 
-use crate::error::{GraphError, HealthcheckError};
-#[cfg(feature = "type-fetcher")]
-use crate::subcommand::type_fetcher::TypeFetcherAddress;
+use crate::{
+    error::{GraphError, HealthcheckError},
+    subcommand::type_fetcher::TypeFetcherAddress,
+};
 
 #[derive(Debug, Parser)]
 pub struct ApiAddress {
@@ -63,7 +77,6 @@ pub struct ServerArgs {
     pub api_address: ApiAddress,
 
     /// The address for the type fetcher RPC server is listening at.
-    #[cfg(feature = "type-fetcher")]
     #[clap(flatten)]
     pub type_fetcher_address: TypeFetcherAddress,
 
@@ -94,6 +107,10 @@ pub struct ServerArgs {
     /// Starts a server that only serves the OpenAPI spec.
     #[clap(long, default_value_t = false)]
     pub write_openapi_specs: bool,
+
+    /// Starts a server without connecting to the type fetcher
+    #[clap(long, default_value_t = false, conflicts_with_all = ["type_fetcher_host", "type_fetcher_port"])]
+    pub offline: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -102,27 +119,7 @@ pub struct ServerArgs {
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
 #[expect(clippy::too_many_lines, reason = "temporary solution")]
-#[cfg(not(feature = "type-fetcher"))]
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
-    use std::collections::HashMap;
-
-    use graph::{
-        identifier::account::AccountId,
-        ontology::{ExternalOntologyElementMetadata, OntologyElementMetadata},
-        provenance::{ProvenanceMetadata, RecordCreatedById},
-        store::{
-            error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, EntityTypeStore,
-            StorePool,
-        },
-    };
-    use serde_json::json;
-    use time::OffsetDateTime;
-    use type_system::{
-        url::{BaseUrl, VersionedUrl},
-        AllOf, DataType, EntityType, Links, Object,
-    };
-    use uuid::Uuid;
-
     // TODO: how do we make these URLs compliant
     let text = DataType::new(
         VersionedUrl {
@@ -343,19 +340,26 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             tracing::error!(error = ?report, "Failed to connect to database");
             report
         })?;
+    let _ = pool
+        .acquire()
+        .await
+        .change_context(GraphError)
+        .attach_printable("Connection to database failed")?;
 
-    #[cfg(not(feature = "type-fetcher"))]
-    stop_gap_setup(&pool).await?;
+    let pool = if args.offline {
+        stop_gap_setup(&pool).await?;
 
-    #[cfg(feature = "type-fetcher")]
-    let pool = FetchingPool::new(
-        pool,
-        (
-            args.type_fetcher_address.type_fetcher_host,
-            args.type_fetcher_address.type_fetcher_port,
-        ),
-        DomainValidator::new(args.allowed_url_domain.clone()),
-    );
+        FetchingPool::new_offline(pool)
+    } else {
+        FetchingPool::new(
+            pool,
+            (
+                args.type_fetcher_address.type_fetcher_host,
+                args.type_fetcher_address.type_fetcher_port,
+            ),
+            DomainValidator::new(args.allowed_url_domain.clone()),
+        )
+    };
 
     let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),

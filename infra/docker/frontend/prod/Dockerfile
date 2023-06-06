@@ -1,5 +1,6 @@
 FROM python:3.11.3-slim-bullseye as python-base
 
+
 FROM node:18.15-slim AS pruned
 
 WORKDIR /app
@@ -7,6 +8,10 @@ WORKDIR /app
 RUN yarn global add turbo
 COPY . .
 RUN turbo prune --scope='@apps/hash-frontend' --docker
+# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
+# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
+COPY patches /app/out/full/patches
+
 
 FROM pruned as installer
 
@@ -38,19 +43,19 @@ COPY --from=python-base /usr/local/lib/libpython3.so /usr/local/lib/libpython3.s
 COPY --from=python-base /usr/local/lib/libpython3.11.so /usr/local/lib/libpython3.11.so
 COPY --from=python-base /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
 
-
-COPY --from=pruned /app/out/json/ .
-COPY --from=pruned /app/out/yarn.lock ./yarn.lock
-COPY --from=pruned /app/out/full/ .
-
-RUN yarn install --frozen-lockfile --prefer-offline \
-    && yarn cache clean
-
 RUN apt-get install -y python-is-python3
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-WORKDIR /usr/local/src/hash/app/apps/hash-frontend
+COPY --from=pruned /app/out/json/ .
+COPY --from=pruned /app/out/yarn.lock yarn.lock
+COPY --from=pruned /app/out/full/patches patches
+
+RUN yarn install --frozen-lockfile --prefer-offline \
+    && yarn cache clean
+
+COPY --from=pruned /app/out/full/ .
+
 ENV NODE_ENV production
 ARG API_ORIGIN
 ENV API_ORIGIN ${API_ORIGIN}
@@ -63,8 +68,6 @@ ENV SYSTEM_USER_SHORTNAME ${SYSTEM_USER_SHORTNAME}
 
 RUN turbo build --filter '@apps/hash-frontend'
 
-
-#########################################################################################
 
 FROM node:18.15-slim as runner
 

@@ -4,6 +4,7 @@ mod ontology;
 mod migration;
 mod pool;
 mod query;
+mod traversal_context;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -15,7 +16,10 @@ use type_system::{
     PropertyTypeReference,
 };
 
-pub use self::pool::{AsClient, PostgresStorePool};
+pub use self::{
+    pool::{AsClient, PostgresStorePool},
+    traversal_context::TraversalContext,
+};
 use crate::{
     identifier::{
         account::AccountId,
@@ -43,9 +47,6 @@ use crate::{
     },
     knowledge::{EntityProperties, LinkOrder},
 };
-
-#[derive(Default)]
-pub struct TraversalContext;
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {

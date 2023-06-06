@@ -13,16 +13,17 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
-import { Box, Container, Theme, Typography } from "@mui/material";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { Box, Container, Theme, Tooltip, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { LinkedIcon } from "../../../../shared/icons/linked-icon";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -31,6 +32,7 @@ import {
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+import { ConvertTypeButton } from "./[...slug-maybe-version].page/convert-type-button";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
@@ -44,12 +46,17 @@ import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
 
+const isLinkEntityType = (type: EntityType) =>
+  !!type.allOf?.some((parent) => parent.$ref === linkEntityTypeUrl);
+
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
+
+  const [convertTypeLoading, setConvertTypeLoading] = useState(false);
 
   const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
     string,
@@ -186,6 +193,27 @@ const Page: NextPageWithLayout = () => {
 
   const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
 
+  const entityTypeIsLink = isLinkEntityType(entityType);
+
+  const convertToLinkType = wrapHandleSubmit(async (data) => {
+    const entityTypeSchema = getSchemaFromFormData(data);
+
+    setConvertTypeLoading(true);
+    const res = await updateEntityType({
+      ...entityTypeSchema,
+      allOf: [{ $ref: linkEntityTypeUrl }],
+    });
+
+    setConvertTypeLoading(false);
+    if (!res.errors?.length) {
+      reset(data);
+    } else {
+      throw new Error("Could not publish changes");
+    }
+  });
+
+  const isDirty = formMethods.formState.isDirty;
+
   return (
     <>
       <Head>
@@ -205,7 +233,7 @@ const Page: NextPageWithLayout = () => {
                       id: "types",
                     },
                     {
-                      title: "Entity types",
+                      title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
                       href: "#",
                       id: "entity-types",
                     },
@@ -281,18 +309,51 @@ const Page: NextPageWithLayout = () => {
                         </>
                       }
                     />
-                    <Typography variant="h1" fontWeight="bold" my={3}>
-                      <FontAwesomeIcon
-                        icon={faAsterisk}
-                        sx={(theme) => ({
-                          fontSize: 40,
-                          mr: 3,
-                          color: theme.palette.gray[70],
-                          verticalAlign: "middle",
-                        })}
-                      />
-                      {entityType.title}
-                    </Typography>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography variant="h1" fontWeight="bold" my={3}>
+                        {entityTypeIsLink ? (
+                          <Tooltip
+                            title="This is a 'link' entity type. It is used to link other entities together."
+                            placement="top"
+                          >
+                            <Box display="inline-flex">
+                              <LinkedIcon
+                                sx={({ palette }) => ({
+                                  fontSize: 40,
+                                  mr: 3,
+                                  stroke: palette.gray[50],
+                                  verticalAlign: "middle",
+                                })}
+                              />
+                            </Box>
+                          </Tooltip>
+                        ) : (
+                          <FontAwesomeIcon
+                            icon={faAsterisk}
+                            sx={({ palette }) => ({
+                              fontSize: 40,
+                              mr: 3,
+                              color: palette.gray[70],
+                              verticalAlign: "middle",
+                            })}
+                          />
+                        )}
+
+                        {entityType.title}
+                      </Typography>
+
+                      {!isDraft && !entityTypeIsLink ? (
+                        <ConvertTypeButton
+                          onClick={convertToLinkType}
+                          loading={convertTypeLoading}
+                          disabled={isDirty}
+                        />
+                      ) : null}
+                    </Box>
 
                     <Box sx={{ mb: 5.25 }}>
                       <EntityTypeDescription readonly={isReadonly} />

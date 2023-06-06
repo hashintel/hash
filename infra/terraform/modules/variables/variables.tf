@@ -1,3 +1,12 @@
+variable "project" {
+  type        = string
+  description = "The project name"
+  validation {
+    condition     = can(regex("[a-z]+", var.project))
+    error_message = "Must be a lowercase non-empty string"
+  }
+}
+
 variable "env" {
   type        = string
   description = "The environment, defaults to the selected workspace."

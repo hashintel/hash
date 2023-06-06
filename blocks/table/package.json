@@ -32,7 +32,7 @@
   "dependencies": {
     "@blockprotocol/graph": "0.3.0",
     "@glideapps/glide-data-grid": "5.2.1",
-    "@hashintel/block-design-system": "0.0.0",
+    "@hashintel/block-design-system": "0.0.1",
     "@mui/material": "5.11.9",
     "clsx": "1.2.1",
     "immer": "9.0.6",
@@ -99,7 +99,7 @@
     "image": "public/block-preview.png",
     "name": "@hash/table",
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/3",
+    "blockEntityType": "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/entity-type/table-block/v/4",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

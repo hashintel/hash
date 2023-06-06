@@ -15,11 +15,11 @@ import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../block-portals";
 import { BlockSuggester } from "./block-suggester";
-import { MentionSuggester } from "./mention-suggester";
+import { MentionSuggester, MentionType } from "./mention-suggester";
 
 interface Trigger {
   char: "@" | "/";
-  /** matched search string including its leading trigger-char */
+  /** matched search string excluding its leading trigger-char */
   search: string;
   /** starting prosemirror document position */
   from: number;
@@ -289,7 +289,7 @@ export const createSuggester = (
 
           const onMentionChange = (
             entityId: EntityId,
-            mentionType: "page" | "user",
+            mentionType: MentionType,
           ) => {
             const { tr } = view.state;
 
@@ -310,7 +310,7 @@ export const createSuggester = (
               if (getManager) {
                 jsx = (
                   <BlockSuggester
-                    search={search.substring(1)}
+                    search={search}
                     onChange={onBlockSuggesterChange}
                   />
                 );
@@ -319,7 +319,7 @@ export const createSuggester = (
             case "@":
               jsx = (
                 <MentionSuggester
-                  search={search.substring(1)}
+                  search={search}
                   onChange={onMentionChange}
                   accountId={accountId}
                 />

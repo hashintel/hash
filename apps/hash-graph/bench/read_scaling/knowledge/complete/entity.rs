@@ -95,27 +95,24 @@ async fn seed_db(
 
     let link_entity_metadata_list = transaction
         .insert_entities_batched_by_type(
-            entity_metadata_list
-                .iter()
-                .flat_map(|entity_a_metadata| {
-                    entity_metadata_list.iter().map(|entity_b_metadata| {
-                        (
-                            owned_by_id,
-                            None,
-                            properties.clone(),
-                            Some(LinkData {
-                                left_entity_id: entity_a_metadata.record_id().entity_id,
-                                right_entity_id: entity_b_metadata.record_id().entity_id,
-                                order: EntityLinkOrder {
-                                    left_to_right: None,
-                                    right_to_left: None,
-                                },
-                            }),
-                            None,
-                        )
-                    })
+            entity_metadata_list.iter().flat_map(|entity_a_metadata| {
+                entity_metadata_list.iter().map(|entity_b_metadata| {
+                    (
+                        owned_by_id,
+                        None,
+                        properties.clone(),
+                        Some(LinkData {
+                            left_entity_id: entity_a_metadata.record_id().entity_id,
+                            right_entity_id: entity_b_metadata.record_id().entity_id,
+                            order: EntityLinkOrder {
+                                left_to_right: None,
+                                right_to_left: None,
+                            },
+                        }),
+                        None,
+                    )
                 })
-                .collect::<Vec<_>>(),
+            }),
             actor_id,
             &entity_type_id,
         )
@@ -191,16 +188,7 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     );
 
-    for size in [
-        1,
-        5,
-        #[cfg(not(test))]
-        10,
-        #[cfg(not(test))]
-        25,
-        #[cfg(not(test))]
-        50,
-    ] {
+    for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
@@ -251,16 +239,7 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     );
 
-    for size in [
-        1,
-        5,
-        #[cfg(not(test))]
-        10,
-        #[cfg(not(test))]
-        25,
-        #[cfg(not(test))]
-        50,
-    ] {
+    for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 

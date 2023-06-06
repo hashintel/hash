@@ -28,7 +28,7 @@ pub struct CustomOntologyMetadata {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        with = "time::serde::iso8601::option"
+        with = "crate::serde::time::option"
     )]
     pub fetched_at: Option<OffsetDateTime>,
 }

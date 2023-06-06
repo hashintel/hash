@@ -1,26 +1,29 @@
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
-import ArticleIcon from "@mui/icons-material/Article";
+import { Box } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
+import { useAllEntitiesExcept } from "../../../components/hooks/use-all-entities-except";
 import { useUsers } from "../../../components/hooks/use-users";
+import { PageIcon } from "../../../components/page-icon";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import { Suggester } from "./suggester";
 
+export type MentionType = "user" | "page" | "entity";
 export interface MentionSuggesterProps {
   search?: string;
-
-  onChange(entityId: EntityId, mentionType: "user" | "page"): void;
-
+  onChange(entityId: EntityId, mentionType: MentionType): void;
   accountId: AccountId;
 }
 
 type SearchableItem = {
   shortname?: string;
   name: string;
+  desc?: string;
   entityId: EntityId;
-  mentionType: "user" | "page";
+  mentionType: MentionType;
   isActiveOrgMember?: boolean;
 };
 
@@ -30,13 +33,17 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   accountId,
 }) => {
   const { users, loading: usersLoading } = useUsers();
+  const { entities, loading: entitiesLoading } = useAllEntitiesExcept([
+    types.entityType.user.entityTypeId,
+    types.entityType.page.entityTypeId,
+  ]);
   const { data: pages, loading: pagesLoading } = useAccountPages(
     accountId as OwnedById,
   );
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
-  const loading = usersLoading && pagesLoading;
+  const loading = usersLoading && pagesLoading && entitiesLoading;
 
   const options = useMemo(() => {
     const iterableAccounts: Array<SearchableItem> =
@@ -52,10 +59,20 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
-      name: page.title,
+      name: page.title || "Untitled",
       entityId: page.entityId,
       mentionType: "page",
     }));
+
+    const iterableEntities: Array<SearchableItem> =
+      entities?.map(({ entity, label, entityTypeTitle }) => {
+        return {
+          entityId: entity.metadata.recordId.entityId,
+          mentionType: "entity",
+          name: label,
+          desc: entityTypeTitle,
+        };
+      }) ?? [];
 
     const peopleSearch = fuzzySearchBy(iterableAccounts, search, (option) =>
       [option.shortname, option.name].map((str) => str ?? "").join(" "),
@@ -69,32 +86,37 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       return 0;
     });
 
+    const entitiesSearch = fuzzySearchBy(
+      iterableEntities,
+      search,
+      (option) => option.name,
+    );
+
     const pagesSearch = fuzzySearchBy(
       iterablePages,
       search,
       (option) => option.name,
     );
 
-    return [...peopleSearch, ...pagesSearch];
-  }, [search, users, activeWorkspaceAccountId, pages]);
+    return [...peopleSearch, ...pagesSearch, ...entitiesSearch];
+  }, [search, users, activeWorkspaceAccountId, pages, entities]);
 
   return (
     <Suggester
       options={options}
       renderItem={(option) => (
-        <div
-          style={{
-            alignItems: "center",
+        <Box
+          sx={{
             display: "flex",
-            paddingBottom: "0.25rem",
-            paddingLeft: "0.5rem",
-            paddingRight: "0.5rem",
-            paddingTop: "0.25rem",
+            alignItems: "center",
+            px: 0.5,
+            py: 0.25,
+            minHeight: "1.75rem",
           }}
         >
-          {option.mentionType === "user" ? (
-            <div
-              style={{
+          {option.mentionType === "user" && (
+            <Box
+              sx={{
                 alignItems: "center",
                 backgroundColor: "#E5E7EB",
                 borderRadius: "9999px",
@@ -103,36 +125,51 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 height: "1.5rem",
                 justifyContent: "center",
                 lineHeight: "1.25rem",
-                marginRight: "0.5rem",
+                mr: 0.5,
                 width: "1.5rem",
               }}
             >
               {option.name[0]?.toUpperCase()}
-            </div>
-          ) : (
-            <div
-              style={{
+            </Box>
+          )}
+          {option.mentionType === "page" && (
+            <Box
+              sx={{
                 alignItems: "center",
                 display: "flex",
                 height: "1.5rem",
                 justifyContent: "center",
-                marginRight: "0.5rem",
+                mr: 0.5,
                 width: "1.5rem",
               }}
             >
-              {/* @todo display page emoji/icon when available */}
-              <ArticleIcon style={{ fontSize: "1em" }} />
-            </div>
+              <PageIcon entityId={option.entityId} size="small" />
+            </Box>
           )}
-          <p
-            style={{
+          <Box
+            component="p"
+            sx={{
               fontSize: "0.875rem",
               lineHeight: "1.25rem",
+              pl: option.mentionType === "entity" ? 1 : 0,
             }}
           >
             {option.name}
-          </p>
-        </div>
+            {option.mentionType === "entity" && (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: "0.75rem",
+                  lineHeight: "1.25rem",
+                  ml: 0.5,
+                  color: ({ palette }) => palette.gray[70],
+                }}
+              >
+                {option.desc}
+              </Box>
+            )}
+          </Box>
+        </Box>
       )}
       itemKey={(option) => option.entityId}
       onChange={(option) => onChange(option.entityId, option.mentionType)}

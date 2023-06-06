@@ -58,11 +58,16 @@ pub trait TypeFetcher {
     ) -> Result<OntologyElementMetadata, InsertionError>;
 }
 
-pub struct FetchingPool<P, A> {
-    pool: P,
+#[derive(Clone)]
+struct TypeFetcherConnectionInfo<A> {
     address: A,
     config: tarpc::client::Config,
     domain_validator: DomainValidator,
+}
+
+pub struct FetchingPool<P, A> {
+    pool: P,
+    connection_info: Option<TypeFetcherConnectionInfo<A>>,
 }
 
 impl<P, A> FetchingPool<P, A>
@@ -72,9 +77,18 @@ where
     pub fn new(pool: P, address: A, domain_validator: DomainValidator) -> Self {
         Self {
             pool,
-            address,
-            config: tarpc::client::Config::default(),
-            domain_validator,
+            connection_info: Some(TypeFetcherConnectionInfo {
+                address,
+                config: tarpc::client::Config::default(),
+                domain_validator,
+            }),
+        }
+    }
+
+    pub const fn new_offline(pool: P) -> Self {
+        Self {
+            pool,
+            connection_info: None,
         }
     }
 }
@@ -91,27 +105,21 @@ where
     async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error> {
         Ok(FetchingStore {
             store: self.pool.acquire().await?,
-            address: self.address.clone(),
-            config: self.config.clone(),
-            domain_validator: self.domain_validator.clone(),
+            connection_info: self.connection_info.clone(),
         })
     }
 
     async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error> {
         Ok(FetchingStore {
             store: self.pool.acquire_owned().await?,
-            address: self.address.clone(),
-            config: self.config.clone(),
-            domain_validator: self.domain_validator.clone(),
+            connection_info: self.connection_info.clone(),
         })
     }
 }
 
 pub struct FetchingStore<S, A> {
     store: S,
-    address: A,
-    config: tarpc::client::Config,
-    domain_validator: DomainValidator,
+    connection_info: Option<TypeFetcherConnectionInfo<A>>,
 }
 
 impl<S, A> FetchingStore<S, A>
@@ -119,16 +127,25 @@ where
     S: Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
+    fn connection_info(&self) -> Result<&TypeFetcherConnectionInfo<A>, StoreError> {
+        self.connection_info.as_ref().ok_or_else(|| {
+            Report::new(StoreError)
+                .attach_printable("type fetcher is not available in offline mode")
+        })
+    }
+
     pub async fn fetcher_client(&self) -> Result<FetcherClient, StoreError>
     where
         A: ToSocketAddrs,
     {
-        let transport = tarpc::serde_transport::tcp::connect(&self.address, Json::default)
-            .await
-            .into_report()
-            .change_context(StoreError)
-            .attach_printable("Could not connect to type fetcher")?;
-        Ok(FetcherClient::new(self.config.clone(), transport).spawn())
+        let connection_info = self.connection_info()?;
+        let transport =
+            tarpc::serde_transport::tcp::connect(&connection_info.address, Json::default)
+                .await
+                .into_report()
+                .change_context(StoreError)
+                .attach_printable("Could not connect to type fetcher")?;
+        Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
     }
 
     pub fn store(&mut self) -> &mut S {
@@ -182,7 +199,11 @@ where
             OntologyTypeReference::EntityTypeReference(reference) => reference.url(),
         };
 
-        if self.domain_validator.validate_url(url.base_url.as_str()) {
+        if self
+            .connection_info()?
+            .domain_validator
+            .validate_url(url.base_url.as_str())
+        {
             // If the domain is valid, we own the data type and it either exists or we cannot
             // reference it.
             return Ok(true);

@@ -35,11 +35,7 @@
     },
     "deploy:prod": {
       "cache": false,
-      "dependsOn": [
-        "@apps/hash-graph#build:docker:prod",
-        "@apps/hash-agents#build:docker",
-        "codegen"
-      ]
+      "dependsOn": []
     },
     "deploy:prototype": {
       "cache": false

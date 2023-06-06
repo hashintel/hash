@@ -4,13 +4,13 @@
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[block protocol]: https://github.com/blockprotocol/blockprotocol
 [block protocol types]: https://blockprotocol.org/docs/types?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[awesome hash]: https://github.com/hashintel/awesome-hash
 
 <!-- markdownlint-disable link-fragments -->
 
+[awesome hash]: https://github.com/hashintel/awesome-hash
+[block protocol]: https://github.com/blockprotocol/blockprotocol
 [github_banner]: #hash
 [github_star]: https://github.com/hashintel/hash#
 [gh-what-is-hash]: #--what-is-hash
@@ -22,6 +22,7 @@
 [gh-license]: #--license
 [gh-security]: #--security
 [gh-contact]: #--contact
+[hash graph]: https://github.com/hashintel/hash/tree/main/apps/hash-graph#readme
 
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ec83e48d-5a46-4c3f-a603-5d9fc43ff400/github)][github_banner]
 
@@ -91,6 +92,7 @@ Key projects within are summarized below.
 
 - [`@hashintel/block-design-system`](libs/@hashintel/block-design-system): a relatively unopinionated design system for [Block Protocol] blocks
 - [`@hashintel/design-system`](libs/@hashintel/design-system): the design system for [HASH] and our [hash.ai] website
+- [`@hashintel/query-editor`](libs/@hashintel/query-editor): editing interface for [HASH Graph] queries
 - [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing

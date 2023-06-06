@@ -1,4 +1,6 @@
-# HASH IntelliJ-Plugin
+[license]: LICENSE.md
+
+# HASH IntelliJ Plugin
 
 This is a highly experimental plugin to assist development in common HASH workflows.
 
