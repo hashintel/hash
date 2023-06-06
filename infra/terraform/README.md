@@ -51,25 +51,30 @@ Deployment currently relies on a couple of manual steps - but is to be automated
 
 ## Deploy infrastructure with terraform
 
-You must prepare a `tfvars` file containing secrets to spin up the environment. This can be done by creating a file in `./hash/prod.secrets.tfvars` containing the following definitions (change the values):
+Secret environment should be provided in Hashicorp Vault. These are expected in a kvv2 path starting with `pipelines/hash/` and ending with the environment name, e.g. `automation/pipelines/hash/prod`. The following secrets are expected:
 
-```tfvars
-hash_seed_users = [
-  { "email" = "admin@hash.ai", "shortname" = "instance-admin", "preferredName" = "Instance Admin", "password" = "changeme", "isInstanceAdmin" = true }
-]
-
-hash_system_user_password = "changeme"
-
-hash_block_protocol_api_key = "Generate at https://blockprotocol.org/settings/api-keys"
-
-kratos_secrets_cookie = "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
-kratos_secrets_cipher = "32-LONG-SECRET-NOT-SECURE-AT-ALL"
-
-kratos_api_key = "secret"
-
-pg_superuser_password    = "changeme"
-pg_kratos_user_password  = { raw = "changeme", hash = "See guide below to generate this" }
-pg_graph_user_password   = { raw = "changeme", hash = "See guide below to generate this" }
+```json
+{
+  "hash_block_protocol_api_key": "*",
+  "hash_seed_users": [
+    {
+      "email": "chageme@example.com",
+      "isInstanceAdmin": true,
+      "password": "changeme",
+      "preferredName": "Instance Admin",
+      "shortname": "instance-admin"
+    }
+  ],
+  "hash_system_user_password": "changeme",
+  "kratos_api_key": "changeme",
+  "kratos_secrets_cipher": "32-LONG-SECRET-NOT-SECURE-AT-ALL",
+  "kratos_secrets_cookie": "changeme",
+  "pg_graph_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
+  "pg_graph_user_password_raw": "changeme",
+  "pg_kratos_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
+  "pg_kratos_user_password_raw": "chageme",
+  "pg_superuser_password": "changeme"
+}
 ```
 
 <details>
@@ -90,7 +95,7 @@ To generate a hashed password in this form:
 1.  Extract password
     `select rolpassword from pg_authid where rolname = 'postgres';`
 1.  Copy the result, repeat from step 3 as needed
-1.  Quit wiht `\q` and stop the container
+1.  Quit with `\q` and stop the container
     `docker stop postgres-dummy`
 
 </details>
@@ -100,14 +105,14 @@ Deployment can then be done by issuing the following command after initializing 
 ```console
 $ terraform workspace show
 prod
-$ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars
+$ terraform apply --var-file prod-usea1.tfvars
 ..
 ```
 
-Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are deferred to the apply phase usually).
+Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are deferred to the apply phase, usually).
 
 ```console
-$ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars -refresh=false
+$ terraform apply --var-file prod-usea1.tfvars -refresh=false
 ..
 ```
 
@@ -130,9 +135,7 @@ $ ./ssh_bastion.sh -N -L 5554:h-hash-dev-usea1-pg.*.us-east-1.rds.amazonaws.com:
 
 This will start an SSH tunnel making `localhost:5554` point to the remote RDS instance within the private subnet in AWS.
 
-To migrate the graph, you must first build the docker container that contains the graph and run it with the graph credentials and the you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file using the `migrate` subcommand:
-
-Look at the next step and build `hash-graph`.
+To migrate the graph, you must first build the docker container that contains the graph and run it with the graph credentials you should have in the Vault instance.
 
 ```console
 $ docker run --rm \
