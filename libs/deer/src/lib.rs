@@ -520,9 +520,9 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
             .and_then(|number| self.visit_number(number))
     }
 
-    fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
-        Number::from_u128(v)
-            .ok_or_else(|| self.value_error(v))
+    fn visit_u128(self, value: u128) -> Result<Self::Value, VisitorError> {
+        Number::from_u128(value)
+            .ok_or_else(|| self.value_error(value))
             .and_then(|number| self.visit_number(number))
     }
 }
