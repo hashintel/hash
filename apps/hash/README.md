@@ -35,7 +35,6 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 - [hash-graph](../hash-graph)
 - [hash-realtime](../hash-realtime)
 - [hash-search-loader](../hash-search-loader)
-- [hash-task-executor](../hash-task-executor)
 
 <!-- It would be nice to add a dependency graph here showing which services rely on one another -->
 
