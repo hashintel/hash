@@ -7,7 +7,8 @@ use deer::{
     },
     schema::Document,
     value::NoneDeserializer,
-    Context, Deserialize, EnumVisitor, Number, OptionalVisitor, Reflection, StructVisitor, Visitor,
+    Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
+    StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 use justjson::{
@@ -27,12 +28,29 @@ use crate::{
     token::ValueToken,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct StackLimit(usize);
+
+impl StackLimit {
+    pub fn new(limit: usize) -> Self {
+        Self(limit)
+    }
+
+    pub fn limit(&self) -> usize {
+        self.0
+    }
+}
+
 pub(crate) struct Stack {
     limit: usize,
     depth: usize,
 }
 
 impl Stack {
+    const fn new(limit: usize) -> Self {
+        Self { limit, depth: 0 }
+    }
+
     pub(crate) fn push(&mut self) -> Result<(), DeserializerError> {
         self.depth += 1;
 
@@ -56,6 +74,18 @@ pub struct Deserializer<'a, 'de> {
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
+    pub fn new(slice: &'de [u8], context: &'a Context) -> Self {
+        let limit = context
+            .request_ref::<StackLimit>()
+            .map_or(usize::MAX, StackLimit::limit);
+
+        Self {
+            tokenizer: Tokenizer::for_json_bytes(slice),
+            context,
+            stack: Stack::new(limit),
+        }
+    }
+
     fn next(&mut self) -> Result<Token<'de>, DeserializerError> {
         let offset = self.tokenizer.offset();
         let Some(token) = self.tokenizer.next() else {
@@ -148,8 +178,6 @@ impl<'a, 'de> Deserializer<'a, 'de> {
             .change_context(DeserializerError)
     }
 }
-
-// TODO: stack check
 
 impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     fn context(&self) -> &Context {
@@ -335,7 +363,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         if is_map && result.is_err() {
             // the key is an error, we need to swallow `:` and value
-            self.skip_if(PeekableTokenKind::Comma);
+            self.skip_if(PeekableTokenKind::Colon);
             self.skip();
         }
 
@@ -405,7 +433,25 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             ValueToken::Object => visitor
                 .visit_object(ObjectAccess::new(self)?)
                 .change_context(DeserializerError),
+
             token => Err(self.error_invalid_type(&token, ValueToken::Object.schema())),
+        }
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        let token = self.next_value()?;
+
+        match token {
+            ValueToken::String(value) => match value.decode_if_needed() {
+                AnyStr::Owned(value) => visitor.visit_str(&value),
+                AnyStr::Borrowed(value) => visitor.visit_str(value),
+            }
+            .change_context(DeserializerError),
+
+            token => Err(self.error_invalid_type(&token, str::document())),
         }
     }
 }
