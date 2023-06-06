@@ -25,7 +25,7 @@ resource "aws_db_instance" "postgres" {
 }
 ```
 
-The `apply` step will take a while, as the database is being recreated in entirety from the snapshot. You can check the status of database by running this AWS CLI command:
+The `apply` step will take a while, as the database is being recreated in its entirety from the snapshot. You can check the status of database by running this AWS CLI command:
 
 ```console
 $ aws rds wait db-instance-available --db-instance-identifier $(h-hash-prod-usea1-pgYYMMDD)
@@ -34,4 +34,4 @@ $ aws rds wait db-instance-available --db-instance-identifier $(h-hash-prod-usea
 
 This command will block the current terminal until the DB instance has the `available` status.
 
-At teh end of the apply process, the ECS cluster should be automatically updated to point to the new, restored database.
+At the end of the `apply` process, the ECS cluster should be automatically updated to point to the new, restored database.
