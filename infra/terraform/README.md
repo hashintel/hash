@@ -25,7 +25,7 @@ By default, the selected region is `us-east-1` and can be configured by editing 
 
 Resources use the following naming convention:
 
-```
+```text
 {OWNER}-{PROJECT}-{ENV}-{REGION}-{RESOURCE DESCRIPTION}
 
 OWNER : 'h' for hash
