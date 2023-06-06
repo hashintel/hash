@@ -4,7 +4,6 @@ use deer::{
     Schema, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::json;
 
 mod common;
@@ -13,7 +12,6 @@ use common::TupleExt;
 use deer::{
     error::{ExpectedField, Location, ObjectAccessError, ReceivedField, UnknownFieldError},
     helpers::Properties,
-    schema::Reference,
     value::NoneDeserializer,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
