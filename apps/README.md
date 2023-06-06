@@ -21,14 +21,14 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 ## HASH
 
-[HASH], is a block-based, data-centric, all-in-one workspace. 
+[HASH], is a block-based, data-centric, all-in-one workspace.
 
 See the [`README`](hash/README.md) in the [`hash`](hash) folder for a holistic description of the workspace, and instructions for running it or testing it.
 
 The workspace depends on a suite of constituent services, which are briefly described below, keep in mind that they are not guaranteed to be useful when ran independently.
 
 | Subdirectory             | Description                                                                                                                                                                  |
-|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `hash-frontend`          | The main entrypoint for the Next.js frontend (graphical user interface) of the HASH workspace application.                                                                   |
 | `hash-api`               | The main entrypoint for the Node.js server that serves the core of the backend API of HASH.                                                                                  |
 | `hash-graph`             | The query layer over the main datastore of HASH, its strongly-typed graph.                                                                                                   |
@@ -39,18 +39,18 @@ The workspace depends on a suite of constituent services, which are briefly desc
 
 ## Websites
 
-| Subdirectory                   | Description                                                                                                                             |
-|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| [hashdotai](hashdotai)         | Content related to our main [hash.ai] website                                                                                           |
-| [hashdotdesign](hashdotdesign) | Source code and content related to our [hash.design] designer-focused website                                                           |
-| [hashdotdev](hashdotdev)       | Source code and content related to our [hash.dev] developer-focused website                                                             |
+| Subdirectory                   | Description                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| [hashdotai](hashdotai)         | Content related to our main [hash.ai] website                                 |
+| [hashdotdesign](hashdotdesign) | Source code and content related to our [hash.design] designer-focused website |
+| [hashdotdev](hashdotdev)       | Source code and content related to our [hash.dev] developer-focused website   |
 
 ## Other projects
 
 The following applications are available but currently unsupported. However, as with our main projects, we remain open to accepting contributions to these in accordance with our [contributing guidelines].
 
 | Subdirectory                             | Description                                                                                                |
-|------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [`engine`](engine)                       | Codebase for the alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
 | [`intellij-plugin`](intellij-plugin)     | Plugin for JetBrains IntelliJ-based IDEs to assist development in common HASH workflows                    |
 | [`hash-agents`](hash-agents)             | An experimental setup for writing Python-based 'agents' that interface with LLMs.                          |

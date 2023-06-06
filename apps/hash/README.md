@@ -29,7 +29,6 @@ We will be developing HASH into a production-grade application which can be self
 This folder contains only the _HASH_ project README. The application itself is split across several different services which can be found co-located alongside this directory.
 See the [respective section in the parent README](../README.md#hash) for descriptions of the following services:
 
-
 - [hash-api](../hash-api)
 - [hash-external-services](../hash-external-services)
 - [hash-frontend](../hash-frontend)
