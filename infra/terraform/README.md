@@ -232,13 +232,13 @@ There's a [playbook](./playbooks/db_recovery.md) on what we should do when the D
 
 ## Help! I need access to the private subnet!
 
-You can access the private subnet using the Bastion host. See [this readme](./hash/bastion.md) for more information. You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
+You can access the private subnet using the Bastion host. See [this README](./hash/bastion.md) for more information. You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
 
 ## How do I get the Terraform state from S3?
 
 Install the AWS CLI and follow instructions to add credentials. Credentials are generated in the IAM User security credentials page. `https://us-east-1.console.aws.amazon.com/iam/home#/users/NAME?section=security_credentials` for a user with the name `NAME`.
 
-Once the CLI has been configured, you shoukd have a `.aws` folder in your home directory. Terraform will automatically pick this up and connect to the S3 Terraform State backend.
+Once the CLI has been configured, you should have a `.aws` folder in your home directory. Terraform will automatically pick this up and connect to the S3 Terraform State backend.
 
 ## How do I log in to AWS ECR container registry?
 
@@ -253,7 +253,7 @@ This will log into the given ECR in the `us-east-1` region.
 
 ## How do I migrate the database after it has been deployed?
 
-Using the Terraform scripts to deploy an instance of RDS will give you an empty DB (with appropriate DBs/users), which will need to be migrated. From the `hashintel/hash` repo you can run the following command assuming you've set up an SSH tunnel (see [this readme](./hash/bastion.md)) and have the appropriate environment variables set for the DB connection:
+Using the Terraform scripts to deploy an instance of RDS will give you an empty DB (with appropriate DBs/users), which will need to be migrated. From the `hashintel/hash` repo you can run the following command assuming you've set up an SSH tunnel (see [this README](./hash/bastion.md)) and have the appropriate environment variables set for the DB connection:
 
 ```console
 $ docker run --rm \
