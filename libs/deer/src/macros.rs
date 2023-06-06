@@ -123,7 +123,7 @@ macro_rules! forward_to_deserialize_any_helper {
 ///
 /// Internally this macro will generate a `match` statement for the `visit_str`, `visit_bytes`, and
 /// `visit_u64` methods. Because all generated code must be valid rust, the macro will not generate
-/// the match arms first, but instead utilize a stack to generate the match arms in reverse order.
+/// the match arms first, but instead utilize a stack to generate the match arms.
 ///
 /// There are two stacks used, one for the match arms, and one for the variant values. The variant
 /// values stack is used to provide error messages (as to which variant was expected).
@@ -264,7 +264,7 @@ macro_rules! identifier {
         @($($stack:literal),*)
     ) => {
         impl $crate::Reflection for $name {
-            fn schema(doc: &mut $crate::Document) -> $crate::Schema {
+            fn schema(_: &mut $crate::Document) -> $crate::Schema {
                 // we lack the ability to properly express OR, so for now we just default to
                 // output the string representation
                 $crate::Schema::new("string").with("enum", [$($stack),*])

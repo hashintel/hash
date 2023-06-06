@@ -47,6 +47,9 @@ pub mod schema;
 pub mod value;
 
 extern crate alloc;
+extern crate core;
+extern crate core;
+extern crate core;
 
 pub mod export {
     pub use error_stack;
