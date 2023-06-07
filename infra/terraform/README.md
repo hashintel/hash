@@ -232,7 +232,7 @@ There's a [recovery playbook](./playbooks/db_recovery.md) on what we should do w
 
 ## Help! I need access to the private subnet!
 
-You can access the private subnet using the Bastion host. See [this README](./hash/bastion.md) for more information. You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
+You can access the private subnet using the Bastion host. For more information, please see [the corresponding readme](./hash/bastion.md). You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
 
 ## How do I get the Terraform state from S3?
 
