@@ -306,7 +306,7 @@ Under the [`./modules/`](./modules/) folder we define the HASH application throu
 - [`variables`](./modules/variables/) - contains global variable validation/definitions generally useful for our Terraform infrastructure.
 - [`vault_aws_auth`](./modules/vault_aws_auth/) - contains the configuration for authenticating the AWS provider through the Vault AWS authentication backend.
 
-**HASH specefic modules**:
+## HASH specefic modules
 
 - [`networking`](./modules/hash/networking/) - contains PrivateLink definitions for the various required AWS resources.
 - [`postgres`](./modules/postgres/) - [external service] a multi Availability Zone Postgres RDS cluster with encryption enabled.
