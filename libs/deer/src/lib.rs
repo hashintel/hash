@@ -25,6 +25,7 @@ pub use schema::{Document, Reflection, Schema};
 
 use crate::{
     bound::{BoundArrayAccess, BoundObjectAccess},
+    content::Content,
     error::{
         ArrayAccessError, BoundedContractViolationError, DeserializeError, DeserializerError,
         ExpectedType, MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError,
@@ -40,6 +41,7 @@ mod impls;
 #[macro_use]
 mod macros;
 mod bound;
+pub mod content;
 mod ext;
 pub mod helpers;
 mod number;
@@ -50,6 +52,10 @@ extern crate alloc;
 
 pub mod export {
     pub use error_stack;
+}
+
+pub(crate) mod sealed {
+    pub struct T;
 }
 
 struct GenericFieldVisitor<T, U>(PhantomData<fn() -> *const (T, U)>);
@@ -751,6 +757,20 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: IdentifierVisitor<'de>;
+
+    // Not public API.
+    // No stability guarantees are given!
+    #[doc(hidden)]
+    fn __deserialize_content<V>(
+        self,
+        _: sealed::T,
+        visitor: V,
+    ) -> Result<Content<'de>, DeserializerError>
+    where
+        V: Visitor<'de, Value = Content<'de>>,
+    {
+        self.deserialize_any(visitor)
+    }
 }
 
 /// A **data-structure** that can be deserialized from any format supported by deer.
