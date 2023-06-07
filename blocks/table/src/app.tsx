@@ -1,3 +1,4 @@
+import { MultiFilter } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -6,18 +7,21 @@ import {
 import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
 import { useRef, useState } from "react";
+import { isMobile } from "react-device-detect";
+import { SizeMe } from "react-sizeme";
 
 import { RootKey } from "./additional-types";
 import styles from "./base.module.scss";
-import { Settings } from "./components/settings/settings";
+import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
+import { TableWithQuery } from "./components/table/table-with-query";
 import {
   BlockEntity,
   TableBlockOutgoingLinkAndTarget,
 } from "./types/generated/block-entity";
 
 const titleKey: RootKey =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
+  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -25,10 +29,15 @@ export const App: BlockComponent<BlockEntity> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
-  const { rootEntity: blockEntity } = useEntitySubgraph<
+  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
     BlockEntity,
     TableBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
+
+  /** @todo use the real query object here, instead of the staging one */
+  const query = linkedEntities[0]?.rightEntity?.properties[
+    "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"
+  ] as MultiFilter | undefined;
 
   const {
     metadata: {
@@ -48,41 +57,69 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   };
 
+  const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
 
   return (
     <ThemeProvider theme={theme}>
-      <div className={styles.block} ref={blockRootRef}>
-        <div className={styles.titleWrapper}>
-          <div>
-            <EditableField
-              value={titleValue}
-              placeholder="Untitled Board"
-              onChange={(event) => setTitleValue(event.target.value)}
-              onBlur={(event) =>
-                updateEntity({ [titleKey]: event.target.value })
-              }
-              readonly={readonly}
-              sx={{
-                fontWeight: 700,
-                fontSize: "21px !important",
-                lineHeight: "1.2 !important",
-                color: "black",
-              }}
-              wrapperSx={{ mb: 1.5 }}
-            />
-          </div>
-          {!readonly && (
-            <Settings blockEntity={blockEntity} updateEntity={updateEntity} />
-          )}
-        </div>
+      <SizeMe>
+        {({ size }) => {
+          const collapseSettings = (size.width ?? 0) < 670;
 
-        <Table
-          blockEntity={blockEntity}
-          updateEntity={updateEntity}
-          readonly={readonly}
-        />
-      </div>
+          return (
+            <div
+              className={styles.block}
+              ref={blockRootRef}
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
+            >
+              {!readonly ? (
+                <SettingsBar
+                  show={isMobile || hovered}
+                  collapseSettings={collapseSettings}
+                  blockEntity={blockEntity}
+                  updateEntity={updateEntity}
+                />
+              ) : null}
+              <div className={styles.titleWrapper}>
+                <div>
+                  <EditableField
+                    value={titleValue}
+                    placeholder="Untitled Board"
+                    onChange={(event) => setTitleValue(event.target.value)}
+                    onBlur={(event) =>
+                      updateEntity({ [titleKey]: event.target.value })
+                    }
+                    readonly={readonly}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "21px !important",
+                      lineHeight: "1.2 !important",
+                      color: "black",
+                    }}
+                    wrapperSx={{ mb: 1.5 }}
+                  />
+                </div>
+              </div>
+
+              {query ? (
+                <TableWithQuery
+                  graphModule={graphModule}
+                  query={query}
+                  blockEntity={blockEntity}
+                  readonly={readonly}
+                />
+              ) : (
+                <Table
+                  blockEntity={blockEntity}
+                  updateEntity={updateEntity}
+                  readonly={readonly}
+                />
+              )}
+            </div>
+          );
+        }}
+      </SizeMe>
     </ThemeProvider>
   );
 };

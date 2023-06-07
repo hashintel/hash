@@ -111,6 +111,46 @@
         }
       }
     },
+    "/data-types/load": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "load_external_data_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadExternalDataTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the loaded data type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to load data type in the store as the base data type ID already exists"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/data-types/query": {
       "post": {
         "tags": [
@@ -365,6 +405,67 @@
         }
       }
     },
+    "/entity-types/load": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "load_external_entity_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadExternalEntityTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the created entity type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provided request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./models/status.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to load entity type in the datastore as the entity type ID already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./models/status.json"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./models/status.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/entity-types/query": {
       "post": {
         "tags": [
@@ -470,6 +571,46 @@
           },
           "404": {
             "description": "Base property type ID was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/load": {
+      "post": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "load_external_property_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadExternalPropertyTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the loaded property type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to load property type in the store as the base property type ID already exists"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -1130,6 +1271,57 @@
                 "minItems": 2
               }
             }
+          },
+          {
+            "type": "object",
+            "title": "StartsWithFilter",
+            "required": [
+              "startsWith"
+            ],
+            "properties": {
+              "startsWith": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "EndsWithFilter",
+            "required": [
+              "endsWith"
+            ],
+            "properties": {
+              "endsWith": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ContainsSegmentFilter",
+            "required": [
+              "containsSegment"
+            ],
+            "properties": {
+              "containsSegment": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
           }
         ]
       },
@@ -1163,6 +1355,9 @@
                     },
                     {
                       "type": "string"
+                    },
+                    {
+                      "type": "number"
                     }
                   ]
                 }
@@ -1418,6 +1613,51 @@
       "LinkOrder": {
         "type": "integer",
         "format": "int32"
+      },
+      "LoadExternalDataTypeRequest": {
+        "type": "object",
+        "required": [
+          "dataTypeId",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "dataTypeId": {
+            "type": "string"
+          }
+        }
+      },
+      "LoadExternalEntityTypeRequest": {
+        "type": "object",
+        "required": [
+          "entityTypeId",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "entityTypeId": {
+            "type": "string"
+          }
+        }
+      },
+      "LoadExternalPropertyTypeRequest": {
+        "type": "object",
+        "required": [
+          "propertyTypeId",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "propertyTypeId": {
+            "type": "string"
+          }
+        }
       },
       "MaybeListOfOntologyElementMetadata": {
         "oneOf": [

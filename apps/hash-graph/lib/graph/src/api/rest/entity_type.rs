@@ -21,12 +21,13 @@ use crate::{
             report_to_status_code,
             status::status_to_response,
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
+            RestApiStore,
         },
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata,
+        OntologyTypeReference, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -40,6 +41,7 @@ use crate::{
 #[openapi(
     paths(
         create_entity_type,
+        load_external_entity_type,
         get_entity_types_by_query,
         update_entity_type
     ),
@@ -48,6 +50,7 @@ use crate::{
             EntityTypeWithMetadata,
 
             CreateEntityTypeRequest,
+            LoadExternalEntityTypeRequest,
             UpdateEntityTypeRequest,
             EntityTypeQueryToken,
             EntityTypeStructuralQuery,
@@ -61,7 +64,10 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-types",
@@ -70,7 +76,8 @@ impl RoutedResource for EntityTypeResource {
                     "/",
                     post(create_entity_type::<P>).put(update_entity_type::<P>),
                 )
-                .route("/query", post(get_entity_types_by_query::<P>)),
+                .route("/query", post(get_entity_types_by_query::<P>))
+                .route("/load", post(load_external_entity_type::<P>)),
         )
     }
 }
@@ -96,7 +103,6 @@ struct CreateEntityTypeRequest {
         (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
         (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
-    request_body = CreateEntityTypeRequest,
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_entity_type<P: StorePool + Send>(
@@ -105,7 +111,32 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        status_to_response(Status::new(
+            hash_status::StatusCode::Internal,
+            Some(
+                "Could not acquire store. This is an internal error, please report to the \
+                 developers of the HASH Graph with whatever information you can provide including \
+                 request details and logs."
+                    .to_owned(),
+            ),
+            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                // TODO: add information from the report here
+                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
+                HashMap::new(),
+                // TODO: We should encapsulate these Reasons within the type system, perhaps
+                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                //  or perhaps as a big enum, or as an attachment
+                "STORE_ACQUISITION_FAILURE".to_owned(),
+            ))],
+        ))
+    })?;
+
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
@@ -169,28 +200,6 @@ async fn create_entity_type<P: StorePool + Send>(
 
         entity_types.push(entity_type);
     }
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        status_to_response(Status::new(
-            hash_status::StatusCode::Internal,
-            Some(
-                "Could not acquire store. This is an internal error, please report to the \
-                 developers of the HASH Graph with whatever information you can provide including \
-                 request details and logs."
-                    .to_owned(),
-            ),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                // TODO: add information from the report here
-                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                HashMap::new(),
-                // TODO: We should encapsulate these Reasons within the type system, perhaps
-                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                //  or perhaps as a big enum, or as an attachment
-                "STORE_ACQUISITION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
 
     store
         .create_entity_types(
@@ -257,6 +266,93 @@ async fn create_entity_type<P: StorePool + Send>(
             metadata.pop().expect("metadata does not contain a value"),
         )))
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct LoadExternalEntityTypeRequest {
+    #[schema(value_type = String)]
+    entity_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/load",
+    request_body = LoadExternalEntityTypeRequest,
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
+
+        (status = 409, content_type = "application/json", description = "Unable to load entity type in the datastore as the entity type ID already exists", body = VAR_STATUS),
+        (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
+async fn load_external_entity_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
+    body: Json<LoadExternalEntityTypeRequest>,
+    // TODO: We want to be able to return `Status` here we should try and create a general way to
+    //  call `status_to_response` for our routes that return Status
+) -> Result<Json<OntologyElementMetadata>, Response>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let Json(LoadExternalEntityTypeRequest {
+        entity_type_id,
+        actor_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        status_to_response(Status::new(
+            hash_status::StatusCode::Internal,
+            Some(
+                "Could not acquire store. This is an internal error, please report to the \
+                 developers of the HASH Graph with whatever information you can provide including \
+                 request details and logs."
+                    .to_owned(),
+            ),
+            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                // TODO: add information from the report here
+                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
+                HashMap::new(),
+                // TODO: We should encapsulate these Reasons within the type system, perhaps
+                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                //  or perhaps as a big enum, or as an attachment
+                "STORE_ACQUISITION_FAILURE".to_owned(),
+            ))],
+        ))
+    })?;
+
+    Ok(Json(
+        store
+            .load_external_type(
+                &domain_validator,
+                OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
+                actor_id,
+            )
+            .await
+            .map_err(|error| {
+                if error == StatusCode::CONFLICT {
+                    status_to_response(Status::new(
+                        hash_status::StatusCode::AlreadyExists,
+                        Some("Provided schema entity type does already exist.".to_owned()),
+                        vec![],
+                    ))
+                } else {
+                    status_to_response(Status::new(
+                        hash_status::StatusCode::AlreadyExists,
+                        Some(
+                            "Unknown error occurred when loading external entity type.".to_owned(),
+                        ),
+                        vec![],
+                    ))
+                }
+            })?,
+    ))
 }
 
 #[utoipa::path(

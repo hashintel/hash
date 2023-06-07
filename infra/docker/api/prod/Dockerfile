@@ -1,69 +1,82 @@
-FROM node:16.18.1-alpine AS builder
+FROM python:3.11.3-slim-bullseye as python-base
+
+
+FROM node:18.15-slim AS pruned
 
 WORKDIR /app
 
-# Ensure that the node module layer can be cached
-COPY package.json .
-COPY yarn.lock .
-RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
-
-# Also ensure that api node modules can be cached
-COPY apps/hash-api/package.json apps/hash-api/
-COPY apps/hash-graph/package.json apps/hash-graph/
-COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
-COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
-COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
-COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
-COPY libs/@local/hash-graphql-shared/package.json libs/@local/hash-graphql-shared/
-COPY libs/@local/hash-subgraph/package.json libs/@local/hash-subgraph/
-COPY libs/@local/advanced-types/package.json libs/@local/advanced-types/
-COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-COPY libs/@local/status/package.json libs/@local/status/
-RUN yarn workspace @apps/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
-
-COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
-COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
-COPY libs/@local/hash-graphql-shared/src/graphql libs/@local/hash-graphql-shared/src/graphql
-COPY libs/@local/hash-graphql-shared/src/queries libs/@local/hash-graphql-shared/src/queries
-
-RUN yarn workspace @apps/hash-api codegen
-
-COPY libs/@local/hash-graphql-shared/codegen.config.ts libs/@local/hash-graphql-shared/codegen.config.ts
-
-RUN yarn workspace @local/hash-graphql-shared codegen
-
-COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomorphic-utils/codegen.config.ts
-
-RUN yarn workspace @local/hash-isomorphic-utils codegen
-
-COPY apps/hash-api apps/hash-api
-COPY libs/@local/eslint-config libs/@local/eslint-config
-COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
-COPY libs/@local/hash-graph-client libs/@local/hash-graph-client
-COPY libs/@local/hash-graphql-shared libs/@local/hash-graphql-shared
-COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
-COPY libs/@local/hash-subgraph libs/@local/hash-subgraph
-COPY libs/@local/advanced-types libs/@local/advanced-types
-COPY libs/@local/tsconfig libs/@local/tsconfig
-COPY libs/@local/status libs/@local/status
-RUN mkdir -p /app/var/uploads
+RUN yarn global add turbo
+COPY . .
+RUN turbo prune --scope='@apps/hash-api' --docker
+# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
+# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
+COPY patches /app/out/full/patches
 
 
-#########################################################################################
+FROM pruned as installer
 
-FROM node:16.18.1-alpine
+WORKDIR /usr/local/src/hash
 
-# Run as a non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=pruned /app/out/json/ .
+COPY --from=pruned /app/out/yarn.lock yarn.lock
+COPY --from=pruned /app/out/full/patches patches
 
-COPY --from=builder --chown=appgroup:appuser /app /app
+RUN yarn install --frozen-lockfile --prefer-offline \
+    && yarn cache clean
 
-WORKDIR /app
+COPY --from=pruned /app/out/full/ .
 
-USER appuser
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    POETRY_ACTIVE=1 \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VERSION=1.4.2
+ENV VIRTUAL_ENV=".venv"
+ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential libffi-dev curl default-jre
+
+# `apt-get install python3` installs an older version of Python and we want 3.11, copying it from the official image
+#   seems to work with just these commands, so we opt to do this rather than needing to build it from source or
+#   install it from an external source such as https://github.com/indygreg/python-build-standalone (see frontend vercel-install)
+#   if this causes problem, or we update dependencies, we can change approach.
+
+COPY --from=python-base /usr/local/bin/python3 /usr/local/bin/python3
+COPY --from=python-base /usr/local/bin/python3.11 /usr/local/bin/python3.11
+COPY --from=python-base /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=python-base /usr/local/lib/libpython3.so /usr/local/lib/libpython3.so
+COPY --from=python-base /usr/local/lib/libpython3.11.so /usr/local/lib/libpython3.11.so
+COPY --from=python-base /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
+
+RUN apt-get install -y python-is-python3
+
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
 ENV NODE_ENV production
 
-HEALTHCHECK --interval=2s --timeout=10s --retries=5 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:5001 || exit 1
+RUN yarn turbo build --filter '@apps/hash-api'
 
-CMD ["yarn", "workspace","@apps/hash-api", "start"]
+
+FROM node:18.15-slim as runner
+
+RUN apt update && apt install -y curl
+
+COPY --from=installer /usr/local/src/hash /usr/local/src/hash
+WORKDIR /usr/local/src/hash/apps/hash-api
+RUN mkdir -p /usr/local/src/hash/var/uploads
+
+ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
+CMD ["start"]
+
+# Run as a non-root user
+RUN groupadd --system --gid 60000 hash \
+    && useradd --system api -g hash
+
+USER api:hash
+ENV NODE_ENV production
+
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001 || exit 1

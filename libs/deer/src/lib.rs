@@ -24,11 +24,11 @@ use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
 use crate::{
-    content::Content,
+    bound::{BoundArrayAccess, BoundObjectAccess},
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
-        VisitorError,
+        ArrayAccessError, BoundedContractViolationError, DeserializeError, DeserializerError,
+        ExpectedType, MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError,
+        ValueError, Variant, VisitorError,
     },
     schema::visitor,
 };
@@ -39,16 +39,17 @@ pub mod error;
 mod impls;
 #[macro_use]
 mod macros;
-mod content;
+mod bound;
 mod ext;
+pub mod helpers;
 mod number;
 pub mod schema;
 pub mod value;
 
 extern crate alloc;
 
-pub(crate) mod sealed {
-    pub struct T;
+pub mod export {
+    pub use error_stack;
 }
 
 struct GenericFieldVisitor<T, U>(PhantomData<fn() -> *const (T, U)>);
@@ -69,17 +70,23 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
     }
 }
 
-type FieldValue<'de, F> = <F as FieldVisitor<'de>>::Value;
-type FieldResult<'de, F> = Option<Result<FieldValue<'de, F>, ObjectAccessError>>;
+pub trait ObjectAccess<'de>: Sized {
+    /// Represent if the object has been accessed
+    ///
+    /// If [`Self::next`], [`Self::field`] or [`Self::try_field`] was called at least once this
+    /// **must** return `true`, otherwise it **must** return `false`.
+    ///
+    /// This value is used to ensure all invariants are upheld when creating the bound version
+    /// through [`Self::into_bound`]
+    fn is_dirty(&self) -> bool;
 
-pub trait ObjectAccess<'de> {
     fn context(&self) -> &Context;
 
-    /// This enables bound-checking for [`ObjectAccess`].
+    /// This enables bounds-checking for [`ObjectAccess`].
     ///
     /// After calling this [`ObjectAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
-    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
+    /// are not enough items present [`ObjectAccess`] will call [`Visitor::visit_none`].
     ///
     /// This is best suited for types where the length/amount of keys is already predetermined, like
     /// structs or enum variants.
@@ -88,7 +95,16 @@ pub trait ObjectAccess<'de> {
     ///
     /// This will error if a call to [`Self::next`] has been made before calling this function or
     /// this function has been called repeatably.
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
+    fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+        if self.is_dirty() {
+            Err(
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ObjectAccessError),
+            )
+        } else {
+            Ok(BoundObjectAccess::new(self, length))
+        }
+    }
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
@@ -98,7 +114,17 @@ pub trait ObjectAccess<'de> {
         self.field(GenericFieldVisitor(PhantomData))
     }
 
-    fn field<F>(&mut self, access: F) -> FieldResult<'de, F>
+    fn field<F>(&mut self, visitor: F) -> Option<Result<F::Value, ObjectAccessError>>
+    where
+        F: FieldVisitor<'de>,
+    {
+        self.try_field(visitor).ok()
+    }
+
+    fn try_field<F>(
+        &mut self,
+        visitor: F,
+    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
     where
         F: FieldVisitor<'de>;
 
@@ -123,7 +149,16 @@ pub trait FieldVisitor<'de> {
         D: Deserializer<'de>;
 }
 
-pub trait ArrayAccess<'de> {
+pub trait ArrayAccess<'de>: Sized {
+    /// Represent if the array has been accessed
+    ///
+    /// If [`Self::next`] was called at least once this **must** return `true`, otherwise it
+    /// **must** return `false`.
+    ///
+    /// This value is used to ensure all invariants are upheld when creating the bound version
+    /// through [`Self::into_bound`]
+    fn is_dirty(&self) -> bool;
+
     fn context(&self) -> &Context;
 
     /// Enables bound-checking for [`ArrayAccess`].
@@ -132,7 +167,7 @@ pub trait ArrayAccess<'de> {
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
     /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
     ///
-    /// One should still invoke [`Self::end`] to ensure that not too many items are supplied!
+    /// One must still invoke [`Self::end`] to ensure that not too many items are supplied!
     ///
     /// This is best suited for types where the length is already predetermined, like arrays or
     /// tuples, and should not be set on types like [`Vec`]!
@@ -140,8 +175,17 @@ pub trait ArrayAccess<'de> {
     /// # Errors
     ///
     /// This will error if a call to [`Self::next`] has been made before setting
-    /// [`Self::set_bounded`] or [`Self::set_bounded`] was called repeatedly.
-    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError>;
+    /// [`Self::into_bound`] or [`Self::into_bound`] was called repeatedly.
+    fn into_bound(self, length: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
+        if self.is_dirty() {
+            Err(
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ArrayAccessError),
+            )
+        } else {
+            Ok(BoundArrayAccess::new(self, length))
+        }
+    }
 
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
@@ -153,10 +197,6 @@ pub trait ArrayAccess<'de> {
 }
 
 pub trait EnumVisitor<'de>: Sized {
-    // TODO: interesting part: serde actually has `deserialize_identifier` which can be used
-    //  deserialize implementations can then use that to their advantage by default it also
-    //  generates an index version for all fields, that is gated behind `deserialize_identifier`.
-    //  Maybe we want something like a `DiscriminantVisitor` and `visit_enum_discriminant`?
     type Discriminant: Deserialize<'de>;
 
     // the value we will end up with
@@ -172,6 +212,9 @@ pub trait EnumVisitor<'de>: Sized {
             .change_context(VisitorError)
     }
 
+    // TODO: make clear in docs that the deserializer *must* be used (even if just
+    //  `deserialize_none` is called), otherwise the `Deserializer` might get into an
+    //  undefined state
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
@@ -181,9 +224,50 @@ pub trait EnumVisitor<'de>: Sized {
         D: Deserializer<'de>;
 }
 
-// pub trait VariantAccess<'de>: Sized {}
-//
-// pub trait EnumAccess<'de> {}
+/// Provides a strict subset of visitors that could be used for identifiers, this allows for
+/// implementations to:
+///
+/// A) know which identifier types might be used
+/// B) limits misuse, by not allowing any borrowed data
+///     ~> an identifier should be clearly defined in e.g. an enum and should not allow
+///        any arbitrary value, by allowing borrowed strings or bytes implementations might
+///        be declined to use it as a replacement of `Visitor`, in that case just `Visitor`
+///        should be used.
+///
+/// The `'de` bounds are here for future compatability and also to stay consistent with
+/// all other visitors.
+#[allow(unused_variables)]
+pub trait IdentifierVisitor<'de>: Sized {
+    type Value;
+
+    fn expecting(&self) -> Document;
+
+    fn visit_u8(self, value: u8) -> Result<Self::Value, VisitorError> {
+        self.visit_u64(u64::from(value))
+            .attach(ReceivedType::new(u8::document()))
+    }
+
+    fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(u64::reflection()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(str::document()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(<[u8]>::document()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+}
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
@@ -436,9 +520,9 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
             .and_then(|number| self.visit_number(number))
     }
 
-    fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
-        Number::from_u128(v)
-            .ok_or_else(|| self.value_error(v))
+    fn visit_u128(self, value: u128) -> Result<Self::Value, VisitorError> {
+        Number::from_u128(value)
+            .ok_or_else(|| self.value_error(value))
             .and_then(|number| self.visit_number(number))
     }
 }
@@ -509,8 +593,13 @@ macro_rules! derive_from_number {
 /// [`Deserializer`] and either return the value requested or return an error.
 ///
 /// [`serde`]: https://serde.rs/
+#[must_use]
 pub trait Deserializer<'de>: Sized {
     fn context(&self) -> &Context;
+
+    fn is_human_readable(&self) -> bool {
+        true
+    }
 
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
@@ -630,7 +719,7 @@ pub trait Deserializer<'de>: Sized {
     where
         V: OptionalVisitor<'de>;
 
-    /// Hint that the `Deserialize` type expect an enum
+    /// Hint that the `Deserialize` type expects an enum
     ///
     /// Due to the very special nature of an enum (being a fundamental type) a special visitor is
     /// used.
@@ -659,19 +748,9 @@ pub trait Deserializer<'de>: Sized {
         deserialize_f64(to_f64: f64) -> visit_f64,
     ];
 
-    // Not public API.
-    // No stability guarantees are given!
-    #[doc(hidden)]
-    fn __deserialize_content<V>(
-        self,
-        _: sealed::T,
-        visitor: V,
-    ) -> Result<Content<'de>, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
-        V: Visitor<'de, Value = Content<'de>>,
-    {
-        self.deserialize_any(visitor)
-    }
+        V: IdentifierVisitor<'de>;
 }
 
 /// A **data-structure** that can be deserialized from any format supported by deer.
@@ -748,7 +827,7 @@ pub(crate) mod test {
 
         let s: SerializeFrame<T> = SerializeFrame {
             frames: &frames,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         };
 
         serde_json::to_value(s)

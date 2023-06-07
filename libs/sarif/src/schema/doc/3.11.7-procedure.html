@@ -1,0 +1,21 @@
+<pre>
+IF <a href='#structfield.text'><em>theMessage.text</em></a> is present and the desired language is <a href='struct.Run.html#structfield.language'><em>theRun.language</em></a> THEN
+    Use the <a href='#structfield.text'><em>text</em></a> or <a href='#structfield.markdown'><em>markdown</em></a> property of <em>theMessage</em> as appropriate.
+IF the string has not yet been found THEN
+    IF <em>theMessage</em> occurs as the value of <a href='struct.Result.html#structfield.message'><em>result.message</em></a> (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317649'>§3.27.11</a>) THEN
+        LET <em>theRule</em> be the <a href='struct.ReportingDescriptor.html'><em>ReportingDescriptor</em></a> object (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317836'>§3.49</a>), an element of <a href='struct.ToolComponent.html#structfield.rules'><em>theComponent.rules</em></a> (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317556'>§3.19.23</a>), which defines the rule that was violated by this result.
+        IF <em>theRule</em> exists AND <a href='struct.ReportingDescriptor.html#structfield.message_strings'><em>theRule.messageStrings</em></a> (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317847'>§3.49.11</a>) is present AND contains a property whose name equals <a href='#structfield.id'><em>theMessage.id</em></a> THEN
+            LET <em>theMFMS</em> be the <a href='struct.MultiformatMessageString.html'><em>MultiformatMessageString</em></a> object (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317473'>§3.12</a>) that is the value of that property.
+            Use the <a href='struct.MultiformatMessageString.html#structfield.text'><em>text</em></a> or <a href='struct.MultiformatMessageString.html#structfield.markdown'><em>markdown</em></a> property of <em>theMFMS</em> as appropriate.
+    ELSE IF <em>theMessage</em> occurs as the value of <a href='struct.Notification.html#structfield.message'><em>notification.message</em></a> (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317899'>§3.58.5</a>) THEN
+        LET <em>theDescriptor</em> be the <a href='struct.ReportingDescriptor.html'><em>ReportingDescriptor</em></a> object (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317836'>§3.49</a>), an element of <a href='struct.ToolComponent.html#structfield.notifications'><em>theComponent.notifications</em></a> (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317557'>§3.19.24</a>), which describes this notification.
+        IF <em>theDescriptor</em> exists AND <a href='struct.ReportingDescriptor.html#structfield.message_strings'><em>theDescriptor.messageStrings</em></a> is present AND contains a property whose name equals <a href='#structfield.id'><em>theMessage.id</em></a> THEN
+            LET <em>theMFMS</em> be the <a href='struct.MultiformatMessageString.html'><em>MultiformatMessageString</em></a> object that is the value of that property.
+            Use the <a href='struct.MultiformatMessageString.html#structfield.text'><em>text</em></a> or <a href='struct.MultiformatMessageString.html#structfield.markdown'><em>markdown</em></a> property of <em>theMFMS</em> as appropriate.
+IF the string has not yet been found THEN
+    IF <a href='struct.ToolComponent.html#structfield.global_message_strings'><em>theComponent.globalMessageStrings</em></a> (<a href='https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html#_Toc34317555'>§3.19.22</a>) is present AND contains a property whose name equals <a href='#structfield.id'><em>theMessage.id</em></a> THEN
+        LET <em>theMFMS</em> be the <a href='struct.MultiformatMessageString.html'><em>MultiformatMessageString</em></a> object that is the value of that property.
+        Use the <a href='struct.MultiformatMessageString.html#structfield.text'><em>text</em></a> or <a href='struct.MultiformatMessageString.html#structfield.markdown'><em>markdown</em></a> property of <em>theMFMS</em> as appropriate.
+IF the string has not yet been found THEN
+    The lookup procedure fails (which means the SARIF log file is invalid).
+</pre>

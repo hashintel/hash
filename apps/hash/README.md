@@ -26,15 +26,15 @@ We will be developing HASH into a production-grade application which can be self
 
 ## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-about-directory] &nbsp; About the HASH application
 
-This folder contains only the _HASH_ project README. The application is split across several different modules which can be found colocated alongside this directory:
+This folder contains only the _HASH_ project README. The application itself is split across several different services which can be found co-located alongside this directory.
+See the [respective section in the parent README](../README.md#hash) for descriptions of the following services:
 
-- [hash-api](../hash-api): API for accessing HASH
-- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)_
-- [hash-frontend](../hash-frontend): GUI for accessing HASH
-- [hash-graph](../hash-graph): application graph query layer
-- [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
-- [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
-- [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
+- [hash-api](../hash-api)
+- [hash-external-services](../hash-external-services)
+- [hash-frontend](../hash-frontend)
+- [hash-graph](../hash-graph)
+- [hash-realtime](../hash-realtime)
+- [hash-search-loader](../hash-search-loader)
 
 <!-- It would be nice to add a dependency graph here showing which services rely on one another -->
 
@@ -47,7 +47,7 @@ This folder contains only the _HASH_ project README. The application is split ac
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
     Run each of these version commands and make sure the output is expected:
 
     ```sh
@@ -55,7 +55,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.15
+    ## ≥ 18.15
     
     yarn --version
     ## ≥ 1.16
@@ -74,6 +74,9 @@ To run HASH locally, please follow these steps:
     
     python --version
     ## ≥ 3.11
+    
+    poetry --version
+    ## ≥ 1.4.2
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -311,13 +314,15 @@ lsof -n -i:PORT_NUMBER
 ### User Registration failing (WSL users)
 
 If you're running the application on Windows through Windows Subsystem for Linux (WSL) you might need to
-change the registration url in `external-services/kratos/kratos.dev.yml` from
+change the registration url in `apps/hash-external-services/docker-compose.yml` from
 `http://host.docker.internal:5001/kratos-after-registration` to `http://{WSL_IP}:5001/kratos-after-registration`,
 where `WSL_IP` is the IP address you get by running:
 
 ```sh
 wsl hostname -I
 ```
+
+The `kratos` and `kratos-migrate` services will need to be restarted/rebuilt for the change to take effect.
 
 ## Environment variables
 
@@ -385,6 +390,15 @@ The Postgres information for Kratos is configured through:
 - `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
 - `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
 
+The Postgres information for Temporal is configured through:
+
+- `HASH_TEMPORAL_PG_USER` (default: `temporal`)
+- `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
+- `HASH_TEMPORAL_PG_DEV_DATABASE` (default: `dev_temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE` (default: `dev_temporal_visibility`)
+- `HASH_TEMPORAL_PG_TEST_DATABASE` (default: `test_temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_TEST_DATABASE` (default: `test_temporal_visibility`)
+
 The Postgres information for the graph query layer is configured through:
 
 - `HASH_GRAPH_PG_USER` (default: `graph`)
@@ -429,7 +443,6 @@ If the service should report metrics to a StatsD server, the following variables
 HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
 
 - Ahmad Sattar
-- Alexander Kachkaev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan

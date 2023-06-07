@@ -4,6 +4,7 @@ use deer::{
         ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
+    helpers::ExpectNone,
     schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
@@ -67,13 +68,16 @@ impl<'de> EnumVisitor<'de> for UnitEnumVisitor {
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
-        _: D,
+        deserializer: D,
     ) -> Result<Self::Value, VisitorError>
     where
         D: Deserializer<'de>,
     {
+        // TODO: next PR properly addresses this via `ExpectNone`
         match discriminant {
-            Discriminant::Variant => Ok(UnitEnum::Variant),
+            Discriminant::Variant => ExpectNone::deserialize(deserializer)
+                .map(|_| UnitEnum::Variant)
+                .change_context(VisitorError),
         }
     }
 }
@@ -105,7 +109,7 @@ fn unit_variant() {
                 properties: {
                     "expected": null,
                     "location": [],
-                    "received": null
+                    "received": bool::reflection()
                 }
             }
         ]),
@@ -269,7 +273,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
         Self::Value::reflection()
     }
 
-    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
     where
         A: ObjectAccess<'de>,
     {
@@ -344,7 +348,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     }
                 }
 
-                object.set_bounded(1).change_context(VisitorError)?;
+                let mut object = object.into_bound(1).change_context(VisitorError)?;
 
                 let mut id = None;
                 let mut errors: Result<(), VisitorError> = Ok(());

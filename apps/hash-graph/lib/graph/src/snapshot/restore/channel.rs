@@ -4,8 +4,9 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{ensure, Report, ResultExt};
+use error_stack::{IntoReport, Report, ResultExt};
 use futures::{
+    channel::mpsc::{self, UnboundedReceiver, UnboundedSender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
@@ -15,11 +16,12 @@ use crate::snapshot::{
     entity::{self, EntitySender},
     ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
     restore::batch::SnapshotRecordBatch,
-    SnapshotEntry, SnapshotRestoreError,
+    SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
 };
 
 #[derive(Debug, Clone)]
 pub struct SnapshotRecordSender {
+    metadata: UnboundedSender<SnapshotMetadata>,
     data_type: DataTypeSender,
     property_type: PropertyTypeSender,
     entity_type: EntityTypeSender,
@@ -33,6 +35,10 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
+        ready!(self.metadata.poll_ready_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll metadata sender")?;
         ready!(self.data_type.poll_ready_unpin(cx))
             .attach_printable("could not poll data type sender")?;
         ready!(self.property_type.poll_ready_unpin(cx))
@@ -47,13 +53,12 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
 
     fn start_send(mut self: Pin<&mut Self>, entity: SnapshotEntry) -> StdResult<(), Self::Error> {
         match entity {
-            SnapshotEntry::Snapshot(snapshot) => {
-                ensure!(
-                    snapshot.block_protocol_module_versions.graph == semver::Version::new(0, 3, 0),
-                    SnapshotRestoreError::Unsupported
-                );
-                Ok(())
-            }
+            SnapshotEntry::Snapshot(snapshot) => self
+                .metadata
+                .start_send_unpin(snapshot)
+                .into_report()
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send snapshot metadata"),
             SnapshotEntry::DataType(data_type) => self
                 .data_type
                 .start_send_unpin(data_type)
@@ -77,6 +82,10 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
+        ready!(self.metadata.poll_flush_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush metadata sender")?;
         ready!(self.data_type.poll_flush_unpin(cx))
             .attach_printable("could not flush data type sender")?;
         ready!(self.property_type.poll_flush_unpin(cx))
@@ -93,6 +102,10 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
+        ready!(self.metadata.poll_close_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close metadata sender")?;
         ready!(self.data_type.poll_close_unpin(cx))
             .attach_printable("could not close data type sender")?;
         ready!(self.property_type.poll_close_unpin(cx))
@@ -118,7 +131,14 @@ impl Stream for SnapshotRecordReceiver {
     }
 }
 
-pub fn channel(chunk_size: usize) -> (SnapshotRecordSender, SnapshotRecordReceiver) {
+pub fn channel(
+    chunk_size: usize,
+) -> (
+    SnapshotRecordSender,
+    SnapshotRecordReceiver,
+    UnboundedReceiver<SnapshotMetadata>,
+) {
+    let (metadata_tx, metadata_rx) = mpsc::unbounded();
     let (account_tx, account_rx) = account::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
         ontology::ontology_metadata_channel(chunk_size, account_tx.clone());
@@ -132,6 +152,7 @@ pub fn channel(chunk_size: usize) -> (SnapshotRecordSender, SnapshotRecordReceiv
 
     (
         SnapshotRecordSender {
+            metadata: metadata_tx,
             data_type: data_type_tx,
             property_type: property_type_tx,
             entity_type: entity_type_tx,
@@ -151,5 +172,6 @@ pub fn channel(chunk_size: usize) -> (SnapshotRecordSender, SnapshotRecordReceiv
                 entity_rx.map(SnapshotRecordBatch::Entities).boxed(),
             ]),
         },
+        metadata_rx,
     )
 }

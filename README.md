@@ -4,13 +4,13 @@
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[block protocol]: https://github.com/blockprotocol/blockprotocol
 [block protocol types]: https://blockprotocol.org/docs/types?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[awesome hash]: https://github.com/hashintel/awesome-hash
 
 <!-- markdownlint-disable link-fragments -->
 
+[awesome hash]: https://github.com/hashintel/awesome-hash
+[block protocol]: https://github.com/blockprotocol/blockprotocol
 [github_banner]: #hash
 [github_star]: https://github.com/hashintel/hash#
 [gh-what-is-hash]: #--what-is-hash
@@ -22,6 +22,7 @@
 [gh-license]: #--license
 [gh-security]: #--security
 [gh-contact]: #--contact
+[hash graph]: https://github.com/hashintel/hash/tree/main/apps/hash-graph#readme
 
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ec83e48d-5a46-4c3f-a603-5d9fc43ff400/github)][github_banner]
 
@@ -54,7 +55,7 @@ Browse the [HASH roadmap] for more information about upcoming features and relea
 
 ### Top-level layout
 
-This repository's contents is divided across four primary sections:
+This repository's contents is divided across several primary sections:
 
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
@@ -66,7 +67,7 @@ Key projects within are summarized below.
 
 ### Applications
 
-- [`hash`](apps/hash): entry-point for **[HASH]**, a data-driven, entity-centric, all-in-one workspace based on the [Block Protocol]
+- [`hash`](apps/hash): entry-point for **[HASH]**, our data-driven, all-in-one AI workspace
 - [`engine`](apps/engine): experimental version of **[HASH Engine]**, a versatile agent-based simulation engine written in Rust
 
 ### Blocks
@@ -89,7 +90,9 @@ Key projects within are summarized below.
 
 #### npm packages
 
-- [`@hashintel/design-system`](libs/@hashintel/design-system): design system for [HASH] and new [hash.ai] website
+- [`@hashintel/block-design-system`](libs/@hashintel/block-design-system): a relatively unopinionated design system for [Block Protocol] blocks
+- [`@hashintel/design-system`](libs/@hashintel/design-system): the design system for [HASH] and our [hash.ai] website
+- [`@hashintel/query-editor`](libs/@hashintel/query-editor): editing interface for [HASH Graph] queries
 - [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing

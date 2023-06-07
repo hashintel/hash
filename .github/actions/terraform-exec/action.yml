@@ -1,0 +1,97 @@
+name: Terraform execute
+description: Run `terraform` [command] with AWS credentials fetched through Vault.
+
+inputs:
+  vault-address:
+    description: Vault address
+    required: true
+  working-directory:
+    description: Directory to run the command in
+    required: false
+    default: .
+  command:
+    type: choice
+    description: Terraform command to run
+    required: true
+    options:
+      - plan
+      - apply
+  env:
+    description: Environment to run the command within
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v2
+
+    - name: Authenticate Vault
+      id: secrets
+      uses: hashicorp/vault-action@v2
+      with:
+        exportToken: true
+        url: ${{ inputs.vault-address }}
+        method: jwt
+        role: ${{ inputs.env }}
+        # Even though it could look like separate calls to fetch the secrets
+        # the responses here are cached, so we're only issuing a single set of credentials
+        secrets: |
+          aws/creds/${{ inputs.env }}-deploy access_key | AWS_ACCESS_KEY_ID ;
+          aws/creds/${{ inputs.env }}-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+          aws/creds/${{ inputs.env }}-deploy security_token | AWS_SESSION_TOKEN
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+        aws-region: us-east-1
+
+    - name: "[${{ inputs.env }}] Terraform init"
+      id: init
+      env:
+        TF_WORKSPACE: ${{ inputs.env }}
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: terraform init -no-color 2>&1
+
+    - name: Terraform Validate
+      id: validate
+      shell: bash
+      run: terraform validate -no-color 2>&1
+
+    - name: "[${{ inputs.env }}] Terraform ${{ inputs.command }}"
+      id: cmd
+      env:
+        TF_VAR_in_ci: true
+        TF_WORKSPACE: ${{ inputs.env }}
+        VAULT_ADDR: ${{ inputs.vault-address }}
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1
+
+    - uses: actions/github-script@v6
+      id: set-result
+      with:
+        script: |
+          const cmd = `${{ steps.cmd.outputs.stdout }}`.replaceAll(/^~/g, "!");
+
+          const heading = `Terraform [${{inputs.env}}] ${{ inputs.command }} results 🧪`
+
+          // TODO: these "addDetail" calls are not ideal as it seems the stdout
+          // is rendered as markdown within the code block.
+          await core.summary
+            .addHeading(heading)
+            .addDetails(
+              "Output of Terraform initialization ⚙️ (${{ steps.init.outcome }})", 
+              `<pre><code>${{ steps.init.outputs.stdout }}</code></pre>`
+            )
+            .addDetails(
+              "Output of validation 🤖 (${{ steps.validate.outcome }})",
+              `<pre><code>${{ steps.validate.outputs.stdout }}</code></pre>`
+            )
+            .addDetails("Output of ${{ inputs.command }} 📖 (${{ steps.cmd.outcome }})", 
+              `<pre><code lang="diff">${cmd}</code></pre>`
+            )
+            .write();

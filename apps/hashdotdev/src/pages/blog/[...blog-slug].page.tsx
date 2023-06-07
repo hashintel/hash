@@ -12,7 +12,7 @@ import { MdxPageContent } from "../../components/mdx-page-content";
 import { getAllPageHrefs, getSerializedPage } from "../../util/mdx-util";
 import { getPhoto } from "./shared/get-photo";
 
-type BlogPostAuthorWithPhotoSrc = {
+export type BlogPostAuthorWithPhotoSrc = {
   name: string;
   jobTitle: string;
   photo: string;

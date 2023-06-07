@@ -1,19 +1,47 @@
+import {
+  isHashTextBlock,
+  paragraphBlockComponentId,
+} from "@local/hash-isomorphic-utils/blocks";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { Selection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 
 export const cleanUpTitle = (value: string): string =>
   value.trim().replace(/\s+/g, " ");
 
-export const focusEditorBeginning = (view?: EditorView) => {
+export const focusEditorBeginning = async (
+  view?: EditorView,
+  manager?: ProsemirrorManager,
+  addParagraphBlock = false,
+) => {
   if (!view) {
     return;
   }
 
   const { state } = view;
 
-  const newSelection = Selection.atStart(state.doc);
+  let newSelection = Selection.atStart(state.doc);
+  const selectedNode = view.state.doc.nodeAt(newSelection.from - 1);
+  const isTextNode = selectedNode && isHashTextBlock(selectedNode.type.name);
 
-  const tr = state.tr.setSelection(newSelection);
+  let tr = state.tr;
+
+  /**
+   * if the first block in the document is not a text block
+   * we create a new paragraph at the top
+   * */
+  if (addParagraphBlock && !isTextNode) {
+    const newTransaction = (
+      await manager?.insertBlock(paragraphBlockComponentId, null, 0)
+    )?.tr;
+
+    if (newTransaction) {
+      tr = newTransaction;
+      newSelection = Selection.atStart(tr.doc);
+    }
+  }
+
+  tr = tr.setSelection(newSelection);
   view.dispatch(tr);
 
   /**

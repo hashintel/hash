@@ -1,5 +1,9 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
+import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  EntityPropertiesObject,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
@@ -19,6 +23,12 @@ import { useDraftLinkState } from "./shared/use-draft-link-state";
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
 }
+
+/** @todo replace these with published system types */
+export const QUERY_ENTITY_TYPE_ID =
+  "http://localhost:3000/@alice/types/entity-type/query/v/2" as VersionedUrl;
+export const QUERY_PROPERTY_TYPE_BASE_URL =
+  "http://localhost:3000/@alice/types/property-type/query-object/" as BaseUrl;
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
@@ -41,7 +51,16 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   );
 
   const [creating, setCreating] = useState(false);
-  const handleCreateEntity = async () => {
+
+  /**
+   * `overrideProperties` is a quick hack to bypass the setting draftEntity state
+   * I did this, because I was having trouble with the `setDraftEntitySubgraph` function,
+   * I tried calling handleCreateEntity after setting the draftEntity state, but state was not updating
+   * @todo find a better way to do this
+   */
+  const handleCreateEntity = async (
+    overrideProperties?: EntityPropertiesObject,
+  ) => {
     if (!draftEntitySubgraph || !activeWorkspace) {
       return;
     }
@@ -57,7 +76,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       const { data: entity } = await createEntity({
         data: {
           entityTypeId,
-          properties: draftEntity.properties,
+          properties: overrideProperties ?? draftEntity.properties,
         },
       });
 
@@ -91,10 +110,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
+  const isQueryEntity = entityTypeId === QUERY_ENTITY_TYPE_ID;
+
   return (
     <EntityEditorPage
-      readonly={false}
-      refetch={async () => {}}
       editBar={
         <EditBar
           label="- this entity has not been created yet"
@@ -104,16 +123,18 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
             children: "Discard entity",
           }}
           confirmButtonProps={{
-            onClick: handleCreateEntity,
+            onClick: () => handleCreateEntity(),
             loading: creating,
             children: "Create entity",
           }}
         />
       }
       entityLabel={entityLabel}
-      entitySubgraph={draftEntitySubgraph}
       entityUuid="draft"
       owner={`@${activeWorkspace?.shortname}`}
+      isQueryEntity={isQueryEntity}
+      isDraft
+      handleSaveChanges={handleCreateEntity}
       setEntity={(entity) => {
         updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
       }}
@@ -121,6 +142,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       setDraftLinksToCreate={setDraftLinksToCreate}
       draftLinksToArchive={draftLinksToArchive}
       setDraftLinksToArchive={setDraftLinksToArchive}
+      entitySubgraph={draftEntitySubgraph}
+      readonly={false}
+      refetch={async () => {}}
     />
   );
 };

@@ -1,4 +1,4 @@
-FROM node:16.18.1-alpine AS base
+FROM node:18.15-alpine AS base
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY . .
 RUN turbo prune --scope='@apps/hash-graph' --docker
 
 
-FROM node:16.18.1-alpine AS rust
+FROM node:18.15-alpine AS rust
 
 WORKDIR /usr/local/
 
@@ -42,7 +42,6 @@ FROM installer AS builder
 WORKDIR /usr/local/src/apps/hash-graph
 
 ARG PROFILE=production
-ARG ENABLE_TYPE_FETCHER=yes
 ARG ENABLE_TEST_SERVER=no
 
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
@@ -52,9 +51,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/apps/hash-graph/target,sharing=locked \
     FEATURES=(); \
-    if [[ ${ENABLE_TYPE_FETCHER^^} == Y* || ${ENABLE_TYPE_FETCHER^^} == T* || $ENABLE_TYPE_FETCHER == 1 ]]; then \
-      FEATURES+=("type-fetcher"); \
-    fi; \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
       export RUSTFLAGS="$RUSTFLAGS --cfg hash_graph_test_environment"; \
       FEATURES+=("test-server"); \

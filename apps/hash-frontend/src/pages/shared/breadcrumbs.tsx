@@ -115,12 +115,7 @@ export const Breadcrumbs = ({
         }
 
         return (
-          <Tooltip
-            placement="bottom-start"
-            key={item.title}
-            title={item.title}
-            componentsProps={{ tooltip: { sx: { mt: "0px !important" } } }}
-          >
+          <Tooltip placement="bottom-start" key={item.title} title={item.title}>
             <Button
               variant="tertiary_quiet"
               // don't attach href if it's the current page

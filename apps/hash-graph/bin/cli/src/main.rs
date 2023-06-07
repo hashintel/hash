@@ -16,7 +16,6 @@ async fn main() -> Result<(), GraphError> {
     match args.subcommand {
         Subcommand::Server(args) => subcommand::server(args).await,
         Subcommand::Migrate(args) => subcommand::migrate(args).await,
-        #[cfg(feature = "type-fetcher")]
         Subcommand::TypeFetcher(args) => subcommand::type_fetcher(args).await,
         Subcommand::Completions(ref args) => {
             subcommand::completions(args);

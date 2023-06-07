@@ -52,12 +52,12 @@ export type HasHowToBlockStepProperties2 = {};
 
 export type HowToBlock = Entity<HowToBlockProperties>;
 
-export type HowToBlockHasHowToBlockIntroductionLinks = {
+export type HowToBlockHasHowToBlockIntroductionLink = {
   linkEntity: HasHowToBlockIntroduction;
   rightEntity: HowToBlockIntroduction;
 };
 
-export type HowToBlockHasHowToBlockStepLinks = {
+export type HowToBlockHasHowToBlockStepLink = {
   linkEntity: HasHowToBlockStep;
   rightEntity: HowToBlockStep;
 };
@@ -81,12 +81,12 @@ export type HowToBlockIntroductionProperties = {
 };
 
 export type HowToBlockOutgoingLinkAndTarget =
-  | HowToBlockHasHowToBlockStepLinks
-  | HowToBlockHasHowToBlockIntroductionLinks;
+  | HowToBlockHasHowToBlockStepLink
+  | HowToBlockHasHowToBlockIntroductionLink;
 
 export type HowToBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1": HowToBlockHasHowToBlockStepLinks;
-  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1": HowToBlockHasHowToBlockIntroductionLinks;
+  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1": HowToBlockHasHowToBlockStepLink;
+  "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1": HowToBlockHasHowToBlockIntroductionLink;
 };
 
 /**

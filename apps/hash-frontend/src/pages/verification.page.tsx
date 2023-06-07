@@ -1,21 +1,18 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
-import {
-  UpdateVerificationFlowWithCodeMethodBody,
-  VerificationFlow,
-} from "@ory/client";
+import { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useMemo, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
-  createFlowErrorHandler,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
+import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
 const VerificationPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
@@ -33,19 +30,14 @@ const VerificationPage: NextPageWithLayout = () => {
   } = router.query;
 
   const [flow, setFlow] = useState<VerificationFlow>();
-  const [code, setCode] = useState<string>();
+  const [code, setCode] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const handleFlowError = useMemo(
-    () =>
-      createFlowErrorHandler({
-        router,
-        flowType: "verification",
-        setFlow,
-        setErrorMessage,
-      }),
-    [router, setFlow, setErrorMessage],
-  );
+  const { handleFlowError } = useKratosErrorHandler({
+    flowType: "verification",
+    setFlow,
+    setErrorMessage,
+  });
 
   // This might be confusing, but we want to show the user an option
   // to sign out if they are performing two-factor authentication!
@@ -118,9 +110,9 @@ const VerificationPage: NextPageWithLayout = () => {
         flow: String(flow.id),
         updateVerificationFlowBody: {
           ...gatherUiNodeValuesFromFlow<"verification">(flow),
+          method: "code",
           code,
-          // @TODO remove this assertion when the UpdateVerificationFlowBody type is updated.
-        } as UpdateVerificationFlowWithCodeMethodBody as any,
+        },
       })
       .then(({ data }) => {
         // Form submission was successful, show the message to the user!

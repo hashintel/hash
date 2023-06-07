@@ -29,11 +29,3 @@ If you wish to build the Docker images for deployment, these are the steps to ta
     ```shell
     docker build -t hash-search-loader-prod . -f ./infra/docker/search-loader/prod/Dockerfile
     ```
-
-1.  For `task-executor` Docker image run
-
-    ```shell
-    docker build -t hash-task-executor . -f ./infra/docker/task-executor/Dockerfile
-    ```
-
-    The executor runs on port 5010 within the container and needs to be exposed on the local machine using `-p` when ran

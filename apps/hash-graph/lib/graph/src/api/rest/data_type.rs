@@ -15,11 +15,12 @@ use crate::{
         json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
+        RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata,
+        OntologyTypeReference, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -33,6 +34,7 @@ use crate::{
 #[openapi(
     paths(
         create_data_type,
+        load_external_data_type,
         get_data_types_by_query,
         update_data_type
     ),
@@ -41,6 +43,7 @@ use crate::{
             DataTypeWithMetadata,
 
             CreateDataTypeRequest,
+            LoadExternalDataTypeRequest,
             UpdateDataTypeRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
@@ -54,13 +57,17 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-types",
             Router::new()
                 .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
-                .route("/query", post(get_data_types_by_query::<P>)),
+                .route("/query", post(get_data_types_by_query::<P>))
+                .route("/load", post(load_external_data_type::<P>)),
         )
     }
 }
@@ -86,14 +93,21 @@ struct CreateDataTypeRequest {
         (status = 409, description = "Unable to create data type in the store as the base data type URL already exists"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = CreateDataTypeRequest,
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
@@ -130,11 +144,6 @@ async fn create_data_type<P: StorePool + Send>(
         data_types.push(data_type);
     }
 
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
     store
         .create_data_types(
             data_types.into_iter().zip(metadata.iter()),
@@ -160,6 +169,57 @@ async fn create_data_type<P: StorePool + Send>(
             metadata.pop().expect("metadata does not contain a value"),
         )))
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct LoadExternalDataTypeRequest {
+    #[schema(value_type = String)]
+    data_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/load",
+    request_body = LoadExternalDataTypeRequest,
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = OntologyElementMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 409, description = "Unable to load data type in the store as the base data type ID already exists"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
+async fn load_external_data_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
+    body: Json<LoadExternalDataTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let Json(LoadExternalDataTypeRequest {
+        data_type_id,
+        actor_id,
+    }) = body;
+
+    Ok(Json(
+        store
+            .load_external_type(
+                &domain_validator,
+                OntologyTypeReference::DataTypeReference((&data_type_id).into()),
+                actor_id,
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(

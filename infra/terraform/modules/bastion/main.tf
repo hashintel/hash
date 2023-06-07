@@ -1,3 +1,15 @@
+/**
+  * # Terraform AWS module: Bastion
+  *
+  * Module responsible for creating the bastion host infrastructure.
+  * A bastion host is used to allow SSH access to the private subnet.
+  *
+  * This includes:
+  * - Security group
+  * - EC2 instance
+  * - IAM
+  */
+
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
