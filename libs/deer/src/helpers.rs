@@ -1,8 +1,10 @@
 use error_stack::{Result, ResultExt};
+use serde::{ser::SerializeMap, Serialize, Serializer};
 
 use crate::{
     error::{DeserializeError, VisitorError},
     ext::TupleExt,
+    schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
 };
@@ -123,3 +125,20 @@ impl<'de> Deserialize<'de> for ExpectNone {
 }
 
 // TODO: consider adding an error attachment marker type for "short-circuit"
+
+pub struct Properties<const N: usize>(pub [(&'static str, Reference); N]);
+
+impl<const N: usize> Serialize for Properties<N> {
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+
+        for (key, value) in self.0 {
+            map.serialize_entry(key, &value)?;
+        }
+
+        map.end()
+    }
+}
