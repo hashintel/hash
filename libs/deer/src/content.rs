@@ -7,15 +7,13 @@ use alloc::{borrow::ToOwned, string::String, vec::Vec};
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    content::visitor::ContentVisitor,
+    content::{deserializer::ContentDeserializer, visitor::ContentVisitor},
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, Error, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedValue, TypeError, ValueError, Variant, VisitorError,
+        DeserializeError, Error, ExpectedType, MissingError, ReceivedValue, ValueError, Variant,
     },
-    ext::TupleExt,
-    sealed::T,
-    ArrayAccess, Context, Deserialize, Deserializer, Document, EnumVisitor, Number, ObjectAccess,
-    OptionalVisitor, Reflection, Visitor,
+    schema::visitor::{ArraySchema, ObjectSchema},
+    value::IntoDeserializer,
+    Context, Deserialize, Deserializer, Document, Number, Reflection, Schema,
 };
 
 mod size_hint {
@@ -48,8 +46,36 @@ pub enum Content<'de> {
     Object(Vec<(Content<'de>, Content<'de>)>),
 }
 
+impl Content<'_> {
+    fn schema(&self) -> Option<Document> {
+        match self {
+            Self::Bool(_) => Some(Document::new::<bool>()),
+            Self::Number(_) => Some(Document::new::<Number>()),
+            Self::I128(_) => Some(Document::new::<i128>()),
+            Self::U128(_) => Some(Document::new::<u128>()),
+            Self::Char(_) => Some(Document::new::<char>()),
+            Self::String(_) | Self::Str(_) => Some(Document::new::<str>()),
+            Self::ByteBuf(_) | Self::Bytes(_) => Some(Document::new::<[u8]>()),
+            Self::Null => Some(Document::new::<<() as Deserialize>::Reflection>()),
+            Self::None => None,
+            Self::Array(_) => Some(Document::new::<ArraySchema>()),
+            Self::Object(_) => Some(Document::new::<ObjectSchema>()),
+        }
+    }
+}
+
+pub struct ContentReflection;
+
+impl Reflection for ContentReflection {
+    fn schema(_: &mut Document) -> Schema {
+        // TODO: we cannot properly reflect the schema of `Content`, as it accepts any value, and we
+        // cannot express ors (or the top type) in any way with the current schema system
+        Schema::new("any")
+    }
+}
+
 impl<'de> Deserialize<'de> for Content<'de> {
-    type Reflection = ();
+    type Reflection = ContentReflection;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         de.deserialize_any(ContentVisitor)
@@ -57,15 +83,25 @@ impl<'de> Deserialize<'de> for Content<'de> {
     }
 }
 
+impl<'de> IntoDeserializer<'de> for Content<'de> {
+    type Deserializer<'a> = ContentDeserializer<'a, 'de> where Self: 'a;
+
+    fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+    where
+        Self: 'a,
+    {
+        ContentDeserializer::new(self, context)
+    }
+}
+
 // TODO: OptionalVisitor
 // TODO: EnumVisitor
 // TODO: FieldVisitor (?)
-// TODO: Reflection c:
 
 // TODO: to shortcircuit `Content` (if deserialized multiple times) serde actually uses a
 //  `__deserialize_content`
 
-fn invalid_type<T: Reflection + ?Sized>(received: Content) -> Report<Error> {
+fn invalid_type(received: Content, expecting: Document) -> Report<Error> {
     let received = match received {
         Content::Bool(value) => Some(ReceivedValue::new(value)),
         Content::Number(value) => Some(ReceivedValue::new(value)),
@@ -83,7 +119,7 @@ fn invalid_type<T: Reflection + ?Sized>(received: Content) -> Report<Error> {
         Content::Object(value) => todo!(),
     };
 
-    let expected = ExpectedType::new(T::document());
+    let expected = ExpectedType::new(expecting);
 
     match received {
         None => Report::new(MissingError.into_error()).attach(expected),

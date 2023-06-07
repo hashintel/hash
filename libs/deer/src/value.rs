@@ -708,9 +708,9 @@ mod bytes;
 mod object;
 mod string;
 
-pub use array::ArrayAccessDeserializer;
+pub use array::{ArrayAccessDeserializer, ArrayIteratorDeserializer};
 pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
-pub use object::ObjectAccessDeserializer;
+pub use object::{ObjectAccessDeserializer, ObjectIteratorDeserializer};
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
 use crate::error::MissingError;
