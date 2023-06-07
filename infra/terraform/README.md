@@ -135,7 +135,7 @@ $ ./ssh_bastion.sh -N -L 5554:h-hash-dev-usea1-pg.*.us-east-1.rds.amazonaws.com:
 
 This will start an SSH tunnel making `localhost:5554` point to the remote RDS instance within the private subnet in AWS.
 
-To migrate the graph, you must first build the docker container that contains the graph and run it with the graph credentials you should have in the Vault instance.
+To migrate `hash-graph`, you must first build the docker container that contains the graph and run it with the graph credentials you should have in the Vault instance.
 
 ```console
 $ docker run --rm \
