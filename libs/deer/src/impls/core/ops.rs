@@ -264,10 +264,7 @@ where
     fn schema(doc: &mut Document) -> Schema {
         Schema::new("object").with(
             "properties",
-            Properties([
-                ("start", doc.add::<T>()), //
-                ("end", doc.add::<U>()),
-            ]),
+            Properties([("start", doc.add::<T>()), ("end", doc.add::<U>())]),
         )
     }
 }
