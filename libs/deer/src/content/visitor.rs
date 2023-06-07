@@ -1,11 +1,11 @@
-use alloc::vec::Vec;
+use alloc::{borrow::ToOwned, string::String, vec::Vec};
 
 use error_stack::Result;
 
 use crate::{
     content::{size_hint, Content},
     error::{ArrayAccessError, ObjectAccessError, VisitorError},
-    ArrayAccess, Document, ObjectAccess, Visitor,
+    ArrayAccess, Document, Number, ObjectAccess, Visitor,
 };
 
 pub struct ContentVisitor;
