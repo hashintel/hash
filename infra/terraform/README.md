@@ -228,7 +228,7 @@ where the `TASKID` is the ID of the Fargate service task. Note that this would s
 
 ## What to do if the HASH DB needs **Disaster Recovery**
 
-There's a [playbook](./playbooks/db_recovery.md) on what we should do when the DB is on fire, please follow it to recover a snapshot.
+There's a [recovery playbook](./playbooks/db_recovery.md) on what we should do when the DB is on fire, please follow it to recover a snapshot.
 
 ## Help! I need access to the private subnet!
 
