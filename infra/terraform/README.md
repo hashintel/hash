@@ -337,7 +337,8 @@ graph TD;
     container_registry-->hash_application
 ```
 
-**Archived HASH modules**:
+## Archived HASH modules
+
 This list of modules are to be considered obsolete/out of date, and are kept here for reference in case of future re-use.
 
 - [`citus`](./modules/citus/) - Module for deploying a Citus cluster on AWS using EC2. - Along with [playbooks/citus.md](./playbooks/citus.md) - Instructions for administering the Citus cluster.
