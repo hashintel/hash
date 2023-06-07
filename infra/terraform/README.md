@@ -305,7 +305,7 @@ $ docker build ./apps/hash-external-services/kratos --build-arg ENV=prod --build
 ..
 $ docker run --rm \
   --network host \
-  -e LOG_LEVEL \
+  -e LOG_LEVEL=info \
   -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_PG_HOST}:${HASH_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
   kratos:latest \
   migrate sql -e --yes
