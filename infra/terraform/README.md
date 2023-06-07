@@ -51,7 +51,7 @@ Deployment currently relies on a couple of manual steps - but is to be automated
 
 ## Deploy infrastructure with terraform
 
-Secret environment should be provided in Hashicorp Vault. These are expected in a kvv2 path starting with `pipelines/hash/` and ending with the environment name, e.g. `automation/pipelines/hash/prod`. The following secrets are expected:
+Secret environment should be provided in HashiCorp Vault. These are expected in a kvv2 path starting with `pipelines/hash/` and ending with the environment name, e.g. `automation/pipelines/hash/prod`. The following secrets are expected:
 
 ```json
 {
