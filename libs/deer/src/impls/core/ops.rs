@@ -133,11 +133,13 @@ where
                     .attach(Location::Field("start"))
                     .change_context(VisitorError)?;
 
-                if self.start.replace(value).is_some() {
+                if self.start.is_some() {
                     return Err(Report::new(DuplicateFieldError.into_error())
                         .attach(DuplicateField::new("start"))
                         .change_context(VisitorError));
                 }
+
+                *self.start = Some(value);
 
                 Ok(())
             }
@@ -146,11 +148,13 @@ where
                     .attach(Location::Field("end"))
                     .change_context(VisitorError)?;
 
-                if self.end.replace(value).is_some() {
+                if self.end.is_some() {
                     return Err(Report::new(DuplicateFieldError.into_error())
                         .attach(DuplicateField::new("end"))
                         .change_context(VisitorError));
                 }
+
+                *self.end = Some(value);
 
                 Ok(())
             }
