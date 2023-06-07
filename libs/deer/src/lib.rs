@@ -49,6 +49,14 @@ pub mod value;
 extern crate alloc;
 
 pub mod export {
+    // We need to re-export `alloc`, as our macros depend on it, in the case that we're operating in
+    // an `std` environment most crates do not have a `extern crate alloc` statement. This means
+    // that `alloc::borrow::ToOwned` is not available. (we would need to use `std::borrow::ToOwned`)
+    // This means we would need to switch between `std` and `alloc` depending on the environment and
+    // feature flag, which is prone to errors. (some crates default to no-std dependencies, in that
+    // case this would fail). By re-exporting `alloc` we can always use `alloc::borrow::ToOwned`.
+    pub extern crate alloc;
+
     pub use error_stack;
 }
 
