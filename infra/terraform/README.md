@@ -295,7 +295,7 @@ Where `prod` is the Terraform workspace name, `usea1` is the region, and `apisvc
 
 Under the [`./modules/`](./modules/) folder we define the HASH application through an ECS Fargate service and various external services.
 
-**Shared modules**:
+## Shared modules
 
 - [`base_network`](./modules/base_network/) - contains global VPC (Virtual Private Cloud) definitions and networking setup defining private and public subnets.
 - [`bastion`](./modules/bastion/) - a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) that resides in the public subnet with access to the private subnet. Accessible through SSH.
