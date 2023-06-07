@@ -253,32 +253,63 @@ This will log into the given ECR in the `us-east-1` region.
 
 ## How do I migrate the database after it has been deployed?
 
-Using the Terraform scripts to deploy an instance of RDS will give you an empty DB (with appropriate DBs/users), which will need to be migrated. From the `hashintel/hash` repo you can run the following command assuming you've set up an SSH tunnel (see [this README](./hash/bastion.md)) and have the appropriate environment variables set for the DB connection:
+Using the Terraform scripts to deploy an instance of RDS will give you an empty DB (with appropriate DBs/users), which will need to be migrated. Note that we have a GitHub workflow to do this automatically at [`hash-backend-cd.yml`](/.github/workflows/hash-backend-cd.yml).
+
+To migrate the database locally, you'll need to ensure you've built the dockerfile for `hash-graph` and prepare your environment with some of the values in the Vault key-value entries for the environment you're migrating, see [Deploy infrastructure with terraform](#deploy-infrastructure-with-terraform) for where to look in the Vault.
+
+Build the dockerfile for `hash-graph`:
+
+```console
+$ turbo --filter @apps/hash-graph build:docker:prod
+..
+```
+
+Make sure your Vault CLI is logged in correctly. You can export the following environment variables (adjust the vault path to match your environment):
+
+```shell
+export HASH_PG_HOST=$(terraform output -raw rds_hostname)
+export HASH_PG_PORT=5554 # or the port you specify in your SSH tunnel
+export HASH_GRAPH_PG_DATABASE=graph
+export HASH_GRAPH_PG_USER=graph
+export HASH_GRAPH_PG_PASSWORD=$(vault kv get -field=pg_graph_user_password_raw automation/pipelines/hash/prod)
+export HASH_KRATOS_PG_DATABASE=kratos
+export HASH_KRATOS_PG_USER=kratos
+export HASH_KRATOS_PG_PASSWORD=$(vault kv get -field=pg_kratos_user_password_raw automation/pipelines/hash/prod)
+export HASH_KRATOS_API_SECRET=$(vault kv get -field=kratos_api_key automation/pipelines/hash/prod)
+```
+
+The migration requires an SSH tunnel to the VPC, see [this README](./hash/bastion.md) for more information on initiate the tunnel.
+
+Now you can run the `hash-graph` migration:
 
 ```console
 $ docker run --rm \
   --network host \
   -e HASH_GRAPH_PG_USER \
   -e HASH_GRAPH_PG_PASSWORD \
-  -e HASH_GRAPH_PG_HOST \
-  -e HASH_GRAPH_PG_PORT \
+  -e HASH_GRAPH_PG_HOST=$HASH_PG_HOST \
+  -e HASH_GRAPH_PG_PORT=$HASH_PG_PORT \
   -e HASH_GRAPH_PG_DATABASE \
-  -e RUST_LOG \
-  HASH_GRAPH_IMAGE \
+  -e RUST_LOG=info \
+  hash-graph \
   migrate
 ..
 ```
 
+And to migrate `kratos`:
+
 ```console
+$ pwd
+/../hash/ # at root of repo
+$ docker build ./apps/hash-external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$HASH_KRATOS_API_SECRET -t kratos:latest
+..
 $ docker run --rm \
   --network host \
   -e LOG_LEVEL \
-  -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_KRATOS_PG_HOST}:${HASH_KRATOS_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
-  KRATOS_IMAGE \
+  -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_PG_HOST}:${HASH_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
+  kratos:latest \
   migrate sql -e --yes
 ```
-
-Be sure to replace `HASH_GRAPH_IMAGE` and `KRATOS_IMAGE` with the appropriate image names that corresponds with the image tags you've built locally.
 
 ## How do I redeploy a running Fargate task?
 
