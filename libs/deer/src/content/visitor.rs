@@ -4,8 +4,8 @@ use error_stack::Result;
 
 use crate::{
     content::{size_hint, Content},
-    error::{ArrayAccessError, ObjectAccessError, VisitorError},
-    ArrayAccess, Document, Number, ObjectAccess, Visitor,
+    error::{ArrayAccessError, ObjectAccessError, ResultExtPrivate, VisitorError},
+    ArrayAccess, Deserialize, Document, Number, ObjectAccess, Visitor,
 };
 
 pub struct ContentVisitor;
@@ -14,7 +14,7 @@ impl<'de> Visitor<'de> for ContentVisitor {
     type Value = Content<'de>;
 
     fn expecting(&self) -> Document {
-        todo!()
+        Self::Value::reflection()
     }
 
     fn visit_none(self) -> Result<Self::Value, VisitorError> {
@@ -69,14 +69,11 @@ impl<'de> Visitor<'de> for ContentVisitor {
         let mut errors: Result<(), ArrayAccessError> = Ok(());
 
         while let Some(entry) = v.next() {
-            match (entry, &mut errors) {
-                (Ok(entry), Ok(_)) => array.push(entry),
+            match entry {
+                Ok(entry) if errors.is_ok() => array.push(entry),
                 // we don't need to allocate if we already have an error
-                (Ok(_), Err(_)) => {}
-                (Err(error), Err(errors)) => {
-                    errors.extend_one(error);
-                }
-                (Err(error), errors) => *errors = Err(error),
+                Ok(_) => {}
+                Err(error) => errors.extend_one(error),
             }
         }
 
@@ -91,14 +88,11 @@ impl<'de> Visitor<'de> for ContentVisitor {
         let mut errors: Result<(), ObjectAccessError> = Ok(());
 
         while let Some(entry) = v.next() {
-            match (entry, &mut errors) {
-                (Ok(entry), Ok(_)) => object.push(entry),
+            match entry {
+                Ok(entry) if errors.is_ok() => object.push(entry),
                 // we don't need to allocate if we already have an error
-                (Ok(_), Err(_)) => {}
-                (Err(error), Err(errors)) => {
-                    errors.extend_one(error);
-                }
-                (Err(error), errors) => *errors = Err(error),
+                Ok(_) => {}
+                Err(error) => errors.extend_one(error),
             }
         }
 
