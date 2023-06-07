@@ -1,3 +1,4 @@
+use alloc::string::String;
 use core::{
     fmt,
     fmt::{Display, Formatter},
@@ -11,7 +12,8 @@ use crate::{
 pub struct DuplicateField(&'static str);
 
 impl DuplicateField {
-    pub fn new(name: &'static str) -> Self {
+    #[must_use]
+    pub const fn new(name: &'static str) -> Self {
         Self(name)
     }
 }
@@ -45,7 +47,7 @@ impl Variant for DuplicateFieldError {
         let (_, field) = properties;
 
         if let Some(field) = field {
-            write!(fmt, "duplicate field `{}`", field)
+            write!(fmt, "duplicate field `{field}`")
         } else {
             Display::fmt(self, fmt)
         }
@@ -95,7 +97,7 @@ impl Variant for DuplicateKeyError {
         let (_, key) = properties;
 
         if let Some(key) = key {
-            write!(fmt, "duplicate key `{}`", key)
+            write!(fmt, "duplicate key `{key}`")
         } else {
             Display::fmt(self, fmt)
         }

@@ -186,7 +186,7 @@ macro_rules! identifier {
                 $(
                     .attach($crate::error::ExpectedIdentifier::String($stack))
                 )*
-                .attach($crate::error::ReceivedIdentifier::String(value.to_owned()))
+                .attach($crate::error::ReceivedIdentifier::String($crate::export::alloc::borrow::ToOwned::to_owned(value)))
                 .change_context($crate::error::VisitorError)
             )
         }
@@ -209,7 +209,7 @@ macro_rules! identifier {
                 $(
                     .attach($crate::error::ExpectedIdentifier::Bytes($stack))
                 )*
-                .attach($crate::error::ReceivedIdentifier::Bytes(value.to_owned()))
+                .attach($crate::error::ReceivedIdentifier::Bytes($crate::export::alloc::borrow::ToOwned::to_owned(value)))
                 .change_context($crate::error::VisitorError)
             )
         }
