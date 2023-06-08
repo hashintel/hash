@@ -1,3 +1,4 @@
+[block protocol]: https://blockprotocol.org/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 [HASH website for developers]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
@@ -29,8 +30,8 @@ Contains the source code for software development libraries which HASH has publi
 | [deer]                     | Rust        | [Crates.io](https://crates.io/crates/deer)                    | [Docs.rs](https://docs.rs/deer/latest/deer/)               | **Experimental** backend-agnostic deserialization framework, featuring meaningful error messages and context and fail-slow behavior by default       |
 | [error-stack]              | Rust        | [Crates.io](https://crates.io/crates/error-stack)             | [Docs.rs](https://docs.rs/error-stack/latest/error_stack/) | Context-aware error-handling library that supports arbitrary attached user data                                                                      |
 | [sarif]                    | Rust        | [Crates.io](https://crates.io/crates/sarif)                   | [Docs.rs](https://docs.rs/sarif/latest/sarif/)             | Representation of the SARIF specification in Rust                                                                                                    |
-| [@hashintel/type-editor]   | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)   | To be written                                              | A user interface for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types) |
-| [@hashintel/query-editor]  | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/query-editor)  | To be written                                              | A user interface for editing queries (a specific entity type used heavily inside of [HASH]) |
+| [@hashintel/type-editor]   | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)   | To be written                                              | UI for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types) |
+| [@hashintel/query-editor]  | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/query-editor)  | To be written                                              | UI for editing queries (a specific entity type used heavily inside of [HASH]) |
 
 ## Internal Libraries
 
