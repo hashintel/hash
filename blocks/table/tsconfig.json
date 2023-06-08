@@ -1,0 +1,5 @@
+{
+  "extends": "@local/tsconfig/block.json",
+  "include": ["declarations.d.ts", "src", "theme-override.d.ts"],
+  "exclude": ["node_modules"]
+}

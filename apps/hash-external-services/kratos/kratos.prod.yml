@@ -1,0 +1,122 @@
+version: v0.11.0
+
+serve:
+  public:
+    # Set `base_url` through the `SERVE_PUBLIC_BASE_URL` environment variable
+    cors:
+      enabled: true
+      # Set `allowed_headers` through the `SERVE_PUBLIC_CORS_ALLOWED_HEADERS` environment variable
+      # Set `allowed_origins` through the `SERVE_PUBLIC_CORS_ALLOWED_ORIGINS` environment variable
+  admin:
+    base_url: http://kratos:4434/
+
+session:
+  # Let sessions live for 3 years
+  lifespan: 26280h # 24 h * 365 days * 3 years
+
+selfservice:
+  # Set `default_browser_return_url` through the `SELFSERVICE_DEFAULT_BROWSER_RETURN_URL` environment variable
+  # Set `allowed_return_urls` through the `SELFSERVICE_ALLOWED_RETURN_URLS` environment variable
+
+  methods:
+    password:
+      enabled: true
+
+    link:
+      config:
+        # The URL for verification emails are set through the link method
+        # but we're using the code method, so we disable this method for usage.
+        enabled: false
+        # Set `base_url` through the `SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL` environment variable
+    code:
+      config:
+        # and make sure to enable the code method.
+        enabled: true
+
+  flows:
+    error:
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_ERROR_UI_URL` environment variable
+      {}
+
+    logout:
+      after:
+        # Set `default_browser_return_url` through the `SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL` environment variable
+        {}
+
+    login:
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_LOGIN_UI_URL` environment variable
+      lifespan: 10m
+
+    registration:
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_REGISTRATION_UI_URL` environment variable
+      lifespan: 10m
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                can_interrupt: true
+                # Note that while this is configured to be `localhost`
+                # the deployment process will replace this with a build-time
+                # value.
+                url: http://localhost:5001/kratos-after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after.registration.jsonnet
+                auth:
+                  type: api_key
+                  config:
+                    name: KRATOS_API_KEY
+                    # TODO - figure out how to get this from an environment variable
+                    value: secret
+                    in: header
+            - hook: session
+
+    verification:
+      use: code
+      lifespan: 48h
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_VERIFICATION_UI_URL` environment variable
+      enabled: true
+
+    recovery:
+      enabled: true
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_RECOVERY_UI_URL` environment variable
+      use: code
+
+    settings:
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_SETTINGS_UI_URL` environment variable
+      {}
+
+# Cookies must be configured through environment variables
+# Set `path` through the `COOKIES_PATH` environment variable
+# Set `domain` through the `COOKIES_DOMAIN` environment variable
+# Set `same_site` through the `COOKIES_SAME_SITE` environment variable
+
+log:
+  # Default `level` is `info`. Set through the `LOG_LEVEL` environment variable
+  level: info
+  # Default `format` is `json`. Set through the `LOG_FORMAT` environment variable
+  format: json
+  # Default `leak_sensitive_values` is `false`. Set through the `LOG_LEAK_SENSITIVE_VALUES` environment variable
+  leak_sensitive_values: false
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  # @todo: replace with argon2 algorithm
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  template_override_path: /etc/config/kratos/templates
+# SMTP courier must be configured through environment variables
+# Set `from_address` through the `COURIER_SMTP_FROM_ADDRESS` environment variable
+# Set `from_name` through the `COURIER_SMTP_FROM_NAME` environment variable
+# Set `connection_uri` through the `COURIER_SMTP_CONNECTION_URI` environment variable

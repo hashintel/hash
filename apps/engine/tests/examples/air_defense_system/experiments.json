@@ -1,0 +1,58 @@
+{
+  "radar_zone_arange": {
+    "steps": 10,
+    "type": "arange",
+    "field": "radarZone",
+    "start": 5,
+    "stop": 20,
+    "increment": 5
+  },
+  "missile_speed_arange": {
+    "steps": 10,
+    "type": "arange",
+    "field": "missileSpeed",
+    "start": 1,
+    "stop": 3,
+    "increment": 0.5
+  },
+  "radar_max_missiles_arange": {
+    "steps": 10,
+    "type": "arange",
+    "field": "radarMaxMissiles",
+    "start": 1,
+    "stop": 3,
+    "increment": 1
+  },
+  "radar_location_values": {
+    "type": "values",
+    "field": "radarLocations",
+    "values": [
+      [
+        [23, 8],
+        [27, 19],
+        [30, 33]
+      ],
+      [
+        [23, 10],
+        [27, 15],
+        [30, 30]
+      ],
+      [
+        [25, 25],
+        [25, 26],
+        [25, 27]
+      ],
+      [
+        [23, 9],
+        [27, 19],
+        [30, 32]
+      ],
+      [
+        [30, 9],
+        [30, 19],
+        [30, 32]
+      ]
+    ],
+    "steps": 10
+  }
+}

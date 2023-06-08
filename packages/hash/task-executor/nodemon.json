@@ -1,5 +1,0 @@
-{
-  "watch": ["src"],
-  "ext": "ts",
-  "exec": ". ./setup.sh python3 && cross-env node ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
-}

@@ -1,0 +1,139 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+
+  "automerge": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
+  "ignorePaths": ["apps/engine/**"],
+  "postUpdateOptions": ["yarnDedupeFewer"],
+  "rangeStrategy": "bump",
+  "rebaseWhen": "conflicted",
+  "semanticCommits": "disabled",
+  "packageRules": [
+    {
+      "enabled": true,
+      "groupName": "ESLint",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@types/eslint",
+        "^@typescript-eslint/",
+        "^eslint-",
+        "^eslint$"
+      ]
+    },
+    {
+      "enabled": true,
+      "groupName": "Jest",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Playwright",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "ProseMirror",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prosemirror-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Sentry",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@sentry/"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "separateMajorMinor": false,
+      "fetchReleaseNotes": false,
+      "commitMessageExtra": "to nightly-{{newVersion}}"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "matchPaths": ["libs/**"],
+      "groupName": "Rust libraries toolchains",
+      "commitMessageTopic": "Rust toolchains for `/libs`"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "matchPaths": ["apps/**"],
+      "groupName": "Rust applications toolchains",
+      "commitMessageTopic": "Rust toolchains for `/apps`"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^clap[-_]?"],
+      "groupName": "`clap` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^criterion[-_]?"],
+      "groupName": "`criterion` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^futures[-_]?"],
+      "groupName": "`futures` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": [
+        "^opentelemetry[-_]?",
+        "^tracing-opentelemetry$"
+      ],
+      "groupName": "`opentelemetry` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
+      "groupName": "`postgres` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^serde[-_]?"],
+      "groupName": "`serde` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^tracing[-_]?"],
+      "excludePackageNames": ["tracing-opentelemetry"],
+      "groupName": "`tracing` crates"
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["(^|/)rust-toolchain\\.toml?$"],
+      "matchStrings": [
+        "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
+      ],
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust-analyzer",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+    },
+    {
+      "fileMatch": ["(^|/)README\\.md$", "(^|/)src/lib\\.rs$"],
+      "matchStrings": [
+        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue"
+      ],
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust-analyzer",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "name": "@blocks/timer",
+  "version": "0.2.1",
+  "private": true,
+  "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "blocks/timer"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.3.0",
+    "date-fns": "2.28.0",
+    "duration-fns": "3.0.1"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "block-scripts": "0.3.0",
+    "eslint": "8.33.0",
+    "mock-block-dock": "0.1.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "5.0.4"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 63213
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "name": "@hash/timer",
+    "displayName": "Timer",
+    "examples": [
+      {
+        "https://blockprotocol.org/@hash/types/property-type/timer-block-total-duration/": "PT5M"
+      }
+    ],
+    "icon": "public/timer.svg",
+    "image": "public/block-preview.svg",
+    "protocol": "0.3",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/timer-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
+  }
+}

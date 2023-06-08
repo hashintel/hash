@@ -1,0 +1,21 @@
+{
+  "cohesion_arange": {
+    "field": "cohesion",
+    "start": 10,
+    "stop": 16,
+    "increment": 2,
+    "steps": 10,
+    "type": "arange"
+  },
+  "agent_count_value": {
+    "steps": 10,
+    "type": "values",
+    "field": "agent_count",
+    "values": [25, 100, 200]
+  },
+  "sweep_flocks": {
+    "steps": 10,
+    "type": "group",
+    "runs": ["cohesion_arange", "agent_count_value"]
+  }
+}

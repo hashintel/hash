@@ -1,0 +1,13 @@
+diff --git a/node_modules/prosemirror-view/dist/index.d.ts b/node_modules/prosemirror-view/dist/index.d.ts
+index 713cdab..b6b752f 100644
+--- a/node_modules/prosemirror-view/dist/index.d.ts
++++ b/node_modules/prosemirror-view/dist/index.d.ts
+@@ -543,7 +543,7 @@ declare class EditorView {
+     This method is bound to the view instance, so that it can be
+     easily passed around.
+     */
+-    dispatch(tr: Transaction): void;
++    dispatch(this: void, tr: Transaction): void; // `this: void` allows unbound calls, e.g.: `const { dispatch } = editorView; dispatch(...);`
+ }
+ /**
+ The type of function [provided](https://prosemirror.net/docs/ref/#view.ViewProps.nodeViews) to

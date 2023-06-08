@@ -9,11 +9,22 @@ inputs:
 
 runs:
   using: composite
+
   steps:
     - uses: actions/setup-node@v3
       with:
-        node-version: 18
-        cache: yarn
+        node-version: 18 ## aligned with Node version on Vercel
+        # cache: yarn ## Currently disabled because of frequent timeouts
+
+    - name: Install poetry
+      run: pipx install poetry
+      shell: bash
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "^3.11"
+        cache: poetry
 
     - run: yarn install
       shell: bash

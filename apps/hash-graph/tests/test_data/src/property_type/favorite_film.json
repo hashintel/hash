@@ -1,0 +1,11 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/favorite-film/v/1",
+  "title": "Favorite Film",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

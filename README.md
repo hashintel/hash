@@ -1,39 +1,118 @@
+[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.ai]: https://hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[block protocol types]: https://blockprotocol.org/docs/types?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
+
+<!-- markdownlint-disable link-fragments -->
+
+[awesome hash]: https://github.com/hashintel/awesome-hash
+[block protocol]: https://github.com/blockprotocol/blockprotocol
+[github_banner]: #hash
+[github_star]: https://github.com/hashintel/hash#
+[gh-what-is-hash]: #--what-is-hash
+[gh-getting-started]: #--getting-started
+[gh-examples]: #--examples
+[gh-roadmap]: #--roadmap
+[gh-repo-structure]: #--about-this-repository
+[gh-contributing]: #--contributing
+[gh-license]: #--license
+[gh-security]: #--security
+[gh-contact]: #--contact
+[hash graph]: https://github.com/hashintel/hash/tree/main/apps/hash-graph#readme
+
+[![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ec83e48d-5a46-4c3f-a603-5d9fc43ff400/github)][github_banner]
+
+[![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+
 # HASH
 
-<a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+This is HASH's _public monorepo_ which contains our public code, docs, and other key resources.
 
-## What's in this repo?
+## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-what-is-hash] &nbsp; What is HASH?
 
-This is HASH's _public monorepo_ which contains our open-source, fair-source and commons-licensed code, documentation, and key resources. You can find out more about its contents on the [hash.dev](https://hash.dev/) website, and on the [HASH Developer Blog](https://hash.dev/blog).
+**HASH is a platform for decision-making, which helps you integrate, understand and use data in a variety of different ways.**
 
-### Packages
+HASH does this by combining various different powerful tools together into one simple interface. These range from data pipelines and a graph database, through to an all-in-one workspace, no-code tool builder, and agent-based simulation engine. These exist at varying stages of maturity, and while some are polished, not all are ready for real-world production use. You can read more about out big-picture vision at [hash.dev]
 
-- [`packages/blocks`](packages/blocks): The source code for all of HASH's open-source [Block Protocol](https://github.com/blockprotocol/blockprotocol) blocks
-- [`packages/hash`](packages/hash): The codebase for [HASH](https://hash.ai/platform/hash) - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
-- [`packages/engine`](packages/engine): The codebase for our next-gen version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
-- [`packages/libs`](packages/libs): The source code for our open-source developer libraries
+## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
-### Site code and content
+- 🚀 &nbsp; **Quick-start (<5 mins):** try the full hosted platform at [hash.ai], ready to go in seconds
+- 🤖 &nbsp; **Self-hosting:** check out our developer site at [hash.dev] for a guide to running your own instance of HASH
 
-- [`sites/hashai`](sites/hashai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
-- [`sites/hashdev`](sites/hashdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
+## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
-## Contributing
+**Coming soon:** we'll be collecting examples in the _[Awesome HASH]_ repository.
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
+## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
-We're also [hiring](https://hash.ai/careers) for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
+Browse the [HASH roadmap] for more information about upcoming features and releases.
 
-## License
+## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
-Please see [LICENSE.md](LICENSE.md) for more information about the terms under which the various parts of this repository are made available
+### Top-level layout
 
-## Security
+This repository's contents is divided across several primary sections:
 
-Please see [SECURITY.md](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support
+- [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
+- [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
+- [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
+- [**`/libs`**](/libs) contains [libraries](#libraries) including npm packages and Rust crates
+- [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs
 
-## Contact
+Key projects within are summarized below.
 
-Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/). To learn more about the overall vision we're pursuing, check out the [hash.dev](https://hash.dev/) site.
+### Applications
+
+- [`hash`](apps/hash): entry-point for **[HASH]**, our data-driven, all-in-one AI workspace
+- [`engine`](apps/engine): experimental version of **[HASH Engine]**, a versatile agent-based simulation engine written in Rust
+
+### Blocks
+
+- Various directories containing the source code for all of HASH's open-source [Block Protocol] (**Þ**) blocks, summarized in a [handy table](https://github.com/hashintel/hash/tree/main/blocks#blocks). Please note: this table/directory contains HASH-published blocks only, and does not contain the full extent of available Þ blocks.
+
+### Infrastructure
+
+- [`docker`](infra/docker): Docker assets relating to HASH
+- [`terraform`](infra/terraform): Terraform modules for deploying HASH on AWS
+
+### Libraries
+
+#### Rust crates
+
+- [`antsi`](libs/antsi): Rust crate supporting Select Graphic Rendition (as defined in ISO 6429) without external dependencies
+- [`deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context
+- [`error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
+- [`sarif`](libs/sarif): representation of the SARIF specification in Rust
+
+#### npm packages
+
+- [`@hashintel/block-design-system`](libs/@hashintel/block-design-system): a relatively unopinionated design system for [Block Protocol] blocks
+- [`@hashintel/design-system`](libs/@hashintel/design-system): the design system for [HASH] and our [hash.ai] website
+- [`@hashintel/query-editor`](libs/@hashintel/query-editor): editing interface for [HASH Graph] queries
+- [`@hashintel/type-editor`](libs/@hashintel/type-editor): editing interface for [Block Protocol types]
+
+## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
+
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
+
+We're also [hiring] for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
+
+## [![a](/.github/assets/gh_icon_license_20px-base.svg)][gh-license] &nbsp; License
+
+The vast majority of this repository is published as free, open-source software. Please see [LICENSE](LICENSE.md) for more information about the specific licenses under which the different parts are available.
+
+## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
+
+Please see [SECURITY](.github/SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
+
+## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
+
+Find us on Twitter at [@hashintel](https://twitter.com/hashintel), or email [support@hash.ai](mailto:support@hash.ai)
+
+You can also join our [Discord] community for quick help and support.
 
 Project permalink: `https://github.com/hashintel/hash`

@@ -1,0 +1,4 @@
+# Rust artifacts
+target/
+
+log/

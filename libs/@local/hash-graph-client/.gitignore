@@ -1,0 +1,4 @@
+.openapi-generator
+.npmignore
+*.ts
+*.sh

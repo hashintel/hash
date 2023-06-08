@@ -1,0 +1,42 @@
+name: Install Rust toolchain
+description: "Install Rust toolchain"
+
+inputs:
+  toolchain:
+    required: true
+    description: "Rust toolchain, e.g. 'stable' or 'nightly'"
+  working-directory:
+    description: "Working directory to run the action in"
+    required: false
+    default: "."
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install Rust"
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        # regex for components that are only available on nightly and should not be installed on stable
+        # these are in variables due to: https://stackoverflow.com/a/56449915/9077988
+        NIGHTLY_ONLY="miri|llvm-tools|llvm-tools-preview"
+        NIGHTLY_TOOLCHAIN="nightly-.*"
+
+        # extract components from the rust-toolchain.toml 
+        COMPONENTS=$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')
+
+        rustup toolchain install "${{ inputs.toolchain }}"
+
+        for component in $COMPONENTS; do
+          # depending on the toolchain we need to conditionally skip specific components
+          if [[ ! "${{ inputs.toolchain }}" =~ $NIGHTLY_TOOLCHAIN ]]; then
+            # ensure that we only install components that are meant for stable
+            if [[ ! $component =~ $NIGHTLY_ONLY ]]; then
+              rustup component add --toolchain "${{ inputs.toolchain }}" "$component"
+            fi
+          else
+            rustup component add --toolchain "${{ inputs.toolchain }}" "$component"  
+          fi
+        done
+
+        echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV

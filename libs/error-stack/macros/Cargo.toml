@@ -1,0 +1,21 @@
+[package]
+name = "error-stack-macros"
+version = "0.0.0-reserved"
+authors = ["HASH"]
+edition = "2021"
+rust-version = "1.63.0"
+license = "MIT OR Apache-2.0"
+description = "Macros for the `error-stack` crate"
+documentation = "https://docs.rs/error-stack"
+readme = "../README.md"
+repository = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
+keywords = ["errorstack", "error-handling", "macro", "derive", "no_std"]
+categories = ["rust-patterns", "no-std"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+
+[dev-dependencies]
+error-stack = { version = "0.3.1", default-features = false }

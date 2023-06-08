@@ -1,21 +1,50 @@
 name: Semgrep
 
 on:
+  # Scan changed files in PRs (diff-aware scanning):
   pull_request: {}
+
+  # Scan mainline, next and `dev/*` trunks to report all findings:
   push:
     branches:
       - main
+      - canary
+      - dev/*
+  merge_group:
+
+  schedule:
+    - cron: "30 0 1,15 * *" # scheduled for 00:30 UTC on both the 1st and 15th of the month
 
 jobs:
   semgrep:
     name: Scan
-    runs-on: ubuntu-20.04
+
+    # Change this in the event of future self-hosting of Action runner:
+    runs-on: ubuntu-latest
+
     container:
       image: returntocorp/semgrep
+
+    # Skip any PR created by Dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')
+
     steps:
       - uses: actions/checkout@v3
-      - run: semgrep ci
+        name: Check-out Git project source
+
+      - run: semgrep ci --sarif --output=semgrep.sarif
+        name: Run Semgrep
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-          SEMGREP_AUDIT_ON: push
+
+      - name: Check SARIF file exists following Semgrep run
+        id: sarif_file_check
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "semgrep.sarif"
+
+      - name: Upload SARIF file for GitHub Advanced Security Dashboard
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep.sarif
+        if: always()

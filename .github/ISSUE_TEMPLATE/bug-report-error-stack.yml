@@ -1,0 +1,98 @@
+name: Bug Report (error-stack)
+description: Create a report to help us improve `error-stack`
+labels:
+  - A-error-stack
+  - C-bug
+assignees:
+  - Alfred-Mountfield
+  - TimDiekmann
+  - indietyp
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this bug report!
+
+        Please try to fill out the fields below. If you don't know what to put in the fields please left them blank.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To reproduce
+      description: Steps to reproduce the behavior.
+      render: Rust
+      placeholder: |
+        fn main() {
+            // How to reproduce the issue
+        }
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: false
+
+  - type: input
+    id: rustc
+    attributes:
+      label: Rust compiler
+      description: Which Rust compiler do you use? The current rust version can be printed by `rustc -V`
+      placeholder: e.g. 1.66.0 nightly (2022-09-27)
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Host
+      description: Which operating system are you on? Please post the output for `host` of `rustc -vV`.
+      placeholder: e.g. aarch64-apple-darwin
+    validations:
+      required: false
+
+  - type: input
+    id: target
+    attributes:
+      label: Target
+      description: What target are you compiling to? You can find a list of all installed targets with `rustup show`.
+      placeholder: e.g. x86_64-unknown-linux-musl
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What error-stack version do you use? If you use the git version please also post the revision.
+      placeholder: e.g. v0.2.1
+    validations:
+      required: false
+
+  - type: input
+    id: features
+    attributes:
+      label: Features
+      description: What features are enabled?
+      placeholder: default, spantrace
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here, e.g. screenshots.
+    validations:
+      required: false

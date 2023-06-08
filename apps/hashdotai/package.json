@@ -1,0 +1,25 @@
+{
+  "name": "@apps/hashdotai",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {
+    "exe": "ts-node --transpile-only",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "algoliasearch": "4.12.1",
+    "envalid": "7.3.1",
+    "gray-matter": "4.0.3",
+    "typescript": "5.0.4"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "eslint": "8.33.0"
+  },
+  "engines": {
+    "node": ">=v18.15.0"
+  }
+}

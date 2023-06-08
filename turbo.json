@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build", "codegen"]
+    },
+    "codegen": {},
+    "test": {
+      "dependsOn": ["^build", "codegen"]
+    },
+    "lint:eslint": {
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
+      "dependsOn": ["^build", "codegen"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["^build", "codegen"]
+    },
+    "fix:eslint": {
+      "dependsOn": ["^build", "codegen"]
+    },
+    "dev": {
+      "persistent": true,
+      "dependsOn": ["^build", "codegen"]
+    },
+    "start": {
+      "persistent": true,
+      "dependsOn": ["^build", "codegen"]
+    }
+  },
+  "globalDependencies": [
+    "**/turbo.json",
+    ".env",
+    ".env.local",
+    ".justfile",
+    ".yarnrc",
+    "package.json"
+  ]
+}

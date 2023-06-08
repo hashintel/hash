@@ -1,0 +1,35 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/book/v/1",
+  "title": "Book",
+  "type": "object",
+  "properties": {
+    "https://blockprotocol.org/@alice/types/property-type/name/": {
+      "type": "array",
+      "items": {
+        "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
+      }
+    },
+    "https://blockprotocol.org/@alice/types/property-type/blurb/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/blurb/v/1"
+    },
+    "https://blockprotocol.org/@alice/types/property-type/published-on/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/published-on/v/1"
+    }
+  },
+  "required": ["https://blockprotocol.org/@alice/types/property-type/name/"],
+  "links": {
+    "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+          }
+        ]
+      },
+      "ordered": false
+    }
+  }
+}

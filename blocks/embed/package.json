@@ -1,0 +1,67 @@
+{
+  "name": "@blocks/embed",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Embed external content",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/embed"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "blockprotocol": "0.0.12",
+    "lodash": "4.17.21",
+    "twind": "0.16.17"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "block-scripts": "0.0.14",
+    "eslint": "8.33.0",
+    "mock-block-dock": "0.0.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "5.0.4"
+  },
+  "peerDependencies": {
+    "lodash": "4.17.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 62680
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "name": "@hash/embed",
+    "displayName": "Embed",
+    "icon": "public/embed.svg",
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "initialHtml": "<iframe src=\"https://core.hash.ai/embed.html?project=%40hash%2Fcity-infection-model&ref=6.4.2\" width=\"300\" height=\"171\" frameborder=\"0\" scrolling=\"auto\"></iframe>",
+        "initialWidth": 600,
+        "initialHeight": 340
+      }
+    ],
+    "protocol": "0.1"
+  }
+}

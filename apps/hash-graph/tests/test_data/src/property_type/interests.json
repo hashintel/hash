@@ -1,0 +1,25 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
+  "title": "Interests",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "https://blockprotocol.org/@alice/types/property-type/favorite-film/": {
+          "$ref": "https://blockprotocol.org/@alice/types/property-type/favorite-film/v/1"
+        },
+        "https://blockprotocol.org/@alice/types/property-type/favorite-song/": {
+          "$ref": "https://blockprotocol.org/@alice/types/property-type/favorite-song/v/1"
+        },
+        "https://blockprotocol.org/@alice/types/property-type/hobby/": {
+          "type": "array",
+          "items": {
+            "$ref": "https://blockprotocol.org/@alice/types/property-type/hobby/v/1"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "name": "@blocks/person",
+  "version": "0.2.1",
+  "private": true,
+  "description": "Display information about a person, including their name, job title, email, website address, and an avatar",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/person"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.0.18",
+    "dompurify": "2.3.6"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/dompurify": "2.3.4",
+    "block-scripts": "0.0.14",
+    "eslint": "8.33.0",
+    "mock-block-dock": "0.0.38",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "5.0.4"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 62692
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "name": "@hash/person",
+    "displayName": "Person",
+    "icon": "public/account-circle.svg",
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "avatar": "https://i.pravatar.cc/300",
+        "employer": {
+          "name": "Bain & Co.",
+          "position": "General Manager of Insurance Claims"
+        },
+        "name": "Archibald Adams-Montgomery",
+        "email": "archie@example.com",
+        "link": "https://example.com/archie"
+      }
+    ],
+    "protocol": "0.2"
+  }
+}

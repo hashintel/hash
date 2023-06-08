@@ -1,0 +1,14 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1",
+  "type": "object",
+  "title": "Acquaintance Of",
+  "description": "Someone who is known but not a close friend",
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+    }
+  ],
+  "properties": {}
+}

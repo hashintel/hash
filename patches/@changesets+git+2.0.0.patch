@@ -1,0 +1,56 @@
+diff --git a/node_modules/@changesets/git/dist/git.cjs.dev.js b/node_modules/@changesets/git/dist/git.cjs.dev.js
+index 00f9ec2..84718ed 100644
+--- a/node_modules/@changesets/git/dist/git.cjs.dev.js
++++ b/node_modules/@changesets/git/dist/git.cjs.dev.js
+@@ -243,6 +243,9 @@ async function getChangedPackagesSinceRef({
+   });
+   return [...(await getPackages.getPackages(cwd)).packages] // sort packages by length of dir, so that we can check for subdirs first
+   .sort((pkgA, pkgB) => pkgB.dir.length - pkgA.dir.length).filter(pkg => {
++    // Fixing "Some packages have been changed but no changesets were found" for private packages
++    if (pkg.packageJson.private) return;
++
+     const changedPackageFiles = [];
+ 
+     for (let i = changedFiles.length - 1; i >= 0; i--) {
+diff --git a/node_modules/@changesets/git/dist/git.cjs.prod.js b/node_modules/@changesets/git/dist/git.cjs.prod.js
+index 2b4d620..4ad8906 100644
+--- a/node_modules/@changesets/git/dist/git.cjs.prod.js
++++ b/node_modules/@changesets/git/dist/git.cjs.prod.js
+@@ -141,6 +141,9 @@ async function getChangedPackagesSinceRef({cwd: cwd, ref: ref, changedFilePatter
+     fullPath: !0
+   });
+   return [ ...(await getPackages.getPackages(cwd)).packages ].sort(((pkgA, pkgB) => pkgB.dir.length - pkgA.dir.length)).filter((pkg => {
++    // Fixing "Some packages have been changed but no changesets were found" for private packages
++    if (pkg.packageJson.private) return;
++
+     const changedPackageFiles = [];
+     for (let i = changedFiles.length - 1; i >= 0; i--) {
+       const file = changedFiles[i];
+diff --git a/node_modules/@changesets/git/dist/git.esm.js b/node_modules/@changesets/git/dist/git.esm.js
+index 58f76fe..106e30e 100644
+--- a/node_modules/@changesets/git/dist/git.esm.js
++++ b/node_modules/@changesets/git/dist/git.esm.js
+@@ -231,6 +231,9 @@ async function getChangedPackagesSinceRef({
+   });
+   return [...(await getPackages(cwd)).packages] // sort packages by length of dir, so that we can check for subdirs first
+   .sort((pkgA, pkgB) => pkgB.dir.length - pkgA.dir.length).filter(pkg => {
++    // Fixing "Some packages have been changed but no changesets were found" for private packages
++    if (pkg.packageJson.private) return;
++
+     const changedPackageFiles = [];
+ 
+     for (let i = changedFiles.length - 1; i >= 0; i--) {
+diff --git a/node_modules/@changesets/git/src/index.ts b/node_modules/@changesets/git/src/index.ts
+index 7e3aee5..49a00e3 100644
+--- a/node_modules/@changesets/git/src/index.ts
++++ b/node_modules/@changesets/git/src/index.ts
+@@ -262,6 +262,9 @@ export async function getChangedPackagesSinceRef({
+       // sort packages by length of dir, so that we can check for subdirs first
+       .sort((pkgA, pkgB) => pkgB.dir.length - pkgA.dir.length)
+       .filter((pkg) => {
++        // Fixing "Some packages have been changed but no changesets were found" for private packages
++        if (pkg.packageJson.private) return;
++
+         const changedPackageFiles: string[] = [];
+ 
+         for (let i = changedFiles.length - 1; i >= 0; i--) {

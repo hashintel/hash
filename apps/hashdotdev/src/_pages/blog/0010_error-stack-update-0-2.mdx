@@ -1,0 +1,202 @@
+---
+authors:
+  - name: Tim Diekmann
+    jobTitle: Senior Platform Engineer, HASH
+    photo: blog/authors/tim-diekmann.jpg
+postPhoto: blog/0010_error-stack-update-0-2/Cover.jpg
+title: "Announcing error-stack v0.2"
+subtitle: "Introducing customizable outputs, related errors, multiple sources, and much more to error handling in Rust"
+date: "2022-10-03"
+---
+
+Back in June [we announced the initial public release](https://hash.dev/blog/announcing-error-stack) of `error-stack`, our context-aware Rust error library. We developed this to help address a lot of challenges we encountered when implementing error handling in our [simulation engine]. In the time since then we’ve started using it in our entity-graph query layer that we’re building as a datastore for [HASH]. Across that development we’ve learned a lot of lessons, and in joint efforts with open-source contributors we’re ready to release a new version of the library.
+
+- [View the crate on GitHub >](https://github.com/hashintel/hash/tree/main/libs/error-stack)
+
+Since our last release we’ve been fixing user-reported bugs, reviewing open-source contributor’s pull requests, and adding new features. [Version 0.2](https://crates.io/crates/error-stack) is available now and includes important changes from `std`, a completely redesigned output with new customization options, support for related errors and multiple error sources, compatibility with `anyhow` and `eyre`, and a number of other improvements.
+
+[simulation engine]: https://hash.ai/platform/engine
+[hash]: https://hash.ai
+
+## What's new?
+
+### Changes from `std` in v0.2
+
+- The `Provider` API has landed and replaces our vendored-in implementation.
+- `Backtrace` was stabilized with Rust 1.65(🎉): we now support `Backtrace`s on a non-nightly channel starting with 1.65-beta.
+- If the root context already contains a backtrace, no new `Backtrace` is captured. Otherwise, backtraces are captured automatically when `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` env-vars are set.
+- All std-`Error` types now implement `Provider`. The blanket implementation on `Context` will re-use the `Error::provide` values.
+- `Error` is now available in `core::error`, for nightly channels.
+
+### A redesigned output with a hook interface for customization
+
+The output in v0.2 has been completely redesigned by Bilal Mahmoud ([@indietyp](https://github.com/indietyp)) — huge kudos! It’s now much easier to read compared to v0.1, with visual cues to represent the information hierarchy at a glance, and more information is provided.
+
+_error-stack v0.2:_
+
+```text
+Error: experiment error: could not run experiment
+ ├╴examples/demo.rs:51:18
+ ├╴unable to set up experiments
+ │
+ ├─▶ invalid experiment description
+ │   ├╴examples/demo.rs:21:10
+ │   ╰╴experiment 2 could not be parsed
+ │
+ ╰─▶ invalid digit found in string
+     ├╴examples/demo.rs:19:10
+     ╰╴"3o" could not be parsed as experiment
+```
+
+_error-stack v0.1:_
+
+```text
+Error: experiment error: could not run experiment
+              at examples/demo.rs:54:18
+       - unable to setup experiments
+
+ Caused by:
+    0: invalid experiment description
+              at examples/demo.rs:24:10
+       - experiment 2 could not be parsed
+    1: invalid digit found in string
+              at examples/demo.rs:22:10
+       - "3o" could not be parsed as experiment
+```
+
+To enable granular control over the output format, hooks are now set for specific types instead of for the whole `Report`. Values provided through `Context::provide` can be printed, along with attachments, by defining a hook for their types. And it’s now possible to selectively define outputs per attachment. For example:
+
+```rust
+// Note: neither `Debug`, nor `Display` is implemented
+ struct Suggestion(&'static str);
+
+ Report::install_debug_hook::<Suggestion>(|value, context| {
+     context.push_body(format!("suggestion: {}", value.0));
+ });
+
+ let report = read("config.txt").attach(Suggestion("check if `config.txt` exists"));
+```
+
+```text
+no such file or directory
+ ├╴read.rs:10:5
+ ╰╴suggestion: check if `config.txt` exists
+```
+
+Report outputs now consist of two sections: a `Body` and an `Appendix`. The `Body` provides top-level information while the `Appendix` includes additional, more verbose details, like a backtrace. Hooks can be used to write to both of these sections.
+
+```text
+experiment error: could not run experiment
+ ├╴examples/demo.rs:67:17
+ ├╴backtrace with 19 frames (1)
+ ├╴experiment 3 has no valid description
+ ╰╴unable to set up experiments
+
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Backtrace No. 1
+    0: std::backtrace_rs::backtrace::libunwind::trace
+              at /rustc/8b705839cd656d202e920efa8769cbe43a5ee269/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
+    1: std::backtrace_rs::backtrace::trace_unsynchronized
+              at /rustc/8b705839cd656d202e920efa8769cbe43a5ee269/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
+    2: std::backtrace::Backtrace::create
+              at /rustc/8b705839cd656d202e920efa8769cbe43a5ee269/library/std/src/backtrace.rs:333:13
+    3: core::ops::function::FnOnce::call_once
+              at /rustc/8b705839cd656d202e920efa8769cbe43a5ee269/library/core/src/ops/function.rs:251:5
+    ...
+    18: _main
+```
+
+For a full guide to using hooks, please refer to [the `fmt` module documentation](https://docs.rs/error-stack/0.2.0/error_stack/fmt/index.html).
+
+### Related errors and multiple error sources
+
+`error-stack` v0.2 introduces support for related errors and multiple error sources, which can be invaluable when multiple errors occur at the same time, e.g. in loops or in multi-threaded applications. `Report`s are no longer a linear stream of events. You can now create a tree of different `Report`s, enabling the capture of multiple simultaneous errors without losing information.
+
+This is also shown in the output:
+
+```text
+Error: experiment error: could not run experiment
+ ├╴examples/demo.rs:73:18
+ ├╴Unable to set up experiments
+ │
+ ├─▶ invalid experiment description
+ │   ├╴examples/demo.rs:43:10
+ │   ╰╴experiment 2 could not be parsed
+ │
+ ╰┬▶ invalid digit found in string
+  │  ├╴examples/demo.rs:25:18
+  │  ╰╴"3o" could not be parsed as experiment
+  │
+  ╰▶ invalid digit found in string
+     ├╴examples/demo.rs:25:18
+     ╰╴"4a" could not be parsed as experiment
+
+ experiment error: could not run experiment
+ ├╴examples/demo.rs:67:17
+ ├╴experiment 3 has no valid description
+ ╰╴unable to set up experiments
+```
+
+Again, a huge thanks to Bilal Mahmoud ([@indietyp](https://github.com/indietyp)) for his work.
+
+### Improved documentation, `Termination`, `anyhow` and `eyre`
+
+We’ve made a few other improvements too:
+
+- The `error-stack` documentation has been greatly improved and we’re always open to more feedback ([create an Issue](https://github.com/hashintel/hash/tree/main/libs/error-stack) or [join us in Discord](https://discord.com/invite/BPMrGAhjPh)).
+- `Termination` has been implemented for `Report`s: it will return the `ExitCode` provided by any `Context` if present, or `ExitCode::FAILURE` will be returned.
+- Compatibility for `anyhow` and `eyre` has been added to convert their types into `Report`.
+
+  - We’ve provided a trait to convert `Result<_, anyhow::Error>` or `Result<_, eyre::Report>` to `Result<_, Report<anyhow::Error>>` or `Result<_, Report<eyre::Report>>`.
+  - The additional sources of `anyhow::Error` and `eyre::Report` are also attached as frames to maintain their history.
+
+  This should make it much easier to try out `error-stack` in existing codebases which utilize these libraries, as well as improving the migration process.
+
+### Breaking changes
+
+We care a lot about breaking changes and will always try to conform to [SemVer](https://semver.org). A few principles guide our approach:
+
+- we’re not afraid to make breaking changes if it will improve the usability and functionality of the library.
+- we try to maintain consistency. E.g. we’ve deprecated `Report::span_trace` to avoid special casing `SpanTrace` and keep the API the same as for backtraces.
+- we try to avoid duplication. If one feature is superseded by another, we’ll deprecate the old one and remove it later, as with the new hook system.
+
+Version 0.2 of `error-stack` introduces these breaking changes and deprecations:
+
+- The minimal supported Rust version was bumped to 1.63 to greatly simplify maintenance.
+- We switched to the upstream implementation of `Provider`, so if you were on nightly and used our provider API, you need to change the imports to `core::any::`.
+- Remove the unused features `hooks`, `futures`, and `futures-core`
+- `Report::backtrace` (and `Report::span_trace` for consistency) were deprecated because you cannot get `Backtrace` from `Error` anymore.
+  - non-nightly channels should use `Report::downcast_ref::<Backtrace>` / `Report::downcast_ref::<SpanTrace>`.
+  - nightly channels should use`Report::request_ref::<Backtrace>` / `Report::request_ref::<SpanTrace>`.
+- The format of the `Debug` output has changed significantly. If you had a dependency on the format of the `Debug` output (which we don’t recommend), it might break.
+- We deprecated `IntoReport::report`. Please use `IntoReport::into_report` instead.
+- We deprecated the following as part of the changes we made to how hooks work:
+  - instead of `Report::set_debug_hook` please use `Report::install_debug_hook`.
+  - Please don’t use `Report::set_display_hook`.
+- Because multiple error sources are now possible, we deprecated:
+  - `Frame::source`; please use `Frame::sources` instead.
+  - `Frame::source_mut`; please use `Frame::sources_mut` instead.
+
+## What’s next?
+
+We’ve got lots of new features planned, including:
+
+- adding support for `serde` to provide a hook-based interface to serialize `Report`s.
+- adding support for `defmt`.
+- adding support for WASM environments.
+- continuing to iterate on the ergonomics of how we support related errors and multiple sources.
+
+Please let us know what you think!
+
+We’ll also be using many of the new features of `error-stack` v0.2 in our own products, namely HASH ([learn more](https://hash.ai/platform/hash) or [view on GitHub](https://github.com/hashintel/hash/tree/main/apps/hash)). The new hook system will greatly simplify the creation of useful reports, and the support for related errors will allow us not to return the error the first time it occurs, but to give the user a comprehensive list of errors.
+
+## Get involved
+
+HASH, the company behind `error-stack`, is 100% committed to [open source](https://hash.dev/blog/open-source) and we’d love to work with you. Ask a question, file an issue, or open a PR on the [error-stack repo](https://github.com/hashintel/hash/tree/main/libs/error-stack), or any of our other projects. Also check out the [Block Protocol](https://github.com/blockprotocol/blockprotocol), a new standard for building composable interfaces and interoperable types for a more linked and open semantic web.
+
+### **License**
+
+This crate is published under the MIT License.
+
+[**View and star `error-stack` on GitHub >**](https://github.com/hashintel/hash/tree/main/libs/error-stack)

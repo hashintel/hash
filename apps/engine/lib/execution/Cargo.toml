@@ -1,0 +1,32 @@
+[package]
+name = "execution"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+flatbuffers_gen = { path = "../flatbuffers_gen", default-features = false }
+memory = { path = "../memory", default-features = false }
+stateful = { path = "../stateful", default-features = false }
+
+arrow2 = { version = "0.13.1", default-features = false }
+async-trait = "0.1.56"
+flatbuffers = "2.1.1"
+float-cmp = "0.9.0"
+futures = "0.3.21"
+glob = "0.3.0"
+kdtree = "0.6.0"
+lazy_static = "1.4.0"
+nng = { version = "1.0.1" }
+rand = "0.8.5"
+rayon = "1.5.3"
+serde = { version = "1.0.138", features = ["derive"] }
+serde_json = "1.0.82"
+thiserror = "1.0.31"
+tokio = { version = "1.19.2", features = ["macros", "rt", "sync", "process", "time"] }
+tracing = "0.1.35"
+uuid = "1.1.2"
+v8 = "0.45.0"
+num = "0.4.0"
+json_comments = "0.2.1"
+
+[features]

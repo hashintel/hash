@@ -9,6 +9,7 @@ see: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 import re
 import json
 import itertools
+import os
 import toml
 
 from fnmatch import fnmatch
@@ -18,16 +19,34 @@ from pygit2 import Repository, Commit
 CWD = Path.cwd()
 
 # All jobs for all crates will run if any of these paths change
-ALWAYS_RUN_PATTERNS = [".github/**"]
+ALWAYS_RUN_PATTERNS = [".github/**", ".config/**", ".cargo/**"]
 
 # Toolchains used for the specified crates in addition to the toolchain which is defined in
 # rust-toolchain.toml
 TOOLCHAINS = {
-    "packages/libs/error-stack": ["1.63"],
+    "libs/antsi": ["1.63"],
+    "libs/deer": ["1.65"],
+    "libs/error-stack": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+PUBLISH_PATTERNS = [
+    "libs/antsi**",
+    "libs/deer**",
+    "libs/error-stack**",
+    "libs/sarif**",
+]
+
+# Run the dependency building job for these crates
+BUILD_DEPS_PATTERNS = [
+    "apps/hash-graph**",
+]
+
+# Build a coverage report for these crates
+COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
+
+# We only run a subset of configurations for PRs, the rest will only be tested prior merging
+IS_PULL_REQUEST_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "pull_request"
 
 
 def generate_diffs():
@@ -45,10 +64,33 @@ def find_local_crates():
     Returns all available crates in the workspace.
 
     If a crate is in a sub-crate of another crate, only the super-crate will be returned because
-    `cargo-make` will run the sub-crate automatically.
+    the sub-crates will be picked up by `cargo` automatically.
     :return: a list of crate paths
     """
     return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+
+
+def find_toolchain(crate):
+    """
+    Returns the toolchain for the specified crate.
+
+    The toolchain is determined by the `rust-toolchain.toml` file in the crate's directory or any parent directory
+    :param crate: the path to the crate
+    :return: the toolchain for the crate
+    """
+    directory = crate
+    root = Path(directory.root)
+
+    while directory != root:
+        toolchain_file = directory / "rust-toolchain.toml"
+        if toolchain_file.exists():
+            toolchain = toml.load(toolchain_file).get("toolchain", {}).get("channel")
+            if toolchain:
+                return toolchain
+        directory = directory.parent
+
+    raise Exception("No rust-toolchain.toml with a `toolchain.channel` attribute found")
+
 
 
 def filter_parent_crates(crates):
@@ -128,60 +170,96 @@ def filter_for_publishable_crates(crates):
     ]
 
 
-def output_matrix(name, crates, **kwargs):
+def filter_for_build_deps_crates(crates):
+    """
+    Returns the crates for which the dependency building job will be run
+    :param crates: a list of paths to crates
+    :return: a list of crate paths which are allowed to be published
+    """
+    return [
+        crate
+        for crate in crates
+        for pattern in BUILD_DEPS_PATTERNS
+        if fnmatch(crate, pattern)
+    ]
+
+
+def filter_for_coverage_crates(crates):
+    """
+    Returns the crates for which a coverage report will be created
+    :param crates: a list of paths to crates
+    :return: a list of crate paths which are allowed to be published
+    """
+    return [
+        crate
+        for crate in crates
+        for pattern in COVERAGE_EXCLUDE_PATTERNS
+        if not fnmatch(crate, pattern)
+    ]
+
+
+def output_matrix(name, github_output_file, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
     :param name: The name where the list of crates will be stored to be read by GitHub Actions
     :param crates: a list of paths to crates
     """
 
-    available_toolchains = set()
+    crate_names = {}
     for crate in crates:
         with open(
-            crate / "rust-toolchain.toml", "r", encoding="UTF-8"
-        ) as toolchain_toml:
-            available_toolchains.add(
-                toml.loads(toolchain_toml.read())["toolchain"]["channel"]
-            )
-        for pattern, additional_toolchains in TOOLCHAINS.items():
-            for additional_toolchain in additional_toolchains:
-                available_toolchains.add(additional_toolchain)
+                crate / "Cargo.toml", "r", encoding="UTF-8"
+        ) as cargo_toml:
+            cargo_toml_obj = toml.loads(cargo_toml.read())
+            if "package" in cargo_toml_obj and "name" in cargo_toml_obj["package"]:
+                crate_names[crate] = cargo_toml_obj["package"]["name"]
+            else:
+                crate_names[crate] = str(crate.name.replace("_", "-"))
+
+    available_toolchains = set()
+    for crate in crates:
+        available_toolchains.add(find_toolchain(crate))
+        if not IS_PULL_REQUEST_EVENT:
+            for pattern, additional_toolchains in TOOLCHAINS.items():
+                for additional_toolchain in additional_toolchains:
+                    available_toolchains.add(additional_toolchain)
 
     used_toolchain_combinations = []
     for crate in crates:
-        toolchains = []
-        with open(
-            crate / "rust-toolchain.toml", "r", encoding="UTF-8"
-        ) as toolchain_toml:
-            toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
+        toolchains = [find_toolchain(crate)]
 
-        # We only run the default toolchain on lint/publish (rust-toolchain.toml)
-        if name not in ("lint", "publish"):
+        # We only run the default toolchain on coverage/lint/publish (rust-toolchain.toml)
+        if name not in ("coverage", "lint", "publish"):
             for pattern, additional_toolchains in TOOLCHAINS.items():
                 if fnmatch(crate, pattern):
                     toolchains += additional_toolchains
         used_toolchain_combinations.append(
-            itertools.product([crate], toolchains, repeat=1)
+            itertools.product([crate_names[crate]], toolchains, repeat=1)
         )
 
-    available_toolchain_combinations = itertools.product(crates, available_toolchains)
+    available_toolchain_combinations = itertools.product(crate_names.values(), available_toolchains)
     excluded_toolchain_combinations = set(available_toolchain_combinations).difference(
         *used_toolchain_combinations
     )
 
     matrix = dict(
-        directory=[str(crate) for crate in crates],
+        name=[crate_names[crate] for crate in crates],
         toolchain=list(available_toolchains),
         **kwargs,
         exclude=[
-            dict(directory=str(elem[0]), toolchain=elem[1])
+            dict(name=elem[0], toolchain=elem[1])
             for elem in excluded_toolchain_combinations
         ],
+        include=[
+            dict(name=crate_names[crate], directory=str(crate))
+            for crate in crates
+        ],
     )
-    if len(matrix["directory"]) == 0:
+
+    if len(matrix["name"]) == 0:
         matrix = {}
 
-    print(f"::set-output name={name}::{json.dumps(matrix)}")
+    github_output_file.write(f"{name}={json.dumps(matrix)}\n")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
 
 
@@ -190,16 +268,28 @@ def main():
     available_crates = find_local_crates()
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
+    coverage_crates = filter_for_coverage_crates(changed_parent_crates)
+    build_crates = filter_for_build_deps_crates(changed_parent_crates)
 
-    output_matrix("lint", changed_parent_crates)
-    output_matrix("test", changed_parent_crates, profile=["development", "production"])
+    github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
+
+    output_matrix("lint", github_output_file, changed_parent_crates)
+    output_matrix("build", github_output_file, build_crates)
+    if IS_PULL_REQUEST_EVENT:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["dev"])
+    else:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["dev", "release"])
+    output_matrix("coverage", github_output_file, coverage_crates)
     output_matrix(
         "publish",
+        github_output_file,
         filter_crates_by_changed_version(
             diffs, filter_for_publishable_crates(changed_crates)
         ),
         profile=["release"],
     )
+
+    github_output_file.close()
 
 
 if __name__ == "__main__":

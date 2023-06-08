@@ -1,0 +1,22 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/contact-information/v/1",
+  "title": "Contact Information",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "https://blockprotocol.org/@alice/types/property-type/email/": {
+          "$ref": "https://blockprotocol.org/@alice/types/property-type/email/v/1"
+        },
+        "https://blockprotocol.org/@alice/types/property-type/phone-number/": {
+          "$ref": "https://blockprotocol.org/@alice/types/property-type/phone-number/v/1"
+        }
+      },
+      "required": [
+        "https://blockprotocol.org/@alice/types/property-type/email/"
+      ]
+    }
+  ]
+}

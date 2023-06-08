@@ -1,9 +1,0 @@
-diff --git a/node_modules/node-pg-migrate/templates/migration-template.ts b/node_modules/node-pg-migrate/templates/migration-template.ts
-index 247fbed..2c35809 100644
---- a/node_modules/node-pg-migrate/templates/migration-template.ts
-+++ b/node_modules/node-pg-migrate/templates/migration-template.ts
-@@ -1,4 +1,3 @@
--/* eslint-disable @typescript-eslint/naming-convention */
- import { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
- 
- export const shorthands: ColumnDefinitions | undefined = undefined;

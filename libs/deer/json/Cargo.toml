@@ -1,0 +1,29 @@
+[package]
+name = "deer-json"
+version = "0.0.0-reserved"
+authors = ["HASH"]
+edition = "2021"
+rust-version = "1.65"
+license = "MIT OR Apache-2.0"
+description = "A backend-agnostic fail-slow deserialization framework"
+documentation = "https://docs.rs/deer"
+repository = "https://github.com/hashintel/hash/tree/main/libs/deer"
+keywords = ["json", "deserialize", "serde", "no_std"]
+categories = ["no-std", "encoding"]
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+error-stack = { version = "0.3.1", default-features = false }
+
+deer = { path = "..", default-features = false }
+
+justjson = { version = "0.2.3", default-features = false, features = ['alloc'] }
+lexical = { version = "6.1.1", default-features = false, features = ['parse-floats', 'parse-integers', 'format'] }
+memchr = "2.5.0"
+
+[features]
+default = ['std']
+std = ["justjson/std", "deer/std"]
+arbitrary-precision = ['deer/arbitrary-precision']

@@ -1,0 +1,46 @@
+.editor {
+  position: relative;
+}
+
+.editor pre[class*="language-"],
+.editor :not(pre) > code[class*="language-"] {
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.editor pre[class*="language-"]::-webkit-scrollbar,
+.editor :not(pre) > code[class*="language-"]::-webkit-scrollbar {
+  display: none;
+}
+
+.editor code[class*="language-"],
+.editor pre[class*="language-"],
+.editor textarea {
+  font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  font-size: 18px;
+  line-height: 24px;
+  min-height: 24px;
+  tab-size: 2;
+}
+
+.editor textarea::selection,
+.editor textarea ::selection {
+  background: rgba(45, 170, 219, 0.3);
+}
+
+.editor textarea {
+  background-color: transparent;
+  color: transparent;
+  left: 0;
+  outline: 0;
+  position: absolute;
+  resize: none;
+  top: 0;
+  width: 100%;
+
+  caret-color: #dc322f;
+  white-space: nowrap;
+  overflow-x: auto;
+}

@@ -1,0 +1,79 @@
+{
+  "name": "@blocks/code",
+  "version": "0.2.1",
+  "private": true,
+  "description": "Write monospaced code with syntax highlighting in a range of programming and markup languages",
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/code"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown src/types/generated/*.ts",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.3.0",
+    "prismjs": "1.29.0"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/prismjs": "1.26.0",
+    "block-scripts": "0.3.0",
+    "eslint": "8.33.0",
+    "mock-block-dock": "0.1.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "5.0.4"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 62681
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "name": "@hash/code",
+    "displayName": "Code",
+    "icon": "public/code.svg",
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}",
+        "https://blockprotocol.org/@hash/types/property-type/code-block-language/": "javascript",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/caption/": "A JavaScript code example."
+      }
+    ],
+    "protocol": "0.3",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/code-block/v/2",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    }
+  }
+}

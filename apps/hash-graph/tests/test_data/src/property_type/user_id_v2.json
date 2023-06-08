@@ -1,0 +1,14 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/user-id/v/2",
+  "title": "User ID",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    },
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+    }
+  ]
+}
