@@ -2,12 +2,9 @@ use crate::{
     package::simulation::{
         context::ContextTask, init::InitTask, output::OutputTask, state::StateTask,
     },
-    task::{
-        StoreAccessValidator, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
-        TaskSharedStore,
-    },
+    task::{StoreAccessValidator, Task, TaskDistributionConfig, TaskSharedStore, TargetedTaskMessage, TaskMessage},
     worker::WorkerHandler,
-    worker_pool::{SplitConfig, WorkerPoolHandler},
+    worker_pool::{WorkerPoolHandler, SplitConfig},
     Result,
 };
 

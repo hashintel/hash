@@ -37,7 +37,7 @@ impl ExperimentConfig {
         let package_config = PackageConfigBuilder::new()
             .add_init_package(match simulation.package_init.initial_state.name {
                 InitialStateName::InitJson => InitPackageName::Json,
-                InitialStateName::InitPy | InitialStateName::InitJs => InitPackageName::JsPy,
+                InitialStateName::InitPy | InitialStateName::InitJs | InitialStateName::InitTs=> InitPackageName::JsPy,
             })
             .build()?;
         let base_globals: Globals = serde_json::from_str(&simulation.globals_src)

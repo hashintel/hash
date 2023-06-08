@@ -85,6 +85,7 @@ impl Manifest {
                 "js" => InitialStateName::InitJs,
                 "py" => InitialStateName::InitPy,
                 "json" => InitialStateName::InitJson,
+                "ts" => InitialStateName::InitTs,
                 _ => bail!(
                     Report::new(ManifestError)
                         .attach_printable(format!("Not a valid initial state file: {path:?}"))
@@ -114,32 +115,34 @@ impl Manifest {
             Report::new(ManifestError).attach_printable(format!("Not a directory: {src_folder:?}"))
         );
 
-        let js_path = src_folder.join("init.js");
-        let py_path = src_folder.join("init.py");
-        let json_path = src_folder.join("init.json");
+        let paths_to_check = [
+            "init.js",
+            "init.py",
+            "init.json",
+            "init.ts",
+        ].iter().map(|file_name| src_folder.join(file_name));
 
-        tracing::debug!("Reading initial state files");
-        if js_path.is_file() {
-            if py_path.is_file() {
-                tracing::warn!(r#""init.py" was supplied with "init.js", ignoring "init.py""#);
-            }
-            if json_path.is_file() {
-                tracing::warn!(r#""init.json" was supplied with "init.js", ignoring "init.json""#);
-            }
-            self.set_initial_state_from_file(js_path)
-        } else if py_path.is_file() {
-            if json_path.is_file() {
-                tracing::warn!(r#""init.json" was supplied with "init.py", ignoring "init.json""#);
-            }
-            self.set_initial_state_from_file(py_path)
-        } else if json_path.is_file() {
-            self.set_initial_state_from_file(json_path)
-        } else {
+        let existing_paths = paths_to_check.filter(|path| path.is_file()).collect::<Vec<_>>();
+
+        if existing_paths.is_empty() {
             bail!(
                 Report::new(ManifestError)
-                    .attach_printable(format!("No initial state found in {src_folder:?}"))
+                    .attach_printable(format!("Couldn't find any initial state file in: {src_folder:?}"))
             );
         }
+
+        let path = &existing_paths[0];
+
+        if existing_paths.len() > 1 {
+            tracing::warn!(r#"Multiple state initialization files found. Using "{}". (ignoring: "{}")"#,
+                path.display(),
+                existing_paths[1..].iter().map(|path| path.display().to_string()).collect::<Vec<_>>().join("\", \""),
+            );
+        }
+
+        tracing::debug!("Reading initial state file: {}", path.display());
+
+        self.set_initial_state_from_file(path)
     }
 
     /// Reads the content from the file at the provided `path` describing the

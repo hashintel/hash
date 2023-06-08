@@ -3,7 +3,7 @@ use crate::{
         js_py::{JsPyInitTaskMessage, StartMessage},
         InitTaskMessage,
     },
-    runner::MessageTarget,
+    runner::{Language, MessageTarget},
     task::{TargetedTaskMessage, Task, TaskMessage},
     worker::WorkerHandler,
     Result,
@@ -25,6 +25,34 @@ impl WorkerHandler for JsInitTask {
         let jspy_init_task_msg = JsPyInitTaskMessage::Start(StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         });
+        let init_task_msg = InitTaskMessage::JsPyInitTaskMessage(jspy_init_task_msg);
+        Ok(TargetedTaskMessage {
+            target: MessageTarget::JavaScript,
+            payload: TaskMessage::Init(init_task_msg),
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TsInitTask {
+    pub initial_state_source: String,
+}
+
+impl Task for TsInitTask {
+    fn name(&self) -> &'static str {
+        "TsInit"
+    }
+}
+
+impl WorkerHandler for TsInitTask {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
+        let javascript_source =
+            Language::TypeScript.compile_source("init.ts", &self.initial_state_source)?;
+
+        let jspy_init_task_msg = JsPyInitTaskMessage::Start(StartMessage {
+            initial_state_source: javascript_source,
+        });
+
         let init_task_msg = InitTaskMessage::JsPyInitTaskMessage(jspy_init_task_msg);
         Ok(TargetedTaskMessage {
             target: MessageTarget::JavaScript,

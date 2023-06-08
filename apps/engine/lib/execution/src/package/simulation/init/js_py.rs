@@ -8,7 +8,7 @@ use stateful::{agent::Agent, field::FieldSpecMapAccessor};
 
 pub use self::{
     message::{FailedMessage, JsPyInitTaskMessage, StartMessage, SuccessMessage},
-    task::{JsInitTask, PyInitTask},
+    task::{TsInitTask, JsInitTask, PyInitTask},
 };
 use crate::{
     package::simulation::{
@@ -44,6 +44,9 @@ impl InitPackage for JsPyInit {
                 initial_state_source: self.initial_state.src.clone(),
             }),
             InitialStateName::InitJs => InitTask::JsInitTask(JsInitTask {
+                initial_state_source: self.initial_state.src.clone(),
+            }),
+            InitialStateName::InitTs => InitTask::TsInitTask(TsInitTask {
                 initial_state_source: self.initial_state.src.clone(),
             }),
             name => {
@@ -89,7 +92,7 @@ impl InitPackageCreator for JsPyInitCreator {
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {
-            InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(JsPyInit {
+            InitialStateName::InitPy | InitialStateName::InitJs | InitialStateName::InitTs => Ok(Box::new(JsPyInit {
                 initial_state: init_config.initial_state.clone(),
                 comms,
             })),

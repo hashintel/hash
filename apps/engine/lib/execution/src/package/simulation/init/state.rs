@@ -6,6 +6,7 @@ pub enum InitialStateName {
     InitJson,
     InitPy,
     InitJs,
+    InitTs,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

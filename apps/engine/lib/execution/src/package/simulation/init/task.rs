@@ -1,5 +1,5 @@
 use crate::{
-    package::simulation::init::js_py::{JsInitTask, PyInitTask},
+    package::simulation::init::js_py::{TsInitTask, JsInitTask, PyInitTask},
     task::{
         StoreAccessValidator, TargetedTaskMessage, Task, TaskDistributionConfig, TaskSharedStore,
     },
@@ -8,10 +8,12 @@ use crate::{
     Error, Result,
 };
 
+
 /// All init package tasks are registered in this enum
 #[derive(Clone, Debug)]
 pub enum InitTask {
     JsInitTask(JsInitTask),
+    TsInitTask(TsInitTask),
     PyInitTask(PyInitTask),
 }
 
@@ -19,6 +21,7 @@ impl Task for InitTask {
     fn name(&self) -> &'static str {
         match self {
             Self::JsInitTask(task) => task.name(),
+            Self::TsInitTask(task) => task.name(),
             Self::PyInitTask(task) => task.name(),
         }
     }
@@ -26,6 +29,7 @@ impl Task for InitTask {
     fn distribution(&self) -> TaskDistributionConfig {
         match self {
             Self::JsInitTask(task) => task.distribution(),
+            Self::TsInitTask(task) => task.distribution(),
             Self::PyInitTask(task) => task.distribution(),
         }
     }
@@ -47,6 +51,7 @@ impl WorkerHandler for InitTask {
     fn start_message(&self) -> Result<TargetedTaskMessage> {
         match self {
             Self::JsInitTask(inner) => inner.start_message(),
+            Self::TsInitTask(inner) => inner.start_message(),
             Self::PyInitTask(inner) => inner.start_message(),
         }
     }
