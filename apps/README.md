@@ -4,6 +4,7 @@
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [github_star]: https://github.com/hashintel/hash/tree/main/apps#
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_apps
+[hash core]: https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
