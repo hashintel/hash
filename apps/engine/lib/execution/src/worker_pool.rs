@@ -49,7 +49,7 @@ pub use self::{
 use crate::{
     package::simulation::{PackageTask, SimulationId},
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
-    task::{TaskDistributionConfig, TaskId, TaskSharedStore},
+    task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
     worker::{SyncPayload, Worker, WorkerConfig, WorkerTask},
     Error, Result,
 };

@@ -2,7 +2,7 @@ use stateful::field::PackageId;
 
 use crate::{
     package::simulation::{PackageTask, SimulationId},
-    task::{ActiveTask, TaskId, TaskSharedStore},
+    task::{ActiveTask, StoreAccessValidator, TaskId, TaskSharedStore},
     worker_pool,
     worker_pool::comms::{
         main::MainMsgSend,

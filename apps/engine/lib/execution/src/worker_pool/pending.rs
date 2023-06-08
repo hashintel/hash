@@ -6,7 +6,7 @@ use crate::{
     package::simulation::PackageTask,
     task::{CancelTask, TaskId, TaskMessage, TaskResultOrCancelled},
     worker::WorkerTaskResultOrCancelled,
-    worker_pool::{comms::active::ActiveTaskExecutorComms, WorkerIndex},
+    worker_pool::{comms::active::ActiveTaskExecutorComms, WorkerIndex, WorkerPoolHandler},
     Error, Result,
 };
 
