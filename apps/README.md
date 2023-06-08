@@ -21,9 +21,11 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 ## HASH
 
-[HASH] is a block-based, data-centric "super app".
+[HASH] is a block-based, data-centric, AI-enabled "super app".
 
-The HASH app [`README`](hash/README.md) provides a holistic description of the app, and instructions for running it. The application depends on a suite of constituent services, which are briefly described below. Please note that these are not designed or guaranteed to be useful when ran independently.
+The [README in the `hash` directory](hash/README.md) provides a more detailed overview of the app, and instructions for running it.
+
+The application depends on a suite of constituent services, which are briefly described below. Please note that these are not designed or guaranteed to be useful when ran independently.
 
 | Subdirectory             | Description                                                                                                                                                                  |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -40,7 +42,7 @@ The [HASH] app seeks to enable its users to make better decisions by utilizing a
 
 | Subdirectory                             | Description                                                                                                |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [`engine`](engine)                   | Codebase for the alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
+| [`engine`](engine)                   | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
 | [`sim-core`](sim-core)                       | Codebase for an open-source, locally-runnable version of [HASH Core] |
 
 ## HASH Agents
