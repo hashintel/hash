@@ -495,7 +495,7 @@ impl Worker {
         source: Language,
     ) -> Result<()> {
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
-            let next = WorkerHandler::handle_worker_message(&mut pending.task, msg.payload)?;
+            let next = WorkerHandler::handle_worker_message(&mut *pending.task, msg.payload)?;
             match next.target {
                 MessageTarget::Rust => {
                     let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMessage {
@@ -626,7 +626,7 @@ impl Worker {
     /// [`PartialSharedState::split_into_individual_per_group()`]: crate::task::PartialSharedState::split_into_individual_per_group
     async fn spawn_task(&mut self, sim_id: SimulationId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
-        let msg = WorkerHandler::start_message(&task.task)?;
+        let msg = WorkerHandler::start_message(&*task.task)?;
 
         let context = task.shared_store.context().clone();
         let shared_stores = match task.shared_store.state {

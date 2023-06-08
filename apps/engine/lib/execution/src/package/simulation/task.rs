@@ -3,12 +3,10 @@ use crate::{
         context::ContextTask, init::InitTask, output::OutputTask, state::StateTask,
     },
     task::{
-        StoreAccessValidator, TargetedTaskMessage, Task, TaskDistributionConfig, TaskMessage,
-        TaskSharedStore,
+        StoreAccessValidator, Task,
     },
     worker::WorkerHandler,
-    worker_pool::{SplitConfig, WorkerPoolHandler},
-    Result,
+    worker_pool::WorkerPoolHandler,
 };
 
 // All traits applied here apply to the enum.
@@ -24,82 +22,40 @@ pub enum PackageTask {
     Output(OutputTask),
 }
 
-impl Task for PackageTask {
-    fn name(&self) -> &'static str {
-        match self {
-            Self::Init(inner) => inner.name(),
-            Self::Context(inner) => inner.name(),
-            Self::State(inner) => inner.name(),
-            Self::Output(inner) => inner.name(),
-        }
-    }
+/// A bundle of traits that the inner tasks must implement so the outer [`PackageTask`] can be used
+/// through a dereference.
+pub trait PackageTaskBehaviors:
+    Task + StoreAccessValidator + WorkerHandler + WorkerPoolHandler
+{
+}
+impl<T> PackageTaskBehaviors for T where
+    T: Task + StoreAccessValidator + WorkerHandler + WorkerPoolHandler
+{
+}
 
-    fn distribution(&self) -> TaskDistributionConfig {
+/// Implement Deref and DerefMut for PackageTask so that we can use
+/// the enum as a trait object without having to match on the enum
+/// variants for every method call.
+impl std::ops::Deref for PackageTask {
+    type Target = dyn PackageTaskBehaviors;
+
+    fn deref(&self) -> &(dyn PackageTaskBehaviors + 'static) {
         match self {
-            Self::Init(inner) => inner.distribution(),
-            Self::Context(inner) => inner.distribution(),
-            Self::State(inner) => inner.distribution(),
-            Self::Output(inner) => inner.distribution(),
+            Self::Init(inner) => inner,
+            Self::Context(inner) => inner,
+            Self::State(inner) => inner,
+            Self::Output(inner) => inner,
         }
     }
 }
 
-impl StoreAccessValidator for PackageTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+impl std::ops::DerefMut for PackageTask {
+    fn deref_mut(&mut self) -> &mut (dyn PackageTaskBehaviors + 'static) {
         match self {
-            Self::Init(inner) => inner.verify_store_access(access),
-            Self::Context(inner) => inner.verify_store_access(access),
-            Self::State(inner) => inner.verify_store_access(access),
-            Self::Output(inner) => inner.verify_store_access(access),
-        }
-    }
-}
-
-impl WorkerHandler for PackageTask {
-    fn start_message(&self) -> Result<TargetedTaskMessage> {
-        match self {
-            Self::Init(inner) => inner.start_message(),
-            Self::Context(inner) => inner.start_message(),
-            Self::State(inner) => inner.start_message(),
-            Self::Output(inner) => inner.start_message(),
-        }
-    }
-
-    fn handle_worker_message(&mut self, msg: TaskMessage) -> Result<TargetedTaskMessage> {
-        match self {
-            Self::Init(inner) => inner.handle_worker_message(msg),
-            Self::Context(inner) => inner.handle_worker_message(msg),
-            Self::State(inner) => inner.handle_worker_message(msg),
-            Self::Output(inner) => inner.handle_worker_message(msg),
-        }
-    }
-
-    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
-        match self {
-            Self::Init(inner) => inner.combine_task_messages(task_messages),
-            Self::Context(inner) => inner.combine_task_messages(task_messages),
-            Self::State(inner) => inner.combine_task_messages(task_messages),
-            Self::Output(inner) => inner.combine_task_messages(task_messages),
-        }
-    }
-}
-
-impl WorkerPoolHandler for PackageTask {
-    fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<PackageTask>> {
-        match self {
-            Self::Init(inner) => inner.split_task(split_config),
-            Self::Context(inner) => inner.split_task(split_config),
-            Self::State(inner) => inner.split_task(split_config),
-            Self::Output(inner) => inner.split_task(split_config),
-        }
-    }
-
-    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
-        match self {
-            Self::Init(inner) => inner.combine_messages(split_messages),
-            Self::Context(inner) => inner.combine_messages(split_messages),
-            Self::State(inner) => inner.combine_messages(split_messages),
-            Self::Output(inner) => inner.combine_messages(split_messages),
+            Self::Init(inner) => inner,
+            Self::Context(inner) => inner,
+            Self::State(inner) => inner,
+            Self::Output(inner) => inner,
         }
     }
 }
