@@ -84,11 +84,6 @@ fn strip_typescript(filename: &str, source_code: &str) -> Result<String> {
     use swc::config::Options;
     use swc_common::{errors::Handler, Globals};
 
-    eprintln!(
-        "Stripping typescript from {filename} (source code: {})",
-        source_code.len()
-    );
-
     let source_map = Arc::new(Default::default());
     let compiler = swc::Compiler::new(Arc::clone(&source_map));
     let source_file = source_map.new_source_file(
