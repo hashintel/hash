@@ -13,10 +13,18 @@ pub enum ExperimentControl {
         max_num_steps: usize,
         span_id: Option<tracing::span::Id>,
     },
-    // TODO: add span_ids
-    PauseSim(SimulationId),
-    ResumeSim(SimulationId),
-    StopSim(SimulationId),
+    PauseSim {
+        sim_id: SimulationId,
+        span_id: Option<tracing::span::Id>,
+    },
+    ResumeSim {
+        sim_id: SimulationId,
+        span_id: Option<tracing::span::Id>,
+    },
+    StopSim {
+        sim_id: SimulationId,
+        span_id: Option<tracing::span::Id>,
+    },
 }
 
 pub struct ExperimentPackageComms {
