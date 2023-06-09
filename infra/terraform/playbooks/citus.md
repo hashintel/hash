@@ -1,7 +1,6 @@
 # Citus
 
-Playbooks for interacting with the Citus database. Currently, we're running a
-single-node Citus setup on an EC2 instance.
+This is a playbook for interacting with a self-hosted, single-node Citus cluster on EC2. We're not currently running such a cluster, but if we were to, these are the steps we would have to take.
 
 > **Warning**
 > This playbook is out of date, and assumes that you have the scripts for managing Terraform which are obsolete. It is not recommended to use this playbook until it is updated.
