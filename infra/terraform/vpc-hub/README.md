@@ -16,3 +16,10 @@ graph LR
     V2 <--> H
 
 ```
+
+## Resources used for the setup
+
+- https://github.com/aws-samples/hub-and-spoke-with-shared-services-vpc-terraform
+- https://aws.amazon.com/blogs/networking-and-content-delivery/centralize-access-using-vpc-interface-endpoints/
+- https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-routing.html
+- https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-partial-access.html#peering-incorrect-response-routing

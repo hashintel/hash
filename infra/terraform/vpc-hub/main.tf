@@ -18,7 +18,7 @@ resource "aws_vpc" "main" {
   cidr_block           = "10.10.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags                 = { Name = "${local.prefix}-vpc" }
+  tags                 = { Name = "${local.prefix}-vpc", Group = "vpc-hub" }
 }
 
 # Flow logs in VPC
@@ -202,6 +202,12 @@ resource "aws_route53_zone" "private_hosted_zone" {
   tags = {
     Group = "vpc-hub"
   }
+
+  # Ignore VPCs as the Spokes will be dynamically added elsewhere
+  lifecycle {
+    ignore_changes = [vpc]
+  }
+
 }
 
 locals {
