@@ -156,64 +156,13 @@ resource "aws_security_group" "vpce" {
   tags = { Name = "${local.prefix}-sgvpce" }
 }
 
+module "endpoints" {
+  source = "../modules/privatelink_endpoints"
+  region = local.region
+}
+
 locals {
-  endpoints = {
-    # Allow secrets to be fetched from the private subnet
-    # SSM contain the Parameter Store, which stores secrets.
-    ssm = {
-      name        = "com.amazonaws.${var.region}.ssm"
-      type        = "Interface"
-      private_dns = false
-      phz_name    = "ssm.${var.region}.amazonaws.com"
-      alias       = [""]
-    }
-    # Allow Fargate Exec control messages
-    ssmmessages = {
-      name        = "com.amazonaws.${var.region}.ssmmessages"
-      type        = "Interface"
-      private_dns = false
-      phz_name    = "ssmmessages.${var.region}.amazonaws.com"
-      alias       = [""]
-    }
-    # Used for various Fargate related operations and Fargate Exec
-    ec2messages = {
-      name        = "com.amazonaws.${var.region}.ec2messages"
-      type        = "Interface"
-      private_dns = false
-      phz_name    = "ec2messages.${var.region}.amazonaws.com"
-      alias       = [""]
-    }
-    # Allow fetching ECR data within the private subnet from ECS
-    # Used to pull OCI containers
-    # See https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html#ecr-vpc-endpoint-considerations
-    ecrdkr = {
-      name        = "com.amazonaws.${var.region}.ecr.dkr"
-      type        = "Interface"
-      private_dns = false
-      phz_name    = "dkr.ecr.${var.region}.amazonaws.com"
-      # This alias, "*", allows us to request things on the AWS account namespace.
-      alias = ["", "*"]
-    }
-    # Used to pull OCI containers
-    ecrdkr = {
-      name        = "com.amazonaws.${var.region}.ecr.api"
-      type        = "Interface"
-      private_dns = false
-      phz_name    = "api.ecr.${var.region}.amazonaws.com"
-      alias       = [""]
-    }
-    # Allows access to S3 buckets
-    # Also required to pull OCI containers from ECS
-    s3 = {
-      name        = "com.amazonaws.${var.region}.s3"
-      type        = "Interface"
-      private_dns = false
-      phz_name    = "s3.${var.region}.amazonaws.com"
-      # This alias, "*", allows us to request by the bucket name without listing them all.
-      # IAM rules would ensure only the correct buckets are accessible.
-      alias = ["", "*"]
-    }
-  }
+  endpoints = module.endpoints.endpoints
 }
 
 resource "aws_vpc_endpoint" "endpoint" {
@@ -227,13 +176,31 @@ resource "aws_vpc_endpoint" "endpoint" {
     aws_security_group.vpce.id
   ]
   private_dns_enabled = each.value.private_dns
+
+  tags = { Name = "${local.prefix}-${each.key}" }
 }
 
 resource "aws_route53_zone" "private_hosted_zone" {
-  name = "${local.prefix}-hubphz"
+  for_each = local.endpoints
+  name     = each.value.phz_name
 
   vpc {
     vpc_id = aws_vpc.main.id
+
+    # Similarly to how we set this association up in the public zone, we need to
+    # associate each VPC Spoke with each private hosted zone for every endpoint.
+
+    # resource "aws_route53_zone_association" "main_vpc_assoc" {
+    #   for_each = local.endpoints # or fetched through a data source by the group tag
+    #   zone_id  = aws_route53_zone.private_hosted_zone[each.key].zone_id
+    #   vpc_id   = ..
+    # }
+  }
+
+  comment = "VPC hub Private hosted zone for ${each.key} managed by Terraform"
+
+  tags = {
+    Group = "vpc-hub"
   }
 }
 
@@ -244,9 +211,9 @@ locals {
 }
 
 resource "aws_route53_record" "endpoint_record" {
-  for_each = { for v in local.endpoint_aliases : "${v.name}${v.alias}" => v }
+  for_each = { for v in local.endpoint_aliases : "${v.name}.${v.alias}" => v }
 
-  zone_id = aws_route53_zone.private_hosted_zone.zone_id
+  zone_id = aws_route53_zone.private_hosted_zone[each.value.endpoint].id
   name    = each.value.alias
   type    = "A"
 
@@ -254,5 +221,11 @@ resource "aws_route53_record" "endpoint_record" {
     name                   = aws_vpc_endpoint.endpoint[each.value.endpoint].dns_entry[0].dns_name
     zone_id                = aws_vpc_endpoint.endpoint[each.value.endpoint].dns_entry[0].hosted_zone_id
     evaluate_target_health = true
+  }
+
+  # ignore changes to alias. AWS interprets the wildcard "*" as ASCII "\052", which causes
+  # Terraform to think the value has changed when it hasn't.
+  lifecycle {
+    ignore_changes = [alias["name"]]
   }
 }
