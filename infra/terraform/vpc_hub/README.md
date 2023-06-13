@@ -50,6 +50,21 @@ If we were to use this VPC Hub, we have to make an active decision to use unique
     to allow for larger subnets, but less Availability Zones if required.
 ```
 
+## Usage
+
+You'll be able to use the VPC Hub by simply creating the resources with Terraform:
+
+```console
+$ terraform init
+..
+$ terraform workspace new prod
+..
+$ terraform apply --var-file prod-usea1.tfvars
+..
+```
+
+VPC Spokes must import the [`vpc_spoke_peer`](../modules/vpc_spoke_peer/) module and configure the correct CIDRs. The Hub CIDR is configured when applying this Hub Terraform module and should be part of the logical network delegation.
+
 ## Resources used for the setup
 
 - https://github.com/aws-samples/hub-and-spoke-with-shared-services-vpc-terraform
