@@ -51,7 +51,7 @@ output "endpoints" {
       alias = ["", "*"]
     }
     # Used to pull OCI containers
-    ecrdkr = {
+    ecrapi = {
       name        = "com.amazonaws.${var.region}.ecr.api"
       type        = "Interface"
       private_dns = false

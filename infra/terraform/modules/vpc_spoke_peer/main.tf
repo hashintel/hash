@@ -42,3 +42,19 @@ resource "aws_vpc_peering_connection" "hub_peering" {
   peer_vpc_id   = data.aws_vpc.vpc_hub.id
   vpc_id        = var.vpc_id
 }
+
+resource "aws_route" "peer" {
+  route_table_id            = var.rtpriv_id
+  destination_cidr_block    = var.hub_cidr
+  vpc_peering_connection_id = aws_vpc_peering_connection.hub_peering.id
+}
+
+data "aws_route_table" "rthub" {
+  vpc_id = data.aws_vpc.vpc_hub.id
+}
+
+resource "aws_route" "hub" {
+  route_table_id            = data.aws_route_table.rthub.id
+  destination_cidr_block    = var.spoke_cidr
+  vpc_peering_connection_id = aws_vpc_peering_connection.hub_peering.id
+}
