@@ -21,6 +21,7 @@ resource "aws_vpc" "main" {
   tags                 = { Name = "${local.prefix}-vpc", Group = "vpc-hub" }
 }
 
+/* Disabled  as we don't want to include flow logs in the VPC Hub for now.
 # Flow logs in VPC
 resource "aws_flow_log" "flow_log" {
   tags = { Name = "${local.prefix}-flowvpc" }
@@ -78,6 +79,7 @@ resource "aws_iam_role_policy" "flow_log" {
 }
 EOF
 }
+*/
 
 resource "aws_subnet" "snpriv" {
   count  = length(local.region_az_names)
