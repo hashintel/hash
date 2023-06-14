@@ -27,7 +27,7 @@ export type PropertyDefinition = {
 export type PropertyValue = boolean | number | string;
 
 export const propertyDefinitions = (
-  element: BpmnElement
+  element: BpmnElement,
 ): {
   docRef: string;
   properties: PropertyDefinition[];
@@ -173,26 +173,29 @@ export const propertyDefinitions = (
         description: "The agent_id of the recipient of the message.",
         name: "to",
         required: false,
-        type: "string"
+        type: "string",
       },
       {
-        description: "Use this field on the agent to determine the agent_id of the recipient.",
+        description:
+          "Use this field on the agent to determine the agent_id of the recipient.",
         name: "to_field",
         required: false,
-        type: "string"
+        type: "string",
       },
       {
-        description: "Evaluate a string as javascript code to determine the recipient. It must return a string, and can reference an `obj` variable.",
+        description:
+          "Evaluate a string as javascript code to determine the recipient. It must return a string, and can reference an `obj` variable.",
         name: "to_code",
         required: false,
-        type: "string"
+        type: "string",
       },
       {
-        description: "Optionally specify either (1) an enter block in another process to send the object to, or (2) a specific type for the sent message (e.g. specify 'create_agent' here and 'hash' under 'to' to create an agent from the object)",
+        description:
+          "Optionally specify either (1) an enter block in another process to send the object to, or (2) a specific type for the sent message (e.g. specify 'create_agent' here and 'hash' under 'to' to create an agent from the object)",
         name: "next_block",
         required: false,
-        type: "string"
-      }
+        type: "string",
+      },
     ];
   } else if (isService(element)) {
     docRef = "process-blocks#service";

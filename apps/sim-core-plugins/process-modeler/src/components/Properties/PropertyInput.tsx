@@ -22,7 +22,9 @@ export const PropertyInput: FC<PropertyInputProps> = ({
   const { description, name, required, type } = property;
 
   const defaultValue = value ?? "";
-  const [draftValue, setDraftValue] = useState<PropertyValue | undefined>(defaultValue);
+  const [draftValue, setDraftValue] = useState<PropertyValue | undefined>(
+    defaultValue,
+  );
 
   useEffect(() => setDraftValue(value ?? ""), [value]);
 
@@ -127,7 +129,8 @@ export const PropertyInput: FC<PropertyInputProps> = ({
   return (
     <form className={`PropertyInput PropertyInput--${type}`} onSubmit={submit}>
       <label className="PropertyInput__label" htmlFor={name}>
-        {name}{required && <span style={{fontSize: "13px"}}> *</span>}
+        {name}
+        {required && <span style={{ fontSize: "13px" }}> *</span>}
         <Tooltip text={description} />
       </label>
       {InputElement}

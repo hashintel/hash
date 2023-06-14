@@ -13,7 +13,7 @@ export default function PaletteProvider(
   lassoTool,
   handTool,
   globalConnect,
-  translate
+  translate,
 ) {
   this._palette = palette;
   this._create = create;
@@ -147,25 +147,25 @@ PaletteProvider.prototype.getPaletteEntries = function (element) {
       "bpmn:StartEvent",
       "event",
       "bpmn-icon-start-event-none",
-      translate("Create Source Block")
+      translate("Create Source Block"),
     ),
     "create.exclusive-gateway": createAction(
       "bpmn:ExclusiveGateway",
       "gateway",
       "bpmn-icon-gateway-none",
-      translate("Create Select Output Block")
+      translate("Create Select Output Block"),
     ),
     "create.service-task": createAction(
       "bpmn:ServiceTask",
       "activity",
       "bpmn-icon-service",
-      translate("Create Service Block")
+      translate("Create Service Block"),
     ),
     "create.custom-task": createAction(
       "bpmn:ScriptTask",
       "activity",
       "bpmn-icon-script",
-      translate("Create Custom Block")
+      translate("Create Custom Block"),
     ),
     "create.timer-intermediate-event": createAction(
       "bpmn:IntermediateCatchEvent",
@@ -174,7 +174,7 @@ PaletteProvider.prototype.getPaletteEntries = function (element) {
       translate("Create Delay Block"),
       {
         eventDefinitionType: "bpmn:TimerEventDefinition",
-      }
+      },
     ),
     "create.message-intermediate-catch-event": createAction(
       "bpmn:IntermediateCatchEvent",
@@ -183,7 +183,7 @@ PaletteProvider.prototype.getPaletteEntries = function (element) {
       translate("Create Seize Block"),
       {
         eventDefinitionType: "bpmn:MessageEventDefinition",
-      }
+      },
     ),
     "create.message-intermediate-throw-event": createAction(
       "bpmn:IntermediateThrowEvent",
@@ -192,7 +192,7 @@ PaletteProvider.prototype.getPaletteEntries = function (element) {
       translate("Create Release Block"),
       {
         eventDefinitionType: "bpmn:MessageEventDefinition",
-      }
+      },
     ),
     "create.link-intermediate-catch-event": createAction(
       "bpmn:IntermediateCatchEvent",
@@ -201,7 +201,7 @@ PaletteProvider.prototype.getPaletteEntries = function (element) {
       translate("Create Enter Block"),
       {
         eventDefinitionType: "bpmn:LinkEventDefinition",
-      }
+      },
     ),
     "create.link-intermediate-throw-event": createAction(
       "bpmn:IntermediateThrowEvent",
@@ -210,13 +210,13 @@ PaletteProvider.prototype.getPaletteEntries = function (element) {
       translate("Create Exit Block"),
       {
         eventDefinitionType: "bpmn:LinkEventDefinition",
-      }
+      },
     ),
     "create.end-event": createAction(
       "bpmn:EndEvent",
       "event",
       "bpmn-icon-end-event-none",
-      translate("Create Sink Block")
+      translate("Create Sink Block"),
     ),
   });
 

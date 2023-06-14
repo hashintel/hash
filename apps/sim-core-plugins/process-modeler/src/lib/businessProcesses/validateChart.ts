@@ -90,21 +90,21 @@ const propertiesErrors = (element: BpmnElement): PropertyError[] | null => {
 };
 
 export const validateChart = (
-  unfilteredElements: BpmnElement[]
+  unfilteredElements: BpmnElement[],
 ): ChartError[] => {
   const chartErrors: ChartError[] = [];
 
   const elements = unfilteredElements.filter(filterInvalidConnections);
 
   const hasStart = elements.filter(
-    (element) => isSource(element) || isEnter(element)
+    (element) => isSource(element) || isEnter(element),
   );
   if (!hasStart.length) {
     chartErrors.push({ message: "Chart must have a Source or Enter block" });
   }
 
   const hasSink = elements.filter(
-    (element) => isSink(element) || isExit(element)
+    (element) => isSink(element) || isExit(element),
   );
   if (!hasSink.length) {
     chartErrors.push({ message: "Chart must have a Sink or Exit block" });
@@ -204,7 +204,7 @@ export const validateChart = (
       const triangular_time = getPropertyValue(element, "triangular_time");
       const code_time = getPropertyValue(element, "code_time");
       const defined = [time, uniform_time, triangular_time, code_time].filter(
-        Boolean
+        Boolean,
       );
       if (defined.length !== 1) {
         chartErrors.push({
@@ -235,7 +235,7 @@ export const validateChart = (
         });
       }
       const outgoings = element.outgoing.map(
-        (el) => el.businessObject.targetRef.name
+        (el) => el.businessObject.targetRef.name,
       );
       const falseBlock = getPropertyValue(element, "false_block");
       if (!outgoings.includes(falseBlock)) {
@@ -273,7 +273,7 @@ export const validateChart = (
       const seizes = elements.filter((element) => isSeize(element));
       const resource = getPropertyValue(element, "resource");
       const matchingSeizes = seizes.filter(
-        (element) => getPropertyValue(element, "resource") === resource
+        (element) => getPropertyValue(element, "resource") === resource,
       );
       if (!matchingSeizes.length) {
         chartErrors.push({
@@ -303,7 +303,7 @@ export const validateChart = (
         const seizeOrServiceTrackingWait = elements.find(
           (element) =>
             (isSeize(element) || isService(element)) &&
-            trueBooleanOrString(getPropertyValue(element, "track_wait"))
+            trueBooleanOrString(getPropertyValue(element, "track_wait")),
         );
         if (!seizeOrServiceTrackingWait) {
           chartErrors.push({
@@ -320,7 +320,7 @@ export const validateChart = (
       const sinksRecordingWaitTimes = elements.find(
         (element) =>
           isSink(element) &&
-          trueBooleanOrString(getPropertyValue(element, "record_wait_times"))
+          trueBooleanOrString(getPropertyValue(element, "record_wait_times")),
       );
       if (!sinksRecordingWaitTimes) {
         chartErrors.push({

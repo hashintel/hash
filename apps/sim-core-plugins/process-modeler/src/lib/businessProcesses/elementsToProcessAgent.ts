@@ -46,14 +46,14 @@ export const commaSeparatedListToNumberArray = (value: string) => {
 export const filterInvalidConnections = (
   element: BpmnElement,
   _: number,
-  elements: BpmnElement[]
+  elements: BpmnElement[],
 ) => {
   if (isConnection(element)) {
     const { sourceRef, targetRef } = element.businessObject;
     const connections = elements.filter(
       (el) =>
         el.type !== "label" &&
-        [sourceRef.name, targetRef.name].includes(el.businessObject.name)
+        [sourceRef.name, targetRef.name].includes(el.businessObject.name),
     );
     if (connections.length !== 2) {
       return false;
@@ -67,7 +67,7 @@ export const filterInvalidConnections = (
  * Assumes the elements have been put through validateChart first
  */
 export const elementsToProcessAgent = (
-  elements: BpmnElement[]
+  elements: BpmnElement[],
 ): ProcessModelAgent => {
   let json: ProcessModelAgent = {
     agent_name: "process_model",
@@ -77,13 +77,13 @@ export const elementsToProcessAgent = (
     position: [0, 0, 0],
   };
   const startingBlocks = elements.filter(
-    (element) => isSource(element) || isEnter(element)
+    (element) => isSource(element) || isEnter(element),
   );
 
   const filteredElements = elements.filter(filterInvalidConnections);
 
   const connectionCount: { [blockName: string]: number } = {};
-  
+
   for (const starter of startingBlocks) {
     let next: BpmnElement | undefined = starter;
     while (next) {
@@ -122,7 +122,7 @@ const onwardElementName = (connection: Connection) =>
 const registerElementInJson = (
   currentElement: BpmnElement,
   elements: BpmnElement[],
-  json: ProcessModelAgent
+  json: ProcessModelAgent,
 ): {
   json: ProcessModelAgent;
   next?: BpmnElement;
@@ -131,7 +131,7 @@ const registerElementInJson = (
   const type = elementType(currentElement);
   if (!type) {
     throw new Error(
-      `Unrecognised type ${currentElement.businessObject.name} in flow`
+      `Unrecognised type ${currentElement.businessObject.name} in flow`,
     );
   }
   const { name, parameters, behavior } = elementProperties(currentElement!);
@@ -146,7 +146,7 @@ const registerElementInJson = (
   const connected = elements.filter(
     (el) =>
       el.type !== "label" &&
-      onwardElementsNames(currentElement).includes(el.businessObject.name)
+      onwardElementsNames(currentElement).includes(el.businessObject.name),
   );
 
   if (connected[0] && definesNextBlock(type)) {
@@ -170,7 +170,7 @@ const registerElementInJson = (
     let truePathEl = connected.find((el) =>
       truePathName
         ? el.businessObject.name === truePathName
-        : el.businessObject.name !== falsePathName
+        : el.businessObject.name !== falsePathName,
     );
     while (truePathEl) {
       if (truePathEl.incoming.length > 1) {
@@ -181,18 +181,18 @@ const registerElementInJson = (
       ({ json, next: truePathEl } = registerElementInJson(
         truePathEl,
         elements,
-        json
+        json,
       ));
     }
 
     let falsePathEl = elements.find(
-      (el) => el.businessObject.name === falsePathName
+      (el) => el.businessObject.name === falsePathName,
     );
     while (falsePathEl) {
       ({ json, next: falsePathEl } = registerElementInJson(
         falsePathEl,
         elements,
-        json
+        json,
       ));
     }
   }
@@ -204,7 +204,7 @@ const registerElementInJson = (
 };
 
 const elementProperties = (
-  element: BpmnElement
+  element: BpmnElement,
 ): {
   behavior: string;
   name: string;
@@ -254,7 +254,7 @@ const elementProperties = (
       propObject[name] = value;
       return propObject;
     },
-    {}
+    {},
   );
 
   return {

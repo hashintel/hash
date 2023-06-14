@@ -3,7 +3,7 @@ import { ParameterName } from "../types/properties";
 
 export const getPropertyValue = (
   element: BpmnElement,
-  propertyName: ParameterName
+  propertyName: ParameterName,
 ) => {
   if (propertyName === "name") {
     return element.businessObject.name;

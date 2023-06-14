@@ -30,7 +30,7 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({
   const updatePropertyValue = (
     element: BpmnElement,
     propertyName: string,
-    value: PropertyValue
+    value: PropertyValue,
   ) => {
     const modeling = modeler.get("modeling");
     modeling.updateProperties(element, {
@@ -47,12 +47,12 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({
   const updateResources = () => {
     if (!root) return;
     const validResources = resources.filter(
-      ([key, value]) => key && value != null
+      ([key, value]) => key && value != null,
     );
     updatePropertyValue(
       root,
       "process_resources",
-      JSON.stringify(Object.fromEntries(validResources))
+      JSON.stringify(Object.fromEntries(validResources)),
     );
     setResourceOptions(validResources.map(([key]) => key));
   };
@@ -60,8 +60,8 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({
   const setDraftResources = (key: string, value: number, index: number) => {
     setResources((resources) =>
       resources.map((currentValue, currentIndex) =>
-        index === currentIndex ? [key, value] : currentValue
-      )
+        index === currentIndex ? [key, value] : currentValue,
+      ),
     );
   };
   const addDraftResource = () => {

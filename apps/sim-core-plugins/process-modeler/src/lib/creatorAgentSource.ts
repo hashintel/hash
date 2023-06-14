@@ -1,5 +1,5 @@
-export const creatorAgentSource = (agent: { [key: string]: any }) => 
-`/**
+export const creatorAgentSource = (agent: { [key: string]: any }) =>
+  `/**
  * This agent was created by the process chart plugin.
  * 
  * It will be overwritten if the plugin is used again.

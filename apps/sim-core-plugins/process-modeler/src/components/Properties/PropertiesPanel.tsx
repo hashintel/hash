@@ -39,7 +39,7 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
       if (newSelection[0]?.id !== element?.id) {
         setElement(newSelection[0]);
       }
-    }
+    },
   );
 
   modeler.on(
@@ -48,7 +48,7 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
       if (newElement?.type !== "bpmn:Process") {
         setElement(newElement);
       }
-    }
+    },
   );
 
   if (!element || selectedElements.length > 1) {
@@ -60,7 +60,7 @@ export const PropertiesPanel: FC<PropertiesPanelProps> = ({
   const updatePropertyValue = (
     element: BpmnElement,
     propertyName: string,
-    value: PropertyValue
+    value: PropertyValue,
   ) => {
     const modeling = modeler.get("modeling");
     if (propertyName === "name") {

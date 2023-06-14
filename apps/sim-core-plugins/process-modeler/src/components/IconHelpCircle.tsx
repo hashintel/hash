@@ -17,5 +17,5 @@ export const IconHelpCircle = forwardRef<HTMLElement, { size?: number }>(
         />
       </svg>
     </span>
-  )
+  ),
 );

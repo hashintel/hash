@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 export const IconSettings = forwardRef<HTMLElement, { size?: number }>(
   (props, ref) => (
-    <span {...props} ref={ref} className="IconSettings" >
+    <span {...props} ref={ref} className="IconSettings">
       <svg
         width={props.size ?? 20}
         height={props.size ?? 20}
@@ -31,5 +31,5 @@ export const IconSettings = forwardRef<HTMLElement, { size?: number }>(
         </g>
       </svg>
     </span>
-  )
+  ),
 );

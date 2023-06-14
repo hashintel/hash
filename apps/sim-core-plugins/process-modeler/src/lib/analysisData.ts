@@ -1,4 +1,10 @@
-import { BpmnElement, isRoot, isSeize, isService, isSink } from "../types/bpmnElements";
+import {
+  BpmnElement,
+  isRoot,
+  isSeize,
+  isService,
+  isSink,
+} from "../types/bpmnElements";
 import { getPropertyValue } from "./getPropertyValue";
 
 /**
@@ -71,7 +77,7 @@ export const analysisData = (elements: BpmnElement[]) => {
           { op: "get", field: "process_data" },
           { op: "get", field: "avg_through_times" },
           { op: "get", field: name },
-          { op: "mean" }
+          { op: "mean" },
         ];
         throughTimeSinks.push(name!);
       }
@@ -137,7 +143,7 @@ export const analysisData = (elements: BpmnElement[]) => {
             name,
           })),
         },
-      ]
+      ],
     );
   }
 
@@ -177,7 +183,7 @@ export const analysisData = (elements: BpmnElement[]) => {
             name,
           })),
         },
-      ]
+      ],
     );
   }
 

@@ -96,7 +96,7 @@ export const FlowChart = () => {
           type: "setBpmnDraft",
           bpmnDraft: xml,
         },
-        "*"
+        "*",
       );
 
       // Legacy provision for storing local drafts
@@ -237,7 +237,7 @@ export const FlowChart = () => {
             processName: agent.agent_name,
             type: "commitBpmnFile",
           },
-          "*"
+          "*",
         );
       });
 
@@ -262,7 +262,7 @@ export const FlowChart = () => {
           <IconSettings />
         </span>
         <button className="FlowChart__save-button" onClick={updateCore}>
-         {updatingExisting ? "Update process" : "Add to model"}
+          {updatingExisting ? "Update process" : "Add to model"}
         </button>
       </div>
       {modeler && (

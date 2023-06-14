@@ -57,7 +57,7 @@ export type Delay = BpmnElement & {
       {
         $type: "bpmn:TimerEventDefinition";
         id: string;
-      }
+      },
     ];
   };
 };
@@ -73,7 +73,7 @@ export type Seize = BpmnElement & {
       {
         $type: "bpmn:MessageEventDefinition";
         id: string;
-      }
+      },
     ];
   };
 };
@@ -89,7 +89,7 @@ export type Release = BpmnElement & {
       {
         $type: "bpmn:MessageEventDefinition";
         id: string;
-      }
+      },
     ];
   };
 };
@@ -105,7 +105,7 @@ export type Enter = BpmnElement & {
       {
         $type: "bpmn:LinkEventDefinition";
         id: string;
-      }
+      },
     ];
   };
 };
@@ -121,7 +121,7 @@ export type Exit = BpmnElement & {
       {
         $type: "bpmn:LinkEventDefinition";
         id: string;
-      }
+      },
     ];
   };
 };
@@ -129,7 +129,7 @@ export const isExit = (element: BpmnElement): element is Delay =>
   element.type === "bpmn:IntermediateThrowEvent" &&
   element.businessObject.eventDefinitions?.[0]?.$type ===
     "bpmn:LinkEventDefinition";
-    
+
 export type Gateway = BpmnElement & { type: "bpmn:ExclusiveGateway" };
 export const isGateway = (element: BpmnElement): element is Gateway =>
   element.type === "bpmn:ExclusiveGateway";
@@ -141,7 +141,7 @@ export type MessageSink = BpmnElement & {
       {
         $type: "bpmn:MessageEventDefinition";
         id: string;
-      }
+      },
     ];
   };
 };
@@ -182,7 +182,7 @@ export type ElementTypeName =
   | "select_output";
 
 export const elementType = (
-  element: BpmnElement
+  element: BpmnElement,
 ): ElementTypeName | undefined => {
   if (isRoot(element)) {
     return "root";
