@@ -2,7 +2,7 @@
 
 ## Overview
 
-This HASH Core (**hCore**) plugin was initially developed as a proof-of-concept in March 2021 with the goal of demonstrating how plugins could be developed for hCore, and in a bid to provide a new graphical interface for capturing business process models for use in HASH simulations. This plugin was made alongside the open-sourced hEngine in 2023.
+This HASH Core (**hCore**) plugin was initially developed as a proof-of-concept in March 2021 with the goal of demonstrating how plugins could be developed for hCore, and in a bid to provide a new graphical interface for capturing business process models for use in HASH simulations. This plugin was open-sourced alongside hCore in 2023.
 
 **This plugin is unmaintained, outdated, and not recommended for use in production.**
 
