@@ -28,8 +28,8 @@ The [README in the `hash` directory](hash/README.md) provides a more detailed ov
 
 The application depends on a suite of constituent services, which are briefly described below. Please note that these are not designed or guaranteed to be useful when ran independently.
 
-| Subdirectory             | Description                                                                                                                                                                  |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Subdirectory                                       | Description                                                                                                                                                                  |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`hash-api`](hash-api)                             | The main entrypoint for the Node.js server that serves the core of the backend API of HASH.                                                                                  |
 | [`hash-external-services`](hash-external-services) | Defines the running configurations of external (not internally-developed) services that HASH depends on, such as Postgres, Ory Kratos, and Temporal. _(pending refactoring)_ |
 | [`hash-frontend`](hash-frontend)                   | The main entrypoint for the Next.js frontend (graphical user interface) of the HASH workspace application.                                                                   |
@@ -41,18 +41,18 @@ The application depends on a suite of constituent services, which are briefly de
 
 The [HASH] app seeks to enable its users to make better decisions by utilizing all of the information available to them. Generative simulation is a core part of realizing this vision. We have published a variety of experimental tools for agent-based modeling in anticipation of this. These simulation tools are currently unsupported, but we are open to accepting contributions to these in line with our general [repository guidelines].
 
-| Subdirectory                             | Description                                                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [`engine`](engine)                   | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
-| [`sim-core`](sim-core)                       | Codebase for an open-source, locally-runnable version of [HASH Core] |
+| Subdirectory           | Description                                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [`engine`](engine)     | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
+| [`sim-core`](sim-core) | Codebase for an open-source, locally-runnable version of [HASH Core]                                                  |
 
 ## HASH Agents
 
-| Subdirectory                             | Description                                                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [`hash-agents`](hash-agents)             | An experimental setup for writing Python-based 'agents' that interface with LLMs                           |
-| [`hash-ai-worker-py`](hash-ai-worker-py) | A Python-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows                  |
-| [`hash-ai-worker-ts`](hash-ai-worker-ts) | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows              |
+| Subdirectory                             | Description                                                                                   |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [`hash-agents`](hash-agents)             | An experimental setup for writing Python-based 'agents' that interface with LLMs              |
+| [`hash-ai-worker-py`](hash-ai-worker-py) | A Python-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows     |
+| [`hash-ai-worker-ts`](hash-ai-worker-ts) | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows |
 
 ## Websites
 
@@ -64,9 +64,9 @@ The [HASH] app seeks to enable its users to make better decisions by utilizing a
 
 ## Plugins
 
-| Subdirectory                             | Description                                                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [`intellij-plugin`](intellij-plugin)     | Plugin for JetBrains IntelliJ-based IDEs to assist development in common HASH workflows                    |
+| Subdirectory                         | Description                                                                             |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| [`intellij-plugin`](intellij-plugin) | Plugin for JetBrains IntelliJ-based IDEs to assist development in common HASH workflows |
 
 ## Block Protocol
 

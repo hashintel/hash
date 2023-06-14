@@ -3,7 +3,6 @@
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 [HASH website for developers]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
-
 [github_star]: https://github.com/hashintel/hash/tree/main/libs#
 [hash]: https://github.com/hashintel/hash/tree/main/apps/hash
 [antsi]: antsi
@@ -24,23 +23,24 @@
 Contains the source code for software development libraries which HASH has published for general use. Full write-ups of most can be found on the [HASH website for developers], and a summary table is included below for convenience.
 
 ## General Libraries
-| Directory                  | Language(s) | Publication URL                                               | Docs URL                                                   | Description                                                                                                                                          |
-| -------------------------- | ----------- | ------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [antsi]                    | Rust        | [Crates.io](https://crates.io/crates/antsi)                   | [Docs.rs](https://docs.rs/antsi/latest/antsi/)             | Supports coloring Select Graphic Rendition (as defined in ISO 6429) with no external dependencies                                                    |
-| [deer]                     | Rust        | [Crates.io](https://crates.io/crates/deer)                    | [Docs.rs](https://docs.rs/deer/latest/deer/)               | **Experimental** backend-agnostic deserialization framework, featuring meaningful error messages and context and fail-slow behavior by default       |
-| [error-stack]              | Rust        | [Crates.io](https://crates.io/crates/error-stack)             | [Docs.rs](https://docs.rs/error-stack/latest/error_stack/) | Context-aware error-handling library that supports arbitrary attached user data                                                                      |
-| [sarif]                    | Rust        | [Crates.io](https://crates.io/crates/sarif)                   | [Docs.rs](https://docs.rs/sarif/latest/sarif/)             | Representation of the SARIF specification in Rust                                                                                                    |
-| [@hashintel/type-editor]   | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)   | To be written                                              | UI for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types) |
-| [@hashintel/query-editor]  | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/query-editor)  | To be written                                              | UI for editing queries (a specific entity type used heavily inside of [HASH]) |
+
+| Directory                 | Language(s) | Publication URL                                              | Docs URL                                                   | Description                                                                                                                                    |
+| ------------------------- | ----------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [antsi]                   | Rust        | [Crates.io](https://crates.io/crates/antsi)                  | [Docs.rs](https://docs.rs/antsi/latest/antsi/)             | Supports coloring Select Graphic Rendition (as defined in ISO 6429) with no external dependencies                                              |
+| [deer]                    | Rust        | [Crates.io](https://crates.io/crates/deer)                   | [Docs.rs](https://docs.rs/deer/latest/deer/)               | **Experimental** backend-agnostic deserialization framework, featuring meaningful error messages and context and fail-slow behavior by default |
+| [error-stack]             | Rust        | [Crates.io](https://crates.io/crates/error-stack)            | [Docs.rs](https://docs.rs/error-stack/latest/error_stack/) | Context-aware error-handling library that supports arbitrary attached user data                                                                |
+| [sarif]                   | Rust        | [Crates.io](https://crates.io/crates/sarif)                  | [Docs.rs](https://docs.rs/sarif/latest/sarif/)             | Representation of the SARIF specification in Rust                                                                                              |
+| [@hashintel/type-editor]  | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/type-editor)  | To be written                                              | UI for editing entity types defined according to the [Block Protocol's Type System](https://blockprotocol.org/docs/working-with-types)         |
+| [@hashintel/query-editor] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/query-editor) | To be written                                              | UI for editing queries (a specific entity type used heavily inside of [HASH])                                                                  |
 
 ## Internal Libraries
 
 Although open-source, the following libraries were developed for internal use and may be subject to breaking changes. External consumers should be especially careful when using or upgrading these.
 
-| Directory                  | Language(s) | Publication URL                                               | Docs URL                                                   | Description                                                                                                                                          |
-| -------------------------- | ----------- | ------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [@hashintel/design-system] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/design-system) | To be written                                              | A collection of styleguide-aligned reusable UI primitives for [HASH] and our [hash.ai] website                                                        |
-| [@hashintel/block-design-system] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/block-design-system) | To be written                                              | A relatively unopinionated set of reusable UI primitives for use in building [Block Protocol] blocks                                            |
+| Directory                        | Language(s) | Publication URL                                                     | Docs URL      | Description                                                                                          |
+| -------------------------------- | ----------- | ------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------- |
+| [@hashintel/design-system]       | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/design-system)       | To be written | A collection of styleguide-aligned reusable UI primitives for [HASH] and our [hash.ai] website       |
+| [@hashintel/block-design-system] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/block-design-system) | To be written | A relatively unopinionated set of reusable UI primitives for use in building [Block Protocol] blocks |
 
 ## Contributing
 
