@@ -31,7 +31,7 @@ output "endpoints" {
       alias       = [""]
     }
     # Used for logging to CloudWatch
-    ec2messages = {
+    ec2logs = {
       name        = "com.amazonaws.${var.region}.logs"
       type        = "Interface"
       private_dns = false
