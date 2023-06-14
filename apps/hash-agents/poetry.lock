@@ -849,7 +849,6 @@ text-helpers = ["chardet (>=5.1.0,<6.0.0)"]
 name = "langchainplus-sdk"
 version = "0.0.9"
 description = "Client library to connect to the LangChainPlus LLM Tracing and Evaluation Platform."
-category = "main"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
@@ -1133,7 +1132,6 @@ files = [
 name = "numexpr"
 version = "2.8.4"
 description = "Fast numerical expression evaluator for NumPy"
-category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
