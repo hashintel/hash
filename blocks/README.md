@@ -34,6 +34,8 @@ This directory contains the source code for all HASH-developed public [Block Pro
 
 You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
+**Please note:** this table/directory contains HASH-published blocks only, and does not contain the full extent of available Þ blocks.
+
 | Directory        | Spec Target | Status         | Þ Hub URL                                                                        | Description |
 | ---------------- | ----------- | -------------- | -------------------------------------------------------------------------------- | ----------- |
 | [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)           |             |
