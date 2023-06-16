@@ -52,7 +52,7 @@ uuid = { version = "1.3.3", features = ["v4", "serde"] }
 graph-test-data = { path = "../../tests/test_data" }
 
 criterion = "0.5.1"
-tokio = { version = "1.28.1", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros", "tracing"] }
 
 [features]
 test-server = []

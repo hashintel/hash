@@ -13,7 +13,7 @@
   */
 
 resource "aws_vpc" "main" {
-  # IP address range 10.0.0.0 - 10.0.255.255 (131072 addresses)
+  # IP address range 10.0.0.0 - 10.0.255.255 (65536 addresses)
   # We will have 10.0.0.0 - 10.0.127.0 contain the private subnet
   # and have 10.0.128.0 - 10.0.255.0 addresses contain the public subnet
   cidr_block           = "10.0.0.0/16"
