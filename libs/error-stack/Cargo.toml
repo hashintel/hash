@@ -25,8 +25,8 @@ serde = { version = "1", default-features = false, optional = true }
 spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = "1.0.96"
+serde = { version = "1.0.164", features = ["derive"] }
+serde_json = "1.0.97"
 futures = { version = "0.3.28", default-features = false, features = ["executor"] }
 trybuild = "1.0.80"
 tracing = "0.1.37"
