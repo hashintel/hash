@@ -1,0 +1,844 @@
+/**
+ * color definitions
+ */
+.djs-container {
+  --blue-base-65: #4d90ff;
+  --blue-base-65-opacity-30: rgba(77, 144, 255, 0.3);
+  --blue-darken-48: #005df7;
+  --blue-darken-55: #1a70ff;
+  --blue-lighten-82: #a2c5ff;
+
+  --red-base-62: #ff3d3d;
+  --red-base-62-lighten-90: rgb(255, 235, 235);
+
+  --silver-darken-94: #efefef;
+
+  --color-000000: #000000;
+  --color-000000-opacity-05: rgba(0, 0, 0, 0.05);
+  --color-000000-opacity-10: rgba(0, 0, 0, 0.1);
+  --color-333333: #333333;
+  --color-666666: #666666;
+  --color-aaaaaa: #aaaaaa;
+  --color-cccccc: #cccccc;
+  --color-cdcdcd: #cdcdcd;
+  --color-dddddd: #dddddd;
+  --color-f6f6f6: #f6f6f6;
+  --color-fafafa: #fafafa;
+  --color-fefefe: #fefefe;
+  --color-ffffff: #ffffff;
+
+  --bendpoint-fill-color: var(--blue-base-65-opacity-30);
+  --bendpoint-stroke-color: var(--blue-base-65);
+
+  --context-pad-entry-background-color: var(--hash-background);
+  --context-pad-entry-hover-background-color: var(--silver-darken-94);
+
+  --element-dragger-color: var(--blue-base-65);
+  --element-hover-outline-fill-color: var(--blue-darken-48);
+  --element-selected-outline-stroke-color: var(--blue-base-65);
+
+  --lasso-fill-color: var(--color-000000-opacity-05);
+  --lasso-stroke-color: var(--color-000000);
+
+  --palette-entry-color: var(--hash-off-white);
+  --palette-entry-hover-color: var(--hash-blue-hover);
+  --palette-entry-selected-color: var(--blue-base-65);
+  --palette-separator-color: var(--color-aaaaaa);
+  --palette-toggle-hover-background-color: var(--hash-background);
+  --palette-background-color: var(--hash-black);
+  --palette-border-color: var(--hash-border);
+
+  /* --popup-body-background-color: var(--hash-background-color) */
+  --popup-header-entry-selected-color: var(--blue-base-65);
+  --popup-header-entry-selected-background-color: var(
+    --color-000000-opacity-10
+  );
+  --popup-header-separator-color: var(--color-dddddd);
+  --popup-background-color: var(--color-fafafa);
+  --popup-border-color: var(--color-cccccc);
+
+  --resizer-fill-color: var(--blue-base-65-opacity-30);
+  --resizer-stroke-color: var(--blue-base-65);
+
+  --search-container-background-color: var(--hash-background);
+  --search-container-border-color: var(--blue-darken-55);
+  --search-container-box-shadow-color: var(--blue-lighten-82);
+  --search-container-box-shadow-inset-color: var(--color-cdcdcd);
+  --search-input-border-color: var(--color-cccccc);
+  --search-result-border-color: var(--color-aaaaaa);
+  --search-result-highlight-color: var(--color-000000);
+  --search-result-selected-color: var(--blue-base-65-opacity-30);
+
+  --shape-attach-allowed-stroke-color: var(--blue-base-65);
+  --shape-connect-allowed-fill-color: var(--hash-blue-hover);
+  --shape-drop-allowed-fill-color: var(--hash-background);
+  --shape-drop-not-allowed-fill-color: var(--hash-red);
+  --shape-resize-preview-stroke-color: var(--blue-base-65);
+
+  --snap-line-stroke-color: var(--hash-blue-hover);
+
+  --space-tool-crosshair-stroke-color: var(--color-000000);
+
+  --tooltip-error-background-color: var(--red-base-62-lighten-90);
+  --tooltip-error-border-color: var(--red-base-62);
+  --tooltip-error-color: var(--red-base-62);
+}
+
+/**
+ * outline styles
+ */
+
+.djs-outline {
+  fill: none;
+  visibility: hidden;
+}
+
+.djs-element.hover .djs-outline,
+.djs-element.selected .djs-outline {
+  visibility: visible;
+  shape-rendering: geometricPrecision;
+  stroke-dasharray: 3, 3;
+}
+
+.djs-element.selected .djs-outline {
+  stroke: var(--element-selected-outline-stroke-color);
+  stroke-width: 1px;
+}
+
+.djs-element.hover .djs-outline {
+  stroke: var(--element-hover-outline-fill-color);
+  stroke-width: 1px;
+}
+
+.djs-shape.connect-ok .djs-visual > :nth-child(1) {
+  fill: var(--shape-connect-allowed-fill-color) !important;
+}
+
+.djs-shape.connect-not-ok .djs-visual > :nth-child(1),
+.djs-shape.drop-not-ok .djs-visual > :nth-child(1) {
+  fill: var(--shape-drop-not-allowed-fill-color) !important;
+  transition: fill 0.1s;
+}
+
+.djs-shape.new-parent .djs-visual > :nth-child(1) {
+  fill: var(--shape-drop-allowed-fill-color) !important;
+}
+
+svg.drop-not-ok {
+  background: var(--shape-drop-not-allowed-fill-color) !important;
+}
+
+svg.new-parent {
+  background: var(--shape-drop-allowed-fill-color) !important;
+}
+
+.djs-connection.connect-ok .djs-visual > :nth-child(1),
+.djs-connection.drop-ok .djs-visual > :nth-child(1) {
+  stroke: var(--hash-blue-hover) !important;
+}
+
+.djs-connection.connect-not-ok .djs-visual > :nth-child(1),
+.djs-connection.drop-not-ok .djs-visual > :nth-child(1) {
+  stroke: var(--shape-drop-not-allowed-fill-color) !important;
+}
+
+.drop-not-ok,
+.connect-not-ok {
+  cursor: not-allowed;
+}
+
+.djs-element.attach-ok .djs-visual > :nth-child(1) {
+  stroke-width: 1px !important;
+  stroke: var(--shape-attach-allowed-stroke-color) !important;
+}
+
+.djs-frame.connect-not-ok .djs-visual > :nth-child(1),
+.djs-frame.drop-not-ok .djs-visual > :nth-child(1) {
+  stroke-width: 3px !important;
+  stroke: var(--shape-drop-not-allowed-fill-color) !important;
+  fill: none !important;
+}
+
+/**
+* Selection box style
+*
+*/
+.djs-lasso-overlay {
+  fill: var(--lasso-fill-color);
+
+  stroke-dasharray: 5 1 3 1;
+  stroke: var(--lasso-stroke-color);
+
+  shape-rendering: geometricPrecision;
+  pointer-events: none;
+}
+
+/**
+ * Resize styles
+ */
+.djs-resize-overlay {
+  fill: none;
+
+  stroke-dasharray: 5 1 3 1;
+  stroke: var(--shape-resize-preview-stroke-color);
+
+  pointer-events: none;
+}
+
+.djs-resizer-hit {
+  fill: none;
+  pointer-events: all;
+}
+
+.djs-resizer-visual {
+  fill: var(--resizer-fill-color);
+  stroke-width: 1px;
+  stroke-opacity: 0.5;
+  stroke: var(--resizer-stroke-color);
+  shape-rendering: geometricprecision;
+}
+
+.djs-resizer:hover .djs-resizer-visual {
+  stroke: var(--resizer-stroke-color);
+  stroke-opacity: 1;
+}
+
+.djs-cursor-resize-ns,
+.djs-resizer-n,
+.djs-resizer-s {
+  cursor: ns-resize;
+}
+
+.djs-cursor-resize-ew,
+.djs-resizer-e,
+.djs-resizer-w {
+  cursor: ew-resize;
+}
+
+.djs-cursor-resize-nwse,
+.djs-resizer-nw,
+.djs-resizer-se {
+  cursor: nwse-resize;
+}
+
+.djs-cursor-resize-nesw,
+.djs-resizer-ne,
+.djs-resizer-sw {
+  cursor: nesw-resize;
+}
+
+.djs-shape.djs-resizing > .djs-outline {
+  visibility: hidden !important;
+}
+
+.djs-shape.djs-resizing > .djs-resizer {
+  visibility: hidden;
+}
+
+.djs-dragger > .djs-resizer {
+  visibility: hidden;
+}
+
+/**
+ * drag styles
+ */
+.djs-dragger * {
+  fill: none !important;
+  stroke: var(--element-dragger-color) !important;
+}
+
+.djs-dragger tspan,
+.djs-dragger text {
+  fill: var(--element-dragger-color) !important;
+  stroke: none !important;
+}
+
+marker.djs-dragger circle,
+marker.djs-dragger path,
+marker.djs-dragger polygon,
+marker.djs-dragger polyline,
+marker.djs-dragger rect {
+  fill: var(--element-dragger-color) !important;
+  stroke: none !important;
+}
+
+marker.djs-dragger text,
+marker.djs-dragger tspan {
+  fill: none !important;
+  stroke: var(--element-dragger-color) !important;
+}
+
+.djs-dragging {
+  opacity: 0.3;
+}
+
+.djs-dragging,
+.djs-dragging > * {
+  pointer-events: none !important;
+}
+
+.djs-dragging .djs-context-pad,
+.djs-dragging .djs-outline {
+  display: none !important;
+}
+
+/**
+ * no pointer events for visual
+ */
+.djs-visual,
+.djs-outline {
+  pointer-events: none;
+}
+
+.djs-element.attach-ok .djs-hit {
+  stroke-width: 60px !important;
+}
+
+/**
+ * all pointer events for hit shape
+ */
+.djs-element > .djs-hit-all {
+  pointer-events: all;
+}
+
+.djs-element > .djs-hit-stroke,
+.djs-element > .djs-hit-click-stroke {
+  pointer-events: stroke;
+}
+
+/**
+ * all pointer events for hit shape
+ */
+.djs-drag-active .djs-element > .djs-hit-click-stroke {
+  pointer-events: all;
+}
+
+/**
+ * shape / connection basic styles
+ */
+.djs-connection .djs-visual {
+  stroke-width: 2px;
+  fill: white;
+}
+
+.djs-cursor-grab {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
+
+.djs-cursor-grabbing {
+  cursor: -webkit-grabbing;
+  cursor: -moz-grabbing;
+  cursor: grabbing;
+}
+
+.djs-cursor-crosshair {
+  cursor: crosshair;
+}
+
+.djs-cursor-move {
+  cursor: move;
+}
+
+.djs-cursor-resize-ns {
+  cursor: ns-resize;
+}
+
+.djs-cursor-resize-ew {
+  cursor: ew-resize;
+}
+
+/**
+ * snapping
+ */
+.djs-snap-line {
+  stroke: var(--snap-line-stroke-color);
+  stroke-linecap: round;
+  stroke-width: 2px;
+  pointer-events: none;
+}
+
+/**
+ * snapping
+ */
+.djs-crosshair {
+  stroke: var(--space-tool-crosshair-stroke-color);
+  stroke-linecap: round;
+  stroke-width: 1px;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+  stroke-dasharray: 5, 5;
+}
+
+/**
+ * palette
+ */
+
+.djs-palette {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+
+  box-sizing: border-box;
+  width: 48px;
+}
+
+.djs-palette .separator {
+  margin: 0 5px;
+  padding-top: 5px;
+
+  border: none;
+  border-bottom: solid 1px var(--palette-separator-color);
+
+  clear: both;
+}
+
+.djs-palette .entry:before {
+  vertical-align: text-bottom;
+}
+
+.djs-palette .djs-palette-toggle {
+  cursor: pointer;
+}
+
+.djs-palette .entry,
+.djs-palette .djs-palette-toggle {
+  color: var(--palette-entry-color);
+  font-size: 30px;
+
+  text-align: center;
+}
+
+.djs-palette .entry {
+  float: left;
+}
+
+.djs-palette .entry img {
+  max-width: 100%;
+}
+
+.djs-palette .djs-palette-entries {
+  background-color: var(--hash-background-darker);
+}
+
+.djs-palette .djs-palette-entries:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.djs-palette .djs-palette-toggle:hover {
+  background: var(--palette-toggle-hover-background-color);
+}
+
+.djs-palette .entry:hover {
+  color: var(--palette-entry-hover-color);
+}
+
+.djs-palette .highlighted-entry {
+  color: var(--palette-entry-selected-color) !important;
+}
+
+.djs-palette .entry,
+.djs-palette .djs-palette-toggle {
+  width: 46px;
+  height: 46px;
+  line-height: 46px;
+  cursor: default;
+}
+
+/**
+ * Palette open / two-column layout is controlled via
+ * classes on the palette. Events to hook into palette
+ * changed life-cycle are available in addition.
+ */
+.djs-palette.two-column.open {
+  width: 94px;
+}
+
+.djs-palette:not(.open) .djs-palette-entries {
+  display: none;
+}
+
+.djs-palette:not(.open) {
+  overflow: hidden;
+}
+
+.djs-palette.open .djs-palette-toggle {
+  display: none;
+}
+
+/**
+ * context-pad
+ */
+.djs-overlay-context-pad {
+  width: 72px;
+}
+
+.djs-context-pad {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+
+.djs-context-pad .entry {
+  color: var(--hash-off-white);
+
+  width: 22px;
+  height: 22px;
+  text-align: center;
+  display: inline-block;
+  font-size: 22px;
+  margin: 0 2px 2px 0;
+
+  border-radius: 3px;
+
+  cursor: default;
+
+  background-color: var(--context-pad-entry-background-color);
+  box-shadow: 0 0 2px 1px var(--context-pad-entry-background-color);
+  pointer-events: all;
+}
+
+.djs-context-pad .entry:before {
+  vertical-align: top;
+}
+
+.djs-context-pad .entry:hover {
+  color: var(--hash-blue-hover);
+}
+
+.djs-context-pad.open {
+  display: block;
+}
+
+/**
+ * popup styles
+ */
+.djs-popup .entry {
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* larger font for prefixed icons */
+.djs-popup .entry:before {
+  vertical-align: middle;
+  font-size: 20px;
+}
+
+.djs-popup .entry > span {
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+.djs-popup .entry:hover,
+.djs-popup .entry.active:hover {
+  background: var(--popup-header-entry-selected-background-color);
+}
+
+.djs-popup .entry.disabled {
+  background: inherit;
+}
+
+.djs-popup .djs-popup-header .entry {
+  display: inline-block;
+  padding: 2px 3px 2px 3px;
+
+  border: solid 1px transparent;
+  border-radius: 3px;
+}
+
+.djs-popup .djs-popup-header .entry.active {
+  color: var(--popup-header-entry-selected-color);
+  border: solid 1px var(--popup-header-entry-selected-color);
+  background-color: var(--popup-header-entry-selected-background-color);
+}
+
+.djs-popup-body .entry {
+  padding: 4px 10px 4px 5px;
+}
+
+.djs-popup-body .entry > span {
+  margin-left: 5px;
+}
+
+.djs-popup-body {
+  background-color: var(--popup-body-background-color);
+}
+
+.djs-popup-header {
+  border-bottom: 1px solid var(--popup-header-separator-color);
+}
+
+.djs-popup-header .entry {
+  margin: 1px;
+  margin-left: 3px;
+}
+
+.djs-popup-header .entry:last-child {
+  margin-right: 3px;
+}
+
+/**
+ * popup / palette styles
+ */
+.djs-palette {
+  background: var(--palette-background-color);
+  border: solid 1px var(--palette-border-color);
+  border-radius: 2px;
+}
+
+.djs-popup {
+  background: var(--popup-background-color);
+  border: solid 1px var(--popup-border-color);
+  border-radius: 2px;
+}
+
+/**
+ * touch
+ */
+
+.djs-shape,
+.djs-connection {
+  touch-action: none;
+}
+
+.djs-segment-dragger,
+.djs-bendpoint {
+  display: none;
+}
+
+/**
+ * bendpoints
+ */
+.djs-segment-dragger .djs-visual {
+  display: none;
+
+  fill: var(--bendpoint-fill-color);
+  stroke: var(--bendpoint-stroke-color);
+  stroke-width: 1px;
+  stroke-opacity: 1;
+}
+
+.djs-segment-dragger:hover .djs-visual {
+  display: block;
+}
+
+.djs-bendpoint .djs-visual {
+  fill: var(--bendpoint-fill-color);
+  stroke: var(--bendpoint-stroke-color);
+  stroke-width: 1px;
+  stroke-opacity: 0.5;
+}
+
+.djs-segment-dragger:hover,
+.djs-bendpoints.hover .djs-segment-dragger,
+.djs-bendpoints.selected .djs-segment-dragger,
+.djs-bendpoint:hover,
+.djs-bendpoints.hover .djs-bendpoint,
+.djs-bendpoints.selected .djs-bendpoint {
+  display: block;
+}
+
+.djs-drag-active .djs-bendpoints * {
+  display: none;
+}
+
+.djs-bendpoints:not(.hover) .floating {
+  display: none;
+}
+
+.djs-segment-dragger:hover .djs-visual,
+.djs-segment-dragger.djs-dragging .djs-visual,
+.djs-bendpoint:hover .djs-visual,
+.djs-bendpoint.floating .djs-visual {
+  fill: var(--bendpoint-fill-color);
+  stroke: var(--bendpoint-stroke-color);
+  stroke-opacity: 1;
+}
+
+.djs-bendpoint.floating .djs-hit {
+  pointer-events: none;
+}
+
+.djs-segment-dragger .djs-hit,
+.djs-bendpoint .djs-hit {
+  fill: none;
+  pointer-events: all;
+}
+
+.djs-segment-dragger.horizontal .djs-hit {
+  cursor: ns-resize;
+}
+
+.djs-segment-dragger.vertical .djs-hit {
+  cursor: ew-resize;
+}
+
+.djs-segment-dragger.djs-dragging .djs-hit {
+  pointer-events: none;
+}
+
+.djs-updating,
+.djs-updating > * {
+  pointer-events: none !important;
+}
+
+.djs-updating .djs-context-pad,
+.djs-updating .djs-outline,
+.djs-updating .djs-bendpoint,
+.connect-ok .djs-bendpoint,
+.connect-not-ok .djs-bendpoint,
+.drop-ok .djs-bendpoint,
+.drop-not-ok .djs-bendpoint {
+  display: none !important;
+}
+
+.djs-segment-dragger.djs-dragging,
+.djs-bendpoint.djs-dragging {
+  display: block;
+  opacity: 1;
+}
+
+/**
+ * tooltips
+ */
+.djs-tooltip-error {
+  width: 160px;
+  padding: 6px;
+
+  background: var(--tooltip-error-background-color);
+  border: solid 1px var(--tooltip-error-border-color);
+  border-radius: 2px;
+  color: var(--tooltip-error-color);
+  font-size: 12px;
+  line-height: 16px;
+
+  opacity: 0.75;
+}
+
+.djs-tooltip-error:hover {
+  opacity: 1;
+}
+
+/**
+ * search pad
+ */
+.djs-search-container {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
+
+  width: 25%;
+  min-width: 300px;
+  max-width: 400px;
+  z-index: 10;
+
+  font-size: 1.05em;
+  opacity: 0.9;
+  background: var(--search-container-background-color);
+  border: solid 1px var(--search-container-border-color);
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px var(--search-container-box-shadow-color),
+    0 0 0 1px var(--search-container-box-shadow-inset-color) inset;
+}
+
+.djs-search-container:not(.open) {
+  display: none;
+}
+
+.djs-search-input input {
+  font-size: 1.05em;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--search-input-border-color);
+}
+
+.djs-search-input input:focus {
+  outline: none;
+  border-color: var(--search-input-border-color);
+}
+
+.djs-search-results {
+  position: relative;
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.djs-search-results:hover {
+  cursor: pointer;
+}
+
+.djs-search-result {
+  width: 100%;
+  padding: 6px 10px;
+  background: white;
+  border-bottom: solid 1px var(--search-result-border-color);
+  border-radius: 1px;
+}
+
+.djs-search-highlight {
+  color: var(--search-result-highlight-color);
+}
+
+.djs-search-result-primary {
+  margin: 0 0 10px;
+}
+
+.djs-search-result-secondary {
+  font-family: monospace;
+  margin: 0;
+}
+
+.djs-search-result:hover {
+  background: var(--search-result-selected-color);
+}
+
+.djs-search-result-selected {
+  background: var(--search-result-selected-color);
+}
+
+.djs-search-result-selected:hover {
+  background: var(--search-result-selected-color);
+}
+
+.djs-search-overlay {
+  background: var(--search-result-selected-color);
+}
+
+/**
+ * hidden styles
+ */
+.djs-element-hidden,
+.djs-element-hidden .djs-hit,
+.djs-element-hidden .djs-outline,
+.djs-label-hidden .djs-label {
+  display: none !important;
+}
+
+/* 
+ * Hacks
+ */
+
+.djs-context-pad .entry:not(.bpmn-icon-trash):not(.bpmn-icon-connection-multi) {
+  display: none;
+}
+
+.bjs-powered-by {
+  bottom: 90px !important;
+  left: 25px !important;
+  z-index: 1 !important;
+}
+
+.bjs-powered-by svg path {
+  fill: #34353a;
+}
+
+.djs-label {
+  font-size: 12px !important;
+}

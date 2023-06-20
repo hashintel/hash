@@ -13,7 +13,6 @@ import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { UploadableStorageProvider } from "../storage";
-import { TaskExecutor } from "../task-execution";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -22,7 +21,6 @@ export interface CreateApolloServerParams {
   cache: CacheAdapter;
   uploadProvider: UploadableStorageProvider;
   search?: SearchAdapter;
-  taskExecutor?: TaskExecutor;
   agentRunner?: AgentRunner;
   emailTransporter: EmailTransporter;
   logger: Logger;
@@ -33,7 +31,6 @@ export const createApolloServer = ({
   graphApi,
   cache,
   search,
-  taskExecutor,
   agentRunner,
   emailTransporter,
   uploadProvider,
@@ -54,9 +51,6 @@ export const createApolloServer = ({
     };
     if (search) {
       sources.search = search;
-    }
-    if (taskExecutor) {
-      sources.taskExecutor = taskExecutor;
     }
     if (agentRunner) {
       sources.agentRunner = agentRunner;

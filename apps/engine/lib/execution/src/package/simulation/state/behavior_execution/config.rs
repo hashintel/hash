@@ -105,6 +105,8 @@ pub struct SendableBehaviorKeys {
     built_in_key_use: Option<Vec<String>>,
 }
 
+/// Create the initial `BehaviorDescription`s that go in the experiment initialization
+/// message that goes to the worker.
 pub fn exp_init_message(
     behavior_ids: &BehaviorIds,
     behavior_map: &BehaviorMap,

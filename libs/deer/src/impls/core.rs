@@ -6,6 +6,7 @@ mod cmp;
 mod marker;
 mod mem;
 mod num;
+mod ops;
 mod option;
 mod result;
 mod string;

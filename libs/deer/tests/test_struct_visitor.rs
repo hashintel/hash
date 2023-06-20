@@ -4,7 +4,6 @@ use deer::{
     Schema, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::json;
 
 mod common;
@@ -12,7 +11,7 @@ mod common;
 use common::TupleExt;
 use deer::{
     error::{ExpectedField, Location, ObjectAccessError, ReceivedField, UnknownFieldError},
-    schema::Reference,
+    helpers::Properties,
     value::NoneDeserializer,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
@@ -276,23 +275,6 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
-    }
-}
-
-struct Properties<const N: usize>([(&'static str, Reference); N]);
-
-impl<const N: usize> Serialize for Properties<N> {
-    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut map = serializer.serialize_map(Some(self.0.len()))?;
-
-        for (key, value) in self.0 {
-            map.serialize_entry(key, &value)?;
-        }
-
-        map.end()
     }
 }
 

@@ -21,7 +21,7 @@ locals {
 
 provider "vault" {
   # Uses the VAULT_TOKEN environment variable OR ~/.vault-token file to authenticate.
-  # The using the vault at VAULT_ADDR
+  # This is using the vault at VAULT_ADDR
 }
 
 data "vault_kv_secret_v2" "secrets" {
