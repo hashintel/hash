@@ -58,6 +58,9 @@ runs:
 
     - name: Terraform Validate
       id: validate
+      env:
+        TF_WORKSPACE: ${{ inputs.env }}
+      working-directory: ${{ inputs.working-directory }}
       shell: bash
       run: terraform validate -no-color 2>&1 | tee validate.out
 
@@ -72,16 +75,15 @@ runs:
       run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1 | tee cmd.out
 
     - uses: actions/github-script@v6
-      working-directory: ${{ inputs.working-directory }}
       with:
         script: |
-          const fs = require('fs');
+          const fs = require('fs').promises;
 
           const [init, validate, cmd] = (
             await Promise.all(
-              ["init.out", "validate.out", "cmd.out"].map((f) => fs.readFile(f))
+              ["init.out", "validate.out", "cmd.out"].map((f) => fs.readFile(`${{inputs.working-directory}}/${f}`))
             )
-          ).map((s) => s.replaceAll(/^~/g, "!"));
+          );
 
           const heading = `Terraform [${{inputs.env}}] ${{ inputs.command }} results 🧪`
 
