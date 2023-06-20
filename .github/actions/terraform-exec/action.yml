@@ -54,12 +54,15 @@ runs:
         TF_WORKSPACE: ${{ inputs.env }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: terraform init -no-color 2>&1
+      run: terraform init -no-color 2>&1 | tee init.out
 
     - name: Terraform Validate
       id: validate
+      env:
+        TF_WORKSPACE: ${{ inputs.env }}
+      working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: terraform validate -no-color 2>&1
+      run: terraform validate -no-color | tee validate.out
 
     - name: "[${{ inputs.env }}] Terraform ${{ inputs.command }}"
       id: cmd
@@ -69,13 +72,18 @@ runs:
         VAULT_ADDR: ${{ inputs.vault-address }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false 2>&1
+      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false| tee cmd.out
 
     - uses: actions/github-script@v6
-      id: set-result
       with:
         script: |
-          const cmd = `${{ steps.cmd.outputs.stdout }}`.replaceAll(/^~/g, "!");
+          const fs = require('fs').promises;
+
+          const [init, validate, cmd] = (
+            await Promise.all(
+              ["init.out", "validate.out", "cmd.out"].map((f) => fs.readFile(`${{inputs.working-directory}}/${f}`))
+            )
+          );
 
           const heading = `Terraform [${{inputs.env}}] ${{ inputs.command }} results 🧪`
 
@@ -85,11 +93,11 @@ runs:
             .addHeading(heading)
             .addDetails(
               "Output of Terraform initialization ⚙️ (${{ steps.init.outcome }})", 
-              `<pre><code>${{ steps.init.outputs.stdout }}</code></pre>`
+              `<pre><code>${init}</code></pre>`
             )
             .addDetails(
               "Output of validation 🤖 (${{ steps.validate.outcome }})",
-              `<pre><code>${{ steps.validate.outputs.stdout }}</code></pre>`
+              `<pre><code>${validate}</code></pre>`
             )
             .addDetails("Output of ${{ inputs.command }} 📖 (${{ steps.cmd.outcome }})", 
               `<pre><code lang="diff">${cmd}</code></pre>`
