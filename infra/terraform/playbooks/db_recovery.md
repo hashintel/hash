@@ -4,9 +4,6 @@ Something went terribly wrong with the database, here’s how to recover.
 
 ## Identify snapshot to restore
 
-The HASH database is backed up every day in a 30-minute window in the interval 03:00–11:00 UTC.
-this means that we’ll have daily, incremental backups for every day in the snapshot history of the RDS instance.
-
 For the production DB located in `us-east-1` the snapshots are found [here](https://us-east-1.console.aws.amazon.com/rds/home?region=us-east-1#snapshots-list:tab=automated). Identify the snapshot to restore from, usually the one from the current morning or the day before if the incident happened.
 The snapshots for HASH would be prefixed with `rds:h-hash-prod-usea1-pg-`
 
