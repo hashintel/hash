@@ -35,7 +35,10 @@ REGION : AWS region shortened -- 'usea1' etc.
 RESOURCE DESCRIPTION : a short description of the resource e.g. 'subnetpub1'
 ```
 
-Fields may _not_ include any hyphens. Example names: `h-hash-prod-usea1-vpc`, `h-hash-dev-usea2-apisvc`.
+Fields (e.g. Owner, Project) may _not_ include any hyphens. 
+
+Example _valid_ names: `h-hash-prod-usea1-vpc`, `h-hash-dev-usea2-apisvc`
+Example _invalid_ name: `h-hash-prod-usea1-api-svc`
 
 (Inspired by https://stepan.wtf/cloud-naming-convention/)
 
