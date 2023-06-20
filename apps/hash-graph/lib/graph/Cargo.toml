@@ -32,7 +32,7 @@ semver = { version = "1.0.17", default-features = false, features = ["serde"] }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.97"
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
-time = { version = "0.3.21", features = ["serde", "formatting", "macros"] }
+time = { version = "0.3.22", features = ["serde", "formatting", "macros"] }
 tokio = { version = "1.28.2", default-features = false }
 tokio-postgres = { version = "0.7.8", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
