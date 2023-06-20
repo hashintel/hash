@@ -8,8 +8,8 @@
   * - Subnets (public and private)
   * - Internet gateway
   * - Route tables
-  * - Flow logs
   * - Basic IAM
+  * - Flow logs (disabled for now)
   */
 
 resource "aws_vpc" "main" {
@@ -22,6 +22,7 @@ resource "aws_vpc" "main" {
   tags                 = { Name = "${var.prefix}-vpc" }
 }
 
+/* Flow logs are disabled for now. Uncomment this block to enable them.
 # Flow logs in VPC
 resource "aws_flow_log" "flow_log" {
   tags = { Name = "${var.prefix}-flowvpc" }
@@ -79,6 +80,7 @@ resource "aws_iam_role_policy" "flow_log" {
 }
 EOF
 }
+*/
 
 # Gateway to allow communication between VPC and the internet
 resource "aws_internet_gateway" "igw" {
