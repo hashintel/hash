@@ -22,23 +22,25 @@ resource "aws_vpc" "main" {
   tags                 = { Name = "${var.prefix}-vpc" }
 }
 
-/* Flow logs are disabled for now. Uncomment this block to enable them.
 # Flow logs in VPC
 resource "aws_flow_log" "flow_log" {
-  tags = { Name = "${var.prefix}-flowvpc" }
+  count = var.enable_flow_logs ? 1 : 0
+  tags  = { Name = "${var.prefix}-flowvpc" }
 
-  iam_role_arn    = aws_iam_role.flow_log.arn
-  log_destination = aws_cloudwatch_log_group.flow_log.arn
+  iam_role_arn    = aws_iam_role.flow_log[0].arn
+  log_destination = aws_cloudwatch_log_group.flow_log[0].arn
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.main.id
 }
 
 resource "aws_cloudwatch_log_group" "flow_log" {
-  name = "${var.prefix}-flowlogvpc"
+  count = var.enable_flow_logs ? 1 : 0
+  name  = "${var.prefix}-flowlogvpc"
 }
 
 resource "aws_iam_role" "flow_log" {
-  name = "${var.prefix}-flowlogrole"
+  count = var.enable_flow_logs ? 1 : 0
+  name  = "${var.prefix}-flowlogrole"
 
   assume_role_policy = <<EOF
 {
@@ -58,8 +60,9 @@ EOF
 }
 
 resource "aws_iam_role_policy" "flow_log" {
-  name = "${var.prefix}-iamflowlog"
-  role = aws_iam_role.flow_log.id
+  count = var.enable_flow_logs ? 1 : 0
+  name  = "${var.prefix}-iamflowlog"
+  role  = aws_iam_role.flow_log[0].id
 
   policy = <<EOF
 {
@@ -80,7 +83,6 @@ resource "aws_iam_role_policy" "flow_log" {
 }
 EOF
 }
-*/
 
 # Gateway to allow communication between VPC and the internet
 resource "aws_internet_gateway" "igw" {
