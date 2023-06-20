@@ -245,14 +245,11 @@ Once the CLI has been configured, you should have a `.aws` folder in your home d
 
 ## How do I log in to AWS ECR container registry?
 
-If you wish to pull/push container images to ECR, AWS CLI allows you to do so with the following command:
-
-```console
-$ aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ACCOUNTID.dkr.ecr.us-east-1.amazonaws.com
-..
-```
-
-This will log into the given ECR in the `us-east-1` region.
+If you wish to pull/push container images to ECR manually, you must:
+1. Login to the registry
+1. Build and tag the image
+1. Push the image to ECR
+Please see the [AWS docs](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html) for instructions on how to do so.
 
 ## How do I migrate the database after it has been deployed?
 
