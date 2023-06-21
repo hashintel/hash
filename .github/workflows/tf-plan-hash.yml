@@ -11,6 +11,7 @@ on:
         default: "prod"
 
   pull_request:
+  merge_group:
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
