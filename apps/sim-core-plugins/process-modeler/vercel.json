@@ -3,7 +3,7 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "installCommand": "./vercel-install.sh",
-  "buildCommand": "./vercel-build.sh",
+  "installCommand": "yarn install",
+  "buildCommand": "yarn build",
   "outputDirectory": "./build"
 }
