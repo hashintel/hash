@@ -207,6 +207,7 @@ export const FlowChart = () => {
         file: `create_${agent.agent_name}.js`,
         type: "upsertCreatorAgent",
       };
+      // eslint-disable-next-line no-restricted-globals
       parent.window.postMessage(createAgentPayload, "*");
 
       const dependencies = agent.behaviors.reduce((object, name) => {
@@ -218,6 +219,7 @@ export const FlowChart = () => {
         contents: dependencies,
         type: "addDependencies",
       };
+      // eslint-disable-next-line no-restricted-globals
       parent.window.postMessage(addDependenciesPayload, "*");
 
       const analysisJson = analysisData(elements);
@@ -227,10 +229,12 @@ export const FlowChart = () => {
           contents: analysisJson,
           type: "updateAnalysis",
         };
+        // eslint-disable-next-line no-restricted-globals
         parent.window.postMessage(analysisPayload, "*");
       }
 
       modeler.saveXML({ format: true }).then(({ xml }: { xml: string }) => {
+        // eslint-disable-next-line no-restricted-globals
         parent.window.postMessage(
           {
             contents: xml,
