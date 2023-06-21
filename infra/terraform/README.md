@@ -339,12 +339,12 @@ Under the [`./modules/`](./modules/) folder we define the HASH application throu
 - [`variables`](./modules/variables/) - contains global variable validation/definitions generally useful for our Terraform infrastructure.
 - [`vault_aws_auth`](./modules/vault_aws_auth/) - contains the configuration for authenticating the AWS provider through the Vault AWS authentication backend.
 
-## HASH specefic modules
+## HASH-specific modules
 
 - [`networking`](./modules/hash/networking/) - contains PrivateLink definitions for the various required AWS resources.
 - [`postgres`](./modules/postgres/) - [external service] a multi Availability Zone Postgres RDS cluster with encryption enabled.
 - [`postgres_roles`](./modules/postgres_roles/) - SQL configurations for the HASH application defining grants, roles and databases (requires an SSH tunnel to connect to the RDS instance).
-- [`hash_application`](./modules/hash_application/)` - the ECS Fargate container definition using the previous ECR and ECS cluster definitions to start the Graph layer, the HASH API and Kratos.
+- [`hash_application`](./modules/hash_application/) - the ECS Fargate container definition using the previous ECR and ECS cluster definitions to start the Graph layer, the HASH API and Kratos.
 
 **HASH infrastructure diagram**:
 
@@ -375,6 +375,6 @@ graph TD;
 This list of modules are to be considered obsolete/out of date, and are kept here for reference in case of future re-use.
 
 - [`citus`](./modules/citus/) - Module for deploying a Citus cluster on AWS using EC2. - Along with [playbooks/citus.md](./playbooks/citus.md) - Instructions for administering the Citus cluster.
-- [`opensearch`](./modules/opensearch/) - Module for deploying an OpenSearch domain (wrapping `aws_elasticsearch_domain`)
+- [`opensearch`](./modules/opensearch/) - Module for deploying an OpenSearch domain (wrapping `aws_elasticsearch_domain`).
 - [`realtime`](./modules/realtime/) - Module for deploying the `realtime` service cluster AWS ECS. This service is used to listen to the PG WAL in HASH.
 - [`search-loader`](./modules/search-loader/) - Module for deploying the `search-loader` service cluster on AWS ECS. This service is used to load data into the search cluster.
