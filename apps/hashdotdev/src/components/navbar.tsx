@@ -8,10 +8,11 @@ import {
   IconButton,
   Slide,
   Stack,
+  SxProps,
+  Theme,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { SxProps, Theme } from "@mui/system";
 import clsx from "clsx";
 import { useRouter } from "next/router";
 import { FunctionComponent, useState } from "react";
@@ -27,13 +28,13 @@ const NAV_BUTTON_STYLES: SxProps<Theme> = {
   [`.${buttonClasses.root}`]: {
     "&:not(.NavLink)": {
       "&.MuiButton-primary": {
-        borderColor: "yellow.500",
+        borderColor: ({ palette }) => palette.blue[50],
         "&, svg": {
-          color: (theme) => `${theme.palette.yellow[900]} !important`,
+          color: (theme) => `${theme.palette.blue[90]} !important`,
         },
 
         ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
-          backgroundColor: "yellow.400",
+          backgroundColor: (theme) => theme.palette.blue[40],
         },
       },
 
@@ -63,6 +64,7 @@ const DesktopNav: FunctionComponent = () => {
         href="https://hash.ai"
         openInNew
         endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
+        sx={{ color: ({ palette }) => palette.turquoise[100] }}
       >
         Visit our main site
       </Button>
@@ -280,7 +282,7 @@ export const Navbar: FunctionComponent = () => {
         sx={{
           display: "flex",
           height: NAV_HEIGHT,
-          bgcolor: "white",
+          backgroundColor: "#edfcff",
           alignItems: "center",
           position: "fixed",
           width: "100%",
