@@ -1,6 +1,7 @@
 import {
   Box,
   Container,
+  Grid,
   Stack,
   StackProps,
   Typography,
@@ -385,11 +386,156 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
+const Tutorial: FunctionComponent<{
+  title: string;
+  description: string;
+  color: "blue" | "teal" | "purple";
+  icon?: ReactNode;
+  href: string;
+}> = ({ title, description, color, icon, href }) => {
+  const { palette } = useTheme();
+  const primaryColor =
+    color === "purple"
+      ? palette.purple[40]
+      : color === "blue"
+      ? palette.blue[50]
+      : palette.teal[40];
+
+  return (
+    <Box
+      sx={{
+        height: "100%",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: primaryColor,
+        borderRadius: 0.5,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
+      <Box padding={3}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{ fontSize: 28, fontWeight: 500 }}
+        >
+          {title}
+        </Typography>
+        <Typography sx={{ fontSize: 18, lineHeight: "150%" }}>
+          {description}
+        </Typography>
+      </Box>
+      <Box>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          flexDirection="row-reverse"
+          sx={{ paddingBottom: 3, paddingX: 3 }}
+        >
+          {icon}
+          <Link
+            href={href}
+            sx={{
+              color:
+                color === "purple"
+                  ? palette.purple[70]
+                  : color === "blue"
+                  ? palette.blue[70]
+                  : palette.teal[70],
+            }}
+          >
+            Read the guide <FaIcon name="arrow-right" type="solid" />
+          </Link>
+        </Box>
+        <Box display="flex" height={12}>
+          <Box
+            sx={{
+              width: 50,
+              height: "100%",
+              background: primaryColor,
+            }}
+          />
+          <Box
+            sx={{
+              flex: 1,
+              height: "100%",
+              opacity: 0.5,
+              background: primaryColor,
+            }}
+          />
+          <Box
+            sx={{
+              width: "50%",
+              height: "100%",
+              opacity: 0.2,
+              background: primaryColor,
+            }}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+const Tutorials: FunctionComponent = () => {
+  return (
+    <Container component="section">
+      <Typography variant="hashHeading4" component="h3">
+        Tutorials
+      </Typography>
+      <Typography marginBottom={2}>
+        Learn by example through our step-by-step tutorials
+      </Typography>
+      <Grid container spacing={4} marginBottom={2}>
+        <Grid item xs={12} md={6} lg={4}>
+          <Tutorial
+            title="Build your own blocks"
+            description="Extend the functionality of Block Protocol-based applications by creating your own blocks"
+            color="purple"
+            href="/"
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          <Tutorial
+            title="Code your first simulation"
+            description="Learn how to develop a simulation and run it locally or in-browser"
+            color="blue"
+            href="/"
+          />
+        </Grid>
+        <Grid item xs={12} md={12} lg={4}>
+          <Tutorial
+            title="Build a block-based website using HASH"
+            description="Use HASH as a CMS alongside Block Protocol blocks"
+            color="teal"
+            href="/"
+          />
+        </Grid>
+      </Grid>
+      <Box display="flex" width="100%" flexDirection="row-reverse">
+        <Link
+          href="/"
+          sx={{
+            color: ({ palette }) => palette.teal[70],
+            borderBottomStyle: "solid",
+            borderBottomWidth: 1,
+            borderBottomColor: ({ palette }) => palette.teal[40],
+          }}
+        >
+          View all guides
+        </Link>
+      </Box>
+    </Container>
+  );
+};
+
 const Home: NextPage = () => {
   return (
     <>
       <Hero />
       <Projects />
+      <Tutorials />
     </>
   );
 };
