@@ -11,7 +11,8 @@ import { PreFooter } from "./pre-footer";
 export const PageLayout: FunctionComponent<{
   children?: ReactNode;
   subscribe?: boolean;
-}> = ({ children, subscribe = true }) => {
+  recentBlogPosts?: boolean;
+}> = ({ children, subscribe = true, recentBlogPosts = false }) => {
   const theme = useTheme();
 
   return (
@@ -57,7 +58,7 @@ export const PageLayout: FunctionComponent<{
         {children}
       </Box>
       <Box sx={{ flex: 1 }} />
-      <PreFooter subscribe={subscribe} />
+      <PreFooter subscribe={subscribe} recentBlogPosts={recentBlogPosts} />
       <Footer />
     </Box>
   );

@@ -11,27 +11,18 @@ import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
 import { ComponentProps, Fragment, FunctionComponent } from "react";
 
-import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/blog-post";
+import { BlogPostAuthor } from "../../components/blog-post";
 import { GradientContainer } from "../../components/gradient-container";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { Link } from "../../components/link";
 import { PageLayout } from "../../components/page-layout";
 import { Subscribe } from "../../components/pre-footer";
 import { parseNameFromFileName } from "../../util/client-mdx-util";
-import { getAllPages, Page } from "../../util/mdx-util";
+import { getAllPages } from "../../util/mdx-util";
 import { NextPageWithLayout } from "../../util/next-types";
-import {
-  BlogPostAuthorWithPhotoSrc,
-  BlogPostProps,
-} from "./[...blog-slug].page";
+import { BlogIndividualPage } from "../shared/blog-posts-context";
+import { BlogPost, BlogPostAuthorWithPhotoSrc } from "./[...blog-slug].page";
 import { getPhoto } from "./shared/get-photo";
-
-type BlogIndividualPage = Page<BlogPostProps> & {
-  photos: {
-    post?: BlogPostPagePhoto | null;
-    postSquare?: BlogPostPagePhoto | null;
-  };
-};
 
 type BlogPageListProps = {
   pages: BlogIndividualPage[];
@@ -46,7 +37,7 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
   // Using try / catch prevents 500, but we might not need them in Next v12+.
   try {
     const pages = await Promise.all(
-      getAllPages<BlogPostProps>("blog")
+      getAllPages<BlogPost>("blog")
         .sort((pageA, pageB) => {
           const timeA = pageB.data.date
             ? new Date(pageB.data.date).getTime()

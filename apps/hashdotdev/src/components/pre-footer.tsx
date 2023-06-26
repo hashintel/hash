@@ -1,6 +1,16 @@
-import { Box, Container, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Divider,
+  Grid,
+  Stack,
+  Theme,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
 import { BoxProps } from "@mui/system";
 import axios from "axios";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
@@ -13,8 +23,14 @@ import { unstable_batchedUpdates } from "react-dom";
 
 import { FRONTEND_URL } from "../config";
 import { SubscribeResponseBody } from "../pages/api/subscribe.page";
+import {
+  BlogIndividualPage,
+  useBlogPosts,
+} from "../pages/shared/blog-posts-context";
+import { parseNameFromFileName } from "../util/client-mdx-util";
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
+import { Link } from "./link";
 import { NAV_HEIGHT } from "./navbar";
 import { TextField } from "./text-field";
 
@@ -208,6 +224,180 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
   );
 };
 
+const BlogPost: FunctionComponent<{
+  post: BlogIndividualPage;
+  displayImage?: boolean;
+  direction?: "column" | "row";
+  displaySubtitle?: boolean;
+  authorAfterTitle?: boolean;
+  variant?: "primary" | "secondary";
+}> = ({
+  variant = "secondary",
+  direction = "row",
+  post,
+  displayImage = true,
+  displaySubtitle = true,
+  authorAfterTitle = false,
+}) => {
+  const { fileName, photos, data } = post;
+
+  const author = (
+    <Typography
+      gutterBottom
+      sx={{
+        color: ({ palette }) => palette.teal[60],
+        textTransform: "uppercase",
+        fontWeight: 600,
+        fontSize: 12,
+      }}
+    >
+      {data.authors?.[0]?.name}
+    </Typography>
+  );
+
+  return (
+    <Link
+      href={{
+        pathname: "/blog/[...blog-slug]",
+        query: { "blog-slug": parseNameFromFileName(fileName) },
+      }}
+      sx={{
+        ".title": {
+          transition: ({ transitions }) => transitions.create("color"),
+        },
+        "&:hover .title": {
+          color: ({ palette }) => palette.teal[60],
+        },
+      }}
+    >
+      <Box>
+        <Grid container spacing={3}>
+          {displayImage ? (
+            <Grid item xs={direction === "row" ? 6 : 12} minHeight={180}>
+              <Box
+                sx={{
+                  position: "relative",
+                  width: "100%",
+                  paddingBottom: "66.66%",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                }}
+              >
+                <Image
+                  alt={data.title!}
+                  src={photos.post!.src}
+                  fill
+                  style={{ objectFit: "cover" }}
+                />
+              </Box>
+            </Grid>
+          ) : null}
+          <Grid item xs={displayImage && direction === "row" ? 6 : 12}>
+            {authorAfterTitle ? null : author}
+            <Typography
+              component="h4"
+              variant={variant === "primary" ? "h5" : "h6"}
+              className="title"
+              sx={{
+                color: ({ palette }) => palette.gray[90],
+                fontWeight: 500,
+                lineHeight: "120%",
+              }}
+            >
+              {data.title}
+            </Typography>
+            {authorAfterTitle ? author : null}
+            {displaySubtitle ? (
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[70],
+                  fontSize: 18,
+                  lineHeight: "150%",
+                }}
+              >
+                {data.subtitle}
+              </Typography>
+            ) : null}
+          </Grid>
+        </Grid>
+      </Box>
+    </Link>
+  );
+};
+
+const RecentBlogPosts: FunctionComponent = () => {
+  const { posts } = useBlogPosts();
+
+  const primaryPost = posts[0]!;
+  const secondaryPost = posts[1]!;
+  const tertiaryPost = posts[2]!;
+  const quaternaryPost = posts[3]!;
+
+  const xs = useMediaQuery<Theme>((theme) => theme.breakpoints.only("xs"));
+
+  return (
+    <Container>
+      <Typography variant="hashHeading4" component="h3" gutterBottom>
+        Recent blog posts
+      </Typography>
+      <Typography marginBottom={3}>
+        News, stories and guides from the community
+      </Typography>
+      <Grid container spacing={6}>
+        <Grid item xs={12} md={8}>
+          <BlogPost
+            variant="primary"
+            direction={xs ? "column" : "row"}
+            post={primaryPost}
+          />
+          <Divider sx={{ my: 3 }} />
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={12}>
+              <Grid container spacing={3}>
+                <Grid
+                  item
+                  xs={12}
+                  sx={{ display: { sx: "block", sm: "none" } }}
+                >
+                  <BlogPost post={secondaryPost} direction="column" />
+                  <Divider sx={{ mt: 3 }} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <BlogPost
+                    post={tertiaryPost}
+                    displayImage={false}
+                    displaySubtitle={!xs}
+                    authorAfterTitle={xs}
+                  />
+                  {xs ? <Divider sx={{ mt: 3 }} /> : null}
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <BlogPost
+                    post={quaternaryPost}
+                    displayImage={false}
+                    displaySubtitle={!xs}
+                    authorAfterTitle={xs}
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+            <Grid
+              item
+              xs={6}
+              sx={{ display: { xs: "none", sm: "block", md: "none" } }}
+            >
+              <BlogPost post={secondaryPost} direction="column" />
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid item md={4} sx={{ display: { xs: "none", md: "block" } }}>
+          <BlogPost post={secondaryPost} direction="column" />
+        </Grid>
+      </Grid>
+    </Container>
+  );
+};
+
 const Community: FunctionComponent = () => {
   return (
     <Box
@@ -289,13 +479,19 @@ const Community: FunctionComponent = () => {
   );
 };
 
-export const PreFooter: FunctionComponent<{ subscribe?: boolean }> = ({
-  subscribe = true,
-}) => (
+export const PreFooter: FunctionComponent<{
+  subscribe?: boolean;
+  recentBlogPosts?: boolean;
+}> = ({ subscribe = true, recentBlogPosts = false }) => (
   <>
     {subscribe ? (
-      <Box component="section" sx={{ mb: 16, mt: 12 }}>
+      <Box component="section" sx={{ mb: 12, mt: 12 }}>
         <Subscribe />
+      </Box>
+    ) : null}
+    {recentBlogPosts ? (
+      <Box component="section" sx={{ mb: 6 }}>
+        <RecentBlogPosts />
       </Box>
     ) : null}
     <Community />

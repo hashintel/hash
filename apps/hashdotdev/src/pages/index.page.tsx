@@ -9,7 +9,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/system";
-import type { NextPage } from "next";
+import type { GetStaticProps } from "next";
 import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
@@ -17,6 +17,15 @@ import { Button } from "../components/button";
 import { FaIcon } from "../components/icons/fa-icon";
 import { Link } from "../components/link";
 import { NAV_HEIGHT } from "../components/navbar";
+import { PageLayout } from "../components/page-layout";
+import { getAllPages } from "../util/mdx-util";
+import { NextPageWithLayout } from "../util/next-types";
+import { BlogPost } from "./blog/[...blog-slug].page";
+import { getPhoto } from "./blog/shared/get-photo";
+import {
+  BlogIndividualPage,
+  BlogPostsProvider,
+} from "./shared/blog-posts-context";
 
 const StylishDivider: FunctionComponent<
   ComponentProps<typeof Stack> & { wide?: boolean }
@@ -530,14 +539,63 @@ const Tutorials: FunctionComponent = () => {
   );
 };
 
-const Home: NextPage = () => {
+type HomePageProps = {
+  posts: BlogIndividualPage[];
+};
+
+export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
+  // As of Jan 2022, { fallback: false } in getStaticPaths does not prevent Vercel
+  // from calling getStaticProps for unknown pages. This causes 500 instead of 404:
+  //
+  //   Error: ENOENT: no such file or directory, open '{...}/_pages/docs/undefined'
+  //
+  // Using try / catch prevents 500, but we might not need them in Next v12+.
+  try {
+    const posts = await Promise.all(
+      getAllPages<BlogPost>("blog")
+        .sort((pageA, pageB) => {
+          const timeA = pageB.data.date
+            ? new Date(pageB.data.date).getTime()
+            : 0;
+
+          const timeB = pageA.data.date
+            ? new Date(pageA.data.date).getTime()
+            : 0;
+
+          return timeA - timeB;
+        })
+        .map(async (page) => ({
+          ...page,
+          photos: {
+            post: page.data.postPhoto
+              ? await getPhoto(page.data.postPhoto)
+              : null,
+            postSquare: page.data.postPhotoSquare
+              ? await getPhoto(page.data.postPhotoSquare)
+              : null,
+          },
+        })),
+    );
+
+    return { props: { posts } };
+  } catch (err) {
+    // @todo better error when MDX content is broken
+    return { notFound: true };
+  }
+};
+
+const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
   return (
-    <>
-      <Hero />
-      <Projects />
-      <Tutorials />
-    </>
+    <BlogPostsProvider value={{ posts }}>
+      <PageLayout subscribe recentBlogPosts>
+        <Hero />
+        <Projects />
+        <Tutorials />
+      </PageLayout>
+    </BlogPostsProvider>
   );
 };
+
+Home.getLayout = (page) => page;
 
 export default Home;

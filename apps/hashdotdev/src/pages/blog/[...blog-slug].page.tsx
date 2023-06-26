@@ -18,7 +18,7 @@ export type BlogPostAuthorWithPhotoSrc = {
   photo: string;
 };
 
-export type BlogPostProps = {
+export type BlogPost = {
   title: string;
   subtitle: string;
   authors: BlogPostAuthorWithPhotoSrc[];
@@ -36,7 +36,7 @@ export type BlogPostAuthor = {
 type BlogPostPageProps = {
   serializedPage: MDXRemoteSerializeResult<Record<string, unknown>>;
   photos: BlogPagePhotos;
-  data: Partial<Omit<BlogPostProps, "authors"> & { authors: BlogPostAuthor[] }>;
+  data: Partial<Omit<BlogPost, "authors"> & { authors: BlogPostAuthor[] }>;
 };
 
 type BlogPostPageQueryParams = {
@@ -101,7 +101,7 @@ export const getStaticProps: GetStaticProps<
     };
 
     const authors: BlogPostAuthor[] = await Promise.all(
-      (data.authors as BlogPostProps["authors"]).map(async (author) => ({
+      (data.authors as BlogPost["authors"]).map(async (author) => ({
         ...author,
         photo: await getPhoto(author.photo),
       })),
