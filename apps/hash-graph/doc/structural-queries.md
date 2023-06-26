@@ -21,17 +21,17 @@ A query consists of two parts: a set of filters and the depth of how far the res
 
 The filters are used to determine which root vertices will be included in the subgraph. A filter is composed of a set of condition of parameters and paths. A path is a sequence of steps that describe a path through the Graph. Depending on the type of the query the path will either start at an entity or a type. A parameter is a user defined variable that can be used to parameterize the query. A condition is a boolean expression that constrains the result space. Currently, equality and inequality are the only supported conditions.
 
-A path is a sequence of tokens describing what component will be filtered on. For example, each type has a `baseUri` component that can be used to identify the type. If a query is supposed to filter all entity types, which have the URI `https://example.com/foo/`, the filter would look like
+A path is a sequence of tokens describing what component will be filtered on. For example, each type has a `baseUrl` component that can be used to identify the type. If a query is supposed to filter all entity types, which have the URL `https://example.com/foo/`, the filter would look like
 
 ```json5
 {
   filter: {
-    equal: [{ path: ["baseUri"] }, { parameter: "https://example.com/foo/" }],
+    equal: [{ path: ["baseUrl"] }, { parameter: "https://example.com/foo/" }],
   },
 }
 ```
 
-Currently, three different parameter types can be specified: booleans, numbers, and strings. Depending on the path, the parameters may require a specific format, e.g. a UUID, a timestamp, or a URI.
+Currently, three different parameter types can be specified: booleans, numbers, and strings. Depending on the path, the parameters may require a specific format, e.g. a UUID, a timestamp, or a URL.
 
 ### Composability
 
@@ -153,8 +153,8 @@ For an exhaustive list of all supported paths, please generate the Rust document
     all: [
       {
         equal: [
-          { path: ["baseUri"] },
-          { parameter: "{{base_uri_of_desired_type}}" },
+          { path: ["baseUrl"] },
+          { parameter: "{{base_url_of_desired_type}}" },
         ],
       },
       {
@@ -190,7 +190,7 @@ For an exhaustive list of all supported paths, please generate the Rust document
 {
   filter: {
     equal: [
-      { path: ["type", "inheritsFrom", "*", "baseUri"] },
+      { path: ["type", "inheritsFrom", "*", "baseUrl"] },
       {
         parameter: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
       },

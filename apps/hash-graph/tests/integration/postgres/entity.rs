@@ -3,7 +3,7 @@ use graph::{
     knowledge::{EntityLinkOrder, EntityProperties},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
 
@@ -25,11 +25,11 @@ async fn insert() {
     let metadata = api
         .create_entity(
             person.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             None,
@@ -62,11 +62,11 @@ async fn query() {
     let metadata = api
         .create_entity(
             organization.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             None,
@@ -101,11 +101,11 @@ async fn update() {
     let v1_metadata = api
         .create_entity(
             page_v1.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             None,
@@ -117,11 +117,11 @@ async fn update() {
         .update_entity(
             v1_metadata.record_id().entity_id,
             page_v2.clone(),
-            VersionedUri {
-                base_uri: BaseUri::new(
+            VersionedUrl {
+                base_url: BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                 )
-                .expect("couldn't construct Base URI"),
+                .expect("couldn't construct Base URL"),
                 version: 1,
             },
             EntityLinkOrder {

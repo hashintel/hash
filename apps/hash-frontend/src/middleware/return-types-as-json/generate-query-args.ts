@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { DocumentNode } from "graphql";
 
 import {
@@ -28,7 +28,7 @@ const zeroDepth = { outgoing: 0 };
 type OntologyType = "data-type" | "entity-type" | "property-type";
 
 export const generateQueryArgs = (
-  versionedUri: VersionedUri,
+  versionedUrl: VersionedUrl,
   ontologyType: OntologyType,
 ): {
   query: string;
@@ -42,7 +42,7 @@ export const generateQueryArgs = (
       return {
         query: queryStringFromNode(getDataTypeQuery),
         variables: {
-          dataTypeId: versionedUri,
+          dataTypeId: versionedUrl,
           constrainsValuesOn: zeroDepth,
         },
       };
@@ -50,7 +50,7 @@ export const generateQueryArgs = (
       return {
         query: queryStringFromNode(getEntityTypeQuery),
         variables: {
-          entityTypeId: versionedUri,
+          entityTypeId: versionedUrl,
           constrainsLinkDestinationsOn: zeroDepth,
           constrainsLinksOn: zeroDepth,
           constrainsPropertiesOn: zeroDepth,
@@ -63,7 +63,7 @@ export const generateQueryArgs = (
         variables: {
           constrainsValuesOn: zeroDepth,
           constrainsPropertiesOn: zeroDepth,
-          propertyTypeId: versionedUri,
+          propertyTypeId: versionedUrl,
         },
       };
   }

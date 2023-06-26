@@ -1,39 +1,44 @@
-use std::{borrow::Borrow, iter::once};
+use std::{
+    borrow::Borrow,
+    collections::{HashMap, HashSet},
+    iter::once,
+    mem,
+};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
-#[cfg(feature = "type-fetcher")]
-use tokio_serde::formats::MessagePack;
-#[cfg(feature = "type-fetcher")]
-use type_fetcher::fetcher::FetcherClient;
-use type_fetcher::{fetcher::OntologyType, fetcher_server::OntologyTypeReference};
+use tokio_serde::formats::Json;
+use type_fetcher::fetcher::{FetcherClient, OntologyTypeRepr};
 use type_system::{
-    uri::VersionedUri, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference,
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, EntityTypeReference, PropertyType,
 };
 
 use crate::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
+        ontology::OntologyTypeVersion,
         time::{DecisionTime, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeWithMetadata,
-        ExternalOntologyElementMetadata, OntologyElementMetadata, PropertyTypeWithMetadata,
+        ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyTypeReference,
+        PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
-        AccountStore, DataTypeStore, EntityStore, EntityTypeStore, InsertionError,
-        PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
+        InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
+        identifier::VertexId,
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -42,6 +47,16 @@ use crate::{
         Subgraph,
     },
 };
+
+#[async_trait]
+pub trait TypeFetcher {
+    /// Fetches the provided type reference and inserts it to the Graph.
+    async fn insert_external_ontology_type(
+        &mut self,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, InsertionError>;
+}
 
 pub struct FetchingPool<P, A> {
     pool: P,
@@ -108,7 +123,7 @@ where
     where
         A: ToSocketAddrs,
     {
-        let transport = tarpc::serde_transport::tcp::connect(&self.address, MessagePack::default)
+        let transport = tarpc::serde_transport::tcp::connect(&self.address, Json::default)
             .await
             .into_report()
             .change_context(StoreError)
@@ -119,6 +134,18 @@ where
     pub fn store(&mut self) -> &mut S {
         &mut self.store
     }
+}
+
+#[derive(Default)]
+struct FetchedOntologyTypes {
+    data_types: Vec<(DataType, OntologyElementMetadata)>,
+    property_types: Vec<(PropertyType, OntologyElementMetadata)>,
+    entity_types: Vec<(EntityType, OntologyElementMetadata)>,
+}
+
+enum FetchBehavior {
+    IncludeProvidedReferences,
+    ExcludeProvidedReferences,
 }
 
 impl<'t, S, A> FetchingStore<S, A>
@@ -134,12 +161,13 @@ where
         S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
         A: Send + Sync,
     {
-        fn create_query<'u, T>(versioned_uri: &'u VersionedUri) -> StructuralQuery<'u, T>
+        fn create_query<'u, T>(versioned_url: &'u VersionedUrl) -> StructuralQuery<'u, T>
         where
             T: Record<QueryPath<'u>: OntologyQueryPath>,
+            T::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
         {
             StructuralQuery {
-                filter: Filter::for_versioned_uri(versioned_uri),
+                filter: Filter::for_versioned_url(versioned_url),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -148,13 +176,13 @@ where
             }
         }
 
-        let uri = match ontology_type_reference {
-            OntologyTypeReference::DataTypeReference(reference) => reference.uri(),
-            OntologyTypeReference::PropertyTypeReference(reference) => reference.uri(),
-            OntologyTypeReference::EntityTypeReference(reference) => reference.uri(),
+        let url = match ontology_type_reference {
+            OntologyTypeReference::DataTypeReference(reference) => reference.url(),
+            OntologyTypeReference::PropertyTypeReference(reference) => reference.url(),
+            OntologyTypeReference::EntityTypeReference(reference) => reference.url(),
         };
 
-        if self.domain_validator.validate_url(uri.base_uri.as_str()) {
+        if self.domain_validator.validate_url(url.base_url.as_str()) {
             // If the domain is valid, we own the data type and it either exists or we cannot
             // reference it.
             return Ok(true);
@@ -162,13 +190,13 @@ where
 
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => {
-                self.store.get_data_type(&create_query(uri)).await
+                self.store.get_data_type(&create_query(url)).await
             }
             OntologyTypeReference::PropertyTypeReference(_) => {
-                self.store.get_property_type(&create_query(uri)).await
+                self.store.get_property_type(&create_query(url)).await
             }
             OntologyTypeReference::EntityTypeReference(_) => {
-                self.store.get_entity_type(&create_query(uri)).await
+                self.store.get_entity_type(&create_query(url)).await
             }
         }
         .change_context(StoreError)
@@ -196,142 +224,173 @@ where
 
     async fn fetch_external_ontology_types(
         &self,
-        ontology_type_references: impl IntoIterator<
-            Item = (OntologyTypeReference<'_>, UpdatedById),
-            IntoIter: Send,
-        > + Send,
-    ) -> Result<
-        (
-            Vec<(DataType, OntologyElementMetadata)>,
-            Vec<(PropertyType, OntologyElementMetadata)>,
-            Vec<(EntityType, OntologyElementMetadata)>,
-        ),
-        StoreError,
-    > {
-        let fetcher_client = self.fetcher_client().await?;
+        ontology_type_references: Vec<VersionedUrl>,
+        actor_id: RecordCreatedById,
+        fetch_behavior: FetchBehavior,
+    ) -> Result<FetchedOntologyTypes, StoreError> {
+        let provenance_metadata = ProvenanceMetadata::new(actor_id);
 
-        let mut data_types = Vec::new();
-        let mut property_types = Vec::new();
-        let mut entity_types = Vec::new();
+        let mut queue = ontology_type_references;
+        let mut seen = match fetch_behavior {
+            FetchBehavior::IncludeProvidedReferences => HashSet::new(),
+            FetchBehavior::ExcludeProvidedReferences => {
+                queue.iter().cloned().collect::<HashSet<_>>()
+            }
+        };
 
-        for (reference, fetched_by) in ontology_type_references {
-            let provenance_metadata = ProvenanceMetadata::new(fetched_by);
-            let fetched_ontology_types = fetcher_client
-                .fetch_ontology_type_exhaustive(context::current(), reference.uri().clone())
+        let mut fetched_ontology_types = FetchedOntologyTypes::default();
+
+        let fetcher = self.fetcher_client().await.change_context(StoreError)?;
+        loop {
+            let ontology_urls = mem::take(&mut queue);
+            if ontology_urls.is_empty() {
+                break;
+            }
+
+            let ontology_types = fetcher
+                .fetch_ontology_types(context::current(), ontology_urls)
                 .await
                 .into_report()
                 .change_context(StoreError)?
                 .into_report()
                 .change_context(StoreError)?;
 
-            for fetched_ontology_type in fetched_ontology_types.results {
-                match fetched_ontology_type.ontology_type {
-                    OntologyType::DataType(data_type) => {
-                        let data_type = DataType::try_from(data_type)
+            for (ontology_type, fetched_at) in ontology_types {
+                match ontology_type {
+                    OntologyTypeRepr::DataType(data_type_repr) => {
+                        let data_type = DataType::try_from(data_type_repr)
                             .into_report()
                             .change_context(StoreError)?;
-                        let data_type_reference = DataTypeReference::new(data_type.id().clone());
-                        if !self
-                            .contains_ontology_type(OntologyTypeReference::DataTypeReference(
-                                &data_type_reference,
-                            ))
-                            .await?
-                        {
-                            let metadata = ExternalOntologyElementMetadata::new(
-                                data_type.id().clone().into(),
-                                provenance_metadata,
-                                fetched_ontology_type.fetched_at,
-                            );
+                        let metadata = ExternalOntologyElementMetadata::new(
+                            data_type.id().clone().into(),
+                            provenance_metadata,
+                            fetched_at,
+                        );
 
-                            data_types
-                                .push((data_type, OntologyElementMetadata::External(metadata)));
+                        for referenced_ontology_type in self
+                            .collect_external_ontology_types(&data_type)
+                            .await
+                            .change_context(StoreError)?
+                        {
+                            if !seen.contains(referenced_ontology_type.url()) {
+                                queue.push(referenced_ontology_type.url().clone());
+                                seen.insert(referenced_ontology_type.url().clone());
+                            }
                         }
+
+                        fetched_ontology_types
+                            .data_types
+                            .push((data_type, OntologyElementMetadata::External(metadata)));
                     }
-                    OntologyType::PropertyType(property_type) => {
+                    OntologyTypeRepr::PropertyType(property_type) => {
                         let property_type = PropertyType::try_from(property_type)
                             .into_report()
                             .change_context(StoreError)?;
-                        let property_type_reference =
-                            PropertyTypeReference::new(property_type.id().clone());
-                        if !self
-                            .contains_ontology_type(OntologyTypeReference::PropertyTypeReference(
-                                &property_type_reference,
-                            ))
-                            .await?
-                        {
-                            let metadata = ExternalOntologyElementMetadata::new(
-                                property_type.id().clone().into(),
-                                provenance_metadata,
-                                fetched_ontology_type.fetched_at,
-                            );
+                        let metadata = ExternalOntologyElementMetadata::new(
+                            property_type.id().clone().into(),
+                            provenance_metadata,
+                            fetched_at,
+                        );
 
-                            property_types
-                                .push((property_type, OntologyElementMetadata::External(metadata)));
+                        for referenced_ontology_type in self
+                            .collect_external_ontology_types(&property_type)
+                            .await
+                            .change_context(StoreError)?
+                        {
+                            if !seen.contains(referenced_ontology_type.url()) {
+                                queue.push(referenced_ontology_type.url().clone());
+                                seen.insert(referenced_ontology_type.url().clone());
+                            }
                         }
+
+                        fetched_ontology_types
+                            .property_types
+                            .push((property_type, OntologyElementMetadata::External(metadata)));
                     }
-                    OntologyType::EntityType(entity_type) => {
+                    OntologyTypeRepr::EntityType(entity_type) => {
                         let entity_type = EntityType::try_from(entity_type)
                             .into_report()
                             .change_context(StoreError)?;
-                        let entity_type_reference =
-                            EntityTypeReference::new(entity_type.id().clone());
-                        if !self
-                            .contains_ontology_type(OntologyTypeReference::EntityTypeReference(
-                                &entity_type_reference,
-                            ))
-                            .await?
-                        {
-                            let metadata = ExternalOntologyElementMetadata::new(
-                                entity_type.id().clone().into(),
-                                provenance_metadata,
-                                fetched_ontology_type.fetched_at,
-                            );
+                        let metadata = ExternalOntologyElementMetadata::new(
+                            entity_type.id().clone().into(),
+                            provenance_metadata,
+                            fetched_at,
+                        );
 
-                            entity_types
-                                .push((entity_type, OntologyElementMetadata::External(metadata)));
+                        for referenced_ontology_type in self
+                            .collect_external_ontology_types(&entity_type)
+                            .await
+                            .change_context(StoreError)?
+                        {
+                            if !seen.contains(referenced_ontology_type.url()) {
+                                queue.push(referenced_ontology_type.url().clone());
+                                seen.insert(referenced_ontology_type.url().clone());
+                            }
                         }
+
+                        fetched_ontology_types
+                            .entity_types
+                            .push((entity_type, OntologyElementMetadata::External(metadata)));
                     }
                 }
             }
         }
 
-        Ok((data_types, property_types, entity_types))
+        Ok(fetched_ontology_types)
     }
 
     async fn insert_external_types<'o, T: crate::ontology::OntologyType + Sync + 'o>(
         &mut self,
-        ontology_types: impl IntoIterator<Item = (&'o T, UpdatedById), IntoIter: Send> + Send,
+        ontology_types: impl IntoIterator<Item = (&'o T, RecordCreatedById), IntoIter: Send> + Send,
     ) -> Result<(), InsertionError> {
         // Without collecting it first, we get a "Higher-ranked lifetime error" because of the
         // limitations of Rust being able to look into a `Pin<Box<dyn Future>>`, which is returned
         // by `#[async_trait]` methods.
         let ontology_types = ontology_types.into_iter().collect::<Vec<_>>();
 
-        let mut ontology_types_to_fetch = Vec::new();
-        for (ontology_type, fetched_by) in ontology_types {
-            ontology_types_to_fetch.extend(
-                self.collect_external_ontology_types(ontology_type)
-                    .await
-                    .change_context(InsertionError)?
-                    .into_iter()
-                    .map(|ontology_type| (ontology_type, fetched_by)),
-            );
+        let mut partitioned_ontology_types = HashMap::<RecordCreatedById, Vec<VersionedUrl>>::new();
+
+        for (ontology_type, actor_id) in ontology_types {
+            let external_types = self
+                .collect_external_ontology_types(ontology_type)
+                .await
+                .change_context(InsertionError)?;
+
+            if !external_types.is_empty() {
+                partitioned_ontology_types
+                    .entry(actor_id)
+                    .or_default()
+                    .extend(
+                        external_types
+                            .into_iter()
+                            .map(|ontology_type| ontology_type.url().clone()),
+                    );
+            }
         }
 
-        if ontology_types_to_fetch.is_empty() {
-            return Ok(());
+        for (actor_id, ontology_types_to_fetch) in partitioned_ontology_types {
+            let fetched_ontology_types = self
+                .fetch_external_ontology_types(
+                    ontology_types_to_fetch,
+                    actor_id,
+                    FetchBehavior::ExcludeProvidedReferences,
+                )
+                .await
+                .change_context(InsertionError)?;
+
+            self.store
+                .create_data_types(fetched_ontology_types.data_types, ConflictBehavior::Skip)
+                .await?;
+            self.store
+                .create_property_types(
+                    fetched_ontology_types.property_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+            self.store
+                .create_entity_types(fetched_ontology_types.entity_types, ConflictBehavior::Skip)
+                .await?;
         }
-
-        let (fetched_data_types, fetched_property_types, fetched_entity_types) = self
-            .fetch_external_ontology_types(ontology_types_to_fetch)
-            .await
-            .change_context(InsertionError)?;
-
-        self.store.create_data_types(fetched_data_types).await?;
-        self.store
-            .create_property_types(fetched_property_types)
-            .await?;
-        self.store.create_entity_types(fetched_entity_types).await?;
 
         Ok(())
     }
@@ -339,26 +398,92 @@ where
     async fn insert_external_types_by_reference(
         &mut self,
         reference: OntologyTypeReference<'_>,
-        fetched_by: UpdatedById,
-    ) -> Result<(), InsertionError> {
-        if !self
-            .contains_ontology_type(reference)
-            .await
-            .change_context(InsertionError)?
+        actor_id: RecordCreatedById,
+        on_conflict: ConflictBehavior,
+        fetch_behavior: FetchBehavior,
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+        if on_conflict == ConflictBehavior::Fail
+            || !self
+                .contains_ontology_type(reference)
+                .await
+                .change_context(InsertionError)?
         {
-            let (fetched_data_types, fetched_property_types, fetched_entity_types) = self
-                .fetch_external_ontology_types(once((reference, fetched_by)))
+            let fetched_ontology_types = self
+                .fetch_external_ontology_types(
+                    vec![reference.url().clone()],
+                    actor_id,
+                    fetch_behavior,
+                )
                 .await
                 .change_context(InsertionError)?;
 
-            self.store.create_data_types(fetched_data_types).await?;
-            self.store
-                .create_property_types(fetched_property_types)
-                .await?;
-            self.store.create_entity_types(fetched_entity_types).await?;
-        }
+            let metadata = fetched_ontology_types
+                .data_types
+                .iter()
+                .map(|(_, metadata)| metadata.clone())
+                .chain(
+                    fetched_ontology_types
+                        .property_types
+                        .iter()
+                        .map(|(_, metadata)| metadata.clone()),
+                )
+                .chain(
+                    fetched_ontology_types
+                        .entity_types
+                        .iter()
+                        .map(|(_, metadata)| metadata.clone()),
+                )
+                .collect::<Vec<_>>();
 
-        Ok(())
+            self.store
+                .create_data_types(fetched_ontology_types.data_types, ConflictBehavior::Skip)
+                .await?;
+            self.store
+                .create_property_types(
+                    fetched_ontology_types.property_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+            self.store
+                .create_entity_types(fetched_ontology_types.entity_types, ConflictBehavior::Skip)
+                .await?;
+
+            Ok(metadata)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+}
+
+#[async_trait]
+impl<S, A> TypeFetcher for FetchingStore<S, A>
+where
+    A: ToSocketAddrs + Send + Sync,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+{
+    async fn insert_external_ontology_type(
+        &mut self,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, InsertionError> {
+        self.insert_external_types_by_reference(
+            reference,
+            actor_id,
+            ConflictBehavior::Fail,
+            FetchBehavior::IncludeProvidedReferences,
+        )
+        .await?
+        .into_iter()
+        .find(|metadata| {
+            metadata.record_id().base_url == reference.url().base_url
+                && metadata.record_id().version.inner() == reference.url().version
+        })
+        .ok_or_else(|| {
+            Report::new(InsertionError).attach_printable(format!(
+                "external type was not fetched: {}",
+                reference.url()
+            ))
+        })
     }
 }
 
@@ -368,11 +493,14 @@ where
     A: Send + Sync,
     S: Read<R> + Send,
 {
+    type ReadStream = S::ReadStream;
+    type Record = S::Record;
+
     async fn read(
         &self,
-        query: &Filter<R>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<Vec<R>, QueryError> {
+        query: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError> {
         self.store.read(query, temporal_axes).await
     }
 }
@@ -400,18 +528,22 @@ where
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let data_types = data_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(data_types.iter().map(|(data_type, metadata)| {
             (
                 data_type,
-                metadata.borrow().provenance_metadata().updated_by_id(),
+                metadata
+                    .borrow()
+                    .provenance_metadata()
+                    .record_created_by_id(),
             )
         }))
         .await?;
 
-        self.store.create_data_types(data_types).await
+        self.store.create_data_types(data_types, on_conflict).await
     }
 
     async fn get_data_type(
@@ -424,7 +556,7 @@ where
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(once((&data_type, actor_id)))
             .await
@@ -449,18 +581,24 @@ where
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(property_types.iter().map(|(property_type, metadata)| {
             (
                 property_type,
-                metadata.borrow().provenance_metadata().updated_by_id(),
+                metadata
+                    .borrow()
+                    .provenance_metadata()
+                    .record_created_by_id(),
             )
         }))
         .await?;
 
-        self.store.create_property_types(property_types).await
+        self.store
+            .create_property_types(property_types, on_conflict)
+            .await
     }
 
     async fn get_property_type(
@@ -473,7 +611,7 @@ where
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(once((&property_type, actor_id)))
             .await
@@ -500,18 +638,24 @@ where
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let entity_types = entity_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(entity_types.iter().map(|(entity_type, metadata)| {
             (
                 entity_type,
-                metadata.borrow().provenance_metadata().updated_by_id(),
+                metadata
+                    .borrow()
+                    .provenance_metadata()
+                    .record_created_by_id(),
             )
         }))
         .await?;
 
-        self.store.create_entity_types(entity_types).await
+        self.store
+            .create_entity_types(entity_types, on_conflict)
+            .await
     }
 
     async fn get_entity_type(
@@ -524,7 +668,7 @@ where
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(once((&entity_type, actor_id)))
             .await
@@ -545,16 +689,18 @@ where
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            updated_by_id,
+            record_created_by_id,
+            ConflictBehavior::Skip,
+            FetchBehavior::ExcludeProvidedReferences,
         )
         .await?;
 
@@ -563,7 +709,7 @@ where
                 owned_by_id,
                 entity_uuid,
                 decision_time,
-                updated_by_id,
+                record_created_by_id,
                 archived,
                 entity_type_id,
                 properties,
@@ -572,7 +718,8 @@ where
             .await
     }
 
-    #[cfg(feature = "__internal_bench")]
+    #[doc(hidden)]
+    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
@@ -585,13 +732,15 @@ where
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: UpdatedById,
-        entity_type_id: &VersionedUri,
+        actor_id: RecordCreatedById,
+        entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             actor_id,
+            ConflictBehavior::Skip,
+            FetchBehavior::ExcludeProvidedReferences,
         )
         .await?;
 
@@ -608,16 +757,18 @@ where
         &mut self,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
-            updated_by_id,
+            record_created_by_id,
+            ConflictBehavior::Skip,
+            FetchBehavior::ExcludeProvidedReferences,
         )
         .await
         .change_context(UpdateError)?;
@@ -626,7 +777,7 @@ where
             .update_entity(
                 entity_id,
                 decision_time,
-                updated_by_id,
+                record_created_by_id,
                 archived,
                 entity_type_id,
                 properties,

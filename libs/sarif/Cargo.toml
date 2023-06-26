@@ -1,0 +1,26 @@
+[package]
+name = "sarif"
+version = "0.0.0-reserved"
+authors = ["HASH"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Representation of the SARIF specification in Rust"
+documentation = "https://docs.rs/sarif"
+readme = "README.md"
+repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
+keywords = ["no_std", "sarif", "codeql", "serde", "static-analysis", "tools"]
+categories = ["no-std", "data-structures", "development-tools", "parsing"]
+
+[dependencies]
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
+semver = { version = "1", default-features = false }
+url = { version = "2", default-features = false }
+uuid = { version = "1", default-features = false }
+
+[features]
+serde = ["dep:serde", "dep:serde_json", "semver/serde", "url/serde", "uuid/serde"]
+
+[dev-dependencies]
+jsonschema = { version = "0.17.0", default-features = false }
+coverage-helper = "0.1.0"

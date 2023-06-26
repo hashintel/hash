@@ -9,9 +9,10 @@
 import { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import {
   CreateResourceError,
+  QueryOperationInput,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Entity,
   EntityId,
@@ -47,7 +48,7 @@ export type GetEntityMessageCallback = MessageCallback<
 
 export type UpdateEntityData = {
   entityId: EntityId;
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
 } & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
 
@@ -79,20 +80,20 @@ export type UploadFileRequestCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type AggregateEntitiesRequest = {
-  rootEntityTypeIds?: VersionedUri[];
+export type QueryEntitiesRequest = {
+  operation: QueryOperationInput;
   graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
-export type AggregateEntitiesMessageCallback = MessageCallback<
-  AggregateEntitiesRequest,
+export type QueryEntitiesMessageCallback = MessageCallback<
+  QueryEntitiesRequest,
   null,
   MessageReturn<Subgraph<EntityRootType>>,
   ReadOrModifyResourceError
 >;
 
 export type CreateEntityRequest = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
   linkData?: LinkData;
 };
@@ -119,6 +120,6 @@ export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
   createEntity: CreateEntityMessageCallback;
-  aggregateEntities: AggregateEntitiesMessageCallback;
+  queryEntities: QueryEntitiesMessageCallback;
   archiveEntity: ArchiveEntityMessageCallback;
 };

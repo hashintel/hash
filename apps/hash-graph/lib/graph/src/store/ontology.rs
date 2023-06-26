@@ -9,8 +9,8 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::UpdatedById,
-    store::{crud, InsertionError, QueryError, UpdateError},
+    provenance::RecordCreatedById,
+    store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
 
@@ -22,15 +22,16 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by `metadata` does not exist.
-    /// - if the [`BaseUri`] of the `data_type` already exists.
+    /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_type(
         &mut self,
         schema: DataType,
         metadata: &OntologyElementMetadata,
     ) -> Result<(), InsertionError> {
-        self.create_data_types(iter::once((schema, metadata))).await
+        self.create_data_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .await
     }
 
     /// Creates the provided [`DataType`]s.
@@ -38,15 +39,16 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by the metadata does not exist.
-    /// - if any [`BaseUri`] of the data type already exists.
+    /// - if any [`BaseUrl`] of the data type already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_types(
         &mut self,
         data_types: impl IntoIterator<
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -67,7 +69,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
@@ -79,15 +81,15 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by `metadata` does not exist.
-    /// - if the [`BaseUri`] of the `property_type` already exists.
+    /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_property_type(
         &mut self,
         schema: PropertyType,
         metadata: &OntologyElementMetadata,
     ) -> Result<(), InsertionError> {
-        self.create_property_types(iter::once((schema, metadata)))
+        self.create_property_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
             .await
     }
 
@@ -96,9 +98,9 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by the metadata does not exist.
-    /// - if any [`BaseUri`] of the property type already exists.
+    /// - if any [`BaseUrl`] of the property type already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
@@ -108,6 +110,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -128,7 +131,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
@@ -140,15 +143,15 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by `metadata` does not exist.
-    /// - if the [`BaseUri`] of the `entity_type` already exists.
+    /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_type(
         &mut self,
         schema: EntityType,
         metadata: &OntologyElementMetadata,
     ) -> Result<(), InsertionError> {
-        self.create_entity_types(iter::once((schema, metadata)))
+        self.create_entity_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
             .await
     }
 
@@ -157,18 +160,19 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// # Errors:
     ///
     /// - if any account referred to by the metadata does not exist.
-    /// - if any [`BaseUri`] of the entity type already exists.
+    /// - if any [`BaseUrl`] of the entity type already exists.
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_types(
         &mut self,
-        property_types: impl IntoIterator<
+        entity_types: impl IntoIterator<
             Item = (
                 EntityType,
                 impl Borrow<OntologyElementMetadata> + Send + Sync,
             ),
             IntoIter: Send,
         > + Send,
+        on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
@@ -189,6 +193,6 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        actor_id: UpdatedById,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 }

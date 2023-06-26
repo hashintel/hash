@@ -1,7 +1,11 @@
-import { extractBaseUri } from "@blockprotocol/type-system/slim";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Chip,
+  fluidFontClassName,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   Checkbox,
@@ -193,11 +197,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
   }, [properties, show]);
 
   const options = useMemo(() => {
-    const propertyTypeBaseUri = getValues(`propertyTypeBaseUri`);
+    const propertyTypeBaseUrl = getValues(`propertyTypeBaseUrl`);
     return Object.values(propertyTypes)
       .map(({ $id }) => $id)
       .filter(
-        (versionedUri) => extractBaseUri(versionedUri) !== propertyTypeBaseUri,
+        (versionedUrl) => extractBaseUrl(versionedUrl) !== propertyTypeBaseUrl,
       );
   }, [propertyTypes, getValues]);
 
@@ -245,7 +249,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                 }}
               >
                 ALLOW MULTIPLE
-                <Tooltip title="Allow multiple values" placement="top">
+                <Tooltip
+                  title="Allow multiple values"
+                  placement="top"
+                  classes={{ popper: fluidFontClassName }}
+                >
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     sx={{

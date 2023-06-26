@@ -6,8 +6,9 @@ import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
+import { useBlockProtocolQueryEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../../../../../../../../shared/filters";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
@@ -24,7 +25,7 @@ export const EntitySelector = ({
   entityIdsToFilterOut,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { queryEntities } = useBlockProtocolQueryEntities();
   const [search, setSearch] = useState("");
 
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -35,11 +36,16 @@ export const EntitySelector = ({
     const init = async () => {
       try {
         setLoading(true);
-        const { data } = await aggregateEntities({
+        const { data } = await queryEntities({
           data: {
-            rootEntityTypeIds: expectedEntityTypes.map(
-              ({ schema }) => schema.$id,
-            ),
+            operation: {
+              multiFilter: {
+                filters: expectedEntityTypes.map(({ schema }) =>
+                  entityHasEntityTypeByVersionedUrlFilter(schema.$id),
+                ),
+                operator: "OR",
+              },
+            },
           },
         });
 
@@ -52,7 +58,7 @@ export const EntitySelector = ({
     };
 
     void init();
-  }, [aggregateEntities, expectedEntityTypes]);
+  }, [queryEntities, expectedEntityTypes]);
 
   const sortedAndFilteredEntities = useMemo(() => {
     return [...entities]
@@ -100,11 +106,11 @@ export const EntitySelector = ({
       loading={loading}
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => ({
+        uniqueId: entity.metadata.recordId.entityId,
         /**
-         * @todo we should show namespace the entity belongs on the OntologyChip here.
-         * Using entity type for now
+         * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
          * */
-        $id: entity.metadata.entityTypeId,
+        typeId: entity.metadata.entityTypeId,
         title: generateEntityLabel(entitySubgraph, entity),
       })}
       inputPlaceholder="Search for an entity"

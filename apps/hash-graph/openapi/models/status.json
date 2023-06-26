@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Status",
+  "type": "object",
+  "properties": {
+    "code": {
+      "$ref": "#/definitions/StatusCode",
+      "title": "code"
+    },
+    "message": {
+      "description": "A developer-facing description of the status.\n\nWhere possible, this should provide guiding advice for debugging and/or handling the error.",
+      "type": "string"
+    },
+    "contents": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/ErrorInfo"
+          },
+          {
+            "$ref": "#/definitions/RequestInfo"
+          },
+          {
+            "$ref": "#/definitions/ResourceInfo"
+          }
+        ]
+      }
+    }
+  },
+  "required": ["code", "contents"],
+  "definitions": {
+    "StatusCode": {
+      "description": "The canonical status codes for software within the HASH ecosystem.\nSometimes multiple status codes may apply. Services should return the most specific status code\nthat applies. For example, prefer `OutOfRange` over `FailedPrecondition` if both codes\napply. Similarly prefer `NotFound` or `AlreadyExists` over `FailedPrecondition`.",
+      "title": "StatusCode",
+      "enum": [
+        "ABORTED",
+        "ALREADY_EXISTS",
+        "CANCELLED",
+        "DATA_LOSS",
+        "DEADLINE_EXCEEDED",
+        "FAILED_PRECONDITION",
+        "INTERNAL",
+        "INVALID_ARGUMENT",
+        "NOT_FOUND",
+        "OK",
+        "OUT_OF_RANGE",
+        "PERMISSION_DENIED",
+        "RESOURCE_EXHAUSTED",
+        "UNAUTHENTICATED",
+        "UNAVAILABLE",
+        "UNIMPLEMENTED",
+        "UNKNOWN"
+      ],
+      "type": "string"
+    },
+    "ErrorInfo": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "The reason of the error. This is a constant value that identifies the proximate cause of\nthe error. Error reasons are unique within a particular domain of errors. This should be at\nmost 63 characters and match a regular expression of `[A-Z][A-Z0-9_]+[A-Z0-9]`, which\nrepresents UPPER_SNAKE_CASE.",
+          "type": "string",
+          "title": "reason"
+        },
+        "domain": {
+          "description": "The logical grouping to which the \"reason\" belongs.\nThe error domain is typically the registered service name of the tool or product that\ngenerates the error.",
+          "type": "string",
+          "title": "domain"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Record<string,any>",
+          "description": "Additional structured details about this error.\n\nKeys should match /[a-zA-Z0-9-_]/ and be limited to 64 characters in length. When\nidentifying the current value of an exceeded limit, the units should be contained in the\nkey, not the value.  For example, rather than {\"instanceLimit\": \"100/request\"}, should be\nreturned as, {\"instanceLimitPerRequest\": \"100\"}, if the client exceeds the number of\ninstances that can be created in a single (batch) request.",
+          "title": "metadata"
+        }
+      },
+      "required": ["domain", "metadata", "reason"]
+    },
+    "RequestInfo": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "description": "An opaque string that should only be interpreted by the service generating it. For example, it\ncan be used to identify requests in the service's logs.",
+          "type": "string",
+          "title": "requestId"
+        },
+        "servingData": {
+          "description": "Any data that was used to serve this request. For example, an encrypted stack trace that can be\nsent back to the service provider for debugging.",
+          "type": "string",
+          "title": "servingData"
+        }
+      },
+      "required": ["requestId", "servingData"]
+    },
+    "ResourceInfo": {
+      "type": "object",
+      "properties": {
+        "resourceType": {
+          "description": "A name for the type of resource being accessed.\n\nFor example \"SQL table\", \"Entity\", \"Property Type\", \"Redis\"; or the type URL of the resource:\ne.g. \"https://blockprotocol.org/type-system/0.3/schema/meta/entity-type\".",
+          "type": "string",
+          "title": "resourceType"
+        },
+        "resourceName": {
+          "description": "The name of the resource being accessed.\n\nFor example, an ontology type ID: `https://hash.ai/@alice/types/entity-type/Person/`, if the current\nerror is [@local/status/StatusCode.PermissionDenied].",
+          "type": "string",
+          "title": "resourceName"
+        },
+        "owner": {
+          "description": "The owner of the resource (optional).\n\nFor example, a User's entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;",
+          "type": "string",
+          "title": "owner"
+        },
+        "description": {
+          "description": "Describes what error is encountered when accessing this resource.\n\nFor example, updating a property on a user's entity may require write permission on that property.",
+          "type": "string",
+          "title": "description"
+        }
+      },
+      "required": ["description", "resourceName", "resourceType"]
+    },
+    "Record<string,any>": {
+      "description": "Construct a type with a set of properties K of type T",
+      "title": "Record<string,any>",
+      "type": "object"
+    }
+  }
+}

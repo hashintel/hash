@@ -1,46 +1,46 @@
 import {
-  extractBaseUri as extractBaseUriBp,
-  ParseVersionedUriError,
-  validateVersionedUri,
-  VersionedUri,
+  extractBaseUrl as extractBaseUrlBp,
+  ParseVersionedUrlError,
+  validateVersionedUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 
-import { BaseUri } from "../types";
+import { BaseUrl } from "../types";
 
-export const extractBaseUri = (versionedUri: VersionedUri): BaseUri =>
-  extractBaseUriBp(versionedUri) as BaseUri;
+export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
+  extractBaseUrlBp(versionedUrl) as BaseUrl;
 
-export class InvalidVersionedUriComponentsError extends Error {
-  components: { baseUri: BaseUri; version: number };
-  error: ParseVersionedUriError;
+export class InvalidVersionedUrlComponentsError extends Error {
+  components: { baseUrl: BaseUrl; version: number };
+  error: ParseVersionedUrlError;
 
   constructor(
-    components: { baseUri: BaseUri; version: number },
-    error: ParseVersionedUriError,
+    components: { baseUrl: BaseUrl; version: number },
+    error: ParseVersionedUrlError,
   ) {
     super(
-      `Failed to create versioned URI from components: ${JSON.stringify(
+      `Failed to create versioned URL from components: ${JSON.stringify(
         error,
       )}`,
     );
-    this.name = "InvalidVersionedUriComponentsError";
+    this.name = "InvalidVersionedUrlComponentsError";
     this.components = components;
     this.error = error;
   }
 }
 
 /** @todo - Expose this through the Type System package */
-export const versionedUriFromComponents = (
-  baseUri: BaseUri,
+export const versionedUrlFromComponents = (
+  baseUrl: BaseUrl,
   version: number,
-): VersionedUri => {
-  const versionedUri = `${baseUri}v/${version}`;
+): VersionedUrl => {
+  const versionedUrl = `${baseUrl}v/${version}`;
 
-  const validationResult = validateVersionedUri(versionedUri);
+  const validationResult = validateVersionedUrl(versionedUrl);
 
   if (validationResult.type === "Err") {
-    throw new InvalidVersionedUriComponentsError(
-      { baseUri, version },
+    throw new InvalidVersionedUrlComponentsError(
+      { baseUrl, version },
       validationResult.inner,
     );
   } else {

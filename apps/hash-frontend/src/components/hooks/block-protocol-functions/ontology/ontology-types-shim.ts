@@ -14,7 +14,7 @@ import {
 import {
   EntityType,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { EmptyObject } from "@local/hash-isomorphic-utils/util";
 import {
@@ -26,23 +26,23 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-type SystemDefinedPropertyTypeProperties = "$id" | "kind";
+type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 
 export type OntologyCallbacks = {
-  aggregateDataTypes: AggregateDataTypesMessageCallback;
+  queryDataTypes: QueryDataTypesMessageCallback;
   getDataType: GetDataTypeMessageCallback;
   createPropertyType: CreatePropertyTypeMessageCallback;
-  aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
+  queryPropertyTypes: QueryPropertyTypesMessageCallback;
   getPropertyType: GetPropertyTypeMessageCallback;
   updatePropertyType: UpdatePropertyTypeMessageCallback;
   createEntityType: CreateEntityTypeMessageCallback;
-  aggregateEntityTypes: AggregateEntityTypesMessageCallback;
+  queryEntityTypes: QueryEntityTypesMessageCallback;
   getEntityType: GetEntityTypeMessageCallback;
   updateEntityType: UpdateEntityTypeMessageCallback;
 };
 
 /* Data type CRU */
-export type AggregateDataTypesMessageCallback = MessageCallback<
+export type QueryDataTypesMessageCallback = MessageCallback<
   EmptyObject,
   null,
   MessageReturn<Subgraph<DataTypeRootType>>,
@@ -50,7 +50,7 @@ export type AggregateDataTypesMessageCallback = MessageCallback<
 >;
 
 export type GetDataTypeMessageCallback = MessageCallback<
-  VersionedUri,
+  VersionedUrl,
   null,
   MessageReturn<Subgraph<DataTypeRootType>>,
   ReadOrModifyResourceError
@@ -59,7 +59,7 @@ export type GetDataTypeMessageCallback = MessageCallback<
 /* Property type CRU */
 
 export type CreatePropertyTypeRequest = {
-  propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
+  propertyType: Omit<PropertyType, SystemDefinedOntologyTypeProperties>;
 };
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
@@ -68,21 +68,21 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type AggregatePropertyTypesRequest = {
+export type QueryPropertyTypesRequest = {
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
 };
 
-export type AggregatePropertyTypesMessageCallback = MessageCallback<
-  AggregatePropertyTypesRequest,
+export type QueryPropertyTypesMessageCallback = MessageCallback<
+  QueryPropertyTypesRequest,
   null,
   MessageReturn<Subgraph<PropertyTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
 export type GetPropertyTypeRequest = {
-  propertyTypeId: VersionedUri;
+  propertyTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
@@ -96,8 +96,8 @@ export type GetPropertyTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdatePropertyTypeRequest = {
-  propertyTypeId: VersionedUri;
-  propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
+  propertyTypeId: VersionedUrl;
+  propertyType: Omit<PropertyType, SystemDefinedOntologyTypeProperties>;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
@@ -109,7 +109,7 @@ export type UpdatePropertyTypeMessageCallback = MessageCallback<
 /* Entity type CRU */
 
 export type EntityTypeRequest = {
-  entityType: Omit<EntityType, SystemDefinedPropertyTypeProperties>;
+  entityType: Omit<EntityType, SystemDefinedOntologyTypeProperties>;
 };
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
@@ -118,7 +118,7 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type AggregateEntityTypesRequest = {
+export type QueryEntityTypesRequest = {
   graphResolveDepths?: Partial<
     Pick<
       Subgraph["depths"],
@@ -130,15 +130,15 @@ export type AggregateEntityTypesRequest = {
   >;
 };
 
-export type AggregateEntityTypesMessageCallback = MessageCallback<
-  AggregateEntityTypesRequest,
+export type QueryEntityTypesMessageCallback = MessageCallback<
+  QueryEntityTypesRequest,
   null,
   MessageReturn<Subgraph<EntityTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
 export type GetEntityTypeRequest = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<
       Subgraph["depths"],
@@ -158,8 +158,8 @@ export type GetEntityTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdateEntityTypeRequest = {
-  entityTypeId: VersionedUri;
-  entityType: Omit<EntityType, SystemDefinedPropertyTypeProperties>;
+  entityTypeId: VersionedUrl;
+  entityType: Omit<EntityType, SystemDefinedOntologyTypeProperties>;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,

@@ -29,7 +29,7 @@ use crate::store::{
     Record,
 };
 
-pub trait PostgresRecord: for<'p> Record<QueryPath<'p>: PostgresQueryPath> {
+pub trait PostgresRecord: Record {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 }
@@ -44,7 +44,7 @@ pub trait PostgresQueryPath {
 }
 
 /// Renders the object into a Postgres compatible format.
-pub trait Transpile {
+pub trait Transpile: 'static {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
@@ -75,7 +75,7 @@ mod test_helper {
             .join(" ")
     }
 
-    pub fn max_version_expression() -> Expression<'static> {
+    pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
                 Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(
@@ -86,7 +86,7 @@ mod test_helper {
                     },
                 )),
             )))),
-            WindowStatement::partition_by(DataTypeQueryPath::BaseUri.terminating_column().aliased(
+            WindowStatement::partition_by(DataTypeQueryPath::BaseUrl.terminating_column().aliased(
                 Alias {
                     condition_index: 0,
                     chain_depth: 0,

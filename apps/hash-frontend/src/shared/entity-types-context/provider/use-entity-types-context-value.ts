@@ -1,7 +1,7 @@
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { EntityTypesContextValue } from "../shared/context-types";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
@@ -13,7 +13,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     subgraph: null,
   });
 
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -27,7 +27,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
 
     setTypes((currentTypes) => ({ ...currentTypes, loading: true }));
 
-    const res = await aggregateEntityTypes({ data: {} });
+    const res = await queryEntityTypes({ data: {} });
 
     if (controller.signal.aborted) {
       return;
@@ -41,7 +41,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
       subgraph: subgraph ?? null,
       loading: false,
     });
-  }, [aggregateEntityTypes]);
+  }, [queryEntityTypes]);
 
   const ensureFetched = useCallback(() => {
     if (!fetched.current) {

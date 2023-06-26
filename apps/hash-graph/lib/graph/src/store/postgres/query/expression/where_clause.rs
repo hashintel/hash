@@ -3,12 +3,12 @@ use std::fmt;
 use crate::store::postgres::query::{Condition, Transpile};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
-pub struct WhereExpression<'p> {
-    conditions: Vec<Condition<'p>>,
+pub struct WhereExpression {
+    conditions: Vec<Condition>,
 }
 
-impl<'p> WhereExpression<'p> {
-    pub fn add_condition(&mut self, condition: Condition<'p>) {
+impl WhereExpression {
+    pub fn add_condition(&mut self, condition: Condition) {
         self.conditions.push(condition);
     }
 
@@ -21,7 +21,7 @@ impl<'p> WhereExpression<'p> {
     }
 }
 
-impl Transpile for WhereExpression<'_> {
+impl Transpile for WhereExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.conditions.is_empty() {
             return Ok(());
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn transpile_where_expression() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(&temporal_axes);
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes));
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
@@ -75,7 +75,7 @@ mod tests {
 
         let filter_b = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 )))),
@@ -92,7 +92,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
             )
         );
 
@@ -107,7 +107,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL"#
             )
         );
@@ -133,7 +133,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL
                   AND (("data_types_0_0_0"."schema"->>'title' = $3) OR ("data_types_0_0_0"."schema"->>'description' = $4))"#
             )

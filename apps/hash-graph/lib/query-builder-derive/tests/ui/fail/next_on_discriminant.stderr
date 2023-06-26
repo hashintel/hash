@@ -1,0 +1,5 @@
+error: unexpected attribute `next` on variant without value
+ --> tests/ui/fail/next_on_discriminant.rs:6:5
+  |
+6 |     Nested,
+  |     ^^^^^^

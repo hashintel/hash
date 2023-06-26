@@ -2,23 +2,33 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri, PropertyType};
+use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
+#[cfg(feature = "type-fetcher")]
+use crate::ontology::OntologyTypeReference;
 use crate::{
-    api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
+    api::rest::{
+        json::Json,
+        report_to_status_code,
+        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
+        RestApiStore,
+    },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUriAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    store::{
+        BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
+        StorePool,
+    },
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
@@ -34,6 +44,8 @@ use crate::{
             PropertyTypeWithMetadata,
 
             CreatePropertyTypeRequest,
+            CreateOwnedPropertyTypeRequest,
+            CreateExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
@@ -47,7 +59,10 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-types",
@@ -60,14 +75,29 @@ impl RoutedResource for PropertyTypeResource {
         )
     }
 }
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", untagged)]
+enum CreatePropertyTypeRequest {
+    Owned(CreateOwnedPropertyTypeRequest),
+    #[cfg(feature = "type-fetcher")]
+    External(CreateExternalPropertyTypeRequest),
+}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreatePropertyTypeRequest {
-    #[schema(value_type = VAR_PROPERTY_TYPE)]
-    schema: repr::PropertyType,
+struct CreateOwnedPropertyTypeRequest {
+    #[schema(inline)]
+    schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct CreateExternalPropertyTypeRequest {
+    #[schema(value_type = String)]
+    property_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -76,7 +106,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created property type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created property type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -89,45 +119,80 @@ async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
-    let Json(CreatePropertyTypeRequest {
-        schema,
-        owned_by_id,
-        actor_id,
-    }) = body;
-
-    let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
-    })?;
-
-    domain_validator
-        .validate(&property_type)
-        .map_err(|report| {
-            tracing::error!(error=?report, id=property_type.id().to_string(), "Property Type ID failed to validate");
-            StatusCode::UNPROCESSABLE_ENTITY
-        })?;
-
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        property_type.id().clone().into(),
-        ProvenanceMetadata::new(actor_id),
+    #[allow(clippy::infallible_destructuring_match)]
+    let CreateOwnedPropertyTypeRequest {
+        schema,
         owned_by_id,
-    ));
+        actor_id,
+    } = match body.0 {
+        CreatePropertyTypeRequest::Owned(request) => request,
+        #[cfg(feature = "type-fetcher")]
+        CreatePropertyTypeRequest::External(request) => {
+            return Ok(Json(ListOrValue::Value(
+                store
+                    .load_external_type(
+                        &domain_validator,
+                        OntologyTypeReference::PropertyTypeReference(
+                            (&request.property_type_id).into(),
+                        ),
+                        request.actor_id,
+                    )
+                    .await?,
+            )));
+        }
+    };
+
+    let is_list = matches!(&schema, ListOrValue::List(_));
+
+    let schema_iter = schema.into_iter();
+    let mut property_types = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+
+    for schema in schema_iter {
+        let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
+            tracing::error!(error=?report, "Couldn't convert schema to Property Type");
+            StatusCode::UNPROCESSABLE_ENTITY
+            // TODO - We should probably return more information to the client
+            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        })?;
+
+        domain_validator
+            .validate(&property_type)
+            .map_err(|report| {
+                tracing::error!(error=?report, id=property_type.id().to_string(), "Property Type ID failed to validate");
+                StatusCode::UNPROCESSABLE_ENTITY
+            })?;
+
+        metadata.push(OntologyElementMetadata::Owned(
+            OwnedOntologyElementMetadata::new(
+                property_type.id().clone().into(),
+                ProvenanceMetadata::new(actor_id),
+                owned_by_id,
+            ),
+        ));
+
+        property_types.push(property_type);
+    }
 
     store
-        .create_property_type(property_type, &metadata)
+        .create_property_types(
+            property_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not create property type");
+            tracing::error!(error=?report, "Could not create property types");
 
-            if report.contains::<BaseUriAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -135,7 +200,13 @@ async fn create_property_type<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(metadata))
+    if is_list {
+        Ok(Json(ListOrValue::List(metadata)))
+    } else {
+        Ok(Json(ListOrValue::Value(
+            metadata.pop().expect("metadata does not contain a value"),
+        )))
+    }
 }
 
 #[utoipa::path(
@@ -187,8 +258,8 @@ struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = String)]
-    type_to_update: VersionedUri,
-    actor_id: UpdatedById,
+    type_to_update: VersionedUrl,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

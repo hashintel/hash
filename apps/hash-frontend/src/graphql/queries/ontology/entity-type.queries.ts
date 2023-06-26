@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getEntityTypeQuery = gql`
   query getEntityType(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -23,14 +23,14 @@ export const getEntityTypeQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestEntityTypesQuery = gql`
-  query getAllLatestEntityTypes(
+export const queryEntityTypesQuery = gql`
+  query queryEntityTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
-    getAllLatestEntityTypes(
+    queryEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
@@ -44,7 +44,7 @@ export const getAllLatestEntityTypesQuery = gql`
 
 export const getEntityTypeRootedSubgraphQuery = gql`
   query getEntityTypeRootedSubgraph(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -66,7 +66,7 @@ export const getEntityTypeRootedSubgraphQuery = gql`
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: OwnedById!
-    $entityType: EntityTypeWithoutId!
+    $entityType: ConstructEntityTypeParams!
   ) {
     # This is a scalar, which has no selection.
     createEntityType(ownedById: $ownedById, entityType: $entityType)
@@ -75,8 +75,8 @@ export const createEntityTypeMutation = gql`
 
 export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
-    $entityTypeId: VersionedUri!
-    $updatedEntityType: EntityTypeWithoutId!
+    $entityTypeId: VersionedUrl!
+    $updatedEntityType: ConstructEntityTypeParams!
   ) {
     updateEntityType(
       entityTypeId: $entityTypeId

@@ -1,6 +1,7 @@
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   extractOwnedByIdFromEntityId,
@@ -23,7 +24,8 @@ import {
 } from "../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[entity-type-id].page/shared/edit-bar";
+import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
+import { QUERY_ENTITY_TYPE_ID } from "./[entity-uuid].page/create-entity-page";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -141,7 +143,9 @@ const Page: NextPageWithLayout = () => {
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = async (
+    overrideProperties?: EntityPropertiesObject,
+  ) => {
     if (!entitySubgraphFromDb || !draftEntitySubgraph) {
       return;
     }
@@ -167,7 +171,7 @@ const Page: NextPageWithLayout = () => {
         data: {
           entityId: draftEntity.metadata.recordId.entityId,
           entityTypeId: draftEntity.metadata.entityTypeId,
-          properties: draftEntity.properties,
+          properties: overrideProperties ?? draftEntity.properties,
         },
       });
 
@@ -191,10 +195,12 @@ const Page: NextPageWithLayout = () => {
   const showEditBar =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
+  const draftEntity = getRoots(draftEntitySubgraph)[0];
+  const isQueryEntity =
+    draftEntity?.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
+
   return (
     <EntityEditorPage
-      readonly={readonly}
-      refetch={refetch}
       editBar={
         <EditBar
           visible={showEditBar}
@@ -202,16 +208,24 @@ const Page: NextPageWithLayout = () => {
             onClick: discardChanges,
           }}
           confirmButtonProps={{
-            onClick: handleSaveChanges,
+            onClick: () => handleSaveChanges(),
             loading: savingChanges,
             children: "Save changes",
           }}
         />
       }
+      handleSaveChanges={handleSaveChanges}
       entityLabel={entityLabel}
-      entitySubgraph={draftEntitySubgraph}
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
+      isQueryEntity={isQueryEntity}
+      draftLinksToCreate={draftLinksToCreate}
+      setDraftLinksToCreate={setDraftLinksToCreate}
+      draftLinksToArchive={draftLinksToArchive}
+      setDraftLinksToArchive={setDraftLinksToArchive}
+      entitySubgraph={draftEntitySubgraph}
+      readonly={readonly}
+      refetch={refetch}
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(
@@ -219,10 +233,6 @@ const Page: NextPageWithLayout = () => {
           setDraftEntitySubgraph,
         );
       }}
-      draftLinksToCreate={draftLinksToCreate}
-      setDraftLinksToCreate={setDraftLinksToCreate}
-      draftLinksToArchive={draftLinksToArchive}
-      setDraftLinksToArchive={setDraftLinksToArchive}
     />
   );
 };

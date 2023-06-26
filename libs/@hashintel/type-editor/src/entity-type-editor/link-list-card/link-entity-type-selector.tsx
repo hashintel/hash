@@ -1,3 +1,5 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
@@ -17,13 +19,77 @@ import { useResizeObserverRef } from "rooks";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
+import { useIsReadonly } from "../../shared/read-only-context";
+import { useFilterTypeOptions } from "../shared/use-filter-type-options";
+import { useTypeVersions } from "../shared/use-type-versions";
+import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
-const TypeChipLabel = ({ children }: { children: ReactNode }) => (
+const TypeChipLabel = ({
+  children,
+  currentVersion,
+  latestVersion,
+  onUpdate,
+}: {
+  children: ReactNode;
+  currentVersion?: number;
+  latestVersion?: number;
+  onUpdate?: () => void;
+}) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
     <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
     <Box component="span">{children}</Box>
+
+    {currentVersion &&
+    latestVersion &&
+    onUpdate &&
+    currentVersion !== latestVersion ? (
+      <Box sx={{ my: ({ spacing }) => `-${spacing(0.5)} !important` }}>
+        <VersionUpgradeIndicator
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          onUpdateVersion={onUpdate}
+          mode="tooltip"
+        />
+      </Box>
+    ) : null}
   </Stack>
 );
+
+const ChosenEntityType = ({
+  updateVersion,
+  onDelete,
+  entityType,
+}: {
+  updateVersion: (newVersion: VersionedUrl) => void;
+  onDelete?: () => void;
+  entityType: EntityType;
+}) => {
+  const { entityTypes } = useEntityTypesOptions();
+
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
+    entityType.$id,
+    entityTypes,
+  );
+
+  return (
+    <Chip
+      key={entityType.$id}
+      sx={{ m: 0.25 }}
+      tabIndex={-1}
+      onDelete={onDelete}
+      color="blue"
+      label={
+        <TypeChipLabel
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          onUpdate={() => updateVersion(`${baseUrl}v/${latestVersion}`)}
+        >
+          {entityType.title}
+        </TypeChipLabel>
+      }
+    />
+  );
+};
 
 const linkEntityTypeSelectorDropdownProps = {
   query: "",
@@ -40,6 +106,8 @@ export const LinkEntityTypeSelector = ({
   linkIndex: number;
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
+
+  const isReadonly = useIsReadonly();
 
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
     useState(false);
@@ -69,6 +137,15 @@ export const LinkEntityTypeSelector = ({
     chosenEntityTypeIds.includes(type.$id),
   );
 
+  const entityTypeOptions = useFilterTypeOptions({
+    typeOptions: entityTypesArray,
+    /**
+     * we pass the selected values to MUI, and can let it identify which are already selected
+     * – it matches values to options by the provided 'isOptionEqualToValue' function
+     */
+    typesToExclude: [],
+  });
+
   /**
    * We change the position of the input which the entity type list popup
    * appears to be attached to based on whether the popup appears above or below
@@ -88,13 +165,15 @@ export const LinkEntityTypeSelector = ({
         position: "relative",
         ...(entityTypeSelectorPopupOpen
           ? { zIndex: theme.zIndex.modal + 1 }
-          : { "&, *": { cursor: "pointer" } }),
+          : { "&, *": { cursor: isReadonly ? "default" : "pointer" } }),
 
-        [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: {
-          boxShadow: theme.boxShadows.xs,
-          borderColor: `${theme.palette.gray[30]} !important`,
-          backgroundColor: "white",
-        },
+        [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: isReadonly
+          ? {}
+          : {
+              boxShadow: theme.boxShadows.xs,
+              borderColor: `${theme.palette.gray[30]} !important`,
+              backgroundColor: "white",
+            },
       })}
       ref={entityTypeSelectorRef}
     >
@@ -119,6 +198,9 @@ export const LinkEntityTypeSelector = ({
         ]}
         onClick={(evt) => {
           evt.preventDefault();
+          if (isReadonly) {
+            return;
+          }
           setEntityTypeSelectorPopupOpen(true);
         }}
         {...(entityTypeSelectorPopupOpen
@@ -135,16 +217,25 @@ export const LinkEntityTypeSelector = ({
       >
         {chosenEntityTypeIds.length ? (
           chosenEntityTypeIds.map((entityTypeId) => {
-            const type = entityTypes[entityTypeId];
+            const entityType = entityTypes[entityTypeId];
 
-            if (!type) {
+            if (!entityType) {
               throw new Error("Entity type missing in links table");
             }
 
             return (
-              <Chip
-                sx={{ m: 0.25 }}
-                tabIndex={-1}
+              <ChosenEntityType
+                key={entityTypeId}
+                entityType={entityType}
+                updateVersion={(newVersion: VersionedUrl) =>
+                  setValue(
+                    `links.${linkIndex}.entityTypes`,
+                    chosenEntityTypeIds.map((id) =>
+                      id === entityTypeId ? newVersion : id,
+                    ),
+                    { shouldDirty: true },
+                  )
+                }
                 {...(entityTypeSelectorPopupOpen
                   ? {
                       onDelete: () => {
@@ -158,9 +249,6 @@ export const LinkEntityTypeSelector = ({
                       },
                     }
                   : {})}
-                color="blue"
-                label={<TypeChipLabel>{type.title}</TypeChipLabel>}
-                key={type.$id}
               />
             );
           })
@@ -255,9 +343,11 @@ export const LinkEntityTypeSelector = ({
 
               return false;
             }}
-            options={entityTypesArray}
+            isOptionEqualToValue={(option, value) => option.$id === value.$id}
+            options={entityTypeOptions}
             optionToRenderData={({ $id, title, description }) => ({
-              $id,
+              uniqueId: $id,
+              typeId: $id,
               title,
               description,
             })}

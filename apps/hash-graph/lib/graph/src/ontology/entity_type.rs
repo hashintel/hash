@@ -7,8 +7,10 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
+    knowledge::EntityQueryPath,
     ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
 };
 
 /// A path to a [`EntityType`] field.
@@ -16,20 +18,20 @@ use crate::{
 /// [`EntityType`]: type_system::EntityType
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath<'p> {
-    /// The [`BaseUri`] of the [`EntityType`].
+    /// The [`BaseUrl`] of the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["baseUri"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::BaseUri);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::BaseUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    BaseUri,
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    BaseUrl,
     /// The version of the [`EntityType`].
     ///
     /// ```rust
@@ -62,20 +64,30 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType`]: type_system::EntityType
     Version,
-    /// The [`VersionedUri`] of the [`EntityType`].
+    /// The [`VersionedUrl`] of the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUri"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::VersionedUri);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::VersionedUrl);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
-    VersionedUri,
+    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    VersionedUrl,
+    /// The transaction time of the [`EntityType`].
+    ///
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
+    /// of the [`OntologyElementMetadata`].
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
@@ -91,21 +103,21 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::UpdatedById);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["recordCreatedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::RecordCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    UpdatedById,
+    RecordCreatedById,
     /// Corresponds to [`EntityType::title()`].
     ///
     /// ```rust
@@ -145,29 +157,6 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::examples()`]: type_system::EntityType::examples
     Examples,
-    /// Corresponds to [`EntityType::property_type_references()`].
-    ///
-    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
-    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
-    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
-    /// where `...` is the path to the desired field of the [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
-    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUri"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::Properties(PropertyTypeQueryPath::BaseUri)
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    /// [`EntityType::property_type_references()`]: type_system::EntityType::property_type_references
-    /// [`PropertyType`]: type_system::PropertyType
-    Properties(PropertyTypeQueryPath<'p>),
     /// Corresponds to [`EntityType::required()`].
     ///
     /// ```rust
@@ -181,6 +170,84 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
+    /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
+    ///
+    /// The corresponding reversed edge is [`PropertyTypeQueryPath::EntityTypeEdge`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`ConstrainsPropertiesOn`]
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
+    /// [`EntityType`]: type_system::EntityType
+    /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
+    ///
+    ///
+    /// ## Constraining property types
+    ///
+    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
+    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
+    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
+    /// where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
+    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::PropertyTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///     path: PropertyTypeQueryPath::BaseUrl
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    PropertyTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: PropertyTypeQueryPath<'p>,
+    },
+    /// An edge between two [`EntityType`]s using an [`OntologyEdgeKind`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`InheritsFrom`]
+    /// - [`ConstrainsLinksOn`]
+    /// - [`ConstrainsLinkDestinationsOn`]
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`InheritsFrom`]: OntologyEdgeKind::InheritsFrom
+    /// [`ConstrainsLinksOn`]: OntologyEdgeKind::ConstrainsLinksOn
+    /// [`ConstrainsLinkDestinationsOn`]: OntologyEdgeKind::ConstrainsLinkDestinationsOn
+    ///
+    ///
+    /// ## Inheritance
+    ///
+    /// Currently, does not correspond to any field of [`EntityType`].
+    ///
+    /// In the future, this will most likely correspond to something like
+    /// `EntityType::inherits_from()`.
+    ///
+    /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    ///
+    /// ## Constraining links
+    ///
     /// Corresponds to the keys of [`EntityType::link_mappings()`].
     ///
     /// As an [`EntityType`] can link to multiple [`EntityType`]s, the deserialized path
@@ -193,43 +260,41 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUri"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::BaseUri))
-    /// );
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::EntityType
     /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
-    Links(Box<Self>),
-    /// Currently, does not correspond to any field of [`EntityType`].
     ///
-    /// In the future, this will most likely correspond to something like
-    /// [`EntityType::inherits_from()`].
     ///
-    /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
-    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
-    /// only the `*` selector is available, so the path will be deserialized as
-    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
-    /// [`EntityType`].
+    /// ## Constraining link destinations
     ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUri"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::InheritsFrom(Box::new(EntityTypeQueryPath::BaseUri))
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
+    /// Corresponds to the values of [`EntityType::link_mappings()`].
     ///
-    /// [`EntityType`]: type_system::EntityType
-    /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
-    InheritsFrom(Box<Self>),
+    /// Only used internally and not available for deserialization, yet.
+    EntityTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: Box<Self>,
+        direction: EdgeDirection,
+    },
+    /// A reversed edge from an [`Entity`] to this [`EntityType`] using a [`SharedEdgeKind`].
+    ///
+    /// The corresponding edge is [`EntityQueryPath::EntityTypeEdge`].
+    ///
+    /// Only used internally and not available for deserialization.
+    ///
+    /// [`EntityType`]: type_system::PropertyType
+    /// [`Entity`]: crate::knowledge::Entity
+    EntityEdge {
+        edge_kind: SharedEdgeKind,
+        path: Box<EntityQueryPath<'p>>,
+    },
     /// Only used internally and not available for deserialization.
     OntologyId,
     /// Only used internally and not available for deserialization.
@@ -239,20 +304,24 @@ pub enum EntityTypeQueryPath<'p> {
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
-    fn base_uri() -> Self {
-        Self::BaseUri
+    fn base_url() -> Self {
+        Self::BaseUrl
     }
 
-    fn versioned_uri() -> Self {
-        Self::VersionedUri
+    fn versioned_url() -> Self {
+        Self::VersionedUrl
     }
 
     fn version() -> Self {
         Self::Version
     }
 
-    fn updated_by_id() -> Self {
-        Self::UpdatedById
+    fn transaction_time() -> Self {
+        Self::TransactionTime
+    }
+
+    fn record_created_by_id() -> Self {
+        Self::RecordCreatedById
     }
 
     fn schema() -> Self {
@@ -267,16 +336,18 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata(_) | Self::Examples | Self::Required => {
                 ParameterType::Any
             }
-            Self::BaseUri => ParameterType::BaseUri,
-            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::BaseUrl => ParameterType::BaseUrl,
+            Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
+            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
-            Self::Properties(path) => path.expected_type(),
-            Self::Links(path) | Self::InheritsFrom(path) => path.expected_type(),
+            Self::PropertyTypeEdge { path, .. } => path.expected_type(),
+            Self::EntityTypeEdge { path, .. } => path.expected_type(),
+            Self::EntityEdge { path, .. } => path.expected_type(),
         }
     }
 }
@@ -285,20 +356,58 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OntologyId => fmt.write_str("ontologyId"),
-            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::VersionedUrl => fmt.write_str("versionedUrl"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Examples => fmt.write_str("examples"),
-            Self::Properties(path) => write!(fmt, "properties.{path}"),
             Self::Required => fmt.write_str("required"),
-            Self::Links(path) => write!(fmt, "links.{path}"),
-            Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
+            Self::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path,
+            } => write!(fmt, "properties.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
+            Self::PropertyTypeEdge { edge_kind, path } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                path,
+                ..
+            } => write!(fmt, "inheritsFrom.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                path,
+                ..
+            } => write!(fmt, "links.{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path,
+                ..
+            } => write!(fmt, "linkDestinations.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
+            Self::EntityTypeEdge {
+                edge_kind, path, ..
+            } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            Self::EntityEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+                ..
+            } => write!(fmt, "isTypeOf.{path}"),
             Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
             Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
@@ -309,11 +418,11 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
 #[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {
-    BaseUri,
+    BaseUrl,
     Version,
-    VersionedUri,
+    VersionedUrl,
     OwnedById,
-    UpdatedById,
+    RecordCreatedById,
     Title,
     Description,
     Examples,
@@ -333,7 +442,7 @@ pub struct EntityTypeQueryPathVisitor {
 
 impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str =
-        "one of `baseUri`, `version`, `versionedUri`, `ownedById`, `updatedById`, `title`, \
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, `title`, \
          `description`, `examples`, `properties`, `required`, `links`, `inheritsFrom`";
 
     #[must_use]
@@ -360,9 +469,9 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
 
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
-            EntityTypeQueryToken::UpdatedById => EntityTypeQueryPath::UpdatedById,
-            EntityTypeQueryToken::BaseUri => EntityTypeQueryPath::BaseUri,
-            EntityTypeQueryToken::VersionedUri => EntityTypeQueryPath::VersionedUri,
+            EntityTypeQueryToken::RecordCreatedById => EntityTypeQueryPath::RecordCreatedById,
+            EntityTypeQueryToken::BaseUrl => EntityTypeQueryPath::BaseUrl,
+            EntityTypeQueryToken::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,
             EntityTypeQueryToken::Title => EntityTypeQueryPath::Title,
             EntityTypeQueryToken::Description => EntityTypeQueryPath::Description,
@@ -372,9 +481,10 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                EntityTypeQueryPath::Properties(
-                    PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
-                )
+                EntityTypeQueryPath::PropertyTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                    path: PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+                }
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
             EntityTypeQueryToken::Links => {
@@ -382,16 +492,22 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                EntityTypeQueryPath::Links(Box::new(Self::new(self.position).visit_seq(seq)?))
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    direction: EdgeDirection::Outgoing,
+                }
             }
             EntityTypeQueryToken::InheritsFrom => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                EntityTypeQueryPath::InheritsFrom(Box::new(
-                    Self::new(self.position).visit_seq(seq)?,
-                ))
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    direction: EdgeDirection::Outgoing,
+                }
             }
             EntityTypeQueryToken::Schema => {
                 let mut path_tokens = Vec::new();
@@ -434,11 +550,11 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["baseUri"]), EntityTypeQueryPath::BaseUri);
+        assert_eq!(deserialize(["baseUrl"]), EntityTypeQueryPath::BaseUrl);
         assert_eq!(deserialize(["version"]), EntityTypeQueryPath::Version);
         assert_eq!(
-            deserialize(["versionedUri"]),
-            EntityTypeQueryPath::VersionedUri
+            deserialize(["versionedUrl"]),
+            EntityTypeQueryPath::VersionedUrl
         );
         assert_eq!(deserialize(["ownedById"]), EntityTypeQueryPath::OwnedById);
         assert_eq!(deserialize(["title"]), EntityTypeQueryPath::Title);
@@ -449,12 +565,19 @@ mod tests {
         assert_eq!(deserialize(["examples"]), EntityTypeQueryPath::Examples);
         assert_eq!(
             deserialize(["properties", "*", "version"]),
-            EntityTypeQueryPath::Properties(PropertyTypeQueryPath::Version)
+            EntityTypeQueryPath::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path: PropertyTypeQueryPath::Version
+            }
         );
         assert_eq!(deserialize(["required"]), EntityTypeQueryPath::Required);
         assert_eq!(
             deserialize(["links", "*", "version"]),
-            EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::Version))
+            EntityTypeQueryPath::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                path: Box::new(EntityTypeQueryPath::Version),
+                direction: EdgeDirection::Outgoing,
+            },
         );
 
         assert_eq!(
@@ -490,7 +613,7 @@ mod tests {
         assert_eq!(
             EntityTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["baseUri", "test"].into_iter()
+                    ["baseUrl", "test"].into_iter()
                 )
             )
             .expect_err(
@@ -518,7 +641,7 @@ mod tests {
         assert_eq!(
             EntityTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["links", "*", "versionedUri", "invalid"].into_iter()
+                    ["links", "*", "versionedUrl", "invalid"].into_iter()
                 )
             )
             .expect_err(

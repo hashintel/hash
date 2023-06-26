@@ -1,0 +1,37 @@
+.board {
+  --columm-width: 245px;
+
+  display: flex;
+  align-items: stretch;
+  min-height: 500px;
+  padding: 20px;
+  gap: 18px;
+  background: #4d0d8d;
+  border-radius: 8px;
+  font-size: 13px;
+  overflow-x: scroll;
+
+  .addColumnButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-width: var(--columm-width);
+    width: var(--columm-width);
+    height: 40px;
+    align-self: flex-start;
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+
+    svg {
+      width: 13px;
+    }
+
+    &:hover,
+    &:focus {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}

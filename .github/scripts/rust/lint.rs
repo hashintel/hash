@@ -267,7 +267,7 @@ fn print_diff(level: &str, left: &BTreeSet<String>, right: &BTreeSet<String>) {
     eprintln!("Lint Level {level} Errors:");
     eprintln!("  Extra lints: {:?}", remove);
     eprintln!("  Missing lints: {:?}", create);
-    eprintln!("  Run `cargo make update-clippy update` to automatically update the config.")
+    eprintln!("  Run `just lint-toml generate` to automatically update the config.")
 }
 
 fn check(cwd: &Path) {
@@ -309,21 +309,25 @@ fn check(cwd: &Path) {
 }
 
 fn main() {
-    let cwd = env::var("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY")
-        .expect("environment variable should exist");
-    let cwd = PathBuf::from(cwd);
-
-    let args = env::var("CARGO_MAKE_CLIPPY_LINT_MODE")
-        .or_else(|_| env::var("CARGO_MAKE_TASK_ARGS"))
-        .expect("environment variable should exist");
+    let mut args = env::args();
     let mode = args
-        .split(" ")
+        .by_ref()
+        .skip(1)
         .next()
         .expect("at least one position argument specifying mode required");
 
-    match mode {
+    let cwd = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or_else(env::current_dir)
+        .expect("unable to read working directory");
+
+    match mode.as_str() {
         "generate" => generate(&cwd),
         "check" => check(&cwd),
-        _ => panic!("unrecognized mode, available: `generate`, `check`"),
+        arg => panic!(
+            "unrecognized mode `{}`, available: `generate`, `check`",
+            arg
+        ),
     };
 }

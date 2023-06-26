@@ -46,10 +46,7 @@ export const useBlockProtocolUpdateEntityType = (
       const { data: responseData } = await updateFn({
         variables: {
           entityTypeId,
-          updatedEntityType: {
-            ...entityType,
-            kind: "entityType",
-          },
+          updatedEntityType: entityType,
         },
       });
 

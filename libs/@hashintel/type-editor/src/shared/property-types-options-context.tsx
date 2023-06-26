@@ -1,9 +1,9 @@
 import { PropertyType } from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { createContext, PropsWithChildren, useContext } from "react";
 
-export type PropertyTypesByVersionedUri = Record<VersionedUri, PropertyType>;
-export type PropertyTypesContextValue = PropertyTypesByVersionedUri;
+export type PropertyTypesByVersionedUrl = Record<VersionedUrl, PropertyType>;
+export type PropertyTypesContextValue = PropertyTypesByVersionedUrl;
 
 export const PropertyTypesOptionsContext =
   createContext<PropertyTypesContextValue | null>(null);
@@ -11,7 +11,7 @@ export const PropertyTypesOptionsContext =
 export const PropertyTypesOptionsContextProvider = ({
   children,
   propertyTypeOptions,
-}: PropsWithChildren<{ propertyTypeOptions: PropertyTypesByVersionedUri }>) => {
+}: PropsWithChildren<{ propertyTypeOptions: PropertyTypesByVersionedUrl }>) => {
   return (
     <PropertyTypesOptionsContext.Provider value={propertyTypeOptions}>
       {children}

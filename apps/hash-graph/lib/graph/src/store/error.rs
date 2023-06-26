@@ -51,15 +51,27 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseUriAlreadyExists;
+pub struct DeletionError;
 
-impl fmt::Display for BaseUriAlreadyExists {
+impl fmt::Display for DeletionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("tried to insert a new base URI but it already existed")
+        fmt.write_str("Could not delete from the store")
     }
 }
 
-impl Context for BaseUriAlreadyExists {}
+impl Context for DeletionError {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct BaseUrlAlreadyExists;
+
+impl fmt::Display for BaseUrlAlreadyExists {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("tried to insert a new base URL but it already existed")
+    }
+}
+
+impl Context for BaseUrlAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
@@ -87,15 +99,15 @@ impl Context for RaceConditionOnUpdate {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct VersionedUriAlreadyExists;
+pub struct VersionedUrlAlreadyExists;
 
-impl fmt::Display for VersionedUriAlreadyExists {
+impl fmt::Display for VersionedUrlAlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("tried to insert a versioned URI but it already existed")
+        fmt.write_str("tried to insert a versioned URL but it already existed")
     }
 }
 
-impl Context for VersionedUriAlreadyExists {}
+impl Context for VersionedUrlAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]

@@ -2,24 +2,23 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource,
-        report_to_status_code,
-        utoipa_typedef::{subgraph::Subgraph, EntityIdAndTimestamp},
+        api_resource::RoutedResource, json::Json, report_to_status_code,
+        utoipa_typedef::subgraph::Subgraph,
     },
     identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkData, LinkOrder,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, RecordCreatedById},
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         EntityStore, StorePool,
@@ -45,7 +44,6 @@ use crate::{
             EntityUuid,
             EntityId,
             EntityEditionId,
-            EntityIdAndTimestamp,
             EntityMetadata,
             EntityLinkOrder,
             EntityProperties,
@@ -80,13 +78,15 @@ impl RoutedResource for EntityResource {
 struct CreateEntityRequest {
     properties: EntityProperties,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
+    entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
+    #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     link_data: Option<LinkData>,
 }
 
@@ -96,10 +96,10 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Entity Type URI was not found"),
+        (status = 404, description = "Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
     ),
 )]
@@ -188,8 +188,8 @@ struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
-    actor_id: UpdatedById,
+    entity_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
     archived: bool,
@@ -204,7 +204,7 @@ struct UpdateEntityRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
-        (status = 404, description = "Entity ID or Entity Type URI was not found"),
+        (status = 404, description = "Entity ID or Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityRequest,

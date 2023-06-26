@@ -5,7 +5,7 @@ use criterion_macro::criterion;
 use graph::{
     identifier::{account::AccountId, time::TemporalBound},
     knowledge::{EntityMetadata, EntityProperties},
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::GraphResolveDepths,
@@ -76,7 +76,7 @@ async fn seed_db(
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
-            UpdatedById::new(account_id),
+            RecordCreatedById::new(account_id),
             &entity_type_id,
         )
         .await

@@ -13,7 +13,7 @@ use graph::{
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 
 use crate::util::Store;
 
@@ -21,7 +21,7 @@ pub fn bench_get_entity_type_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    entity_type_ids: &[VersionedUri],
+    entity_type_ids: &[VersionedUrl],
 ) {
     b.to_async(runtime).iter_batched(
         || {
@@ -34,7 +34,7 @@ pub fn bench_get_entity_type_by_id(
         |entity_type_id| async move {
             store
                 .get_entity_type(&StructuralQuery {
-                    filter: Filter::for_versioned_uri(entity_type_id),
+                    filter: Filter::for_versioned_url(entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),

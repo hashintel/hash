@@ -3,10 +3,12 @@ import { performance } from "node:perf_hooks";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import { schema } from "@local/hash-graphql-shared/graphql/type-defs/schema";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
 
+import { AgentRunner } from "../agents/runner";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
@@ -14,7 +16,6 @@ import { UploadableStorageProvider } from "../storage";
 import { TaskExecutor } from "../task-execution";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
-import { schema } from "./type-defs";
 
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
@@ -22,6 +23,7 @@ export interface CreateApolloServerParams {
   uploadProvider: UploadableStorageProvider;
   search?: SearchAdapter;
   taskExecutor?: TaskExecutor;
+  agentRunner?: AgentRunner;
   emailTransporter: EmailTransporter;
   logger: Logger;
   statsd?: StatsD;
@@ -32,6 +34,7 @@ export const createApolloServer = ({
   cache,
   search,
   taskExecutor,
+  agentRunner,
   emailTransporter,
   uploadProvider,
   logger,
@@ -54,6 +57,9 @@ export const createApolloServer = ({
     }
     if (taskExecutor) {
       sources.taskExecutor = taskExecutor;
+    }
+    if (agentRunner) {
+      sources.agentRunner = agentRunner;
     }
     return sources;
   };

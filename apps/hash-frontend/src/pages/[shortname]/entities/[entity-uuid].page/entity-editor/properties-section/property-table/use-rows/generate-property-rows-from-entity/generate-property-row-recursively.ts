@@ -3,12 +3,12 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import {
-  BaseUri,
+  BaseUrl,
   Entity,
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/stdlib";
+import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
 import { get } from "lodash";
 
 import {
@@ -22,11 +22,11 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * This function generates property row data,
  * and calls itself again for each nested property. Then puts results of these recursive calls into `children` array
  *
- * @param propertyTypeBaseUri
+ * @param propertyTypeBaseUrl
  * Name of the specific property inside `properties` object
  *
  * @param propertyKeyChain
- * An array of `propertyTypeBaseUri`'s to store the path to each nested property.
+ * An array of `propertyTypeBaseUrl`'s to store the path to each nested property.
  * ```js
  * // Example: `propertyKeyChain` of `c`
  * properties = { a: { b: { c: "John" } } };
@@ -40,7 +40,7 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * An object storing root entity & subgraph of that entity
  *
  * @param requiredPropertyTypes
- * An array of `propertyTypeBaseUri`'s.
+ * An array of `propertyTypeBaseUrl`'s.
  * This is used to check if a property should be shown as `required` or not
  *
  * @param depth
@@ -49,7 +49,7 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * @returns property row (and nested rows as `children` if it's a nested property)
  */
 export const generatePropertyRowRecursively = ({
-  propertyTypeBaseUri,
+  propertyTypeBaseUrl,
   propertyKeyChain,
   entity,
   entitySubgraph,
@@ -57,24 +57,24 @@ export const generatePropertyRowRecursively = ({
   depth = 0,
   propertyOnEntityTypeSchema,
 }: {
-  propertyTypeBaseUri: BaseUri;
-  propertyKeyChain: BaseUri[];
+  propertyTypeBaseUrl: BaseUrl;
+  propertyKeyChain: BaseUrl[];
   entity: Entity;
   entitySubgraph: Subgraph<EntityRootType>;
-  requiredPropertyTypes: BaseUri[];
+  requiredPropertyTypes: BaseUrl[];
   depth?: number;
 
   propertyOnEntityTypeSchema?: ValueOrArray<PropertyTypeReference>;
 }): PropertyRow => {
-  const propertyTypeVersions = getPropertyTypesByBaseUri(
+  const propertyTypeVersions = getPropertyTypesByBaseUrl(
     entitySubgraph,
-    propertyTypeBaseUri,
+    propertyTypeBaseUrl,
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!propertyTypeVersions) {
     throw new Error(
-      `propertyType not found for base URI: ${propertyTypeBaseUri}`,
+      `propertyType not found for base URL: ${propertyTypeBaseUrl}`,
     );
   }
 
@@ -88,7 +88,7 @@ export const generatePropertyRowRecursively = ({
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
 
-  const required = !!requiredPropertyTypes.includes(propertyTypeBaseUri);
+  const required = !!requiredPropertyTypes.includes(propertyTypeBaseUrl);
 
   const value = get(entity.properties, propertyKeyChain);
 
@@ -100,14 +100,14 @@ export const generatePropertyRowRecursively = ({
 
   // if first `oneOf` of property type is nested property, it means it should have children
   if (isFirstOneOfNested) {
-    for (const subPropertyTypeBaseUri of Object.keys(firstOneOf.properties)) {
+    for (const subPropertyTypeBaseUrl of Object.keys(firstOneOf.properties)) {
       children.push(
         generatePropertyRowRecursively({
-          propertyTypeBaseUri: subPropertyTypeBaseUri as BaseUri,
+          propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
-            subPropertyTypeBaseUri,
-          ] as BaseUri[],
+            subPropertyTypeBaseUrl,
+          ] as BaseUrl[],
           entity,
           entitySubgraph,
           requiredPropertyTypes,

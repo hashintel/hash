@@ -3,20 +3,20 @@ import clsx from "clsx";
 import { HTMLAttributes } from "react";
 
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
-import { OntologyChip, parseUriForOntologyChip } from "../ontology-chip";
+import { OntologyChip, parseUrlForOntologyChip } from "../ontology-chip";
 
 export const SelectorAutocompleteOption = ({
   liProps,
   description,
   title,
-  $id,
+  typeId,
 }: {
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
   title: string;
-  $id: string;
+  typeId: string;
 }) => {
-  const ontology = parseUriForOntologyChip($id);
+  const ontology = parseUrlForOntologyChip(typeId);
 
   return (
     <li

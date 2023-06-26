@@ -3,19 +3,20 @@ use std::fmt::{self, Write};
 use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Function<'p> {
-    Min(Box<Expression<'p>>),
-    Max(Box<Expression<'p>>),
-    JsonExtractPath(Vec<Expression<'p>>),
-    JsonContains(Box<Expression<'p>>, Box<Expression<'p>>),
-    JsonBuildArray(Vec<Expression<'p>>),
-    JsonBuildObject(Vec<(Expression<'p>, Expression<'p>)>),
-    Lower(Box<Expression<'p>>),
-    Upper(Box<Expression<'p>>),
+pub enum Function {
+    Min(Box<Expression>),
+    Max(Box<Expression>),
+    JsonExtractText(Box<Expression>),
+    JsonExtractPath(Vec<Expression>),
+    JsonContains(Box<Expression>, Box<Expression>),
+    JsonBuildArray(Vec<Expression>),
+    JsonBuildObject(Vec<(Expression, Expression)>),
+    Lower(Box<Expression>),
+    Upper(Box<Expression>),
     Now,
 }
 
-impl Transpile for Function<'_> {
+impl Transpile for Function {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Min(expression) => {
@@ -37,6 +38,11 @@ impl Transpile for Function<'_> {
                     expression.transpile(fmt)?;
                 }
                 fmt.write_char(')')
+            }
+            Self::JsonExtractText(expression) => {
+                fmt.write_str("((")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(") #>> '{}'::text[])")
             }
             Self::JsonContains(json, value) => {
                 fmt.write_str("jsonb_contains(")?;
@@ -99,19 +105,19 @@ impl Transpile for Constant {
 
 /// A compiled expression in Postgres.
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Expression<'p> {
+pub enum Expression {
     Asterisk,
-    Column(AliasedColumn<'p>),
+    Column(AliasedColumn),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
-    Function(Function<'p>),
-    Window(Box<Self>, WindowStatement<'p>),
+    Function(Function),
+    Window(Box<Self>, WindowStatement),
 }
 
-impl Transpile for Expression<'_> {
+impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Asterisk => fmt.write_char('*'),
@@ -129,7 +135,7 @@ impl Transpile for Expression<'_> {
     }
 }
 
-impl Transpile for Option<Expression<'_>> {
+impl Transpile for Option<Expression> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Some(value) => value.transpile(fmt),
@@ -150,7 +156,7 @@ mod tests {
     fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),
-            r#"MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_uri")"#
+            r#"MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url")"#
         );
     }
 

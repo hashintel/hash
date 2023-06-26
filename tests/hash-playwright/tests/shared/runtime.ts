@@ -28,6 +28,9 @@ export const test = base.extend({
       messages.push(`[${msg.type()}] ${msg.text()}`);
     });
     await use(page);
-    expect(messages).toStrictEqual([]);
+    expect(
+      messages,
+      "Unexpected browser console messages during test",
+    ).toStrictEqual([]);
   },
 });

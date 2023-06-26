@@ -5,6 +5,7 @@ type ResizeBlockProps = {
   imageSrc: string;
   width: number | undefined;
   updateWidth: (width: number) => void;
+  readonly?: boolean;
 };
 
 const BLOCK_RESIZER_POSITIONS = ["left", "right"] as const;
@@ -17,6 +18,7 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
   imageSrc,
   width,
   updateWidth,
+  readonly,
 }) => {
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -84,17 +86,19 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
         src={imageSrc}
         alt="Image block"
       />
-      {BLOCK_RESIZER_POSITIONS.map((position) => (
-        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <div
-          key={position}
-          style={{ maxHeight: "50%" }}
-          className={tw`transition-all absolute ${
-            position === "left" ? "left-1" : "right-1"
-          } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
-          onMouseDown={(evt) => handleResize(evt, position)}
-        />
-      ))}
+      {readonly
+        ? null
+        : BLOCK_RESIZER_POSITIONS.map((position) => (
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+            <div
+              key={position}
+              style={{ maxHeight: "50%" }}
+              className={tw`transition-all absolute ${
+                position === "left" ? "left-1" : "right-1"
+              } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
+              onMouseDown={(evt) => handleResize(evt, position)}
+            />
+          ))}
     </div>
   );
 };

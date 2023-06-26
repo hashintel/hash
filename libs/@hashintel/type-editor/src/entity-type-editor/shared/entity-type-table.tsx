@@ -1,28 +1,46 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { WhiteCard } from "@hashintel/design-system";
 import {
+  Box,
   ButtonBase,
   checkboxClasses,
   keyframes,
+  styled,
   svgIconClasses,
   Table,
   tableBodyClasses,
   TableCell,
   tableCellClasses,
+  TableFooter,
   TableRow,
+  tableRowClasses,
   Typography,
   TypographyProps,
   useForkRef,
 } from "@mui/material";
-import { Box, styled } from "@mui/system";
 import memoize from "lodash.memoize";
-import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  PropsWithChildren,
+  ReactNode,
+  RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import { useIsReadonly } from "../../shared/read-only-context";
 
 /**
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN hash-frontend
  * @todo make this a prop / shared some other way
  */
 const EDIT_BAR_HEIGHT = 66;
+
+const isSafariBrowser = () =>
+  typeof window !== "undefined" &&
+  navigator.userAgent.indexOf("Safari") > -1 &&
+  navigator.userAgent.indexOf("Chrome") <= -1;
 
 export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
   theme.unstable_sx({
@@ -36,9 +54,9 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
  * the same. This is a generic sort function which maps from a react hook form
  * field array to an object preserving the original index and sorting by title
  */
-export const sortRows = <V, R extends { $id: VersionedUri }>(
+export const sortRows = <V, R extends { $id: VersionedUrl }>(
   rows: R[],
-  resolveRow: ($id: VersionedUri) => V | undefined,
+  resolveRow: ($id: VersionedUrl) => V | undefined,
   resolveTitle: (row: V) => string,
 ) =>
   rows
@@ -110,7 +128,10 @@ export const EntityTypeTableRow = forwardRef<
   { children: ReactNode; flash?: boolean }
 >(({ children, flash = false }, ref) => {
   const [flashed, setFlashed] = useState(false);
+
   const rowRef = useRef<HTMLElement>(null);
+
+  const isReadonly = useIsReadonly();
 
   const combinedRef = useForkRef(ref, rowRef);
 
@@ -125,32 +146,28 @@ export const EntityTypeTableRow = forwardRef<
       setFlashed(true);
 
       const node = rowRef.current;
+
       if (node) {
         /**
          * This detects if the row is currently in view or not, and only triggers
          * the scroll into view logic if it's not
          */
-        const observer = new IntersectionObserver(
-          ([entry]) => {
-            if (entry) {
-              const ratio = entry.intersectionRatio;
-              if (ratio < 1) {
-                const place: ScrollLogicalPosition =
-                  ratio <= 0 ? "center" : "nearest";
-                node.scrollIntoView({
-                  block: place,
-                  inline: place,
-                  behavior: "smooth",
-                });
-              }
-            }
-            observer.disconnect();
-          },
-          {
-            // Ensure we don't consider a row underneath the edit bar as 'in view'
-            rootMargin: `${EDIT_BAR_HEIGHT}px`,
-          },
-        );
+        const observer = new IntersectionObserver(() => {
+          const scrollSpacing = 4;
+          // this ensures the row isn't covered by our sticky edit bar or table footer
+          node.style.setProperty(
+            "scroll-margin",
+            `${
+              EDIT_BAR_HEIGHT + scrollSpacing
+            }px 0 calc(var(--footer-height) + ${scrollSpacing}px + 6px) 0`,
+          );
+          node.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+            behavior: "smooth",
+          });
+          observer.disconnect();
+        });
 
         observer.observe(node);
         observerRef.current?.disconnect();
@@ -180,9 +197,11 @@ export const EntityTypeTableRow = forwardRef<
               borderBottomRightRadius: theme.borderRadii.md,
             },
           },
-          [`&:hover .${tableCellClasses.root}`]: {
-            background: theme.palette.gray[10],
-          },
+          [`&:hover .${tableCellClasses.root}`]: isReadonly
+            ? {}
+            : {
+                background: theme.palette.gray[10],
+              },
         }),
         flash &&
           ((theme) => ({
@@ -222,6 +241,21 @@ export const EntityTypeTableTitleCellText = ({
   </Typography>
 );
 
+const getScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+  if (node == null) {
+    return null;
+  }
+
+  if (
+    node.scrollHeight > node.clientHeight &&
+    window.getComputedStyle(node).overflowY !== "visible"
+  ) {
+    return node;
+  }
+
+  return getScrollParent(node.parentNode as HTMLElement | null);
+};
+
 export const EntityTypeTableHeaderRow = ({
   children,
 }: {
@@ -240,7 +274,101 @@ export const EntityTypeTableHeaderRow = ({
   );
 };
 
-export const EntityTypeTableButtonRow = ({
+// Relies on an element sticking 1px out of the viewport to detect it
+const useIsSticky = (cellRef: RefObject<HTMLElement | null>) => {
+  const [isSticky, setIsSticky] = useState(false);
+
+  useEffect(() => {
+    const cell = cellRef.current;
+
+    if (cell) {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry) {
+            setIsSticky(entry.intersectionRatio !== 1);
+          }
+        },
+        {
+          // We may be inside a scroll container (which we are in HASH) – find it
+          root: getScrollParent(cell),
+          threshold: [1],
+        },
+      );
+
+      observer.observe(cell);
+
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, [cellRef]);
+
+  return isSticky;
+};
+
+export const EntityTypeTableFooter = forwardRef<
+  HTMLTableRowElement,
+  PropsWithChildren<{ enableShadow: boolean }>
+>(({ children, enableShadow }, ref) => {
+  const cellRef = useRef<HTMLElement>(null);
+  const isSticky = useIsSticky(cellRef);
+
+  return (
+    <TableFooter>
+      <TableRow ref={ref}>
+        <TableCell
+          colSpan={
+            // Sufficiently large to span full width
+            100
+          }
+          sx={(theme) => ({
+            position: "sticky",
+            padding: 0,
+            // This allows us to use intersection observer to detect when
+            // we're "stuck"
+            bottom: "-1px",
+            background: "white",
+            // @note – gets bigger when the type selector is present
+            minHeight: "var(--footer-height)",
+            zIndex: theme.zIndex.drawer + 1,
+          })}
+          ref={cellRef}
+        >
+          {/* We need a separate div as you can't put box shadows on table cells */}
+          <Box
+            sx={[
+              {
+                position: "relative",
+
+                // Overcomes the parent padding to ensure the box shadow is the full width of the table
+                width: "calc(100% + (var(--table-padding) * 2))",
+                left: "calc(0px - var(--table-padding))",
+                p: "var(--table-padding)",
+
+                // We need an extra 1px of padding to account for the fact we're
+                // sticking 1px below the viewport
+                pb: "calc(var(--table-padding) + 1px)",
+
+                // Ensures the box shadow only appears on the top side of the sticky row
+                clipPath: "polygon(0 -100px, 100% -100px, 100% 100%, 0 100%)",
+                transition: "box-shadow 200ms ease-in",
+              },
+              isSticky &&
+                enableShadow &&
+                ((theme) => ({
+                  boxShadow: theme.boxShadows.mdReverse,
+                })),
+            ]}
+          >
+            {children}
+          </Box>
+        </TableCell>
+      </TableRow>
+    </TableFooter>
+  );
+});
+
+export const EntityTypeTableFooterButton = ({
   icon,
   children,
   onClick,
@@ -250,61 +378,91 @@ export const EntityTypeTableButtonRow = ({
   onClick: () => void;
 }) => {
   return (
-    <TableRow>
-      <TableCell
-        colSpan={
-          // Sufficiently large to span full width
-          100
-        }
-        sx={{
-          p: "0 !important",
-        }}
-      >
-        <ButtonBase
-          disableRipple
-          disableTouchRipple
-          onClick={onClick}
-          sx={(theme) => ({
-            color: theme.palette.gray[50],
-            py: 1.5,
-            width: "100%",
-            borderRadius: 1,
-            "&:hover": {
-              backgroundColor: theme.palette.gray[10],
-              color: theme.palette.gray[70],
-            },
-          })}
-        >
-          {icon}
-          <Typography variant="smallTextLabels" fontWeight={500} ml={1}>
-            {children}
-          </Typography>
-        </ButtonBase>
-      </TableCell>
-    </TableRow>
+    <ButtonBase
+      disableRipple
+      disableTouchRipple
+      onClick={onClick}
+      sx={(theme) => ({
+        color: theme.palette.gray[50],
+        py: 1.5,
+        width: "100%",
+        borderRadius: 1,
+        "&:hover": {
+          backgroundColor: theme.palette.gray[10],
+          color: theme.palette.gray[70],
+        },
+      })}
+    >
+      {icon}
+      <Typography variant="smallTextLabels" fontWeight={500} ml={1}>
+        {children}
+      </Typography>
+    </ButtonBase>
   );
 };
 
 export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
+  const isSafari = isSafariBrowser();
+
   return (
     <WhiteCard sx={{ overflow: "visible" }}>
-      <Box sx={{ p: 0.5 }}>
+      <Box
+        sx={(theme) => ({
+          "--table-padding": theme.spacing(0.5),
+          "--header-gap": theme.spacing(0.75),
+          "--header-height": "42px",
+          "--footer-height": "42px",
+          "--body-height": "40px",
+          /**
+           * footer-top-offset is used with the combination of giving `position: relative` elements `top` values.
+           * safari does not support that, so this trick does not work on safari
+           */
+          "--footer-top-offset": isSafari
+            ? 0
+            : "calc(var(--body-height) + var(--header-height) + var(--header-gap))",
+          "--table-cell-left-padding": theme.spacing(3.5),
+
+          p: "var(--table-padding)",
+          position: "relative",
+        })}
+      >
         <Table
           sx={(theme) => ({
             height: "100%",
             minWidth: 800,
+            position: "relative",
+            marginTop: "var(--footer-top-offset)",
+            // table padding is handled by the footer row
+            marginBottom:
+              "calc(0px - var(--footer-top-offset) - var(--table-padding))",
+
+            "> *": {
+              // Used by footer to help with its sticky styling
+              position: "relative",
+              top: "calc(0px - var(--footer-top-offset))",
+            },
+
             [`.${tableCellClasses.root}`]: {
-              pl: 3.5,
-              pr: 1,
-              py: 0.5,
               border: "none",
             },
-            [`.${tableCellClasses.head}`]: {
+
+            [`.${tableRowClasses.root}:not(.${tableRowClasses.footer}):not(.${tableRowClasses.head}) .${tableCellClasses.root}`]:
+              {
+                pl: "var(--table-cell-left-padding)",
+                pr: 1,
+                py: 0.5,
+                height: "var(--body-height)",
+              },
+
+            [`.${tableRowClasses.head} .${tableCellClasses.head}`]: {
+              pl: "var(--table-cell-left-padding)",
+              pr: 1,
               py: 1.5,
               borderBottom: 1,
               borderColor: theme.palette.gray[20],
               fontWeight: "inherit",
               lineHeight: "inherit",
+              height: "var(--header-height)",
 
               [`.${svgIconClasses.root}`]: {
                 verticalAlign: "middle",
@@ -312,7 +470,7 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
               },
             },
             [`.${tableBodyClasses.root}:before`]: {
-              lineHeight: "6px",
+              lineHeight: "var(--header-gap)",
               content: `"\\200C"`,
               display: "block",
             },

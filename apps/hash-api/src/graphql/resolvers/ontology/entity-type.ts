@@ -1,19 +1,24 @@
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
+import {
   createEntityType,
+  getEntityTypeSubgraphById,
   updateEntityType,
 } from "../../../graph/ontology/primitive/entity-type";
 import {
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
-  QueryGetAllLatestEntityTypesArgs,
   QueryGetEntityTypeArgs,
+  QueryQueryEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -38,11 +43,11 @@ export const createEntityTypeResolver: ResolverFn<
   return createdEntityType;
 };
 
-export const getAllLatestEntityTypesResolver: ResolverFn<
+export const queryEntityTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntityTypesArgs
+  QueryQueryEntityTypesArgs
 > = async (
   _,
   {
@@ -61,31 +66,16 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
       equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -102,41 +92,23 @@ export const getEntityTypeResolver: ResolverFn<
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
   },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
-    filter: {
-      equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
-    },
+  return await getEntityTypeSubgraphById(context, {
+    entityTypeId,
+    actorId: user.accountId,
     graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
+      ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
-    },
+    temporalAxes: currentTimeInstantTemporalAxes,
   });
-
-  return mapSubgraph(entityTypeSubgraph);
 };
 
 export const updateEntityTypeResolver: ResolverFn<

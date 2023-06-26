@@ -190,7 +190,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: { xs: 0, md: 7, lg: 8 } }}>HASH</Box>}
+            title={<Box sx={{ mt: { xs: 0, md: 7, lg: 8 } }}>HASH App</Box>}
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/apps/hash"
@@ -221,23 +221,19 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <Typography>
-              HASH is our forthcoming open-source, all-in-one workspace platform
-              built around structured data and interactive blocks. It feels like
-              taking notes, but works like a powerful database.{" "}
-              <strong>
-                Please note: the current version is not yet ready for use.
-              </strong>
+              An open-source, all-in-one workspace platform built around
+              structured data and interactive blocks. It feels like taking
+              notes, but works like a powerful database.{" "}
             </Typography>
             <Typography>
-              Download and run it yourself, or sign up for the hosted platform
-              waitlist at{" "}
-              <Link href="https://hash.ai/platform/hash">
-                hash.ai/platform/hash
-              </Link>
+              Join the beta at{" "}
+              <Link href="https://hash.ai/platform/hash">hash.ai</Link>
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH Engine</Box>}
+            title={
+              <Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH Simulations</Box>
+            }
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/apps/engine"
@@ -268,8 +264,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <Typography>
-              hEngine is a simulation engine that allows you to run agent-based
-              simulations using your own private and public data from HASH.
+              Run agent-based simulations using your own private and public data
+              from HASH.
             </Typography>
             <Typography>
               The HASH all-in-one workspace will make it easy to clean,

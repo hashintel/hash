@@ -1,14 +1,14 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 
 export class EntityTypeMismatchError extends Error {
   entityId: string;
-  expectedEntityTypeId: VersionedUri;
-  actualEntityTypeId: VersionedUri;
+  expectedEntityTypeId: VersionedUrl;
+  actualEntityTypeId: VersionedUrl;
 
   constructor(
     entityId: string,
-    expectedEntityTypeId: VersionedUri,
-    actualEntityTypeId: VersionedUri,
+    expectedEntityTypeId: VersionedUrl,
+    actualEntityTypeId: VersionedUrl,
   ) {
     super(
       `Expected entity with id "${entityId}" to be of type "${expectedEntityTypeId}" but got:  ${actualEntityTypeId}`,

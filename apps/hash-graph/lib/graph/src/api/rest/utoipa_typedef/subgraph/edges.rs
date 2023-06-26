@@ -1,29 +1,114 @@
-use std::collections::{hash_map::Entry, BTreeMap, HashMap};
+use std::{
+    collections::{hash_map::Entry, BTreeMap, HashMap},
+    hash::Hash,
+};
 
 use serde::Serialize;
-use type_system::uri::BaseUri;
+use type_system::url::BaseUrl;
 use utoipa::{
-    openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
+    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
 use crate::{
-    api::rest::utoipa_typedef::{subgraph::Vertices, EntityIdAndTimestamp},
-    identifier::{
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{TimeAxis, Timestamp, VariableAxis},
-        OntologyTypeVertexId,
+    api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
+    subgraph::{
+        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+        identifier::{
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
+        },
+        temporal_axes::VariableAxis,
     },
-    store::Record,
-    subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
 };
+
+#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum OntologyOutwardEdge {
+    ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>),
+    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityIdWithInterval>),
+}
+
+impl From<OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, EntityTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            direction: edge.direction,
+            right_endpoint: OntologyTypeVertexId::EntityType(edge.right_endpoint),
+        })
+    }
+}
+
+impl From<OutwardEdge<OntologyEdgeKind, PropertyTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, PropertyTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            direction: edge.direction,
+            right_endpoint: OntologyTypeVertexId::PropertyType(edge.right_endpoint),
+        })
+    }
+}
+
+impl From<OutwardEdge<OntologyEdgeKind, DataTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, DataTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            direction: edge.direction,
+            right_endpoint: OntologyTypeVertexId::DataType(edge.right_endpoint),
+        })
+    }
+}
+
+impl From<OutwardEdge<SharedEdgeKind, EntityIdWithInterval>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, EntityIdWithInterval>) -> Self {
+        Self::ToKnowledgeGraph(edge)
+    }
+}
+
+// WARNING: This MUST be kept up to date with the enum variants.
+//   We have to do this because utoipa doesn't understand serde untagged:
+//   https://github.com/juhaku/utoipa/issues/320
+impl ToSchema<'_> for OntologyOutwardEdge {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "OntologyOutwardEdge",
+            OneOfBuilder::new()
+                .item(
+                    <OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>>::generate_schema(
+                        "OntologyToOntologyOutwardEdge",
+                    ),
+                )
+                .item(
+                    <OutwardEdge<SharedEdgeKind, EntityIdWithInterval>>::generate_schema(
+                        "OntologyToKnowledgeGraphOutwardEdge",
+                    ),
+                )
+                .into(),
+        )
+    }
+}
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdge {
-    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
+    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>),
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
+}
+
+impl From<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>> for KnowledgeGraphOutwardEdge {
+    fn from(edge: OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>) -> Self {
+        Self::ToKnowledgeGraph(edge)
+    }
+}
+
+impl From<OutwardEdge<SharedEdgeKind, EntityTypeVertexId>> for KnowledgeGraphOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, EntityTypeVertexId>) -> Self {
+        Self::ToOntology(OutwardEdge {
+            kind: edge.kind,
+            direction: edge.direction,
+            right_endpoint: OntologyTypeVertexId::EntityType(edge.right_endpoint),
+        })
+    }
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
@@ -35,7 +120,7 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
             "KnowledgeGraphOutwardEdge",
             OneOfBuilder::new()
                 .item(
-                    <OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::generate_schema(
+                    <OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>>::generate_schema(
                         "KnowledgeGraphToKnowledgeGraphOutwardEdge",
                     ),
                 )
@@ -49,16 +134,16 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
     }
 }
 
-#[derive(Default, Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
     pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
-#[derive(Default, Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
-    pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
+    pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
 #[derive(Serialize)]
@@ -69,93 +154,63 @@ pub struct Edges {
     pub knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
-impl Edges {
-    pub fn from_vertices_and_store_edges(
-        edges: crate::subgraph::edges::Edges,
-        vertices: &Vertices,
-        time_axis: TimeAxis,
-    ) -> Self {
-        Self {
-            ontology: OntologyRootedEdges(edges.ontology.into_iter().fold(
-                HashMap::new(),
-                |mut map, (id, edges)| {
-                    let edges = edges.into_iter().collect();
-                    match map.entry(id.base_id.clone()) {
-                        Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.revision_id, edges);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.revision_id, edges)]));
-                        }
-                    }
-                    map
-                },
-            )),
-            knowledge_graph: KnowledgeGraphRootedEdges(edges.knowledge_graph.into_iter().fold(
-                HashMap::new(),
-                |mut map, (id, edges)| {
-                    let edges = edges
-                        .into_iter()
-                        .map(|edge| {
-                            match edge {
-                            crate::subgraph::edges::KnowledgeGraphOutwardEdge::ToOntology(edge) => {
-                                KnowledgeGraphOutwardEdge::ToOntology(edge)
-                            }
-                            crate::subgraph::edges::KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
-                                edge,
-                            ) => {
-                                // We avoid storing redundant information when multiple editions of
-                                // the endpoints or links are present and in order to easily look
-                                // the corresponding link up in the vertices we store the earliest
-                                // timestamp when a link was added to the entity.
-                                //
-                                // As the vertices are sorted by timestamp, it's possible to get all
-                                // vertices starting with the provided earliest timestamp without
-                                // further filtering.
-                                //
-                                // We have four different permutations of a knowledge-knowledge
-                                // edge:
-                                //   1. `HAS_LEFT_ENTITY`, `reversed = false`
-                                //   2. `HAS_RIGHT_ENTITY`, `reversed = false`
-                                //   3. `HAS_LEFT_ENTITY`, `reversed = true`
-                                //   4. `HAS_RIGHT_ENTITY`, `reversed = true`
-                                //
-                                // For 1. and 2., the entity is a link and we want to store the
-                                // earliest version of this link as the earliest timestamp.
-                                // For 3. and 4., the endpoint of the edge is a link and we want to
-                                // store the earliest of that endpoint as the earliest timestamp.
-                                let earliest_timestamp = if edge.reversed {
-                                    vertices.earliest_entity_by_id(&edge.right_endpoint)
-                                } else {
-                                    vertices.earliest_entity_by_id(&id.base_id)
-                                }
-                                    .expect("entity must exist in subgraph")
-                                    .vertex_id(time_axis)
-                                    .revision_id;
+fn collect_merge<T: Hash + Eq, U: Ord, V>(
+    mut accumulator: HashMap<T, BTreeMap<U, Vec<V>>>,
+    (key, value): (T, BTreeMap<U, Vec<V>>),
+) -> HashMap<T, BTreeMap<U, Vec<V>>> {
+    match accumulator.entry(key) {
+        Entry::Occupied(mut occupied) => {
+            let entry = occupied.get_mut();
 
-                                KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
-                                    kind: edge.kind,
-                                    reversed: edge.reversed,
-                                    right_endpoint: EntityIdAndTimestamp {
-                                        base_id: edge.right_endpoint,
-                                        timestamp: earliest_timestamp,
-                                    },
-                                })
-                            }
-                        }
-                        })
-                        .collect();
-                    match map.entry(id.base_id) {
-                        Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.revision_id, edges);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.revision_id, edges)]));
-                        }
-                    }
-                    map
-                },
-            )),
+            for (revision, mut edges) in value {
+                let buffer = entry.entry(revision).or_default();
+                buffer.append(&mut edges);
+            }
+        }
+        Entry::Vacant(vacant) => {
+            // hot path, instead of merging one by one, just replace
+            vacant.insert(value);
+        }
+    }
+
+    accumulator
+}
+
+impl From<crate::subgraph::edges::Edges> for Edges {
+    fn from(edges: crate::subgraph::edges::Edges) -> Self {
+        Self {
+            ontology: OntologyRootedEdges(
+                edges
+                    .entity_type_to_entity_type
+                    .into_flattened::<OntologyOutwardEdge>()
+                    .chain(
+                        edges
+                            .entity_type_to_property_type
+                            .into_flattened::<OntologyOutwardEdge>(),
+                    )
+                    .chain(
+                        edges
+                            .property_type_to_property_type
+                            .into_flattened::<OntologyOutwardEdge>(),
+                    )
+                    .chain(
+                        edges
+                            .property_type_to_data_type
+                            .into_flattened::<OntologyOutwardEdge>(),
+                    )
+                    .fold(HashMap::new(), collect_merge),
+            ),
+            knowledge_graph: KnowledgeGraphRootedEdges(
+                edges
+                    .entity_to_entity
+                    .into_flattened::<KnowledgeGraphOutwardEdge>()
+                    .chain(
+                        edges
+                            .entity_to_entity_type
+                            .into_flattened::<KnowledgeGraphOutwardEdge>(),
+                    )
+                    .fold(HashMap::new(), collect_merge),
+            ),
         }
     }
 }
@@ -167,14 +222,97 @@ impl ToSchema<'_> for Edges {
         (
             "Edges",
             ObjectBuilder::new()
-                .additional_properties(Some(Schema::from(
-                    ObjectBuilder::new().additional_properties(Some(Array::new(
-                        OneOfBuilder::new()
-                            .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
-                            .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0)),
+                .additional_properties(Some(AdditionalProperties::RefOr(RefOr::T(Schema::from(
+                    ObjectBuilder::new().additional_properties(Some(AdditionalProperties::RefOr(
+                        RefOr::T(Schema::from(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
+                                .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0))
+                                .to_array_builder()
+                                .build(),
+                        )),
                     ))),
-                )))
+                )))))
                 .into(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use type_system::url::BaseUrl;
+    use uuid::Uuid;
+
+    use crate::{
+        api::rest::utoipa_typedef::subgraph::Edges,
+        identifier::{
+            account::AccountId,
+            knowledge::EntityId,
+            ontology::OntologyTypeVersion,
+            time::{ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp},
+        },
+        knowledge::EntityUuid,
+        provenance::OwnedById,
+        subgraph::{
+            edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+            identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
+        },
+    };
+
+    #[test]
+    fn merge_ontology() {
+        let vertex_id = EntityVertexId {
+            base_id: EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            },
+            revision_id: Timestamp::now(),
+        };
+
+        let mut edges = crate::subgraph::edges::Edges::default();
+
+        // the data used does not matter, what only matters is that we actually merged the data
+        edges.entity_to_entity.insert(
+            &vertex_id,
+            KnowledgeGraphEdgeKind::HasRightEntity,
+            EdgeDirection::Outgoing,
+            EntityIdWithInterval {
+                entity_id: EntityId {
+                    owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                    entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                },
+                interval: LeftClosedTemporalInterval::new(
+                    ClosedTemporalBound::Inclusive(Timestamp::now()),
+                    OpenTemporalBound::Unbounded,
+                ),
+            },
+        );
+
+        edges.entity_to_entity_type.insert(
+            &vertex_id,
+            SharedEdgeKind::IsOfType,
+            EdgeDirection::Outgoing,
+            EntityTypeVertexId {
+                base_id: BaseUrl::new("https://example.com/".to_owned())
+                    .expect("should be valid URL"),
+                revision_id: OntologyTypeVersion::new(0),
+            },
+        );
+
+        let edges = Edges::from(edges);
+        assert_eq!(edges.knowledge_graph.0.len(), 1);
+
+        let (_, values) = edges
+            .knowledge_graph
+            .0
+            .iter()
+            .next()
+            .expect("should have at least a single entry");
+        assert_eq!(values.len(), 1);
+
+        let (_, edges) = values
+            .first_key_value()
+            .expect("should have at least a single entry");
+        assert_eq!(edges.len(), 2);
     }
 }

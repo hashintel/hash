@@ -2,7 +2,7 @@ import { useLazyQuery, useMutation } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
@@ -75,14 +75,14 @@ export const useUpdateAuthenticatedUser = () => {
               ...currentProperties,
               ...(params.shortname
                 ? {
-                    [extractBaseUri(
+                    [extractBaseUrl(
                       types.propertyType.shortName.propertyTypeId,
                     )]: params.shortname,
                   }
                 : {}),
               ...(params.preferredName
                 ? {
-                    [extractBaseUri(
+                    [extractBaseUrl(
                       types.propertyType.preferredName.propertyTypeId,
                     )]: params.preferredName,
                   }

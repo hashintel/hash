@@ -38,20 +38,20 @@ We launched the v0.1 spec in January 2022 with a [blog post from Joel](https://w
 
 As we dove into the details of the problems we still need to solve to make blocks and applications truly interoperable, we quickly realised the protocol would need a more extensible architecture. Version 0.1 defined a set of methods which together represented all the messages that could be exchanged between embedding applications and blocks. As we worked through solutions, we found ourselves adding more and more methods and soon realised this would become unworkable for a couple of reasons. Firstly, not all blocks and embedding applications would need all of these methods, making the specification unnecessarily bloated. And second, each new method we introduced would require embedding applications and blocks to upgrade to the new version of the protocol.
 
-Today, we are releasing our first major update to the Block Protocol to solve this problem. Version 0.2 rearchitects the protocol into a “core” specification supported by additional “service” specifications.
+Today, we are releasing our first major update to the Block Protocol to solve this problem. Version 0.2 rearchitects the protocol into a “core” supported by additional (optional) modules.
 
-The Core Specification defines clear API boundaries between embedding applications and blocks. Specifically, it sets out:
+The Core specification defines clear API boundaries between embedding applications and blocks. Specifically, it sets out:
 
 - how blocks should be defined
 - how embedding applications should initialize blocks
-- how services are defined
-- how applications and blocks communicate via services
+- how modules are defined
+- how applications and blocks communicate via modules
 
-Within this framework, the service specifications define _what_ is communicated between applications and blocks in order to fulfil a specific purpose, like defining a block’s style or exchanging data. Importantly, services can be added and updated independently of the Core Specification, allowing us to extend and iterate the Block Protocol much more easily.
+Within this framework, individual module specifications define _what_ is communicated between applications and blocks in order to fulfil a specific purpose, like defining a block’s style or exchanging data. Importantly, modules can be added and updated independently of the Core specification, allowing us to extend and iterate the Block Protocol much more easily.
 
-We don’t expect all embedding applications to support all services. Instead, we’ll allow app developers to filter the available blocks based on the services they require, allowing for easier, more incremental adoption of the Block Protocol.
+We don’t expect all embedding applications to support all modules. Instead, we’ll allow app developers to filter the available blocks based on the modules they require, allowing for easier, more incremental adoption of the Block Protocol.
 
-In addition to the v0.2 Core Specification, we are introducing the first Block Protocol service: the Graph Service. This replaces v0.1’s data transfer methods. We expect most blocks to use the Graph Service as it enables blocks to create, read, update, and delete data in embedding applications, a common requirement for interoperability.
+In addition to the v0.2 Core Specification, we are introducing the first Block Protocol module: the Graph module. This replaces v0.1’s data transfer methods. We expect most blocks to use the Graph module as it enables blocks to create, read, update, and delete data in embedding applications, a common requirement for interoperability.
 
 The best way to learn about version 0.2 of the Block Protocol is to build a block. You can get started in a matter of minutes with [our tutorial](https://blockprotocol.org/docs/developing-blocks). For all the technical details, read the new specifications [here](https://blockprotocol.org/docs/spec).
 
@@ -59,4 +59,4 @@ The best way to learn about version 0.2 of the Block Protocol is to build a bloc
 
 We are building the Block Protocol in the open and we’d love your help.
 
-With the introduction of version 0.2, we’re sharing a list of new services we’re considering, from Commenting to Versioning. We also have a number of important, open questions around updates we’re considering for the Core Specification and the Graph Services Specification. You can find all the details in the [RFCs & Roadmap section](https://blockprotocol.org/docs/spec/rfcs_and_roadmap) of the spec and [join the discussion on GitHub](https://github.com/blockprotocol/blockprotocol/discussions).
+With the introduction of version 0.2, we’re sharing a list of new modules we’re considering, from Commenting to Versioning. We also have a number of important, open questions around updates we’re considering for the Core specification and Graph module. You can find all the details in the [RFCs & Roadmap section](https://blockprotocol.org/docs/spec/rfcs_and_roadmap) of the spec and [join the discussion on GitHub](https://github.com/blockprotocol/blockprotocol/discussions).

@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
 
-use deer::Number;
+use deer::{Deserialize, Document, Number, Reflection, Schema};
 
 // TODO: test
 // TODO: this should be `Copy`, but `Number` has no &'static constructor
@@ -49,34 +49,6 @@ pub enum Token {
     /// ```
     I128(i128),
 
-    /// A serialized [`usize`]
-    ///
-    /// this is a separate variant, because there is no guarantee about the width of a usize/isize,
-    /// it depends on the size to reference a memory address on the host system. There might be
-    /// systems that use 128 bit in the future that rust supports, which means we too need to
-    /// support those, by special casing usize.
-    ///
-    /// ```
-    /// use deer_desert::{assert_tokens, Token};
-    ///
-    /// assert_tokens(&1usize, &[Token::USize(1)])
-    /// ```
-    USize(usize),
-
-    /// A serialized [`isize`]
-    ///
-    /// this is a separate variant, because there is no guarantee about the width of a usize/isize,
-    /// it depends on the size to reference a memory address on the host system. There might be
-    /// systems that use 128 bit in the future that rusts supports, which means we too need to
-    /// support those, by special casing isize/usize.
-    ///
-    /// ```
-    /// use deer_desert::{assert_tokens, Token};
-    ///
-    /// assert_tokens(&1isize, &[Token::ISize(1)])
-    /// ```
-    ISize(isize),
-
     /// A serialized [`char`]
     ///
     /// ```
@@ -116,8 +88,8 @@ pub enum Token {
     ///         Self::Value::reflection()
     ///     }
     ///
-    ///     fn visit_str(self, v: &str) -> error_stack::Result<Self::Value, VisitorError> {
-    ///         match v {
+    ///     fn visit_str(self, value: &str) -> error_stack::Result<Self::Value, VisitorError> {
+    ///         match value {
     ///             "trace" => Ok(LogLevel::Trace),
     ///             "debug" => Ok(LogLevel::Debug),
     ///             "info" => Ok(LogLevel::Info),
@@ -140,8 +112,11 @@ pub enum Token {
     /// impl<'de> Deserialize<'de> for LogLevel {
     ///     type Reflection = Self;
     ///
-    ///     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-    ///         de.deserialize_str(LogLevelVisitor)
+    ///     fn deserialize<D: Deserializer<'de>>(
+    ///         deserializer: D,
+    ///     ) -> error_stack::Result<Self, DeserializeError> {
+    ///         deserializer
+    ///             .deserialize_str(LogLevelVisitor)
     ///             .change_context(DeserializeError)
     ///     }
     /// }
@@ -206,3 +181,41 @@ impl Display for Token {
         Debug::fmt(self, f)
     }
 }
+
+struct AnyArray;
+
+impl Reflection for AnyArray {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("array")
+    }
+}
+
+struct AnyObject;
+
+impl Reflection for AnyObject {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("object")
+    }
+}
+
+impl Token {
+    pub(crate) fn schema(&self) -> Document {
+        match self {
+            Self::Bool(_) => Document::new::<bool>(),
+            Self::Number(_) => Document::new::<Number>(),
+            Self::U128(_) => Document::new::<u128>(),
+            Self::I128(_) => Document::new::<i128>(),
+            Self::Char(_) => Document::new::<char>(),
+            Self::Str(_) | Self::BorrowedStr(_) | Self::String(_) => Document::new::<str>(),
+            Self::Bytes(_) | Self::BorrowedBytes(_) | Self::BytesBuf(_) => Document::new::<[u8]>(),
+            Self::Array { .. } | Self::ArrayEnd => Document::new::<AnyArray>(),
+            Self::Object { .. } | Self::ObjectEnd => Document::new::<AnyObject>(),
+            Self::Null => Document::new::<<() as Deserialize>::Reflection>(),
+        }
+    }
+}
+
+// TODO: maybe number
+// TODO: IdentifierVisitor (u8, u64, str, borrowed_str, string,
+//  bytes, bytes_buf, borrowed_bytes)
+// TODO: test

@@ -1,20 +1,9 @@
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    error::Error,
-    fmt,
-    fmt::Display,
-};
+use std::{error::Error, fmt, fmt::Display};
 
 use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
-
-use crate::{
-    identifier::OntologyTypeVertexId,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{Subgraph, SubgraphIndex},
-};
 
 #[derive(
     Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
@@ -59,66 +48,31 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {
     #[schema(value_type = String)]
-    pub base_uri: BaseUri,
+    pub base_url: BaseUrl,
     #[schema(value_type = u32)]
     pub version: OntologyTypeVersion,
 }
 
 impl Display for OntologyTypeRecordId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}v/{}", self.base_uri.as_str(), self.version.inner())
+        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version.inner())
     }
 }
 
-impl From<VersionedUri> for OntologyTypeRecordId {
-    fn from(versioned_uri: VersionedUri) -> Self {
+impl From<VersionedUrl> for OntologyTypeRecordId {
+    fn from(versioned_url: VersionedUrl) -> Self {
         Self {
-            base_uri: versioned_uri.base_uri,
-            version: OntologyTypeVersion::new(versioned_uri.version),
+            base_url: versioned_url.base_url,
+            version: OntologyTypeVersion::new(versioned_url.version),
         }
     }
 }
 
-impl From<OntologyTypeRecordId> for VersionedUri {
+impl From<OntologyTypeRecordId> for VersionedUrl {
     fn from(record_id: OntologyTypeRecordId) -> Self {
         Self {
-            base_uri: record_id.base_uri,
+            base_url: record_id.base_url,
             version: record_id.version.inner(),
         }
-    }
-}
-
-impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
-        subgraph.vertices.data_types.raw_entry_mut().from_key(self)
-    }
-}
-
-impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
-        subgraph
-            .vertices
-            .property_types
-            .raw_entry_mut()
-            .from_key(self)
-    }
-}
-
-impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
-        subgraph
-            .vertices
-            .entity_types
-            .raw_entry_mut()
-            .from_key(self)
     }
 }

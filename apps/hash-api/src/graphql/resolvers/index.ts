@@ -1,5 +1,6 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import { callAgentRunnerResolver } from "./agents/call-agent-runner";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { blocksResolver } from "./knowledge/block/block";
@@ -16,8 +17,8 @@ import { updateCommentTextResolver } from "./knowledge/comment/update-text";
 import {
   archiveEntityResolver,
   createEntityResolver,
-  getAllLatestEntitiesResolver,
   getEntityResolver,
+  queryEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
@@ -45,17 +46,17 @@ import { updateLinkedAggregationOperation } from "./linked-aggregation/update-li
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
-import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
+import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
   createEntityTypeResolver,
-  getAllLatestEntityTypesResolver,
   getEntityTypeResolver,
+  queryEntityTypesResolver,
   updateEntityTypeResolver,
 } from "./ontology/entity-type";
 import {
   createPropertyTypeResolver,
-  getAllLatestPropertyTypesResolver,
   getPropertyTypeResolver,
+  queryPropertyTypesResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 import {
@@ -82,15 +83,13 @@ export const resolvers = {
     isShortnameTaken: isShortnameTakenResolver,
     embedCode,
     // Ontology
-    getAllLatestDataTypes: loggedInAndSignedUpMiddleware(getAllLatestDataTypes),
+    queryDataTypes: loggedInAndSignedUpMiddleware(queryDataTypes),
     getDataType,
-    getAllLatestPropertyTypes: loggedInAndSignedUpMiddleware(
-      getAllLatestPropertyTypesResolver,
+    queryPropertyTypes: loggedInAndSignedUpMiddleware(
+      queryPropertyTypesResolver,
     ),
     getPropertyType: getPropertyTypeResolver,
-    getAllLatestEntityTypes: loggedInAndSignedUpMiddleware(
-      getAllLatestEntityTypesResolver,
-    ),
+    queryEntityTypes: loggedInAndSignedUpMiddleware(queryEntityTypesResolver),
     getEntityType: getEntityTypeResolver,
     // Knowledge
     page: pageResolver,
@@ -98,7 +97,7 @@ export const resolvers = {
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
-    getAllLatestEntities: getAllLatestEntitiesResolver,
+    queryEntities: queryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
   },
 
@@ -150,6 +149,10 @@ export const resolvers = {
     resolveComment: loggedInAndSignedUpMiddleware(resolveCommentResolver),
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
+
+    // LLM Agents
+    callAgentRunner: loggedInAndSignedUpMiddleware(callAgentRunnerResolver),
+
     // HASH instance admin mutations
     createUser:
       loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),

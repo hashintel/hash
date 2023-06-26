@@ -9,12 +9,12 @@ pub enum Ordering {
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
-pub struct OrderByExpression<'p> {
-    columns: Vec<(AliasedColumn<'p>, Ordering)>,
+pub struct OrderByExpression {
+    columns: Vec<(AliasedColumn, Ordering)>,
 }
 
-impl<'p> OrderByExpression<'p> {
-    pub fn push(&mut self, column: AliasedColumn<'p>, ordering: Ordering) {
+impl OrderByExpression {
+    pub fn push(&mut self, column: AliasedColumn, ordering: Ordering) {
         self.columns.push((column, ordering));
     }
 
@@ -23,7 +23,7 @@ impl<'p> OrderByExpression<'p> {
     }
 }
 
-impl Transpile for OrderByExpression<'_> {
+impl Transpile for OrderByExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.columns.is_empty() {
             return Ok(());
@@ -76,7 +76,7 @@ mod tests {
     fn order_multiple() {
         let mut order_by_expression = OrderByExpression::default();
         order_by_expression.push(
-            DataTypeQueryPath::BaseUri
+            DataTypeQueryPath::BaseUrl
                 .terminating_column()
                 .aliased(Alias {
                     condition_index: 1,
@@ -97,7 +97,7 @@ mod tests {
         assert_eq!(
             trim_whitespace(order_by_expression.transpile_to_string()),
             trim_whitespace(
-                r#"ORDER BY "ontology_id_with_metadata_1_2_3"."base_uri" ASC,
+                r#"ORDER BY "ontology_id_with_metadata_1_2_3"."base_url" ASC,
                 "data_types_4_5_6"."schema"->>'type' DESC"#
             )
         );

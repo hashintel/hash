@@ -1,4 +1,4 @@
-import { BaseUri } from "@blockprotocol/type-system/slim";
+import { BaseUrl } from "@blockprotocol/type-system/slim";
 
 import { useOntologyFunctions } from "../../shared/ontology-functions-context";
 import { TypeForm, TypeFormProps } from "../shared/type-form";
@@ -6,10 +6,10 @@ import { ExpectedValueSelector } from "./property-type-form/expected-value-selec
 import { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
 export const PropertyTypeForm = ({
-  baseUri,
+  baseUrl,
   ...props
 }: TypeFormProps<PropertyTypeFormValues> & {
-  baseUri?: BaseUri;
+  baseUrl?: BaseUrl;
 }) => {
   const { validateTitle: remoteValidation } = useOntologyFunctions();
 
@@ -21,7 +21,7 @@ export const PropertyTypeForm = ({
 
   return (
     <TypeForm validateTitle={validateTitle} {...props}>
-      <ExpectedValueSelector propertyTypeBaseUri={baseUri} />
+      <ExpectedValueSelector propertyTypeBaseUrl={baseUrl} />
     </TypeForm>
   );
 };

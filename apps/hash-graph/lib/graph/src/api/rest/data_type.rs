@@ -2,23 +2,33 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Extension, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri, DataType};
+use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
+#[cfg(feature = "type-fetcher")]
+use crate::ontology::OntologyTypeReference;
 use crate::{
-    api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
+    api::rest::{
+        json::Json,
+        report_to_status_code,
+        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
+        RestApiStore,
+    },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
         OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUriAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool},
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    store::{
+        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
+        StorePool,
+    },
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
 
@@ -34,6 +44,8 @@ use crate::{
             DataTypeWithMetadata,
 
             CreateDataTypeRequest,
+            CreateOwnedDataTypeRequest,
+            CreateExternalDataTypeRequest,
             UpdateDataTypeRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
@@ -47,7 +59,10 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-types",
@@ -59,12 +74,28 @@ impl RoutedResource for DataTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", untagged)]
+enum CreateDataTypeRequest {
+    Owned(CreateOwnedDataTypeRequest),
+    #[cfg(feature = "type-fetcher")]
+    External(CreateExternalDataTypeRequest),
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateDataTypeRequest {
-    #[schema(value_type = VAR_DATA_TYPE)]
-    schema: repr::DataType,
+struct CreateOwnedDataTypeRequest {
+    #[schema(inline)]
+    schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct CreateExternalDataTypeRequest {
+    #[schema(value_type = String)]
+    data_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -73,10 +104,10 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created data type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
+        (status = 409, description = "Unable to create data type in the store as the base data type URL already exists"),
         (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateDataTypeRequest,
@@ -86,44 +117,77 @@ async fn create_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
-    let Json(CreateDataTypeRequest {
-        schema,
-        owned_by_id,
-        actor_id,
-    }) = body;
-
-    let data_type: DataType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Data Type");
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
-    })?;
-
-    domain_validator.validate(&data_type).map_err(|report| {
-        tracing::error!(error=?report, id=data_type.id().to_string(), "Data Type ID failed to validate");
-        StatusCode::UNPROCESSABLE_ENTITY
-    })?;
-
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        data_type.id().clone().into(),
-        ProvenanceMetadata::new(actor_id),
+    #[allow(clippy::infallible_destructuring_match)]
+    let CreateOwnedDataTypeRequest {
+        schema,
         owned_by_id,
-    ));
+        actor_id,
+    } = match body.0 {
+        CreateDataTypeRequest::Owned(request) => request,
+        #[cfg(feature = "type-fetcher")]
+        CreateDataTypeRequest::External(request) => {
+            return Ok(Json(ListOrValue::Value(
+                store
+                    .load_external_type(
+                        &domain_validator,
+                        OntologyTypeReference::DataTypeReference((&request.data_type_id).into()),
+                        request.actor_id,
+                    )
+                    .await?,
+            )));
+        }
+    };
+
+    let is_list = matches!(&schema, ListOrValue::List(_));
+
+    let schema_iter = schema.into_iter();
+    let mut data_types = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+
+    for schema in schema_iter {
+        let data_type: DataType = schema.try_into().into_report().map_err(|report| {
+            tracing::error!(error=?report, "Couldn't convert schema to Data Type");
+            StatusCode::UNPROCESSABLE_ENTITY
+            // TODO - We should probably return more information to the client
+            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        })?;
+
+        domain_validator.validate(&data_type).map_err(|report| {
+            tracing::error!(error=?report, id=data_type.id().to_string(), "Data Type ID failed to validate");
+            StatusCode::UNPROCESSABLE_ENTITY
+        })?;
+
+        metadata.push(OntologyElementMetadata::Owned(
+            OwnedOntologyElementMetadata::new(
+                data_type.id().clone().into(),
+                ProvenanceMetadata::new(actor_id),
+                owned_by_id,
+            ),
+        ));
+
+        data_types.push(data_type);
+    }
 
     store
-        .create_data_type(data_type, &metadata)
+        .create_data_types(
+            data_types.into_iter().zip(metadata.iter()),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
-            // TODO: consider adding the data type, or at least its URI in the trace
-            tracing::error!(error=?report, "Could not create data type");
+            // TODO: consider adding the data type, or at least its URL in the trace
+            tracing::error!(error=?report, "Could not create data types");
 
-            if report.contains::<BaseUriAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
 
@@ -131,7 +195,13 @@ async fn create_data_type<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(metadata))
+    if is_list {
+        Ok(Json(ListOrValue::List(metadata)))
+    } else {
+        Ok(Json(ListOrValue::Value(
+            metadata.pop().expect("metadata does not contain a value"),
+        )))
+    }
 }
 
 #[utoipa::path(
@@ -180,8 +250,8 @@ struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = String)]
-    type_to_update: VersionedUri,
-    actor_id: UpdatedById,
+    type_to_update: VersionedUrl,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(

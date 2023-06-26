@@ -1,4 +1,4 @@
-import { validateVersionedUri } from "@blockprotocol/type-system";
+import { validateVersionedUrl } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useContext } from "react";
 
@@ -13,7 +13,7 @@ const Page: NextPageWithLayout = () => {
   const queryEntityId = router.query["entity-type-id"]?.toString();
   const entityTypeId = !queryEntityId
     ? null
-    : validateVersionedUri(queryEntityId);
+    : validateVersionedUrl(queryEntityId);
 
   const { activeWorkspace } = useContext(WorkspaceContext);
   const shouldBeCreatingEntity = entityTypeId?.type === "Ok";

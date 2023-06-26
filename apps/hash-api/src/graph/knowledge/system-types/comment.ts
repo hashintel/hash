@@ -52,11 +52,11 @@ export const getCommentFromEntity: PureGraphFunction<
   }
 
   const resolvedAt = entity.properties[
-    SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const deletedAt = entity.properties[
-    SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUrl
   ] as string | undefined;
 
   return {
@@ -92,8 +92,8 @@ export const getCommentText: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { comment }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+    entityId: comment.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
   });
 
   const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
@@ -142,7 +142,7 @@ export const createComment: ImpureGraphFunction<
   const textEntity = await createEntity(ctx, {
     ownedById,
     properties: {
-      [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: tokens,
+      [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
     },
     entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
     actorId,
@@ -205,8 +205,8 @@ export const updateCommentText: ImpureGraphFunction<
 
   await updateEntityProperty(ctx, {
     entity: textEntity,
-    propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri,
+    propertyTypeBaseUrl:
+      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
     value: tokens,
     actorId,
   });
@@ -243,8 +243,8 @@ export const deleteComment: ImpureGraphFunction<
     entity: comment.entity,
     updatedProperties: [
       {
-        propertyTypeBaseUri:
-          SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUri,
+        propertyTypeBaseUrl:
+          SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUrl,
         value: new Date().toISOString(),
       },
     ],
@@ -264,8 +264,8 @@ export const getCommentParent: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { comment }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    entityId: comment.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -295,8 +295,8 @@ export const getCommentAuthor: ImpureGraphFunction<
   Promise<User>
 > = async (ctx, { comment }) => {
   const authorLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.author,
+    entityId: comment.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.author.schema.$id,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -377,8 +377,8 @@ export const resolveComment: ImpureGraphFunction<
     entity: comment.entity,
     updatedProperties: [
       {
-        propertyTypeBaseUri:
-          SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUri,
+        propertyTypeBaseUrl:
+          SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUrl,
         value: new Date().toISOString(),
       },
     ],

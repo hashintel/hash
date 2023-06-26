@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -41,7 +41,7 @@ export const useRows = () => {
     }
 
     return Object.entries(linkSchemas).map<LinkRow>(([key, linkSchema]) => {
-      const linkEntityTypeId = key as VersionedUri;
+      const linkEntityTypeId = key as VersionedUrl;
 
       const linkEntityType = getEntityTypeById(
         entitySubgraph,

@@ -46,10 +46,7 @@ export const useBlockProtocolUpdatePropertyType = (
       const { data: responseData } = await updateFn({
         variables: {
           propertyTypeId,
-          updatedPropertyType: {
-            ...propertyType,
-            kind: "propertyType",
-          },
+          updatedPropertyType: propertyType,
         },
       });
 

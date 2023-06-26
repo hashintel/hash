@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -15,10 +16,12 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -46,7 +49,7 @@ describe("Comment", () => {
     const textEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: [],
+        [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: [],
       },
       entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
       actorId: testUser.accountId,
@@ -58,6 +61,17 @@ describe("Comment", () => {
       blockData: textEntity,
       actorId: testUser.accountId,
     });
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   it("createComment method can create a comment", async () => {
@@ -72,7 +86,7 @@ describe("Comment", () => {
     const hasText = await getCommentText(graphContext, { comment });
     expect(
       hasText.properties[
-        SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri
+        SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
       ],
     ).toEqual([]);
 

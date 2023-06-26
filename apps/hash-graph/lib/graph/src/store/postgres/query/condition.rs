@@ -6,14 +6,17 @@ use crate::store::postgres::query::{Expression, Transpile};
 ///
 /// [`Filter`]: crate::store::query::Filter
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Condition<'p> {
+pub enum Condition {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<Expression<'p>>, Option<Expression<'p>>),
-    NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
-    TimeIntervalContainsTimestamp(Expression<'p>, Expression<'p>),
-    Overlap(Expression<'p>, Expression<'p>),
+    Equal(Option<Expression>, Option<Expression>),
+    NotEqual(Option<Expression>, Option<Expression>),
+    TimeIntervalContainsTimestamp(Expression, Expression),
+    Overlap(Expression, Expression),
+    StartsWith(Expression, Expression),
+    EndsWith(Expression, Expression),
+    ContainsSegment(Expression, Expression),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -22,12 +25,12 @@ pub enum EqualityOperator {
     NotEqual,
 }
 
-impl Transpile for Condition<'_> {
+impl Transpile for Condition {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Condition::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
-            Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
-            Condition::All(conditions) => {
+            Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
+            Self::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
+            Self::All(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
                     if idx > 0 {
                         fmt.write_str(" AND ")?;
@@ -38,7 +41,7 @@ impl Transpile for Condition<'_> {
                 }
                 Ok(())
             }
-            Condition::Any(conditions) => {
+            Self::Any(conditions) => {
                 if conditions.len() > 1 {
                     fmt.write_char('(')?;
                 }
@@ -55,39 +58,56 @@ impl Transpile for Condition<'_> {
                 }
                 Ok(())
             }
-            Condition::Not(condition) => {
+            Self::Not(condition) => {
                 fmt.write_str("NOT(")?;
                 condition.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Condition::Equal(value, None) | Condition::Equal(None, value) => {
+            Self::Equal(value, None) | Self::Equal(None, value) => {
                 value.transpile(fmt)?;
                 fmt.write_str(" IS NULL")
             }
-            Condition::Equal(lhs, rhs) => {
+            Self::Equal(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" = ")?;
                 rhs.transpile(fmt)
             }
-            Condition::NotEqual(value, None) | Condition::NotEqual(None, value) => {
+            Self::NotEqual(value, None) | Self::NotEqual(None, value) => {
                 value.transpile(fmt)?;
                 fmt.write_str(" IS NOT NULL")
             }
-            Condition::NotEqual(lhs, rhs) => {
+            Self::NotEqual(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
-            Condition::TimeIntervalContainsTimestamp(lhs, rhs) => {
+            Self::TimeIntervalContainsTimestamp(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" @> ")?;
                 rhs.transpile(fmt)?;
                 fmt.write_str("::TIMESTAMPTZ")
             }
-            Condition::Overlap(lhs, rhs) => {
+            Self::Overlap(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" && ")?;
                 rhs.transpile(fmt)
+            }
+            Self::StartsWith(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" || '%'")
+            }
+            Self::EndsWith(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE '%' || ")?;
+                rhs.transpile(fmt)
+            }
+            Self::ContainsSegment(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE '%' || ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" || '%'")
             }
         }
     }
@@ -114,7 +134,7 @@ mod tests {
         parameters: &[&'p dyn ToSql],
     ) {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::new(&temporal_axes);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes));
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
@@ -186,7 +206,7 @@ mod tests {
     fn transpile_all_condition() {
         test_condition(
             &Filter::All(vec![Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
@@ -198,7 +218,7 @@ mod tests {
         test_condition(
             &Filter::All(vec![
                 Filter::Equal(
-                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
                     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )))),
@@ -208,7 +228,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
-            r#"("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
+            r#"("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -220,7 +240,7 @@ mod tests {
     fn transpile_any_condition() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
@@ -232,7 +252,7 @@ mod tests {
         test_condition(
             &Filter::Any(vec![
                 Filter::Equal(
-                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
                     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )))),
@@ -242,7 +262,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
-            r#"(("ontology_id_with_metadata_0_1_0"."base_uri" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
+            r#"(("ontology_id_with_metadata_0_1_0"."base_url" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -254,7 +274,7 @@ mod tests {
     fn transpile_not_condition() {
         test_condition(
             &Filter::Not(Box::new(Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),

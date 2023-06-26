@@ -1,0 +1,17 @@
+.wrapper {
+  background: none;
+  border-radius: 0.3em;
+  padding: 0.2em !important;
+
+  color: #c1cfde;
+
+  &:hover,
+  &:focus {
+    color: black;
+  }
+
+  svg {
+    width: 1em;
+    height: 1em;
+  }
+}

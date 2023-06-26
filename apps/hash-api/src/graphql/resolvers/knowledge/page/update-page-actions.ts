@@ -1,4 +1,3 @@
-import { VersionedUri } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { AccountId, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
@@ -36,11 +35,6 @@ export const createEntityWithPlaceholdersFn =
         draft.existingEntityId = placeholderResults.get(
           draft.existingEntityId,
         ) as EntityId;
-      }
-      if (draft.entityTypeId) {
-        draft.entityTypeId = placeholderResults.get(
-          draft.entityTypeId,
-        ) as VersionedUri;
       }
     });
 
@@ -90,7 +84,7 @@ const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
 
 export class PlaceholderResultsMap {
-  private map = new Map<string, string>();
+  private map = new Map<string, EntityId>();
 
   get(placeholderId: string) {
     if (isPlaceholderId(placeholderId)) {
@@ -120,7 +114,7 @@ export class PlaceholderResultsMap {
     return Array.from(this.map.entries()).map(([placeholderId, entityId]) => ({
       placeholderId,
       // All resulting values should be entityIds at this point.
-      entityId: entityId as EntityId,
+      entityId,
     }));
   }
 }
@@ -158,7 +152,9 @@ export const handleCreateNewEntity = async (params: {
       throw new UserInputError(`action ${params.index}: ${error}`);
     }
     throw new Error(
-      `createEntity: Could not create new entity: ${JSON.stringify(error)}`,
+      `createEntity: Could not create new entity: ${JSON.stringify(
+        error,
+      )}, trying to create ${JSON.stringify(params)}`,
     );
   }
 };
@@ -246,7 +242,7 @@ export const handleInsertNewBlock = async (
       throw new UserInputError(`action ${params.index}: ${error}`);
     }
     throw new Error(
-      `insertBlock: Could not create insert new or existing block: ${JSON.stringify(
+      `insertBlock: Could not insert new or existing block: ${JSON.stringify(
         error,
       )}`,
     );
@@ -318,7 +314,7 @@ export const handleUpdateEntity = async (
   await updateEntityProperties(context, {
     entity,
     updatedProperties: typedEntries(action.properties).map(([key, value]) => ({
-      propertyTypeBaseUri: key,
+      propertyTypeBaseUrl: key,
       value: (value ?? undefined) as PropertyValue,
     })),
     actorId: user.accountId,

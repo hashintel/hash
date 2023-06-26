@@ -1,28 +1,28 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { createContext, PropsWithChildren, useContext, useMemo } from "react";
 
-import { linkEntityTypeUri } from "./uris";
+import { linkEntityTypeUrl } from "./urls";
 
-export type EntityTypesByVersionedUri = Record<VersionedUri, EntityType>;
+export type EntityTypesByVersionedUrl = Record<VersionedUrl, EntityType>;
 export type EntityTypesContextValue = {
-  entityTypes: EntityTypesByVersionedUri;
-  linkTypes: EntityTypesByVersionedUri;
+  entityTypes: EntityTypesByVersionedUrl;
+  linkTypes: EntityTypesByVersionedUrl;
 };
 
 export const EntityTypesOptionsContext =
   createContext<EntityTypesContextValue | null>(null);
 
 export const useEntityTypesOptionsContextValue = (
-  entityTypes: Record<VersionedUri, EntityType>,
+  entityTypes: Record<VersionedUrl, EntityType>,
 ): EntityTypesContextValue => {
   return useMemo(() => {
-    const linkEntityTypesRecord: EntityTypesByVersionedUri = {};
-    const nonLinkEntityTypesRecord: EntityTypesByVersionedUri = {};
+    const linkEntityTypesRecord: EntityTypesByVersionedUrl = {};
+    const nonLinkEntityTypesRecord: EntityTypesByVersionedUrl = {};
 
     for (const entityType of Object.values(entityTypes)) {
       const target =
         entityType.allOf?.length === 1 &&
-        entityType.allOf[0]?.$ref === linkEntityTypeUri
+        entityType.allOf[0]?.$ref === linkEntityTypeUrl
           ? linkEntityTypesRecord
           : nonLinkEntityTypesRecord;
 
@@ -40,7 +40,7 @@ export const EntityTypesOptionsContextProvider = ({
   children,
   entityTypeOptions,
 }: PropsWithChildren<{
-  entityTypeOptions: Record<VersionedUri, EntityType>;
+  entityTypeOptions: Record<VersionedUrl, EntityType>;
 }>) => {
   const value = useEntityTypesOptionsContextValue(entityTypeOptions);
 

@@ -18,7 +18,7 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
@@ -36,11 +36,11 @@ export const constructMinimalUser = (params: {
   const { userEntity } = params;
 
   const shortname: string = userEntity.properties[
-    extractBaseUri(types.propertyType.shortName.propertyTypeId)
+    extractBaseUrl(types.propertyType.shortName.propertyTypeId)
   ] as string;
 
   const preferredName: string = userEntity.properties[
-    extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+    extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
   ] as string;
 
   const accountSignupComplete = !!shortname && !!preferredName;
@@ -91,7 +91,7 @@ export const constructUser = (params: {
 
   user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
-      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
     ] as string;
 
     if (!linkData?.rightEntityId) {
@@ -154,7 +154,7 @@ export const constructAuthenticatedUser = (params: {
   const { userEntity, subgraph } = params;
 
   const primaryEmailAddress: string = userEntity.properties[
-    extractBaseUri(types.propertyType.email.propertyTypeId)
+    extractBaseUrl(types.propertyType.email.propertyTypeId)
   ] as string;
 
   const isPrimaryEmailAddressVerified =
@@ -202,11 +202,11 @@ export const constructMinimalOrg = (params: {
   const { orgEntity } = params;
 
   const shortname: string = orgEntity.properties[
-    extractBaseUri(types.propertyType.shortName.propertyTypeId)
+    extractBaseUrl(types.propertyType.shortName.propertyTypeId)
   ] as string;
 
   const name: string = orgEntity.properties[
-    extractBaseUri(types.propertyType.orgName.propertyTypeId)
+    extractBaseUrl(types.propertyType.orgName.propertyTypeId)
   ] as string;
 
   return {
@@ -255,7 +255,7 @@ export const constructOrg = (params: {
 
   org.members = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
-      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
     ] as string;
 
     if (!linkData?.leftEntityId) {

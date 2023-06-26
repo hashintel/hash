@@ -1,4 +1,6 @@
-# HASH frontend
+# HASH Frontend
+
+This directory contains the HASH application frontend, built atop Next.js.
 
 ## Getting Started
 

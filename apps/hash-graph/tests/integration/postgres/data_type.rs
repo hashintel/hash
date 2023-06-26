@@ -1,8 +1,8 @@
 use graph::{
     ontology::OntologyTypeWithMetadata,
     store::{
-        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUriAlreadyExists},
-        BaseUriAlreadyExists,
+        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+        BaseUrlAlreadyExists,
     },
 };
 use type_system::{repr, DataType};
@@ -96,7 +96,7 @@ async fn update() {
 }
 
 #[tokio::test]
-async fn insert_same_base_uri() {
+async fn insert_same_base_url() {
     let object_dt_v1_repr: repr::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
             .expect("could not parse data type representation");
@@ -122,8 +122,8 @@ async fn insert_same_base_uri() {
         .await
         .expect_err("could create data type");
     assert!(
-        report.contains::<BaseUriAlreadyExists>(),
-        "wrong error, expected `BaseUriDoesNotExist`, got {report:?}"
+        report.contains::<BaseUrlAlreadyExists>(),
+        "wrong error, expected `BaseUrlDoesNotExist`, got {report:?}"
     );
 
     let report = api
@@ -131,8 +131,8 @@ async fn insert_same_base_uri() {
         .await
         .expect_err("could create data type");
     assert!(
-        report.contains::<BaseUriAlreadyExists>(),
-        "wrong error, expected `BaseUriDoesNotExist`, got {report:?}"
+        report.contains::<BaseUrlAlreadyExists>(),
+        "wrong error, expected `BaseUrlDoesNotExist`, got {report:?}"
     );
 
     let report = api
@@ -140,8 +140,8 @@ async fn insert_same_base_uri() {
         .await
         .expect_err("could create data type");
     assert!(
-        report.contains::<BaseUriAlreadyExists>(),
-        "wrong error, expected `BaseUriDoesNotExist`, got {report:?}"
+        report.contains::<BaseUrlAlreadyExists>(),
+        "wrong error, expected `BaseUrlDoesNotExist`, got {report:?}"
     );
 
     let report = api
@@ -149,8 +149,8 @@ async fn insert_same_base_uri() {
         .await
         .expect_err("could create data type");
     assert!(
-        report.contains::<BaseUriAlreadyExists>(),
-        "wrong error, expected `BaseUriDoesNotExist`, got {report:?}"
+        report.contains::<BaseUrlAlreadyExists>(),
+        "wrong error, expected `BaseUrlDoesNotExist`, got {report:?}"
     );
 }
 
@@ -178,7 +178,7 @@ async fn wrong_update_order() {
         .expect_err("could create data type");
     assert!(
         report.contains::<OntologyVersionDoesNotExist>(),
-        "wrong error, expected `BaseUriDoesNotExist`, got {report:?}"
+        "wrong error, expected `BaseUrlDoesNotExist`, got {report:?}"
     );
 
     api.create_owned_data_type(object_dt_v1.clone())
@@ -203,7 +203,7 @@ async fn wrong_update_order() {
         .await
         .expect_err("could update data type");
     assert!(
-        report.contains::<VersionedUriAlreadyExists>(),
+        report.contains::<VersionedUrlAlreadyExists>(),
         "wrong error, expected `OntologyVersionDoesNotExist`, got {report:?}"
     );
 }
@@ -248,7 +248,7 @@ async fn update_external_with_owned() {
         .await
         .expect_err("could update data type");
     assert!(
-        report.contains::<VersionedUriAlreadyExists>(),
-        "wrong error, expected `VersionedUriAlreadyExists`, got {report:?}"
+        report.contains::<VersionedUrlAlreadyExists>(),
+        "wrong error, expected `VersionedUrlAlreadyExists`, got {report:?}"
     );
 }

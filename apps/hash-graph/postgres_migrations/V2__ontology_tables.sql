@@ -1,16 +1,16 @@
 CREATE TABLE IF NOT EXISTS
-  base_uris ("base_uri" TEXT PRIMARY KEY);
+  base_urls ("base_url" TEXT PRIMARY KEY);
 
 CREATE TABLE IF NOT EXISTS
   ontology_ids (
     "ontology_id" UUID PRIMARY KEY,
-    "base_uri" TEXT NOT NULL REFERENCES "base_uris",
+    "base_url" TEXT NOT NULL REFERENCES "base_urls",
     "version" BIGINT NOT NULL,
     "transaction_time" tstzrange NOT NULL,
     "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
-    UNIQUE ("base_uri", "version"),
+    UNIQUE ("base_url", "version"),
     EXCLUDE USING gist (
-      "base_uri"
+      "base_url"
       WITH
         =,
         "version"
@@ -41,7 +41,7 @@ CREATE VIEW
   "ontology_id_with_metadata" AS
 SELECT
   "ontology_id",
-  "base_uri",
+  "base_url",
   "version",
   "record_created_by_id",
   "transaction_time",
@@ -55,7 +55,7 @@ FROM
 UNION ALL
 SELECT
   "ontology_id",
-  "base_uri",
+  "base_url",
   "version",
   "record_created_by_id",
   "transaction_time",
@@ -86,25 +86,37 @@ CREATE TABLE IF NOT EXISTS
   );
 
 CREATE TABLE IF NOT EXISTS
-  "property_type_property_type_references" (
+  "property_type_constrains_properties_on" (
     "source_property_type_ontology_id" UUID NOT NULL REFERENCES "property_types",
     "target_property_type_ontology_id" UUID NOT NULL REFERENCES "property_types"
   );
 
 CREATE TABLE IF NOT EXISTS
-  "property_type_data_type_references" (
+  "property_type_constrains_values_on" (
     "source_property_type_ontology_id" UUID NOT NULL REFERENCES "property_types",
     "target_data_type_ontology_id" UUID NOT NULL REFERENCES "data_types"
   );
 
 CREATE TABLE IF NOT EXISTS
-  "entity_type_property_type_references" (
+  "entity_type_constrains_properties_on" (
     "source_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
     "target_property_type_ontology_id" UUID NOT NULL REFERENCES "property_types"
   );
 
 CREATE TABLE IF NOT EXISTS
-  "entity_type_entity_type_references" (
+  "entity_type_inherits_from" (
+    "source_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
+    "target_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types"
+  );
+
+CREATE TABLE IF NOT EXISTS
+  "entity_type_constrains_links_on" (
+    "source_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
+    "target_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types"
+  );
+
+CREATE TABLE IF NOT EXISTS
+  "entity_type_constrains_link_destinations_on" (
     "source_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
     "target_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types"
   );

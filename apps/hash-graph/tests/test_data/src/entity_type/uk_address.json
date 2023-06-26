@@ -1,4 +1,5 @@
 {
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
   "kind": "entityType",
   "$id": "https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1",
   "type": "object",
@@ -18,6 +19,5 @@
     "https://blockprotocol.org/@alice/types/property-type/address-line-1/",
     "https://blockprotocol.org/@alice/types/property-type/postcode/",
     "https://blockprotocol.org/@alice/types/property-type/city/"
-  ],
-  "additionalProperties": false
+  ]
 }

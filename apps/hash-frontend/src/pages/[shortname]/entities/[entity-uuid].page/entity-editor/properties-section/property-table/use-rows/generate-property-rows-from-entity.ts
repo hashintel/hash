@@ -1,4 +1,4 @@
-import { BaseUri, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { BaseUrl, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 
 import { PropertyRow } from "../types";
@@ -18,19 +18,19 @@ export const generatePropertyRowsFromEntity = (
     return [];
   }
 
-  const requiredPropertyTypes = (entityType.schema.required ?? []) as BaseUri[];
+  const requiredPropertyTypes = (entityType.schema.required ?? []) as BaseUrl[];
 
   return Object.keys(entityType.schema.properties).map(
-    (propertyTypeBaseUri) => {
-      const property = entityType.schema.properties[propertyTypeBaseUri];
+    (propertyTypeBaseUrl) => {
+      const property = entityType.schema.properties[propertyTypeBaseUrl];
 
       if (!property) {
         throw new Error("Property not found");
       }
 
       return generatePropertyRowRecursively({
-        propertyTypeBaseUri: propertyTypeBaseUri as BaseUri,
-        propertyKeyChain: [propertyTypeBaseUri as BaseUri],
+        propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,
+        propertyKeyChain: [propertyTypeBaseUrl as BaseUrl],
         entity,
         entitySubgraph,
         requiredPropertyTypes,

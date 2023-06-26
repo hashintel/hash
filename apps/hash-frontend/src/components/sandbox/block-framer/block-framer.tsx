@@ -1,8 +1,7 @@
 import {
-  BlockProtocolFunction,
-  BlockProtocolFunctions,
-  JSONObject,
-} from "blockprotocol";
+  GraphEmbedderMessageCallbacks,
+  JsonObject,
+} from "@blockprotocol/graph/temporal";
 import {
   FunctionComponent,
   useCallback,
@@ -17,8 +16,8 @@ import { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
 import { ResizingIFrame } from "../resizing-iframe/resizing-iframe";
 import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 
-export type CrossFrameProxyProps = BlockProtocolFunctions & {
-  blockProperties: JSONObject;
+export type CrossFrameProxyProps = GraphEmbedderMessageCallbacks & {
+  blockProperties: JsonObject;
   getEmbedBlock?: FetchEmbedCodeFn;
   sourceUrl: string;
   onBlockLoaded: () => void;
@@ -30,11 +29,11 @@ const fetchSource = memoizeFetchFunction((url) =>
 
 export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
-  aggregateEntities,
-  aggregateEntityTypes,
-  createEntities,
+  queryEntities,
+  queryEntityTypes,
+  createEntity,
   getEmbedBlock,
-  updateEntities,
+  updateEntity,
   blockProperties,
   onBlockLoaded,
 }) => {
@@ -73,7 +72,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   );
 
   const sendBlockProperties = useCallback(
-    (properties: JSONObject) =>
+    (properties: JsonObject) =>
       sendMessage({
         type: "newData",
         payload: properties,
@@ -90,7 +89,12 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
    * Call an async function and return the results to the framed block.
    */
   const asyncCallAndResponse = useCallback(
-    <T extends BlockProtocolFunction | typeof fetchSource | FetchEmbedCodeFn>(
+    <
+      T extends
+        | GraphEmbedderMessageCallbacks[keyof GraphEmbedderMessageCallbacks]
+        | typeof fetchSource
+        | FetchEmbedCodeFn,
+    >(
       fn: T | undefined,
       args: Parameters<T>,
       requestId: string,
@@ -112,8 +116,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
       // @ts-expect-error -- Args is a tuple but the compiler doesn't know. why?
       fn(...args)
         .then((response) => {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-          sendMessage({ ...responseMsg, payload: { data: response ?? "ok" } });
+          sendMessage({ ...responseMsg, payload: { data: response } });
         })
         .catch((error) => {
           sendMessage({
@@ -139,21 +142,17 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
        *    this naive passing through of requests provides no security at present.
        */
       switch (data.type) {
-        case "aggregateEntities":
-          asyncCallAndResponse(aggregateEntities, data.payload, data.requestId);
+        case "queryEntities":
+          asyncCallAndResponse(queryEntities, data.payload, data.requestId);
           break;
-        case "aggregateEntityTypes":
-          asyncCallAndResponse(
-            aggregateEntityTypes,
-            data.payload,
-            data.requestId,
-          );
+        case "queryEntityTypes":
+          asyncCallAndResponse(queryEntityTypes, data.payload, data.requestId);
           break;
-        case "createEntities":
-          asyncCallAndResponse(createEntities, data.payload, data.requestId);
+        case "createEntity":
+          asyncCallAndResponse(createEntity, data.payload, data.requestId);
           break;
-        case "updateEntities":
-          asyncCallAndResponse(updateEntities, data.payload, data.requestId);
+        case "updateEntity":
+          asyncCallAndResponse(updateEntity, data.payload, data.requestId);
           break;
         case "getEmbedBlock":
           asyncCallAndResponse(getEmbedBlock, data.payload, data.requestId);
@@ -168,12 +167,12 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
 
     return () => window.removeEventListener("message", msgHandler);
   }, [
-    aggregateEntities,
+    queryEntities,
     getEmbedBlock,
     asyncCallAndResponse,
-    createEntities,
-    updateEntities,
-    aggregateEntityTypes,
+    createEntity,
+    updateEntity,
+    queryEntityTypes,
   ]);
 
   const onLoad = useCallback(() => {

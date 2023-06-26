@@ -568,7 +568,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/heading`,
               position: 0,
               entity: {
                 entityType: {
@@ -940,7 +940,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/heading`,
               position: 0,
               entity: {
                 entityType: {

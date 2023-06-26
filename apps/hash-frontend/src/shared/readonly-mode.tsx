@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { AuthenticatedUser } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
-const canUserEditResource = (
+export const canUserEditResource = (
   resourceAccountId?: AccountId,
   user?: AuthenticatedUser,
 ) => {

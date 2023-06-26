@@ -1,14 +1,14 @@
 import {
-  BaseUri as BaseUriBp,
-  validateBaseUri,
+  BaseUrl as BaseUrlBp,
+  validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { validate as validateUuid } from "uuid";
 
-export type BaseUri = Brand<BaseUriBp, "BaseUri">;
+export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 
-export const isBaseUri = (baseUri: string): baseUri is BaseUri => {
-  return validateBaseUri(baseUri).type === "Ok";
+export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
+  return validateBaseUrl(baseUrl).type === "Ok";
 };
 
 /** Valid Uuids of the system */
@@ -58,8 +58,8 @@ export const extractEntityUuidFromEntityId = (
   return splitEntityId(entityId)[1]!;
 };
 
-/** An account ID of an actor that has updated something */
-export type UpdatedById = Brand<AccountId, "UpdatedById">;
+/** An account ID of an actor that has created a record */
+export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
 
 /** An `EntityId` which is the base of an Account Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;

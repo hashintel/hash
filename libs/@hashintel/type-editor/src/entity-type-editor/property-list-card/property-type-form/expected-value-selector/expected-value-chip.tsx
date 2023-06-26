@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -14,7 +14,7 @@ import { ArrayType } from "../../shared/expected-value-types";
 import { expectedValuesOptions } from "../../shared/expected-values-options";
 
 interface ExpectedValueChipProps {
-  expectedValueType: VersionedUri | ArrayType | "object" | "array";
+  expectedValueType: VersionedUrl | ArrayType | "object" | "array";
   editable?: boolean;
   onEdit?: () => void;
 }

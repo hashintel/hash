@@ -1,19 +1,24 @@
 import {
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "../../../graph";
+import {
   createPropertyType,
+  getPropertyTypeSubgraphById,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
+  QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -38,11 +43,11 @@ export const createPropertyTypeResolver: ResolverFn<
   return createdPropertyType;
 };
 
-export const getAllLatestPropertyTypesResolver: ResolverFn<
+export const queryPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPropertyTypesArgs
+  QueryQueryPropertyTypesArgs
 > = async (
   _,
   { constrainsValuesOn, constrainsPropertiesOn },
@@ -63,31 +68,15 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
+        ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
-  return mapSubgraph(propertyTypeSubgraph);
+
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -98,43 +87,21 @@ export const getPropertyTypeResolver: ResolverFn<
 > = async (
   _,
   { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
-    {
-      filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
-      },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+  return await getPropertyTypeSubgraphById(context, {
+    propertyTypeId,
+    actorId: user.accountId,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
     },
-  );
-
-  return mapSubgraph(propertyTypeSubgraph);
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

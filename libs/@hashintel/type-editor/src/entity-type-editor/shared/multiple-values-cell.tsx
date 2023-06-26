@@ -30,6 +30,7 @@ import {
 } from "react-hook-form";
 
 import { EntityTypeEditorFormData } from "../../shared/form-types";
+import { useIsReadonly } from "../../shared/read-only-context";
 
 const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {
   const [frozen, setFrozen] = useState(value);
@@ -94,6 +95,8 @@ export const MultipleValuesCell = ({
   variant: "property" | "link";
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
+
+  const isReadonly = useIsReadonly();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
@@ -187,6 +190,9 @@ export const MultipleValuesCell = ({
       >
         <Box
           onClick={() => {
+            if (isReadonly) {
+              return;
+            }
             if (multipleValuesMenuOpen) {
               setMultipleValuesMenuOpen(false);
             } else if (array) {
@@ -199,7 +205,7 @@ export const MultipleValuesCell = ({
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            cursor: "pointer",
+            cursor: isReadonly ? "default" : "pointer",
             height: 1,
             transition: transitions.create("border-color"),
             border: 1,
@@ -207,7 +213,7 @@ export const MultipleValuesCell = ({
               multipleValuesMenuOpen ? palette.gray[40] : "transparent"
             } !important`,
           })}
-          onMouseEnter={() => setHovered(true)}
+          onMouseEnter={() => setHovered(!isReadonly)}
           onMouseLeave={() => setHovered(false)}
         >
           <Box
@@ -271,7 +277,7 @@ export const MultipleValuesCell = ({
           placement="bottom"
           sx={{
             width: 1,
-            zIndex: 1,
+            zIndex: ({ zIndex }) => zIndex.drawer + 2,
           }}
           transition
           // Attempt to prevent this messing with the edit bar scroll freezing
@@ -321,8 +327,11 @@ export const MultipleValuesCell = ({
                             field.onChange(target.value);
                           } else {
                             min = Math.max(0, min);
+                            const max = Number.isNaN(maxValue)
+                              ? 0
+                              : Number(maxValue);
 
-                            if (min > maxValue) {
+                            if (min > max) {
                               setValue(`${formPrefix}.maxValue`, min, {
                                 shouldDirty: true,
                               });
@@ -384,7 +393,11 @@ export const MultipleValuesCell = ({
                                 field.onChange(target.value);
                               } else {
                                 max = Math.max(max, 0);
-                                if (max < minValue) {
+
+                                const min = Number.isNaN(minValue)
+                                  ? 0
+                                  : Number(minValue);
+                                if (max < min) {
                                   setValue(`${formPrefix}.minValue`, max, {
                                     shouldDirty: true,
                                   });
@@ -436,7 +449,10 @@ export const MultipleValuesCell = ({
                     {...field}
                     checked={menuOpenFrozenInfinity}
                     onChange={(evt) => {
-                      if (typeof maxValue !== "number") {
+                      if (
+                        typeof maxValue !== "number" ||
+                        typeof minValue !== "number"
+                      ) {
                         setValue(
                           `${formPrefix}.maxValue`,
                           Math.max(

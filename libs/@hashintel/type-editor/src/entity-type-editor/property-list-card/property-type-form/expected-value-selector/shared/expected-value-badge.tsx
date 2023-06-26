@@ -1,12 +1,15 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  Chip,
+  fluidFontClassName,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   chipClasses,
   Collapse,
   Stack,
   Tooltip,
-  tooltipClasses,
   Typography,
 } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
@@ -160,11 +163,7 @@ export const ExpectedValueBadge = ({
             <Tooltip
               title={deleteTooltip ?? ""}
               placement="top"
-              PopperProps={{
-                sx: {
-                  [`.${tooltipClasses.tooltip}`]: { mb: "0px !important" },
-                },
-              }}
+              classes={{ popper: fluidFontClassName }}
             >
               <Box
                 onClick={onDelete}

@@ -3,12 +3,12 @@ import {
   getEntityTypeById as getEntityTypeByIdBp,
   getEntityTypeByVertexId as getEntityTypeByVertexIdBp,
   getEntityTypes as getEntityTypesBp,
-  getEntityTypesByBaseUri as getEntityTypesByBaseUriBp,
+  getEntityTypesByBaseUrl as getEntityTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import {
-  BaseUri,
+  BaseUrl,
   EntityTypeWithMetadata,
   OntologyTypeVertexId,
   Subgraph,
@@ -25,7 +25,7 @@ export const getEntityTypes = (subgraph: Subgraph): EntityTypeWithMetadata[] =>
   ) as EntityTypeWithMetadata[];
 
 /**
- * Gets an `EntityTypeWithMetadata` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined`
+ * Gets an `EntityTypeWithMetadata` by its `VersionedUrl` from within the vertices of the subgraph. Returns `undefined`
  * if the entity type couldn't be found.
  *
  * @param subgraph
@@ -34,7 +34,7 @@ export const getEntityTypes = (subgraph: Subgraph): EntityTypeWithMetadata[] =>
  */
 export const getEntityTypeById = (
   subgraph: Subgraph,
-  entityTypeId: VersionedUri,
+  entityTypeId: VersionedUrl,
 ): EntityTypeWithMetadata | undefined =>
   getEntityTypeByIdBp(subgraph as unknown as SubgraphBp, entityTypeId) as
     | EntityTypeWithMetadata
@@ -57,16 +57,16 @@ export const getEntityTypeByVertexId = (
     | undefined;
 
 /**
- * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUri`
+ * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
  *
  * @param subgraph
- * @param baseUri
+ * @param baseUrl
  */
-export const getEntityTypesByBaseUri = (
+export const getEntityTypesByBaseUrl = (
   subgraph: Subgraph,
-  baseUri: BaseUri,
+  baseUrl: BaseUrl,
 ): EntityTypeWithMetadata[] =>
-  getEntityTypesByBaseUriBp(
+  getEntityTypesByBaseUrlBp(
     subgraph as unknown as SubgraphBp,
-    baseUri,
+    baseUrl,
   ) as EntityTypeWithMetadata[];

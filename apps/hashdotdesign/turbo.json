@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "build": {
+      // Outputs of the build
+      "outputs": ["./storybook-static/**/*"]
+    },
+    "storybook": {
+      "persistent": true
+    }
+  }
+}

@@ -1,21 +1,28 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
+  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
+  getDataTypeSubgraphById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -31,15 +38,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 let testUser: User;
 let testUser2: User;
 
-// we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-//  https://github.com/microsoft/TypeScript/issues/50638
-//  this is needed for as long as DataType extends Record
-const dataTypeSchema: Pick<
-  DataType,
-  "kind" | "title" | "description" | "type"
-> &
-  Record<string, any> = {
-  kind: "dataType",
+const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
   type: "string",
 };
@@ -50,6 +49,20 @@ beforeAll(async () => {
 
   testUser = await createTestUser(graphContext, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphContext, "data-type-test-2", logger);
+});
+
+afterAll(async () => {
+  await deleteKratosIdentity({
+    kratosIdentityId: systemUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser2.kratosIdentityId,
+  });
+
+  await resetGraph();
 });
 
 describe("Data type CRU", () => {
@@ -75,7 +88,7 @@ describe("Data type CRU", () => {
   it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
-        createdDataType.metadata.provenance.updatedById,
+        createdDataType.metadata.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
     const updatedDataType = await updateDataType(graphContext, {
@@ -86,7 +99,25 @@ describe("Data type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
-        updatedDataType.metadata.provenance.updatedById,
+        updatedDataType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can load an external type on demand", async () => {
+    const dataTypeId =
+      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
+
+    await expect(getDataTypeById(graphContext, { dataTypeId })).rejects.toThrow(
+      "Could not find data type with ID",
+    );
+
+    await expect(
+      getDataTypeSubgraphById(graphContext, {
+        dataTypeId,
+        actorId: testUser.accountId,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).resolves.not.toThrow();
   });
 });

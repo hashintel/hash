@@ -1,6 +1,7 @@
 import { promisify } from "node:util";
 
 import { imageSize as legacyImageSize } from "image-size";
+import { getPlaiceholder } from "plaiceholder";
 
 import { BlogPostPagePhoto } from "../../../components/blog-post";
 
@@ -20,5 +21,12 @@ export const getPhoto = async (
     return null;
   }
 
-  return { src: `/${src}`, height: size.height, width: size.width };
+  const { base64 } = await getPlaiceholder(`/${src}`);
+
+  return {
+    src: `/${src}`,
+    height: size.height,
+    width: size.width,
+    blurDataURL: base64,
+  };
 };

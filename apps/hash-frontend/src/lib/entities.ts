@@ -1,6 +1,6 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
-  BaseUri,
+  BaseUrl,
   Entity,
   EntityPropertiesObject,
   EntityRootType,
@@ -9,7 +9,7 @@ import {
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
-  getPropertyTypesByBaseUri,
+  getPropertyTypesByBaseUrl,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 
@@ -67,22 +67,22 @@ export const generateEntityLabel = (
     "shortname",
   ];
 
-  const propertyTypes: { title?: string; propertyTypeBaseUri: BaseUri }[] =
-    typedKeys(entityToLabel.properties).map((propertyTypeBaseUri) => {
+  const propertyTypes: { title?: string; propertyTypeBaseUrl: BaseUrl }[] =
+    typedKeys(entityToLabel.properties).map((propertyTypeBaseUrl) => {
       /** @todo - pick the latest version rather than first element? */
-      const [propertyType] = getPropertyTypesByBaseUri(
+      const [propertyType] = getPropertyTypesByBaseUrl(
         entitySubgraph,
-        propertyTypeBaseUri,
+        propertyTypeBaseUrl,
       );
 
       return propertyType
         ? {
             title: propertyType.schema.title.toLowerCase(),
-            propertyTypeBaseUri,
+            propertyTypeBaseUrl,
           }
         : {
             title: undefined,
-            propertyTypeBaseUri,
+            propertyTypeBaseUrl,
           };
     });
 
@@ -91,7 +91,7 @@ export const generateEntityLabel = (
 
     if (found) {
       return getFallbackIfNotString(
-        entityToLabel.properties[found.propertyTypeBaseUri],
+        entityToLabel.properties[found.propertyTypeBaseUrl],
       );
     }
   }

@@ -1,8 +1,8 @@
 {
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
   "kind": "entityType",
   "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "type": "object",
   "title": "Link",
-  "properties": {},
-  "additionalProperties": false
+  "properties": {}
 }

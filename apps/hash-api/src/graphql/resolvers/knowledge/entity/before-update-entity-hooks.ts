@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
@@ -65,7 +65,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentShortname = user.shortname;
 
   const updatedShortname = updatedProperties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
   ] as string | undefined;
 
   if (currentShortname !== updatedShortname) {
@@ -79,7 +79,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentPreferredName = user.preferredName;
 
   const updatedPreferredName = updatedProperties[
-    SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
   ] as string | undefined;
 
   if (currentPreferredName !== updatedPreferredName) {
@@ -91,7 +91,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentEmails = user.emails;
 
   const updatedEmails = updatedProperties[
-    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl
   ] as string[];
 
   if (
@@ -108,7 +108,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 };
 
 type BeforeUpdateEntityHook = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   callback: BeforeUpdateEntityHookCallback;
 };
 

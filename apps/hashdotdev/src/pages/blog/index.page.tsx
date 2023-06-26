@@ -20,7 +20,10 @@ import { Subscribe } from "../../components/pre-footer";
 import { parseNameFromFileName } from "../../util/client-mdx-util";
 import { getAllPages, Page } from "../../util/mdx-util";
 import { NextPageWithLayout } from "../../util/next-types";
-import { BlogPostProps } from "./[...blog-slug].page";
+import {
+  BlogPostAuthorWithPhotoSrc,
+  BlogPostProps,
+} from "./[...blog-slug].page";
 import { getPhoto } from "./shared/get-photo";
 
 type BlogIndividualPage = Page<BlogPostProps> & {
@@ -113,6 +116,7 @@ const PostImage: FunctionComponent<{
     <BlogPostLink page={page} sx={{ img: { borderRadius: "4px" } }}>
       <Image
         {...((square ? page.photos.postSquare : null) ?? page.photos.post)}
+        placeholder="blur"
         layout="responsive"
         {...(fill && {
           layout: "fill",
@@ -148,6 +152,18 @@ const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
   </Stack>
 );
 
+const formatAuthorsName = (authors: BlogPostAuthorWithPhotoSrc[]): string => {
+  const authorNames = authors.map((author) => author.name);
+  const formattedAuthorsName =
+    authorNames.length > 1
+      ? authorNames
+          .slice(0, -1)
+          .join(", ")
+          .concat(` & ${authorNames.slice(-1)}`)
+      : authorNames.join(" & ");
+  return formattedAuthorsName;
+};
+
 const Post: FunctionComponent<{
   post: BlogIndividualPage;
   collapsed?: boolean;
@@ -166,7 +182,7 @@ const Post: FunctionComponent<{
     >
       {post.data.authors ? (
         <BlogPostAuthor small>
-          {post.data.authors.map((author) => author.name).join(" & ")}
+          {formatAuthorsName(post.data.authors)}
         </BlogPostAuthor>
       ) : null}
       {post.data.title ? (

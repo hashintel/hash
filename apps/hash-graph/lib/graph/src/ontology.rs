@@ -6,19 +6,16 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
+use std::iter::once;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use time::OffsetDateTime;
-#[cfg(feature = "type-fetcher")]
-use type_fetcher::fetcher_server::{
-    traverse_data_type_references, traverse_entity_type_references,
-    traverse_property_type_references, OntologyTypeReference,
-};
 use type_system::{
-    repr, uri::VersionedUri, DataType, EntityType, ParseDataTypeError, ParseEntityTypeError,
-    ParsePropertyTypeError, PropertyType,
+    repr, url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference,
+    ParseDataTypeError, ParseEntityTypeError, ParsePropertyTypeError, PropertyType,
+    PropertyTypeReference,
 };
 use utoipa::ToSchema;
 
@@ -28,9 +25,10 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis, OntologyTypeVertexId},
+    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
     provenance::{OwnedById, ProvenanceMetadata},
     store::{query::Filter, Record},
+    subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -51,7 +49,7 @@ impl fmt::Display for PatchAndParseError {
 }
 
 /// Takes the [`serde_json::Value`] representation of an ontology type schema (without an "$id"
-/// field), inserts the given [`VersionedUri`] under the "$id" key, and tries to deserialize the
+/// field), inserts the given [`VersionedUrl`] under the "$id" key, and tries to deserialize the
 /// type.
 ///
 /// # Errors
@@ -61,7 +59,7 @@ impl fmt::Display for PatchAndParseError {
 ///   - the [`serde_json::Value`] wasn't an 'Object'
 ///   - deserializing into `T` failed
 pub fn patch_id_and_parse<T: OntologyType>(
-    id: &VersionedUri,
+    id: &VersionedUrl,
     mut value: serde_json::Value,
 ) -> Result<T, PatchAndParseError> {
     if let Some(object) = value.as_object_mut() {
@@ -105,6 +103,25 @@ where
     T::Representation::from(ontology_type.clone()).serialize(serializer)
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(clippy::enum_variant_names)]
+pub enum OntologyTypeReference<'a> {
+    EntityTypeReference(&'a EntityTypeReference),
+    PropertyTypeReference(&'a PropertyTypeReference),
+    DataTypeReference(&'a DataTypeReference),
+}
+
+impl OntologyTypeReference<'_> {
+    #[must_use]
+    pub const fn url(&self) -> &VersionedUrl {
+        match self {
+            Self::EntityTypeReference(entity_type_ref) => entity_type_ref.url(),
+            Self::PropertyTypeReference(property_type_ref) => property_type_ref.url(),
+            Self::DataTypeReference(data_type_ref) => data_type_ref.url(),
+        }
+    }
+}
+
 pub trait OntologyType:
     Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
 {
@@ -112,9 +129,8 @@ pub trait OntologyType:
     type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
     type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
 
-    fn id(&self) -> &VersionedUri;
+    fn id(&self) -> &VersionedUrl;
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference>;
 }
 
@@ -123,13 +139,12 @@ impl OntologyType for DataType {
     type Representation = repr::DataType;
     type WithMetadata = DataTypeWithMetadata;
 
-    fn id(&self) -> &VersionedUri {
+    fn id(&self) -> &VersionedUrl {
         self.id()
     }
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        traverse_data_type_references(self).collect()
+        vec![]
     }
 }
 
@@ -138,13 +153,20 @@ impl OntologyType for PropertyType {
     type Representation = repr::PropertyType;
     type WithMetadata = PropertyTypeWithMetadata;
 
-    fn id(&self) -> &VersionedUri {
+    fn id(&self) -> &VersionedUrl {
         self.id()
     }
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        traverse_property_type_references(self).collect()
+        self.property_type_references()
+            .into_iter()
+            .map(OntologyTypeReference::PropertyTypeReference)
+            .chain(
+                self.data_type_references()
+                    .into_iter()
+                    .map(OntologyTypeReference::DataTypeReference),
+            )
+            .collect()
     }
 }
 
@@ -153,13 +175,30 @@ impl OntologyType for EntityType {
     type Representation = repr::EntityType;
     type WithMetadata = EntityTypeWithMetadata;
 
-    fn id(&self) -> &VersionedUri {
+    fn id(&self) -> &VersionedUrl {
         self.id()
     }
 
-    #[cfg(feature = "type-fetcher")]
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        traverse_entity_type_references(self).collect()
+        self.property_type_references()
+            .into_iter()
+            .map(OntologyTypeReference::PropertyTypeReference)
+            .chain(
+                self.inherits_from()
+                    .all_of()
+                    .iter()
+                    .map(OntologyTypeReference::EntityTypeReference),
+            )
+            .chain(self.link_mappings().into_iter().flat_map(
+                |(link_entity_type, destination_entity_type_constraint)| {
+                    {
+                        once(link_entity_type)
+                            .chain(destination_entity_type_constraint.unwrap_or_default())
+                    }
+                    .map(OntologyTypeReference::EntityTypeReference)
+                },
+            ))
+            .collect()
     }
 }
 
@@ -247,7 +286,7 @@ pub struct ExternalOntologyElementMetadata {
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     #[schema(value_type = String)]
-    #[serde(with = "time::serde::iso8601")]
+    #[serde(with = "crate::serde::time")]
     fetched_at: OffsetDateTime,
 }
 
@@ -291,12 +330,12 @@ pub struct DataTypeWithMetadata {
 
 impl Record for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
-    type VertexId = OntologyTypeVertexId;
+    type VertexId = DataTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId {
-            base_id: record_id.base_uri.clone(),
+        DataTypeVertexId {
+            base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
     }
@@ -335,12 +374,12 @@ pub struct PropertyTypeWithMetadata {
 
 impl Record for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-    type VertexId = OntologyTypeVertexId;
+    type VertexId = PropertyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId {
-            base_id: record_id.base_uri.clone(),
+        PropertyTypeVertexId {
+            base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
     }
@@ -379,12 +418,12 @@ pub struct EntityTypeWithMetadata {
 
 impl Record for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
-    type VertexId = OntologyTypeVertexId;
+    type VertexId = EntityTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId {
-            base_id: record_id.base_uri.clone(),
+        EntityTypeVertexId {
+            base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
     }

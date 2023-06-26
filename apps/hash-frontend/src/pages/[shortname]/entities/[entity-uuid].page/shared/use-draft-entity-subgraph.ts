@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityId,
   EntityRevisionId,
@@ -12,7 +12,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 
 export const useDraftEntitySubgraph = (
-  entityTypeId: VersionedUri,
+  entityTypeId: VersionedUrl,
 ): [
   Subgraph<EntityRootType> | undefined,
   Dispatch<SetStateAction<Subgraph<EntityRootType> | undefined>>,
@@ -68,7 +68,7 @@ export const useDraftEntitySubgraph = (
                       editionId: now,
                     },
                     entityTypeId,
-                    provenance: { updatedById: "" },
+                    provenance: { recordCreatedById: "" },
                     archived: false,
                     temporalVersioning: {
                       decisionTime: {

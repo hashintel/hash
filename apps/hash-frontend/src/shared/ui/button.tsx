@@ -4,15 +4,11 @@ import {
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@hashintel/design-system";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
 import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
 
-// @todo: update the regex to check against the domain of the hosted version of HASH
-export const isHrefExternal = (href: string) =>
-  (href === "/discord" || !/^(mailto:|#|\/)/.test(href)) &&
-  !href.startsWith(frontendUrl);
+import { isHrefExternal } from "../is-href-external";
 
 export type ButtonProps = {
   children: ReactNode;

@@ -1,7 +1,8 @@
 # Libraries
-/libs/deer/ @hashintel/deer
 /libs/antsi/ @hashintel/antsi
+/libs/deer/ @hashintel/deer
 /libs/error-stack/ @hashintel/error-stack
+/libs/sarif/ @hashintel/sarif
 
 # Legal
 LICENSE @hashintel/legal
@@ -10,3 +11,6 @@ LICENSE.md @hashintel/legal
 
 # Database/migrations
 /apps/hash-graph/postgres_migrations/ @hashintel/hash-database
+
+# Apps
+/apps/intellij-plugin/ @hashintel/intellij-plugin

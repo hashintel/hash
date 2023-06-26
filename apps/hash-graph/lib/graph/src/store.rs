@@ -17,12 +17,12 @@ mod postgres;
 use async_trait::async_trait;
 
 #[cfg(feature = "type-fetcher")]
-pub use self::fetcher::FetchingPool;
+pub use self::fetcher::{FetchingPool, TypeFetcher};
 pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
     error::{
-        BaseUriAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
+        BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
         UpdateError,
     },
     knowledge::EntityStore,
@@ -47,4 +47,12 @@ pub trait Store:
 impl<S> Store for S where
     S: AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
 {
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ConflictBehavior {
+    /// If a conflict is detected, the operation will fail.
+    Fail,
+    /// If a conflict is detected, the operation will be skipped.
+    Skip,
 }

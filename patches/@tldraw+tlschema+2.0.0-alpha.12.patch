@@ -1,0 +1,32 @@
+diff --git a/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs b/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs
+index 77f0999..cbecaf8 100644
+--- a/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs
++++ b/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs
+@@ -26,21 +26,12 @@ const instanceTypeValidator = T.model(
+     userId: userIdValidator,
+     currentPageId: pageIdValidator,
+     brush: T.boxModel.nullable(),
+-    propsForNextShape: T.object({
+-      color: colorValidator,
+-      labelColor: colorValidator,
+-      dash: dashValidator,
+-      fill: fillValidator,
+-      size: sizeValidator,
+-      opacity: opacityValidator,
+-      font: fontValidator,
+-      align: alignValidator,
+-      icon: iconValidator,
+-      geo: geoValidator,
+-      arrowheadStart: arrowheadValidator,
+-      arrowheadEnd: arrowheadValidator,
+-      spline: splineValidator
+-    }),
++    /**
++     * This is patched so that we can pass non-standard props for the next shape
++     * This enables us to select a tool that has a sub-menu, and set props based on the sub-menu choice
++     * e.g. select the 'block' tool and then select the type of block before drawing it
++     */
++    propsForNextShape: T.any,
+     cursor: cursorValidator,
+     scribble: scribbleTypeValidator.nullable(),
+     isFocusMode: T.boolean,

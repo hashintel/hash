@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
+use std::{collections::HashSet, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
@@ -6,16 +6,13 @@ use tokio_postgres::row::RowIndex;
 use crate::{
     store::{
         postgres::query::{
-            expression::Constant,
-            table::{
-                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes, Relation,
-            },
+            table::{EntityTemporalMetadata, OntologyIds},
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
             WindowStatement, WithExpression,
         },
-        query::{Filter, FilterExpression, Parameter},
+        query::{Filter, FilterExpression, Parameter, ParameterType},
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -38,16 +35,16 @@ pub struct CompilerArtifacts<'p> {
     temporal_tables: Option<TemporalTableInfo>,
 }
 
-pub struct SelectCompiler<'c, 'p, T> {
-    statement: SelectStatement<'c>,
+pub struct SelectCompiler<'p, T> {
+    statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
-    temporal_axes: &'p QueryTemporalAxes,
+    temporal_axes: Option<&'p QueryTemporalAxes>,
     _marker: PhantomData<fn(*const T)>,
 }
 
-impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
+impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(temporal_axes: &'p QueryTemporalAxes) -> Self {
+    pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -74,7 +71,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(temporal_axes: &'p QueryTemporalAxes) -> Self {
+    pub fn with_asterisk(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
         let mut default = Self::new(temporal_axes);
         default
             .statement
@@ -84,52 +81,54 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     fn pin_entity_table(&mut self, alias: Alias) {
-        let table = Table::Entities.aliased(alias);
-        let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
-            match self.temporal_axes {
-                QueryTemporalAxes::DecisionTime { pinned, variable } => {
-                    self.artifacts.parameters.push(&pinned.timestamp);
-                    self.artifacts.parameters.push(&variable.interval);
-                }
-                QueryTemporalAxes::TransactionTime { pinned, variable } => {
-                    self.artifacts.parameters.push(&pinned.timestamp);
-                    self.artifacts.parameters.push(&variable.interval);
-                }
-            };
+        if let Some(temporal_axes) = self.temporal_axes {
+            let table = Table::EntityTemporalMetadata.aliased(alias);
+            let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
+                match temporal_axes {
+                    QueryTemporalAxes::DecisionTime { pinned, variable } => {
+                        self.artifacts.parameters.push(&pinned.timestamp);
+                        self.artifacts.parameters.push(&variable.interval);
+                    }
+                    QueryTemporalAxes::TransactionTime { pinned, variable } => {
+                        self.artifacts.parameters.push(&pinned.timestamp);
+                        self.artifacts.parameters.push(&variable.interval);
+                    }
+                };
 
-            TemporalTableInfo {
-                tables: HashSet::new(),
-                pinned_timestamp_index: self.artifacts.parameters.len() - 1,
-                variable_interval_index: self.artifacts.parameters.len(),
+                TemporalTableInfo {
+                    tables: HashSet::new(),
+                    pinned_timestamp_index: self.artifacts.parameters.len() - 1,
+                    variable_interval_index: self.artifacts.parameters.len(),
+                }
+            });
+
+            if !temporal_table_info.tables.contains(&table) {
+                // Adds the pinned timestamp condition, so for the projected decision time, we use
+                // the transaction time and vice versa.
+                self.statement.where_expression.add_condition(
+                    Condition::TimeIntervalContainsTimestamp(
+                        Expression::Column(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
+                                temporal_axes.pinned_time_axis(),
+                            ))
+                            .aliased(alias),
+                        ),
+                        Expression::Parameter(temporal_table_info.pinned_timestamp_index),
+                    ),
+                );
+                self.statement
+                    .where_expression
+                    .add_condition(Condition::Overlap(
+                        Expression::Column(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
+                                temporal_axes.variable_time_axis(),
+                            ))
+                            .aliased(alias),
+                        ),
+                        Expression::Parameter(temporal_table_info.variable_interval_index),
+                    ));
+                temporal_table_info.tables.insert(table);
             }
-        });
-
-        if !temporal_table_info.tables.contains(&table) {
-            // Adds the pinned timestamp condition, so for the projected decision time, we use the
-            // transaction time and vice versa.
-            self.statement.where_expression.add_condition(
-                Condition::TimeIntervalContainsTimestamp(
-                    Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
-                            self.temporal_axes.pinned_time_axis(),
-                        ))
-                        .aliased(alias),
-                    ),
-                    Expression::Parameter(temporal_table_info.pinned_timestamp_index),
-                ),
-            );
-            self.statement
-                .where_expression
-                .add_condition(Condition::Overlap(
-                    Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
-                            self.temporal_axes.variable_time_axis(),
-                        ))
-                        .aliased(alias),
-                    ),
-                    Expression::Parameter(temporal_table_info.variable_interval_index),
-                ));
-            temporal_table_info.tables.insert(table);
         }
     }
 
@@ -137,15 +136,17 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(
+    pub fn add_selection_path<'q>(
         &mut self,
-        path: &'c R::QueryPath<'_>,
-    ) -> impl RowIndex + Display + Copy {
-        let alias = self.add_join_statements(path);
-        self.statement.selects.push(SelectExpression::from_column(
-            path.terminating_column().aliased(alias),
-            None,
-        ));
+        path: &'p R::QueryPath<'q>,
+    ) -> impl RowIndex + Display + Copy
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let column = self.compile_path_column(path);
+        self.statement
+            .selects
+            .push(SelectExpression::from_column(column, None));
         self.statement.selects.len() - 1
     }
 
@@ -153,15 +154,16 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_distinct_selection_with_ordering(
+    pub fn add_distinct_selection_with_ordering<'q>(
         &mut self,
-        path: &'c R::QueryPath<'_>,
+        path: &'p R::QueryPath<'q>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
-    ) -> impl RowIndex + Display + Copy {
-        let column = path
-            .terminating_column()
-            .aliased(self.add_join_statements(path));
+    ) -> impl RowIndex + Display + Copy
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let column = self.compile_path_column(path);
         if distinctness == Distinctness::Distinct {
             self.statement.distinct.push(column);
         }
@@ -175,7 +177,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) {
+    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         let condition = self.compile_filter(filter);
         self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
@@ -190,7 +195,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
-    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition<'c> {
+    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         if let Some(condition) = self.compile_special_filter(filter) {
             return condition;
         }
@@ -211,16 +219,67 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
             Filter::Not(filter) => Condition::Not(Box::new(self.compile_filter(filter))),
             Filter::Equal(lhs, rhs) => Condition::Equal(
                 lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
             ),
             Filter::NotEqual(lhs, rhs) => Condition::NotEqual(
                 lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
             ),
+            Filter::StartsWith(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::StartsWith(left_filter, right_filter)
+            }
+            Filter::EndsWith(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::EndsWith(left_filter, right_filter)
+            }
+            Filter::ContainsSegment(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::ContainsSegment(left_filter, right_filter)
+            }
         }
     }
 
@@ -228,11 +287,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
     // When          more CTEs are needed, a test should be added to cover both CTEs in one
     // statement to          ensure compatibility
-    fn compile_latest_ontology_version_filter(
+    fn compile_latest_ontology_version_filter<'q>(
         &mut self,
-        path: &R::QueryPath<'_>,
+        path: &R::QueryPath<'q>,
         operator: EqualityOperator,
-    ) -> Condition<'c> {
+    ) -> Condition
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
@@ -253,11 +315,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                 Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
-                                Column::OntologyIds(OntologyIds::BaseUri)
+                                Column::OntologyIds(OntologyIds::BaseUrl)
                                     .aliased(version_column.alias),
                             ),
                         ),
-                        Some(Cow::Borrowed("latest_version")),
+                        Some("latest_version"),
                     ),
                 ],
                 from: version_column.table(),
@@ -283,37 +345,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    fn compile_latest_entity_version_filter(
-        &mut self,
-        path: &R::QueryPath<'_>,
-        operator: EqualityOperator,
-    ) -> Condition<'c> {
-        let alias = self.add_join_statements(path);
-        self.pin_entity_table(alias);
-        // Adds the variable interval condition, so we use the same time axis as specified in the
-        // temporal axes.
-        let condition = Condition::TimeIntervalContainsTimestamp(
-            Expression::Column(
-                Column::Entities(Entities::from_time_axis(
-                    self.temporal_axes.variable_time_axis(),
-                ))
-                .aliased(alias),
-            ),
-            Expression::Function(Function::Now),
-        );
-
-        match operator {
-            EqualityOperator::Equal => condition,
-            EqualityOperator::NotEqual => Condition::Not(Box::new(condition)),
-        }
-    }
-
     /// Searches for [`Filter`]s, which requires special treatment and returns the corresponding
     /// condition if any.
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
-    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>> {
+    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
@@ -338,22 +378,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             EqualityOperator::NotEqual,
                         ))
                     }
-                    (Column::Entities(Entities::ProjectedTime), Filter::Equal(..), "latest") => {
-                        Some(
-                            self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::Equal,
-                            ),
-                        )
-                    }
-                    (Column::Entities(Entities::ProjectedTime), Filter::NotEqual(..), "latest") => {
-                        Some(
-                            self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::NotEqual,
-                            ),
-                        )
-                    }
                     _ => None,
                 },
                 _ => None,
@@ -362,38 +386,21 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
-        let column = match path.terminating_column() {
-            Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            Column::Entities(Entities::Properties(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            column => column,
+    pub fn compile_path_column<'q>(&mut self, path: &'p R::QueryPath<'q>) -> AliasedColumn
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let (column, parameter) = path
+            .terminating_column()
+            .into_owned(self.artifacts.parameters.len() + 1);
+
+        if let Some(parameter) = parameter {
+            self.artifacts.parameters.push(parameter);
         };
 
         let alias = self.add_join_statements(path);
 
-        if matches!(column, Column::Entities(_)) {
+        if matches!(column, Column::EntityTemporalMetadata(_)) {
             self.pin_entity_table(alias);
         }
         column.aliased(alias)
@@ -402,94 +409,48 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     pub fn compile_filter_expression<'f: 'p>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> Expression<'c> {
+    ) -> (Expression, ParameterType)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         match expression {
             FilterExpression::Path(path) => {
                 let column = self.compile_path_column(path);
-                // TODO: Remove special casing when correctly resolving time intervals in subgraphs.
-                //   see https://app.asana.com/0/0/1203701389454316/f
-                if column.column == Column::Entities(Entities::ProjectedTime) {
-                    Expression::Function(Function::Lower(Box::new(Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
-                            self.temporal_axes.variable_time_axis(),
-                        ))
-                        .aliased(column.alias),
-                    ))))
-                } else {
-                    Expression::Column(column)
-                }
+                let parameter_type = column.column.parameter_type();
+                (Expression::Column(column), parameter_type)
             }
             FilterExpression::Parameter(parameter) => {
-                match parameter {
-                    Parameter::Number(number) => self.artifacts.parameters.push(number),
-                    Parameter::Text(text) => self.artifacts.parameters.push(text),
-                    Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
-                    Parameter::Any(json) => self.artifacts.parameters.push(json),
-                    Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
+                let parameter_type = match parameter {
+                    Parameter::Number(number) => {
+                        self.artifacts.parameters.push(number);
+                        ParameterType::Number
+                    }
+                    Parameter::Text(text) => {
+                        self.artifacts.parameters.push(text);
+                        ParameterType::Text
+                    }
+                    Parameter::Boolean(bool) => {
+                        self.artifacts.parameters.push(bool);
+                        ParameterType::Boolean
+                    }
+                    Parameter::Any(json) => {
+                        self.artifacts.parameters.push(json);
+                        ParameterType::Any
+                    }
+                    Parameter::Uuid(uuid) => {
+                        self.artifacts.parameters.push(uuid);
+                        ParameterType::Uuid
+                    }
                     Parameter::OntologyTypeVersion(version) => {
                         self.artifacts.parameters.push(version);
+                        ParameterType::OntologyTypeVersion
                     }
-                }
-                Expression::Parameter(self.artifacts.parameters.len())
+                };
+                (
+                    Expression::Parameter(self.artifacts.parameters.len()),
+                    parameter_type,
+                )
             }
-        }
-    }
-
-    fn add_special_relation_conditions(
-        &mut self,
-        relation: Relation,
-        base_alias: Alias,
-        joined_table: AliasedTable,
-    ) {
-        match relation {
-            Relation::EntityTypeLinks => {
-                self.artifacts.required_tables.insert(joined_table);
-                self.statement
-                    .where_expression
-                    .add_condition(Condition::NotEqual(
-                        Some(Expression::Function(Function::JsonExtractPath(vec![
-                            Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(None)).aliased(base_alias),
-                            ),
-                            Expression::Constant(Constant::String("links")),
-                            Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(Some(
-                                    JsonField::StaticText("$id"),
-                                )))
-                                .aliased(joined_table.alias),
-                            ),
-                        ]))),
-                        None,
-                    ));
-            }
-            Relation::EntityTypeInheritance => {
-                self.artifacts.required_tables.insert(joined_table);
-                self.statement
-                    .where_expression
-                    .add_condition(Condition::NotEqual(
-                        Some(Expression::Function(Function::JsonContains(
-                            Box::new(Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(Some(
-                                    JsonField::StaticJson("allOf"),
-                                )))
-                                .aliased(base_alias),
-                            )),
-                            Box::new(Expression::Function(Function::JsonBuildArray(vec![
-                                Expression::Function(Function::JsonBuildObject(vec![(
-                                    Expression::Constant(Constant::String("$ref")),
-                                    Expression::Column(
-                                        Column::EntityTypes(EntityTypes::Schema(Some(
-                                            JsonField::StaticText("$id"),
-                                        )))
-                                        .aliased(joined_table.alias),
-                                    ),
-                                )])),
-                            ]))),
-                        ))),
-                        None,
-                    ));
-            }
-            _ => {}
         }
     }
 
@@ -499,72 +460,77 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
-    fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
+    fn add_join_statements<'q>(&mut self, path: &R::QueryPath<'q>) -> Alias
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let mut current_table = self.statement.from;
 
-        if current_table.table == Table::Entities {
+        if current_table.table == Table::EntityTemporalMetadata {
             self.pin_entity_table(current_table.alias);
         }
 
         for relation in path.relations() {
-            let current_alias = current_table.alias;
-            for (current_column, join_column) in relation.joins() {
-                let mut current_column = current_column.aliased(current_table.alias);
-                let mut join_column = join_column.aliased(Alias {
-                    condition_index: self.artifacts.condition_index,
-                    chain_depth: current_table.alias.chain_depth + 1,
-                    number: 0,
-                });
+            for foreign_key_reference in relation.joins() {
+                let mut join_expression = JoinExpression::from_foreign_key(
+                    foreign_key_reference,
+                    current_table.alias,
+                    Alias {
+                        condition_index: self.artifacts.condition_index,
+                        chain_depth: current_table.alias.chain_depth + 1,
+                        number: 0,
+                    },
+                );
 
-                // If we join on the same column as the previous join, we can reuse the that join.
-                // For example, if we join on `entities.entity_type_ontology_id =
-                // entity_type.ontology_id` and then on `entity_type.ontology_id =
-                // ontology_ids.ontology_id`, we can merge the two joins into `entities.
-                // entity_type_ontology_id = ontology_ids.ontology_id`. We, however, need to
-                // make sure, that we only alter a join statement with a table we don't require
-                // anymore.
-                if let Some(last_join) = self.statement.joins.pop() {
-                    // Check if we are joining on the same column as the previous join
-                    if last_join.join == current_column
-                        && !self
-                            .artifacts
-                            .required_tables
-                            .contains(&last_join.join.table())
-                    {
-                        current_column = last_join.on;
-                    } else {
-                        self.statement.joins.push(last_join);
-                    }
-                }
+                // TODO: If we join on the same column as the previous join, we can reuse the that
+                //       join. For example, if we join on
+                //       `entities.entity_type_ontology_id = entity_type.ontology_id` and then on
+                //       `entity_type.ontology_id = ontology_ids.ontology_id`, we can merge the two
+                //       joins into `entities. entity_type_ontology_id = ontology_ids.ontology_id`.
+                //       We, however, need to make sure, that we only alter a join statement with a
+                //       table we don't require anymore.
+                //       The following code is a first attempt at this, but it is not working yet.
+                //  see: https://app.asana.com/0/0/1204165137291093/f
+                // if let Some(last_join) = self.statement.joins.pop() {
+                //     // Check if we are joining on the same column as the previous join
+                //     if last_join.join == current_column
+                //         && !self
+                //             .artifacts
+                //             .required_tables
+                //             .contains(&last_join.join.table())
+                //     {
+                //         current_column = last_join.on;
+                //     } else {
+                //         self.statement.joins.push(last_join);
+                //     }
+                // }
 
                 let mut found = false;
                 for existing in &self.statement.joins {
-                    if existing.join.table() == join_column.table() {
-                        if existing.on == current_column && existing.join == join_column {
+                    if existing.table == join_expression.table {
+                        if *existing == join_expression {
                             // We already have a join statement for this column, so we can reuse it.
-                            current_table = existing.join.table();
+                            current_table = existing.table;
                             found = true;
                             break;
                         }
                         // We already have a join statement for this table, but it's on a different
                         // column. We need to create a new join statement later on with a new,
                         // unique alias.
-                        join_column.alias.number += 1;
+                        join_expression.table.alias.number += 1;
                     }
                 }
 
                 if !found {
-                    let join_expression = JoinExpression::new(join_column, current_column);
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = join_expression.join.table();
+                    current_table = join_expression.table;
                     self.statement.joins.push(join_expression);
 
-                    if matches!(join_column.column, Column::Entities(_)) {
+                    if current_table.table == Table::EntityTemporalMetadata {
                         self.pin_entity_table(current_table.alias);
                     }
                 }
             }
-            self.add_special_relation_conditions(relation, current_alias, current_table);
         }
 
         self.artifacts.required_tables.insert(current_table);

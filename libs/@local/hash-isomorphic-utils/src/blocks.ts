@@ -1,4 +1,5 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import { VersionedUrl } from "@blockprotocol/type-system";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
@@ -12,6 +13,8 @@ export interface HashBlockMeta extends BlockMetadata {
 export type HashBlock = {
   meta: HashBlockMeta;
 };
+
+export type ComponentIdHashBlockMap = Record<string, HashBlock>;
 
 /**
  * The cache is designed to store promises, not resolved values, in order to
@@ -122,9 +125,12 @@ const transformBlockConfig = ({
     ...metadata,
     componentId,
     variants,
-    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
-    image: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
-    schema: deriveAbsoluteUrl({ baseUrl, path: metadata.schema }),
+    icon: deriveAbsoluteUrl({ baseUrl, path: metadata.icon }),
+    image: deriveAbsoluteUrl({ baseUrl, path: metadata.image }),
+    schema: deriveAbsoluteUrl({
+      baseUrl,
+      path: metadata.schema,
+    }) as VersionedUrl,
     source: deriveAbsoluteUrl({ baseUrl, path: metadata.source }),
   };
 };
@@ -212,7 +218,8 @@ export const fetchBlock = async (
  */
 export const blockProtocolHubOrigin =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
-  process.env.BLOCK_PROTOCOL_HUB_ORIGIN || "https://blockprotocol.org";
+  process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
+  "https://blockprotocol.org";
 
 export const paragraphBlockComponentId = `${blockProtocolHubOrigin}/blocks/@hash/paragraph`;
 
@@ -228,7 +235,7 @@ const textBlockComponentIds = new Set([
  * @todo allow users to configure their own default block list, and store in db.
  *    this should be a list of additions and removals from this default list,
  *    to allow us to add new default blocks that show up for all users.
- *    we currently store this in localStorage - see UserBlockProvider.
+ *    we currently store this in localStorage - see UserBlocksProvider.
  */
 export const defaultBlockComponentIds = [
   ...Array.from(textBlockComponentIds),

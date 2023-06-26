@@ -44,7 +44,7 @@ export const getBlockFromEntity: PureGraphFunction<
   }
 
   const componentId = entity.properties[
-    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl
   ] as string;
 
   return {
@@ -85,7 +85,7 @@ export const createBlock: ImpureGraphFunction<
   const { componentId, blockData, ownedById, actorId } = params;
 
   const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri]:
+    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl]:
       componentId,
   };
 
@@ -117,8 +117,9 @@ export const getBlockData: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: block.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
   });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -149,8 +150,9 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { block, newBlockDataEntity, actorId } = params;
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: block.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
   });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];

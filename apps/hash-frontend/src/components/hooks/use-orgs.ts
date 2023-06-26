@@ -5,11 +5,12 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
-  GetAllLatestEntitiesQuery,
-  GetAllLatestEntitiesQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructOrg, Org } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**
  * Retrieves a list of organizations.
@@ -23,11 +24,20 @@ export const useOrgs = (
   orgs?: Org[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestEntitiesQuery,
-    GetAllLatestEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
-      rootEntityTypeIds: [types.entityType.org.entityTypeId],
+      operation: {
+        multiFilter: {
+          filters: [
+            entityHasEntityTypeByVersionedUrlFilter(
+              types.entityType.org.entityTypeId,
+            ),
+          ],
+          operator: "AND",
+        },
+      },
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
@@ -40,7 +50,7 @@ export const useOrgs = (
     fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
-  const { getAllLatestEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
     if (!subgraph) {
