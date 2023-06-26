@@ -1,10 +1,4 @@
-import {
-  alpha,
-  buttonClasses,
-  Components,
-  CSSObject,
-  Theme,
-} from "@mui/material";
+import { buttonClasses, Components, CSSObject, Theme } from "@mui/material";
 
 const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 2;
@@ -89,15 +83,19 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           });
 
           if (variant === "primarySquare") {
-            const boxShadow = `inset 0px -2px 6px ${alpha(
-              theme.palette.yellow[500],
-              0.5,
-            )}`;
+            const boxShadow = `inset 0px -2px 6px rgba(158, 217, 233, 0.20)`;
 
             Object.assign(baseStyles, {
               borderRadius: 4,
               borderWidth: 1,
-              borderColor: theme.palette.orange[400],
+              borderColor:
+                color === "purple"
+                  ? theme.palette.purple[40]
+                  : color === "blue"
+                  ? theme.palette.blue[40]
+                  : color === "mint"
+                  ? theme.palette.mint[40]
+                  : theme.palette.teal[40],
               color: theme.palette.gray[90],
               backgroundColor: theme.palette.white,
               padding: theme.spacing("24px", "31px"),
@@ -106,7 +104,14 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               minHeight: 72,
             });
             Object.assign(hoverStyles, {
-              backgroundColor: theme.palette.yellow[100],
+              backgroundColor:
+                color === "purple"
+                  ? theme.palette.purple[10]
+                  : color === "blue"
+                  ? theme.palette.blue[10]
+                  : color === "mint"
+                  ? theme.palette.mint[10]
+                  : theme.palette.teal[10],
               color: theme.palette.black,
               boxShadow,
             });
@@ -252,7 +257,14 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             }),
             ...(ownerState.variant === "primarySquare" && {
               fontSize: 24,
-              color: theme.palette.orange[500],
+              color:
+                color === "purple"
+                  ? theme.palette.purple[50]
+                  : color === "blue"
+                  ? theme.palette.blue[50]
+                  : color === "mint"
+                  ? theme.palette.mint[70]
+                  : theme.palette.teal[60],
             }),
             ...(ownerState.variant === "tertiary" && {
               color: theme.palette.gray[50],

@@ -21,7 +21,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         },
         "&.Mui-focused, &.Mui-focused:hover": {
           "& .MuiOutlinedInput-notchedOutline": {
-            border: `3px solid ${theme.palette.yellow[500]}`,
+            border: `3px solid ${theme.palette.teal[50]}`,
           },
         },
         "&.Mui-error, &.Mui-error:hover": {

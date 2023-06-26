@@ -26,6 +26,7 @@ declare module "@mui/material/styles" {
       15: string;
       700: string;
     };
+    mint: PaletteValue;
     yellow: {
       100: string;
       200: string;
@@ -139,6 +140,7 @@ declare module "@mui/material/Button" {
     default: true;
     purple: true;
     blue: true;
+    mint: true;
     // Disable defaults
     primary: false;
     secondary: false;
