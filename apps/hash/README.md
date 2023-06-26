@@ -162,7 +162,7 @@ Email-sending in HASH is handled by either Kratos (in the case of authentication
 Transactional emails templates are located in the following locations:
 
 - Kratos emails in [`./../../apps/hash-external-services/kratos/templates/`](./../../apps/hash-external-services/kratos/templates/)
-- HASH emails in [`./api/src/email/index.ts`](./api/src/email/index.ts)
+- HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
 
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
 Note that you will need valid AWS credentials for this email transporter to work.
