@@ -138,7 +138,7 @@ services:
       - no-new-privileges:true
     volumes:
       - log:/log
-    command: server
+    command: server --offline
     environment:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
@@ -180,6 +180,7 @@ services:
       args:
         ENV: dev
         SECRET: "${KRATOS_API_KEY}"
+        API_CALLBACK_URL: "http://host.docker.internal:5001/kratos-after-registration"
     depends_on:
       postgres:
         condition: service_healthy
@@ -193,6 +194,7 @@ services:
       args:
         ENV: dev
         SECRET: "${KRATOS_API_KEY}"
+        API_CALLBACK_URL: "http://host.docker.internal:5001/kratos-after-registration"
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully

@@ -150,7 +150,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
   });
 
   if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
-    await context.graphApi.createEntityType({
+    await context.graphApi.loadExternalEntityType({
       actorId,
       entityTypeId,
     });
@@ -158,12 +158,6 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     subgraph = await getEntityTypes(context, {
       query,
     });
-  }
-
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(
-      `Could not find entity type with ID "${entityTypeId}"`,
-    );
   }
 
   return subgraph;

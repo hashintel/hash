@@ -44,9 +44,11 @@ where
     S: IntervalBound<Timestamp<A>> + fmt::Debug,
     E: IntervalBound<Timestamp<A>> + fmt::Debug,
 {
-    postgres_types::accepts!(TSTZ_RANGE);
-
     postgres_types::to_sql_checked!();
+
+    fn accepts(ty: &Type) -> bool {
+        *ty == Type::TSTZ_RANGE
+    }
 
     fn to_sql(
         &self,
@@ -128,7 +130,7 @@ where
     }
 
     fn accepts(ty: &Type) -> bool {
-        matches!(ty, &Type::TSTZ_RANGE)
+        *ty == Type::TSTZ_RANGE
     }
 }
 

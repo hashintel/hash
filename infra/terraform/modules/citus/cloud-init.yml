@@ -1,0 +1,110 @@
+#cloud-config
+groups:
+  - ubuntu: [root, sys]
+  - hash
+
+# Add users to the system. Users are added after groups are added.
+users:
+  - default
+  - name: hadmin
+    gecos: hadmin
+    shell: /bin/bash
+    primary_group: hash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin, docker
+    lock_passwd: false
+    ssh_authorized_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD4H8ZwqLzIqwK7VQ4A96CEDIwbTbMa3bVghol/5sJ9bEJfyuulI1RF9umeWJSax7bk39CvmIvOA7UnhnxhRWEHSQSXoVBLE/Z74N1hmS4Pq+MtnSxiGcOEuyCPy6Zy0SlDWHBcho94PxG1d1TUC85Zt+nGR3oDB/kZWwpV6wr8GhU02R8tuSYmyWJ55oahaEXIuxQ6ewZ+6r66DODEmLKjVilfqP9Hh23O4vcQOcduXeJHtSgX0UpN/T3nBgH7snzdzGt2EzCbLjkHIj4UkyrGwmu9B85cm0mxEVxrCgaejoj1eBV9DrtWYBU3+2UzWuz7R1XvFkVRcrlBp95vV9Lf"
+
+# Run apt-get update on startup
+package_update: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg-agent
+  - software-properties-common
+  - unzip
+  - nvme-cli
+  - jq
+
+write_files:
+  - path: /etc/environment
+    content: |
+      ECR_REPO_URL="${ecr_repo_url}"
+      ECR_REGISTRY_URL="${ecr_registry_url}"
+      AWS_REGION="${aws_region}"
+      DATA_EBS_VOLUME_ID="${data_ebs_volume_id}"
+    append: true
+  - path: /mount_ebs_volume.sh
+    content: |
+      #!/usr/bin/env bash
+      # Mounts an EBS volume with ID set by DATA_EBS_VOLUME_ID to /data
+      # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html
+
+      if [ -d /data ]
+      then
+        echo "A volume is already mounted to /data";
+        exit 0;
+      fi;
+
+      DATA_EBS_VOLUME_ID="${data_ebs_volume_id}";
+
+      # Find the name of the device matching the volume ID. The volume may not be available
+      # immediately, so we retry this several times
+      device=$(nvme list -o json | jq -r --arg id "$DATA_EBS_VOLUME_ID" '.Devices|.[] | select(.SerialNumber == $id) | .DevicePath');
+      while [ -z "$device" ]
+      do
+        echo "Volume $DATA_EBS_VOLUME_ID not found. Sleeping for 10 seconds ...";
+        sleep 10;
+        device=$(nvme list -o json | jq -r --arg id "$DATA_EBS_VOLUME_ID" '.Devices|.[] | select(.SerialNumber == $id) | .DevicePath');
+        tries=$(( tries + 1 ));
+        if [ $tries -gt 10 ]
+        then
+          echo "Could not find device for volume $DATA_EBS_VOLUME_ID";
+          exit 1;
+        fi;
+      done;
+      echo "Device name = $device";
+
+      # Make the filesystem if there is not already one on the device
+      status=$(file -s "$device");
+      if [ "$status" == "$device: data" ]
+      then
+        mkfs -t xfs "$device";
+        echo "Created an XFS filesystem on device $device";
+      else
+        echo "Filesystem already exists on device $device";
+      fi;
+
+      mkdir /data;
+      mount "$device" /data;
+      echo "Mounted device $device to /data";
+
+      # Reference the volume in /etc/fstab so it will be remounted when the instance reboots
+      device_uuid=$(blkid | grep "$device" | sed -E 's/.*UUID="([a-zA-Z0-9\-]+)".*$/\1/');
+      echo "Device UUID = $device_uuid";
+      echo "UUID=$device_uuid  /data  xfs  defaults,nofail  0  2" >> /etc/fstab;
+
+runcmd:
+  # Install Docker
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl enable docker
+  - systemctl start docker
+  # Install the AWS CLI
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip -q awscliv2.zip
+  - ./aws/install
+  # Install psql
+  - sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+  - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+  - apt-get update
+  - apt-get -y install postgresql-client-13
+  # Mount the Postgres data EBS volume to /data
+  - ["bash", "/mount_ebs_volume.sh"]
+
+final_message: "The system is finally up, after $UPTIME seconds"

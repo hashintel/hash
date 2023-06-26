@@ -148,7 +148,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
   });
 
   if (subgraph.roots.length === 0 && !dataTypeId.startsWith(frontendUrl)) {
-    await context.graphApi.createDataType({
+    await context.graphApi.loadExternalDataType({
       actorId,
       dataTypeId,
     });
@@ -156,10 +156,6 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     subgraph = await getDataTypes(context, {
       query,
     });
-  }
-
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
   }
 
   return subgraph;

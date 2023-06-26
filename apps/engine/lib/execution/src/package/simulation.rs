@@ -15,7 +15,7 @@
 //!
 //! ## Package types
 //!
-//! The the simulation [`Package`] System consists of 4 types of interfaces for 4 types of
+//! The simulation [`Package`] System consists of 4 types of interfaces for 4 types of
 //! simulation packages:
 //! - [`init`]alization
 //! - [`context`]

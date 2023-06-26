@@ -149,7 +149,7 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   });
 
   if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(frontendUrl)) {
-    await context.graphApi.createPropertyType({
+    await context.graphApi.loadExternalPropertyType({
       actorId,
       propertyTypeId,
     });
@@ -157,12 +157,6 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     subgraph = await getPropertyTypes(context, {
       query,
     });
-  }
-
-  if (subgraph.roots.length === 0) {
-    throw new NotFoundError(
-      `Could not find property type with ID "${propertyTypeId}"`,
-    );
   }
 
   return subgraph;
