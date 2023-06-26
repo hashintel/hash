@@ -10,7 +10,6 @@ import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
-import { FaIcon } from "./icons/fa-icon";
 import { GithubIcon } from "./icons/github-icon";
 import { TwitterIcon } from "./icons/twitter-icon";
 import { Link } from "./link";
@@ -165,7 +164,8 @@ export const Footer: FunctionComponent = () => (
                 </Box>
                 HASH
               </FooterLink>
-              <FooterLink href="/">
+              {/* @todo: add docs page */}
+              {/* <FooterLink href="/docs/getting-started">
                 <Box component="span" sx={{ marginRight: 1 }}>
                   <FaIcon
                     name="chevron-right"
@@ -177,15 +177,15 @@ export const Footer: FunctionComponent = () => (
                   />
                 </Box>
                 See all projects
-              </FooterLink>
+              </FooterLink> */}
             </FooterSection>
           </Grid>
           <Grid item lg={4} md={6}>
             <FooterSection label="Get involved">
+              {/* @todo: add docs page */}
+              {/* <FooterLink href="/docs/getting-started">Getting started</FooterLink> */}
               {/* @todo: fix href */}
-              <FooterLink href="/">Getting started</FooterLink>
-              {/* @todo: fix href */}
-              <FooterLink href="/">Contribute</FooterLink>
+              {/* <FooterLink href="/">Contribute</FooterLink> */}
               <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
             </FooterSection>
           </Grid>
