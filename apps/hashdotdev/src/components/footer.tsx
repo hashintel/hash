@@ -1,4 +1,11 @@
-import { Box, Container, Divider, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Divider,
+  Grid,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { SITE_DESCRIPTION } from "../config";
@@ -122,64 +129,67 @@ export const Footer: FunctionComponent = () => (
             </Stack>
           </Typography>
         </Stack>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={{ xs: 6, md: 10 }}
-        >
-          <FooterSection label="Resources">
-            <FooterLink href="/blog">Blog</FooterLink>
-            <FooterLink href="/docs">Docs</FooterLink>
-            <FooterLink href="/guides">Tutorials</FooterLink>
-          </FooterSection>
-          <FooterSection label="Our projects">
-            <FooterLink href="https://blockprotocol.org">
-              <Box
-                component="span"
-                sx={{
-                  color: ({ palette }) => palette.purple[60],
-                  fontWeight: 700,
-                  marginRight: 1,
-                }}
-              >
-                Þ
-              </Box>
-              Block Protocol
-            </FooterLink>
-            <FooterLink href="https://hash.ai">
-              <Box
-                component="span"
-                sx={{
-                  color: ({ palette }) => palette.blue[70],
-                  fontWeight: 700,
-                  marginRight: 1,
-                }}
-              >
-                #
-              </Box>
-              HASH
-            </FooterLink>
-            <FooterLink href="/">
-              <Box component="span" sx={{ marginRight: 1 }}>
-                <FaIcon
-                  name="chevron-right"
-                  type="solid"
+        <Grid container width="100%" spacing={3}>
+          <Grid item lg={4} md={6}>
+            <FooterSection label="Resources">
+              <FooterLink href="/blog">Blog</FooterLink>
+              <FooterLink href="/docs">Docs</FooterLink>
+              <FooterLink href="/guides">Tutorials</FooterLink>
+            </FooterSection>
+          </Grid>
+          <Grid item lg={4} md={6}>
+            <FooterSection label="Our projects">
+              <FooterLink href="https://blockprotocol.org">
+                <Box
+                  component="span"
                   sx={{
-                    color: ({ palette }) => palette.teal[50],
-                    fontSize: 14,
+                    color: ({ palette }) => palette.purple[60],
+                    fontWeight: 700,
+                    marginRight: 1,
                   }}
-                />
-              </Box>
-              See all projects
-            </FooterLink>
-          </FooterSection>
-          <FooterSection label="Get involved">
-            {/* @todo: fix href */}
-            <FooterLink href="/">Getting started</FooterLink>
-            {/* @todo: fix href */}
-            <FooterLink href="/">Contribute</FooterLink>
-            <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
-          </FooterSection>
-        </Stack>
+                >
+                  Þ
+                </Box>
+                Block Protocol
+              </FooterLink>
+              <FooterLink href="https://hash.ai">
+                <Box
+                  component="span"
+                  sx={{
+                    color: ({ palette }) => palette.blue[70],
+                    fontWeight: 700,
+                    marginRight: 1,
+                  }}
+                >
+                  #
+                </Box>
+                HASH
+              </FooterLink>
+              <FooterLink href="/">
+                <Box component="span" sx={{ marginRight: 1 }}>
+                  <FaIcon
+                    name="chevron-right"
+                    type="solid"
+                    sx={{
+                      color: ({ palette }) => palette.teal[50],
+                      fontSize: 14,
+                    }}
+                  />
+                </Box>
+                See all projects
+              </FooterLink>
+            </FooterSection>
+          </Grid>
+          <Grid item lg={4} md={6}>
+            <FooterSection label="Get involved">
+              {/* @todo: fix href */}
+              <FooterLink href="/">Getting started</FooterLink>
+              {/* @todo: fix href */}
+              <FooterLink href="/">Contribute</FooterLink>
+              <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
+            </FooterSection>
+          </Grid>
+        </Grid>
       </Stack>
       <Box
         sx={{
