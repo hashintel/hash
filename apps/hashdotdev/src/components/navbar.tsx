@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { useRouter } from "next/router";
-import { FunctionComponent, ReactNode, useState } from "react";
+import { FunctionComponent, ReactNode, useEffect, useState } from "react";
 
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
@@ -246,13 +246,29 @@ const MobileNav: FunctionComponent<{
 };
 
 export const Navbar: FunctionComponent = () => {
+  const router = useRouter();
   const theme = useTheme();
   const mobileNav = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isAtTopOfPage, setIsAtTopOfPage] = useState(true);
 
   if (!mobileNav && mobileNavOpen) {
     setMobileNavOpen(false);
   }
+
+  useEffect(() => {
+    const checkScrollPosition = () => {
+      setIsAtTopOfPage(window.scrollY === 0);
+    };
+
+    checkScrollPosition();
+
+    window.addEventListener("scroll", checkScrollPosition);
+
+    return () => {
+      window.removeEventListener("scroll", checkScrollPosition);
+    };
+  }, []);
 
   return (
     <>
@@ -260,7 +276,11 @@ export const Navbar: FunctionComponent = () => {
         sx={{
           display: "flex",
           height: NAV_HEIGHT,
-          backgroundColor: "#edfcff",
+          transition: ({ transitions }) => transitions.create("background"),
+          background:
+            isAtTopOfPage && router.pathname === "/"
+              ? "rgba(255, 255, 255, 0.20)"
+              : "#fff",
           alignItems: "center",
           position: "fixed",
           width: "100%",
