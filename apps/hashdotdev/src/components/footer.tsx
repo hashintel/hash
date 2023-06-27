@@ -195,7 +195,7 @@ export const Footer: FunctionComponent = () => (
         sx={{
           display: "flex",
           flexDirection: "row-reverse",
-          columnGap: 1,
+          columnGap: 3,
           marginTop: 2,
           "> a > p": {
             fontSize: 12,
