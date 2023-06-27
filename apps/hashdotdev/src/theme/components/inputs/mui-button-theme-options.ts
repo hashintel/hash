@@ -40,7 +40,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const baseStyles: CSSObject = {
         textTransform: "none",
         lineHeight: 1,
-        border: "2px solid",
+        border: "1px solid",
         position: "relative",
         whiteSpace: "nowrap",
 
