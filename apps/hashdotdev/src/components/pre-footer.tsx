@@ -229,7 +229,7 @@ const BlogPost: FunctionComponent<{
   displayImage?: boolean;
   direction?: "column" | "row";
   displaySubtitle?: boolean;
-  authorAfterTitle?: boolean;
+  authorsAfterTitle?: boolean;
   variant?: "primary" | "secondary";
 }> = ({
   variant = "secondary",
@@ -237,11 +237,11 @@ const BlogPost: FunctionComponent<{
   post,
   displayImage = true,
   displaySubtitle = true,
-  authorAfterTitle = false,
+  authorsAfterTitle = false,
 }) => {
   const { fileName, photos, data } = post;
 
-  const author = (
+  const authors = (
     <Typography
       gutterBottom
       sx={{
@@ -251,7 +251,7 @@ const BlogPost: FunctionComponent<{
         fontSize: 12,
       }}
     >
-      {data.authors?.[0]?.name}
+      {data.authors?.map((author) => author.name).join(", ")}
     </Typography>
   );
 
@@ -292,8 +292,12 @@ const BlogPost: FunctionComponent<{
               </Box>
             </Grid>
           ) : null}
-          <Grid item xs={displayImage && direction === "row" ? 6 : 12}>
-            {authorAfterTitle ? null : author}
+          <Grid
+            item
+            xs={displayImage && direction === "row" ? 6 : 12}
+            sx={{ display: "flex", flexDirection: "column" }}
+          >
+            {authorsAfterTitle ? null : authors}
             <Typography
               component="h4"
               variant={variant === "primary" ? "h5" : "h6"}
@@ -307,18 +311,26 @@ const BlogPost: FunctionComponent<{
             >
               {data.title}
             </Typography>
-            {authorAfterTitle ? author : null}
-            {displaySubtitle ? (
-              <Typography
-                sx={{
-                  color: ({ palette }) => palette.gray[70],
-                  fontSize: variant === "primary" ? 18 : 15,
-                  lineHeight: "150%",
-                }}
-              >
-                {data.subtitle}
-              </Typography>
-            ) : null}
+            {authorsAfterTitle ? authors : null}
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: "flex",
+                alignItems: direction === "row" ? "center" : "flex-start",
+              }}
+            >
+              {displaySubtitle ? (
+                <Typography
+                  sx={{
+                    color: ({ palette }) => palette.gray[70],
+                    fontSize: variant === "primary" ? 18 : 15,
+                    lineHeight: "150%",
+                  }}
+                >
+                  {data.subtitle}
+                </Typography>
+              ) : null}
+            </Box>
           </Grid>
         </Grid>
       </Box>
@@ -371,7 +383,7 @@ const RecentBlogPosts: FunctionComponent = () => {
                     post={tertiaryPost}
                     displayImage={false}
                     displaySubtitle={!xs}
-                    authorAfterTitle={xs}
+                    authorsAfterTitle={xs}
                   />
                   {xs ? <Divider sx={{ mt: 3 }} /> : null}
                 </Grid>
@@ -380,7 +392,7 @@ const RecentBlogPosts: FunctionComponent = () => {
                     post={quaternaryPost}
                     displayImage={false}
                     displaySubtitle={!xs}
-                    authorAfterTitle={xs}
+                    authorsAfterTitle={xs}
                   />
                 </Grid>
               </Grid>
@@ -410,6 +422,8 @@ const RecentBlogPosts: FunctionComponent = () => {
             borderBottomStyle: "solid",
             borderBottomWidth: 1,
             borderBottomColor: ({ palette }) => palette.teal[40],
+            fontSize: 15,
+            fontWeight: 600,
           }}
         >
           View all blog posts
@@ -478,8 +492,8 @@ const Community: FunctionComponent = () => {
               <Button
                 variant="primarySquare"
                 size="large"
-                href="https://github.com/hashintel/hash/stargazers"
-                startIcon={<FaIcon name="github" type="brands " />}
+                href="https://github.com/hashintel/hash"
+                startIcon={<FaIcon name="github" type="brands" />}
               >
                 Star us on GitHub
               </Button>
@@ -511,7 +525,7 @@ export const PreFooter: FunctionComponent<{
       </Box>
     ) : null}
     {recentBlogPosts ? (
-      <Box component="section" sx={{ mb: 6 }}>
+      <Box component="section" sx={{ mb: 12 }}>
         <RecentBlogPosts />
       </Box>
     ) : null}

@@ -133,11 +133,11 @@ export const Footer: FunctionComponent = () => (
             <FooterSection label="Resources">
               <FooterLink href="/blog">Blog</FooterLink>
               <FooterLink href="/docs">Docs</FooterLink>
-              <FooterLink href="/guides">Tutorials</FooterLink>
+              <FooterLink href="/tutorials">Tutorials</FooterLink>
             </FooterSection>
           </Grid>
           <Grid item lg={4} md={6}>
-            <FooterSection label="Our projects">
+            <FooterSection label="Projects">
               <FooterLink href="https://blockprotocol.org">
                 <Box
                   component="span"

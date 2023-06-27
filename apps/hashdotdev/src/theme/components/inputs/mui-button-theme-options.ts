@@ -160,26 +160,36 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             color:
               color === "purple"
                 ? theme.palette.purple[80]
-                : theme.palette.blue[80],
+                : color === "blue"
+                ? theme.palette.blue[80]
+                : theme.palette.teal[80],
             backgroundColor:
               color === "purple"
                 ? theme.palette.purple[20]
-                : theme.palette.blue[15],
+                : color === "blue"
+                ? theme.palette.blue[15]
+                : theme.palette.teal[30],
             borderColor: size === "large" ? theme.palette.white : "transparent",
           });
           Object.assign(hoverStyles, {
             color:
               color === "purple"
                 ? theme.palette.purple[90]
-                : theme.palette.blue[90],
+                : color === "blue"
+                ? theme.palette.blue[90]
+                : theme.palette.teal[90],
             backgroundColor:
               color === "purple"
                 ? theme.palette.purple[20]
-                : theme.palette.blue[20],
+                : color === "blue"
+                ? theme.palette.blue[20]
+                : theme.palette.teal[20],
             borderColor:
               color === "purple"
                 ? theme.palette.purple[50]
-                : theme.palette.blue[50],
+                : color === "blue"
+                ? theme.palette.blue[50]
+                : theme.palette.teal[50],
           });
           break;
         }
@@ -247,13 +257,17 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               color:
                 color === "purple"
                   ? theme.palette.purple[80]
-                  : theme.palette.blue[80],
+                  : color === "blue"
+                  ? theme.palette.blue[80]
+                  : theme.palette.teal[80],
             }),
             ...(ownerState.variant === "secondary" && {
               color:
                 color === "purple"
                   ? theme.palette.purple[40]
-                  : theme.palette.blue[40],
+                  : color === "blue"
+                  ? theme.palette.blue[40]
+                  : theme.palette.teal[30],
             }),
             ...(ownerState.variant === "primarySquare" && {
               fontSize: 24,
@@ -278,13 +292,17 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
                 color:
                   color === "purple"
                     ? theme.palette.purple[90]
-                    : theme.palette.blue[90],
+                    : color === "blue"
+                    ? theme.palette.blue[90]
+                    : theme.palette.teal[90],
               }),
               ...(ownerState.variant === "secondary" && {
                 color:
                   color === "purple"
                     ? theme.palette.purple[50]
-                    : theme.palette.blue[50],
+                    : color === "blue"
+                    ? theme.palette.blue[50]
+                    : theme.palette.teal[50],
               }),
               ...(ownerState.variant === "tertiary" && {
                 color: theme.palette.gray[70],

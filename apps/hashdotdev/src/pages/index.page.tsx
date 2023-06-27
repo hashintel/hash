@@ -92,7 +92,7 @@ const BlueStylishDivider: FunctionComponent<StackProps> = (props) => {
 };
 
 const Hero: FunctionComponent = () => (
-  <Box marginBottom={15}>
+  <Box my={15}>
     <Box
       sx={{
         position: "absolute",
@@ -312,6 +312,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   endIcon={
                     <FaIcon name="arrow-up-right-from-square" type="solid" />
                   }
+                  color="blue"
                   sx={{ marginRight: 2, marginBottom: 2 }}
                 >
                   Learn more
@@ -441,7 +442,7 @@ const Tutorial: FunctionComponent<{
         justifyContent: "space-between",
       }}
     >
-      <Box padding={3}>
+      <Box sx={{ padding: { xs: 3, md: 5 } }}>
         <Typography
           variant="h4"
           gutterBottom
@@ -458,9 +459,8 @@ const Tutorial: FunctionComponent<{
           display="flex"
           justifyContent="space-between"
           flexDirection="row-reverse"
-          sx={{ paddingBottom: 3, paddingX: 3 }}
+          sx={{ padding: { xs: 3, md: 5 }, paddingTop: 3 }}
         >
-          {icon}
           <Link
             href={href}
             sx={{
@@ -470,10 +470,22 @@ const Tutorial: FunctionComponent<{
                   : color === "blue"
                   ? palette.blue[70]
                   : palette.teal[70],
+              textTransform: "uppercase",
+              fontSize: 12,
+              fontWeight: 600,
+              svg: {
+                position: "relative",
+                transition: ({ transitions }) => transitions.create("left"),
+                left: 0,
+              },
+              "&:hover svg": {
+                left: 5,
+              },
             }}
           >
-            Read the guide <FaIcon name="arrow-right" type="solid" />
+            Read more <FaIcon name="arrow-right" type="solid" />
           </Link>
+          {icon}
         </Box>
         <Box display="flex" height={12}>
           <Box
@@ -523,6 +535,7 @@ const Tutorials: FunctionComponent = () => {
             title="Build your own blocks"
             description="Extend the functionality of Block Protocol-based applications by creating your own blocks"
             color="purple"
+            icon={<Image src="/home/bp-logo.svg" width={120} height={13} />}
             href="/"
           />
         </Grid>
@@ -531,6 +544,7 @@ const Tutorials: FunctionComponent = () => {
             title="Code your first simulation"
             description="Learn how to develop a simulation and run it locally or in-browser"
             color="blue"
+            icon={<Image src="/home/hash-logo.svg" width={65} height={14} />}
             href="/"
           />
         </Grid>
@@ -545,12 +559,14 @@ const Tutorials: FunctionComponent = () => {
       </Grid>
       <Box display="flex" width="100%" flexDirection="row-reverse">
         <Link
-          href="/guides"
+          href="/tutorials"
           sx={{
             color: ({ palette }) => palette.teal[70],
             borderBottomStyle: "solid",
             borderBottomWidth: 1,
             borderBottomColor: ({ palette }) => palette.teal[40],
+            fontSize: 15,
+            fontWeight: 600,
           }}
         >
           View all guides
