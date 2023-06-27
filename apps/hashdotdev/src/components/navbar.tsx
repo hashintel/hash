@@ -28,6 +28,7 @@ const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)(
   ({ theme }) => ({
     [`&.${buttonClasses.root}`]: {
       color: theme.palette.turquoise[100],
+      fontWeight: 500,
       background: "transparent",
       borderColor: "transparent",
       fontSize: 15,
