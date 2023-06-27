@@ -298,6 +298,7 @@ const BlogPost: FunctionComponent<{
               component="h4"
               variant={variant === "primary" ? "h5" : "h6"}
               className="title"
+              gutterBottom
               sx={{
                 color: ({ palette }) => palette.gray[90],
                 fontWeight: 500,
@@ -311,7 +312,7 @@ const BlogPost: FunctionComponent<{
               <Typography
                 sx={{
                   color: ({ palette }) => palette.gray[70],
-                  fontSize: 18,
+                  fontSize: variant === "primary" ? 18 : 15,
                   lineHeight: "150%",
                 }}
               >
@@ -340,10 +341,13 @@ const RecentBlogPosts: FunctionComponent = () => {
       <Typography variant="hashHeading4" component="h3" gutterBottom>
         Recent blog posts
       </Typography>
-      <Typography marginBottom={3}>
+      <Typography
+        marginBottom={3}
+        sx={{ fontSize: 18, color: ({ palette }) => palette.gray[70] }}
+      >
         News, stories and guides from the community
       </Typography>
-      <Grid container spacing={6}>
+      <Grid container columnSpacing={6}>
         <Grid item xs={12} md={8}>
           <BlogPost
             variant="primary"
