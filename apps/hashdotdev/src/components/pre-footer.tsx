@@ -456,7 +456,7 @@ const Community: FunctionComponent = () => {
           sx={{ fontWeight: 600, color: "gray.90", mb: { xs: 4, sm: 5 } }}
           align="center"
         >
-          Join the HASH developer community
+          Join our community of HASH developers
         </Typography>
         <Box>
           <Stack
