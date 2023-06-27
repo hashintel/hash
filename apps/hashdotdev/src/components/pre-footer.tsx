@@ -394,6 +394,23 @@ const RecentBlogPosts: FunctionComponent = () => {
           <BlogPost post={secondaryPost} direction="column" />
         </Grid>
       </Grid>
+      <Box
+        sx={{ marginTop: { xs: 3, md: 6 } }}
+        display="flex"
+        justifyContent="flex-end"
+      >
+        <Link
+          href="/blog"
+          sx={{
+            color: ({ palette }) => palette.teal[70],
+            borderBottomStyle: "solid",
+            borderBottomWidth: 1,
+            borderBottomColor: ({ palette }) => palette.teal[40],
+          }}
+        >
+          View all blog posts
+        </Link>
+      </Box>
     </Container>
   );
 };
