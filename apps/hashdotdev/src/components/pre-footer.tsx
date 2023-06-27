@@ -251,7 +251,15 @@ const BlogPost: FunctionComponent<{
         fontSize: 12,
       }}
     >
-      {data.authors?.map((author) => author.name).join(", ")}
+      {data.authors
+        ?.map(({ name }, i, all) =>
+          all.length - 1 === i
+            ? name
+            : all.length - 2 === i
+            ? `${name} & `
+            : `${name}, `,
+        )
+        .join("")}
     </Typography>
   );
 
