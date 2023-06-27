@@ -15,9 +15,9 @@ import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
+import { GradientContainer } from "../components/gradient-container";
 import { FaIcon } from "../components/icons/fa-icon";
 import { Link } from "../components/link";
-import { NAV_HEIGHT } from "../components/navbar";
 import { PageLayout } from "../components/page-layout";
 import { getAllPages } from "../util/mdx-util";
 import { NextPageWithLayout } from "../util/next-types";
@@ -92,18 +92,7 @@ const BlueStylishDivider: FunctionComponent<StackProps> = (props) => {
 };
 
 const Hero: FunctionComponent = () => (
-  <Box my={15}>
-    <Box
-      sx={{
-        position: "absolute",
-        background:
-          "linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(237,252,255,1) 53%)",
-        width: "100%",
-        height: 500,
-        top: -NAV_HEIGHT,
-        zIndex: -1,
-      }}
-    />
+  <GradientContainer>
     <Container>
       <Box width={{ xs: 1, md: 873 }}>
         <Typography variant="hashHeading4" component="h1" mb={3}>
@@ -133,7 +122,7 @@ const Hero: FunctionComponent = () => (
         </Box>
       </Box>
     </Container>
-  </Box>
+  </GradientContainer>
 );
 
 const Project: FunctionComponent<{
