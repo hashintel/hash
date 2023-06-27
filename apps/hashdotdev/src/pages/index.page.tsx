@@ -4,6 +4,7 @@ import {
   Grid,
   Stack,
   StackProps,
+  styled,
   Typography,
   typographyClasses,
   useMediaQuery,
@@ -47,6 +48,11 @@ const StylishDivider: FunctionComponent<
     </Stack>
   );
 };
+
+const HomePageBodyTypography = styled(Typography)(({ theme }) => ({
+  fontSize: 18,
+  color: theme.palette.gray[90],
+}));
 
 const BlueStylishDivider: FunctionComponent<StackProps> = (props) => {
   const { palette } = useTheme();
@@ -255,13 +261,13 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               />
             }
           >
-            <Typography>
+            <HomePageBodyTypography>
               The <strong>Block Protocol</strong> is an open standard for
               creating <i>blocks</i> which work in any application, without
               either block or app requiring any special knowledge of one
               another.
-            </Typography>
-            <Typography>
+            </HomePageBodyTypography>
+            <HomePageBodyTypography>
               Any application can integrate with the protocol’s public registry
               (
               <Link href="http://blockprotocol.com/hub">
@@ -275,7 +281,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               ), enabling their users to discover and insert blocks at runtime,
               expanding the utility of applications that support the protocol
               way beyond their original programming.
-            </Typography>
+            </HomePageBodyTypography>
           </Project>
           <Project
             title={
@@ -327,7 +333,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   position: "relative",
                   zIndex: 1,
                   top: {
-                    md: -192,
+                    md: -198,
                     lg: -144,
                   },
                   left: -5,
@@ -351,43 +357,55 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               />
             }
           >
-            <Typography>
+            <HomePageBodyTypography>
               <strong>HASH</strong> is our open-source, all-in-one workspace
               platform built around structured data and interactive blocks.
-            </Typography>
+            </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
-              <Typography component="li">
-                Model your environment with <strong>types</strong>
-              </Typography>
-              <Typography component="li">
-                Seamlessly capture unstructured data and convert it into typed
-                <strong>entities</strong>
-              </Typography>
-              <Typography component="li">
-                Map external data to types and integrate it into your{" "}
-                <strong>graph</strong>
-              </Typography>
-              <Typography component="li">
-                Transform data and automate processes through{" "}
-                <strong>flows</strong>
-              </Typography>
-              <Typography component="li">
-                Use blocks with data to create <strong>apps</strong>
-              </Typography>
-              <Typography component="li">
-                Use entities in <strong>simulations</strong>
-              </Typography>
+              <Box component="li">
+                <HomePageBodyTypography>
+                  Model your environment with <strong>types</strong>
+                </HomePageBodyTypography>
+              </Box>
+              <Box component="li">
+                <HomePageBodyTypography>
+                  Seamlessly capture unstructured data and convert it into typed{" "}
+                  <strong>entities</strong>
+                </HomePageBodyTypography>
+              </Box>
+              <Box component="li">
+                <HomePageBodyTypography>
+                  Map external data to types and integrate it into your{" "}
+                  <strong>graph</strong>
+                </HomePageBodyTypography>
+              </Box>
+              <Box component="li">
+                <HomePageBodyTypography>
+                  Transform data and automate processes through{" "}
+                  <strong>flows</strong>
+                </HomePageBodyTypography>
+              </Box>
+              <Box component="li">
+                <HomePageBodyTypography>
+                  Use blocks with data to create <strong>apps</strong>
+                </HomePageBodyTypography>
+              </Box>
+              <Box component="li">
+                <HomePageBodyTypography>
+                  Use entities in <strong>simulations</strong>
+                </HomePageBodyTypography>
+              </Box>
             </Box>
-            <Typography>
+            <HomePageBodyTypography>
               HASH is a flexible operating system built around your data, always
               up-to-date, and represented as you understand it.
-            </Typography>
-            <Typography>
+            </HomePageBodyTypography>
+            <HomePageBodyTypography>
               <strong>
                 We’re currently helping onboard organizations interested in
                 adopting HASH.
               </strong>
-            </Typography>
+            </HomePageBodyTypography>
           </Project>
         </Stack>
       </Stack>
@@ -493,9 +511,12 @@ const Tutorials: FunctionComponent = () => {
       <Typography variant="hashHeading4" component="h3">
         Tutorials
       </Typography>
-      <Typography marginBottom={2}>
+      <HomePageBodyTypography
+        marginBottom={2}
+        sx={{ color: ({ palette }) => palette.gray[70] }}
+      >
         Learn by example through our step-by-step tutorials
-      </Typography>
+      </HomePageBodyTypography>
       <Grid container spacing={4} marginBottom={2}>
         <Grid item xs={12} md={6} lg={4}>
           <Tutorial
@@ -524,7 +545,7 @@ const Tutorials: FunctionComponent = () => {
       </Grid>
       <Box display="flex" width="100%" flexDirection="row-reverse">
         <Link
-          href="/"
+          href="/guides"
           sx={{
             color: ({ palette }) => palette.teal[70],
             borderBottomStyle: "solid",
