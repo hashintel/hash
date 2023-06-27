@@ -303,7 +303,11 @@ const BlogPost: FunctionComponent<{
           <Grid
             item
             xs={displayImage && direction === "row" ? 6 : 12}
-            sx={{ display: "flex", flexDirection: "column" }}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: direction === "row" ? "center" : "flex-start",
+            }}
           >
             {authorsAfterTitle ? null : authors}
             <Typography
@@ -320,25 +324,17 @@ const BlogPost: FunctionComponent<{
               {data.title}
             </Typography>
             {authorsAfterTitle ? authors : null}
-            <Box
-              sx={{
-                flexGrow: 1,
-                display: "flex",
-                alignItems: direction === "row" ? "center" : "flex-start",
-              }}
-            >
-              {displaySubtitle ? (
-                <Typography
-                  sx={{
-                    color: ({ palette }) => palette.gray[70],
-                    fontSize: variant === "primary" ? 18 : 15,
-                    lineHeight: "150%",
-                  }}
-                >
-                  {data.subtitle}
-                </Typography>
-              ) : null}
-            </Box>
+            {displaySubtitle ? (
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[70],
+                  fontSize: variant === "primary" ? 18 : 15,
+                  lineHeight: "150%",
+                }}
+              >
+                {data.subtitle}
+              </Typography>
+            ) : null}
           </Grid>
         </Grid>
       </Box>
