@@ -24,30 +24,18 @@ import { Logo } from "./logo";
 
 export const NAV_HEIGHT = 58;
 
-const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)(
-  ({ theme }) => ({
-    [`&.${buttonClasses.root}`]: {
-      color: theme.palette.turquoise[100],
-      fontWeight: 500,
-      background: "transparent",
-      borderColor: "transparent",
-      fontSize: 15,
-      minHeight: 32,
-      py: 1,
-      borderRadius: 30,
-      borderWidth: 1,
-      [`> .${buttonClasses.startIcon} svg`]: {
-        color: theme.palette.turquoise[100],
-      },
-      "&:hover": {
-        borderColor: theme.palette.turquoise[100],
-        [`> .${buttonClasses.startIcon} svg`]: {
-          color: theme.palette.turquoise[100],
-        },
-      },
-    },
-  }),
-);
+const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)({
+  [`&.${buttonClasses.root}`]: {
+    fontWeight: 500,
+    background: "transparent",
+    borderColor: "transparent",
+    fontSize: 15,
+    minHeight: 32,
+    py: 1,
+    borderRadius: 30,
+    borderWidth: 1,
+  },
+});
 
 const navLinks: { icon: ReactNode; name: string; href: string }[] = [
   {
@@ -56,7 +44,7 @@ const navLinks: { icon: ReactNode; name: string; href: string }[] = [
     href: "/docs",
   },
   {
-    icon: <FaIcon name="book-atlas" type="solid" />,
+    icon: <FaIcon name="book-atlas" type="regular" />,
     name: "Docs",
     href: "/docs",
   },
@@ -85,6 +73,7 @@ const DesktopNav: FunctionComponent = () => {
         endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
         sx={{
           color: ({ palette }) => palette.turquoise[100],
+          background: "rgba(255, 255, 255, 0.80)",
         }}
       >
         Visit our main site
@@ -95,7 +84,9 @@ const DesktopNav: FunctionComponent = () => {
             key={href}
             href={href}
             startIcon={icon}
-            className={clsx({ active: router.asPath.startsWith(href) })}
+            className={clsx("nav-link", {
+              active: router.asPath.startsWith(href),
+            })}
           >
             {name}
           </DesktopNavLink>
@@ -270,6 +261,8 @@ export const Navbar: FunctionComponent = () => {
     };
   }, []);
 
+  const isWhiteBackground = !(isAtTopOfPage && router.pathname === "/");
+
   return (
     <>
       <Box
@@ -277,10 +270,7 @@ export const Navbar: FunctionComponent = () => {
           display: "flex",
           height: NAV_HEIGHT,
           transition: ({ transitions }) => transitions.create("background"),
-          background:
-            isAtTopOfPage && router.pathname === "/"
-              ? "rgba(255, 255, 255, 0.20)"
-              : "#fff",
+          background: isWhiteBackground ? "#fff" : "rgba(255, 255, 255, 0.20)",
           alignItems: "center",
           position: "fixed",
           width: "100%",
@@ -292,7 +282,43 @@ export const Navbar: FunctionComponent = () => {
           <Stack
             direction="row"
             alignItems="center"
-            sx={{ alignItems: "center" }}
+            sx={{
+              alignItems: "center",
+              [`.${buttonClasses.root}.nav-link`]: {
+                color: isWhiteBackground
+                  ? theme.palette.gray[70]
+                  : theme.palette.turquoise[100],
+                [`> .${buttonClasses.startIcon} svg`]: {
+                  color: isWhiteBackground
+                    ? theme.palette.gray[70]
+                    : theme.palette.turquoise[100],
+                },
+                "&:hover:not(.active)": {
+                  color: isWhiteBackground
+                    ? theme.palette.gray[90]
+                    : theme.palette.common.black,
+                  borderColor: isWhiteBackground
+                    ? theme.palette.turquoise[30]
+                    : "transparent",
+                  background: isWhiteBackground
+                    ? "transparent"
+                    : "rgba(255, 255, 255, 0.50)",
+                  [`> .${buttonClasses.startIcon} svg`]: {
+                    color: isWhiteBackground
+                      ? theme.palette.gray[90]
+                      : theme.palette.common.black,
+                  },
+                },
+                "&.active": {
+                  background: theme.palette.teal[20],
+                  [`> .${buttonClasses.startIcon} svg`]: {
+                    color: isWhiteBackground
+                      ? theme.palette.teal[90]
+                      : theme.palette.turquoise[100],
+                  },
+                },
+              },
+            }}
           >
             <Logo mr={2} onClick={() => setMobileNavOpen(false)} />
             {mobileNav ? (
