@@ -3,19 +3,19 @@ import {
   alpha,
   Box,
   buttonClasses,
+  ButtonProps,
   Container,
   Fade,
   IconButton,
   Slide,
   Stack,
-  SxProps,
-  Theme,
+  styled,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import clsx from "clsx";
 import { useRouter } from "next/router";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, ReactNode, useState } from "react";
 
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
@@ -24,34 +24,52 @@ import { Logo } from "./logo";
 
 export const NAV_HEIGHT = 58;
 
-const NAV_BUTTON_STYLES: SxProps<Theme> = {
-  [`.${buttonClasses.root}`]: {
-    "&:not(.NavLink)": {
-      "&.MuiButton-primary": {
-        borderColor: ({ palette }) => palette.blue[50],
-        "&, svg": {
-          color: (theme) => `${theme.palette.blue[90]} !important`,
-        },
-
-        ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
-          backgroundColor: (theme) => theme.palette.blue[40],
-        },
+const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)(
+  ({ theme }) => ({
+    [`&.${buttonClasses.root}`]: {
+      color: theme.palette.turquoise[100],
+      background: "transparent",
+      borderColor: "transparent",
+      fontSize: 15,
+      minHeight: 32,
+      py: 1,
+      borderRadius: 30,
+      borderWidth: 1,
+      [`> .${buttonClasses.startIcon} svg`]: {
+        color: theme.palette.turquoise[100],
       },
-
-      "&.MuiButton-tertiary": {
-        borderColor: "gray.20",
-
-        "&, svg": {
-          color: "gray.70",
-        },
-
-        ":focus-visible, &.Button--focus:not(:disabled)": {
-          borderColor: "gray.40",
+      "&:hover": {
+        borderColor: theme.palette.turquoise[100],
+        [`> .${buttonClasses.startIcon} svg`]: {
+          color: theme.palette.turquoise[100],
         },
       },
     },
+  }),
+);
+
+const navLinks: { icon: ReactNode; name: string; href: string }[] = [
+  {
+    icon: <FaIcon name="diagram-sankey" type="solid" />,
+    name: "Roadmap",
+    href: "/docs",
   },
-};
+  {
+    icon: <FaIcon name="book-atlas" type="solid" />,
+    name: "Docs",
+    href: "/docs",
+  },
+  {
+    icon: <FaIcon name="map" type="solid" />,
+    name: "Tutorials",
+    href: "/tutorials",
+  },
+  {
+    icon: <FaIcon name="newspaper" type="solid" />,
+    name: "Blog",
+    href: "/blog",
+  },
+];
 
 const DesktopNav: FunctionComponent = () => {
   const router = useRouter();
@@ -64,63 +82,23 @@ const DesktopNav: FunctionComponent = () => {
         href="https://hash.ai"
         openInNew
         endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
-        sx={{ color: ({ palette }) => palette.turquoise[100] }}
+        sx={{
+          color: ({ palette }) => palette.turquoise[100],
+        }}
       >
         Visit our main site
       </Button>
-      <Stack
-        direction="row"
-        spacing={2}
-        ml="auto"
-        sx={[
-          NAV_BUTTON_STYLES,
-          {
-            [`.${buttonClasses.root}`]: {
-              minHeight: 32,
-              py: 1,
-              borderRadius: 30,
-              borderWidth: 1,
-
-              "&:after": {
-                borderWidth: 3,
-                left: -6,
-                top: -6,
-                right: -6,
-                bottom: -6,
-              },
-            },
-          },
-        ]}
-      >
-        <Button
-          size="medium"
-          className={clsx("NavLink", {
-            active: router.asPath.startsWith("/blog"),
-          })}
-          href="/blog"
-          startIcon={<FaIcon name="newspaper" type="solid" />}
-        >
-          Blog
-        </Button>
-        <Button
-          size="medium"
-          variant="tertiary"
-          startIcon={<FaIcon name="discord" type="brands" />}
-          href="https://hash.ai/discord"
-          sx={(theme) => ({
-            [theme.breakpoints.down(980)]: { display: "none" },
-          })}
-        >
-          Chat to us on Discord
-        </Button>
-        <Button
-          size="medium"
-          variant="primary"
-          startIcon={<FaIcon name="envelope" type="regular" />}
-          href="#subscribe"
-        >
-          Join the mailing list
-        </Button>
+      <Stack direction="row" spacing={0.5} ml="auto">
+        {navLinks.map(({ icon, name, href }) => (
+          <DesktopNavLink
+            key={href}
+            href={href}
+            startIcon={icon}
+            className={clsx({ active: router.asPath.startsWith(href) })}
+          >
+            {name}
+          </DesktopNavLink>
+        ))}
       </Stack>
     </>
   );
@@ -169,7 +147,6 @@ const MobileNav: FunctionComponent<{
       <Slide in={open}>
         <Box
           sx={[
-            NAV_BUTTON_STYLES,
             {
               position: "fixed",
               width: 1,
