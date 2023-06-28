@@ -14,6 +14,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
+  ReactNode,
   useCallback,
   useEffect,
   useRef,
@@ -31,7 +32,6 @@ import { parseNameFromFileName } from "../util/client-mdx-util";
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
 import { Link } from "./link";
-import { NAV_HEIGHT } from "./navbar";
 import { TextField } from "./text-field";
 
 // Taken from http://emailregex.com/
@@ -40,7 +40,9 @@ const EMAIL_REGEX =
 
 const subscribeElmId = "subscribe";
 
-export const Subscribe: FunctionComponent<BoxProps> = (props) => {
+export const Subscribe: FunctionComponent<
+  BoxProps & { heading?: ReactNode; body?: ReactNode; buttonText?: ReactNode }
+> = ({ heading, body, buttonText, sx, ...props }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
@@ -77,10 +79,10 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
     <Box
       {...props}
       id={subscribeElmId}
-      sx={{
-        pt: `${NAV_HEIGHT}px`,
-        mt: `-${NAV_HEIGHT}px`,
-      }}
+      sx={[
+        { border: "2px solid var(--teal-teal-40, #AADEE6)" },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       <Box
         sx={[
@@ -88,7 +90,6 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
             py: 8,
             px: 20,
             textAlign: "center",
-            background: "#F2F9FB",
             ".MuiTypography-hashHeading2": {
               mb: {
                 xs: 1.5,
@@ -120,7 +121,7 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
           <>
             <Box
               sx={{
-                color: "yellow.500",
+                color: ({ palette }) => palette.teal[50],
                 fontWeight: 900,
                 fontSize: 48,
                 lineHeight: 1,
@@ -129,19 +130,36 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
             >
               <FaIcon name="envelope-dot" type="solid" />
             </Box>
-            <Typography variant="hashHeading2" component="h3">
-              Success! You’re on the list
+            <Typography
+              variant="hashHeading2"
+              component="h3"
+              sx={{ color: ({ palette }) => palette.gray[90] }}
+            >
+              Success!
+              <Box
+                component="br"
+                sx={{ display: { xs: "block", sm: "none" } }}
+              />{" "}
+              You’re on the list
+            </Typography>
+            <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
+              Check your inbox for a confirmation email and click the link
+              inside.
             </Typography>
           </>
         ) : (
           <>
             <Typography variant="hashHeading2" component="h3">
-              Be the first to know...
+              {heading ?? "Get new posts in your inbox"}
             </Typography>
             <Typography mb={3}>
-              We don’t mail out often, but when we do you’ll be the first to
-              hear about new blog posts and big releases of HASH and the Block
-              Protocol.
+              {body ?? (
+                <>
+                  Get notified when new long-reads and articles go live. Follow
+                  along as we dive deep into new tech, and share our
+                  experiences. <strong>No sales stuff.</strong>
+                </>
+              )}
             </Typography>
             <form
               noValidate
@@ -211,9 +229,10 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
                   size="large"
                   type="submit"
                   loading={loading}
+                  loadingText="Sending..."
                   sx={{ width: { xs: 1, md: "initial" } }}
                 >
-                  Get Updated
+                  {buttonText ?? "Join"}
                 </Button>
               </Stack>
             </form>

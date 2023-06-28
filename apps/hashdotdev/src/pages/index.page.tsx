@@ -20,6 +20,7 @@ import { GradientContainer } from "../components/gradient-container";
 import { FaIcon } from "../components/icons/fa-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
+import { Subscribe } from "../components/pre-footer";
 import { getAllPages } from "../util/mdx-util";
 import { NextPageWithLayout } from "../util/next-types";
 import { BlogPost } from "./blog/[...blog-slug].page";
@@ -619,10 +620,27 @@ export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
 const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
   return (
     <BlogPostsProvider value={{ posts }}>
-      <PageLayout subscribe recentBlogPosts>
+      <PageLayout subscribe={false} recentBlogPosts>
         <Hero />
         <Projects />
         <Tutorials />
+        <Subscribe
+          heading="Be the first to know..."
+          body={
+            <>
+              We don’t mail out often, but when we do you’ll be the first to
+              hear about new blog posts and big releases of HASH and the Block
+              Protocol.
+            </>
+          }
+          buttonText="Get Updated"
+          sx={{
+            background: "#F2F9FB",
+            marginTop: { xs: 6, md: 16 },
+            marginBottom: { xs: 6, md: 16 },
+            border: "none",
+          }}
+        />
       </PageLayout>
     </BlogPostsProvider>
   );
