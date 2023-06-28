@@ -9,23 +9,12 @@ packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+python-dotenv = "^1.0"
 openai = "^0.27.8"
-tiktoken = "^0.3.3"
-pydantic = "^1.10.7"
-python-dotenv = "^1.0.0"
-fastapi = "^0.95.1"
-uvicorn = "^0.21.1"
-structlog = "^23.1.0"
-asgi-correlation-id = "^4.1.0"
-rich = "^13.3.4"
 temporalio = "^1.1.0"
-aiohttp = "^3.8.4"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^67.7.1"
-
-[tool.poetry.group.build-tools.dependencies]
-datamodel-code-generator = "^0.18.0"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.3.0"
