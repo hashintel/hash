@@ -1,0 +1,194 @@
+locals {
+  migrate_service_name  = "migrate"
+  temporal_service_name = "server"
+  setup_service_name    = "setup"
+  ui_service_name       = "ui"
+
+  temporal_port    = 7233
+  temporal_ui_port = 8080
+
+  task_definitions = [
+    {
+      # To remove, only for testing.
+      name  = "${local.prefix}pgtemporary"
+      image = "postgres:15"
+      environment = [
+        { name = "POSTGRES_DB", value = "temporal" },
+        { name = "POSTGRES_USER", value = "postgres" },
+        { name = "POSTGRES_PASSWORD", value = "postgres" },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-create-group"  = "true"
+          "awslogs-group"         = local.log_group_name
+          "awslogs-stream-prefix" = "pg"
+          "awslogs-region"        = var.region
+        }
+      }
+      portMappings = [
+        {
+          appProtocol   = "http"
+          containerPort = 5432
+          hostPort      = 5432
+          protocol      = "tcp"
+        },
+      ]
+      healthCheck = {
+        command     = ["CMD-SHELL", "pg_isready"]
+        startPeriod = 10
+        interval    = 5
+        retries     = 10
+        timeout     = 5
+      }
+
+    },
+    {
+      readonlyRootFilesystem = true
+
+      essential = false
+      name      = "${local.prefix}${local.migrate_service_name}"
+      image     = "${var.temporal_migrate_image.url}:${local.temporal_version}"
+      cpu       = 0 # let ECS divvy up the available CPU
+      dependsOn = [
+        # to delete
+        { condition = "HEALTHY", containerName = "${local.prefix}pgtemporary" },
+      ]
+      environment = concat(local.shared_env_vars, [
+        { name = "SKIP_DB_CREATE", value = "true" },
+        { name = "SKIP_VISIBILITY_DB_CREATE", value = "false" },
+      ])
+      portMappings = []
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-create-group"  = "true"
+          "awslogs-group"         = local.log_group_name
+          "awslogs-stream-prefix" = local.migrate_service_name
+          "awslogs-region"        = var.region
+        }
+      }
+    },
+    {
+      name      = "${local.prefix}${local.temporal_service_name}"
+      image     = "temporalio/server:${local.temporal_version}"
+      cpu       = 0 # let ECS divvy up the available CPU
+      dependsOn = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
+      healthCheck = {
+        command     = ["CMD-shell", "temporal workflow list --address $(hostname):7233"]
+        startPeriod = 10
+        interval    = 10
+        retries     = 10
+        timeout     = 2
+
+      }
+
+      environment = concat(local.shared_env_vars,
+        [
+          # { name = "TEMPORAL_ADDRESS", value = "0.0.0.0:7233" },
+          # { name = "BIND_ON_IP", value = "0.0.0.0" },
+          # { name = "TEMPORAL_BROADCAST_ADDRESS", value = "0.0.0.0" },
+        ]
+      )
+      portMappings = [
+        {
+          appProtocol   = "grpc"
+          containerPort = local.temporal_port
+          hostPort      = local.temporal_port
+          protocol      = "tcp"
+        },
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-create-group"  = "true"
+          "awslogs-group"         = local.log_group_name
+          "awslogs-stream-prefix" = local.temporal_service_name
+          "awslogs-region"        = var.region
+        }
+      }
+    },
+    {
+      readonlyRootFilesystem = true
+
+      name  = "${local.prefix}${local.setup_service_name}"
+      image = "${var.temporal_setup_image.url}:${local.temporal_version}"
+      cpu   = 0 # let ECS divvy up the available CPU
+      dependsOn = [
+        { condition = "START", containerName = "${local.prefix}${local.temporal_service_name}" },
+      ]
+
+      environment = concat(local.shared_env_vars,
+        [
+          # { name = "TEMPORAL_ADDRESS", value = "localhost:7233" },
+          # { name = "SKIP_DEFAULT_NAMESPACE_CREATION", value = "false" }
+        ]
+      )
+
+      portMappings = []
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-create-group"  = "true"
+          "awslogs-group"         = local.log_group_name
+          "awslogs-stream-prefix" = local.setup_service_name
+          "awslogs-region"        = var.region
+        }
+      }
+    },
+    {
+      name      = "${local.prefix}${local.ui_service_name}"
+      image     = "temporalio/ui:${local.temporal_ui_version}"
+      cpu       = 0 # let ECS divvy up the available CPU
+      dependsOn = [{ condition = "HEALTHY", containerName = "${local.prefix}${local.temporal_service_name}" }]
+      portMappings = [
+        {
+          appProtocol   = "http"
+          containerPort = local.temporal_ui_port
+          hostPort      = local.temporal_ui_port
+          protocol      = "tcp"
+        },
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-create-group"  = "true"
+          "awslogs-group"         = local.log_group_name
+          "awslogs-stream-prefix" = local.ui_service_name
+          "awslogs-region"        = var.region
+        }
+      }
+    }
+  ]
+
+  shared_env_vars = [
+    { name = "DB", value = "postgres12" },
+    { name = "DB_PORT", value = "5432" },
+    { name = "DBNAME", value = "temporal" },
+    { name = "VISIBILITY_DBNAME", value = "high_vis" },
+    { name = "POSTGRES_USER", value = "postgres" },
+    { name = "POSTGRES_PWD", value = "postgres" },
+    { name = "POSTGRES_SEEDS", value = "localhost" },
+  ]
+
+  secret_raw_vars = [
+    # TODO: parameterize module
+  ]
+
+  shared_secrets = [for env_name, ssm_param in aws_ssm_parameter.secret_env_vars :
+  { name = env_name, valueFrom = ssm_param.arn }]
+}
+
+
+resource "aws_ssm_parameter" "secret_env_vars" {
+  # Only put secrets into SSM
+  for_each = { for env_var in local.secret_raw_vars : env_var.name => env_var }
+
+  name = "${local.param_prefix}/${each.value.name}"
+  # Still supports non-secret values
+  type      = "SecureString"
+  value     = sensitive(each.value.value)
+  overwrite = true
+  tags      = {}
+}

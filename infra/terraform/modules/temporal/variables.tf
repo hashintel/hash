@@ -17,6 +17,11 @@ variable "prefix" {
   description = "The prefix to use for resource names, includes region and env"
 }
 
+variable "param_prefix" {
+  type        = string
+  description = "The prefix for Param store"
+}
+
 variable "subnets" {
   type        = list(string)
   description = "The list of subnet IDs that the instance should have attached"
@@ -35,4 +40,12 @@ variable "cpu" {
 variable "memory" {
   type        = number
   description = "API service Fargate memory (MB). See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html#w380aac44c17c17"
+}
+
+variable "temporal_migrate_image" {
+  description = "The image to use for the temporal migration container"
+}
+
+variable "temporal_setup_image" {
+  description = "The image to use for the temporal image container"
 }

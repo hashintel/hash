@@ -1,9 +1,12 @@
 locals {
-  prefix = "${var.prefix}-temporal"
+  prefix              = "${var.prefix}-temporal"
+  log_group_name      = "${local.prefix}log"
+  param_prefix        = "${var.param_prefix}/temporal"
+  temporal_version    = "1.21.0.0"
+  temporal_ui_version = "2.16.2"
 }
 
 module "application_ecs" {
-  depends_on         = [module.networking]
   source             = "../container_cluster"
   prefix             = local.prefix
   ecs_name           = "ecs"
@@ -11,7 +14,45 @@ module "application_ecs" {
 }
 
 
-resource "aws_iam_role_policy_attachment" "execution_role_exe" {
+resource "aws_iam_role" "execution_role" {
+  name = "${local.prefix}exerole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+  inline_policy {
+    name = "policy"
+    # Allow publishing logs and getting secrets
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = flatten([
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["logs:CreateLogGroup"]
+            Resource = ["*"]
+          }
+        ],
+        length(local.shared_secrets) > 0 ? [{
+          Effect   = "Allow"
+          Action   = ["ssm:GetParameters"]
+          Resource = [for _, env_var in local.shared_secrets : env_var.valueFrom]
+        }] : []
+      ])
+    })
+  }
+  tags = {}
+}
+
+resource "aws_iam_role_policy_attachment" "execution_role" {
   role       = aws_iam_role.execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
@@ -62,18 +103,18 @@ resource "aws_ecs_task_definition" "task" {
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
-  container_definitions    = jsonencode([])
-  tags                     = {}
+  container_definitions    = jsonencode(local.task_definitions)
 }
 
 resource "aws_ecs_service" "svc" {
   depends_on             = [aws_iam_role.task_role]
   name                   = "${local.prefix}svc"
-  cluster                = data.aws_ecs_cluster.ecs.arn
+  cluster                = module.application_ecs.ecs_cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
+
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
@@ -83,11 +124,34 @@ resource "aws_ecs_service" "svc" {
   }
 
   tags = { Service = "${local.prefix}svc" }
-  # @todo: consider using deployment_circuit_breaker
 }
 
 
 resource "aws_security_group" "app_sg" {
-  name   = "${var.prefix}-sgapp"
+  name   = "${var.prefix}-sgtemporal"
   vpc_id = var.vpc.id
+
+  egress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "tcp"
+    description = "Allow outbound DNS lookups"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    description = "Allow outbound HTTPS connections"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    description = "Allow connections to Postgres within the VPC"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
 }
