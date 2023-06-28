@@ -7,6 +7,10 @@ import {
   Container,
   Fade,
   IconButton,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
+  MenuList,
   Slide,
   Stack,
   styled,
@@ -20,6 +24,7 @@ import { FunctionComponent, ReactNode, useEffect, useState } from "react";
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
+import { Link } from "./link";
 import { Logo } from "./logo";
 
 export const NAV_HEIGHT = 58;
@@ -41,7 +46,7 @@ const navLinks: { icon: ReactNode; name: string; href: string }[] = [
   {
     icon: <FaIcon name="diagram-sankey" type="solid" />,
     name: "Roadmap",
-    href: "/docs",
+    href: "/roadmap",
   },
   {
     icon: <FaIcon name="book-atlas" type="regular" />,
@@ -165,51 +170,32 @@ const MobileNav: FunctionComponent<{
         >
           <Container
             sx={{
-              pt: 1,
               pb: 3.5,
             }}
           >
-            <Stack
-              spacing={2}
-              alignItems="flex-start"
-              divider={
-                <Box
-                  component="hr"
-                  sx={{
-                    border: 0,
-                    borderTop: 1,
-                    borderColor: "gray.20",
-                    width: 1,
-                  }}
-                />
-              }
-              mb={4}
+            <MenuList
+              sx={{
+                marginBottom: 2,
+                borderTopColor: ({ palette }) => palette.gray[20],
+                borderTopWidth: 1,
+                borderTopStyle: "solid",
+              }}
             >
-              <Button
-                className="NavLink"
-                size="large"
-                variant="primary"
-                href="https://hash.ai"
-                openInNew
-                startIcon={
-                  <FaIcon name="arrow-up-right-from-square" type="solid" />
-                }
-              >
-                Visit our main site
-              </Button>
-              <Button
-                size="large"
-                variant="primary"
-                startIcon={<FaIcon name="newspaper" type="solid" />}
-                href="/blog"
-                className={clsx("NavLink", {
-                  active: router.asPath.startsWith("/blog"),
-                })}
-                onClick={() => onMenuClose()}
-              >
-                Blog
-              </Button>
-            </Stack>
+              {navLinks.map(({ icon, name, href }) => {
+                const isActive = router.asPath.startsWith(href);
+                return (
+                  <Link key={href} href={href}>
+                    <MenuItem
+                      component="a"
+                      className={clsx({ active: isActive })}
+                    >
+                      <ListItemIcon>{icon}</ListItemIcon>
+                      <ListItemText>{name}</ListItemText>
+                    </MenuItem>
+                  </Link>
+                );
+              })}
+            </MenuList>
             <Stack spacing={1.25}>
               <Button
                 variant="tertiary"
@@ -261,7 +247,8 @@ export const Navbar: FunctionComponent = () => {
     };
   }, []);
 
-  const isWhiteBackground = !(isAtTopOfPage && router.pathname === "/");
+  const isWhiteBackground =
+    !(isAtTopOfPage && router.pathname === "/") || mobileNavOpen;
 
   return (
     <>
