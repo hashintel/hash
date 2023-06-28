@@ -223,7 +223,6 @@ const MobileNav: FunctionComponent<{
 };
 
 export const Navbar: FunctionComponent = () => {
-  const router = useRouter();
   const theme = useTheme();
   const mobileNav = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -257,6 +256,9 @@ export const Navbar: FunctionComponent = () => {
           height: NAV_HEIGHT,
           transition: ({ transitions }) => transitions.create("background"),
           background: isWhiteBackground ? "#fff" : "rgba(255, 255, 255, 0.20)",
+          borderBottomWidth: 1,
+          borderBottomStyle: "solid",
+          borderBottomColor: "rgba(255, 255, 255, 0.17)",
           alignItems: "center",
           position: "fixed",
           width: "100%",
