@@ -1,4 +1,6 @@
-FROM temporalio/auto-setup:1.20.2.0 as temporal-setup
+ARG TEMPORAL_VERSION
+
+FROM temporalio/auto-setup:${TEMPORAL_VERSION} as temporal-setup
 
 COPY ./migrate.sh /migrate.sh
 

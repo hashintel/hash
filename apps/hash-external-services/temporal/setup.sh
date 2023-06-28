@@ -13,26 +13,12 @@ set -eux -o pipefail
 : "${POSTGRES_USER:=}"
 : "${POSTGRES_PWD:=}"
 
-# Elasticsearch
-: "${ENABLE_ES:=false}"
-: "${ES_SCHEME:=http}"
-: "${ES_SEEDS:=}"
-: "${ES_PORT:=9200}"
-: "${ES_USER:=}"
-: "${ES_PWD:=}"
-: "${ES_VERSION:=v7}"
-: "${ES_VIS_INDEX:=temporal_visibility_v1_dev}"
-: "${ES_SEC_VIS_INDEX:=}"
-: "${ES_SCHEMA_SETUP_TIMEOUT_IN_SECONDS:=0}"
-
 # Server setup
-: "${TEMPORAL_CLI_ADDRESS:=}"
+: "${TEMPORAL_ADDRESS:=}"
 
 : "${SKIP_DEFAULT_NAMESPACE_CREATION:=false}"
 : "${DEFAULT_NAMESPACE:=default}"
 : "${DEFAULT_NAMESPACE_RETENTION:=1}"
-
-: "${SKIP_ADD_CUSTOM_SEARCH_ATTRIBUTES:=false}"
 
 # === Helper functions ===
 
@@ -50,16 +36,6 @@ validate_db_env() {
   fi
 }
 
-# === Elasticsearch functions ===
-
-validate_es_env() {
-  if [[ ${ENABLE_ES} == true ]]; then
-    if [[ -z ${ES_SEEDS} ]]; then
-      die "ES_SEEDS env must be set if ENABLE_ES is ${ENABLE_ES}"
-    fi
-  fi
-}
-
 # === Server setup ===
 
 register_default_namespace() {
@@ -73,31 +49,10 @@ register_default_namespace() {
   fi
 }
 
-add_custom_search_attributes() {
-  until temporal operator search-attribute list --namespace "${DEFAULT_NAMESPACE}"; do
-    echo "Waiting for namespace cache to refresh..."
-    sleep 1
-  done
-  echo "Namespace cache refreshed."
-
-  echo "Adding Custom*Field search attributes."
-  # TODO: Remove CustomStringField
-  # @@@SNIPSTART add-custom-search-attributes-for-testing-command
-  temporal operator search-attribute create --namespace "${DEFAULT_NAMESPACE}" \
-    --name CustomKeywordField --type Keyword \
-    --name CustomStringField --type Text \
-    --name CustomTextField --type Text \
-    --name CustomIntField --type Int \
-    --name CustomDatetimeField --type Datetime \
-    --name CustomDoubleField --type Double \
-    --name CustomBoolField --type Bool
-  # @@@SNIPEND
-}
-
 setup_server() {
-  echo "Temporal CLI address: ${TEMPORAL_CLI_ADDRESS}."
+  echo "Temporal CLI address: ${TEMPORAL_ADDRESS}."
 
-  until temporal operator cluster health | grep -q SERVING; do
+  until temporal operator cluster health --address $TEMPORAL_ADDRESS| grep -q SERVING; do
     echo "Waiting for Temporal server to start..."
     sleep 1
   done
@@ -106,30 +61,32 @@ setup_server() {
   if [[ ${SKIP_DEFAULT_NAMESPACE_CREATION} != true ]]; then
     register_default_namespace
   fi
-
-  if [[ ${SKIP_ADD_CUSTOM_SEARCH_ATTRIBUTES} != true ]]; then
-    add_custom_search_attributes
-  fi
 }
 
 # === Main ===
 
-# TEMPORAL_CLI_ADDRESS setup copied from https://github.com/temporalio/docker-builds/blob/main/docker/entrypoint.sh
 
-: "${BIND_ON_IP:=$(getent hosts "$(hostname)" | awk '{print $1;}')}"
+# TEMPORAL_ADDRESS setup copied from https://github.com/temporalio/docker-builds/blob/main/docker/entrypoint.sh
+
+: "${BIND_ON_IP:=$(getent hosts $(hostname) | awk '{print $1;}')}"
 export BIND_ON_IP
 
-# check TEMPORAL_CLI_ADDRESS is not empty
-if [[ -z "${TEMPORAL_CLI_ADDRESS:-}" ]]; then
-    echo "TEMPORAL_CLI_ADDRESS is not set, setting it to ${BIND_ON_IP}:7233"
+# check TEMPORAL_ADDRESS is not empty
+if [[ -z "${TEMPORAL_ADDRESS:-}" ]]; then
+    echo "TEMPORAL_ADDRESS is not set, setting it to ${BIND_ON_IP}:7233"
 
     if [[ "${BIND_ON_IP}" =~ ":" ]]; then
         # ipv6
-        export TEMPORAL_CLI_ADDRESS="[${BIND_ON_IP}]:7233"
+        export TEMPORAL_ADDRESS="[${BIND_ON_IP}]:7233"
     else
         # ipv4
-        export TEMPORAL_CLI_ADDRESS="${BIND_ON_IP}:7233"
+        export TEMPORAL_ADDRESS="${BIND_ON_IP}:7233"
     fi
+fi
+
+# TEMPORAL_CLI_ADDRESS is deprecated and support for it will be removed in the future release.
+if [[ -z "${TEMPORAL_CLI_ADDRESS:-}" ]]; then
+    export TEMPORAL_CLI_ADDRESS="${TEMPORAL_ADDRESS}"
 fi
 
 setup_server
