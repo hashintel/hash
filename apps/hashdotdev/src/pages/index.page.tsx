@@ -2,6 +2,7 @@ import {
   Box,
   Container,
   Grid,
+  linkClasses,
   Stack,
   StackProps,
   styled,
@@ -256,16 +257,21 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               either block or app requiring any special knowledge of one
               another.
             </HomePageBodyTypography>
-            <HomePageBodyTypography>
+            <HomePageBodyTypography
+              sx={{
+                [`.${linkClasses.root}`]: {
+                  color: ({ palette }) => palette.purple[70],
+                  borderBottom: "none",
+                  "&:hover": {
+                    color: ({ palette }) => palette.purple[90],
+                  },
+                },
+              }}
+            >
               Any application can integrate with the protocol’s public registry
               (
               <Link href="http://blockprotocol.com/hub">
-                <Box
-                  component="strong"
-                  sx={{ color: ({ palette }) => palette.purple[70] }}
-                >
-                  Þ Hub
-                </Box>
+                <Box component="strong">Þ Hub</Box>
               </Link>
               ), enabling their users to discover and insert blocks at runtime,
               expanding the utility of applications that support the protocol
