@@ -247,8 +247,7 @@ export const Navbar: FunctionComponent = () => {
     };
   }, []);
 
-  const isWhiteBackground =
-    !(isAtTopOfPage && router.pathname === "/") || mobileNavOpen;
+  const isWhiteBackground = !isAtTopOfPage || mobileNavOpen;
 
   return (
     <>
