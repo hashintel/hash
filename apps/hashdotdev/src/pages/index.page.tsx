@@ -259,7 +259,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
-                [`.${linkClasses.root}`]: {
+                [`> .${linkClasses.root}`]: {
                   color: ({ palette }) => palette.purple[70],
                   borderBottom: "none",
                   "&:hover": {
