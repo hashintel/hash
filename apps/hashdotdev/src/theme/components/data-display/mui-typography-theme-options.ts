@@ -26,13 +26,6 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
         {
           marginTop: 0,
         },
-      "& a": {
-        ...(ownerState.variant === "hashBodyCopy" && {
-          fontWeight: 600,
-          color: theme.palette.yellow[900],
-          textDecoration: "underline",
-        }),
-      },
       ...(ownerState.variant === "hashSocialIconLink" && {
         fontSize: 0,
 

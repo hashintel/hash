@@ -7,7 +7,6 @@ import { createContext, FunctionComponent, ReactNode, useContext } from "react";
 
 import { FRONTEND_URL } from "../config";
 import { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blog-slug].page";
-import { FaIcon } from "./icons/fa-icon";
 import { Link } from "./link";
 import { mdxImageClasses } from "./mdx-image";
 
@@ -47,7 +46,7 @@ export const BlogPostAuthor: FunctionComponent<BlogPostAuthorProps> = ({
 }) => (
   <Typography
     variant={small ? "hashSmallCaps" : "hashMediumCaps"}
-    color="purple.600"
+    sx={{ color: ({ palette }) => palette.teal[60] }}
     {...props}
   >
     {children}
@@ -119,32 +118,24 @@ export const BlogPostHead: FunctionComponent<{
               })}
             >
               <Link href="/blog" mb={3} display="block">
-                <FaIcon
-                  name="arrow-left"
-                  type="regular"
-                  sx={{
-                    width: "0.85rem",
-                    height: "0.85rem",
-                    marginRight: "8px",
-                    color: "orange.700",
-                  }}
-                />
                 <Typography
                   variant="hashSmallCaps"
                   sx={{
-                    color: "orange.700",
+                    color: ({ palette }) => palette.teal[70],
                     borderBottom: 1,
-                    borderBottomColor: "yellow.400",
+                    borderBottomColor: ({ palette }) => palette.teal[40],
                     pb: "4px",
-
+                    transition: ({ transitions }) =>
+                      transitions.create(["color", "border-bottom-color"]),
                     "&:hover": {
-                      color: "orange.900",
-                      borderBottomColor: "yellow.700",
+                      color: ({ palette }) => palette.teal[90],
+                      borderBottomColor: ({ palette }) => palette.teal[70],
                     },
                   }}
                 >
                   BACK TO BLOG
                 </Typography>
+                {/* @todo: add post categories */}
               </Link>
               {title ? (
                 <Typography variant="hashHeading1" mb={3}>
@@ -241,7 +232,7 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "1fr min(calc(var(--step-0) * 37.7), 100%) 1fr",
+        gridTemplateColumns: "1fr min(810px, 100%) 1fr",
         margin: "auto",
         overflow: "auto",
 
