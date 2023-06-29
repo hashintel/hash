@@ -1,28 +1,13 @@
 locals {
-  prefix              = "${var.prefix}-temporal"
-  log_group_name      = "${local.prefix}log"
-  param_prefix        = "${var.param_prefix}/temporal"
-  temporal_version    = "1.21.0.0"
-  temporal_ui_version = "2.16.2"
+  prefix         = "${var.prefix}-${var.worker_name}"
+  log_group_name = "${local.prefix}log"
+  param_prefix   = "${var.param_prefix}/${var.worker_name}worker"
 }
 
-module "migrate" {
+module "worker" {
   source   = "../container_registry"
-  prefix   = var.prefix
-  ecr_name = "temporalmigrate"
-}
-
-module "setup" {
-  source   = "../container_registry"
-  prefix   = var.prefix
-  ecr_name = "temporalsetup"
-}
-
-module "temporal_ecs" {
-  source             = "../container_cluster"
-  prefix             = var.prefix
-  ecs_name           = "temporalserver"
-  capacity_providers = ["FARGATE"]
+  prefix   = local.prefix
+  ecr_name = "ecr"
 }
 
 resource "aws_iam_role" "execution_role" {
@@ -120,7 +105,7 @@ resource "aws_ecs_task_definition" "task" {
 resource "aws_ecs_service" "svc" {
   depends_on             = [aws_iam_role.task_role]
   name                   = "${local.prefix}svc"
-  cluster                = module.temporal_ecs.ecs_cluster_arn
+  cluster                = var.cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
   desired_count          = 1
@@ -134,19 +119,12 @@ resource "aws_ecs_service" "svc" {
     ]
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.app_tg.arn
-    container_name   = "${local.prefix}${local.temporal_service_name}"
-    container_port   = local.temporal_port
-  }
-
-
   tags = { Service = "${local.prefix}svc" }
 }
 
 
 resource "aws_security_group" "app_sg" {
-  name   = "${var.prefix}-sgtemporal"
+  name   = "${local.prefix}sg"
   vpc_id = var.vpc.id
 
   egress {
@@ -164,18 +142,12 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    description = "Allow connections to Postgres within the VPC"
-    cidr_blocks = [var.vpc.cidr_block]
-  }
-
-  ingress {
     from_port   = 7233
     to_port     = 7233
     protocol    = "tcp"
-    description = "Allow connections to Temporal within the VPC (load balancer)"
+    description = "Allow outbound GRPC connections to Temporal"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # NOTE: if you need to connect to other serivces, there must be more egress rules to allow that.
 }

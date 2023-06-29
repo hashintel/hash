@@ -128,7 +128,7 @@ locals {
 
       essential = false
       name      = "${local.prefix}${local.setup_service_name}"
-      image     = "${module.migrate.url}:${local.temporal_version}"
+      image     = "${module.setup.url}:${local.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [
         { condition = "START", containerName = "${local.prefix}${local.temporal_service_name}" },
