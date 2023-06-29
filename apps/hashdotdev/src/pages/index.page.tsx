@@ -499,7 +499,7 @@ const Tutorial: FunctionComponent<{
   );
 };
 
-const Tutorials: FunctionComponent = () => {
+const _Tutorials: FunctionComponent = () => {
   return (
     <Container component="section">
       <Typography variant="hashHeading4" component="h3">
@@ -609,7 +609,8 @@ const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
       <PageLayout subscribe={false} recentBlogPosts>
         <Hero />
         <Projects />
-        <Tutorials />
+        {/* @todo: add tutorials pages */}
+        {/* <Tutorials /> */}
         <Subscribe
           heading="Be the first to know..."
           body={
