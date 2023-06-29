@@ -289,14 +289,24 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
                 display: { xs: "none", md: "block" },
               }}
             >
-              <Typography
-                variant="hashBodyCopy"
-                fontWeight={700}
-                color="blue.100"
+              <Link
+                href="https://hash.ai/blog"
+                openInNew
+                sx={{
+                  "&:hover .MuiTypography-hashSmallText": {
+                    opacity: 0.8,
+                    transition: "opacity 0.2s",
+                  },
+                }}
               >
-                Looking for our main blog?
-              </Typography>
-              <Link href="https://hash.ai/blog" openInNew>
+                <Typography
+                  variant="hashBodyCopy"
+                  fontWeight={700}
+                  color="blue.100"
+                >
+                  Looking for our main blog?
+                </Typography>
+
                 <Typography
                   variant="hashSmallText"
                   color="blue.100"
@@ -306,10 +316,6 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "flex-end",
-                    "&:hover": {
-                      opacity: 0.8,
-                      transition: "opacity 0.2s",
-                    },
                   }}
                 >
                   Visit
