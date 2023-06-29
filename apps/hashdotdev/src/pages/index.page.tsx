@@ -4,7 +4,6 @@ import {
   Grid,
   linkClasses,
   Stack,
-  StackProps,
   styled,
   Typography,
   typographyClasses,
@@ -24,6 +23,7 @@ import { Subscribe } from "../components/pre-footer";
 import { getAllPages } from "../util/mdx-util";
 import { NextPageWithLayout } from "../util/next-types";
 import { BlogPost } from "./blog/[...blog-slug].page";
+import { BlueStylishDivider } from "./blog/shared/blue-styled-divider";
 import { getPhoto } from "./blog/shared/get-photo";
 import {
   BlogIndividualPage,
@@ -55,43 +55,6 @@ const HomePageBodyTypography = styled(Typography)(({ theme }) => ({
   fontSize: 18,
   color: theme.palette.gray[90],
 }));
-
-const BlueStylishDivider: FunctionComponent<StackProps> = (props) => {
-  const { palette } = useTheme();
-  const size = 12;
-
-  const boxDefinitions: { color: string; opacity?: number }[] = [
-    { color: palette.turquoise[90] },
-    { color: palette.turquoise[70] },
-    { color: palette.turquoise[80] },
-    { color: palette.turquoise[70] },
-    { color: palette.turquoise[40] },
-    { color: palette.turquoise[50], opacity: 0.5 },
-    { color: palette.turquoise[40], opacity: 0.5 },
-    { color: "#9EE9E4", opacity: 0.5 },
-    { color: palette.turquoise[40], opacity: 0.2 },
-    { color: palette.turquoise[40], opacity: 0.2 },
-    { color: palette.turquoise[40] },
-    { color: palette.turquoise[40], opacity: 0.2 },
-  ];
-
-  return (
-    <Stack direction="row" alignItems="stretch" height={12} {...props}>
-      {boxDefinitions.map(({ color, opacity }, i) => (
-        <Box
-          // eslint-disable-next-line react/no-array-index-key
-          key={i}
-          sx={{
-            width: size,
-            height: size,
-            background: color,
-            opacity: opacity ?? 1,
-          }}
-        />
-      ))}
-    </Stack>
-  );
-};
 
 const Hero: FunctionComponent = () => (
   <GradientContainer>
