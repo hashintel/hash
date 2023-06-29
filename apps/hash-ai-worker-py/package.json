@@ -11,6 +11,7 @@
     "fix:ruff": "poetry run ruff app --fix",
     "lint:black": "poetry run black --check --diff --color app",
     "lint:lock-files": "poetry lock --check",
+    "lint:mypy": "poetry run mypy .",
     "lint:ruff": "poetry run ruff app",
     "poetry:install-build-tools": "poetry install --no-root --no-interaction --only build-tools",
     "poetry:install-dev": "poetry install --no-root --no-interaction --only main --only dev",
