@@ -9,9 +9,11 @@ locals {
 
   task_definitions = [
     {
+
       # To remove, only for testing.
-      name  = "${local.prefix}pgtemporary"
-      image = "postgres:15"
+      essential = true
+      name      = "${local.prefix}pgtemporary"
+      image     = "postgres:15"
       environment = [
         { name = "POSTGRES_DB", value = "temporal" },
         { name = "POSTGRES_USER", value = "postgres" },
@@ -71,17 +73,17 @@ locals {
       }
     },
     {
+      essential = true
       name      = "${local.prefix}${local.temporal_service_name}"
       image     = "temporalio/server:${local.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
       healthCheck = {
-        command     = ["CMD-shell", "temporal workflow list --address $(hostname):7233"]
+        command     = ["CMD-shell", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"]
         startPeriod = 10
-        interval    = 10
+        interval    = 5
         retries     = 10
-        timeout     = 2
-
+        timeout     = 5
       }
 
       environment = concat(local.shared_env_vars,
@@ -112,9 +114,10 @@ locals {
     {
       readonlyRootFilesystem = true
 
-      name  = "${local.prefix}${local.setup_service_name}"
-      image = "${var.temporal_setup_image.url}:${local.temporal_version}"
-      cpu   = 0 # let ECS divvy up the available CPU
+      essential = false
+      name      = "${local.prefix}${local.setup_service_name}"
+      image     = "${var.temporal_setup_image.url}:${local.temporal_version}"
+      cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [
         { condition = "START", containerName = "${local.prefix}${local.temporal_service_name}" },
       ]
