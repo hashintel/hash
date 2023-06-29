@@ -130,10 +130,11 @@ const Hero: FunctionComponent = () => (
 const Project: FunctionComponent<{
   buttons: ReactNode;
   children?: ReactNode;
+  color: "purple" | "blue";
   image: ReactNode;
   mobileImage: ReactNode;
   title: ReactNode;
-}> = ({ buttons, children, title, image, mobileImage }) => {
+}> = ({ buttons, color, children, title, image, mobileImage }) => {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -145,6 +146,7 @@ const Project: FunctionComponent<{
       <Box
         sx={[
           {
+            position: "relative",
             width: { xs: 1, md: 420 },
             flexShrink: 0,
             [theme.breakpoints.down("md")]: { width: 1 },
@@ -153,6 +155,24 @@ const Project: FunctionComponent<{
           },
         ]}
       >
+        <Box
+          sx={{
+            position: "absolute",
+            width: 40,
+            height: "100%",
+            background:
+              color === "purple"
+                ? ({ palette }) => palette.purple[60]
+                : ({ palette }) => palette.blue[60],
+            left: {
+              lg: `calc(-1 * (((100vw - 1200px) / 2) + 253px))`,
+              sm: -24,
+              xs: -16,
+            },
+            opacity: 0.5,
+            filter: "blur(100px)",
+          }}
+        />
         <Typography
           variant="hashHeading4"
           component="h4"
@@ -205,6 +225,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
         </Stack>
         <Stack flexShrink={0} spacing={{ xs: 8, md: 0 }}>
           <Project
+            color="purple"
             title={
               <Box display="flex" alignItems="center">
                 <Image src="/home/bp-logo.svg" width={233} height={26} />
@@ -260,7 +281,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
-                [`> .${linkClasses.root}`]: {
+                [`> .${linkClasses.root}.${typographyClasses.root}`]: {
                   color: ({ palette }) => palette.purple[70],
                   borderBottom: "none",
                   "&:hover": {
@@ -280,6 +301,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             </HomePageBodyTypography>
           </Project>
           <Project
+            color="blue"
             title={
               <Box
                 sx={{ marginTop: 8.5, display: "flex", alignItems: "center" }}
