@@ -258,7 +258,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
                 color === "purple"
                   ? theme.palette.purple[80]
                   : color === "blue"
-                  ? theme.palette.blue[80]
+                  ? theme.palette.blue[40]
                   : theme.palette.teal[80],
             }),
             ...(ownerState.variant === "secondary" && {
