@@ -54,7 +54,7 @@
       "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "lint:mypy": {
-      "dependsOn": ["poetry:install-lint-tools"],
+      "dependsOn": ["poetry:install-lint-tools", "poetry:install-dev"],
       "inputs": ["./**/*.py", "pyproject.toml"]
     }
   }
