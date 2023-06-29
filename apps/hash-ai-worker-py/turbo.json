@@ -30,11 +30,11 @@
     },
     "fix:black": {
       "dependsOn": ["poetry:install-lint-tools"],
-      "inputs": ["pyproject.toml"]
+      "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "fix:ruff": {
       "dependsOn": ["poetry:install-lint-tools"],
-      "inputs": ["pyproject.toml"]
+      "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "fix:lock-files": {
       "dependsOn": ["poetry:install-lint-tools"],
@@ -43,19 +43,19 @@
     },
     "lint:black": {
       "dependsOn": ["poetry:install-lint-tools"],
-      "inputs": ["pyproject.toml"]
+      "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "lint:lock-files": {
       "dependsOn": ["poetry:install-lint-tools"],
-      "inputs": ["poetry.lock", "pyproject.toml"]
+      "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "lint:ruff": {
       "dependsOn": ["poetry:install-lint-tools"],
-      "inputs": ["pyproject.toml"]
+      "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "lint:mypy": {
       "dependsOn": ["poetry:install-lint-tools"],
-      "inputs": ["pyproject.toml"]
+      "inputs": ["./**/*.py", "pyproject.toml"]
     }
   }
 }
