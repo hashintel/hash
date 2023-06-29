@@ -15,7 +15,6 @@ import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
-import { GradientContainer } from "../components/gradient-container";
 import { FaIcon } from "../components/icons/fa-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
@@ -57,37 +56,35 @@ const HomePageBodyTypography = styled(Typography)(({ theme }) => ({
 }));
 
 const Hero: FunctionComponent = () => (
-  <GradientContainer>
-    <Container>
-      <Box width={{ xs: 1, md: 873 }}>
-        <Typography variant="hashHeading4" component="h1" mb={3}>
-          Open-source
+  <Container>
+    <Box width={{ xs: 1, md: 873 }}>
+      <Typography variant="hashHeading4" component="h1" mb={3}>
+        Open-source
+      </Typography>
+      <Typography
+        variant="hashLargeTitle"
+        component="h2"
+        mb={5}
+        sx={{ lineHeight: 1.1 }}
+      >
+        Help build the future of decision-making
+      </Typography>
+      <BlueStylishDivider mb={5} />
+      <Box width={{ xs: 1, md: 725 }}>
+        <Typography mb={2} sx={{ lineHeight: 1.5 }}>
+          We’re building two open-source platforms in parallel — the{" "}
+          <strong>Block Protocol</strong> and <strong>HASH</strong> — to help
+          everybody make better decisions.
         </Typography>
-        <Typography
-          variant="hashLargeTitle"
-          component="h2"
-          mb={5}
-          sx={{ lineHeight: 1.1 }}
-        >
-          Help build the future of decision-making
+        <Typography sx={{ lineHeight: 1.5 }}>
+          Here you’ll find information about the technical architecture of the
+          projects, as well as resources to help you build{" "}
+          <strong>blocks</strong>, <strong>integrations</strong>,{" "}
+          <strong>apps</strong> and <strong>simulations</strong>.
         </Typography>
-        <BlueStylishDivider mb={5} />
-        <Box width={{ xs: 1, md: 725 }}>
-          <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            We’re building two open-source platforms in parallel — the{" "}
-            <strong>Block Protocol</strong> and <strong>HASH</strong> — to help
-            everybody make better decisions.
-          </Typography>
-          <Typography sx={{ lineHeight: 1.5 }}>
-            Here you’ll find information about the technical architecture of the
-            projects, as well as resources to help you build{" "}
-            <strong>blocks</strong>, <strong>integrations</strong>,{" "}
-            <strong>apps</strong> and <strong>simulations</strong>.
-          </Typography>
-        </Box>
       </Box>
-    </Container>
-  </GradientContainer>
+    </Box>
+  </Container>
 );
 
 const Project: FunctionComponent<{

@@ -10,7 +10,7 @@ export const GradientContainer: FunctionComponent<BoxProps> = ({
   children,
   ...props
 }) => (
-  <Box component="section" py={15} {...props}>
+  <Box component="section" {...props}>
     <Box
       sx={{
         position: "absolute",

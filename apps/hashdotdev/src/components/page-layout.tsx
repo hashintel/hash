@@ -3,6 +3,7 @@ import { useTheme } from "@mui/system";
 import { FunctionComponent, ReactNode } from "react";
 
 import { Footer } from "./footer";
+import { GradientContainer } from "./gradient-container";
 import { Navbar } from "./navbar";
 import { PreFooter } from "./pre-footer";
 
@@ -55,7 +56,7 @@ export const PageLayout: FunctionComponent<{
     >
       <Navbar />
       <Box flexGrow={1} display="flex" flexDirection="column">
-        {children}
+        <GradientContainer py={{ xs: 9, md: 13 }}>{children}</GradientContainer>
       </Box>
       <Box sx={{ flex: 1 }} />
       <PreFooter subscribe={subscribe} recentBlogPosts={recentBlogPosts} />
