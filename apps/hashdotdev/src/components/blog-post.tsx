@@ -256,9 +256,17 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
           gridColumn: 2,
         },
 
+        ul: {
+          marginTop: 0,
+          "li:not(:last-child)": {
+            marginBottom: 1,
+          },
+        },
+
         [`> .MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy, > .MuiTypography-hashBodyCopy + div:not(.${mdxImageClasses.root}), > div:not(.${mdxImageClasses.root}) + .MuiTypography-hashBodyCopy, > div:not(.${mdxImageClasses.root}) + div:not(.${mdxImageClasses.root})`]:
           {
-            mt: 4,
+            mt: 2,
+            mb: 0,
           },
         ".MuiTypography-hashHeading2": {
           mt: 10,
