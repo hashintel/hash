@@ -263,10 +263,12 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
           },
         },
 
+        [`> .MuiTypography-hashBodyCopy`]: {
+          mb: 0,
+        },
         [`> .MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy, > .MuiTypography-hashBodyCopy + div:not(.${mdxImageClasses.root}), > div:not(.${mdxImageClasses.root}) + .MuiTypography-hashBodyCopy, > div:not(.${mdxImageClasses.root}) + div:not(.${mdxImageClasses.root})`]:
           {
             mt: 2,
-            mb: 0,
           },
         ".MuiTypography-hashHeading2": {
           mt: 10,
