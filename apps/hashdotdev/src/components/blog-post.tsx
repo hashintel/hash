@@ -56,6 +56,7 @@ export const BlogPostAuthor: FunctionComponent<BlogPostAuthorProps> = ({
 export const BlogPostHead: FunctionComponent<{
   title?: string;
   subtitle?: string;
+  category?: string;
   authors?: BlogPostAuthorType[];
   date?: string;
   pageTitle?: string;
@@ -63,6 +64,7 @@ export const BlogPostHead: FunctionComponent<{
 }> = ({
   title,
   subtitle,
+  category,
   authors = [],
   date: dateInput,
   pageTitle = title,
@@ -116,26 +118,46 @@ export const BlogPostHead: FunctionComponent<{
               },
             })}
           >
-            <Link href="/blog" mb={3} display="block">
-              <Typography
-                variant="hashSmallCaps"
-                sx={{
-                  color: ({ palette }) => palette.teal[70],
-                  borderBottom: 1,
-                  borderBottomColor: ({ palette }) => palette.teal[40],
-                  pb: "4px",
-                  transition: ({ transitions }) =>
-                    transitions.create(["color", "border-bottom-color"]),
-                  "&:hover": {
-                    color: ({ palette }) => palette.teal[90],
-                    borderBottomColor: ({ palette }) => palette.teal[70],
-                  },
-                }}
-              >
-                BACK TO BLOG
-              </Typography>
-              {/* @todo: add post categories */}
-            </Link>
+            <Box display="flex" columnGap={1} marginBottom={3}>
+              <Link href="/blog" sx={{ lineHeight: 1 }}>
+                <Typography
+                  variant="hashSmallCaps"
+                  sx={{
+                    color: ({ palette }) => palette.teal[70],
+                    borderBottom: 1,
+                    borderBottomColor: ({ palette }) => palette.teal[40],
+                    pb: "4px",
+                    transition: ({ transitions }) =>
+                      transitions.create(["color", "border-bottom-color"]),
+                    "&:hover": {
+                      color: ({ palette }) => palette.teal[90],
+                      borderBottomColor: ({ palette }) => palette.teal[70],
+                    },
+                  }}
+                >
+                  Back to blog
+                </Typography>
+              </Link>
+              {category && (
+                <>
+                  <Typography
+                    variant="hashSmallText"
+                    sx={{ color: ({ palette }) => palette.gray[40] }}
+                  >
+                    /
+                  </Typography>
+                  <Typography
+                    variant="hashSmallText"
+                    sx={{
+                      color: ({ palette }) => palette.gray[70],
+                      fontWeight: 500,
+                    }}
+                  >
+                    {category}
+                  </Typography>
+                </>
+              )}
+            </Box>
             {title ? (
               <Typography variant="hashHeading1" mb={3}>
                 {title}
