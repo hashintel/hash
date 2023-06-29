@@ -298,7 +298,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                 <Button
                   href="https://github.com/hashintel/hash/tree/main/apps/hash"
                   openInNew
-                  endIcon={<FaIcon name="github" type="brands " />}
+                  endIcon={<FaIcon name="github" type="brands" />}
                   variant="secondary"
                   color="blue"
                   sx={{ marginBottom: 2 }}
