@@ -543,9 +543,9 @@ export const PreFooter: FunctionComponent<{
 }> = ({ subscribe = true, recentBlogPosts = false }) => (
   <>
     {subscribe ? (
-      <Box component="section" sx={{ mb: 12, mt: 12 }}>
+      <Container component="section" sx={{ mb: 12, mt: 12 }}>
         <Subscribe />
-      </Box>
+      </Container>
     ) : null}
     {recentBlogPosts ? (
       <Box component="section" sx={{ mb: 12 }}>
