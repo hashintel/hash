@@ -79,7 +79,8 @@ locals {
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
       healthCheck = {
-        command     = ["CMD-shell", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"]
+        # command     = ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 7233"]
+        command     = ["CMD", "/bin/sh", "-c", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"]
         startPeriod = 10
         interval    = 5
         retries     = 10
@@ -140,29 +141,29 @@ locals {
         }
       }
     },
-    {
-      name      = "${local.prefix}${local.ui_service_name}"
-      image     = "temporalio/ui:${local.temporal_ui_version}"
-      cpu       = 0 # let ECS divvy up the available CPU
-      dependsOn = [{ condition = "HEALTHY", containerName = "${local.prefix}${local.temporal_service_name}" }]
-      portMappings = [
-        {
-          appProtocol   = "http"
-          containerPort = local.temporal_ui_port
-          hostPort      = local.temporal_ui_port
-          protocol      = "tcp"
-        },
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-create-group"  = "true"
-          "awslogs-group"         = local.log_group_name
-          "awslogs-stream-prefix" = local.ui_service_name
-          "awslogs-region"        = var.region
-        }
-      }
-    }
+    # {
+    #   name  = "${local.prefix}${local.ui_service_name}"
+    #   image = "temporalio/ui:${local.temporal_ui_version}"
+    #   cpu   = 0 # let ECS divvy up the available CPU
+    #   # dependsOn = [{ condition = "HEALTHY", containerName = "${local.prefix}${local.temporal_service_name}" }]
+    #   portMappings = [
+    #     {
+    #       appProtocol   = "http"
+    #       containerPort = local.temporal_ui_port
+    #       hostPort      = local.temporal_ui_port
+    #       protocol      = "tcp"
+    #     },
+    #   ]
+    #   logConfiguration = {
+    #     logDriver = "awslogs"
+    #     options = {
+    #       "awslogs-create-group"  = "true"
+    #       "awslogs-group"         = local.log_group_name
+    #       "awslogs-stream-prefix" = local.ui_service_name
+    #       "awslogs-region"        = var.region
+    #     }
+    #   }
+    # }
   ]
 
   shared_env_vars = [
