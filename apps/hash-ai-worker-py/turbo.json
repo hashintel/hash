@@ -29,10 +29,12 @@
       "cache": false
     },
     "fix:black": {
-      "dependsOn": ["poetry:install-lint-tools"]
+      "dependsOn": ["poetry:install-lint-tools"],
+      "inputs": ["pyproject.toml"]
     },
     "fix:ruff": {
-      "dependsOn": ["poetry:install-lint-tools"]
+      "dependsOn": ["poetry:install-lint-tools"],
+      "inputs": ["pyproject.toml"]
     },
     "fix:lock-files": {
       "dependsOn": ["poetry:install-lint-tools"],
