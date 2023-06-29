@@ -340,6 +340,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   openInNew
                   endIcon={<FaIcon name="github" type="brands " />}
                   variant="secondary"
+                  color="blue"
                   sx={{ marginBottom: 2 }}
                 >
                   View on GitHub
