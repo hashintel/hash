@@ -56,7 +56,7 @@ const HomePageBodyTypography = styled(Typography)(({ theme }) => ({
 }));
 
 const Hero: FunctionComponent = () => (
-  <Container>
+  <Container sx={{ marginBottom: 15 }}>
     <Box width={{ xs: 1, md: 873 }}>
       <Typography variant="hashHeading4" component="h1" mb={3}>
         Open-source
@@ -620,8 +620,6 @@ const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
           buttonText="Get Updated"
           sx={{
             background: "#F2F9FB",
-            marginTop: { xs: 6, md: 16 },
-            marginBottom: { xs: 6, md: 16 },
             border: "none",
           }}
         />
