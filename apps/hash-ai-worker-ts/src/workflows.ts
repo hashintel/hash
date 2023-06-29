@@ -1,15 +1,30 @@
-import { proxyActivities, sleep } from "@temporalio/workflow";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
+import { proxyActivities } from "@temporalio/workflow";
 
-import * as activities from "./activities";
+import { createGraphActivities } from "./activities";
 
-const { complete } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "1 minute",
+export const {
+  getDataTypeActivity,
+  getPropertyTypeActivity,
+  getEntityTypeActivity,
+} = proxyActivities<ReturnType<typeof createGraphActivities>>({
+  startToCloseTimeout: "180 second",
+  retry: {
+    maximumAttempts: 3,
+  },
 });
 
-export const DemoWorkflow = async (prompt: string): Promise<string> => {
-  // Demonstrate sleeping, obviously we don't want this here in real workflows
-  await sleep(50);
-
-  // Call the activity
-  return await complete(prompt);
-};
+export const getDataType = async (params: {
+  dataTypeId: VersionedUrl;
+}): Promise<DataTypeWithMetadata> => await getDataTypeActivity(params);
+export const getPropertyType = async (params: {
+  propertyTypeId: VersionedUrl;
+}): Promise<PropertyTypeWithMetadata> => await getPropertyTypeActivity(params);
+export const getEntityType = async (params: {
+  entityTypeId: VersionedUrl;
+}): Promise<EntityTypeWithMetadata> => await getEntityTypeActivity(params);

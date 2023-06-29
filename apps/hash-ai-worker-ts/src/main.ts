@@ -1,10 +1,12 @@
 import * as http from "node:http";
 import * as path from "node:path";
 
+import { AccountId } from "@local/hash-subgraph";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
+import { createImpureGraphContext } from "./activities";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
@@ -44,9 +46,13 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
+  const graphContext = createImpureGraphContext();
+  const actorId = await graphContext.graphApi
+    .createAccountId()
+    .then(({ data }) => data as AccountId);
   const worker = await Worker.create({
     ...workflowOption(),
-    activities,
+    activities: activities.createGraphActivities({ graphContext, actorId }),
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
