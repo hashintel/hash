@@ -256,7 +256,7 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
           gridColumn: 2,
         },
 
-        ul: {
+        "ul, ol": {
           marginTop: 0,
           "li:not(:last-child)": {
             marginBottom: 1,
