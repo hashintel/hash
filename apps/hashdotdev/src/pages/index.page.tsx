@@ -588,7 +588,7 @@ const Tutorials: FunctionComponent = () => {
             fontWeight: 600,
           }}
         >
-          View all guides
+          View all tutorials
         </Link>
       </Box>
     </Container>
