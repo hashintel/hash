@@ -41,11 +41,3 @@ variable "memory" {
   type        = number
   description = "API service Fargate memory (MB). See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html#w380aac44c17c17"
 }
-
-variable "temporal_migrate_image" {
-  description = "The image to use for the temporal migration container"
-}
-
-variable "temporal_setup_image" {
-  description = "The image to use for the temporal image container"
-}

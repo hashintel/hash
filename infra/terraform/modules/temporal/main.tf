@@ -6,6 +6,18 @@ locals {
   temporal_ui_version = "2.16.2"
 }
 
+module "migrate" {
+  source   = "../container_registry"
+  prefix   = var.prefix
+  ecr_name = "temporalmigrate"
+}
+
+module "setup" {
+  source   = "../container_registry"
+  prefix   = var.prefix
+  ecr_name = "temporalsetup"
+}
+
 module "temporal_ecs" {
   source             = "../container_cluster"
   prefix             = var.prefix
