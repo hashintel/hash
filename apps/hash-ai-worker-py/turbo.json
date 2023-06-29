@@ -48,6 +48,9 @@
     },
     "lint:ruff": {
       "dependsOn": ["poetry:install-lint-tools"]
+    },
+    "lint:mypy": {
+      "dependsOn": ["poetry:install-lint-tools"]
     }
   }
 }
