@@ -57,11 +57,17 @@ locals {
         # to delete
         { condition = "HEALTHY", containerName = "${local.prefix}pgtemporary" },
       ]
-      environment = concat(local.shared_env_vars, [
-        { name = "SKIP_DB_CREATE", value = "true" },
-        { name = "SKIP_VISIBILITY_DB_CREATE", value = "false" },
-      ])
-      portMappings = []
+
+      environment = concat(local.shared_env_vars,
+        # container specific env vars go here
+        [
+          { name = "SKIP_DB_CREATE", value = "true" },
+          { name = "SKIP_VISIBILITY_DB_CREATE", value = "false" },
+        ]
+      )
+
+      secrets = local.shared_secrets
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -79,7 +85,10 @@ locals {
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
       healthCheck = {
+        # If we just want to for when the socket accepts connections, we can use this:
         # command     = ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 7233"]
+
+        # This checks that the server is up and running
         command     = ["CMD", "/bin/sh", "-c", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"]
         startPeriod = 10
         interval    = 5
@@ -88,12 +97,13 @@ locals {
       }
 
       environment = concat(local.shared_env_vars,
+        # container specific env vars go here
         [
-          # { name = "TEMPORAL_ADDRESS", value = "0.0.0.0:7233" },
-          # { name = "BIND_ON_IP", value = "0.0.0.0" },
-          # { name = "TEMPORAL_BROADCAST_ADDRESS", value = "0.0.0.0" },
         ]
       )
+
+      secrets = local.shared_secrets
+
       portMappings = [
         {
           appProtocol   = "grpc"
@@ -102,6 +112,7 @@ locals {
           protocol      = "tcp"
         },
       ]
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -124,13 +135,13 @@ locals {
       ]
 
       environment = concat(local.shared_env_vars,
+        # container specific env vars go here
         [
-          # { name = "TEMPORAL_ADDRESS", value = "localhost:7233" },
-          # { name = "SKIP_DEFAULT_NAMESPACE_CREATION", value = "false" }
         ]
       )
 
-      portMappings = []
+      secrets = local.shared_secrets
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -141,29 +152,6 @@ locals {
         }
       }
     },
-    # {
-    #   name  = "${local.prefix}${local.ui_service_name}"
-    #   image = "temporalio/ui:${local.temporal_ui_version}"
-    #   cpu   = 0 # let ECS divvy up the available CPU
-    #   # dependsOn = [{ condition = "HEALTHY", containerName = "${local.prefix}${local.temporal_service_name}" }]
-    #   portMappings = [
-    #     {
-    #       appProtocol   = "http"
-    #       containerPort = local.temporal_ui_port
-    #       hostPort      = local.temporal_ui_port
-    #       protocol      = "tcp"
-    #     },
-    #   ]
-    #   logConfiguration = {
-    #     logDriver = "awslogs"
-    #     options = {
-    #       "awslogs-create-group"  = "true"
-    #       "awslogs-group"         = local.log_group_name
-    #       "awslogs-stream-prefix" = local.ui_service_name
-    #       "awslogs-region"        = var.region
-    #     }
-    #   }
-    # }
   ]
 
   shared_env_vars = [
@@ -171,13 +159,13 @@ locals {
     { name = "DB_PORT", value = "5432" },
     { name = "DBNAME", value = "temporal" },
     { name = "VISIBILITY_DBNAME", value = "high_vis" },
-    { name = "POSTGRES_USER", value = "postgres" },
-    { name = "POSTGRES_PWD", value = "postgres" },
-    { name = "POSTGRES_SEEDS", value = "localhost" },
   ]
 
   secret_raw_vars = [
     # TODO: parameterize module
+    { name = "POSTGRES_USER", value = "postgres" },
+    { name = "POSTGRES_PWD", value = "postgres" },
+    { name = "POSTGRES_SEEDS", value = "localhost" },
   ]
 
   shared_secrets = [for env_name, ssm_param in aws_ssm_parameter.secret_env_vars :
