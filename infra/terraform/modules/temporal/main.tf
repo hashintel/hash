@@ -6,13 +6,12 @@ locals {
   temporal_ui_version = "2.16.2"
 }
 
-module "application_ecs" {
+module "temporal_ecs" {
   source             = "../container_cluster"
-  prefix             = local.prefix
-  ecs_name           = "ecs"
+  prefix             = var.prefix
+  ecs_name           = "temporalserver"
   capacity_providers = ["FARGATE"]
 }
-
 
 resource "aws_iam_role" "execution_role" {
   name = "${local.prefix}exerole"
@@ -109,7 +108,7 @@ resource "aws_ecs_task_definition" "task" {
 resource "aws_ecs_service" "svc" {
   depends_on             = [aws_iam_role.task_role]
   name                   = "${local.prefix}svc"
-  cluster                = module.application_ecs.ecs_cluster_arn
+  cluster                = module.temporal_ecs.ecs_cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
   desired_count          = 1
@@ -138,7 +137,6 @@ resource "aws_security_group" "app_sg" {
     description = "Allow outbound DNS lookups"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   egress {
     from_port   = 443
     to_port     = 443
@@ -146,12 +144,27 @@ resource "aws_security_group" "app_sg" {
     description = "Allow outbound HTTPS connections"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   egress {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
     description = "Allow connections to Postgres within the VPC"
     cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  ingress {
+    from_port   = 7233
+    to_port     = 7233
+    protocol    = "tcp"
+    description = "DEBUG"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    description = "DEBUG"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
