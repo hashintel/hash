@@ -46,7 +46,7 @@ tracing-error = "0.2.0"
 tracing-opentelemetry = "0.18.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 utoipa = { version = "3.3.0", features = ["uuid"] }
-uuid = { version = "1.3.4", features = ["v4", "serde"] }
+uuid = { version = "1.4.0", features = ["v4", "serde"] }
 
 [dev-dependencies]
 graph-test-data = { path = "../../tests/test_data" }
