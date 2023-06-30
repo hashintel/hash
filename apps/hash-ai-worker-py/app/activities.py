@@ -9,7 +9,7 @@ from temporalio import activity
 async def complete(prompt: str) -> str:
     """Completes a prompt using the OpenAI API."""
     openai.api_key = os.environ.get("OPENAI_API_KEY")
-    completion = await openai.Completion.acreate(  # type: ignore[reportUnknownMemberType]  # noqa: E501
+    completion = await openai.Completion.acreate(
         model="ada",
         prompt=prompt,
         temperature=0,
@@ -19,13 +19,13 @@ async def complete(prompt: str) -> str:
     # We suspect that due to the Temporal decorator, we must explicitly bind
     # the return value before returning it.
     # If we don't do this, the activity will mysteriously fail.
-    text_response = completion["choices"][0]["text"]  # type: ignore[reportGeneralTypeIssues]  # noqa: E501
+    text_response = completion["choices"][0]["text"]
 
     if not isinstance(text_response, str):
         # TODO: activities should never raise an exception, but instead return
         #  an error value that the workflow can handle.
         #  https://app.asana.com/0/0/1204934059777411/f
-        msg = f"Expected str, got {type(text_response)}"  # type: ignore[reportUnknownMemberType]  # noqa: E501
+        msg = f"Expected str, got {type(text_response)}"
         raise TypeError(msg)
 
     return text_response

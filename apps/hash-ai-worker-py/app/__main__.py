@@ -49,7 +49,7 @@ async def main() -> None:
     routes = web.RouteTableDef()
 
     @routes.get("/health")
-    async def health(_request: web.Request) -> web.Response:  # type: ignore[reportUnusedFunction] # noqa: E501
+    async def health(_request: web.Request) -> web.Response:
         data = {"msg": "worker healthy"}
         return web.json_response(data)
 
