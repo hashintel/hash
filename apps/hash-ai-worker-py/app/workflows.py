@@ -24,7 +24,6 @@ class DataTypeWorkflow:
     # https://github.com/temporalio/samples-python/tree/main/pydantic_converter
     @workflow.run
     async def get_data_type(self, params: DataTypeWorkflowParameters) -> str:
-        print(params)
         """Calls the Graph API to get a data type schema."""
         data_type_schema = DataTypeSchema(
             **(
