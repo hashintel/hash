@@ -14,7 +14,7 @@ type-fetcher = { path = "../../lib/type-fetcher" }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
 
 axum = "0.6.18"
-clap = { version = "4.3.8", features = ["cargo", "derive", "env", "wrap_help"] }
+clap = { version = "4.3.10", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.3.1"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = { version = "0.3.28" }
