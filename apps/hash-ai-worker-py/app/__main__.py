@@ -7,8 +7,8 @@ from dotenv import find_dotenv, load_dotenv
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from app.activities import complete
-from app.workflows import DemoWorkflowPy
+from .activities import complete
+from .workflows import DataTypeWorkflow, EntityTypeWorkflow, PropertyTypeWorkflow
 
 load_dotenv()
 load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
@@ -20,14 +20,19 @@ async def run_worker(stop_event: asyncio.Event) -> None:
     temporal_port = os.environ.get("HASH_TEMPORAL_PORT") or "7233"
     temporal_target = f"{temporal_host}:{temporal_port}"
 
-    client = await Client.connect(temporal_target, namespace="default")
+    client = await Client.connect(
+        temporal_target,
+        namespace="default",
+    )
 
     worker = Worker(
         client,
         task_queue="aipy",
         # Register workflows
         workflows=[
-            DemoWorkflowPy,
+            DataTypeWorkflow,
+            PropertyTypeWorkflow,
+            EntityTypeWorkflow,
         ],
         # Register activities
         activities=[
@@ -44,7 +49,7 @@ async def main() -> None:
     routes = web.RouteTableDef()
 
     @routes.get("/health")
-    async def health(_request: web.Request) -> web.Response:
+    async def health(_request: web.Request) -> web.Response:  # type: ignore[reportUnusedFunction] # noqa: E501
         data = {"msg": "worker healthy"}
         return web.json_response(data)
 
