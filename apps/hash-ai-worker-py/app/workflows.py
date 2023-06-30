@@ -2,7 +2,7 @@
 
 from temporalio import workflow
 
-from .typesystem import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+from app.typesystem import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 
 with workflow.unsafe.imports_passed_through():
     pass

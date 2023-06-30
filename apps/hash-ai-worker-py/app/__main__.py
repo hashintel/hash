@@ -7,8 +7,8 @@ from dotenv import find_dotenv, load_dotenv
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from .activities import complete
-from .workflows import DataTypeWorkflow, EntityTypeWorkflow, PropertyTypeWorkflow
+from app.activities import complete
+from app.workflows import DataTypeWorkflow, EntityTypeWorkflow, PropertyTypeWorkflow
 
 load_dotenv()
 load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
