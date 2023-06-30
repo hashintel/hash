@@ -33,29 +33,38 @@ data "aws_subnets" "snpub" {
   }
 }
 
-module "migrate" {
-  source   = "../modules/container_registry"
-  prefix   = local.prefix
-  ecr_name = "migrate"
-}
-
-module "setup" {
-  source   = "../modules/container_registry"
-  prefix   = local.prefix
-  ecr_name = "setup"
-}
-
 module "temporal" {
-  source                 = "../modules/temporal"
-  prefix                 = local.prefix
-  subnets                = data.aws_subnets.snpub.ids
-  vpc                    = data.aws_vpc.vpc
-  env                    = local.env
-  region                 = local.region
-  cpu                    = 512
-  memory                 = 1024
-  param_prefix           = "/h-temporal"
-  temporal_migrate_image = module.migrate
-  temporal_setup_image   = module.setup
+  source       = "../modules/temporal"
+  prefix       = local.prefix
+  subnets      = data.aws_subnets.snpub.ids
+  vpc          = data.aws_vpc.vpc
+  env          = local.env
+  region       = local.region
+  cpu          = 512
+  memory       = 1024
+  param_prefix = "/h-temporal"
+}
 
+module "worker_ecs" {
+  source             = "../modules/container_cluster"
+  prefix             = local.prefix
+  ecs_name           = "temporalworkers"
+  capacity_providers = ["FARGATE"]
+}
+
+module "worker_task" {
+  source           = "../modules/temporal_worker"
+  prefix           = local.prefix
+  param_prefix     = "/h-worker"
+  subnets          = data.aws_subnets.snpub.ids
+  vpc              = data.aws_vpc.vpc
+  env              = local.env
+  region           = local.region
+  cpu              = 512
+  memory           = 1024
+  worker_name      = "aiworkerts"
+  temporal_host    = module.temporal.temporal_private_hostname
+  env_vars         = [{ name = "OPENAI_API_KEY", secret = true, value = "imagine this is a secret from vault :)" }]
+  cluster_arn      = module.worker_ecs.ecs_cluster_arn
+  ecs_health_check = ["CMD-shell", "curl -f http://localhost:4100/health || exit 1"]
 }
