@@ -6,24 +6,19 @@
       "persistent": true
     },
     "poetry:venv": {
-      "outputs": ["./.venv/**"],
-      "inputs": ["pyproject.toml", "poetry.lock"]
+      "cache": false
     },
     "poetry:install-dev": {
-      "outputs": ["./.venv/**"],
-      "inputs": ["pyproject.toml", "poetry.lock"]
+      "cache": false
     },
     "poetry:install-production": {
-      "outputs": ["./.venv/**"],
-      "inputs": ["pyproject.toml", "poetry.lock"]
+      "cache": false
     },
     "poetry:install-lint-tools": {
-      "outputs": ["./.venv/**"],
-      "inputs": ["pyproject.toml", "poetry.lock"]
+      "cache": false
     },
     "poetry:install-build-tools": {
-      "outputs": ["./.venv/**"],
-      "inputs": ["pyproject.toml", "poetry.lock"]
+      "cache": false
     },
     "build:docker": {
       "cache": false
