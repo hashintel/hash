@@ -51,7 +51,16 @@ export const UserBlocksProvider: FunctionComponent<{
       }
 
       setValue((prevValue) => {
-        return { ...prevValue, ...apiProvidedBlocksMap };
+        const newValue: ComponentIdHashBlockMap = {};
+        for (const [componentId, blockData] of Object.entries({
+          ...prevValue,
+          ...apiProvidedBlocksMap,
+        })) {
+          if (parseFloat(blockData.meta.protocol) >= 0.3) {
+            newValue[componentId] = blockData;
+          }
+        }
+        return newValue;
       });
     };
 
