@@ -1,9 +1,8 @@
 locals {
-  prefix              = "${var.prefix}-temporal"
-  log_group_name      = "${local.prefix}log"
-  param_prefix        = "${var.param_prefix}/temporal"
-  temporal_version    = "1.21.0.0"
-  temporal_ui_version = "2.16.2"
+  prefix           = "${var.prefix}-temporal"
+  log_group_name   = "${local.prefix}log"
+  param_prefix     = "${var.param_prefix}/temporal"
+  temporal_version = var.temporal_version
 }
 
 module "migrate" {

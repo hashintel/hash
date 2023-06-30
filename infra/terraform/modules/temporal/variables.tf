@@ -41,3 +41,8 @@ variable "memory" {
   type        = number
   description = "API service Fargate memory (MB). See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html#w380aac44c17c17"
 }
+
+variable "temporal_version" {
+  type        = string
+  description = "Docker container tag for temporal containers"
+}
