@@ -2,7 +2,7 @@
   "extends": ["//"],
   "pipeline": {
     "dev": {
-      "dependsOn": ["^build", "codegen", "poetry:install-dev"],
+      "dependsOn": ["^build", "codegen"],
       "persistent": true
     },
     "poetry:venv": {
