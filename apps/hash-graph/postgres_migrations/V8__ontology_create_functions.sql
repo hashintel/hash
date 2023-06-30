@@ -29,7 +29,7 @@ CREATE FUNCTION
     "record_created_by_id" UUID,
     "resume_on_conflict" BOOLEAN,
     "is_external" BOOLEAN
-  ) RETURNS TABLE (ontology_id UUID) AS $create_owned_ontology_id$
+  ) RETURNS TABLE (ontology_id UUID) AS $create_ontology_id$
 BEGIN
   BEGIN
     INSERT INTO base_urls (
@@ -90,7 +90,7 @@ BEGIN
       USING ERRCODE = 'unique_violation';
     END IF;
   END;
-END $create_owned_ontology_id$ LANGUAGE plpgsql VOLATILE;
+END $create_ontology_id$ LANGUAGE plpgsql VOLATILE;
 
 CREATE FUNCTION
   create_owned_ontology_id (
@@ -132,7 +132,7 @@ CREATE FUNCTION
     "record_created_by_id" UUID,
     "fetched_at" TIMESTAMP WITH TIME ZONE,
     "resume_on_conflict" BOOLEAN
-  ) RETURNS TABLE (ontology_id UUID) AS $create_owned_ontology_id$
+  ) RETURNS TABLE (ontology_id UUID) AS $create_external_ontology_id$
 DECLARE
   "_ontology_id" UUID;
 BEGIN
@@ -156,4 +156,4 @@ BEGIN
 
   RETURN QUERY
   SELECT _ontology_id AS ontology_id;
-END $create_owned_ontology_id$ LANGUAGE plpgsql VOLATILE;
+END $create_external_ontology_id$ LANGUAGE plpgsql VOLATILE;
