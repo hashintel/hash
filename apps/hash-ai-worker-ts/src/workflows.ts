@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  AccountId,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -21,10 +22,13 @@ export const {
 
 export const getDataType = async (params: {
   dataTypeId: VersionedUrl;
+  actorId: AccountId;
 }): Promise<DataTypeWithMetadata> => await getDataTypeActivity(params);
 export const getPropertyType = async (params: {
   propertyTypeId: VersionedUrl;
+  actorId: AccountId;
 }): Promise<PropertyTypeWithMetadata> => await getPropertyTypeActivity(params);
 export const getEntityType = async (params: {
   entityTypeId: VersionedUrl;
+  actorId: AccountId;
 }): Promise<EntityTypeWithMetadata> => await getEntityTypeActivity(params);

@@ -47,12 +47,9 @@ const workflowOption = () =>
 
 async function run() {
   const graphContext = createImpureGraphContext();
-  const actorId = await graphContext.graphApi
-    .createAccountId()
-    .then(({ data }) => data as AccountId);
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: activities.createGraphActivities({ graphContext, actorId }),
+    activities: activities.createGraphActivities({ graphContext }),
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),

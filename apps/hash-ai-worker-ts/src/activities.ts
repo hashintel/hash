@@ -62,16 +62,16 @@ export const createImpureGraphContext = (): ImpureGraphContext => {
 
 export const createGraphActivities = (createInfo: {
   graphContext: ImpureGraphContext;
-  actorId: AccountId;
 }) => ({
   async getDataTypeActivity(params: {
     dataTypeId: VersionedUrl;
+    actorId: AccountId;
   }): Promise<DataTypeWithMetadata> {
     const [dataType] = await getDataTypeSubgraphById(createInfo.graphContext, {
       dataTypeId: params.dataTypeId,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
-      actorId: createInfo.actorId,
+      actorId: params.actorId,
     }).then(getRoots);
 
     if (!dataType) {
@@ -83,6 +83,7 @@ export const createGraphActivities = (createInfo: {
 
   async getPropertyTypeActivity(params: {
     propertyTypeId: VersionedUrl;
+    actorId: AccountId;
   }): Promise<PropertyTypeWithMetadata> {
     const [propertyType] = await getPropertyTypeSubgraphById(
       createInfo.graphContext,
@@ -90,7 +91,7 @@ export const createGraphActivities = (createInfo: {
         propertyTypeId: params.propertyTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: createInfo.actorId,
+        actorId: params.actorId,
       },
     ).then(getRoots);
 
@@ -105,6 +106,7 @@ export const createGraphActivities = (createInfo: {
 
   async getEntityTypeActivity(params: {
     entityTypeId: VersionedUrl;
+    actorId: AccountId;
   }): Promise<EntityTypeWithMetadata> {
     const [entityType] = await getEntityTypeSubgraphById(
       createInfo.graphContext,
@@ -112,7 +114,7 @@ export const createGraphActivities = (createInfo: {
         entityTypeId: params.entityTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: createInfo.actorId,
+        actorId: params.actorId,
       },
     ).then(getRoots);
 
