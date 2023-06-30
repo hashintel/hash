@@ -43,7 +43,7 @@ export const EntitySelector = ({
                 filters: expectedEntityTypes.map(({ schema }) =>
                   entityHasEntityTypeByVersionedUrlFilter(schema.$id),
                 ),
-                operator: "OR",
+                operator: expectedEntityTypes.length > 0 ? "OR" : "AND",
               },
             },
           },
