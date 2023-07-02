@@ -1,19 +1,19 @@
 """Temporal workflow definitions."""
 
-from pydantic import BaseModel, Field
+from uuid import UUID
+
+from pydantic import BaseModel, Extra, Field
 from temporalio import workflow
 
-from app.typesystem import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
-
 with workflow.unsafe.imports_passed_through():
-    pass
+    from app.typesystem import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 
 
-class DataTypeWorkflowParameters(BaseModel):
+class DataTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
     """Parameters for ontology type workflows."""
 
     data_type_id: str = Field(..., alias="dataTypeId")
-    actor_id: str = Field(..., alias="actorId")
+    actor_id: UUID = Field(..., alias="actorId")
 
 
 @workflow.defn(name="getDataType")
@@ -40,11 +40,11 @@ class DataTypeWorkflow:
         return data_type_schema.json(by_alias=True, exclude_none=True)
 
 
-class PropertyTypeWorkflowParameters(BaseModel):
+class PropertyTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
     """Parameters for ontology type workflows."""
 
     proeprty_type_id: str = Field(..., alias="propertyTypeId")
-    actor_id: str = Field(..., alias="actorId")
+    actor_id: UUID = Field(..., alias="actorId")
 
 
 @workflow.defn(name="getPropertyType")
@@ -71,11 +71,11 @@ class PropertyTypeWorkflow:
         return property_type_schema.json(by_alias=True, exclude_none=True)
 
 
-class EntityTypeWorkflowParameters(BaseModel):
+class EntityTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
     """Parameters for ontology type workflows."""
 
     entity_type_id: str = Field(..., alias="entityTypeId")
-    actor_id: str = Field(..., alias="actorId")
+    actor_id: UUID = Field(..., alias="actorId")
 
 
 @workflow.defn(name="getEntityType")
