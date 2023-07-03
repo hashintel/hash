@@ -1,7 +1,6 @@
 import * as http from "node:http";
 import * as path from "node:path";
 
-import { AccountId } from "@local/hash-subgraph";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
