@@ -9,7 +9,7 @@ use crate::{
     interval::IntervalBound,
 };
 
-// We cannot use `Clone(bound = "")` as the implementation with `Copy(bound = "")` wrong
+// We cannot use `Clone(bound = "")` as the implementation with `Copy(bound = "")` is wrong
 // https://rust-lang.github.io/rust-clippy/master/index.html#/incorrect_clone_impl_on_copy_type
 // The implementation must simply be `*self` and no clone should occur.
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
