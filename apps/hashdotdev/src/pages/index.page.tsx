@@ -167,7 +167,7 @@ const Project: FunctionComponent<{
 
 const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
   return (
-    <Container component="section">
+    <Container component="section" sx={{ marginBottom: { xs: 12, md: 0 } }}>
       <Stack {...props} direction={{ xs: "column", lg: "row" }} spacing={6}>
         <Stack
           spacing={4}
