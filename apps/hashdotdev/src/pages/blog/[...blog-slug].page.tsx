@@ -21,7 +21,7 @@ export type BlogPostAuthorWithPhotoSrc = {
 export type BlogPost = {
   title: string;
   subtitle: string;
-  category?: string;
+  categories?: string[];
   authors: BlogPostAuthorWithPhotoSrc[];
   date: string;
   postPhoto: string;
@@ -136,7 +136,7 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({
       <BlogPostHead
         title={data.title}
         subtitle={data.subtitle}
-        category={data.category}
+        categories={data.categories}
         authors={data.authors}
         date={data.date}
       />

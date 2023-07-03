@@ -56,7 +56,7 @@ export const BlogPostAuthor: FunctionComponent<BlogPostAuthorProps> = ({
 export const BlogPostHead: FunctionComponent<{
   title?: string;
   subtitle?: string;
-  category?: string;
+  categories?: string[];
   authors?: BlogPostAuthorType[];
   date?: string;
   pageTitle?: string;
@@ -64,7 +64,7 @@ export const BlogPostHead: FunctionComponent<{
 }> = ({
   title,
   subtitle,
-  category,
+  categories,
   authors = [],
   date: dateInput,
   pageTitle = title,
@@ -138,7 +138,7 @@ export const BlogPostHead: FunctionComponent<{
                   Back to blog
                 </Typography>
               </Link>
-              {category && (
+              {categories && (
                 <>
                   <Typography
                     variant="hashSmallText"
@@ -153,7 +153,10 @@ export const BlogPostHead: FunctionComponent<{
                       fontWeight: 500,
                     }}
                   >
-                    {category}
+                    {categories
+                      .slice(0, -1)
+                      .join(", ")
+                      .concat(` & ${categories.slice(-1)}`)}
                   </Typography>
                 </>
               )}
