@@ -17,9 +17,12 @@ import { Logo } from "./logo";
 import { Spacer } from "./spacer";
 
 const FooterLink: FunctionComponent<
-  { href: string } & Omit<ComponentProps<typeof Typography>, "variant">
-> = ({ href, sx = [], children, ...props }) => (
-  <Link href={href}>
+  { href: string; openInNew?: boolean } & Omit<
+    ComponentProps<typeof Typography>,
+    "variant"
+  >
+> = ({ href, openInNew, sx = [], children, ...props }) => (
+  <Link href={href} openInNew={openInNew}>
     <Typography
       {...props}
       sx={[
@@ -206,8 +209,12 @@ export const Footer: FunctionComponent = () => (
           },
         }}
       >
-        <FooterLink href="https://hash.ai/legal/privacy">Privacy</FooterLink>
-        <FooterLink href="https://hash.ai/legal/terms">Legal</FooterLink>
+        <FooterLink href="https://hash.ai/legal/privacy" openInNew>
+          Privacy
+        </FooterLink>
+        <FooterLink href="https://hash.ai/legal/terms" openInNew>
+          Legal
+        </FooterLink>
       </Box>
     </Container>
   </Box>
