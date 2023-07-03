@@ -70,6 +70,11 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
 
+      - name: Setup python
+        run: |
+          yarn poetry:install-dev
+          yarn poetry:install-lint-tools
+
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
         run: |
