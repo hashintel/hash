@@ -146,18 +146,18 @@ export const BlogPostHead: FunctionComponent<{
                   >
                     /
                   </Typography>
-                  <Typography
-                    variant="hashSmallText"
-                    sx={{
-                      color: ({ palette }) => palette.gray[70],
-                      fontWeight: 500,
-                    }}
-                  >
-                    {categories
-                      .slice(0, -1)
-                      .join(", ")
-                      .concat(` & ${categories.slice(-1)}`)}
-                  </Typography>
+                  {categories.map((category) => (
+                    <Typography
+                      key={category}
+                      variant="hashSmallText"
+                      sx={{
+                        color: ({ palette }) => palette.gray[70],
+                        fontWeight: 500,
+                      }}
+                    >
+                      {category}
+                    </Typography>
+                  ))}
                 </>
               )}
             </Box>
