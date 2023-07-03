@@ -72,6 +72,7 @@ where
     async fn create_owned_ontology_id(
         &self,
         metadata: &OwnedOntologyElementMetadata,
+        on_conflict: ConflictBehavior,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
             .query_one(
@@ -82,22 +83,28 @@ where
                     base_url := $1,
                     version := $2,
                     record_created_by_id := $3,
-                    owned_by_id := $4
+                    owned_by_id := $4,
+                    resume_on_conflict := $5
                 );"#,
                 &[
                     &metadata.record_id().base_url.as_str(),
                     &metadata.record_id().version,
                     &metadata.provenance_metadata().record_created_by_id(),
                     &metadata.owned_by_id(),
+                    &(on_conflict == ConflictBehavior::Skip),
                 ],
             )
             .await
             .into_report()
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::UNIQUE_VIOLATION) => report
+                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
                     .change_context(BaseUrlAlreadyExists)
                     .attach_printable(metadata.record_id().base_url.clone())
+                    .change_context(InsertionError),
+                Some(&SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(VersionedUrlAlreadyExists)
+                    .attach_printable(VersionedUrl::from(metadata.record_id().clone()))
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
@@ -116,6 +123,7 @@ where
     async fn create_external_ontology_id(
         &self,
         metadata: &ExternalOntologyElementMetadata,
+        on_conflict: ConflictBehavior,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
             .query_one(
@@ -126,13 +134,15 @@ where
                     base_url := $1,
                     version := $2,
                     record_created_by_id := $3,
-                    fetched_at := $4
+                    fetched_at := $4,
+                    resume_on_conflict := $5
                 );"#,
                 &[
                     &metadata.record_id().base_url.as_str(),
                     &metadata.record_id().version,
                     &metadata.provenance_metadata().record_created_by_id(),
                     &metadata.fetched_at(),
+                    &(on_conflict == ConflictBehavior::Skip),
                 ],
             )
             .await
@@ -145,7 +155,7 @@ where
                     .change_context(InsertionError),
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(metadata.record_id().base_url.clone())
+                    .attach_printable(VersionedUrl::from(metadata.record_id().clone()))
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
@@ -232,26 +242,15 @@ where
         T: OntologyDatabaseType + Send,
         T::Representation: Send,
     {
-        let creation_result = match metadata {
+        let ontology_id = match metadata {
             OntologyElementMetadata::Owned(metadata) => {
-                self.create_owned_ontology_id(metadata).await
+                self.create_owned_ontology_id(metadata, on_conflict).await?
             }
             OntologyElementMetadata::External(metadata) => {
-                self.create_external_ontology_id(metadata).await
+                self.create_external_ontology_id(metadata, on_conflict)
+                    .await?
             }
         };
-
-        let ontology_id = match creation_result {
-            Ok(ontology_id) => ontology_id,
-            Err(report)
-                if report.contains::<BaseUrlAlreadyExists>()
-                    && on_conflict == ConflictBehavior::Skip =>
-            {
-                return Ok(None);
-            }
-            Err(err) => return Err(err),
-        };
-
         self.insert_with_id(ontology_id, database_type).await?;
 
         Ok(Some(ontology_id))
@@ -308,7 +307,7 @@ where
         &self,
         ontology_id: OntologyId,
         database_type: T,
-    ) -> Result<(), InsertionError>
+    ) -> Result<Option<OntologyId>, InsertionError>
     where
         T: OntologyDatabaseType + Send,
         T::Representation: Send,
@@ -320,12 +319,14 @@ where
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
         // usage.
-        self.as_client()
-            .query_one(
+        Ok(self
+            .as_client()
+            .query_opt(
                 &format!(
                     r#"
                         INSERT INTO {} (ontology_id, schema)
                         VALUES ($1, $2)
+                        ON CONFLICT DO NOTHING
                         RETURNING ontology_id;
                     "#,
                     T::table()
@@ -334,9 +335,8 @@ where
             )
             .await
             .into_report()
-            .change_context(InsertionError)?;
-
-        Ok(())
+            .change_context(InsertionError)?
+            .map(|row| row.get(0)))
     }
 
     #[tracing::instrument(level = "debug", skip(self, property_type))]

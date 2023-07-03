@@ -20,6 +20,7 @@ setuptools = "^68.0.0"
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.3.0"
 ruff = "^0.0.275"
+mypy = "^1.4.0"
 
 
 [tool.black]
@@ -32,8 +33,37 @@ ignore = [
     "D203", # this conflicts with `D211`
     "D213", # this conflicts with `D212`
     "D401", # Relates to PEP-257 but also conflicts with Google Python Style Guide, generally gets in the way
-    "ANN101" # most type checkers infer the type of `self` automatically
+    "ANN101", # most type checkers infer the type of `self` automatically
+    "ANN102", # most type checkers infer the type of `cls` automatically
+    "FIX002", # TODOs should be fixed, not removed
+    "TD002", # We don't add authors to TODO strings
 ]
+
+[tool.mypy]
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+check_untyped_defs = true
+no_implicit_reexport = true
+strict_optional = true
+show_error_codes = true
+show_traceback = true
+strict_equality = true
+
+# warnings
+warn_unused_configs = true
+warn_return_any = true
+warn_incomplete_stub = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# error messages
+pretty = true
+color_output = true
+error_summary = true
+incremental = true
+
 
 [build-system]
 requires = ["poetry-core"]
