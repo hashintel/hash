@@ -131,7 +131,13 @@ export const Footer: FunctionComponent = () => (
             </Stack>
           </Typography>
         </Stack>
-        <Grid container width="100%" spacing={3}>
+        <Grid
+          container
+          width="100%"
+          spacing={{ xs: 0, md: 3 }}
+          gap={{ xs: 3, md: 0 }}
+          justifyContent={{ xs: "space-between", sm: "flex-start" }}
+        >
           <Grid item lg={4} md={6}>
             <FooterSection label="Resources">
               <FooterLink href="/blog">Blog</FooterLink>
