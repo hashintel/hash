@@ -32,11 +32,13 @@ use crate::{
 pub struct StackLimit(usize);
 
 impl StackLimit {
-    pub fn new(limit: usize) -> Self {
+    #[must_use]
+    pub const fn new(limit: usize) -> Self {
         Self(limit)
     }
 
-    pub fn limit(&self) -> usize {
+    #[must_use]
+    pub const fn limit(&self) -> usize {
         self.0
     }
 }

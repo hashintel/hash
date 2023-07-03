@@ -3,7 +3,7 @@ use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use serde_json::json;
 
 identifier! {
-    #[derive(PartialEq)]
+    #[derive(PartialEq, Eq)]
     pub enum Ident {
         A = "a" | b"a" | 0,
         B = "b" | b"b" | 1,
@@ -12,7 +12,7 @@ identifier! {
 }
 
 identifier! {
-    #[derive(PartialEq)]
+    #[derive(PartialEq, Eq)]
     pub enum IdentSelect {
         A = "a" | _ | _,
         B = _ | b"b" | _,
