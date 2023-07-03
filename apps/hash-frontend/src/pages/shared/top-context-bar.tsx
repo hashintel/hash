@@ -18,6 +18,7 @@ import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 type Props = {
   crumbs: BreadcrumbsProps["crumbs"];
   defaultCrumbIcon?: ReactNode;
+  isBlockPage?: boolean;
   scrollToTop: () => void;
   sx?: SxProps<Theme>;
 };
@@ -27,6 +28,7 @@ export const TOP_CONTEXT_BAR_HEIGHT = 50;
 export const TopContextBar = ({
   crumbs,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
+  isBlockPage = false,
   scrollToTop = () => {},
   sx = [],
 }: Props) => {
@@ -35,6 +37,10 @@ export const TopContextBar = ({
   const { replace, query } = useRouter();
 
   const setPageMode = (type: "canvas" | "document", lockCanvas?: boolean) => {
+    if (!isBlockPage) {
+      return;
+    }
+
     const newQuery: { canvas?: true; locked?: true } = {};
     if (type === "canvas") {
       newQuery.canvas = true;
@@ -70,7 +76,7 @@ export const TopContextBar = ({
         />
       </Box>
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        {query.canvas && (
+        {isBlockPage && query.canvas && (
           <FormControlLabel
             labelPlacement="start"
             slotProps={{
@@ -90,32 +96,34 @@ export const TopContextBar = ({
             label="Locked"
           />
         )}
-        <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
-          <ToggleButton
-            value="document"
-            aria-label="document"
-            onClick={() => setPageMode("document")}
-          >
-            <FontAwesomeIcon
-              icon={faFile}
-              sx={(theme) => ({
-                color: theme.palette.gray[40],
-              })}
-            />
-          </ToggleButton>
-          <ToggleButton
-            value="canvas"
-            aria-label="canvas"
-            onClick={() => setPageMode("canvas", false)}
-          >
-            <FontAwesomeIcon
-              icon={faPencilRuler}
-              sx={(theme) => ({
-                color: theme.palette.gray[40],
-              })}
-            />
-          </ToggleButton>
-        </ToggleButtonGroup>
+        {isBlockPage && (
+          <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
+            <ToggleButton
+              value="document"
+              aria-label="document"
+              onClick={() => setPageMode("document")}
+            >
+              <FontAwesomeIcon
+                icon={faFile}
+                sx={(theme) => ({
+                  color: theme.palette.gray[40],
+                })}
+              />
+            </ToggleButton>
+            <ToggleButton
+              value="canvas"
+              aria-label="canvas"
+              onClick={() => setPageMode("canvas", false)}
+            >
+              <FontAwesomeIcon
+                icon={faPencilRuler}
+                sx={(theme) => ({
+                  color: theme.palette.gray[40],
+                })}
+              />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
       </Box>
     </Box>
   );

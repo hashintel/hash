@@ -434,6 +434,7 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
+            isBlockPage
             scrollToTop={scrollToTop}
           />
           <PageNotificationBanner />

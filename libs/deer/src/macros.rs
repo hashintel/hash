@@ -99,6 +99,47 @@ macro_rules! forward_to_deserialize_any_helper {
     };
 }
 
+/// Helper macro for implementing an identifier deserializer.
+///
+/// The syntax is:
+///
+/// ```rust
+/// use deer::identifier;
+///
+/// identifier! {
+///     pub enum Identifier {
+///         // identifiers can be used in different places, depending on the deserializer
+///         // they support str, bytes, and u64
+///         VariantName = "StrVariant" | b"ByteVariant" | 2,
+///         // You can exclude a specific variant from one of the `visit_` method implementations
+///         // by replacing the value with `_`
+///         VariantName2 = _ | b"ByteVariant" | 2,
+///         // if there's a duplicate value for a variant, the first one declared will be used.
+///         // duplicate variants (not their value(!)) will lead to a compile error
+///     }
+/// }
+/// ```
+///
+/// # Implementation
+///
+/// Internally this macro will generate a `match` statement for the `visit_str`, `visit_bytes`, and
+/// `visit_u64` methods. Because all generated code must be valid rust, the macro will not generate
+/// the match arms first, but instead utilize a stack to generate the match arms.
+///
+/// There are two stacks used, one for the match arms, and one for the variant values. The variant
+/// values stack is used to provide error messages (as to which variant was expected).
+///
+/// Roughly the match internal macro can be described as:
+///
+/// ```text
+/// @internal match
+///     $ty, // <- the type of visit function in which it is used, either `str`, `bytes`, or `u64`
+///     $e; // <- the expression we want to match against
+///     $name // <- the name of enum we're generating the match for
+///     @() // <- the stack of variants to be processed, every entry is a tuple of the form `(variant, value | _)`
+///     @() // <- the stack of values, used to generate error messages, will be added to in every iteration
+///     $($arms:tt)* // <- generated match arms
+/// ```
 #[macro_export]
 macro_rules! identifier {
     (@internal
@@ -112,7 +153,7 @@ macro_rules! identifier {
                 @($($rest),*)
                 @($($stack),*)
                 $($arms)*
-        );
+        )
     };
     (@internal
         match $ty:tt, $e:expr; $name:ident
@@ -125,7 +166,7 @@ macro_rules! identifier {
                 @($($rest),*)
                 @($($stack, )* $value)
                 $($arms)* $value => Ok($name::$variant),
-        );
+        )
     };
 
     (@internal
@@ -145,7 +186,7 @@ macro_rules! identifier {
                 $(
                     .attach($crate::error::ExpectedIdentifier::String($stack))
                 )*
-                .attach($crate::error::ReceivedIdentifier::String(value.to_owned()))
+                .attach($crate::error::ReceivedIdentifier::String($crate::export::alloc::borrow::ToOwned::to_owned(value)))
                 .change_context($crate::error::VisitorError)
             )
         }
@@ -168,7 +209,7 @@ macro_rules! identifier {
                 $(
                     .attach($crate::error::ExpectedIdentifier::Bytes($stack))
                 )*
-                .attach($crate::error::ReceivedIdentifier::Bytes(value.to_owned()))
+                .attach($crate::error::ReceivedIdentifier::Bytes($crate::export::alloc::borrow::ToOwned::to_owned(value)))
                 .change_context($crate::error::VisitorError)
             )
         }
@@ -224,7 +265,7 @@ macro_rules! identifier {
         @($($stack:literal),*)
     ) => {
         impl $crate::Reflection for $name {
-            fn schema(doc: &mut $crate::Document) -> $crate::Schema {
+            fn schema(_: &mut $crate::Document) -> $crate::Schema {
                 // we lack the ability to properly express OR, so for now we just default to
                 // output the string representation
                 $crate::Schema::new("string").with("enum", [$($stack),*])

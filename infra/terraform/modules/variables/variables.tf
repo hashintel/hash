@@ -1,3 +1,12 @@
+variable "project" {
+  type        = string
+  description = "The project name"
+  validation {
+    condition     = can(regex("[a-z]+", var.project))
+    error_message = "Must be a lowercase non-empty string"
+  }
+}
+
 variable "env" {
   type        = string
   description = "The environment, defaults to the selected workspace."
@@ -19,8 +28,8 @@ variable "region_az_count" {
   description = "Number of availability zones to use for the infrastructure"
 
   validation {
-    condition     = var.region_az_count >= 2 && var.region_az_count <= 128
-    error_message = "Given number of availability zones not supported. Please provide 2 <= AZs <= 128"
+    condition     = var.region_az_count >= 2 && var.region_az_count <= 16
+    error_message = "Given number of availability zones not supported. Please provide 2 <= AZs <= 16"
   }
 }
 

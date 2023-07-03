@@ -17,7 +17,7 @@ use crate::{
         time::{ClosedTemporalBound, TemporalTagged, TimeAxis},
     },
     provenance::ProvenanceMetadata,
-    store::{query::Filter, Record},
+    store::Record,
     subgraph::identifier::EntityVertexId,
 };
 
@@ -239,10 +239,6 @@ impl Record for Entity {
             base_id: self.metadata.record_id().entity_id,
             revision_id: timestamp,
         }
-    }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_entity_by_entity_id(vertex_id.base_id)
     }
 }
 

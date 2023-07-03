@@ -10,14 +10,11 @@ mod ontology;
 mod pool;
 mod record;
 
-#[cfg(feature = "type-fetcher")]
 mod fetcher;
 mod postgres;
 
 use async_trait::async_trait;
 
-#[cfg(feature = "type-fetcher")]
-pub use self::fetcher::{FetchingPool, TypeFetcher};
 pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
@@ -25,6 +22,7 @@ pub use self::{
         BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
         UpdateError,
     },
+    fetcher::{FetchingPool, TypeFetcher},
     knowledge::EntityStore,
     migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},

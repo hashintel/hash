@@ -42,7 +42,7 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
+      recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
       provenance: { recordCreatedById: "" as RecordCreatedById },
       temporalVersioning: {

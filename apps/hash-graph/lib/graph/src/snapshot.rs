@@ -185,17 +185,17 @@ impl<C: AsClient> SnapshotStore<C> {
     /// Writing to the store happens in three stages:
     ///   1. The first stage is the `begin` stage. This stage is executed before any records are
     ///      read from the stream. It is used to create a transaction, so a possible rollback is
-    ///      possible. For each data, which is inserted, a temporary table is created. This table
-    ///      is used to insert the data into the store without locking the store and avoiding
-    ///      yet unfulfilled foreign key constraints.
+    ///      possible. For each data, which is inserted, a temporary table is created. This table is
+    ///      used to insert the data into the store without locking the store and avoiding yet
+    ///      unfulfilled foreign key constraints.
     ///   2. The second stage is the `write` stage. This stage is executed for each record type. It
     ///      reads the batch of records from the channels and inserts them into the temporary
     ///      tables, which were created above.
     ///   3. The third stage is the `commit` stage. This stage is executed after all records have
-    ///      been read from the stream. It is used to insert the data from the temporary tables
-    ///      into the store and to drop the temporary tables. As foreign key constraints are now
-    ///      enabled, this stage might fail. In this case, the transaction is rolled back and the
-    ///      error is returned.
+    ///      been read from the stream. It is used to insert the data from the temporary tables into
+    ///      the store and to drop the temporary tables. As foreign key constraints are now enabled,
+    ///      this stage might fail. In this case, the transaction is rolled back and the error is
+    ///      returned.
     ///
     /// If the input stream contains an `Err` value, the snapshot restore is aborted and the error
     /// is returned.

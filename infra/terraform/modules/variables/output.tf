@@ -21,9 +21,9 @@ output "region_az_names" {
 }
 
 output "prefix" {
-  value = "h-hash-${var.env}-${var.region_short[var.region]}"
+  value = "h-${var.project}-${var.env}-${var.region_short[var.region]}"
 }
 
 output "param_prefix" {
-  value = "/h-hash/${var.env}"
+  value = "/h-${var.project}/${var.env}"
 }

@@ -8,6 +8,9 @@ inputs:
   AWS_SECRET_ACCESS_KEY:
     description: AWS secret access key
     required: true
+  AWS_SESSION_TOKEN:
+    description: AWS session token
+    required: true
   AWS_REGION:
     description: AWS region
     required: true
@@ -43,6 +46,7 @@ runs:
       with:
         AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_SESSION_TOKEN: ${{ inputs.AWS_SESSION_TOKEN }}
         AWS_REGION: ${{ inputs.AWS_REGION }}
 
     - name: Cache Docker layers

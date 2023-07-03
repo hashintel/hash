@@ -7,7 +7,6 @@ import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { User } from "../graph/knowledge/system-types/user";
 import { UploadableStorageProvider } from "../storage";
-import { TaskExecutor } from "../task-execution";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -19,7 +18,6 @@ export interface GraphQLContext {
     cache: CacheAdapter;
     uploadProvider: UploadableStorageProvider;
     search?: SearchAdapter;
-    taskExecutor?: TaskExecutor;
     agentRunner?: AgentRunner;
   };
   emailTransporter: EmailTransporter;

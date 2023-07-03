@@ -195,6 +195,19 @@ jobs:
             exit 1
           fi
 
+      - name: Run yarn lint:mypy
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:mypy; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
         ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
         ## https://yarnpkg.com/cli/dedupe
         ## https://github.com/yarnpkg/berry/issues/2297
