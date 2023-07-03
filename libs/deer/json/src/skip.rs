@@ -12,7 +12,9 @@ fn skip_nested(tokenizer: &mut Tokenizer<false>, stop: &Token) {
 
         // `.next()` will only error out if a string or number is malformed
         // we can safely skip those as they do not modify nested status
-        let Ok(token) = token else { continue; };
+        let Ok(token) = token else {
+            continue;
+        };
 
         if token == *stop && arrays == 0 && objects == 0 {
             // we're at the outer layer, we have already consumed the token and can safely return

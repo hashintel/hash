@@ -215,13 +215,13 @@ macro_rules! deserialize_identifier {
             V: IdentifierVisitor<'de>,
         {
             let Ok(value) = self.value.try_into() else {
-                                        let error = Report::new(TypeError.into_error())
-                                            .attach(ExpectedType::new(visitor.expecting()))
-                                            .attach(ReceivedType::new(<$primitive>::document()))
-                                            .change_context(DeserializerError);
+                let error = Report::new(TypeError.into_error())
+                    .attach(ExpectedType::new(visitor.expecting()))
+                    .attach(ReceivedType::new(<$primitive>::document()))
+                    .change_context(DeserializerError);
 
-                                        return Err(error);
-                                    };
+                return Err(error);
+            };
 
             visitor.$visit(value).change_context(DeserializerError)
         }

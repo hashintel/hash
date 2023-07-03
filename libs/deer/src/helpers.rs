@@ -62,10 +62,9 @@ where
     {
         let mut object = object.into_bound(1).change_context(VisitorError)?;
 
-        let Some(value) = object
-            .field(EnumObjectFieldVisitor {
-                visitor: self.visitor,
-            }) else {
+        let Some(value) = object.field(EnumObjectFieldVisitor {
+            visitor: self.visitor,
+        }) else {
             // `into_bound` guarantees that we can call exactly `n` times (here `1`) and we
             // will always get exactly `n` `Some` back, this means getting to this point is UB and
             // theoretically, due to the fact that `BoundObjectAccess` is controlled by `deer`

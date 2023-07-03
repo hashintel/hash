@@ -91,7 +91,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         let Some(token) = self.tokenizer.next() else {
             return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
                 .attach(Position::new(offset))
-                .change_context(DeserializerError))
+                .change_context(DeserializerError));
         };
 
         token
