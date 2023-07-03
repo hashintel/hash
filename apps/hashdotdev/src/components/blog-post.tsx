@@ -254,15 +254,17 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
         gridTemplateColumns: "1fr min(810px, 100%) 1fr",
         margin: "auto",
         overflow: "auto",
+        paddingBottom: 2,
 
         "> *": {
           gridColumn: 2,
         },
 
         "ul, ol": {
-          marginTop: 0,
+          marginTop: 1,
+          marginBottom: 2,
           "li:not(:last-child)": {
-            marginBottom: 1,
+            marginBottom: 1.5,
           },
         },
 
@@ -271,7 +273,7 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
         },
         [`> .MuiTypography-hashBodyCopy + .MuiTypography-hashBodyCopy, > .MuiTypography-hashBodyCopy + div:not(.${mdxImageClasses.root}), > div:not(.${mdxImageClasses.root}) + .MuiTypography-hashBodyCopy, > div:not(.${mdxImageClasses.root}) + div:not(.${mdxImageClasses.root})`]:
           {
-            mt: 2,
+            mt: 3,
           },
         ".MuiTypography-hashHeading2": {
           mt: 10,
@@ -300,6 +302,9 @@ export const BlogPostContent: FunctionComponent<{ children?: ReactNode }> = ({
           },
         "& > h1:first-of-type": {
           marginTop: 0,
+        },
+        "> figure": {
+          marginTop: 3,
         },
         [`> .${mdxImageClasses.root}`]: {
           width: 1,
