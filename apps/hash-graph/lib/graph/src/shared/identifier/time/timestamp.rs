@@ -19,7 +19,6 @@ use crate::identifier::time::axis::TemporalTagged;
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = ""),
@@ -32,6 +31,12 @@ pub struct Timestamp<A> {
     axis: PhantomData<A>,
     #[serde(with = "crate::serde::time")]
     time: OffsetDateTime,
+}
+
+impl<A> Clone for Timestamp<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> fmt::Debug for Timestamp<A> {

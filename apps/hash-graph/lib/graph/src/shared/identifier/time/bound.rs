@@ -9,11 +9,13 @@ use crate::{
     interval::IntervalBound,
 };
 
+// We cannot use `Clone(bound = "")` as the implementation with `Copy(bound = "")` is wrong
+// https://rust-lang.github.io/rust-clippy/master/index.html#/incorrect_clone_impl_on_copy_type
+// The implementation must simply be `*self` and no clone should occur.
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = "")
@@ -26,6 +28,12 @@ pub enum TemporalBound<A> {
     Inclusive(Timestamp<A>),
     #[schema(title = "ExclusiveBound")]
     Exclusive(Timestamp<A>),
+}
+
+impl<A> Clone for TemporalBound<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> TemporalTagged for TemporalBound<A> {
@@ -71,7 +79,6 @@ impl<A> IntervalBound<Timestamp<A>> for TemporalBound<A> {
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = "")
@@ -82,6 +89,12 @@ pub enum LimitedTemporalBound<A> {
     Inclusive(Timestamp<A>),
     #[schema(title = "ExclusiveBound")]
     Exclusive(Timestamp<A>),
+}
+
+impl<A> Clone for LimitedTemporalBound<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> TemporalTagged for LimitedTemporalBound<A> {
@@ -126,7 +139,6 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = "")
@@ -135,6 +147,12 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
 pub enum ClosedTemporalBound<A> {
     #[schema(title = "InclusiveBound")]
     Inclusive(Timestamp<A>),
+}
+
+impl<A> Clone for ClosedTemporalBound<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> TemporalTagged for ClosedTemporalBound<A> {
@@ -178,7 +196,6 @@ impl<A> IntervalBound<Timestamp<A>> for ClosedTemporalBound<A> {
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = "")
@@ -189,6 +206,12 @@ pub enum OpenTemporalBound<A> {
     Exclusive(Timestamp<A>),
     #[schema(title = "UnboundedBound")]
     Unbounded,
+}
+
+impl<A> Clone for OpenTemporalBound<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> TemporalTagged for OpenTemporalBound<A> {
