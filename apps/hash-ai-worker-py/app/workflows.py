@@ -1,5 +1,7 @@
 """Temporal workflow definitions."""
 
+import json
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Extra, Field
@@ -23,7 +25,10 @@ class DataTypeWorkflow:
     # TODO: Use Temporal's guide to convert between JSON and Pydantic objects.
     # https://github.com/temporalio/samples-python/tree/main/pydantic_converter
     @workflow.run
-    async def get_data_type(self, params: DataTypeWorkflowParameters) -> str:
+    async def get_data_type(
+        self,
+        params: DataTypeWorkflowParameters,
+    ) -> dict[str, Any]:
         """Calls the Graph API to get a data type schema."""
         data_type_schema = DataTypeSchema(
             **(
@@ -35,9 +40,13 @@ class DataTypeWorkflow:
             )["schema"],
         )
         print(  # noqa: T201
-            data_type_schema.json(by_alias=True, exclude_none=True, indent=2),
+            data_type_schema.model_dump_json(
+                by_alias=True,
+                exclude_none=True,
+                indent=2,
+            ),
         )
-        return data_type_schema.json(by_alias=True, exclude_none=True)
+        return data_type_schema.model_dump(by_alias=True, exclude_none=True)
 
 
 class PropertyTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
@@ -54,7 +63,10 @@ class PropertyTypeWorkflow:
     # TODO: Use Temporal's guide to convert between JSON and Pydantic objects.
     # https://github.com/temporalio/samples-python/tree/main/pydantic_converter
     @workflow.run
-    async def get_property_type(self, params: PropertyTypeWorkflowParameters) -> str:
+    async def get_property_type(
+        self,
+        params: PropertyTypeWorkflowParameters,
+    ) -> dict[str, Any]:
         """Calls the Graph API to get a property type schema."""
         property_type_schema = PropertyTypeSchema(
             **(
@@ -66,9 +78,13 @@ class PropertyTypeWorkflow:
             )["schema"],
         )
         print(  # noqa: T201
-            property_type_schema.json(by_alias=True, exclude_none=True, indent=2),
+            property_type_schema.model_dump_json(
+                by_alias=True,
+                exclude_none=True,
+                indent=2,
+            ),
         )
-        return property_type_schema.json(by_alias=True, exclude_none=True)
+        return property_type_schema.model_dump(by_alias=True, exclude_none=True)
 
 
 class EntityTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
@@ -85,7 +101,10 @@ class EntityTypeWorkflow:
     # TODO: Use Temporal's guide to convert between JSON and Pydantic objects.
     # https://github.com/temporalio/samples-python/tree/main/pydantic_converter
     @workflow.run
-    async def get_entity_type(self, params: EntityTypeWorkflowParameters) -> str:
+    async def get_entity_type(
+        self,
+        params: EntityTypeWorkflowParameters,
+    ) -> dict[str, Any]:
         """Calls the Graph API to get an entity type schema."""
         entity_type_schema = EntityTypeSchema(
             **(
@@ -97,6 +116,10 @@ class EntityTypeWorkflow:
             )["schema"],
         )
         print(  # noqa: T201
-            entity_type_schema.json(by_alias=True, exclude_none=True, indent=2),
+            entity_type_schema.model_dump_json(
+                by_alias=True,
+                exclude_none=True,
+                indent=2,
+            ),
         )
-        return entity_type_schema.json(by_alias=True, exclude_none=True)
+        return entity_type_schema.model_dump(by_alias=True, exclude_none=True)
