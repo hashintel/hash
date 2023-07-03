@@ -447,9 +447,14 @@ const RecentBlogPosts: FunctionComponent = () => {
             borderBottomColor: ({ palette }) => palette.teal[40],
             fontSize: 15,
             fontWeight: 600,
+            opacity: 1,
+            transition: ({ transitions }) => transitions.create("opacity"),
+            "&:hover": {
+              opacity: 0.8,
+            },
           }}
         >
-          View all blog posts
+          View all blog posts <FaIcon name="arrow-right" type="solid" />
         </Link>
       </Box>
     </Container>
