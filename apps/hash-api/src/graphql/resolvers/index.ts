@@ -59,17 +59,6 @@ import {
   queryPropertyTypesResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
-import {
-  executeAsanaCheckTask,
-  executeAsanaDiscoverTask,
-  executeAsanaReadTask,
-  executeAsanaSpecTask,
-  executeDemoTask,
-  executeGithubCheckTask,
-  executeGithubDiscoverTask,
-  executeGithubReadTask,
-  executeGithubSpecTask,
-} from "./task-executor";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
@@ -115,20 +104,6 @@ export const resolvers = {
     updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
-    // Task execution
-    executeDemoTask,
-    executeGithubSpecTask,
-    executeGithubCheckTask,
-    executeGithubDiscoverTask: loggedInAndSignedUpMiddleware(
-      executeGithubDiscoverTask,
-    ),
-    executeGithubReadTask: loggedInAndSignedUpMiddleware(executeGithubReadTask),
-    executeAsanaSpecTask,
-    executeAsanaCheckTask,
-    executeAsanaDiscoverTask: loggedInAndSignedUpMiddleware(
-      executeAsanaDiscoverTask,
-    ),
-    executeAsanaReadTask: loggedInAndSignedUpMiddleware(executeAsanaReadTask),
     // Ontology
     createPropertyType: loggedInAndSignedUpMiddleware(
       createPropertyTypeResolver,

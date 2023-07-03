@@ -76,7 +76,7 @@ export const mapFormValuesToMultiFilter = (data: FormValues): MultiFilter => {
     }
   }
 
-  return { operator: data.operator, filters };
+  return { operator: filters.length > 0 ? data.operator : "AND", filters };
 };
 
 export const mapMultiFilterToFormValues = (

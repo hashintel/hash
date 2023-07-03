@@ -1,3 +1,9 @@
+variable "capacity_providers" {
+  type        = list(string)
+  description = "The capacity providers to use for the ECS cluster. Beware that FARGATE_SPOT can introduce instability."
+  default     = ["FARGATE"]
+}
+
 variable "prefix" {
   type        = string
   description = "The prefix to use for resource names, includes region and env"

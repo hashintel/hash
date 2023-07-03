@@ -12,6 +12,7 @@ pub enum Condition {
     Not(Box<Self>),
     Equal(Option<Expression>, Option<Expression>),
     NotEqual(Option<Expression>, Option<Expression>),
+    In(Expression, Expression),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
     StartsWith(Expression, Expression),
@@ -80,6 +81,12 @@ impl Transpile for Condition {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
+            }
+            Self::In(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" = ANY(")?;
+                rhs.transpile(fmt)?;
+                fmt.write_char(')')
             }
             Self::TimeIntervalContainsTimestamp(lhs, rhs) => {
                 lhs.transpile(fmt)?;

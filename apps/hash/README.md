@@ -26,15 +26,15 @@ We will be developing HASH into a production-grade application which can be self
 
 ## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-about-directory] &nbsp; About the HASH application
 
-This folder contains only the _HASH_ project README. The application is split across several different modules which can be found colocated alongside this directory:
+This folder contains only the _HASH_ project README. The application itself is split across several different services which can be found co-located alongside this directory.
+See the [respective section in the parent README](../README.md#hash) for descriptions of the following services:
 
-- [hash-api](../hash-api): API for accessing HASH
-- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)_
-- [hash-frontend](../hash-frontend): GUI for accessing HASH
-- [hash-graph](../hash-graph): application graph query layer
-- [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
-- [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
-- [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
+- [hash-api](../hash-api)
+- [hash-external-services](../hash-external-services)
+- [hash-frontend](../hash-frontend)
+- [hash-graph](../hash-graph)
+- [hash-realtime](../hash-realtime)
+- [hash-search-loader](../hash-search-loader)
 
 <!-- It would be nice to add a dependency graph here showing which services rely on one another -->
 
@@ -161,8 +161,12 @@ Email-sending in HASH is handled by either Kratos (in the case of authentication
 
 Transactional emails templates are located in the following locations:
 
-- Kratos emails in [`./../../apps/hash-external-services/kratos/templates/`](./../../apps/hash-external-services/kratos/templates/)
-- HASH emails in [`./api/src/email/index.ts`](./api/src/email/index.ts)
+- Kratos emails in [`./../../apps/hash-external-services/kratos/templates/`](./../../apps/hash-external-services/kratos/templates/). This directory contains the following templates:
+  - [`recovery_code`](./../../apps/hash-external-services/kratos/templates/recovery_code) - Email templates for the account recovery flow using a code for the UI.
+    - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
+  - [`verification_code`](./../../apps/hash-external-services/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
+    - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
+- HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
 
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
 Note that you will need valid AWS credentials for this email transporter to work.
@@ -192,17 +196,6 @@ See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) pa
 ### The Graph Query Layer
 
 HASH's primary datastore is an entity graph. The service that provides this is located within the `/apps/hash-graph` folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
-
-### LLM prototyping
-
-HASH contains an experimental Docker compose file for prototyping LLM applications using relevant external services such as a vector database. This is located in the `/apps/hash-external-services` folder.
-You'll be able to execute the following command to start the prototyping external services:
-
-```sh
-yarn external-services:prototype up
-```
-
-Similarly to the external services used for HASH, the arguments passed after the script name are arguments for `docker compose`.
 
 ## Testing
 
@@ -325,13 +318,15 @@ lsof -n -i:PORT_NUMBER
 ### User Registration failing (WSL users)
 
 If you're running the application on Windows through Windows Subsystem for Linux (WSL) you might need to
-change the registration url in `external-services/kratos/kratos.dev.yml` from
+change the registration url in `apps/hash-external-services/docker-compose.yml` from
 `http://host.docker.internal:5001/kratos-after-registration` to `http://{WSL_IP}:5001/kratos-after-registration`,
 where `WSL_IP` is the IP address you get by running:
 
 ```sh
 wsl hostname -I
 ```
+
+The `kratos` and `kratos-migrate` services will need to be restarted/rebuilt for the change to take effect.
 
 ## Environment variables
 

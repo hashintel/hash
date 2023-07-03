@@ -27,7 +27,7 @@ pub use self::{
 use crate::{
     identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
     provenance::{OwnedById, ProvenanceMetadata},
-    store::{query::Filter, Record},
+    store::Record,
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
@@ -339,10 +339,6 @@ impl Record for DataTypeWithMetadata {
             revision_id: record_id.version,
         }
     }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_vertex_id(vertex_id)
-    }
 }
 
 impl OntologyTypeWithMetadata for DataTypeWithMetadata {
@@ -383,10 +379,6 @@ impl Record for PropertyTypeWithMetadata {
             revision_id: record_id.version,
         }
     }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_vertex_id(vertex_id)
-    }
 }
 
 impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
@@ -426,10 +418,6 @@ impl Record for EntityTypeWithMetadata {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
-    }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 
