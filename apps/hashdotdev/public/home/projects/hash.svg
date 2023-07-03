@@ -36,20 +36,18 @@
 </mask>
 <rect x="190" y="828" width="11" height="21" rx="1" fill="white" stroke="#DDE7F0" stroke-width="4" mask="url(#path-25-inside-1_41_407)"/>
 <rect x="65" y="836" width="211" height="5" rx="2.5" fill="#DDE7F0"/>
-<circle cx="319.816" cy="620.115" r="3.81609" fill="#96D7EC"/>
-<circle cx="344.621" cy="601.988" r="3.81609" fill="#96D7EC"/>
-<circle cx="346.529" cy="622.023" r="3.81609" fill="#96D7EC"/>
-<circle cx="359.885" cy="622.023" r="3.81609" fill="#96D7EC"/>
-<circle cx="359.885" cy="635.379" r="3.81609" fill="#96D7EC"/>
-<circle cx="395.184" cy="584.816" r="3.81609" fill="#96D7EC"/>
-<circle opacity="0.6" cx="392.816" cy="592.816" r="3.81609" fill="#96D7EC"/>
-<circle opacity="0.4" cx="384.816" cy="598.816" r="3.81609" fill="#96D7EC"/>
-<circle opacity="0.2" cx="369.816" cy="600.816" r="3.81609" fill="#96D7EC"/>
-<circle cx="395.184" cy="639.195" r="3.81609" fill="#96D7EC"/>
-<circle cx="395.184" cy="626.793" r="3.81609" fill="#96D7EC"/>
-<circle cx="379.919" cy="660.184" r="3.81609" fill="#96D7EC"/>
 <rect x="18" y="563" width="258" height="258" rx="3" fill="white" stroke="#DDE7F0" stroke-width="2"/>
 <rect x="298" y="563" width="118" height="118" rx="3" fill="white" stroke="#DDE7F0" stroke-width="2"/>
+<rect x="315" y="581" width="14.1974" height="5" rx="2" fill="#96D7EC"/>
+<rect x="331.382" y="581" width="14.1974" height="5" rx="2" fill="#96D7EC"/>
+<rect x="347.763" y="581" width="14.1974" height="5" rx="2" fill="#96D7EC"/>
+<rect x="364.145" y="581" width="14.1974" height="5" rx="2" fill="#96D7EC"/>
+<rect x="359.776" y="641" width="38.2237" height="10" rx="2" fill="#96D7EC"/>
+<rect x="315" y="641" width="40.4079" height="10" rx="2" fill="#96D7EC"/>
+<rect x="315" y="590" width="25.1184" height="47" rx="2" fill="#DEF4FD"/>
+<rect x="344.487" y="590" width="25.1184" height="47" rx="2" fill="#DEF4FD"/>
+<rect x="315" y="655" width="25.1184" height="6" rx="2" fill="#DEF4FD"/>
+<rect x="371.789" y="590" width="25.1184" height="47" rx="2" fill="#DEF4FD"/>
 <rect x="298" y="703" width="118" height="118" rx="3" fill="white" stroke="#DDE7F0" stroke-width="2"/>
 <circle cx="109" cy="620" r="8" fill="#96D7EC"/>
 <circle cx="143" cy="643" r="8" fill="#96D7EC"/>
