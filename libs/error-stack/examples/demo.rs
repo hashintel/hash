@@ -25,6 +25,8 @@ impl fmt::Display for ParseExperimentError {
 
 impl Context for ParseExperimentError {}
 
+// Reason: false-positive, try_fold is fail-fast, our implementation is fail-slow.
+#[allow(clippy::manual_try_fold)]
 fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimentError> {
     let values = description
         .split(' ')
@@ -65,6 +67,8 @@ impl fmt::Display for ExperimentError {
 
 impl Context for ExperimentError {}
 
+// Reason: false-positive, try_fold is fail-fast, our implementation is fail-slow.
+#[allow(clippy::manual_try_fold)]
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],
