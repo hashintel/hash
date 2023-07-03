@@ -1,6 +1,5 @@
 """Temporal workflow definitions."""
 
-import json
 from typing import Any
 from uuid import UUID
 
