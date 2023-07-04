@@ -9,8 +9,5 @@ LICENSE @hashintel/legal
 LICENSE.txt @hashintel/legal
 LICENSE.md @hashintel/legal
 
-# Database/migrations
-/apps/hash-graph/postgres_migrations/ @hashintel/hash-database
-
 # Apps
 /apps/intellij-plugin/ @hashintel/intellij-plugin
