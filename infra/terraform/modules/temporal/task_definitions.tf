@@ -155,7 +155,7 @@ locals {
   ]
 
   shared_env_vars = [
-    { name = "DB", value = "postgres12" },
+    { name = "DB", value = "postgres12" }, # For PostgreSQL v12 and later, see https://docs.temporal.io/cluster-deployment-guide#postgresql
     { name = "DB_PORT", value = "5432" },
     { name = "DBNAME", value = "temporal" },
     { name = "VISIBILITY_DBNAME", value = "high_vis" },
