@@ -1,10 +1,6 @@
 name: Build docker images
 description: "Build docker images"
 inputs:
-  hash-agents:
-    description: "Build hash-agents image"
-    required: false
-    default: "false"
   hash-graph:
     description: "Build hash-graph image"
     required: false
@@ -51,24 +47,6 @@ runs:
       with:
         name: hash-graph
         path: /tmp/hash-graph.tar
-
-    - name: Build hash-agents image
-      if: inputs.hash-agents == 'true'
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: apps/hash-agents/docker/Dockerfile
-        tags: hash-agents
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        outputs: type=docker,dest=/tmp/hash-agents.tar
-
-    - name: Upload artifact
-      if: inputs.hash-agents == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-agents
-        path: /tmp/hash-agents.tar
 
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'

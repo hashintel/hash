@@ -28,17 +28,6 @@ jobs:
         with:
           hash-graph: true
 
-  build-hash-agents:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Build image
-        uses: ./.github/actions/build-docker-images
-        with:
-          hash-agents: true
-
   build-hash-ai-worker-ts:
     runs-on: ubuntu-latest
     steps:
@@ -252,13 +241,7 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    needs:
-      [
-        build-hash-graph,
-        build-hash-agents,
-        build-hash-ai-worker-ts,
-        build-hash-ai-worker-py,
-      ]
+    needs: [build-hash-graph, build-hash-ai-worker-ts, build-hash-ai-worker-py]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -273,7 +256,6 @@ jobs:
         uses: ./.github/actions/load-docker-images
         with:
           hash-graph: true
-          hash-agents: true
           hash-ai-worker-ts: true
           hash-ai-worker-py: true
 
@@ -314,13 +296,7 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    needs:
-      [
-        build-hash-graph,
-        build-hash-agents,
-        build-hash-ai-worker-ts,
-        build-hash-ai-worker-py,
-      ]
+    needs: [build-hash-graph, build-hash-ai-worker-ts, build-hash-ai-worker-py]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -345,7 +321,6 @@ jobs:
         uses: ./.github/actions/load-docker-images
         with:
           hash-graph: true
-          hash-agents: true
           hash-ai-worker-ts: true
           hash-ai-worker-py: true
 
