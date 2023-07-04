@@ -115,6 +115,11 @@ export const createTypeOption = menu.addOption("Create Type", "General", [
   "t",
 ]);
 
+export const createPageOption = menu.addOption("Create Page", "General", [
+  "Meta",
+  "p",
+]);
+
 export const childMenu = new CommandBarMenu(menu);
 
 export const secondOption = menu

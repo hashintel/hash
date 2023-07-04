@@ -1,4 +1,5 @@
 import { Chip, TextField } from "@hashintel/design-system";
+import { OwnedById } from "@local/hash-subgraph/.";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -14,6 +15,7 @@ import { useRouter } from "next/router";
 import {
   createContext,
   forwardRef,
+  FunctionComponent,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
@@ -21,18 +23,22 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
 } from "react";
 import { useKeys } from "rooks";
 
+import { useAccountPages } from "../components/hooks/use-account-pages";
+import { useCreatePage } from "../components/hooks/use-create-page";
 import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   childMenu,
   CommandBarOption,
   CommandBarOptionCommand,
   createEntityOption,
+  createPageOption,
   createTypeOption,
   menu,
 } from "./command-bar/command-bar-options";
@@ -197,13 +203,27 @@ const doesIdentifierMatchKeyboardEvent = (
   error.which === identifier ||
   error.charCode === identifier;
 
-export const CommandBar = () => {
+export const CommandBar: FunctionComponent<{
+  namespaceOwnedById: OwnedById;
+}> = ({ namespaceOwnedById }) => {
   const popupState = usePopupState({
     popupId: "kbar",
     variant: "popover",
   });
 
   const router = useRouter();
+
+  const [createUntitledPage] = useCreatePage(namespaceOwnedById);
+  const { data: accountPages } = useAccountPages(namespaceOwnedById);
+
+  const lastRootPageIndex = useMemo(() => {
+    const rootPages = accountPages
+      .filter(({ parentPageEntityId }) => parentPageEntityId === null)
+      .map(({ index }) => index)
+      .sort();
+
+    return rootPages[rootPages.length - 1] ?? null;
+  }, [accountPages]);
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<
@@ -423,6 +443,14 @@ export const CommandBar = () => {
       },
     });
   }, [router]);
+
+  useEffect(() => {
+    createPageOption.activate({
+      command: async () => {
+        await createUntitledPage(lastRootPageIndex);
+      },
+    });
+  }, [createUntitledPage, lastRootPageIndex]);
 
   return (
     <>
