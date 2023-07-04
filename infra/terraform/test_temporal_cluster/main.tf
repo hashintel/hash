@@ -62,8 +62,7 @@ module "worker_ecs" {
 
 
 data "aws_lb" "test" {
-  depends_on = [module.temporal]
-  name       = "h-hash-prod-usea1-temporalalb"
+  name = "h-hash-prod-usea1-temporalalb"
 }
 module "worker_task" {
   source = "../modules/temporal_worker"
