@@ -99,11 +99,7 @@ export const pageCommentsResolver: ResolverFn<
 > = async (_, { entityId }, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const page = await getPageById(context, {
-    entityId,
-  });
-
-  const comments = await getPageComments(context, { page });
+  const comments = await getPageComments(context, { pageEntityId: entityId });
 
   return comments.map(mapCommentToGQL);
 };

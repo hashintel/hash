@@ -19,6 +19,7 @@ export interface MentionSuggesterProps {
 }
 
 type SearchableItem = {
+  icon?: string | null;
   shortname?: string;
   name: string;
   desc?: string;
@@ -59,8 +60,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
+      icon: page.icon,
       name: page.title || "Untitled",
-      entityId: page.entityId,
+      entityId: page.metadata.recordId.entityId,
       mentionType: "page",
     }));
 
@@ -143,7 +145,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 width: "1.5rem",
               }}
             >
-              <PageIcon entityId={option.entityId} size="small" />
+              <PageIcon icon={option.icon} size="small" />
             </Box>
           )}
           <Box

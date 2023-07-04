@@ -42,7 +42,7 @@ export const ActionsDropdownInner: FunctionComponent<{
 
   const lastRootPageIndex = useMemo(() => {
     const rootPages = data
-      .filter(({ parentPageEntityId }) => parentPageEntityId === null)
+      .filter(({ parentPage }) => parentPage === null)
       .map(({ index }) => index)
       .sort();
 

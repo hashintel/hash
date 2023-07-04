@@ -618,11 +618,11 @@ export const removeBlockFromPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageComments: ImpureGraphFunction<
-  { page: Page },
+  { pageEntityId: EntityId },
   Promise<Comment[]>
-> = async (ctx, { page }) => {
+> = async (ctx, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, {
-    pageEntityId: page.entity.metadata.recordId.entityId,
+    pageEntityId,
   });
 
   const comments = await Promise.all(
