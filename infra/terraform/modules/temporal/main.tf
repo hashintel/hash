@@ -174,7 +174,8 @@ resource "aws_security_group" "app_sg" {
     from_port   = 7233
     to_port     = 7233
     protocol    = "tcp"
-    description = "Allow connections to Temporal within the VPC (load balancer)"
+    description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
+    # TODO: Consider changing this to `var.vpc.cidr_block`
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
