@@ -120,10 +120,7 @@ locals {
   ]
 
   temporal_migration_env_vars = [
-#    { name = "POSTGRES_USER", value = var.postgres_user },
     { name = "POSTGRES_USER", value = var.postgres_superuser },
-#    { name = "SKIP_DB_CREATE", value = "true" },
-#    { name = "SKIP_VISIBILITY_DB_CREATE", value = "false" },
   ]
 
   temporal_env_vars = [
@@ -132,7 +129,6 @@ locals {
 
   temporal_migration_secrets = [
     { name = "POSTGRES_PWD", value = var.postgres_superuser_password },
-#    { name = "POSTGRES_PWD", value = var.postgres_password },
   ]
 
   temporal_secrets = [
