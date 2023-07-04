@@ -1,6 +1,6 @@
 """An entity type schema as defined by the Block Protocol."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,6 +27,7 @@ class EntityTypeSchema(
     see https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type
     """
 
+    kind: Literal["entityType"]
     examples: list[dict[str, Any]] | None = None
     links: dict[str, Array[OneOf[EntityTypeReference] | EmptyDict]] | None = None
     all_of: list[EntityTypeReference] | None = Field(None, alias="allOf")

@@ -10,7 +10,7 @@ class OntologyTypeSchema(BaseModel, ABC):
     identifier: str = Field(..., alias="$id")
     title: str
     description: str | None = None
-    kind: str
+    kind: Literal["dataType", "propertyType", "entityType"]
     schema_url: str = Field(..., alias="$schema")
 
 

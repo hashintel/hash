@@ -1,4 +1,5 @@
 """A data type schema as defined by the Block Protocol."""
+from typing import Literal
 
 from pydantic import BaseModel, Extra, Field
 
@@ -17,4 +18,5 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
     see https://blockprotocol.org/types/modules/graph/0.3/schema/data-type
     """
 
+    kind: Literal["dataType"]
     ty: str = Field(..., alias="type")

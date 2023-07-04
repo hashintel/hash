@@ -1,4 +1,5 @@
 """A property type schema as defined by the Block Protocol."""
+from typing import Literal
 
 from pydantic import BaseModel, Field, RootModel
 
@@ -23,3 +24,5 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
 
     see https://blockprotocol.org/types/modules/graph/0.3/schema/property-type
     """
+
+    kind: Literal["propertyType"]
