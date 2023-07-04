@@ -33,6 +33,8 @@
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts"
   },
   "dependencies": {
+    "@apps/hash-api": "0.0.0-private",
+    "@blockprotocol/type-system": "0.1.1",
     "@local/status": "0.0.0-private",
     "@temporalio/activity": "1.7.4",
     "@temporalio/worker": "1.7.4",
