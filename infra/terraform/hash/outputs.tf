@@ -17,3 +17,7 @@ output "prefix" {
 output "rds_hostname" {
   value = module.postgres.pg_host
 }
+
+output "temporal_hostname" {
+  value = module.temporal.temporal_private_hostname
+}
