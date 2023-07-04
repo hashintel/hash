@@ -26,22 +26,9 @@ locals {
   ]
 }
 
-data "aws_subnets" "snpriv" {
-  tags = {
-    Name = "${var.prefix}-snpriv"
-  }
-}
-
 data "aws_subnets" "snpub" {
   tags = {
     Name = "${var.prefix}-snpub"
-  }
-}
-
-data "aws_security_group" "vpce" {
-  filter {
-    name   = "group-name"
-    values = ["${var.prefix}-sgvpce"]
   }
 }
 
