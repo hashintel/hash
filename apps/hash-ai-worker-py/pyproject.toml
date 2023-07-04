@@ -8,19 +8,20 @@ readme = "README.md"
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
-aiohttp = "^3.8.4"
+aiohttp = "^3.8"
+pydantic = "^2.0"
 python = "^3.11"
 python-dotenv = "^1.0"
 openai = "^0.27.8"
-temporalio = "^1.2.0"
+temporalio = "^1.2"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.0.0"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.3.0"
+black = "^23.3"
 ruff = "^0.0.275"
-mypy = "^1.4.0"
+mypy = "^1.4"
 
 
 [tool.black]
@@ -37,9 +38,12 @@ ignore = [
     "ANN102", # most type checkers infer the type of `cls` automatically
     "FIX002", # TODOs should be fixed, not removed
     "TD002", # We don't add authors to TODO strings
+    "PLC0414", # Conflicts with `no_implicit_reexport = true`
 ]
 
 [tool.mypy]
+plugins = "pydantic.mypy"
+
 disallow_untyped_defs = true
 disallow_any_unimported = true
 no_implicit_optional = true
@@ -63,6 +67,12 @@ pretty = true
 color_output = true
 error_summary = true
 incremental = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
 
 
 [build-system]
