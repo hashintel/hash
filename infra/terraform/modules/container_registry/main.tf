@@ -2,7 +2,7 @@
   * # Terraform AWS module: Container Registry
   *
   * Module responsible for creating container registries.
-  * We use ECR for our container regestries, and this module can create 
+  * We use ECR for our container registries, and this module can create
   * ECR repository with our desired lifecycle policy.
   */
 
