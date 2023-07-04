@@ -10,6 +10,8 @@ FROM node:18.15-slim as installer
 
 WORKDIR /usr/local/src/
 
+RUN apt-get update && apt-get install -y --no-install-recommends default-jre-headless && rm -rf /var/lib/apt/lists/*
+
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 
