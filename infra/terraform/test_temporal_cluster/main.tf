@@ -34,24 +34,16 @@ data "aws_subnets" "snpub" {
 }
 
 module "temporal" {
-  source  = "../modules/temporal"
-  prefix  = local.prefix
-  subnets = data.aws_subnets.snpub.ids
-  vpc     = data.aws_vpc.vpc
-  env     = local.env
-  region  = local.region
-  cpu     = 512
-  memory  = 1024
-  # should probably be derived from the project name some how
+  source       = "../modules/temporal"
+  prefix       = local.prefix
+  subnets      = data.aws_subnets.snpub.ids
+  vpc          = data.aws_vpc.vpc
+  env          = local.env
+  region       = local.region
+  cpu          = 512
+  memory       = 1024
   param_prefix = "/h-temporal"
-  # Should probably be provided by the HASH variables.tf
-  temporal_version = "1.21.0.0"
 }
-
-# Alternatively we are able to fetch the ECS cluster if it exists in a central place.
-# data "aws_ecs_cluster" "temporal" {
-#   name = "h-hash-prod-usea1-temporalworkers"
-# }
 
 module "worker_ecs" {
   source             = "../modules/container_cluster"
@@ -60,14 +52,9 @@ module "worker_ecs" {
   capacity_providers = ["FARGATE"]
 }
 
-
-data "aws_lb" "test" {
-  name = "h-hash-prod-usea1-temporalalb"
-}
 module "worker_task" {
-  source = "../modules/temporal_worker"
-  prefix = local.prefix
-  # should probably be derived from the project name some how
+  source           = "../modules/temporal_worker"
+  prefix           = local.prefix
   param_prefix     = "/h-worker"
   subnets          = data.aws_subnets.snpub.ids
   vpc              = data.aws_vpc.vpc
@@ -76,7 +63,7 @@ module "worker_task" {
   cpu              = 512
   memory           = 1024
   worker_name      = "aiworkerts"
-  temporal_host    = data.aws_lb.test.dns_name
+  temporal_host    = module.temporal.temporal_private_hostname
   env_vars         = [{ name = "OPENAI_API_KEY", secret = true, value = "imagine this is a secret from vault :)" }]
   cluster_arn      = module.worker_ecs.ecs_cluster_arn
   ecs_health_check = ["CMD-shell", "curl -f http://localhost:4100/health || exit 1"]
