@@ -227,10 +227,6 @@ impl<'s> ReportingDescriptor<'s> {
 
     /// Sets the short description of the `ReportingDescriptor`.
     #[must_use]
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "destructor cannot be evaluated at compile-time"
-    )]
     pub fn with_short_description(
         mut self,
         short_description: MultiformatMessageString<'s>,
@@ -241,10 +237,6 @@ impl<'s> ReportingDescriptor<'s> {
 
     /// Sets the full description of the `ReportingDescriptor`.
     #[must_use]
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "destructor cannot be evaluated at compile-time"
-    )]
     pub fn with_full_description(mut self, full_description: MultiformatMessageString<'s>) -> Self {
         self.full_description = Some(full_description);
         self
@@ -263,10 +255,6 @@ impl<'s> ReportingDescriptor<'s> {
 
     /// Sets the help of the `ReportingDescriptor`.
     #[must_use]
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "destructor cannot be evaluated at compile-time"
-    )]
     pub fn with_help(mut self, help: MultiformatMessageString<'s>) -> Self {
         self.help = Some(help);
         self

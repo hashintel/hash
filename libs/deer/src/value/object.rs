@@ -104,7 +104,7 @@ where
             return Err(Report::new(ObjectLengthError.into_error())
                 .attach(ExpectedLength::new(1))
                 .attach(ReceivedLength::new(0))
-                .change_context(DeserializerError))
+                .change_context(DeserializerError));
         };
 
         let (value, _) = (value, access.end())

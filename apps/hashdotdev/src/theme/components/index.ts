@@ -14,6 +14,10 @@ import { MuiOutlinedInputThemeOptions } from "./inputs/mui-outlined-input-theme-
 import { MuiTextFieldThemeOptions } from "./inputs/mui-text-field-theme-options";
 import { MuiContainerThemeOptions } from "./layout/mui-container-theme-options";
 import { MuiLinkThemeOptions } from "./navigation/mui-link-theme-options";
+import { MuiListItemIconThemeOptions } from "./navigation/mui-list-item-icon-theme-overrides";
+import { MuiListItemTextThemeOptions } from "./navigation/mui-list-item-text-theme-overrides";
+import { MuiListThemeOptions } from "./navigation/mui-list-theme-overrides";
+import { MuiMenuItemThemeOptions } from "./navigation/mui-menu-item-theme-overrides";
 import { MuiCssBaselineThemeOptions } from "./utils/mui-css-baseline-theme-options";
 
 export const components: ThemeOptions["components"] = {
@@ -30,4 +34,8 @@ export const components: ThemeOptions["components"] = {
   MuiContainer: MuiContainerThemeOptions,
   MuiLink: MuiLinkThemeOptions,
   MuiCssBaseline: MuiCssBaselineThemeOptions,
+  MuiList: MuiListThemeOptions,
+  MuiMenuItem: MuiMenuItemThemeOptions,
+  MuiListItemText: MuiListItemTextThemeOptions,
+  MuiListItemIcon: MuiListItemIconThemeOptions,
 };

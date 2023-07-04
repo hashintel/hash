@@ -1,6 +1,5 @@
 import { gql } from "apollo-server-express";
 
-import { agentsTypedef } from "./agents.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 import { deprecatedTypedef } from "./deprecated.typedef";
 import { embedTypeDef } from "./embed.typedef";
@@ -63,5 +62,4 @@ export const schema = [
   ...ontology,
   ...knowledge,
   subgraphTypedef,
-  agentsTypedef,
 ];
