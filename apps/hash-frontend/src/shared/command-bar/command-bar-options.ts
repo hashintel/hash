@@ -120,10 +120,11 @@ export const createPageOption = menu.addOption("Create Page", "General", [
   "p",
 ]);
 
-export const childMenu = new CommandBarMenu(menu);
+/** @todo: introduce other menu options when relevant commands can be implemented */
+// export const childMenu = new CommandBarMenu(menu);
 
-export const secondOption = menu
-  .addOption("Second", "Page", ["Meta", "s"])
-  .setCommand({
-    options: childMenu,
-  });
+// export const secondOption = menu
+//   .addOption("Second", "Page", ["Meta", "s"])
+//   .setCommand({
+//     options: childMenu,
+//   });

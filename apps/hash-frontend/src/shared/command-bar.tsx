@@ -34,7 +34,7 @@ import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
-  childMenu,
+  // childMenu,
   CommandBarOption,
   CommandBarOptionCommand,
   createEntityOption,
@@ -44,27 +44,27 @@ import {
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
 
-childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
-  command: () => {
-    alert("Child");
-  },
-});
+// childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
+//   command: () => {
+//     alert("Child");
+//   },
+// });
 
-childMenu.addOption("Third", "General").activate({
-  renderCustomScreen: () => <div>Custom screen</div>,
-});
+// childMenu.addOption("Third", "General").activate({
+//   renderCustomScreen: () => <div>Custom screen</div>,
+// });
 
-childMenu.addOption("Fourth", "General").activate({
-  asyncCommand: async (input) => {
-    return new Promise((resolve) => {
-      setTimeout(resolve, 1_000);
-    }).then(() => {
-      return new CommandBarOption(null, input, "General").setCommand({
-        renderCustomScreen: () => <div>Custom screen 2 {input}</div>,
-      });
-    });
-  },
-});
+// childMenu.addOption("Fourth", "General").activate({
+//   asyncCommand: async (input) => {
+//     return new Promise((resolve) => {
+//       setTimeout(resolve, 1_000);
+//     }).then(() => {
+//       return new CommandBarOption(null, input, "General").setCommand({
+//         renderCustomScreen: () => <div>Custom screen 2 {input}</div>,
+//       });
+//     });
+//   },
+// });
 
 export const useCommandBarOption = (
   option: CommandBarOption,
