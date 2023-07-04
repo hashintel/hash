@@ -118,9 +118,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   req,
   params,
 }) => {
-  const fetchedBlocks = await Promise.all(
-    defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
-  );
+  // Fetching block metadata can significantly slow down the server render, so disabling for now
+  // const fetchedBlocks = await Promise.all(
+  //   defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
+  // );
 
   if (!params || !isPageParsedUrlQuery(params)) {
     throw new Error(
@@ -200,7 +201,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   return {
     props: {
       pageWorkspace,
-      blocks: fetchedBlocks,
+      blocks: [],
       pageEntityId,
     },
   };
