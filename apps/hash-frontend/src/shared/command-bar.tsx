@@ -26,22 +26,17 @@ import {
   useState,
 } from "react";
 import { useKeys } from "rooks";
+
 import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   childMenu,
   CommandBarOption,
   CommandBarOptionCommand,
+  createEntityOption,
+  createTypeOption,
   menu,
-  testOption,
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
-
-testOption.activate({
-  command: () => {
-    // eslint-disable-next-line no-console
-    console.log("Test activated");
-  },
-});
 
 childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
   command: () => {
@@ -414,6 +409,20 @@ export const CommandBar = () => {
       remove();
     };
   });
+
+  useEffect(() => {
+    createEntityOption.activate({
+      command: () => {
+        void router.push("/new/entity");
+      },
+    });
+
+    createTypeOption.activate({
+      command: () => {
+        void router.push("/new/types/entity-type");
+      },
+    });
+  }, [router]);
 
   return (
     <>

@@ -105,7 +105,15 @@ class CommandBarMenu {
 
 export const menu = new CommandBarMenu();
 
-export const testOption = menu.addOption("Test", "General", ["Meta", "g"]);
+export const createEntityOption = menu.addOption("Create Entity", "General", [
+  "Meta",
+  "e",
+]);
+
+export const createTypeOption = menu.addOption("Create Type", "General", [
+  "Meta",
+  "t",
+]);
 
 export const childMenu = new CommandBarMenu(menu);
 
