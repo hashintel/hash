@@ -85,9 +85,12 @@ export const createApolloServer = ({
                 // Ignore introspection queries from graphiql
                 return;
               }
+              const elapsed = performance.now() - startedAt;
+
               const msg = {
                 message: "graphql",
                 operation: willSendResponseCtx.operationName,
+                elapsed: elapsed.toFixed(2),
               };
               if (willSendResponseCtx.errors) {
                 willSendResponseCtx.logger.error({
@@ -104,7 +107,6 @@ export const createApolloServer = ({
               } else {
                 willSendResponseCtx.logger.info(msg);
                 if (willSendResponseCtx.operationName) {
-                  const elapsed = performance.now() - startedAt;
                   statsd?.timing(
                     willSendResponseCtx.operationName,
                     elapsed,
