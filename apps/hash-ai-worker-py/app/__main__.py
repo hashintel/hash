@@ -8,7 +8,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.activities import complete
-from app.workflows import DemoWorkflowPy
+from app.workflows import DataTypeWorkflow, EntityTypeWorkflow, PropertyTypeWorkflow
 
 load_dotenv()
 load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
@@ -20,14 +20,19 @@ async def run_worker(stop_event: asyncio.Event) -> None:
     temporal_port = os.environ.get("HASH_TEMPORAL_PORT") or "7233"
     temporal_target = f"{temporal_host}:{temporal_port}"
 
-    client = await Client.connect(temporal_target, namespace="default")
+    client = await Client.connect(
+        temporal_target,
+        namespace="default",
+    )
 
     worker = Worker(
         client,
         task_queue="aipy",
         # Register workflows
         workflows=[
-            DemoWorkflowPy,
+            DataTypeWorkflow,
+            PropertyTypeWorkflow,
+            EntityTypeWorkflow,
         ],
         # Register activities
         activities=[
