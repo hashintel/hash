@@ -122,7 +122,7 @@ resource "aws_ecs_service" "svc" {
   cluster                = module.temporal_ecs.ecs_cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
-  desired_count          = 1
+  desired_count          = 0
   launch_type            = "FARGATE"
 
   network_configuration {

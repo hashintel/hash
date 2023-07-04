@@ -45,9 +45,9 @@ provider "aws" {
   default_tags {
     tags = {
       project             = "hash"
-      region              = "${local.region}"
-      environment         = "${local.env}"
-      terraform_workspace = "${terraform.workspace}"
+      region              = local.region
+      environment         = local.env
+      terraform_workspace = terraform.workspace
     }
   }
 }
@@ -81,6 +81,21 @@ module "postgres" {
   instance_class        = "db.t3.small"
   pg_superuser_username = "superuser"
   pg_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
+}
+
+module "temporal" {
+  depends_on            = [module.networking, module.postgres]
+  source                = "../modules/temporal"
+  prefix                = local.prefix
+  param_prefix          = local.param_prefix
+  subnets               = module.networking.snpub
+  vpc                   = module.networking.vpc
+  env                   = local.env
+  region                = local.region
+  cpu                   = 512
+  memory                = 1024
+  # TODO: provide by the HASH variables.tf
+  temporal_version      = "1.21.0.0"
 }
 
 
