@@ -72,8 +72,10 @@ export const getLastIndex = (
   treeItemList: TreeItem[],
   parentId: string | null = null,
 ) => {
-  const groupItems = treeItemList.filter(
-    ({ page }) => page.parentPage?.metadata.recordId.entityId === parentId,
+  const groupItems = treeItemList.filter(({ page }) =>
+    parentId
+      ? page.parentPage?.metadata.recordId.entityId === parentId
+      : !page.parentPage,
   );
   return groupItems[groupItems.length - 1]?.page.index ?? null;
 };
