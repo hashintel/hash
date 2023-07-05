@@ -20,8 +20,10 @@ pub enum ListOrValue<T> {
 // the generic
 impl<T> ListOrValue<T> {
     pub(crate) fn generate_schema(schema_name: &'static str) -> RefOr<Schema> {
+        let schema_name = format!("VAR_{schema_name}");
+
         OneOfBuilder::new()
-            .item(Ref::from_schema_name(schema_name))
+            .item(Ref::from_schema_name(&schema_name))
             .item(Ref::from_schema_name(schema_name).to_array_builder())
             .into()
     }
