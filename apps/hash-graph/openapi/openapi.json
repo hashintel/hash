@@ -711,12 +711,12 @@
           "schema": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/data_type"
+                "$ref": "./models/data_type.json"
               },
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/data_type"
+                  "$ref": "./models/data_type.json"
                 }
               }
             ]
@@ -777,12 +777,12 @@
           "schema": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/entity_type"
+                "$ref": "./models/entity_type.json"
               },
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/entity_type"
+                  "$ref": "./models/entity_type.json"
                 }
               }
             ]
@@ -806,12 +806,12 @@
           "schema": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/property_type"
+                "$ref": "./models/property_type.json"
               },
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/property_type"
+                  "$ref": "./models/property_type.json"
                 }
               }
             ]
@@ -1371,16 +1371,7 @@
               "parameter"
             ],
             "properties": {
-              "parameter": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": {
-                      "$ref": "#/components/schemas/Any"
-                    }
-                  }
-                ]
-              }
+              "parameter": {}
             }
           }
         ]

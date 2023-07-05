@@ -18,7 +18,7 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{collections::HashMap, fs, io, sync::Arc};
+use std::{fs, io, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
@@ -30,11 +30,10 @@ use axum::{
 };
 use error_stack::{IntoReport, Report, ResultExt};
 use include_dir::{include_dir, Dir};
-use serde::Serialize;
 use utoipa::{
     openapi::{
-        self, schema, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref, RefOr,
-        SchemaFormat, SchemaType,
+        self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
+        Schema, SchemaFormat, SchemaType,
     },
     Modify, OpenApi, ToSchema,
 };
@@ -474,13 +473,17 @@ struct FilterSchemaAddon;
 impl Modify for FilterSchemaAddon {
     #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
-        // This magically generates `any`, which is the closest representation we found working
-        // with the OpenAPI generator.
-        #[derive(Serialize, ToSchema)]
-        #[serde(untagged)]
-        #[expect(dead_code)]
-        enum Any {
-            Object(HashMap<String, Self>),
+        // This is a bit of hack, but basically, it adds a schema that is equivalent to "any value"
+        // `SchemaType::Value` indicates any generic JSON value.
+        struct Any;
+
+        impl ToSchema<'_> for Any {
+            fn schema() -> (&'static str, RefOr<Schema>) {
+                (
+                    "Any",
+                    Schema::Object(Object::with_type(SchemaType::Value)).into(),
+                )
+            }
         }
 
         if let Some(ref mut components) = openapi.components {
