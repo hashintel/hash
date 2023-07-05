@@ -18,7 +18,7 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{collections::HashMap, fs, io, sync::Arc};
+use std::{fs, io, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
@@ -30,7 +30,6 @@ use axum::{
 };
 use error_stack::{IntoReport, Report, ResultExt};
 use include_dir::{include_dir, Dir};
-use serde::Serialize;
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
