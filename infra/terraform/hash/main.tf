@@ -92,10 +92,20 @@ module "temporal" {
   vpc                   = module.networking.vpc
   env                   = local.env
   region                = local.region
-  cpu                   = 512
-  memory                = 1024
+  cpu                   = 256
+  memory                = 512
   # TODO: provide by the HASH variables.tf
   temporal_version      = "1.21.0.0"
+
+  postgres_host = module.postgres.pg_host
+  postgres_port = module.postgres.pg_port
+  postgres_db = "temporal"
+  postgres_visibility_db = "temporal_visibility"
+  postgres_user = "temporal"
+  postgres_password  = sensitive(data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_raw"])
+
+  postgres_superuser = "superuser"
+  postgres_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
 }
 
 
@@ -129,6 +139,7 @@ module "postgres_roles" {
 
   pg_kratos_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
   pg_graph_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
+  pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
 }
 
 module "redis" {

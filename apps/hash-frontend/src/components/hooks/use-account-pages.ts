@@ -19,6 +19,7 @@ export type AccountPage = {
 
 export type AccountPagesInfo = {
   data: AccountPage[];
+  lastRootPageIndex: string | null;
   loading: boolean;
 };
 
@@ -63,5 +64,14 @@ export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
     );
   }, [data, ownerShortname]);
 
-  return { data: accountPages, loading };
+  const lastRootPageIndex = useMemo(() => {
+    const rootPages = accountPages
+      .filter(({ parentPageEntityId }) => parentPageEntityId === null)
+      .map(({ index }) => index)
+      .sort();
+
+    return rootPages[rootPages.length - 1] ?? null;
+  }, [accountPages]);
+
+  return { data: accountPages, lastRootPageIndex, loading };
 };
