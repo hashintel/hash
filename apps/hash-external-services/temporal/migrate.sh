@@ -6,6 +6,7 @@ set -eux -o pipefail
 
 : "${SKIP_SCHEMA_SETUP:=}"
 : "${SKIP_DB_CREATE:=false}"
+: "${SKIP_VISIBILITY_DB_CREATE:=false}"
 
 # PostgreSQL
 : "${DBNAME:=}"
@@ -57,7 +58,7 @@ setup_schema() {
 
   VISIBILITY_SCHEMA_DIR=${TEMPORAL_HOME}/schema/postgresql/${POSTGRES_VERSION_DIR}/visibility/versioned
 	# Create visibility DB if its name is different from the username. Otherwise PostgreSQL container itself will create database. 
-	if [[ ${VISIBILITY_DBNAME} != "${POSTGRES_USER}" && ${SKIP_DB_CREATE} != true ]]; then
+	if [[ ${VISIBILITY_DBNAME} != "${POSTGRES_USER}" && ${SKIP_VISIBILITY_DB_CREATE} != true ]]; then
 			temporal-sql-tool --plugin postgres --ep "${POSTGRES_SEEDS}" -u "${POSTGRES_USER}" -p "${DB_PORT}" --db "${VISIBILITY_DBNAME}" create
 	fi
 
