@@ -19,8 +19,12 @@ pub enum ListOrValue<T> {
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
 impl<T> ListOrValue<T> {
-    pub(crate) fn generate_schema(schema_name: &'static str) -> RefOr<Schema> {
-        let schema_name = format!("VAR_{schema_name}");
+    pub(crate) fn generate_schema(schema_name: &'static str, replace: bool) -> RefOr<Schema> {
+        let schema_name = if replace {
+            format!("VAR_{schema_name}")
+        } else {
+            schema_name.to_owned()
+        };
 
         OneOfBuilder::new()
             .item(Ref::from_schema_name(&schema_name))
@@ -34,7 +38,7 @@ impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfOntologyElementMetadata",
-            Self::generate_schema(OntologyElementMetadata::schema().0),
+            Self::generate_schema(OntologyElementMetadata::schema().0, false),
         )
     }
 }
@@ -42,7 +46,7 @@ impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
 pub type MaybeListOfDataType = ListOrValue<repr::DataType>;
 impl ToSchema<'_> for MaybeListOfDataType {
     fn schema() -> (&'static str, RefOr<Schema>) {
-        ("MaybeListOf", Self::generate_schema("data_type"))
+        ("MaybeListOf", Self::generate_schema("data_type", true))
     }
 }
 
@@ -51,7 +55,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfPropertyType",
-            Self::generate_schema("property_type"),
+            Self::generate_schema("property_type", true),
         )
     }
 }
@@ -61,7 +65,7 @@ impl ToSchema<'_> for MaybeListOfEntityType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfEntityType",
-            Self::generate_schema("entity_type"),
+            Self::generate_schema("entity_type", true),
         )
     }
 }
