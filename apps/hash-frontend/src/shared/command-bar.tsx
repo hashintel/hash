@@ -32,6 +32,7 @@ import { useKeys } from "rooks";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
+import { WorkspaceContext } from "../pages/shared/workspace-context";
 import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   // childMenu,
@@ -203,9 +204,7 @@ const doesIdentifierMatchKeyboardEvent = (
   error.which === identifier ||
   error.charCode === identifier;
 
-export const CommandBar: FunctionComponent<{
-  namespaceOwnedById: OwnedById;
-}> = ({ namespaceOwnedById }) => {
+export const CommandBar: FunctionComponent = () => {
   const popupState = usePopupState({
     popupId: "kbar",
     variant: "popover",
@@ -213,8 +212,14 @@ export const CommandBar: FunctionComponent<{
 
   const router = useRouter();
 
-  const [createUntitledPage] = useCreatePage(namespaceOwnedById);
-  const { data: accountPages } = useAccountPages(namespaceOwnedById);
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
+  const [createUntitledPage] = useCreatePage(
+    activeWorkspaceAccountId as OwnedById,
+  );
+  const { data: accountPages } = useAccountPages(
+    activeWorkspaceAccountId as OwnedById,
+  );
 
   const lastRootPageIndex = useMemo(() => {
     const rootPages = accountPages
