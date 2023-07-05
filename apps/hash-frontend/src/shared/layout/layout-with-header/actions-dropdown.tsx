@@ -13,13 +13,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import {
-  FunctionComponent,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { FunctionComponent, useCallback, useContext, useState } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../components/hooks/use-create-page";
@@ -33,21 +27,12 @@ export const ActionsDropdownInner: FunctionComponent<{
   const theme = useTheme();
   const { activeWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
-  const { data } = useAccountPages(accountId as OwnedById);
+  const { lastRootPageIndex } = useAccountPages(accountId as OwnedById);
   const [createUntitledPage] = useCreatePage(accountId as OwnedById);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",
   });
-
-  const lastRootPageIndex = useMemo(() => {
-    const rootPages = data
-      .filter(({ parentPageEntityId }) => parentPageEntityId === null)
-      .map(({ index }) => index)
-      .sort();
-
-    return rootPages[rootPages.length - 1] ?? null;
-  }, [data]);
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {

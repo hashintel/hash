@@ -23,7 +23,6 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useReducer,
   useRef,
   useState,
@@ -217,18 +216,9 @@ export const CommandBar: FunctionComponent = () => {
   const [createUntitledPage] = useCreatePage(
     activeWorkspaceAccountId as OwnedById,
   );
-  const { data: accountPages } = useAccountPages(
+  const { lastRootPageIndex } = useAccountPages(
     activeWorkspaceAccountId as OwnedById,
   );
-
-  const lastRootPageIndex = useMemo(() => {
-    const rootPages = accountPages
-      .filter(({ parentPageEntityId }) => parentPageEntityId === null)
-      .map(({ index }) => index)
-      .sort();
-
-    return rootPages[rootPages.length - 1] ?? null;
-  }, [accountPages]);
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<
