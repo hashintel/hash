@@ -1,7 +1,5 @@
 """A data type schema as defined by the Block Protocol."""
-from typing import Literal
-
-from typing import Annotated, Any, ClassVar, TypeAlias
+from typing import Annotated, Any, ClassVar, Literal, TypeAlias, assert_never
 from uuid import UUID
 
 from pydantic import (
@@ -61,7 +59,10 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
     """
 
     kind: Literal["dataType"]
-    ty: str = Field(..., alias="type")
+    ty: Literal["string", "number", "boolean", "null", "array", "object"] = Field(
+        ...,
+        alias="type",
+    )
 
     def _type(self) -> type[DataType]:
         match self.ty:
@@ -77,12 +78,8 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
                 return list[Any]
             case "object":
                 return dict[str, Any]
-            case _:
-                # TODO: activities should never raise an exception, but instead return
-                #  an error value that the workflow can handle.
-                #  https://app.asana.com/0/0/1204934059777411/f
-                msg = f"Unknown type: {self.ty}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     async def create_data_type(
         self,

@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Annotated, Any, Generic, Literal, TypeVar
 from uuid import UUID
@@ -43,7 +44,9 @@ class OneOf(Schema, Generic[T]):
         *,
         actor_id: UUID,
     ) -> Annotated[Any, ...]:
-        types = [await value.create_model(actor_id=actor_id) for value in self.one_of]
+        types = await asyncio.gather(
+            *[value.create_model(actor_id=actor_id) for value in self.one_of],
+        )
 
         class OneOfSchema:
             @classmethod
