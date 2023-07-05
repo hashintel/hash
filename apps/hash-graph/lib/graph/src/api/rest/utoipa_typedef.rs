@@ -9,6 +9,7 @@ use crate::ontology::OntologyElementMetadata;
 
 pub mod subgraph;
 
+#[derive(Debug, Copy, Clone)]
 enum Action {
     Load,
     Reference,
@@ -24,7 +25,7 @@ pub enum ListOrValue<T> {
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
 impl<T> ListOrValue<T> {
-    fn generate_schema(schema_name: &'static str, action: &Action) -> RefOr<Schema> {
+    fn generate_schema(schema_name: &'static str, action: Action) -> RefOr<Schema> {
         let schema_name = match action {
             Action::Load => format!("VAR_{schema_name}"),
             Action::Reference => schema_name.to_owned(),
@@ -42,7 +43,7 @@ impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfOntologyElementMetadata",
-            Self::generate_schema(OntologyElementMetadata::schema().0, &Action::Reference),
+            Self::generate_schema(OntologyElementMetadata::schema().0, Action::Reference),
         )
     }
 }
@@ -52,7 +53,7 @@ impl ToSchema<'_> for MaybeListOfDataType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOf",
-            Self::generate_schema("data_type", &Action::Load),
+            Self::generate_schema("data_type", Action::Load),
         )
     }
 }
@@ -62,7 +63,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfPropertyType",
-            Self::generate_schema("property_type", &Action::Load),
+            Self::generate_schema("property_type", Action::Load),
         )
     }
 }
@@ -72,7 +73,7 @@ impl ToSchema<'_> for MaybeListOfEntityType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfEntityType",
-            Self::generate_schema("entity_type", &Action::Load),
+            Self::generate_schema("entity_type", Action::Load),
         )
     }
 }
