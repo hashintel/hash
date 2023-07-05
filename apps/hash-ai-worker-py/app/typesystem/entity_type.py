@@ -5,6 +5,7 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Never,
 )
 from uuid import UUID
 
@@ -59,7 +60,7 @@ class EntityTypeReference(Schema):
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
 
-    async def create_model(self, *, actor_id: UUID) -> type[None]:
+    async def create_model(self, *, actor_id: UUID) -> Never:
         raise NotImplementedError
 
 
@@ -81,7 +82,7 @@ class EntityTypeSchema(
         self,
         *,
         actor_id: UUID,
-    ) -> Annotated[Any, "PropertyTypeAnnotation"]:
+    ) -> Annotated[Any, "EntityTypeAnnotation"]:
         """Create an annotated type from this schema."""
 
         class EntityTypeAnnotation:

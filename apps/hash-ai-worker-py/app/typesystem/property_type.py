@@ -79,7 +79,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         self,
         *,
         actor_id: UUID,
-    ) -> Annotated[Any, "PropertyTypeAnnotation"]:
+    ) -> Annotated[object, "PropertyTypeAnnotation"]:
         """Create an annotated type from this schema."""
 
         class PropertyTypeAnnotation:
