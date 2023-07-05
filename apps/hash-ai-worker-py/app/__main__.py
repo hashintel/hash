@@ -8,6 +8,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.activities import complete
+from app.encoding import pydantic_data_converter
 from app.workflows import DataTypeWorkflow, EntityTypeWorkflow, PropertyTypeWorkflow
 
 load_dotenv()
@@ -23,6 +24,7 @@ async def run_worker(stop_event: asyncio.Event) -> None:
     client = await Client.connect(
         temporal_target,
         namespace="default",
+        data_converter=pydantic_data_converter,
     )
 
     worker = Worker(

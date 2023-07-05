@@ -10,6 +10,7 @@ import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
 export type AccountPagesInfo = {
   data: GetAccountPagesTreeQuery["pages"];
+  lastRootPageIndex: string | null;
   loading: boolean;
 };
 
@@ -25,5 +26,14 @@ export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
     return data?.pages ?? [];
   }, [data?.pages]);
 
-  return { data: pages, loading };
+  const lastRootPageIndex = useMemo(() => {
+    const rootPages = pages
+      .filter(({ parentPage }) => !parentPage)
+      .map(({ index }) => index)
+      .sort();
+
+    return rootPages[rootPages.length - 1] ?? null;
+  }, [pages]);
+
+  return { data: pages, lastRootPageIndex, loading };
 };
