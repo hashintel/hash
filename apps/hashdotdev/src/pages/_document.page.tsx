@@ -8,6 +8,7 @@ import Document, {
 } from "next/document";
 import { Children } from "react";
 
+import { SITE_FAVICON_PATH } from "../config";
 import { createEmotionCache } from "../util/create-emotion-cache";
 
 const gtmId = "G-2JDBVXSZV8";
@@ -77,7 +78,7 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
-          <link rel="icon" type="image/png" href="/favicon.png" />
+          <link rel="icon" type="image/png" href={SITE_FAVICON_PATH} />
           <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
             rel="stylesheet"

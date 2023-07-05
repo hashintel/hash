@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
+import Head from "next/head";
 import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
 import { ComponentProps, Fragment, FunctionComponent } from "react";
@@ -21,6 +22,8 @@ import { getAllPages } from "../../util/mdx-util";
 import { NextPageWithLayout } from "../../util/next-types";
 import { BlogIndividualPage } from "../shared/blog-posts-context";
 import { BlogPost, BlogPostAuthorWithPhotoSrc } from "./[...blog-slug].page";
+import { blogAtomPath, blogRssPath } from "./index.page/feed-paths";
+import { generateFeeds } from "./index.page/generate-feeds";
 import { getPhoto } from "./shared/get-photo";
 
 type BlogPageListProps = {
@@ -60,6 +63,8 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
           },
         })),
     );
+
+    await generateFeeds(pages);
 
     return {
       props: {
@@ -123,21 +128,15 @@ const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
       <PostImage page={page} fill={false} />
     </Box>
     <PostCopyContainer>
-      {page.data.authors ? (
-        <BlogPostAuthor>
-          {page.data.authors.map((author) => author.name).join(" & ")}
-        </BlogPostAuthor>
-      ) : null}
-      {page.data.title ? (
-        <Typography variant="hashHeading2">
-          <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
-        </Typography>
-      ) : null}
-      {page.data.subtitle ? (
-        <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
-          {page.data.subtitle}
-        </Typography>
-      ) : null}
+      <BlogPostAuthor>
+        {page.data.authors.map((author) => author.name).join(" & ")}
+      </BlogPostAuthor>
+      <Typography variant="hashHeading2">
+        <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
+      </Typography>
+      <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
+        {page.data.subtitle}
+      </Typography>
     </PostCopyContainer>
   </Stack>
 );
@@ -170,25 +169,19 @@ const Post: FunctionComponent<{
       alignItems={{ xs: "center", md: "flex-start" }}
       textAlign={{ xs: "center", md: "left" }}
     >
-      {post.data.authors ? (
-        <BlogPostAuthor small>
-          {formatAuthorsName(post.data.authors)}
-        </BlogPostAuthor>
-      ) : null}
-      {post.data.title ? (
-        <Typography variant="hashHeading4" color="gray.90">
-          <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
-        </Typography>
-      ) : null}
-      {post.data.subtitle ? (
-        <Typography
-          variant="hashSmallText"
-          color="gray.80"
-          sx={{ lineHeight: 1.5 }}
-        >
-          {post.data.subtitle}
-        </Typography>
-      ) : null}
+      <BlogPostAuthor small>
+        {formatAuthorsName(post.data.authors)}
+      </BlogPostAuthor>
+      <Typography variant="hashHeading4" color="gray.90">
+        <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
+      </Typography>
+      <Typography
+        variant="hashSmallText"
+        color="gray.80"
+        sx={{ lineHeight: 1.5 }}
+      >
+        {post.data.subtitle}
+      </Typography>
     </PostCopyContainer>
     {displayPhoto ? (
       <Box
@@ -265,9 +258,22 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
   );
 
   return (
-    // @todo lighter gradient
     <>
       <NextSeo title="HASH Developer Blog" />
+      <Head>
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="RSS Feed for the HASH Developer Blog"
+          href={blogRssPath}
+        />
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Atom Feed for the HASH Developer Blog"
+          href={blogAtomPath}
+        />
+      </Head>
       <Container>
         <Stack direction="row" justifyContent="space-between">
           <Typography
