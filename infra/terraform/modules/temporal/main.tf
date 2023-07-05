@@ -55,14 +55,14 @@ resource "aws_iam_role" "execution_role" {
           {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
-            Resource = [for _, env_var in aws_ssm_parameter.temporal_migration_env_vars : env_var.arn]
+            Resource = [for _, env_var in aws_ssm_parameter.temporal_setup_secrets : env_var.arn]
           }
         ],
         [
           {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
-            Resource = [for _, env_var in aws_ssm_parameter.temporal_env_vars : env_var.arn]
+            Resource = [for _, env_var in aws_ssm_parameter.temporal_secrets : env_var.arn]
           }
         ]
       ])

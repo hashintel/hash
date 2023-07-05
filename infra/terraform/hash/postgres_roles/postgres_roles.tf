@@ -141,8 +141,7 @@ resource "postgresql_role" "temporal_user" {
   login          = true
   password       = var.pg_temporal_user_password_hash
   inherit        = true
-  roles          = [postgresql_role.readwrite.name]
-  skip_drop_role = true
+  skip_drop_role = false
 }
 
 resource "postgresql_database" "temporal" {

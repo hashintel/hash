@@ -19,7 +19,7 @@ locals {
       environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
 
       secrets = [
-        for env_name, ssm_param in aws_ssm_parameter.temporal_migration_env_vars :
+        for env_name, ssm_param in aws_ssm_parameter.temporal_setup_secrets :
         { name = env_name, valueFrom = ssm_param.arn }
       ]
 
@@ -56,7 +56,7 @@ locals {
       environment = concat(local.temporal_shared_env_vars, local.temporal_env_vars)
 
       secrets = [
-        for env_name, ssm_param in aws_ssm_parameter.temporal_env_vars :
+        for env_name, ssm_param in aws_ssm_parameter.temporal_secrets :
         { name = env_name, valueFrom = ssm_param.arn }
       ]
 
@@ -93,7 +93,7 @@ locals {
       environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
 
       secrets = [
-        for env_name, ssm_param in aws_ssm_parameter.temporal_migration_env_vars :
+        for env_name, ssm_param in aws_ssm_parameter.temporal_setup_secrets :
         { name = env_name, valueFrom = ssm_param.arn }
       ]
 
@@ -136,7 +136,7 @@ locals {
   ]
 }
 
-resource "aws_ssm_parameter" "temporal_env_vars" {
+resource "aws_ssm_parameter" "temporal_secrets" {
   # Only put secrets into SSM
   for_each = { for env_var in local.temporal_secrets : env_var.name => env_var }
 
@@ -148,7 +148,7 @@ resource "aws_ssm_parameter" "temporal_env_vars" {
   tags      = {}
 }
 
-resource "aws_ssm_parameter" "temporal_migration_env_vars" {
+resource "aws_ssm_parameter" "temporal_setup_secrets" {
   # Only put secrets into SSM
   for_each = { for env_var in local.temporal_migration_secrets : env_var.name => env_var }
 
