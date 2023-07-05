@@ -135,4 +135,51 @@ resource "postgresql_database" "graph" {
   allow_connections = true
 }
 
+# Temporal
+resource "postgresql_role" "temporal_user" {
+  name           = "temporal"
+  login          = true
+  password       = var.pg_temporal_user_password_hash
+  inherit        = true
+  skip_drop_role = false
+}
+
+resource "postgresql_database" "temporal" {
+  name              = "temporal"
+  owner             = var.pg_superuser_username
+  template          = "template0"
+  lc_collate        = "C"
+  connection_limit  = -1
+  allow_connections = true
+}
+
+resource "postgresql_default_privileges" "temporal_readwrite_tables" {
+  owner       = var.pg_superuser_username
+  role        = postgresql_role.temporal_user.name
+  database    = postgresql_database.temporal.name
+  schema      = "public"
+
+  object_type = "table"
+  privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+}
+
+resource "postgresql_database" "temporal_visibility" {
+  name              = "temporal_visibility"
+  owner             = var.pg_superuser_username
+  template          = "template0"
+  lc_collate        = "C"
+  connection_limit  = -1
+  allow_connections = true
+}
+
+resource "postgresql_default_privileges" "temporal_visibility_readwrite_tables" {
+  owner       = var.pg_superuser_username
+  role        = postgresql_role.temporal_user.name
+  database    = postgresql_database.temporal_visibility.name
+  schema      = "public"
+
+  object_type = "table"
+  privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+}
+
 
