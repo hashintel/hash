@@ -23,9 +23,7 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
-import { secondOption } from "../../../../shared/command-bar/command-bar-options";
 import { LinkedIcon } from "../../../../shared/icons/linked-icon";
-import { useCommandBarOption } from "../../../../shared/command-bar";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -53,8 +51,6 @@ const isLinkEntityType = (type: EntityType) =>
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-
-  useCommandBarOption(secondOption);
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;

@@ -1,6 +1,7 @@
 import { Box, Modal, Typography } from "@mui/material";
 import { useEffect, useReducer, useState } from "react";
 import { useKeys } from "rooks";
+
 import { CommandBarOption, menu } from "./command-bar-options";
 import { HotKey } from "./hot-key";
 
