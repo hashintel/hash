@@ -45,9 +45,15 @@ export const UserBlocksProvider: FunctionComponent<{
         return;
       }
 
+      const apiBlocks = await Promise.all(
+        data.getBlockProtocolBlocks.map(({ componentId }) =>
+          fetchBlock(componentId),
+        ),
+      );
+
       const apiProvidedBlocksMap: ComponentIdHashBlockMap = {};
-      for (const { componentId } of data.getBlockProtocolBlocks) {
-        apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
+      for (const block of apiBlocks) {
+        apiProvidedBlocksMap[block.meta.componentId] = block;
       }
 
       setValue((prevValue) => {
