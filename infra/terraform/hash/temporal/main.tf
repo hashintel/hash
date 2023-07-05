@@ -1,31 +1,31 @@
 locals {
-  prefix           = "${var.prefix}-temporal"
-  log_group_name   = "${local.prefix}log"
-  param_prefix     = "${var.param_prefix}/temporal"
+  prefix           = var.prefix
+  log_group_name   = "${local.prefix}-log"
+  param_prefix     = var.param_prefix
   temporal_version = var.temporal_version
 }
 
-module "migrate" {
-  source   = "../container_registry"
-  prefix   = var.prefix
-  ecr_name = "temporalmigrate"
+module "migrate_ecr" {
+  source   = "../../modules/container_registry"
+  prefix   = local.prefix
+  ecr_name = "migrate"
 }
 
-module "setup" {
-  source   = "../container_registry"
-  prefix   = var.prefix
-  ecr_name = "temporalsetup"
+module "setup_ecr" {
+  source   = "../../modules/container_registry"
+  prefix   = local.prefix
+  ecr_name = "setup"
 }
 
-module "temporal_ecs" {
-  source             = "../container_cluster"
-  prefix             = var.prefix
-  ecs_name           = "temporalserver"
+module "cluster" {
+  source             = "../../modules/container_cluster"
+  prefix             = local.prefix
+  ecs_name           = "ecs"
   capacity_providers = ["FARGATE"]
 }
 
 resource "aws_iam_role" "execution_role" {
-  name = "${local.prefix}exerole"
+  name = "${local.prefix}-exerole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -78,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "execution_role" {
 
 # IAM role for the running task
 resource "aws_iam_role" "task_role" {
-  name = "${local.prefix}taskrole"
+  name = "${local.prefix}-taskrole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -115,7 +115,7 @@ resource "aws_iam_role" "task_role" {
 }
 
 resource "aws_ecs_task_definition" "task" {
-  family                   = "${local.prefix}taskdef"
+  family                   = "${local.prefix}-taskdef"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory
@@ -127,8 +127,8 @@ resource "aws_ecs_task_definition" "task" {
 
 resource "aws_ecs_service" "svc" {
   depends_on             = [aws_iam_role.task_role]
-  name                   = "${local.prefix}svc"
-  cluster                = module.temporal_ecs.ecs_cluster_arn
+  name                   = "${local.prefix}-svc"
+  cluster                = module.cluster.ecs_cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
   desired_count          = 1
@@ -144,17 +144,17 @@ resource "aws_ecs_service" "svc" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app_tg.arn
-    container_name   = "${local.prefix}${local.temporal_service_name}"
+    container_name   = "${local.prefix}-${local.temporal_service_name}"
     container_port   = local.temporal_port
   }
 
 
-  tags = { Service = "${local.prefix}svc" }
+  tags = { Service = "${local.prefix}-svc" }
 }
 
 
 resource "aws_security_group" "app_sg" {
-  name   = "${var.prefix}-sgtemporal"
+  name   = "${var.prefix}-sg"
   vpc_id = var.vpc.id
 
   egress {

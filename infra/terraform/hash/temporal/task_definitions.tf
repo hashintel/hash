@@ -12,8 +12,8 @@ locals {
       readonlyRootFilesystem = true
 
       essential = false
-      name      = "${local.prefix}${local.migrate_service_name}"
-      image     = "${module.migrate.url}:${local.temporal_version}"
+      name      = "${local.prefix}-${local.migrate_service_name}"
+      image     = "${module.migrate_ecr.url}:${local.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
 
       environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
@@ -35,10 +35,10 @@ locals {
     },
     {
       essential   = true
-      name        = "${local.prefix}${local.temporal_service_name}"
+      name        = "${local.prefix}-${local.temporal_service_name}"
       image       = "temporalio/server:${local.temporal_version}"
       cpu         = 0 # let ECS divvy up the available CPU
-      dependsOn   = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
+      dependsOn   = [{ condition = "SUCCESS", containerName = "${local.prefix}-${local.migrate_service_name}" }]
       healthCheck = {
         # If we just want to for when the socket accepts connections, we can use this:
         # command     = ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 7233"]
@@ -83,11 +83,11 @@ locals {
       readonlyRootFilesystem = true
 
       essential = false
-      name      = "${local.prefix}${local.setup_service_name}"
-      image     = "${module.setup.url}:${local.temporal_version}"
+      name      = "${local.prefix}-${local.setup_service_name}"
+      image     = "${module.setup_ecr.url}:${local.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [
-        { condition = "START", containerName = "${local.prefix}${local.temporal_service_name}" },
+        { condition = "START", containerName = "${local.prefix}-${local.temporal_service_name}" },
       ]
 
       environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
