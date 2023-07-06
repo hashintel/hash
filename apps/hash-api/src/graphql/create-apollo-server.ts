@@ -85,9 +85,17 @@ export const createApolloServer = ({
                 // Ignore introspection queries from graphiql
                 return;
               }
+              const elapsed = performance.now() - startedAt;
+
+              // take the first part of the UA to help identify browser vs server requests
+              const userAgent =
+                ctx.context.req.headers["user-agent"]?.split(" ")[0];
+
               const msg = {
                 message: "graphql",
                 operation: willSendResponseCtx.operationName,
+                elapsed: `${elapsed.toFixed(2)}ms`,
+                userAgent,
               };
               if (willSendResponseCtx.errors) {
                 willSendResponseCtx.logger.error({
@@ -104,7 +112,6 @@ export const createApolloServer = ({
               } else {
                 willSendResponseCtx.logger.info(msg);
                 if (willSendResponseCtx.operationName) {
-                  const elapsed = performance.now() - startedAt;
                   statsd?.timing(
                     willSendResponseCtx.operationName,
                     elapsed,

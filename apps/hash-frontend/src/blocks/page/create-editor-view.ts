@@ -238,18 +238,20 @@ export const createEditorView = (
   // we want this to be the paragraph node type.
   const blocksArray = Object.values(blocks());
 
-  const paragraphBlock = blocksArray.find(
-    (block) => block.meta.componentId === paragraphBlockComponentId,
-  );
+  if (blocksArray.length) {
+    const paragraphBlock = blocksArray.find(
+      (block) => block.meta.componentId === paragraphBlockComponentId,
+    );
 
-  if (!paragraphBlock) {
-    throw new Error("missing required block-type paragraph");
-  }
+    if (!paragraphBlock) {
+      throw new Error("missing required block-type paragraph");
+    }
 
-  /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
-  manager.defineBlock(paragraphBlock);
-  for (const block of blocksArray) {
-    manager.defineBlock(block);
+    /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
+    manager.defineBlock(paragraphBlock);
+    for (const block of blocksArray) {
+      manager.defineBlock(block);
+    }
   }
 
   // @todo figure out how to use dev tools without it breaking fast refresh

@@ -29,24 +29,6 @@ const pageFieldsFragment = gql`
   ${blockFieldsFragment}
 `;
 
-const pagePropertiesFieldsFragment = gql`
-  fragment PagePropertyFields on Page {
-    title
-    archived
-    icon
-  }
-`;
-
-export const getPageInfoQuery = gql`
-  query getPageInfo($entityId: EntityId!) {
-    page(entityId: $entityId) {
-      metadata
-      ...PagePropertyFields
-    }
-  }
-  ${pagePropertiesFieldsFragment}
-`;
-
 export const getPageQuery = gql`
   query getPage($entityId: EntityId!) {
     page(entityId: $entityId) {
