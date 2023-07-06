@@ -107,6 +107,7 @@ module "temporal" {
   memory                = 512
   # TODO: provide by the HASH variables.tf
   temporal_version      = "1.21.0.0"
+  temporal_ui_version   = "2.16.2"
 
   postgres_host = module.postgres.pg_host
   postgres_port = module.postgres.pg_port

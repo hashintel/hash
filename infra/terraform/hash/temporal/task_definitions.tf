@@ -108,6 +108,48 @@ locals {
         }
       }
     },
+    {
+      readonlyRootFilesystem = false
+
+      essential = false
+      name      = "${local.prefix}-${local.ui_service_name}"
+      image       = "temporalio/ui:${var.temporal_ui_version}"
+      cpu       = 0 # let ECS divvy up the available CPU
+      dependsOn = [
+        { condition = "HEALTHY", containerName = "${local.prefix}-${local.temporal_service_name}" },
+      ]
+
+      environment = [
+        { name = "TEMPORAL_ADDRESS", value = "${aws_lb.net_alb.dns_name}:${local.temporal_port}" }
+      ]
+
+      portMappings = [
+        {
+          appProtocol   = "http"
+          containerPort = 8080
+          hostPort      = local.temporal_ui_port
+          protocol      = "tcp"
+        },
+      ]
+
+      healthCheck = {
+        command     = ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080"]
+        startPeriod = 10
+        interval    = 5
+        retries     = 10
+        timeout     = 5
+      }
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options   = {
+          "awslogs-create-group"  = "true"
+          "awslogs-group"         = local.log_group_name
+          "awslogs-stream-prefix" = local.ui_service_name
+          "awslogs-region"        = var.region
+        }
+      }
+    },
   ]
 
   temporal_shared_env_vars = [

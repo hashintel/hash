@@ -171,17 +171,30 @@ resource "aws_security_group" "app_sg" {
     description = "Allow outbound HTTPS connections"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  egress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    description = "Allow connections to Postgres within the VPC"
-    cidr_blocks = [var.vpc.cidr_block]
-  }
 
   ingress {
     from_port   = 7233
     to_port     = 7233
+    protocol    = "tcp"
+    description = "Allow connections to Temporal within the VPC"
+    # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
+    # description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  egress {
+    from_port   = 7233
+    to_port     = 7233
+    protocol    = "tcp"
+    description = "Allow connections from Temporal within the VPC"
+    # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
+    # description = "Allow connections from Temporal from anywhere (rely on authentication to restrict access)"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     description = "Allow connections to Temporal within the VPC"
     # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
