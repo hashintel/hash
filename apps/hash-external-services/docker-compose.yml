@@ -258,7 +258,16 @@ services:
         condition: service_started
     healthcheck:
       test:
-        ["CMD", "temporal", "workflow", "list", "--address", "temporal:7233"]
+        [
+          "CMD",
+          "temporal",
+          "workflow",
+          "list",
+          "--namespace",
+          "HASH",
+          "--address",
+          "temporal:7233",
+        ]
       interval: 10s
       timeout: 2s
       retries: 10
