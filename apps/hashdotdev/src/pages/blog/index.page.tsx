@@ -7,7 +7,6 @@ import {
 } from "@mui/material";
 import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
-import Head from "next/head";
 import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
 import { ComponentProps, Fragment, FunctionComponent } from "react";
@@ -22,7 +21,6 @@ import { getAllPages } from "../../util/mdx-util";
 import { NextPageWithLayout } from "../../util/next-types";
 import { BlogIndividualPage } from "../shared/blog-posts-context";
 import { BlogPost, BlogPostAuthorWithPhotoSrc } from "./[...blog-slug].page";
-import { blogAtomPath, blogRssPath } from "./index.page/feed-paths";
 import { generateFeeds } from "./index.page/generate-feeds";
 import { getPhoto } from "./shared/get-photo";
 
@@ -260,20 +258,6 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
   return (
     <>
       <NextSeo title="HASH Developer Blog" />
-      <Head>
-        <link
-          rel="alternate"
-          type="application/rss+xml"
-          title="RSS Feed for the HASH Developer Blog"
-          href={blogRssPath}
-        />
-        <link
-          rel="alternate"
-          type="application/atom+xml"
-          title="Atom Feed for the HASH Developer Blog"
-          href={blogAtomPath}
-        />
-      </Head>
       <Container>
         <Stack direction="row" justifyContent="space-between">
           <Typography
