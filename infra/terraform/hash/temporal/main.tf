@@ -176,7 +176,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 7233
     to_port     = 7233
     protocol    = "tcp"
-    description = "Allow connections to Temporal within the VPC"
+    description = "Allow connections to Temporal server within the VPC"
     # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
     # description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
     cidr_blocks = [var.vpc.cidr_block]
@@ -187,8 +187,6 @@ resource "aws_security_group" "app_sg" {
     to_port     = 7233
     protocol    = "tcp"
     description = "Allow connections from Temporal within the VPC"
-    # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
-    # description = "Allow connections from Temporal from anywhere (rely on authentication to restrict access)"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
@@ -196,7 +194,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    description = "Allow connections to Temporal within the VPC"
+    description = "Allow connections to Temporal UI within the VPC"
     # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
     # description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
     cidr_blocks = [var.vpc.cidr_block]
