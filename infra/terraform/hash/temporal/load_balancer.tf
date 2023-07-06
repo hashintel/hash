@@ -2,16 +2,10 @@ locals {
   alb_port = local.temporal_port
 }
 
-data "aws_subnets" "snpub" {
-  tags = {
-    Name = "${var.prefix}-snpub"
-  }
-}
-
 resource "aws_lb" "net_alb" {
-  name               = "${local.prefix}alb"
+  name               = "${local.prefix}-alb"
   load_balancer_type = "network"
-  subnets            = data.aws_subnets.snpub.ids
+  subnets            = var.subnets
 
   # security_groups = [aws_security_group.alb_sg.id]
   # Timeout is set to allow collab to use long polling and not closing after default 60 seconds.
@@ -20,7 +14,7 @@ resource "aws_lb" "net_alb" {
 
 resource "aws_lb_target_group" "app_tg" {
   depends_on  = [aws_lb.net_alb]
-  name        = "${local.prefix}tg"
+  name        = "${local.prefix}-tg"
   port        = local.alb_port
   protocol    = "TCP"
   target_type = "ip"

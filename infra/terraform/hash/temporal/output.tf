@@ -1,11 +1,11 @@
 output "setup_ecr" {
   description = "ECR repository for the setup image"
-  value       = module.setup
+  value       = module.setup_ecr
 }
 
 output "migrate_ecr" {
   description = "ECR repository for the migrate image"
-  value       = module.migrate
+  value       = module.migrate_ecr
 }
 
 output "temporal_private_hostname" {

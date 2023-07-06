@@ -3,7 +3,7 @@
   AWS using ECS Fargate. 
 */
 
-module "variables" {
+module "variables_hash" {
   source          = "../modules/variables"
   env             = terraform.workspace
   region          = var.region
@@ -11,12 +11,23 @@ module "variables" {
   project         = "hash"
 }
 
+// TODO: In order to have access to RDS we kept `temporal` in this project but this should be moved a separated
+//       project folder and apply TF from the parent folder
+//   see https://linear.app/hash/issue/H-54/split-internal-vs-external-services-in-terraform-config
+module "variables_temporal" {
+  source          = "../modules/variables"
+  env             = terraform.workspace
+  region          = var.region
+  region_az_count = var.region_az_count
+  project         = "temporal"
+}
+
 locals {
-  env             = module.variables.env
-  region          = module.variables.region
-  prefix          = module.variables.prefix
-  param_prefix    = module.variables.param_prefix
-  region_az_names = module.variables.region_az_names
+  env             = module.variables_hash.env
+  region          = module.variables_hash.region
+  prefix          = module.variables_hash.prefix
+  param_prefix    = module.variables_hash.param_prefix
+  region_az_names = module.variables_hash.region_az_names
 }
 
 provider "vault" {
@@ -85,9 +96,9 @@ module "postgres" {
 
 module "temporal" {
   depends_on            = [module.networking, module.postgres]
-  source                = "../modules/temporal"
-  prefix                = local.prefix
-  param_prefix          = local.param_prefix
+  source                = "./temporal"
+  prefix                = module.variables_temporal.prefix
+  param_prefix          = module.variables_temporal.param_prefix
   subnets               = module.networking.snpub
   vpc                   = module.networking.vpc
   env                   = local.env
