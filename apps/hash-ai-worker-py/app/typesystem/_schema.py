@@ -1,5 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from typing import Annotated, Any, Generic, Literal, TypeVar
 from uuid import UUID
 
@@ -110,10 +111,20 @@ class Object(Schema, Generic[T]):
         *,
         actor_id: UUID,
     ) -> Annotated[Any, ...]:
-        types = {
-            key: await value.create_model(actor_id=actor_id)
-            for key, value in self.properties.items()
-        }
+        async def async_value(
+            key: str,
+            value: Awaitable[type[BaseModel] | Any],
+        ) -> tuple[str, type[BaseModel] | Any]:
+            return key, await value
+
+        types = dict(
+            await asyncio.gather(
+                *(
+                    async_value(key, value.create_model(actor_id=actor_id))
+                    for key, value in self.properties.items()
+                ),
+            ),
+        )
 
         class DictSchema:
             @classmethod
