@@ -47,6 +47,11 @@ variable "temporal_version" {
   description = "Docker container tag for temporal containers"
 }
 
+variable "temporal_ui_version" {
+  type        = string
+  description = "Docker container tag for temporal UI container"
+}
+
 variable "postgres_host" {
   type        = string
   description = "The hostname of the postgres database"
