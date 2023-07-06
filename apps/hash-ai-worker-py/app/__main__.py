@@ -23,7 +23,7 @@ async def run_worker(stop_event: asyncio.Event) -> None:
 
     client = await Client.connect(
         temporal_target,
-        namespace="default",
+        namespace="HASH",
         data_converter=pydantic_data_converter,
     )
 
