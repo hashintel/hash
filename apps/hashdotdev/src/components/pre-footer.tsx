@@ -271,7 +271,7 @@ const BlogPost: FunctionComponent<{
       }}
     >
       {data.authors
-        ?.map(({ name }, i, all) =>
+        .map(({ name }, i, all) =>
           all.length - 1 === i
             ? name
             : all.length - 2 === i
@@ -311,7 +311,7 @@ const BlogPost: FunctionComponent<{
                 }}
               >
                 <Image
-                  alt={data.title!}
+                  alt={data.title}
                   src={photos.post!.src}
                   fill
                   style={{ objectFit: "cover" }}

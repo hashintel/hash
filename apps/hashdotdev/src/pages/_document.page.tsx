@@ -8,7 +8,9 @@ import Document, {
 } from "next/document";
 import { Children } from "react";
 
+import { SITE_FAVICON_PATH } from "../config";
 import { createEmotionCache } from "../util/create-emotion-cache";
+import { blogAtomPath, blogRssPath } from "./blog/index.page/feed-paths";
 
 const gtmId = "G-2JDBVXSZV8";
 
@@ -77,10 +79,22 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
-          <link rel="icon" type="image/png" href="/favicon.png" />
+          <link rel="icon" type="image/png" href={SITE_FAVICON_PATH} />
           <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
             rel="stylesheet"
+          />
+          <link
+            rel="alternate"
+            type="application/rss+xml"
+            title="RSS Feed for the HASH Developer Blog"
+            href={blogRssPath}
+          />
+          <link
+            rel="alternate"
+            type="application/atom+xml"
+            title="Atom Feed for the HASH Developer Blog"
+            href={blogAtomPath}
           />
           {process.env.NEXT_PUBLIC_VERCEL_ENV === "production" && (
             <script

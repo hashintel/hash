@@ -21,6 +21,7 @@ import { getAllPages } from "../../util/mdx-util";
 import { NextPageWithLayout } from "../../util/next-types";
 import { BlogIndividualPage } from "../shared/blog-posts-context";
 import { BlogPost, BlogPostAuthorWithPhotoSrc } from "./[...blog-slug].page";
+import { generateFeeds } from "./index.page/generate-feeds";
 import { getPhoto } from "./shared/get-photo";
 
 type BlogPageListProps = {
@@ -60,6 +61,8 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
           },
         })),
     );
+
+    await generateFeeds(pages);
 
     return {
       props: {
@@ -123,21 +126,15 @@ const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
       <PostImage page={page} fill={false} />
     </Box>
     <PostCopyContainer>
-      {page.data.authors ? (
-        <BlogPostAuthor>
-          {page.data.authors.map((author) => author.name).join(" & ")}
-        </BlogPostAuthor>
-      ) : null}
-      {page.data.title ? (
-        <Typography variant="hashHeading2">
-          <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
-        </Typography>
-      ) : null}
-      {page.data.subtitle ? (
-        <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
-          {page.data.subtitle}
-        </Typography>
-      ) : null}
+      <BlogPostAuthor>
+        {page.data.authors.map((author) => author.name).join(" & ")}
+      </BlogPostAuthor>
+      <Typography variant="hashHeading2">
+        <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
+      </Typography>
+      <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
+        {page.data.subtitle}
+      </Typography>
     </PostCopyContainer>
   </Stack>
 );
@@ -170,25 +167,19 @@ const Post: FunctionComponent<{
       alignItems={{ xs: "center", md: "flex-start" }}
       textAlign={{ xs: "center", md: "left" }}
     >
-      {post.data.authors ? (
-        <BlogPostAuthor small>
-          {formatAuthorsName(post.data.authors)}
-        </BlogPostAuthor>
-      ) : null}
-      {post.data.title ? (
-        <Typography variant="hashHeading4" color="gray.90">
-          <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
-        </Typography>
-      ) : null}
-      {post.data.subtitle ? (
-        <Typography
-          variant="hashSmallText"
-          color="gray.80"
-          sx={{ lineHeight: 1.5 }}
-        >
-          {post.data.subtitle}
-        </Typography>
-      ) : null}
+      <BlogPostAuthor small>
+        {formatAuthorsName(post.data.authors)}
+      </BlogPostAuthor>
+      <Typography variant="hashHeading4" color="gray.90">
+        <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
+      </Typography>
+      <Typography
+        variant="hashSmallText"
+        color="gray.80"
+        sx={{ lineHeight: 1.5 }}
+      >
+        {post.data.subtitle}
+      </Typography>
     </PostCopyContainer>
     {displayPhoto ? (
       <Box
@@ -265,7 +256,6 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
   );
 
   return (
-    // @todo lighter gradient
     <>
       <NextSeo title="HASH Developer Blog" />
       <Container>

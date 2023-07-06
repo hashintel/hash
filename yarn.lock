@@ -12660,6 +12660,13 @@ fecha@^4.2.0:
   resolved "https://registry.yarnpkg.com/fecha/-/fecha-4.2.1.tgz#0a83ad8f86ef62a091e22bb5a039cd03d23eecce"
   integrity "sha1-CoOtj4bvYqCR4iu1oDnNA9I+7M4= sha512-MMMQ0ludy/nBs1/o0zVOiKTpG7qMbonKUzjJgQFEuvq6INZ1OraKPRAWkBq5vlKLOUMpmNYG1JoN3oDPUQ9m3Q=="
 
+feed@4.2.2:
+  version "4.2.2"
+  resolved "https://registry.yarnpkg.com/feed/-/feed-4.2.2.tgz#865783ef6ed12579e2c44bbef3c9113bc4956a7e"
+  integrity sha512-u5/sxGfiMfZNtJ3OvQpXcvotFpYkL0n9u9mM2vkui2nGo8b4wvDkJ8gAkYqbA8QpGyFCv3RK0Z+Iv+9veCS9bQ==
+  dependencies:
+    xml-js "^1.6.11"
+
 fetch-blob@^3.1.2, fetch-blob@^3.1.4:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/fetch-blob/-/fetch-blob-3.2.0.tgz#f09b8d4bbd45adc6f0c20b7e787e793e309dcce9"
@@ -19960,6 +19967,11 @@ sass@1.56.0, sass@^1.52.3:
     immutable "^4.0.0"
     source-map-js ">=0.6.2 <2.0.0"
 
+sax@^1.2.4:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
+  integrity sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==
+
 scheduler@^0.23.0:
   version "0.23.0"
   resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.23.0.tgz#ba8041afc3d30eb206a487b6b384002e4e61fdfe"
@@ -22883,6 +22895,13 @@ xml-formatter@^2.6.1:
   integrity "sha1-Bm7zoQC9WO47lD8MUDvmMXbT1Jc= sha512-dOiGwoqm8y22QdTNI7A+N03tyVfBlQ0/oehAzxIZtwnFAHGeSlrfjF73YQvzSsa/Kt6+YZasKsrdu6OIpuBggw=="
   dependencies:
     xml-parser-xo "^3.2.0"
+
+xml-js@^1.6.11:
+  version "1.6.11"
+  resolved "https://registry.yarnpkg.com/xml-js/-/xml-js-1.6.11.tgz#927d2f6947f7f1c19a316dd8eea3614e8b18f8e9"
+  integrity sha512-7rVi2KMfwfWFl+GpPg6m80IVMWXLRjO+PxTq7V2CDhoGak0wzYzFgUY2m4XJ47OGdXd8eLE8EmwfAmdjw7lC1g==
+  dependencies:
+    sax "^1.2.4"
 
 xml-parser-xo@^3.2.0:
   version "3.2.0"
