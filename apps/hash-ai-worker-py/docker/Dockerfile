@@ -95,7 +95,8 @@ WORKDIR "/usr/local/src/hash/apps/hash-ai-worker-py"
 
 
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
     groupadd --system --gid 60000 hash && \
     useradd --system pyworker -G hash && \
     install -d -m 0775 -o pyworker -g hash /log
