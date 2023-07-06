@@ -41,7 +41,7 @@
     "@opentelemetry/sdk-trace-base": "1.0",
     "@opentelemetry/sdk-trace-node": "1.0",
     "@ory/client": "1.1.33",
-    "@ory/kratos-client": "0.11.0",
+    "@ory/kratos-client": "0.13.1",
     "@snowplow/node-tracker": "3.3.1",
     "agentkeepalive": "4.2.1",
     "apollo-datasource": "3.3.2",
