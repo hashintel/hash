@@ -1,12 +1,21 @@
 """Temporal workflow definitions."""
 
+import json
+from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import (
+    BaseModel,
+    Extra,
+    Field,
+    ValidationError,
+)
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from app.typesystem import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+    from app.typesystem.data_type import DataTypeReference
+    from app.typesystem.entity_type import EntityTypeReference
+    from app.typesystem.property_type import PropertyTypeReference
 
 
 class DataTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
@@ -14,6 +23,28 @@ class DataTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
 
     data_type_id: str = Field(..., alias="dataTypeId")
     actor_id: UUID = Field(..., alias="actorId")
+    data_type: Any = Field(..., alias="dataType")
+
+
+def print_schema(model: type[BaseModel], data: Any) -> None:  # noqa: ANN401
+    """Simple function to print the schema and the value of a BaseModel.
+
+    This is meant for debugging purposes only and will be removed in the future.
+    """
+    print("schema:", json.dumps(model.model_json_schema(), indent=2))  # noqa: T201
+    try:
+        parsed_data = model.model_validate(data)
+    except ValidationError as err:
+        print(err)  # noqa: T201
+    else:
+        print(  # noqa: T201
+            "value:",
+            parsed_data.model_dump_json(by_alias=True, exclude_none=True, indent=2),
+        )
+        print(  # noqa: T201
+            "value type:",
+            type(parsed_data.model_dump()),
+        )
 
 
 @workflow.defn(name="getDataType")
@@ -24,25 +55,15 @@ class DataTypeWorkflow:
     async def get_data_type(
         self,
         params: DataTypeWorkflowParameters,
-    ) -> DataTypeSchema:
+    ) -> dict[str, Any]:
         """Calls the Graph API to get a data type schema."""
-        data_type_schema = DataTypeSchema(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getDataType",
-                    arg=params,
-                )
-            )["schema"],
-        )
-        print(  # noqa: T201
-            data_type_schema.model_dump_json(
-                by_alias=True,
-                exclude_none=True,
-                indent=2,
-            ),
-        )
-        return data_type_schema
+        data_type_model = await DataTypeReference(
+            **{"$ref": params.data_type_id},
+        ).create_model(actor_id=params.actor_id)
+
+        print_schema(data_type_model, params.data_type)
+
+        return data_type_model.model_json_schema()
 
 
 class PropertyTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
@@ -50,6 +71,7 @@ class PropertyTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
 
     proeprty_type_id: str = Field(..., alias="propertyTypeId")
     actor_id: UUID = Field(..., alias="actorId")
+    property_type: Any = Field(..., alias="propertyType")
 
 
 @workflow.defn(name="getPropertyType")
@@ -60,25 +82,15 @@ class PropertyTypeWorkflow:
     async def get_property_type(
         self,
         params: PropertyTypeWorkflowParameters,
-    ) -> PropertyTypeSchema:
-        """Calls the Graph API to get a property type schema."""
-        property_type_schema = PropertyTypeSchema(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getPropertyType",
-                    arg=params,
-                )
-            )["schema"],
-        )
-        print(  # noqa: T201
-            property_type_schema.model_dump_json(
-                by_alias=True,
-                exclude_none=True,
-                indent=2,
-            ),
-        )
-        return property_type_schema
+    ) -> dict[str, Any]:
+        """Calls the Graph API to get a data type schema."""
+        property_type_model = await PropertyTypeReference(
+            **{"$ref": params.proeprty_type_id},
+        ).create_model(actor_id=params.actor_id)
+
+        print_schema(property_type_model, params.property_type)
+
+        return property_type_model.model_json_schema()
 
 
 class EntityTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
@@ -86,6 +98,7 @@ class EntityTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
 
     entity_type_id: str = Field(..., alias="entityTypeId")
     actor_id: UUID = Field(..., alias="actorId")
+    entity_type: Any = Field(..., alias="entityType")
 
 
 @workflow.defn(name="getEntityType")
@@ -96,22 +109,12 @@ class EntityTypeWorkflow:
     async def get_entity_type(
         self,
         params: EntityTypeWorkflowParameters,
-    ) -> EntityTypeSchema:
-        """Calls the Graph API to get an entity type schema."""
-        entity_type_schema = EntityTypeSchema(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getEntityType",
-                    arg=params,
-                )
-            )["schema"],
-        )
-        print(  # noqa: T201
-            entity_type_schema.model_dump_json(
-                by_alias=True,
-                exclude_none=True,
-                indent=2,
-            ),
-        )
-        return entity_type_schema
+    ) -> dict[str, Any]:
+        """Calls the Graph API to get a data type schema."""
+        entity_type_model = await EntityTypeReference(
+            **{"$ref": params.entity_type_id},
+        ).create_model(actor_id=params.actor_id)
+
+        print_schema(entity_type_model, params.entity_type)
+
+        return entity_type_model.model_json_schema()
