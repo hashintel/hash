@@ -17,10 +17,7 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import {
-  areComponentsCompatible,
-  isHashTextBlock,
-} from "@local/hash-isomorphic-utils/blocks";
+import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -76,11 +73,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
   const { value: userBlocks } = useUserBlocks();
   const currentComponentId = blockEntity?.componentId as string | null;
+
+  // We previously limited blocks you can swap to based on the current block, but this makes for arguably poorer UX
+  // @todo figure out how users can swap to blocks with incompatible data expectations, without losing current block data
   const compatibleBlocks = useMemo(() => {
-    return Object.values(userBlocks).filter((block) =>
-      areComponentsCompatible(currentComponentId, block.meta.componentId),
-    );
-  }, [currentComponentId, userBlocks]);
+    return Object.values(userBlocks);
+  }, [userBlocks]);
 
   const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
