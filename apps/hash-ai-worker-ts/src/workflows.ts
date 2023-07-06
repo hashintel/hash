@@ -20,6 +20,10 @@ export const {
   },
 });
 
+// Simple workflow to test worker functionality
+export const HelloWorld = async (): Promise<string> =>
+  Promise.resolve("Hello Temporal!");
+
 export const getDataType = async (params: {
   dataTypeId: VersionedUrl;
   actorId: AccountId;

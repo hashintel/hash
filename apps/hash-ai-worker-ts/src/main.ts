@@ -52,6 +52,7 @@ async function run() {
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
+    namespace: "HASH",
     taskQueue: "ai",
   });
 

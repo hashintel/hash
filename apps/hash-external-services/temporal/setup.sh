@@ -17,8 +17,6 @@ set -eux -o pipefail
 : "${TEMPORAL_ADDRESS:=}"
 
 : "${SKIP_DEFAULT_NAMESPACE_CREATION:=false}"
-: "${DEFAULT_NAMESPACE:=default}"
-: "${DEFAULT_NAMESPACE_RETENTION:=1}"
 
 # === Helper functions ===
 
@@ -38,14 +36,14 @@ validate_db_env() {
 
 # === Server setup ===
 
-register_default_namespace() {
-  echo "Registering default namespace: ${DEFAULT_NAMESPACE}."
-  if ! temporal operator namespace describe "${DEFAULT_NAMESPACE}"; then
-    echo "Default namespace ${DEFAULT_NAMESPACE} not found. Creating..."
-    temporal operator namespace create --retention "${DEFAULT_NAMESPACE_RETENTION}" --description "Default namespace for Temporal Server." "${DEFAULT_NAMESPACE}"
-    echo "Default namespace ${DEFAULT_NAMESPACE} registration complete."
+register_hash_namespace() {
+  echo "Registering namespace: \`HASH\`"
+  if ! temporal operator namespace describe HASH; then
+    echo "Default namespace \`HASH\` not found. Creating..."
+    temporal operator namespace create --retention 1 --description "HASH namespace for Temporal Server." HASH
+    echo "Default namespace \`HASH\` registration complete."
   else
-    echo "Default namespace ${DEFAULT_NAMESPACE} already registered."
+    echo "Default namespace \`HASH\` already registered."
   fi
 }
 
@@ -58,8 +56,8 @@ setup_server() {
   done
   echo "Temporal server started."
 
-  if [[ ${SKIP_DEFAULT_NAMESPACE_CREATION} != true ]]; then
-    register_default_namespace
+  if [[ ${SKIP_DEFAULT_NAMESPACE_CREATION} == false ]]; then
+    register_hash_namespace
   fi
 }
 
