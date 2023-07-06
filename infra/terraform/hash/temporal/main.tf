@@ -177,6 +177,14 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    description = "Allow connections to Postgres within the VPC"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   ingress {
     from_port   = 7233
     to_port     = 7233
