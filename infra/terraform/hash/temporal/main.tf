@@ -186,7 +186,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 7233
     to_port     = 7233
     protocol    = "tcp"
-    description = "Allow connections from Temporal within the VPC"
+    description = "Allow connections from Temporal server within the VPC"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
