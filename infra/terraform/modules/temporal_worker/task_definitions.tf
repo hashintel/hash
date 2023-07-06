@@ -2,7 +2,7 @@ locals {
   task_definitions = [
     {
       essential = true
-      name      = "${local.prefix}${var.worker_name}"
+      name      = local.prefix
       image     = "${module.worker.url}:latest"
       cpu       = 0 # let ECS divvy up the available CPU
       healthCheck = {
@@ -13,9 +13,15 @@ locals {
         timeout     = 5
       }
 
-      environment = local.shared_env_vars,
+      environment = concat([
+          { name = "HASH_TEMPORAL_HOST", value = var.temporal_host },
+          { name = "HASH_TEMPORAL_PORT", value = var.temporal_port },
+        ],
+        [for env_var in var.env_vars : { name = env_var.name, value = env_var.value } if !env_var.secret]
+      )
 
-      secrets = local.shared_secrets
+      secrets = [for env_name, ssm_param in aws_ssm_parameter.secret_env_vars :
+        { name = env_name, valueFrom = ssm_param.arn }]
 
       logConfiguration = {
         logDriver = "awslogs"

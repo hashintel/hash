@@ -115,3 +115,19 @@ variable "ses_verified_domain_identity" {
   type        = string
   description = "A verified AWS SES identity to use for email sending in the application."
 }
+
+variable "temporal_host" {
+  type        = string
+  description = "The hostname of the Temporal cluster to connect to."
+}
+
+variable "temporal_port" {
+  type        = string
+  default     = "7233"
+  description = "The port of the Temporal cluster to connect to."
+}
+
+variable "openai_api_key" {
+  type        = string
+  description = "The OpenAI API key to use for the application."
+}

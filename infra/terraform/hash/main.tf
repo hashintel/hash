@@ -236,4 +236,7 @@ module "application" {
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
   ])
+  temporal_host = module.temporal.host
+  temporal_port = module.temporal.temporal_port
+  openai_api_key = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
 }

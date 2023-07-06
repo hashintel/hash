@@ -1,7 +1,7 @@
 locals {
-  prefix         = "${var.prefix}-${var.worker_name}"
-  log_group_name = "${local.prefix}log"
-  param_prefix   = "${var.param_prefix}/${var.worker_name}worker"
+  prefix         = "${var.prefix}-worker-${var.worker_name}"
+  log_group_name = "${local.prefix}-log"
+  param_prefix   = "${var.param_prefix}/worker/${var.worker_name}"
 }
 
 module "worker" {
@@ -11,7 +11,7 @@ module "worker" {
 }
 
 resource "aws_iam_role" "execution_role" {
-  name = "${local.prefix}exerole"
+  name = "${local.prefix}-exerole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -55,7 +55,7 @@ resource "aws_iam_role_policy_attachment" "execution_role" {
 
 # IAM role for the running task
 resource "aws_iam_role" "task_role" {
-  name = "${local.prefix}taskrole"
+  name = "${local.prefix}-taskrole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -92,7 +92,7 @@ resource "aws_iam_role" "task_role" {
 }
 
 resource "aws_ecs_task_definition" "task" {
-  family                   = "${local.prefix}taskdef"
+  family                   = "${local.prefix}-taskdef"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory
@@ -100,15 +100,20 @@ resource "aws_ecs_task_definition" "task" {
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
   container_definitions    = jsonencode(local.task_definitions)
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 }
 
 resource "aws_ecs_service" "svc" {
   depends_on             = [aws_iam_role.task_role]
-  name                   = "${local.prefix}svc"
+  name                   = "${local.prefix}-svc"
   cluster                = var.cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
-  desired_count          = 1
+  desired_count          = var.desired_count
   launch_type            = "FARGATE"
 
   network_configuration {
@@ -119,7 +124,7 @@ resource "aws_ecs_service" "svc" {
     ]
   }
 
-  tags = { Service = "${local.prefix}svc" }
+  tags = { Service = "${local.prefix}-svc" }
 }
 
 

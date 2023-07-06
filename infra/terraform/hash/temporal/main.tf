@@ -2,7 +2,6 @@ locals {
   prefix           = var.prefix
   log_group_name   = "${local.prefix}-log"
   param_prefix     = var.param_prefix
-  temporal_version = var.temporal_version
 }
 
 module "migrate_ecr" {
@@ -186,8 +185,8 @@ resource "aws_security_group" "app_sg" {
   }
 
   ingress {
-    from_port   = 7233
-    to_port     = 7233
+    from_port   = local.temporal_port
+    to_port     = local.temporal_port
     protocol    = "tcp"
     description = "Allow connections to Temporal server within the VPC"
     # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
@@ -196,20 +195,24 @@ resource "aws_security_group" "app_sg" {
   }
 
   egress {
-    from_port   = 7233
-    to_port     = 7233
+    from_port   = local.temporal_port
+    to_port     = local.temporal_port
     protocol    = "tcp"
     description = "Allow connections from Temporal server within the VPC"
     cidr_blocks = [var.vpc.cidr_block]
+    # To make UI available from the web:
+    # cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = local.temporal_ui_port
+    to_port     = local.temporal_ui_port
     protocol    = "tcp"
     description = "Allow connections to Temporal UI within the VPC"
     # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
     # description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
     cidr_blocks = [var.vpc.cidr_block]
+    # To make UI available from the web:
+    # cidr_blocks = ["0.0.0.0/0"]
   }
 }

@@ -13,7 +13,7 @@ locals {
 
       essential = false
       name      = "${local.prefix}-${local.migrate_service_name}"
-      image     = "${module.migrate_ecr.url}:${local.temporal_version}"
+      image     = "${module.migrate_ecr.url}:${var.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
 
       environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
@@ -36,14 +36,10 @@ locals {
     {
       essential   = true
       name        = "${local.prefix}-${local.temporal_service_name}"
-      image       = "temporalio/server:${local.temporal_version}"
+      image       = "temporalio/server:${var.temporal_version}"
       cpu         = 0 # let ECS divvy up the available CPU
       dependsOn   = [{ condition = "SUCCESS", containerName = "${local.prefix}-${local.migrate_service_name}" }]
       healthCheck = {
-        # If we just want to for when the socket accepts connections, we can use this:
-        # command     = ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 7233"]
-
-        # This checks that the server is up and running
         command     = [
           "CMD", "/bin/sh", "-c", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"
         ]
@@ -84,13 +80,19 @@ locals {
 
       essential = false
       name      = "${local.prefix}-${local.setup_service_name}"
-      image     = "${module.setup_ecr.url}:${local.temporal_version}"
+      image     = "${module.setup_ecr.url}:${var.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [
         { condition = "START", containerName = "${local.prefix}-${local.temporal_service_name}" },
       ]
 
-      environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
+      environment = concat(
+        local.temporal_shared_env_vars,
+        local.temporal_migration_env_vars,
+        [
+          { name = "TEMPORAL_BROADCAST_ADDRESS", value = "${aws_lb.net_alb.dns_name}:${local.temporal_port}" },
+        ]
+      )
 
       secrets = [
         for env_name, ssm_param in aws_ssm_parameter.temporal_setup_secrets :

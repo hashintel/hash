@@ -69,7 +69,7 @@ variable "temporal_port" {
 
 variable "ecs_health_check" {
   type        = list(string)
-  description = "The ECS Task Definiton Health Check command for the image."
+  description = "The ECS Task Definition Health Check command for the image."
 }
 
 variable "env_vars" {
@@ -81,4 +81,10 @@ variable "env_vars" {
 
   default     = []
   description = "The environment variables and secrets to pass to the container"
+}
+
+variable "desired_count" {
+  type        = number
+  default     = 1
+  description = "The number of instances of the task to run"
 }
