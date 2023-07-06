@@ -9,68 +9,23 @@ locals {
 
   task_definitions = [
     {
-
-      # To remove, only for testing.
-      essential = true
-      name      = "${local.prefix}pgtemporary"
-      image     = "postgres:15"
-      environment = [
-        { name = "POSTGRES_DB", value = "temporal" },
-        { name = "POSTGRES_USER", value = "postgres" },
-        { name = "POSTGRES_PASSWORD", value = "postgres" },
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-create-group"  = "true"
-          "awslogs-group"         = local.log_group_name
-          "awslogs-stream-prefix" = "pg"
-          "awslogs-region"        = var.region
-        }
-      }
-      portMappings = [
-        {
-          appProtocol   = "http"
-          containerPort = 5432
-          hostPort      = 5432
-          protocol      = "tcp"
-        },
-      ]
-      healthCheck = {
-        command     = ["CMD-SHELL", "pg_isready"]
-        startPeriod = 10
-        interval    = 5
-        retries     = 10
-        timeout     = 5
-      }
-
-    },
-    {
       readonlyRootFilesystem = true
 
       essential = false
       name      = "${local.prefix}${local.migrate_service_name}"
       image     = "${module.migrate.url}:${local.temporal_version}"
       cpu       = 0 # let ECS divvy up the available CPU
-      dependsOn = [
-        # to delete
-        { condition = "HEALTHY", containerName = "${local.prefix}pgtemporary" },
+
+      environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
+
+      secrets = [
+        for env_name, ssm_param in aws_ssm_parameter.temporal_setup_secrets :
+        { name = env_name, valueFrom = ssm_param.arn }
       ]
-
-      environment = concat(local.shared_env_vars,
-        # container specific env vars go here
-        [
-          { name = "SKIP_DB_CREATE", value = "true" },
-          { name = "SKIP_VISIBILITY_DB_CREATE", value = "false" },
-        ]
-      )
-
-      secrets = local.shared_secrets
 
       logConfiguration = {
         logDriver = "awslogs"
-        options = {
+        options   = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.migrate_service_name
@@ -79,30 +34,31 @@ locals {
       }
     },
     {
-      essential = true
-      name      = "${local.prefix}${local.temporal_service_name}"
-      image     = "temporalio/server:${local.temporal_version}"
-      cpu       = 0 # let ECS divvy up the available CPU
-      dependsOn = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
+      essential   = true
+      name        = "${local.prefix}${local.temporal_service_name}"
+      image       = "temporalio/server:${local.temporal_version}"
+      cpu         = 0 # let ECS divvy up the available CPU
+      dependsOn   = [{ condition = "SUCCESS", containerName = "${local.prefix}${local.migrate_service_name}" }]
       healthCheck = {
         # If we just want to for when the socket accepts connections, we can use this:
         # command     = ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 7233"]
 
         # This checks that the server is up and running
-        command     = ["CMD", "/bin/sh", "-c", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"]
+        command     = [
+          "CMD", "/bin/sh", "-c", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"
+        ]
         startPeriod = 10
         interval    = 5
         retries     = 10
         timeout     = 5
       }
 
-      environment = concat(local.shared_env_vars,
-        # container specific env vars go here
-        [
-        ]
-      )
+      environment = concat(local.temporal_shared_env_vars, local.temporal_env_vars)
 
-      secrets = local.shared_secrets
+      secrets = [
+        for env_name, ssm_param in aws_ssm_parameter.temporal_secrets :
+        { name = env_name, valueFrom = ssm_param.arn }
+      ]
 
       portMappings = [
         {
@@ -115,7 +71,7 @@ locals {
 
       logConfiguration = {
         logDriver = "awslogs"
-        options = {
+        options   = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.temporal_service_name
@@ -134,17 +90,17 @@ locals {
         { condition = "START", containerName = "${local.prefix}${local.temporal_service_name}" },
       ]
 
-      environment = concat(local.shared_env_vars,
-        # container specific env vars go here
-        [
-        ]
-      )
+      environment = concat(local.temporal_shared_env_vars, local.temporal_migration_env_vars)
 
-      secrets = local.shared_secrets
+      secrets = [
+        for env_name, ssm_param in aws_ssm_parameter.temporal_setup_secrets :
+        { name = env_name, valueFrom = ssm_param.arn }
+      ]
+
 
       logConfiguration = {
         logDriver = "awslogs"
-        options = {
+        options   = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.setup_service_name
@@ -154,30 +110,49 @@ locals {
     },
   ]
 
-  shared_env_vars = [
+  temporal_shared_env_vars = [
     { name = "DB", value = "postgres12" }, # For PostgreSQL v12 and later, see https://docs.temporal.io/cluster-deployment-guide#postgresql
-    { name = "DB_PORT", value = "5432" },
-    { name = "DBNAME", value = "temporal" },
-    { name = "VISIBILITY_DBNAME", value = "high_vis" },
+
+    { name = "POSTGRES_SEEDS", value = var.postgres_host },
+    { name = "DB_PORT", value = tostring(var.postgres_port) },
+    { name = "DBNAME", value = var.postgres_db },
+    { name = "VISIBILITY_DBNAME", value = var.postgres_visibility_db },
   ]
 
-  secret_raw_vars = [
-    # TODO: parameterize module
-    { name = "POSTGRES_USER", value = "postgres" },
-    { name = "POSTGRES_PWD", value = "postgres" },
-    { name = "POSTGRES_SEEDS", value = "localhost" },
+  temporal_migration_env_vars = [
+    { name = "POSTGRES_USER", value = var.postgres_superuser },
   ]
 
-  shared_secrets = [for env_name, ssm_param in aws_ssm_parameter.secret_env_vars :
-  { name = env_name, valueFrom = ssm_param.arn }]
+  temporal_env_vars = [
+    { name = "POSTGRES_USER", value = var.postgres_user },
+  ]
+
+  temporal_migration_secrets = [
+    { name = "POSTGRES_PWD", value = var.postgres_superuser_password },
+  ]
+
+  temporal_secrets = [
+    { name = "POSTGRES_PWD", value = var.postgres_password },
+  ]
 }
 
-
-resource "aws_ssm_parameter" "secret_env_vars" {
+resource "aws_ssm_parameter" "temporal_secrets" {
   # Only put secrets into SSM
-  for_each = { for env_var in local.secret_raw_vars : env_var.name => env_var }
+  for_each = { for env_var in local.temporal_secrets : env_var.name => env_var }
 
   name = "${local.param_prefix}/${each.value.name}"
+  # Still supports non-secret values
+  type      = "SecureString"
+  value     = sensitive(each.value.value)
+  overwrite = true
+  tags      = {}
+}
+
+resource "aws_ssm_parameter" "temporal_setup_secrets" {
+  # Only put secrets into SSM
+  for_each = { for env_var in local.temporal_migration_secrets : env_var.name => env_var }
+
+  name = "${local.param_prefix}/migration/${each.value.name}"
   # Still supports non-secret values
   type      = "SecureString"
   value     = sensitive(each.value.value)

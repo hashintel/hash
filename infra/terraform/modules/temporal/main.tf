@@ -51,11 +51,20 @@ resource "aws_iam_role" "execution_role" {
             Resource = ["*"]
           }
         ],
-        length(local.shared_secrets) > 0 ? [{
-          Effect   = "Allow"
-          Action   = ["ssm:GetParameters"]
-          Resource = [for _, env_var in local.shared_secrets : env_var.valueFrom]
-        }] : []
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = [for _, env_var in aws_ssm_parameter.temporal_setup_secrets : env_var.arn]
+          }
+        ],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = [for _, env_var in aws_ssm_parameter.temporal_secrets : env_var.arn]
+          }
+        ]
       ])
     })
   }
@@ -122,7 +131,7 @@ resource "aws_ecs_service" "svc" {
   cluster                = module.temporal_ecs.ecs_cluster_arn
   task_definition        = aws_ecs_task_definition.task.arn
   enable_execute_command = true
-  desired_count          = 0
+  desired_count          = 1
   launch_type            = "FARGATE"
 
   network_configuration {
@@ -174,8 +183,9 @@ resource "aws_security_group" "app_sg" {
     from_port   = 7233
     to_port     = 7233
     protocol    = "tcp"
-    description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
-    # TODO: Consider changing this to `var.vpc.cidr_block`
-    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow connections to Temporal within the VPC"
+    # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
+    # description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
+    cidr_blocks = [var.vpc.cidr_block]
   }
 }

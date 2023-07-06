@@ -46,3 +46,43 @@ variable "temporal_version" {
   type        = string
   description = "Docker container tag for temporal containers"
 }
+
+variable "postgres_host" {
+  type        = string
+  description = "The hostname of the postgres database"
+}
+
+variable "postgres_port" {
+  type        = number
+  description = "The port of the postgres database"
+}
+
+variable "postgres_db" {
+  type        = string
+  description = "The name of the postgres database"
+}
+
+variable "postgres_visibility_db" {
+  type        = string
+  description = "The name of the postgres visibility database"
+}
+
+variable "postgres_user" {
+  type        = string
+  description = "The username for the postgres database"
+}
+
+variable "postgres_password" {
+  type        = string
+  description = "The password for the postgres database"
+}
+
+variable "postgres_superuser" {
+  type        = string
+  description = "The username for the postgres superuser"
+}
+
+variable "postgres_superuser_password" {
+  type        = string
+  description = "The password for the postgres superuser"
+}
