@@ -90,7 +90,8 @@ locals {
         local.temporal_shared_env_vars,
         local.temporal_migration_env_vars,
         [
-          { name = "TEMPORAL_BROADCAST_ADDRESS", value = "${aws_lb.net_alb.dns_name}:${local.temporal_port}" },
+          # Adjust when setting up the cluster
+          { name = "TEMPORAL_BROADCAST_ADDRESS", value = "127.0.0.1" },
         ]
       )
 
