@@ -112,13 +112,6 @@ $ terraform apply --var-file prod-usea1.tfvars
 ..
 ```
 
-Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are deferred to the apply phase, usually).
-
-```console
-$ terraform apply --var-file prod-usea1.tfvars --refresh=false
-..
-```
-
 ## 2. Migrate databases
 
 Once the terraform infrastructure is deployed, you should have an RDS Postgres database accessible from the bastion host with `graph` and `kratos` users/dbs. These need to be migrated locally in preparation for starting the services.
