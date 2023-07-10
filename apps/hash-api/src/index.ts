@@ -19,7 +19,6 @@ import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
-import { setupAgentRunner } from "./agents/runner";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import {
@@ -42,7 +41,6 @@ import {
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import { setupFileProxyHandler, setupStorageProviders } from "./storage";
-import { connectToTaskExecutor } from "./task-execution";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { getRequiredEnv } from "./util";
 
@@ -98,11 +96,6 @@ const main = async () => {
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
-  const taskExecutorHost = getRequiredEnv("HASH_TASK_EXECUTOR_HOST");
-  const taskExecutorPort = parseInt(
-    getRequiredEnv("HASH_TASK_EXECUTOR_PORT"),
-    10,
-  );
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
   const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
@@ -118,13 +111,6 @@ const main = async () => {
     port: redisPort,
   });
   shutdown.addCleanup("Redis", async () => redis.close());
-
-  // Connect to the HASH-Task-Executor
-  const taskExecutorConfig = {
-    host: taskExecutorHost,
-    port: taskExecutorPort,
-  };
-  const taskExecutor = connectToTaskExecutor(taskExecutorConfig);
 
   // Connect to the Graph API
   const graphApi = createGraphClient(logger, {
@@ -204,15 +190,11 @@ const main = async () => {
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
 
-  const agentRunner = setupAgentRunner();
-
   const apolloServer = createApolloServer({
     graphApi,
     search,
     uploadProvider,
     cache: redis,
-    taskExecutor,
-    agentRunner,
     emailTransporter,
     logger,
     statsd,

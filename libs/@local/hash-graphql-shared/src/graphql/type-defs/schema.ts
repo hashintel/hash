@@ -1,6 +1,5 @@
 import { gql } from "apollo-server-express";
 
-import { agentsTypedef } from "./agents.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 import { deprecatedTypedef } from "./deprecated.typedef";
 import { embedTypeDef } from "./embed.typedef";
@@ -16,7 +15,6 @@ import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
-import { executeTaskTypedef } from "./task-execution.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -61,9 +59,7 @@ export const schema = [
   blockprotocolTypedef,
   embedTypeDef,
   deprecatedTypedef,
-  executeTaskTypedef,
   ...ontology,
   ...knowledge,
   subgraphTypedef,
-  agentsTypedef,
 ];

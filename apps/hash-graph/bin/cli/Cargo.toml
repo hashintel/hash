@@ -8,30 +8,28 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
-type-fetcher = { path = "../../lib/type-fetcher", optional = true }
+graph = { path = "../../lib/graph", features = ["clap"] }
+type-fetcher = { path = "../../lib/type-fetcher" }
+
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
 
 axum = "0.6.18"
-clap = { version = "4.3.0", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.3.0"
+clap = { version = "4.3.11", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.3.2"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = { version = "0.3.28" }
-graph = { path = "../../lib/graph", features = ["clap"] }
+regex = "1.9.1"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
-regex = "1.8.2"
 semver = { version = "1.0.17", default-features = false }
-serde_json = "1.0.96"
-tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"], optional = true }
-tokio = { version = "1.28.1", features = ["rt-multi-thread", "macros"] }
+serde_json = "1.0.100"
+tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"] }
+time = "0.3.23"
+tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.8", default-features = false }
-tokio-serde = { version = "0.8", features = ["json"], optional = true }
+tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec"] }
 tracing = "0.1.37"
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
-uuid = "1.3.3"
-
-# Remove again when the type fetcher is used in the graph
-time = "0.3.21"
+uuid = "1.4.0"
 
 [features]
 test-server = ["graph/test-server"]
-type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde", "graph/type-fetcher"]

@@ -22,7 +22,7 @@ pub use self::{
         SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
-    table::{Alias, AliasedColumn, AliasedTable, Table},
+    table::{Alias, AliasedColumn, AliasedTable, ForeignKeyReference, ReferenceTable, Table},
 };
 use crate::store::{
     postgres::query::table::{Column, Relation},

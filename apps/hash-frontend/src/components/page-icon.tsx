@@ -1,14 +1,6 @@
-import { useQuery } from "@apollo/client";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { getPageInfoQuery } from "@local/hash-graphql-shared/queries/page.queries";
-import { EntityId } from "@local/hash-subgraph";
 import { Box, BoxProps } from "@mui/material";
-
-import {
-  GetPageInfoQuery,
-  GetPageInfoQueryVariables,
-} from "../graphql/api-types.gen";
 
 export type SizeVariant = "small" | "medium";
 
@@ -21,23 +13,12 @@ export const pageIconVariantSizes: Record<
 };
 
 interface PageIconProps {
-  entityId: EntityId;
+  icon?: string | null;
   size?: SizeVariant;
   sx?: BoxProps["sx"];
 }
 
-export const PageIcon = ({
-  entityId,
-  size = "medium",
-  sx = [],
-}: PageIconProps) => {
-  const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
-    getPageInfoQuery,
-    {
-      variables: { entityId },
-    },
-  );
-
+export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
   const sizes = pageIconVariantSizes[size];
 
   return (
@@ -54,7 +35,7 @@ export const PageIcon = ({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      {data?.page.icon ?? (
+      {icon ?? (
         <FontAwesomeIcon
           icon={faFile}
           sx={(theme) => ({

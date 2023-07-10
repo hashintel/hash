@@ -1,6 +1,5 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { callAgentRunnerResolver } from "./agents/call-agent-runner";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { blocksResolver } from "./knowledge/block/block";
@@ -59,17 +58,6 @@ import {
   queryPropertyTypesResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
-import {
-  executeAsanaCheckTask,
-  executeAsanaDiscoverTask,
-  executeAsanaReadTask,
-  executeAsanaSpecTask,
-  executeDemoTask,
-  executeGithubCheckTask,
-  executeGithubDiscoverTask,
-  executeGithubReadTask,
-  executeGithubSpecTask,
-} from "./task-executor";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
@@ -115,20 +103,6 @@ export const resolvers = {
     updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
-    // Task execution
-    executeDemoTask,
-    executeGithubSpecTask,
-    executeGithubCheckTask,
-    executeGithubDiscoverTask: loggedInAndSignedUpMiddleware(
-      executeGithubDiscoverTask,
-    ),
-    executeGithubReadTask: loggedInAndSignedUpMiddleware(executeGithubReadTask),
-    executeAsanaSpecTask,
-    executeAsanaCheckTask,
-    executeAsanaDiscoverTask: loggedInAndSignedUpMiddleware(
-      executeAsanaDiscoverTask,
-    ),
-    executeAsanaReadTask: loggedInAndSignedUpMiddleware(executeAsanaReadTask),
     // Ontology
     createPropertyType: loggedInAndSignedUpMiddleware(
       createPropertyTypeResolver,
@@ -149,9 +123,6 @@ export const resolvers = {
     resolveComment: loggedInAndSignedUpMiddleware(resolveCommentResolver),
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
-
-    // LLM Agents
-    callAgentRunner: loggedInAndSignedUpMiddleware(callAgentRunnerResolver),
 
     // HASH instance admin mutations
     createUser:

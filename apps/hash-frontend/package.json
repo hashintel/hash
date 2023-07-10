@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
-    "@apps/hash-agents": "0.0.0-private",
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/graph": "0.3.0",
     "@blockprotocol/hook": "0.1.3",
@@ -42,8 +41,8 @@
     "@mui/icons-material": "5.11.9",
     "@mui/material": "5.11.9",
     "@mui/system": "5.11.9",
-    "@ory/client": "1.0.2",
-    "@ory/integrations": "0.2.8",
+    "@ory/client": "1.1.33",
+    "@ory/integrations": "1.1.1",
     "@sentry/nextjs": "7.30.0",
     "@sentry/react": "7.30.0",
     "@svgr/webpack": "6.2.1",

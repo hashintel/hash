@@ -43,8 +43,6 @@ import {
   getBlockFromEntity,
 } from "./block";
 import { Comment } from "./comment";
-import { Org } from "./org";
-import { User } from "./user";
 
 export type Page = {
   title: string;
@@ -245,7 +243,7 @@ export const isPageArchived: ImpureGraphFunction<
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
-    workspace: User | Org;
+    accountId: AccountId;
   },
   Promise<Page[]>
 > = async (ctx, params) => {
@@ -273,7 +271,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .filter(
       (pageEntity) =>
         extractOwnedByIdFromEntityId(pageEntity.metadata.recordId.entityId) ===
-        params.workspace.accountId,
+        params.accountId,
     )
     .map((entity) => getPageFromEntity({ entity }));
 
@@ -620,11 +618,11 @@ export const removeBlockFromPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageComments: ImpureGraphFunction<
-  { page: Page },
+  { pageEntityId: EntityId },
   Promise<Comment[]>
-> = async (ctx, { page }) => {
+> = async (ctx, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, {
-    pageEntityId: page.entity.metadata.recordId.entityId,
+    pageEntityId,
   });
 
   const comments = await Promise.all(

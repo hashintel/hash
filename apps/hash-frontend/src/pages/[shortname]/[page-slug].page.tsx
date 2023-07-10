@@ -3,13 +3,10 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
+import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import {
-  getPageInfoQuery,
-  getPageQuery,
-} from "@local/hash-graphql-shared/queries/page.queries";
-import {
-  defaultBlockComponentIds,
-  fetchBlock,
+  // defaultBlockComponentIds,
+  // fetchBlock,
   HashBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -31,7 +28,7 @@ import { GetServerSideProps } from "next";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
@@ -58,11 +55,7 @@ import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
-import {
-  GetPageInfoQuery,
-  GetPageInfoQueryVariables,
-  QueryEntitiesQuery,
-} from "../../graphql/api-types.gen";
+import { QueryEntitiesQuery } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -118,9 +111,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   req,
   params,
 }) => {
-  const fetchedBlocks = await Promise.all(
-    defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
-  );
+  // Fetching block metadata can significantly slow down the server render, so disabling for now
+  // const fetchedBlocks = await Promise.all(
+  //   defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
+  // );
 
   if (!params || !isPageParsedUrlQuery(params)) {
     throw new Error(
@@ -155,9 +149,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
         constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: 1, outgoing: 1 },
-        hasRightEntity: { incoming: 1, outgoing: 1 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
       context: { headers: { cookie } },
     })
@@ -200,29 +194,22 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   return {
     props: {
       pageWorkspace,
-      blocks: fetchedBlocks,
+      blocks: [],
       pageEntityId,
     },
   };
 };
 
-export const PageNotificationBanner: FunctionComponent = () => {
+export const PageNotificationBanner = ({
+  archived = false,
+}: {
+  archived: boolean;
+}) => {
   const { pageEntityId } = usePageContext();
   const [archivePage] = useArchivePage();
 
-  const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
-    getPageInfoQuery,
-    {
-      variables: {
-        entityId: pageEntityId,
-      },
-    },
-  );
-
-  const archived = data?.page.archived;
-
   return (
-    <Collapse in={!!archived}>
+    <Collapse in={archived}>
       <Box
         sx={({ palette }) => ({
           color: palette.common.white,
@@ -270,25 +257,31 @@ const generateCrumbsFromPages = ({
   pages: AccountPagesInfo["data"];
   ownerShortname: string;
 }) => {
-  const pageMap = new Map(pages.map((page) => [page.entityId, page]));
+  const pageMap = new Map(
+    pages.map((page) => [page.metadata.recordId.entityId, page]),
+  );
 
   let currentPage = pageMap.get(pageEntityId);
   let arr = [];
 
   while (currentPage) {
-    const pageEntityUuid = extractEntityUuidFromEntityId(currentPage.entityId);
+    const currentPageEntityId = currentPage.metadata.recordId.entityId;
+
+    const pageEntityUuid = extractEntityUuidFromEntityId(currentPageEntityId);
     arr.push({
       title: currentPage.title,
       href: constructPageRelativeUrl({
         workspaceShortname: ownerShortname,
         pageEntityUuid,
       }),
-      id: currentPage.entityId,
-      icon: <PageIcon entityId={currentPage.entityId} size="small" />,
+      id: currentPageEntityId,
+      icon: <PageIcon icon={currentPage.icon} size="small" />,
     });
 
-    if (currentPage.parentPageEntityId) {
-      currentPage = pageMap.get(currentPage.parentPageEntityId);
+    if (currentPage.parentPage) {
+      currentPage = pageMap.get(
+        currentPage.parentPage.metadata.recordId.entityId,
+      );
     } else {
       break;
     }
@@ -394,7 +387,7 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, contents } = data.page;
+  const { title, icon, archived, contents } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -434,9 +427,10 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
+            isBlockPage
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner />
+          <PageNotificationBanner archived={!!archived} />
         </Box>
 
         {!canvasPage && (
@@ -444,6 +438,7 @@ const Page: NextPageWithLayout<PageProps> = ({
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
+                icon={icon}
                 readonly={isReadonlyMode}
                 sx={({ breakpoints }) => ({
                   mb: 2,

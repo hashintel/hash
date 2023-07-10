@@ -2,18 +2,15 @@ import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
   AccountId,
   EntityId,
-  EntityUuid,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
   OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 import { FunctionComponent, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
 import { useUsers } from "../../../components/hooks/use-users";
-import { useWorkspaceShortnameByEntityUuid } from "../../../components/hooks/use-workspace-shortname-by-entity-uuid";
+import { useWorkspaceShortnameByAccountId } from "../../../components/hooks/use-workspace-shortname-by-account-id";
 import { PageIcon } from "../../../components/page-icon";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
@@ -37,12 +34,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   );
   const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
 
-  const { workspaceShortname, loading: workspaceShortnameLoading } =
-    useWorkspaceShortnameByEntityUuid({
-      entityUuid: extractOwnedByIdFromEntityId(entityId) as Uuid as EntityUuid,
-      // no need to call this hook if the mention type is not an entity, see below to see how shortname is generated for other mention types
-      disabled: mentionType !== "entity",
-    });
+  const { shortname: workspaceShortname, loading: workspaceShortnameLoading } =
+    useWorkspaceShortnameByAccountId({ accountId });
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
@@ -85,7 +78,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       case "page": {
         const page = pages.find(
-          (potentialPage) => potentialPage.entityId === entityId,
+          (potentialPage) =>
+            potentialPage.metadata.recordId.entityId === entityId,
         );
 
         let pageTitle = "";
@@ -102,15 +96,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
         return {
           title: pageTitle || "Untitled",
-          href: page
-            ? constructPageRelativeUrl({
-                workspaceShortname: page.ownerShortname,
-                pageEntityUuid,
-              })
-            : "",
+          href:
+            page && workspaceShortname
+              ? constructPageRelativeUrl({
+                  workspaceShortname,
+                  pageEntityUuid,
+                })
+              : "",
           icon: (
             <PageIcon
-              entityId={entityId}
+              icon={page?.icon}
               size="small"
               sx={{ display: "inline-flex", mr: 0.25 }}
             />

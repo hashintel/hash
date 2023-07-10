@@ -144,7 +144,7 @@ export const getSerializedPage = async (params: {
 
 export type Page<DataType extends {}> = {
   fileName: string;
-  data: Partial<DataType>;
+  data: DataType;
 };
 
 export const getPage = <DataType extends {}>(params: {

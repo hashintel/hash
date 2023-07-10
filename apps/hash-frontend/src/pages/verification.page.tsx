@@ -1,9 +1,6 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
-import {
-  UpdateVerificationFlowWithCodeMethodBody,
-  VerificationFlow,
-} from "@ory/client";
+import { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { FormEventHandler, useEffect, useState } from "react";
@@ -33,7 +30,7 @@ const VerificationPage: NextPageWithLayout = () => {
   } = router.query;
 
   const [flow, setFlow] = useState<VerificationFlow>();
-  const [code, setCode] = useState<string>();
+  const [code, setCode] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const { handleFlowError } = useKratosErrorHandler({
@@ -44,7 +41,7 @@ const VerificationPage: NextPageWithLayout = () => {
 
   // This might be confusing, but we want to show the user an option
   // to sign out if they are performing two-factor authentication!
-  const { logout } = useLogoutFlow([aal, refresh]);
+  const { logout } = useLogoutFlow();
 
   const extractFlowCodeValue = (flowToSearch: VerificationFlow | undefined) => {
     const uiCode = flowToSearch?.ui.nodes.find(
@@ -113,9 +110,9 @@ const VerificationPage: NextPageWithLayout = () => {
         flow: String(flow.id),
         updateVerificationFlowBody: {
           ...gatherUiNodeValuesFromFlow<"verification">(flow),
+          method: "code",
           code,
-          // @TODO remove this assertion when the UpdateVerificationFlowBody type is updated.
-        } as UpdateVerificationFlowWithCodeMethodBody as any,
+        },
       })
       .then(({ data }) => {
         // Form submission was successful, show the message to the user!

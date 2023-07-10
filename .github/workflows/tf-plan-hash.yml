@@ -1,8 +1,5 @@
 name: HASH Terraform Plan
 
-# TODO: While this workflow is specific to HASH, we should consider
-#  making this a reusable workflow, parameterized on the directory and environment.
-
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +11,7 @@ on:
         default: "prod"
 
   pull_request:
+  merge_group:
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
@@ -36,13 +34,11 @@ jobs:
 
   terraform:
     runs-on: ubuntu-latest
+    # The following permissions are required for the Vault step used in the
+    # Terraform composite action.
     permissions:
       id-token: write
       contents: read
-    env:
-      working-directory: infra/terraform/hash
-      TF_VAR_in_ci: true
-      AWS_PAGER:
     needs:
       - matrix-eval
     strategy:
@@ -50,73 +46,14 @@ jobs:
         env: ${{ fromJson(needs.matrix-eval.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v2
 
       - name: Prepare SSH key
-        working-directory: ${{ env.working-directory }}
         run: |
           echo "${{ secrets.BASTION_SSH_KEY }}" > h-hash-prod-usea1-bastionkey.pem
 
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@v2
+      - uses: ./.github/actions/terraform-exec
         with:
-          exportToken: true
-          url: ${{ env.VAULT_ADDR }}
-          method: jwt
-          role: ${{ matrix.env }}
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/${{ matrix.env }}-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/${{ matrix.env }}-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/${{ matrix.env }}-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: "[${{ matrix.env }}] Terraform Init"
-        id: init
-        env:
-          TF_WORKSPACE: ${{ matrix.env }}
-        working-directory: ${{ env.working-directory }}
-        run: terraform init -no-color 2>&1
-
-      - name: Terraform Validate
-        id: validate
-        run: terraform validate -no-color 2>&1
-
-      - name: "[${{ matrix.env }}] Terraform Plan"
-        id: plan
-        env:
-          TF_WORKSPACE: ${{ matrix.env }}
-        working-directory: ${{ env.working-directory }}
-        run: terraform plan -no-color -var-file=${{ matrix.env }}-usea1.tfvars -refresh=false 2>&1
-
-      - uses: actions/github-script@v6
-        id: set-result
-        with:
-          script: |
-            const plan = `${{ steps.plan.outputs.stdout }}`.replaceAll(/^~/g, "!");
-
-            const heading = `Terraform [${{matrix.env}}] plan results 🧪`
-
-            await core.summary
-              .addHeading(heading)
-              .addDetails(
-                "Terraform Initialization ⚙️ (${{ steps.init.outcome }})", 
-                `<pre><code>${{ steps.init.outputs.stdout }}</code></pre>`
-              )
-              .addDetails(
-                "Validation Output 🤖 (${{ steps.validate.outcome }})",
-                `<pre><code>${{ steps.validate.outputs.stdout }}</code></pre>`
-              )
-              .addDetails("Plan Output 📖 (${{ steps.plan.outcome }})", 
-                `<pre><code lang="diff">${plan}</code></pre>`
-              )
-              .write();
+          vault-address: ${{ env.VAULT_ADDR }}
+          working-directory: infra/terraform/hash
+          command: plan
+          env: ${{ matrix.env }}

@@ -63,6 +63,7 @@ use core::{
     fmt::{self, Debug, Display, Formatter},
 };
 
+pub use duplicate::{DuplicateField, DuplicateFieldError, DuplicateKey, DuplicateKeyError};
 use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
@@ -80,6 +81,7 @@ pub use value::{MissingError, ReceivedValue, ValueError};
 
 use crate::error::serialize::{impl_serialize, Export};
 
+mod duplicate;
 mod extra;
 mod internal;
 mod location;
@@ -467,5 +469,20 @@ pub trait ReportExt<C: Context> {
 impl<C: Context> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
         Export::new(self)
+    }
+}
+
+pub(crate) trait ResultExtPrivate<C: Context> {
+    fn extend_one(&mut self, error: Report<C>);
+}
+
+impl<T, C: Context> ResultExtPrivate<C> for Result<T, C> {
+    fn extend_one(&mut self, error: Report<C>) {
+        match self {
+            Err(errors) => {
+                errors.extend_one(error);
+            }
+            errors => *errors = Err(error),
+        }
     }
 }

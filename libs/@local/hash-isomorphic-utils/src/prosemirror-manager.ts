@@ -330,6 +330,11 @@ export class ProsemirrorManager {
         });
         targetBlockId = blockEntity.draftId;
       } else {
+        /**
+         * @todo fix data retention when swapping blocks
+         *   – this currently doesn't take account of different properties for Heading, Text etc
+         */
+
         const newBlockProperties = entityProperties;
 
         targetBlockId = this.createBlockEntity(

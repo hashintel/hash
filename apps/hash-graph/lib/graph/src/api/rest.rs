@@ -18,9 +18,8 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{collections::HashMap, fs, io, sync::Arc};
+use std::{fs, io, sync::Arc};
 
-#[cfg(feature = "type-fetcher")]
 use async_trait::async_trait;
 use axum::{
     extract::Path,
@@ -31,11 +30,10 @@ use axum::{
 };
 use error_stack::{IntoReport, Report, ResultExt};
 use include_dir::{include_dir, Dir};
-use serde::Serialize;
 use utoipa::{
     openapi::{
-        self, schema, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref, RefOr,
-        SchemaFormat, SchemaType,
+        self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
+        Schema, SchemaFormat, SchemaType,
     },
     Modify, OpenApi, ToSchema,
 };
@@ -63,10 +61,10 @@ use crate::{
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
-        OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
+        OntologyElementMetadata, OntologyTypeReference, OwnedOntologyElementMetadata, Selector,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{QueryError, Store, StorePool},
+    store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -79,13 +77,7 @@ use crate::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
-#[cfg(feature = "type-fetcher")]
-use crate::{
-    ontology::OntologyTypeReference,
-    store::{error::VersionedUrlAlreadyExists, TypeFetcher},
-};
 
-#[cfg(feature = "type-fetcher")]
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
     async fn load_external_type(
@@ -96,7 +88,6 @@ pub trait RestApiStore: Store + TypeFetcher {
     ) -> Result<OntologyElementMetadata, StatusCode>;
 }
 
-#[cfg(feature = "type-fetcher")]
 #[async_trait]
 impl<S> RestApiStore for S
 where
@@ -129,11 +120,6 @@ where
             })
     }
 }
-
-#[cfg(not(feature = "type-fetcher"))]
-pub trait RestApiStore: Store {}
-#[cfg(not(feature = "type-fetcher"))]
-impl<S> RestApiStore for S where S: Store {}
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
@@ -487,13 +473,17 @@ struct FilterSchemaAddon;
 impl Modify for FilterSchemaAddon {
     #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
-        // This magically generates `any`, which is the closest representation we found working
-        // with the OpenAPI generator.
-        #[derive(Serialize, ToSchema)]
-        #[serde(untagged)]
-        #[expect(dead_code)]
-        enum Any {
-            Object(HashMap<String, Self>),
+        // This is a bit of hack, but basically, it adds a schema that is equivalent to "any value"
+        // `SchemaType::Value` indicates any generic JSON value.
+        struct Any;
+
+        impl ToSchema<'_> for Any {
+            fn schema() -> (&'static str, RefOr<Schema>) {
+                (
+                    "Any",
+                    Schema::Object(Object::with_type(SchemaType::Value)).into(),
+                )
+            }
         }
 
         if let Some(ref mut components) = openapi.components {

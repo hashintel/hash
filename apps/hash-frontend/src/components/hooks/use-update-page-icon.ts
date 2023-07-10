@@ -1,10 +1,8 @@
 import { useMutation } from "@apollo/client";
-import { getPageInfoQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetPageInfoQueryVariables,
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../graphql/api-types.gen";
@@ -22,12 +20,6 @@ export const useUpdatePageIcon = () => {
       {
         query: getAccountPagesTree,
         variables: { ownedById: extractOwnedByIdFromEntityId(pageEntityId) },
-      },
-      {
-        query: getPageInfoQuery,
-        variables: <GetPageInfoQueryVariables>{
-          entityId: pageEntityId,
-        },
       },
     ],
     [],

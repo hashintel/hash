@@ -8,7 +8,6 @@
       "cache": false,
       "dependsOn": [
         "@apps/hash-graph#build:docker",
-        "@apps/hash-agents#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
         "@apps/hash-ai-worker-py#build:docker",
         "codegen"
@@ -18,7 +17,6 @@
       "cache": false,
       "dependsOn": [
         "@apps/hash-graph#build:docker:test",
-        "@apps/hash-agents#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
         "codegen"
       ]
@@ -27,7 +25,6 @@
       "cache": false,
       "dependsOn": [
         "@apps/hash-graph#build:docker:offline",
-        "@apps/hash-agents#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
         "@apps/hash-ai-worker-py#build:docker",
         "codegen"

@@ -5,6 +5,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
+import { createImpureGraphContext } from "./activities";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
@@ -44,12 +45,14 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
+  const graphContext = createImpureGraphContext();
   const worker = await Worker.create({
     ...workflowOption(),
-    activities,
+    activities: activities.createGraphActivities({ graphContext }),
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
+    namespace: "HASH",
     taskQueue: "ai",
   });
 

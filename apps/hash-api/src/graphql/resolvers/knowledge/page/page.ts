@@ -1,21 +1,10 @@
 import {
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityUuid,
-  OwnedById,
-  Uuid,
-} from "@local/hash-subgraph";
-
-import { getOrgById } from "../../../../graph/knowledge/system-types/org";
-import {
   createPage,
   getAllPagesInWorkspace,
   getPageById,
   getPageComments,
   getPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
-import { getUserById } from "../../../../graph/knowledge/system-types/user";
-import { systemUserAccountId } from "../../../../graph/system-user";
-import { EntityTypeMismatchError } from "../../../../lib/error";
 import {
   MutationCreatePageArgs,
   QueryPageArgs,
@@ -93,26 +82,10 @@ export const pagesResolver: ResolverFn<
 > = async (_, { ownedById }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const accountEntityId = ownedById
-    ? entityIdFromOwnedByIdAndEntityUuid(
-        systemUserAccountId as OwnedById,
-        ownedById as Uuid as EntityUuid,
-      )
-    : undefined;
-
-  const workspace = accountEntityId
-    ? await getUserById(context, {
-        entityId: accountEntityId,
-      }).catch((error: Error) => {
-        if (error instanceof EntityTypeMismatchError) {
-          return getOrgById(context, { entityId: accountEntityId });
-        }
-        throw error;
-      })
-    : user;
+  const accountId = ownedById ?? user.accountId;
 
   const pages = await getAllPagesInWorkspace(context, {
-    workspace,
+    accountId,
   });
 
   return pages.map(mapPageToGQL);
@@ -126,11 +99,7 @@ export const pageCommentsResolver: ResolverFn<
 > = async (_, { entityId }, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const page = await getPageById(context, {
-    entityId,
-  });
-
-  const comments = await getPageComments(context, { page });
+  const comments = await getPageComments(context, { pageEntityId: entityId });
 
   return comments.map(mapCommentToGQL);
 };

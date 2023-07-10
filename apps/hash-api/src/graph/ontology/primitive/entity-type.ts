@@ -150,7 +150,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
   });
 
   if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
-    await context.graphApi.createEntityType({
+    await context.graphApi.loadExternalEntityType({
       actorId,
       entityTypeId,
     });

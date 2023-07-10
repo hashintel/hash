@@ -48,9 +48,6 @@ hash_api_env_vars = [
 
   { name = "HASH_OPENSEARCH_ENABLED", secret = false, value = "false" },
 
-  { name = "HASH_TASK_EXECUTOR_HOST", secret = false, value = "0" },
-  { name = "HASH_TASK_EXECUTOR_PORT", secret = false, value = "0" },
-
   { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
   { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
 

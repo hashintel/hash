@@ -10,8 +10,6 @@ use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
-#[cfg(feature = "type-fetcher")]
-use crate::ontology::OntologyTypeReference;
 use crate::{
     api::rest::{
         json::Json,
@@ -21,8 +19,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
-        PropertyTypeQueryToken, PropertyTypeWithMetadata,
+        patch_id_and_parse, OntologyElementMetadata, OntologyTypeReference,
+        OwnedOntologyElementMetadata, PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -36,16 +34,16 @@ use crate::{
 #[openapi(
     paths(
         create_property_type,
+        load_external_property_type,
         get_property_types_by_query,
-        update_property_type
+        update_property_type,
     ),
     components(
         schemas(
             PropertyTypeWithMetadata,
 
             CreatePropertyTypeRequest,
-            CreateOwnedPropertyTypeRequest,
-            CreateExternalPropertyTypeRequest,
+            LoadExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
@@ -71,32 +69,18 @@ impl RoutedResource for PropertyTypeResource {
                     "/",
                     post(create_property_type::<P>).put(update_property_type::<P>),
                 )
-                .route("/query", post(get_property_types_by_query::<P>)),
+                .route("/query", post(get_property_types_by_query::<P>))
+                .route("/load", post(load_external_property_type::<P>)),
         )
     }
 }
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", untagged)]
-enum CreatePropertyTypeRequest {
-    Owned(CreateOwnedPropertyTypeRequest),
-    #[cfg(feature = "type-fetcher")]
-    External(CreateExternalPropertyTypeRequest),
-}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateOwnedPropertyTypeRequest {
+struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: RecordCreatedById,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct CreateExternalPropertyTypeRequest {
-    #[schema(value_type = String)]
-    property_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
 
@@ -112,7 +96,6 @@ struct CreateExternalPropertyTypeRequest {
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = CreatePropertyTypeRequest,
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
@@ -128,28 +111,11 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    #[allow(clippy::infallible_destructuring_match)]
-    let CreateOwnedPropertyTypeRequest {
+    let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
         actor_id,
-    } = match body.0 {
-        CreatePropertyTypeRequest::Owned(request) => request,
-        #[cfg(feature = "type-fetcher")]
-        CreatePropertyTypeRequest::External(request) => {
-            return Ok(Json(ListOrValue::Value(
-                store
-                    .load_external_type(
-                        &domain_validator,
-                        OntologyTypeReference::PropertyTypeReference(
-                            (&request.property_type_id).into(),
-                        ),
-                        request.actor_id,
-                    )
-                    .await?,
-            )));
-        }
-    };
+    }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
@@ -207,6 +173,57 @@ where
             metadata.pop().expect("metadata does not contain a value"),
         )))
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct LoadExternalPropertyTypeRequest {
+    #[schema(value_type = String)]
+    property_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/property-types/load",
+    request_body = LoadExternalPropertyTypeRequest,
+    tag = "PropertyType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = OntologyElementMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 409, description = "Unable to load property type in the store as the base property type ID already exists"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
+async fn load_external_property_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
+    body: Json<LoadExternalPropertyTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let Json(LoadExternalPropertyTypeRequest {
+        property_type_id,
+        actor_id,
+    }) = body;
+
+    Ok(Json(
+        store
+            .load_external_type(
+                &domain_validator,
+                OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
+                actor_id,
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(

@@ -113,6 +113,8 @@ blocks/**/.env
 # generated files
 *.gen.*
 *.tsbuildinfo
+feed.atom
+feed.rss
 
 # Sentry
 .sentryclirc

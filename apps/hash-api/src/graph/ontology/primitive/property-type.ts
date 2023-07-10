@@ -149,7 +149,7 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   });
 
   if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(frontendUrl)) {
-    await context.graphApi.createPropertyType({
+    await context.graphApi.loadExternalPropertyType({
       actorId,
       propertyTypeId,
     });

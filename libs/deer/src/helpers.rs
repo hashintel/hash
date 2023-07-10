@@ -1,8 +1,10 @@
 use error_stack::{Result, ResultExt};
+use serde::{ser::SerializeMap, Serialize, Serializer};
 
 use crate::{
     error::{DeserializeError, VisitorError},
     ext::TupleExt,
+    schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
 };
@@ -60,10 +62,9 @@ where
     {
         let mut object = object.into_bound(1).change_context(VisitorError)?;
 
-        let Some(value) = object
-            .field(EnumObjectFieldVisitor {
-                visitor: self.visitor,
-            }) else {
+        let Some(value) = object.field(EnumObjectFieldVisitor {
+            visitor: self.visitor,
+        }) else {
             // `into_bound` guarantees that we can call exactly `n` times (here `1`) and we
             // will always get exactly `n` `Some` back, this means getting to this point is UB and
             // theoretically, due to the fact that `BoundObjectAccess` is controlled by `deer`
@@ -123,3 +124,20 @@ impl<'de> Deserialize<'de> for ExpectNone {
 }
 
 // TODO: consider adding an error attachment marker type for "short-circuit"
+
+pub struct Properties<const N: usize>(pub [(&'static str, Reference); N]);
+
+impl<const N: usize> Serialize for Properties<N> {
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+
+        for (key, value) in self.0 {
+            map.serialize_entry(key, &value)?;
+        }
+
+        map.end()
+    }
+}

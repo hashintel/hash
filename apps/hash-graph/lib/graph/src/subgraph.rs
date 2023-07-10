@@ -65,14 +65,14 @@ impl Subgraph {
         vertex_id.subgraph_entry(&self.vertices)
     }
 
-    pub fn insert_vertex<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R>
+    pub fn insert_vertex<R: Record>(&mut self, vertex_id: R::VertexId, record: R) -> Option<R>
     where
-        R::VertexId: Eq + Clone + Hash,
+        R::VertexId: Eq + Hash,
     {
-        match self.vertex_entry_mut(vertex_id) {
+        match self.vertex_entry_mut(&vertex_id) {
             RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
             RawEntryMut::Vacant(entry) => {
-                entry.insert(vertex_id.clone(), record);
+                entry.insert(vertex_id, record);
                 None
             }
         }
