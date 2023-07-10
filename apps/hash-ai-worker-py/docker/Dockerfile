@@ -59,6 +59,9 @@ COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/pyproject.toml apps/hash
 COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/poetry.toml apps/hash-ai-worker-py
 COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/poetry.lock apps/hash-ai-worker-py
 
+
+COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/graph_types libs/@local/hash-graph-types/graph_types
+COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/README.md libs/@local/hash-graph-types
 COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/turbo.json libs/@local/hash-graph-types
 COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/pyproject.toml libs/@local/hash-graph-types
 COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/poetry.toml libs/@local/hash-graph-types
