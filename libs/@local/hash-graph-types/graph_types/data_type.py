@@ -13,40 +13,39 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 from slugify import slugify
-from temporalio import workflow
 
-from ._schema import OntologyTypeSchema, Schema
+from ._schema import G, OntologyTypeSchema, Schema
 
-__all__ = ["DataTypeSchema"]
+__all__ = ["DataTypeSchema", "DataTypeReference"]
 
 DataType: TypeAlias = str | float | bool | None | list[Any] | dict[str, Any]
 
 
 class DataTypeReference(Schema):
+    """A reference to a data type schema."""
+
     ref: str = Field(..., alias="$ref")
     cache: ClassVar[dict[str, type[RootModel]]] = {}
 
-    async def create_model(self, *, actor_id: UUID) -> type[RootModel]:
+    async def create_model(
+        self,
+        *,
+        actor_id: UUID,
+        graph: G,
+    ) -> type[RootModel]:
+        """Creates a model from the referenced data type schema."""
         if cached := self.cache.get(self.ref):
             return cached
 
-        schema = DataTypeSchema(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getDataType",
-                    arg={
-                        "dataTypeId": self.ref,
-                        "actorId": actor_id,
-                    },
-                )
-            )["schema"],
-        )
+        schema = await graph.get_data_type(self.ref, actor_id=actor_id)
 
         model = create_model(
             slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=RootModel,
-            root=(await schema.create_data_type(actor_id=actor_id), Field(...)),
+            root=(
+                await schema.create_data_type(actor_id=actor_id, graph=graph),
+                Field(...),
+            ),
         )
         self.cache[self.ref] = model
         return model
@@ -85,10 +84,12 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         self,
         *,
         actor_id: UUID,
+        graph: G,
     ) -> Annotated[Any, "DataTypeAnnotation"]:
         """Create an annotated type from this schema."""
-        # Custom data types will require an actor ID to be passed in
+        # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
+        _graph = graph
 
         const = self.model_extra.get("const") if self.model_extra else None
 

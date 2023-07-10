@@ -13,9 +13,90 @@ from pydantic import (
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from app.typesystem.data_type import DataTypeReference
-    from app.typesystem.entity_type import EntityTypeReference
-    from app.typesystem.property_type import PropertyTypeReference
+    from graph_types import (
+        DataTypeReference,
+        DataTypeSchema,
+        EntityTypeReference,
+        EntityTypeSchema,
+        PropertyTypeReference,
+        PropertyTypeSchema,
+    )
+
+
+class GraphApiWorkflow:
+    """Defines the interface for a graph API."""
+
+    async def get_data_type(
+        self,
+        data_type_id: str,
+        *,
+        actor_id: UUID,
+    ) -> DataTypeSchema:
+        """Returns the data type schema for the given data type ID.
+
+        If the data type is not found it will attempt to fetch it and use
+        the actor ID to authenticate the request.
+        """
+        return DataTypeSchema(
+            **(
+                await workflow.execute_child_workflow(
+                    task_queue="ai",
+                    workflow="getDataType",
+                    arg={
+                        "dataTypeId": data_type_id,
+                        "actorId": actor_id,
+                    },
+                )
+            )["schema"],
+        )
+
+    async def get_property_type(
+        self,
+        property_type_id: str,
+        *,
+        actor_id: UUID,
+    ) -> PropertyTypeSchema:
+        """Returns the property type schema for the given property type ID.
+
+        If the property type is not found it will attempt to fetch it and use
+        the actor ID to authenticate the request.
+        """
+        return PropertyTypeSchema(
+            **(
+                await workflow.execute_child_workflow(
+                    task_queue="ai",
+                    workflow="getPropertyType",
+                    arg={
+                        "propertyTypeId": property_type_id,
+                        "actorId": actor_id,
+                    },
+                )
+            )["schema"],
+        )
+
+    async def get_entity_type(
+        self,
+        entity_type_id: str,
+        *,
+        actor_id: UUID,
+    ) -> EntityTypeSchema:
+        """Returns the entity type schema for the given entity type ID.
+
+        If the entity type is not found it will attempt to fetch it and use
+        the actor ID to authenticate the request.
+        """
+        return EntityTypeSchema(
+            **(
+                await workflow.execute_child_workflow(
+                    task_queue="ai",
+                    workflow="getEntityType",
+                    arg={
+                        "entityTypeId": entity_type_id,
+                        "actorId": actor_id,
+                    },
+                )
+            )["schema"],
+        )
 
 
 class DataTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
@@ -59,7 +140,7 @@ class DataTypeWorkflow:
         """Calls the Graph API to get a data type schema."""
         data_type_model = await DataTypeReference(
             **{"$ref": params.data_type_id},
-        ).create_model(actor_id=params.actor_id)
+        ).create_model(actor_id=params.actor_id, graph=GraphApiWorkflow())
 
         print_schema(data_type_model, params.data_type)
 
@@ -86,7 +167,7 @@ class PropertyTypeWorkflow:
         """Calls the Graph API to get a data type schema."""
         property_type_model = await PropertyTypeReference(
             **{"$ref": params.proeprty_type_id},
-        ).create_model(actor_id=params.actor_id)
+        ).create_model(actor_id=params.actor_id, graph=GraphApiWorkflow())
 
         print_schema(property_type_model, params.property_type)
 
@@ -113,7 +194,7 @@ class EntityTypeWorkflow:
         """Calls the Graph API to get a data type schema."""
         entity_type_model = await EntityTypeReference(
             **{"$ref": params.entity_type_id},
-        ).create_model(actor_id=params.actor_id)
+        ).create_model(actor_id=params.actor_id, graph=GraphApiWorkflow())
 
         print_schema(entity_type_model, params.entity_type)
 

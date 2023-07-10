@@ -16,39 +16,38 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 from slugify import slugify
-from temporalio import workflow
 
-from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
+from ._schema import Array, G, Object, OneOf, OntologyTypeSchema, Schema
 from .data_type import DataTypeReference
 
-__all__ = ["PropertyTypeSchema"]
+__all__ = ["PropertyTypeSchema", "PropertyTypeReference"]
 
 
 class PropertyTypeReference(Schema):
+    """A reference to a property type schema."""
+
     ref: str = Field(..., alias="$ref")
     cache: ClassVar[dict[str, type[RootModel]]] = {}
 
-    async def create_model(self, *, actor_id: UUID) -> type[RootModel]:
+    async def create_model(
+        self,
+        *,
+        actor_id: UUID,
+        graph: G,
+    ) -> type[RootModel]:
+        """Creates a model from the referenced property type schema."""
         if cached := self.cache.get(self.ref):
             return cached
 
-        schema = PropertyTypeSchema(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getPropertyType",
-                    arg={
-                        "propertyTypeId": self.ref,
-                        "actorId": actor_id,
-                    },
-                )
-            )["schema"],
-        )
+        schema = await graph.get_property_type(self.ref, actor_id=actor_id)
 
         model = create_model(
             slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=RootModel,
-            root=(await schema.create_property_type(actor_id=actor_id), ...),
+            root=(
+                await schema.create_property_type(actor_id=actor_id, graph=graph),
+                ...,
+            ),
         )
         self.cache[self.ref] = model
         return model
@@ -63,8 +62,9 @@ class PropertyValue(RootModel, Schema):
         self,
         *,
         actor_id: UUID,
+        graph: G,
     ) -> type[RootModel] | Annotated[Any, ...]:
-        return await self.root.create_model(actor_id=actor_id)
+        return await self.root.create_model(actor_id=actor_id, graph=graph)
 
 
 class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
@@ -79,6 +79,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         self,
         *,
         actor_id: UUID,
+        graph: G,
     ) -> Annotated[object, "PropertyTypeAnnotation"]:
         """Create an annotated type from this schema."""
 
@@ -102,6 +103,6 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
                 return json_schema
 
         return Annotated[
-            await self.create_model(actor_id=actor_id),
+            await self.create_model(actor_id=actor_id, graph=graph),
             PropertyTypeAnnotation,
         ]
