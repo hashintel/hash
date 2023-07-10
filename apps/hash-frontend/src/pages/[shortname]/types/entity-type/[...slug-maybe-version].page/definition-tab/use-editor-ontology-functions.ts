@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
+import { EditorOntologyFunctions } from "@hashintel/type-editor/src/shared/ontology-functions-context";
 import {
   EntityTypeWithMetadata,
   OwnedById,
@@ -23,8 +24,6 @@ import { useAuthInfo } from "../../../../../shared/auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
 import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
 
-type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
-
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,
   typesWithMetadata: Record<
@@ -46,7 +45,7 @@ export const useEditorOntologyFunctions = (
   const refetchPropertyTypes = useFetchLatestPropertyTypes();
 
   const wrappedCreateEntityType = useCallback<
-    OntologyFunctions["createEntityType"]
+    EditorOntologyFunctions["createEntityType"]
   >(
     (args) => {
       return createEntityType(args as any).then(async (res) => {
@@ -58,7 +57,7 @@ export const useEditorOntologyFunctions = (
   );
 
   const wrappedUpdateEntityType = useCallback<
-    OntologyFunctions["updateEntityType"]
+    EditorOntologyFunctions["updateEntityType"]
   >(
     (args) => {
       return updateEntityType(args as any).then(async (res) => {
@@ -70,7 +69,7 @@ export const useEditorOntologyFunctions = (
   );
 
   const wrappedCreatePropertyType = useCallback<
-    OntologyFunctions["createPropertyType"]
+    EditorOntologyFunctions["createPropertyType"]
   >(
     (args) => {
       return createPropertyType(args).then(async (res) => {
@@ -82,7 +81,7 @@ export const useEditorOntologyFunctions = (
   );
 
   const wrappedUpdatePropertyType = useCallback<
-    OntologyFunctions["updatePropertyType"]
+    EditorOntologyFunctions["updatePropertyType"]
   >(
     (args) => {
       return updatePropertyType(args).then(async (res) => {
@@ -95,7 +94,7 @@ export const useEditorOntologyFunctions = (
 
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
 
-  const validateTitle = useCallback<OntologyFunctions["validateTitle"]>(
+  const validateTitle = useCallback<EditorOntologyFunctions["validateTitle"]>(
     async ({ kind, title }) => {
       const { versionedUrl } = generateTypeUrlsForUser({
         kind,
@@ -136,7 +135,9 @@ export const useEditorOntologyFunctions = (
     [generateTypeUrlsForUser, getEntityType, getPropertyType],
   );
 
-  const canEditResource = useCallback<OntologyFunctions["canEditResource"]>(
+  const canEditResource = useCallback<
+    EditorOntologyFunctions["canEditResource"]
+  >(
     ({ kind, resource }) => {
       if (!authenticatedUser) {
         return {
