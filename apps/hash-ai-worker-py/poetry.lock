@@ -413,6 +413,19 @@ files = [
 ]
 
 [[package]]
+name = "hash-graph-types"
+version = "0.0.0"
+description = "Type definitions for the type system and entity validation based on schemas"
+optional = false
+python-versions = "^3.11"
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../../libs/@local/hash-graph-types"
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1058,4 +1071,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "1c991affe12952c347865ee011699829fd6b1a2e1a62b0870ae624e67c80a9a8"
+content-hash = "8f49da58a64b296b08a53c90b6858b171dbd744e95c4a5185a671727a0c85d3c"

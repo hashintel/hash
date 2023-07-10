@@ -1,0 +1,3 @@
+[virtualenvs]
+name = ".venv"
+in-project = true

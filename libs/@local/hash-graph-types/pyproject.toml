@@ -1,24 +1,14 @@
 [tool.poetry]
-name = "hash-ai-worker-py"
+name = "hash-graph-types"
 version = "0.0.0"
-description = ""
+description = "Type definitions for the type system and entity validation based on schemas"
 license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
-packages = [{include = "app"}]
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
-hash-graph-types = { path = "../../libs/@local/hash-graph-types" }
-
-aiohttp = "^3.8"
-pydantic = "^2.0"
-pydantic_core = "^2.0"
 python = "^3.11"
-python-dotenv = "^1.0"
-python-slugify = "^8.0"
-types-python-slugify = "^8.0"
-openai = "^0.27.8"
-temporalio = "^1.2"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.0.0"
