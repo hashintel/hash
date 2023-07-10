@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-grpah-types",
+  "name": "@local/hash-graph-types",
   "version": "0.0.0-private",
   "private": true,
   "description": "A Python 'AI' worker for HASH",
