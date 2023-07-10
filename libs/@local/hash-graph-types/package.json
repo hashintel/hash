@@ -2,7 +2,7 @@
   "name": "@local/hash-graph-types",
   "version": "0.0.0-private",
   "private": true,
-  "description": "A Python 'AI' worker for HASH",
+  "description": "Type definitions for the type system and entity validation based on schemas",
   "scripts": {
     "build": "poetry build --no-interaction",
     "fix:black": "poetry run black graph_types",
