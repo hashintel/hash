@@ -21,7 +21,7 @@ futures = { version = "0.3.28" }
 regex = "1.9.1"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
 semver = { version = "1.0.17", default-features = false }
-serde_json = "1.0.99"
+serde_json = "1.0.100"
 tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"] }
 time = "0.3.23"
 tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros"] }
