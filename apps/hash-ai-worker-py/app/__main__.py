@@ -60,7 +60,7 @@ async def main() -> None:
     runner = web.AppRunner(app)
     await runner.setup()
     port = 4200
-    site = web.TCPSite(runner, "::", port)
+    site = web.TCPSite(runner, "127.0.0.1", port)
     print(f"HTTP server listening on port {port}")  # noqa: T201
 
     stop_worker = asyncio.Event()

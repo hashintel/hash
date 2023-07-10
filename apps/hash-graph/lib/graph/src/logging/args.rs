@@ -100,7 +100,7 @@ pub struct LoggingArgs {
         feature = "clap",
         clap(
             long,
-            default_value = "./log",
+            default_value = "./logs",
             env = "HASH_GRAPH_LOG_FOLDER",
             global = true
         )

@@ -12,3 +12,18 @@ output "temporal_private_hostname" {
   description = "The private hostname of the Temporal server used with Service Discovery"
   value       = aws_lb.net_alb.dns_name
 }
+
+output "host" {
+  description = "The hostname of the Temporal cluster to connect to."
+  value       = aws_lb.net_alb.dns_name
+}
+
+output "temporal_port" {
+  description = "The port of the Temporal cluster to connect to."
+  value       = local.temporal_port
+}
+
+output "temporal_ui_port" {
+  description = "The port of the Temporal cluster to connect to."
+  value       = local.temporal_ui_port
+}
