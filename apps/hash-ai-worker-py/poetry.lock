@@ -421,6 +421,9 @@ python-versions = "^3.11"
 files = []
 develop = false
 
+[package.dependencies]
+pydantic = "^2.0"
+
 [package.source]
 type = "directory"
 url = "../../libs/@local/hash-graph-types"
