@@ -54,19 +54,23 @@ COPY --from=pruned /app/out/json/ .
 COPY --from=pruned /app/out/yarn.lock .
 COPY --from=pruned /app/turbo.json .
 
-WORKDIR $APP_ROOT
+COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/turbo.json apps/hash-ai-worker-py
+COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/pyproject.toml apps/hash-ai-worker-py
+COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/poetry.toml apps/hash-ai-worker-py
+COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/poetry.lock apps/hash-ai-worker-py
 
-COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/turbo.json .
-COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/package.json .
-COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/pyproject.toml .
-COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/poetry.toml .
-COPY --from=pruned /app/out/full/apps/hash-ai-worker-py/poetry.lock .
+COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/turbo.json libs/@local/hash-graph-types
+COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/pyproject.toml libs/@local/hash-graph-types
+COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/poetry.toml libs/@local/hash-graph-types
+COPY --from=pruned /app/out/full/libs/@local/hash-graph-types/poetry.lock libs/@local/hash-graph-types
+
+WORKDIR $APP_ROOT
 
 RUN poetry env use python3
 
 WORKDIR $REPO_ROOT
 
-RUN turbo poetry:install-production
+RUN turbo --filter='@apps/hash-ai-worker-py' poetry:install-production
 
 RUN apt-get remove -y build-essential libffi-dev && \
     apt-get autoremove -y
