@@ -424,6 +424,9 @@ files = [
 
 [package.dependencies]
 pydantic = ">=2.0,<3.0"
+pydantic_core = "^2.0"
+python-slugify = "^8.0"
+types-python-slugify = "^8.0"
 
 [package.source]
 type = "file"
@@ -1075,4 +1078,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "20546ca5e466e8b9da450b8694a1ac57d29eedee6fb0de71d7eb12db9632c52f"
+content-hash = "98a903aee83581a7c9fca6e88334c0d107f7df935ffcbc13b28da4483906161f"

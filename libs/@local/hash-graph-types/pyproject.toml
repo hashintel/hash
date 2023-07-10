@@ -11,6 +11,9 @@ packages = [{ include = "graph_types" }]
 python = "^3.11"
 
 pydantic = "^2.0"
+pydantic_core = "^2.0"
+python-slugify = "^8.0"
+types-python-slugify = "^8.0"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.0.0"
