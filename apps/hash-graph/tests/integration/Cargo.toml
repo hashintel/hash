@@ -13,7 +13,7 @@ futures = "0.3.28"
 rand = "0.8.5"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
-time = "0.3.22"
+time = "0.3.23"
 tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.8", default-features = false }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
