@@ -5,7 +5,7 @@ description = "Type definitions for the type system and entity validation based 
 license = "MIT OR Apache-2.0"
 authors = ["HASH"]
 readme = "README.md"
-packages = [{include = "graph_types"}]
+packages = [{ include = "graph_types" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
