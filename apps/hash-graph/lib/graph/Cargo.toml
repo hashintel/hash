@@ -11,7 +11,7 @@ type-fetcher = { path = "../type-fetcher" }
 
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
 
-async-trait = "0.1.68"
+async-trait = "0.1.71"
 axum = "0.6.18"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
