@@ -3,7 +3,7 @@ import {
   extractVersion,
   validateEntityType,
 } from "@blockprotocol/type-system";
-import { EntityType } from "@blockprotocol/type-system/slim";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -182,8 +182,12 @@ const Page: NextPageWithLayout = () => {
   const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
     useState<BaseUrl | null>(null);
 
-  const onTypePreview = (targetEntityType: EntityType) => {
-    setPreviewEntityTypeUrl(extractBaseUrl(targetEntityType.$id) as BaseUrl);
+  const onNavigateToType = (url: VersionedUrl) => {
+    if (isHrefExternal(url)) {
+      window.open(url);
+    } else {
+      setPreviewEntityTypeUrl(extractBaseUrl(url) as BaseUrl);
+    }
   };
 
   if (!entityType) {
@@ -352,9 +356,9 @@ const Page: NextPageWithLayout = () => {
                           entityTypeAndPropertyTypes={
                             entityTypeAndPropertyTypes
                           }
+                          onNavigateToType={onNavigateToType}
                           ownedById={routeNamespace.accountId as OwnedById}
                           readonly={isReadonly}
-                          onTypePreview={onTypePreview}
                         />
                       ) : (
                         "Loading..."
@@ -371,8 +375,9 @@ const Page: NextPageWithLayout = () => {
 
       {previewEntityTypeUrl ? (
         <TypePreviewSlide
-          typeUrl={previewEntityTypeUrl}
           onClose={() => setPreviewEntityTypeUrl(null)}
+          onNavigateToType={onNavigateToType}
+          typeUrl={previewEntityTypeUrl}
         />
       ) : null}
 

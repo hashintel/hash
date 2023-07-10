@@ -32,8 +32,7 @@ export type CustomizationOptions = {
    *  A callback to provide custom handling a user clicking a link to another type.
    *  If defined, default anchor behavior will be prevented on click.
    */
-  onNavigateToType?: (url: string) => void;
-  onTypePreview?: (entityType: EntityType) => void;
+  onNavigateToType?: (url: VersionedUrl) => void;
 };
 
 export type EntityTypeEditorProps = {
@@ -44,8 +43,8 @@ export type EntityTypeEditorProps = {
   entityTypeOptions: Record<VersionedUrl, EntityType>;
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
   propertyTypeOptions: Record<VersionedUrl, PropertyType>;
-  // functions for creating and updating entity and property types that the editor will call
-  ontologyFunctions?: EditorOntologyFunctions | null;
+  // functions for creating and updating types. Pass 'null' if not available (editor will be forced into readonly)
+  ontologyFunctions: EditorOntologyFunctions | null;
   // whether or not the type editor should be in readonly mode
   readonly: boolean;
 };
@@ -55,12 +54,12 @@ export const EntityTypeEditor = ({
   entityType,
   entityTypeOptions,
   propertyTypeOptions,
-  ontologyFunctions = null,
+  ontologyFunctions,
   readonly,
 }: EntityTypeEditorProps) => {
   return (
     <ThemeProvider theme={theme}>
-      <ReadonlyContext.Provider value={readonly}>
+      <ReadonlyContext.Provider value={readonly || !ontologyFunctions}>
         <CustomizationContext.Provider value={customization}>
           <OntologyFunctionsContext.Provider value={ontologyFunctions}>
             <EntityTypesOptionsContextProvider

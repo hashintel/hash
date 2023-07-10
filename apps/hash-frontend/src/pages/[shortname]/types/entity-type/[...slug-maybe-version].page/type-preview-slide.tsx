@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   LoadingSpinner,
   OntologyChip,
@@ -18,21 +19,23 @@ import { FunctionComponent, useMemo, useState } from "react";
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { Link } from "../../../../../shared/ui";
 import { useRouteNamespace } from "../../../shared/use-route-namespace";
-import { getTypesWithoutMetadata } from "./definition-tab";
 import { EntityTypeContext } from "./shared/entity-type-context";
 import { EntityTypeHeader } from "./shared/entity-type-header";
+import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 import { useEntityTypeValue } from "./use-entity-type-value";
 
 const SLIDE_WIDTH = 1000;
 
 interface TypePreviewSlideProps {
-  typeUrl: BaseUrl;
   onClose: () => void;
+  onNavigateToType: (url: VersionedUrl) => void;
+  typeUrl: BaseUrl;
 }
 
 export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
-  typeUrl,
   onClose,
+  onNavigateToType,
+  typeUrl,
 }) => {
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
@@ -151,8 +154,10 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                     isReadonly
                   />
                   <EntityTypeEditor
+                    customization={{ onNavigateToType }}
                     entityType={remoteEntityType}
                     entityTypeOptions={entityTypeOptions}
+                    ontologyFunctions={null}
                     propertyTypeOptions={propertyTypeOptions}
                     readonly
                   />

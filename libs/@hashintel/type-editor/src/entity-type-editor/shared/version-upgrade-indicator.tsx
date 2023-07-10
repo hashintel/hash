@@ -49,7 +49,8 @@ export const VersionUpgradeIndicator = ({
       <FontAwesomeIcon
         icon={faArrowsRotate}
         sx={{
-          fontSize: 11,
+          height: 12,
+          width: 12,
         }}
       />
       {mode === "tooltip" ? null : " Update"}
