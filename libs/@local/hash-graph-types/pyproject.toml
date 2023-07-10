@@ -2,7 +2,7 @@
 name = "hash-graph-types"
 version = "0.0.0"
 description = "Type definitions for the type system and entity validation based on schemas"
-license = "MIT OR Apache-2.0"
+license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
 packages = [{ include = "graph_types" }]
