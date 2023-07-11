@@ -417,16 +417,17 @@ name = "hash-graph-types"
 version = "0.0.0"
 description = "Type definitions for the type system and entity validation based on schemas"
 optional = false
-python-versions = "^3.11"
-files = []
-develop = false
+python-versions = ">=3.11,<4.0"
+files = [
+    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:4111fdbf72cc17244b03a36e0f098590b78dbf18c67492f6bdf8a051161645f4"},
+]
 
 [package.dependencies]
-pydantic = "^2.0"
+pydantic = ">=2.0,<3.0"
 
 [package.source]
-type = "directory"
-url = "../../libs/@local/hash-graph-types"
+type = "file"
+url = "../../libs/@local/hash-graph-types/dist/hash_graph_types-0.0.0-py3-none-any.whl"
 
 [[package]]
 name = "idna"
@@ -1074,4 +1075,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "8f49da58a64b296b08a53c90b6858b171dbd744e95c4a5185a671727a0c85d3c"
+content-hash = "20546ca5e466e8b9da450b8694a1ac57d29eedee6fb0de71d7eb12db9632c52f"
