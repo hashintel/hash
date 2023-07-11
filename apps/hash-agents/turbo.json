@@ -2,7 +2,7 @@
   "extends": ["//"],
   "pipeline": {
     "dev": {
-      "dependsOn": ["^build", "codegen", "poetry:install-dev"],
+      "dependsOn": ["^build", "codegen", "poetry:install"],
       "persistent": true
     },
     "codegen": {
@@ -13,7 +13,7 @@
       "outputs": ["./.venv/**"],
       "inputs": ["pyproject.toml", "poetry.lock"]
     },
-    "poetry:install-dev": {
+    "poetry:install": {
       "outputs": ["./.venv/**"],
       "inputs": ["pyproject.toml", "poetry.lock"]
     },

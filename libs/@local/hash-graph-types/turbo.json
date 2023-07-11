@@ -9,16 +9,10 @@
     "poetry:venv": {
       "cache": false
     },
-    "poetry:install-dev": {
+    "poetry:install": {
       "cache": false
     },
     "poetry:install-production": {
-      "cache": false
-    },
-    "poetry:install-lint-tools": {
-      "cache": false
-    },
-    "poetry:install-build-tools": {
       "cache": false
     },
     "fix:black": {

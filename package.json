@@ -53,10 +53,8 @@
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
-    "poetry:venv": "turbo poetry:venv",
-    "poetry:install-dev": "turbo poetry:install-dev",
+    "poetry:install": "turbo poetry:install",
     "poetry:install-production": "turbo poetry:install-production",
-    "poetry:install-lint-tools": "turbo poetry:install-lint-tools",
     "test:backend-integration": "turbo test --filter '@tests/hash-backend-integration' --",
     "test:playwright": "turbo test --filter '@tests/hash-playwright' --",
     "test:unit": "turbo test --filter '@apps/hash-api' --filter '@local/hash-backend-utils' --filter '@local/hash-isomorphic-utils' --"
