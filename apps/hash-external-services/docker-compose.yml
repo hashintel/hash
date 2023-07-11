@@ -91,7 +91,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/log/graph-migrations"
+      HASH_GRAPH_LOG_FOLDER: "/logs/graph-migrations"
       # For unknown reasons, our error return values are consumed when we
       # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
@@ -146,7 +146,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/log/graph-service"
+      HASH_GRAPH_LOG_FOLDER: "/logs/graph-service"
       HASH_GRAPH_TYPE_FETCHER_HOST: "type-fetcher"
       HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
       HASH_GRAPH_API_HOST: "0.0.0.0"

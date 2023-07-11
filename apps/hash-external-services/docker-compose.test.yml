@@ -37,7 +37,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/log/graph-test-service"
+      HASH_GRAPH_LOG_FOLDER: "/logs/graph-test-service"
       HASH_GRAPH_API_HOST: "0.0.0.0"
       HASH_GRAPH_API_PORT: "4000"
       RUST_LOG: "info"
