@@ -419,14 +419,14 @@ description = "Type definitions for the type system and entity validation based 
 optional = false
 python-versions = ">=3.11,<4.0"
 files = [
-    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:321074ebb32790f733d56a77d88b3da18187da6abc7d557954607844d023bf69"},
+    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:4111fdbf72cc17244b03a36e0f098590b78dbf18c67492f6bdf8a051161645f4"},
 ]
 
 [package.dependencies]
 pydantic = ">=2.0,<3.0"
-pydantic_core = "^2.0"
-python-slugify = "^8.0"
-types-python-slugify = "^8.0"
+pydantic_core = ">=2.0,<3.0"
+python-slugify = ">=8.0,<9.0"
+types-python-slugify = ">=8.0,<9.0"
 
 [package.source]
 type = "file"
