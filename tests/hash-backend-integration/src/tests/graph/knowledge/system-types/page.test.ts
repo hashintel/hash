@@ -131,7 +131,7 @@ describe("Page", () => {
 
   it("can get all pages in a workspace", async () => {
     const allPages = await getAllPagesInWorkspace(graphContext, {
-      workspace: testUser,
+      accountId: testUser.accountId,
     });
 
     expect(

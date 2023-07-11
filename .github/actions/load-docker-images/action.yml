@@ -1,10 +1,6 @@
 name: Load docker images
 description: "Load docker images"
 inputs:
-  hash-agents:
-    description: "Load hash-agents image"
-    required: false
-    default: "false"
   hash-graph:
     description: "Load hash-graph image"
     required: false
@@ -36,20 +32,6 @@ runs:
       shell: bash
       run: |
         docker load --input /tmp/hash-graph.tar
-        docker image ls -a
-
-    - name: Download hash-agent image
-      if: inputs.hash-agents == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-agents
-        path: /tmp
-
-    - name: Load hash-agent image
-      if: inputs.hash-agents == 'true'
-      shell: bash
-      run: |
-        docker load --input /tmp/hash-agents.tar
         docker image ls -a
 
     - name: Download hash-ai-worker-ts image

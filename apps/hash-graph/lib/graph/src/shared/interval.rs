@@ -98,10 +98,6 @@ impl<T, S, E> Interval<T, S, E> {
     }
 
     /// Converts the interval into its bounds.
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "false positive: the destructor for this type cannot be evaluated at compile-time"
-    )]
     pub fn into_bounds(self) -> (S, E) {
         (self.start, self.end)
     }

@@ -63,10 +63,14 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
 });
 
 export const LinkTypeForm = (props: TypeFormProps) => {
-  const { validateTitle: remoteValidation } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
+
+  if (!ontologyFunctions) {
+    return null;
+  }
 
   const validateTitle = async (title: string) =>
-    remoteValidation({
+    ontologyFunctions.validateTitle({
       kind: "entity-type",
       title,
     });
@@ -87,7 +91,7 @@ const LinkTypeRow = ({
 }) => {
   const isReadonly = useIsReadonly();
 
-  const { updateEntityType, canEditResource } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
 
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
@@ -120,11 +124,11 @@ const LinkTypeRow = ({
   });
 
   const handleSubmit = async (data: TypeFormDefaults) => {
-    if (isReadonly) {
+    if (isReadonly || !ontologyFunctions) {
       return;
     }
 
-    const res = await updateEntityType({
+    const res = await ontologyFunctions.updateEntityType({
       data: {
         entityTypeId: link.$id,
         entityType: formDataToEntityType(data),
@@ -141,17 +145,17 @@ const LinkTypeRow = ({
   };
 
   const editDisabledReason = useMemo(() => {
-    const canEdit = canEditResource({
+    const canEdit = ontologyFunctions?.canEditResource({
       kind: "link-type",
       resource: link,
     });
 
-    return !canEdit.allowed
-      ? canEdit.message
+    return !canEdit?.allowed
+      ? canEdit?.message
       : currentVersion !== latestVersion
       ? "Update the link type to the latest version to edit"
       : undefined;
-  }, [canEditResource, link, currentVersion, latestVersion]);
+  }, [ontologyFunctions, link, currentVersion, latestVersion]);
 
   return (
     <>
@@ -188,18 +192,21 @@ const LinkTypeRow = ({
           onRemove={onRemove}
         />
       </EntityTypeTableRow>
-      <TypeFormModal
-        as={LinkTypeForm}
-        popupState={editModalPopupState}
-        modalTitle={<>Edit link</>}
-        onSubmit={handleSubmit}
-        submitButtonProps={{ children: <>Edit link</> }}
-        disabledFields={["name"]}
-        getDefaultValues={() => ({
-          name: link.title,
-          description: link.description,
-        })}
-      />
+
+      {ontologyFunctions && !isReadonly ? (
+        <TypeFormModal
+          as={LinkTypeForm}
+          popupState={editModalPopupState}
+          modalTitle={<>Edit link</>}
+          onSubmit={handleSubmit}
+          submitButtonProps={{ children: <>Edit link</> }}
+          disabledFields={["name"]}
+          getDefaultValues={() => ({
+            name: link.title,
+            description: link.description,
+          })}
+        />
+      ) : null}
     </>
   );
 };
@@ -237,7 +244,7 @@ export const LinkListCard = () => {
   } = useFieldArray({ control, name: "links" });
   const { linkTypes } = useEntityTypesOptions();
 
-  const { createEntityType } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
 
   const isReadonly = useIsReadonly();
 
@@ -285,11 +292,11 @@ export const LinkListCard = () => {
   };
 
   const handleSubmit = async (data: TypeFormDefaults) => {
-    if (isReadonly) {
+    if (isReadonly || !ontologyFunctions) {
       return;
     }
 
-    const res = await createEntityType({
+    const res = await ontologyFunctions.createEntityType({
       data: {
         entityType: formDataToEntityType(data),
       },
@@ -372,7 +379,7 @@ export const LinkListCard = () => {
           />
         ))}
       </TableBody>
-      {isReadonly ? (
+      {isReadonly || !ontologyFunctions ? (
         <Box sx={{ height: "var(--table-padding)" }} />
       ) : (
         <EntityTypeTableFooter enableShadow={fields.length > 0}>

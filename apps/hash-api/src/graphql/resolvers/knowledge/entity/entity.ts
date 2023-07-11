@@ -123,7 +123,7 @@ export const queryEntitiesResolver: Extract<
 
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
     throw new ApolloError(
-      "Sorting on queryEntities results is not currently supported",
+      "Sorting on queryEntities  results is not currently supported",
     );
   }
 
@@ -133,7 +133,7 @@ export const queryEntitiesResolver: Extract<
 
   if ("any" in filter && filter.any.length === 0) {
     logger.warn(
-      "QueryEntities called with empty filter, which means returning an empty subgraph. This is probably not what you want.",
+      "QueryEntities called with empty filter and OR operator, which means returning an empty subgraph. This is probably not what you want. Use multiFilter: { filters: [], operator: AND } to return all entities.",
     );
   }
 

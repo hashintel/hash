@@ -1,5 +1,9 @@
-import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
-import { EntityType } from "@blockprotocol/type-system/slim";
+import {
+  extractBaseUrl,
+  extractVersion,
+  validateEntityType,
+} from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -13,8 +17,8 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
-import { Box, Container, Theme, Tooltip, Typography } from "@mui/material";
+import { BaseUrl, linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
@@ -23,7 +27,6 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
-import { LinkedIcon } from "../../../../shared/icons/linked-icon";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -36,17 +39,18 @@ import { ConvertTypeButton } from "./[...slug-maybe-version].page/convert-type-b
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
-import { EntityTypeDescription } from "./[...slug-maybe-version].page/entity-type-description";
 import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
 import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
+import { EntityTypeHeader } from "./[...slug-maybe-version].page/shared/entity-type-header";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
 import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].page/shared/latest-property-types-context";
 import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
+import { TypePreviewSlide } from "./[...slug-maybe-version].page/type-preview-slide";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
 
-const isLinkEntityType = (type: EntityType) =>
+export const isLinkEntityType = (type: EntityType) =>
   !!type.allOf?.some((parent) => parent.$ref === linkEntityTypeUrl);
 
 const Page: NextPageWithLayout = () => {
@@ -175,6 +179,17 @@ const Page: NextPageWithLayout = () => {
 
   const currentTab = useCurrentTab();
 
+  const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
+    useState<BaseUrl | null>(null);
+
+  const onNavigateToType = (url: VersionedUrl) => {
+    if (isHrefExternal(url)) {
+      window.open(url);
+    } else {
+      setPreviewEntityTypeUrl(extractBaseUrl(url) as BaseUrl);
+    }
+  };
+
   if (!entityType) {
     if (loadingRemoteEntityType) {
       return null;
@@ -275,77 +290,51 @@ const Page: NextPageWithLayout = () => {
                   }}
                 >
                   <Container>
-                    <OntologyChip
-                      icon={<OntologyIcon />}
-                      domain="hash.ai"
-                      path={
-                        <>
-                          <Typography
-                            component="span"
-                            fontWeight="bold"
-                            color={(theme) => theme.palette.blue[70]}
-                          >
-                            {router.query.shortname}
-                          </Typography>
-                          <Typography
-                            component="span"
-                            color={(theme) => theme.palette.blue[70]}
-                          >
-                            /types/entity-types/
-                          </Typography>
-                          <Typography
-                            component="span"
-                            fontWeight="bold"
-                            color={(theme) => theme.palette.blue[70]}
-                          >
-                            {slug}
-                          </Typography>
-                          <Typography
-                            component="span"
-                            color={(theme) => theme.palette.blue[70]}
-                          >
-                            /v/{currentVersion}
-                          </Typography>
-                        </>
-                      }
-                    />
                     <Box
                       display="flex"
                       justifyContent="space-between"
-                      alignItems="center"
+                      alignItems="flex-start"
                     >
-                      <Typography variant="h1" fontWeight="bold" my={3}>
-                        {entityTypeIsLink ? (
-                          <Tooltip
-                            title="This is a 'link' entity type. It is used to link other entities together."
-                            placement="top"
-                          >
-                            <Box display="inline-flex">
-                              <LinkedIcon
-                                sx={({ palette }) => ({
-                                  fontSize: 40,
-                                  mr: 3,
-                                  stroke: palette.gray[50],
-                                  verticalAlign: "middle",
-                                })}
-                              />
-                            </Box>
-                          </Tooltip>
-                        ) : (
-                          <FontAwesomeIcon
-                            icon={faAsterisk}
-                            sx={({ palette }) => ({
-                              fontSize: 40,
-                              mr: 3,
-                              color: palette.gray[70],
-                              verticalAlign: "middle",
-                            })}
+                      <EntityTypeHeader
+                        ontologyChip={
+                          <OntologyChip
+                            icon={<OntologyIcon />}
+                            domain="hash.ai"
+                            path={
+                              <>
+                                <Typography
+                                  component="span"
+                                  fontWeight="bold"
+                                  color={(theme) => theme.palette.blue[70]}
+                                >
+                                  {router.query.shortname}
+                                </Typography>
+                                <Typography
+                                  component="span"
+                                  color={(theme) => theme.palette.blue[70]}
+                                >
+                                  /types/entity-types/
+                                </Typography>
+                                <Typography
+                                  component="span"
+                                  fontWeight="bold"
+                                  color={(theme) => theme.palette.blue[70]}
+                                >
+                                  {slug}
+                                </Typography>
+                                <Typography
+                                  component="span"
+                                  color={(theme) => theme.palette.blue[70]}
+                                >
+                                  /v/{currentVersion}
+                                </Typography>
+                              </>
+                            }
                           />
-                        )}
-
-                        {entityType.title}
-                      </Typography>
-
+                        }
+                        entityType={entityType}
+                        isReadonly={isReadonly}
+                      />
                       {!isDraft && !entityTypeIsLink ? (
                         <ConvertTypeButton
                           onClick={convertToLinkType}
@@ -353,10 +342,6 @@ const Page: NextPageWithLayout = () => {
                           disabled={isDirty}
                         />
                       ) : null}
-                    </Box>
-
-                    <Box sx={{ mb: 5.25 }}>
-                      <EntityTypeDescription readonly={isReadonly} />
                     </Box>
 
                     <EntityTypeTabs isDraft={isDraft} />
@@ -371,6 +356,7 @@ const Page: NextPageWithLayout = () => {
                           entityTypeAndPropertyTypes={
                             entityTypeAndPropertyTypes
                           }
+                          onNavigateToType={onNavigateToType}
                           ownedById={routeNamespace.accountId as OwnedById}
                           readonly={isReadonly}
                         />
@@ -386,6 +372,15 @@ const Page: NextPageWithLayout = () => {
           </EntityTypeContext.Provider>
         </LatestPropertyTypesContextProvider>
       </EntityTypeFormProvider>
+
+      {previewEntityTypeUrl ? (
+        <TypePreviewSlide
+          onClose={() => setPreviewEntityTypeUrl(null)}
+          onNavigateToType={onNavigateToType}
+          typeUrl={previewEntityTypeUrl}
+        />
+      ) : null}
+
       <GlobalStyles<Theme>
         styles={(theme) => ({
           body: {

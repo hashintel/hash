@@ -221,12 +221,21 @@ export const blockProtocolHubOrigin =
   process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
   "https://blockprotocol.org";
 
-export const paragraphBlockComponentId = `${blockProtocolHubOrigin}/blocks/@hash/paragraph`;
+/**
+ * the componentId is the location of the block source code, which will be in one of two R2 buckets depending on environment
+ * @todo use a componentId which isn't tied to source location in this way, e.g. based on the BP Hub host
+ *   – this will also be required for block versioning, where we'll want different source locations for the same componentId
+ */
+export const componentIdBase = `https://blockprotocol${
+  !blockProtocolHubOrigin.includes("blockprotocol.org") ? "-preview" : ""
+}.hashai.workers.dev`;
+
+export const paragraphBlockComponentId = `${componentIdBase}/blocks/hash/paragraph`;
 
 const textBlockComponentIds = new Set([
   paragraphBlockComponentId,
-  `${blockProtocolHubOrigin}/blocks/@hash/heading`,
-  `${blockProtocolHubOrigin}/blocks/@hash/callout`,
+  `${componentIdBase}/blocks/hash/heading`,
+  `${componentIdBase}/blocks/hash/callout`,
 ]);
 
 /**
@@ -239,12 +248,12 @@ const textBlockComponentIds = new Set([
  */
 export const defaultBlockComponentIds = [
   ...Array.from(textBlockComponentIds),
-  `${blockProtocolHubOrigin}/blocks/@hash/person`,
-  `${blockProtocolHubOrigin}/blocks/@hash/image`,
-  `${blockProtocolHubOrigin}/blocks/@hash/table`,
-  `${blockProtocolHubOrigin}/blocks/@hash/embed`,
-  `${blockProtocolHubOrigin}/blocks/@hash/code`,
-  `${blockProtocolHubOrigin}/blocks/@hash/video`,
+  `${componentIdBase}/blocks/hash/person`,
+  `${componentIdBase}/blocks/hash/image`,
+  `${componentIdBase}/blocks/hash/table`,
+  `${componentIdBase}/blocks/hash/embed`,
+  `${componentIdBase}/blocks/hash/code`,
+  `${componentIdBase}/blocks/hash/video`,
 ];
 
 /**

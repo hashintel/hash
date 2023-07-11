@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # To debug, set this to 1 and tail the /tmp/tunnel_logs file.
+# Make sure `jq` is installed on the system.
 TUNNEL_DEBUG=0
 
 input="$(< /dev/stdin)"

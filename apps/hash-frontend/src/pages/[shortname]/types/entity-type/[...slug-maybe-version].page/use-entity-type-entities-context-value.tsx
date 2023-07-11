@@ -18,6 +18,10 @@ export const useEntityTypeEntitiesContextValue = (
   const { queryEntities } = useBlockProtocolQueryEntities();
 
   useEffect(() => {
+    if (!typeBaseUrl) {
+      return;
+    }
+
     void queryEntities({
       data: {
         operation: {

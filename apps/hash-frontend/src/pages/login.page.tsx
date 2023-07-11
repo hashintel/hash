@@ -47,7 +47,7 @@ const LoginPage: NextPageWithLayout = () => {
 
   // This might be confusing, but we want to show the user an option
   // to sign out if they are performing two-factor authentication!
-  const { logout } = useLogoutFlow([aal, refresh]);
+  const { logout } = useLogoutFlow();
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.

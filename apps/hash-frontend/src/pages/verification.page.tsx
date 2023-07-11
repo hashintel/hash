@@ -41,7 +41,7 @@ const VerificationPage: NextPageWithLayout = () => {
 
   // This might be confusing, but we want to show the user an option
   // to sign out if they are performing two-factor authentication!
-  const { logout } = useLogoutFlow([aal, refresh]);
+  const { logout } = useLogoutFlow();
 
   const extractFlowCodeValue = (flowToSearch: VerificationFlow | undefined) => {
     const uiCode = flowToSearch?.ui.nodes.find(

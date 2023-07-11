@@ -54,7 +54,7 @@ export const MdxPre = ({ children, ...rest }: HTMLAttributes<HTMLElement>) => {
           borderRadius: "8px",
           textShadow: "none",
           marginBottom: 2,
-          maxWidth: "72ch",
+          maxWidth: "100%",
         })}
       >
         <Snippet

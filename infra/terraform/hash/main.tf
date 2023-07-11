@@ -3,7 +3,7 @@
   AWS using ECS Fargate. 
 */
 
-module "variables" {
+module "variables_hash" {
   source          = "../modules/variables"
   env             = terraform.workspace
   region          = var.region
@@ -11,17 +11,28 @@ module "variables" {
   project         = "hash"
 }
 
+// TODO: In order to have access to RDS we kept `temporal` in this project but this should be moved a separated
+//       project folder and apply TF from the parent folder
+//   see https://linear.app/hash/issue/H-54/split-internal-vs-external-services-in-terraform-config
+module "variables_temporal" {
+  source          = "../modules/variables"
+  env             = terraform.workspace
+  region          = var.region
+  region_az_count = var.region_az_count
+  project         = "temporal"
+}
+
 locals {
-  env             = module.variables.env
-  region          = module.variables.region
-  prefix          = module.variables.prefix
-  param_prefix    = module.variables.param_prefix
-  region_az_names = module.variables.region_az_names
+  env             = module.variables_hash.env
+  region          = module.variables_hash.region
+  prefix          = module.variables_hash.prefix
+  param_prefix    = module.variables_hash.param_prefix
+  region_az_names = module.variables_hash.region_az_names
 }
 
 provider "vault" {
   # Uses the VAULT_TOKEN environment variable OR ~/.vault-token file to authenticate.
-  # The using the vault at VAULT_ADDR
+  # This is using the vault at VAULT_ADDR
 }
 
 data "vault_kv_secret_v2" "secrets" {
@@ -45,9 +56,9 @@ provider "aws" {
   default_tags {
     tags = {
       project             = "hash"
-      region              = "${local.region}"
-      environment         = "${local.env}"
-      terraform_workspace = "${terraform.workspace}"
+      region              = local.region
+      environment         = local.env
+      terraform_workspace = terraform.workspace
     }
   }
 }
@@ -83,6 +94,32 @@ module "postgres" {
   pg_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
 }
 
+module "temporal" {
+  depends_on            = [module.networking, module.postgres]
+  source                = "./temporal"
+  prefix                = module.variables_temporal.prefix
+  param_prefix          = module.variables_temporal.param_prefix
+  subnets               = module.networking.snpub
+  vpc                   = module.networking.vpc
+  env                   = local.env
+  region                = local.region
+  cpu                   = 256
+  memory                = 512
+  # TODO: provide by the HASH variables.tf
+  temporal_version      = "1.21.0.0"
+  temporal_ui_version   = "2.16.2"
+
+  postgres_host = module.postgres.pg_host
+  postgres_port = module.postgres.pg_port
+  postgres_db = "temporal"
+  postgres_visibility_db = "temporal_visibility"
+  postgres_user = "temporal"
+  postgres_password  = sensitive(data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_raw"])
+
+  postgres_superuser = "superuser"
+  postgres_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
+}
+
 
 module "tunnel" {
   source             = "../modules/tunnel"
@@ -114,11 +151,12 @@ module "postgres_roles" {
 
   pg_kratos_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
   pg_graph_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
+  pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
 }
 
 module "redis" {
   depends_on      = [module.networking]
-  source          = "./redis"
+  source          = "../modules/redis"
   prefix          = local.prefix
   node_type       = "cache.t3.micro"
   vpc_id          = module.networking.vpc.id
@@ -128,10 +166,11 @@ module "redis" {
 }
 
 module "application_ecs" {
-  depends_on = [module.networking]
-  source     = "./container_cluster"
-  prefix     = local.prefix
-  ecs_name   = "ecs"
+  depends_on         = [module.networking]
+  source             = "../modules/container_cluster"
+  prefix             = local.prefix
+  ecs_name           = "ecs"
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 }
 
 module "graph_ecr" {
@@ -193,8 +232,12 @@ module "application" {
     { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_system_user_password"]) },
     { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_block_protocol_api_key"]) },
     { name = "KRATOS_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_api_key"]) },
+    { name = "HASH_API_RUDDERSTACK_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_api_rudderstack_key"]) },
     { name = "HASH_SEED_USERS", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_seed_users"]) },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
   ])
+  temporal_host = module.temporal.host
+  temporal_port = module.temporal.temporal_port
+  openai_api_key = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
 }

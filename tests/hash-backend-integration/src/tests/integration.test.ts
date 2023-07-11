@@ -33,7 +33,7 @@ import {
   DeprecatedEntityType,
 } from "../graphql/api-types.gen";
 import {
-  blockProtocolHubOrigin,
+  componentIdBase,
   paragraphBlockComponentId,
 } from "@local/hash-isomorphic-utils/blocks";
 
@@ -568,7 +568,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/heading`,
+              componentId: `${componentIdBase}/blocks/hash/heading`,
               position: 0,
               entity: {
                 entityType: {
@@ -662,7 +662,7 @@ describe("logged in user ", () => {
     });
 
     // ComponentId doesn't exist in the database
-    const componentId = `${blockProtocolHubOrigin}/blocks/@hash/unknown`;
+    const componentId = `${componentIdBase}/blocks/hash/unknown`;
     let entityTypeComponentId: string;
     it("can add a block with unknown componentId", async () => {
       // No type argument given to insertBlock, only componentId
@@ -940,7 +940,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/heading`,
+              componentId: `${componentIdBase}/blocks/hash/heading`,
               position: 0,
               entity: {
                 entityType: {
@@ -962,11 +962,11 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+              componentId: `${componentIdBase}/blocks/hash/divider`,
               position: 1,
               entity: {
                 entityType: {
-                  componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+                  componentId: `${componentIdBase}/blocks/hash/divider`,
                 },
                 entityProperties: {},
               },
@@ -1020,7 +1020,7 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         filter: {
           entityType: {
-            componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+            componentId: `${componentIdBase}/blocks/hash/divider`,
           },
         },
       });

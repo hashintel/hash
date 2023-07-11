@@ -87,7 +87,7 @@ impl<'a> StackEntry<'a> {
     fn find(self) -> impl IntoIterator<Item = StackEntry<'a>> {
         let mut head = self.head;
         let Some(mut next) = self.next else {
-            return EitherIterator::Left(once(StackEntry { head, next: None }))
+            return EitherIterator::Left(once(StackEntry { head, next: None }));
         };
 
         while next.sources().len() == 1 {

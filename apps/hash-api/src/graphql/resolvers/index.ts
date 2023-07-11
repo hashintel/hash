@@ -1,6 +1,5 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { callAgentRunnerResolver } from "./agents/call-agent-runner";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { blocksResolver } from "./knowledge/block/block";
@@ -124,9 +123,6 @@ export const resolvers = {
     resolveComment: loggedInAndSignedUpMiddleware(resolveCommentResolver),
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
-
-    // LLM Agents
-    callAgentRunner: loggedInAndSignedUpMiddleware(callAgentRunnerResolver),
 
     // HASH instance admin mutations
     createUser:

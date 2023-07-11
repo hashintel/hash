@@ -218,35 +218,21 @@ services:
       - "4436:4436"
       - "4437:4437"
 
-  hash-agents:
-    init: true
-    image: hash-agents
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - log:/log
-      # Mount the agents folder from the host so that we can edit the agents without having to rebuild the image.
-      - ../../apps/hash-agents/app/agents:/usr/local/src/apps/hash-agents/app/agents:readonly
-    tmpfs:
-      - /tmp
-    environment:
-      HASH_AGENT_RUNNER_LOG_FOLDER: "/log/hash-agents"
-      HASH_AGENT_RUNNER_LOG_LEVEL: "${HASH_AGENT_RUNNER_LOG_LEVEL}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-    ports:
-      - "${HASH_AGENT_RUNNER_PORT}:80"
-
   temporal-migrate:
     build:
       context: ./temporal
       dockerfile: migrate.Dockerfile
+      args:
+        TEMPORAL_VERSION: "${HASH_TEMPORAL_VERSION}"
     read_only: true
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DB: "postgresql"
+      # This sets configuration values in
+      # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
+      # posgres12 for v12+ of postgres.
+      DB: "postgres12"
       DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
       VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
       DB_PORT: "5432"
@@ -254,41 +240,12 @@ services:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PWD: "${POSTGRES_PASSWORD}"
       POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
-      ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
-      ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
-      ES_VERSION: "v7"
-    security_opt:
-      - no-new-privileges:true
-
-  temporal-setup:
-    build:
-      context: ./temporal
-      dockerfile: setup.Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-      temporal:
-        condition: service_started
-    environment:
-      DB: "postgresql"
-      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
-      DB_PORT: "5432"
-      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PWD: "${POSTGRES_PASSWORD}"
-      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
-      ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
-      ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
-      ES_VERSION: "v7"
-      TEMPORAL_CLI_ADDRESS: temporal:7233
-      SKIP_DEFAULT_NAMESPACE_CREATION: "false" # left as a convenience as most temporal tooling expects default namespace
     security_opt:
       - no-new-privileges:true
 
   temporal:
     container_name: temporal
-    image: "temporalio/server:1.20.2.0"
+    image: "temporalio/server:${HASH_TEMPORAL_VERSION}"
     deploy:
       restart_policy:
         condition: on-failure
@@ -300,31 +257,66 @@ services:
       hash-dev-opensearch:
         condition: service_started
     healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal:7233", "workflow", "list"]
+      test:
+        [
+          "CMD",
+          "temporal",
+          "workflow",
+          "list",
+          "--namespace",
+          "HASH",
+          "--address",
+          "temporal:7233",
+        ]
       interval: 10s
       timeout: 2s
       retries: 10
     environment:
-      DB: "postgresql"
+      # This sets configuration values in
+      # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
+      # posgres12 for v12+ of postgres.
+      DB: "postgres12"
       DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
       VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
       DB_PORT: "5432"
       POSTGRES_USER: "${HASH_TEMPORAL_PG_USER}"
       POSTGRES_PWD: "${HASH_TEMPORAL_PG_PASSWORD}"
       POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
-      #     DYNAMIC_CONFIG_FILE_PATH: "config/dynamicconfig/development-sql.yaml"
-      ENABLE_ES: "${HASH_OPENSEARCH_ENABLED}"
-      ES_SEEDS: "hash-dev-opensearch" # the hostname of the opensearch container
-      ES_VERSION: "v7"
     security_opt:
       - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_SERVER_PORT}:7233"
-  #    volumes:
-  #      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+
+  temporal-setup:
+    build:
+      context: ./temporal
+      dockerfile: setup.Dockerfile
+      args:
+        TEMPORAL_VERSION: "${HASH_TEMPORAL_VERSION}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    environment:
+      # This sets configuration values in
+      # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
+      # posgres12 for v12+ of postgres.
+      DB: "postgres12"
+      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DB_PORT: "5432"
+      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PWD: "${POSTGRES_PASSWORD}"
+      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
+      TEMPORAL_ADDRESS: temporal:7233
+      SKIP_DEFAULT_NAMESPACE_CREATION: "false" # left as a convenience as most temporal tooling expects default namespace
+    security_opt:
+      - no-new-privileges:true
 
   temporal-ui:
-    image: temporalio/ui:2.13.3
+    image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION}
     container_name: temporal-ui
     deploy:
       restart_policy:
@@ -353,6 +345,12 @@ services:
     environment:
       HASH_TEMPORAL_HOST: "temporal"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      HASH_GRAPH_API_HOST: graph
+      HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
+      # TODO: Remove once they're not needed anymore
+      #   see https://linear.app/hash/issue/H-55/avoid-ory-kratos-environment-to-be-required-for-hash-api
+      ORY_KRATOS_PUBLIC_URL: "${ORY_KRATOS_PUBLIC_URL}"
+      ORY_KRATOS_ADMIN_URL: "${ORY_KRATOS_ADMIN_URL}"
     tmpfs:
       - /tmp
     read_only: true
