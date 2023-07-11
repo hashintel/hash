@@ -419,7 +419,7 @@ description = "Type definitions for the type system and entity validation based 
 optional = false
 python-versions = ">=3.11,<4.0"
 files = [
-    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:4111fdbf72cc17244b03a36e0f098590b78dbf18c67492f6bdf8a051161645f4"},
+    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:c03c391cf843e36bc392c812fb9924286377c523ccd294b6d3eeff08119c2e42"},
 ]
 
 [package.dependencies]
@@ -1078,4 +1078,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "98a903aee83581a7c9fca6e88334c0d107f7df935ffcbc13b28da4483906161f"
+content-hash = "ed682cd9b812f464cf95d66ef6681ad59c9b307424c9ab662582f046a7f666fc"

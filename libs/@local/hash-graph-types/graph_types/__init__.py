@@ -4,11 +4,11 @@ from uuid import UUID
 
 # This solution is not great as it _could_ lead to circular imports. However,
 # it is the best solution we have for now. The alternative is to have a single
-# file that contains all of the schemas, but that is not very maintainable.
+# file that contains all the schemas, but that is not very maintainable.
 #
 # If we run into issues with circular imports, we can refactor this to use
 # direct imports. For example, instead of importing `DataTypeSchema` from
-# `typesystem`, we can import it from `typesystem.data_type`.
+# `graph_types`, we can import it from `graph_types.data_type`.
 from .data_type import DataTypeReference as DataTypeReference
 from .data_type import DataTypeSchema as DataTypeSchema
 from .entity_type import EntityTypeReference as EntityTypeReference
@@ -17,7 +17,7 @@ from .property_type import PropertyTypeReference as PropertyTypeReference
 from .property_type import PropertyTypeSchema as PropertyTypeSchema
 
 
-class GraphApiProtocol(Protocol):
+class GraphAPIProtocol(Protocol):
     """Defines the interface for a graph API."""
 
     async def get_data_type(

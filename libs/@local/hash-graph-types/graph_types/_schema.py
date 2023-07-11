@@ -1,5 +1,4 @@
 import asyncio
-import typing
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
 from typing import Annotated, Any, Generic, Literal, TypeVar
@@ -14,10 +13,7 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 
-if typing.TYPE_CHECKING:
-    from . import GraphApiProtocol
-
-G = TypeVar("G", bound="GraphApiProtocol")
+from . import GraphAPIProtocol
 
 
 class Schema(BaseModel, ABC):
@@ -26,7 +22,7 @@ class Schema(BaseModel, ABC):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> type[BaseModel] | Annotated[Any, ...]:
         ...
 
@@ -51,7 +47,7 @@ class OneOf(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, ...]:
         types = await asyncio.gather(
             *[
@@ -93,7 +89,7 @@ class Array(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, ...]:
         ty = await self.items.create_model(actor_id=actor_id, graph=graph)
 
@@ -122,7 +118,7 @@ class Object(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, ...]:
         async def async_value(
             key: str,

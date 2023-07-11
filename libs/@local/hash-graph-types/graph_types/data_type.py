@@ -14,7 +14,8 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 from slugify import slugify
 
-from ._schema import G, OntologyTypeSchema, Schema
+from . import GraphAPIProtocol
+from ._schema import OntologyTypeSchema, Schema
 
 __all__ = ["DataTypeSchema", "DataTypeReference"]
 
@@ -31,7 +32,7 @@ class DataTypeReference(Schema):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> type[RootModel]:
         """Creates a model from the referenced data type schema."""
         if cached := self.cache.get(self.ref):
@@ -84,7 +85,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, "DataTypeAnnotation"]:
         """Create an annotated type from this schema."""
         # Custom data types will require an actor ID and the graph to be passed in

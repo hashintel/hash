@@ -20,7 +20,8 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 from slugify import slugify
 
-from ._schema import Array, G, Object, OneOf, OntologyTypeSchema, Schema
+from . import GraphAPIProtocol
+from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
 from .property_type import PropertyTypeReference
 
 __all__ = ["EntityTypeSchema", "EntityTypeReference"]
@@ -36,7 +37,7 @@ class EntityTypeReference(Schema):
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> type[RootModel]:
         """Creates a model from the referenced entity type schema."""
         if cached := self.cache.get(self.ref):
@@ -56,7 +57,7 @@ class EntityTypeReference(Schema):
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
 
-    async def create_model(self, *, actor_id: UUID, graph: G) -> Never:
+    async def create_model(self, *, actor_id: UUID, graph: GraphAPIProtocol) -> Never:
         raise NotImplementedError
 
 
@@ -78,7 +79,7 @@ class EntityTypeSchema(
         self,
         *,
         actor_id: UUID,
-        graph: G,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, "EntityTypeAnnotation"]:
         """Create an annotated type from this schema."""
 
