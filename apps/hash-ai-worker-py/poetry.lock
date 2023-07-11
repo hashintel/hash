@@ -419,7 +419,7 @@ description = "Type definitions for the type system and entity validation based 
 optional = false
 python-versions = ">=3.11,<4.0"
 files = [
-    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:4111fdbf72cc17244b03a36e0f098590b78dbf18c67492f6bdf8a051161645f4"},
+    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:3e322feff5639eb651e0a6db7e6b8c5fe01f36c64414895d97d8f8f16f3a4817"},
 ]
 
 [package.dependencies]
