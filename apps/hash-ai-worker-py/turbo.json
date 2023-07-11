@@ -6,9 +6,11 @@
       "persistent": true
     },
     "poetry:venv": {
+      "dependsOn": ["^build", "codegen"],
       "cache": false
     },
     "poetry:install-dev": {
+      "dependsOn": ["^build", "codegen"],
       "cache": false
     },
     "poetry:install-production": {
@@ -16,9 +18,11 @@
       "cache": false
     },
     "poetry:install-lint-tools": {
+      "dependsOn": ["^build", "codegen"],
       "cache": false
     },
     "poetry:install-build-tools": {
+      "dependsOn": ["^build", "codegen"],
       "cache": false
     },
     "build:docker": {
