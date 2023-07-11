@@ -5,7 +5,7 @@ description = ""
 license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
-packages = [{include = "app"}]
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
 hash-graph-types = { path = "../../libs/@local/hash-graph-types/dist/hash_graph_types-0.0.0-py3-none-any.whl" }

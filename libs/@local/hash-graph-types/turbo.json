@@ -1,6 +1,11 @@
 {
   "extends": ["//"],
   "pipeline": {
+    "build": {
+      "dependsOn": ["^build", "codegen"],
+      "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
+      "outputs": ["dist/"]
+    },
     "poetry:venv": {
       "cache": false
     },
