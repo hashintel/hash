@@ -2,7 +2,7 @@ version: "3.9"
 
 volumes:
   hash-postgres-data:
-  log:
+  logs:
 
 services:
   postgres:
@@ -50,7 +50,7 @@ services:
       dockerfile: apps/hash-graph/docker/Dockerfile
       context: ../../
     volumes:
-      - log:/log
+      - logs:/logs
     command: migrate
     environment:
       # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
@@ -74,7 +74,7 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - log:/log
+      - logs:/logs
     command: type-fetcher
     environment:
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
@@ -107,7 +107,7 @@ services:
         condition: service_completed_successfully
     command: server
     volumes:
-      - log:/log
+      - logs:/logs
     security_opt:
       - no-new-privileges:true
     environment:

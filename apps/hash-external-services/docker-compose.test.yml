@@ -28,7 +28,7 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - log:/log
+      - logs:/logs
     command: test-server
     environment:
       HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
