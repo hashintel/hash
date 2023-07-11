@@ -1,1 +1,1 @@
-"""Replicates the Block Protocol type system to be used in Python."""
+"""Replicates the Block Protocol type system for use in Python."""
