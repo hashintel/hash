@@ -15,7 +15,7 @@
     "lint:black": "poetry run black --check --diff --color app",
     "lint:lock-files": "poetry lock --check",
     "lint:ruff": "poetry run ruff app",
-    "poetry:install": "poetry install --no-root --no-interaction --only main --only dev",
+    "poetry:install": "poetry install --no-root --no-interaction",
     "poetry:install-build-tools": "poetry install --no-root --no-interaction --only build-tools",
     "poetry:install-lint-tools": "poetry install --no-root --no-interaction --only lint-tools",
     "poetry:install-production": "poetry install --no-root --no-interaction --only main --only production",
