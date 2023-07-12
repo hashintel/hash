@@ -266,7 +266,7 @@ jobs:
         uses: ./.github/actions/docker-build-push
         id: build
         env:
-          IMAGE_NAME: ${{ env.TEMPORAL_MIGRATE_RESOURCE_NAME }}
+          IMAGE_NAME: ${{ env.HASH_TEMPORAL_MIGRATE_RESOURCE_NAME }}
         with:
           SHORTNAME: "kratos"
           CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
@@ -309,7 +309,7 @@ jobs:
         uses: ./.github/actions/docker-build-push
         id: build
         env:
-          IMAGE_NAME: ${{ env.TEMPORAL_SETUP_RESOURCE_NAME }}
+          IMAGE_NAME: ${{ env.HASH_TEMPORAL_SETUP_RESOURCE_NAME }}
         with:
           SHORTNAME: "kratos"
           CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
