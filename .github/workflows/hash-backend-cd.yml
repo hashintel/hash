@@ -10,9 +10,11 @@ on:
       - "apps/hash-external-services/kratos/**"
       - "apps/hash-ai-worker-ts/**"
       - "apps/hash-ai-worker-py/**"
+      - "apps/hash-external-services/temporal/**"
       - "libs/@local/hash-backend-utils-utils/**"
       - "libs/@local/hash-isomorphic-utils/**"
       - "libs/@local/status/**"
+      - "infra/docker/api/prod/**"
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
@@ -325,13 +327,52 @@ jobs:
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
 
-  deploy:
+  deploy-app:
     name: Deploy HASH images
     runs-on: ubuntu-latest
     needs:
       - build-graph
       - build-api
       - build-kratos
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - uses: ./.github/actions/docker-ecr-login
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Redeploy api service
+        env:
+          HASH_ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
+          HASH_APP_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
+        run: |
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+
+  deploy-temporal:
+    name: Deploy HASH images
+    runs-on: ubuntu-latest
+    needs:
       - build-ts-worker
       - build-py-worker
     permissions:
@@ -365,8 +406,6 @@ jobs:
       - name: Redeploy api service
         env:
           HASH_ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
-          HASH_APP_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
           HASH_TEMPORAL_SERVICE_NAME: ${{ env.HASH_TEMPORAL_SERVICE_NAME }}
         run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_TEMPORAL_SERVICE_NAME }} --force-new-deployment 1> /dev/null
