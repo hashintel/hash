@@ -32,6 +32,7 @@ env:
 
   HASH_ECS_CLUSTER_NAME: ${{ secrets.HASH_ECS_CLUSTER_NAME }}
   HASH_APP_SERVICE_NAME: ${{ secrets.HASH_APP_SERVICE_NAME }}
+  HASH_TEMPORAL_SERVICE_NAME: h-temporal-prod-usea1-svc
 
 name: HASH backend deployment
 jobs:
@@ -365,5 +366,7 @@ jobs:
         env:
           HASH_ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
           HASH_APP_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
+          HASH_TEMPORAL_SERVICE_NAME: ${{ env.HASH_TEMPORAL_SERVICE_NAME }}
         run: |
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
