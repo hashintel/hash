@@ -8,6 +8,8 @@ on:
       - "apps/hash-graph/**"
       - "apps/hash-api/**"
       - "apps/hash-external-services/kratos/**"
+      - "apps/hash-ai-worker-ts/**"
+      - "apps/hash-ai-worker-py/**"
       - "libs/@local/hash-backend-utils-utils/**"
       - "libs/@local/hash-isomorphic-utils/**"
       - "libs/@local/status/**"
