@@ -418,9 +418,7 @@ version = "0.0.0"
 description = "Type definitions for the type system and entity validation based on schemas"
 optional = false
 python-versions = ">=3.11,<4.0"
-files = [
-    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:c03c391cf843e36bc392c812fb9924286377c523ccd294b6d3eeff08119c2e42"},
-]
+files = []
 
 [package.dependencies]
 pydantic = ">=2.0,<3.0"

@@ -1,5 +1,6 @@
 """A property type schema as defined by the Block Protocol."""
 from typing import (
+    TYPE_CHECKING,
     Annotated,
     Any,
     ClassVar,
@@ -17,9 +18,11 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 from slugify import slugify
 
-from . import GraphAPIProtocol
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
 from .data_type import DataTypeReference
+
+if TYPE_CHECKING:
+    from . import GraphAPIProtocol
 
 __all__ = ["PropertyTypeSchema", "PropertyTypeReference"]
 
@@ -34,7 +37,7 @@ class PropertyTypeReference(Schema):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[RootModel]:
         """Creates a model from the referenced property type schema."""
         if cached := self.cache.get(self.ref):
@@ -63,7 +66,7 @@ class PropertyValue(RootModel, Schema):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[RootModel] | Annotated[Any, ...]:
         return await self.root.create_model(actor_id=actor_id, graph=graph)
 
@@ -80,7 +83,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> Annotated[object, "PropertyTypeAnnotation"]:
         """Create an annotated type from this schema."""
 

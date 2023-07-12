@@ -1,5 +1,13 @@
 """A data type schema as defined by the Block Protocol."""
-from typing import Annotated, Any, ClassVar, Literal, TypeAlias, assert_never
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    Literal,
+    TypeAlias,
+    assert_never,
+)
 from uuid import UUID
 
 from pydantic import (
@@ -14,8 +22,10 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 from slugify import slugify
 
-from . import GraphAPIProtocol
 from ._schema import OntologyTypeSchema, Schema
+
+if TYPE_CHECKING:
+    from . import GraphAPIProtocol
 
 __all__ = ["DataTypeSchema", "DataTypeReference"]
 
@@ -32,7 +42,7 @@ class DataTypeReference(Schema):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[RootModel]:
         """Creates a model from the referenced data type schema."""
         if cached := self.cache.get(self.ref):
@@ -85,7 +95,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> Annotated[Any, "DataTypeAnnotation"]:
         """Create an annotated type from this schema."""
         # Custom data types will require an actor ID and the graph to be passed in
