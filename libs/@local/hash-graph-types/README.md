@@ -1,3 +1,3 @@
 # HASH Graph types
 
-Type definitions for the type system and entity validation based on schemas.
+Utility library to convert Block Protocol ontology schemas to Python Pydantic models.
