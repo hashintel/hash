@@ -433,26 +433,6 @@ type = "file"
 url = "../../libs/@local/hash-graph-types/dist/hash_graph_types-0.0.0-py3-none-any.whl"
 
 [[package]]
-name = "hash-graph-types"
-version = "0.0.0"
-description = "Type definitions for the type system and entity validation based on schemas"
-optional = false
-python-versions = ">=3.11,<4.0"
-files = [
-    {file = "hash_graph_types-0.0.0-py3-none-any.whl", hash = "sha256:c6f1eb929e115f93a585a86eff6a0821112c6e3d93053decbeb886e3854d7595"},
-]
-
-[package.dependencies]
-pydantic = ">=2.0,<3.0"
-pydantic_core = ">=2.0,<3.0"
-python-slugify = ">=8.0,<9.0"
-types-python-slugify = ">=8.0,<9.0"
-
-[package.source]
-type = "file"
-url = "../../libs/@local/hash-graph-types/dist/hash_graph_types-0.0.0-py3-none-any.whl"
-
-[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
