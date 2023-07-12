@@ -22,6 +22,18 @@ locals {
       task_def = local.api_service_container_def
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn
+    },
+    # To scale up the worker we probably want to move these into a separated service. They are defined in this task
+    # to easily connect to the Graph API.
+    {
+      task_def = local.temporal_worker_ai_ts_service_container_def
+      env_vars = aws_ssm_parameter.temporal_worker_ai_ts_env_vars
+      ecr_arn  = var.temporal_worker_ai_ts_image.ecr_arn
+    },
+    {
+      task_def = local.temporal_worker_ai_py_service_container_def
+      env_vars = aws_ssm_parameter.temporal_worker_ai_py_env_vars
+      ecr_arn  = var.temporal_worker_ai_py_image.ecr_arn
     }
   ]
 }
@@ -417,6 +429,13 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     description = "Allow connections AWS SES"
     cidr_blocks = [var.vpc.cidr_block]
+  }
+  egress {
+    from_port   = var.temporal_port
+    to_port     = var.temporal_port
+    protocol    = "tcp"
+    description = "Allow outbound GRPC connections to Temporal"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {

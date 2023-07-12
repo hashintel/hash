@@ -111,6 +111,40 @@ variable "api_env_vars" {
   description = "A list of environment variables to save as system parameters and inject into the API service"
 }
 
+variable "temporal_worker_ai_ts_image" {
+  type = object({
+    url     = string
+    ecr_arn = optional(string)
+  })
+  description = "URL of the docker image for the Temporal AI TS worker"
+}
+
+variable "temporal_worker_ai_ts_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the Temporal AI TS worker"
+}
+
+variable "temporal_worker_ai_py_image" {
+  type = object({
+    url     = string
+    ecr_arn = optional(string)
+  })
+  description = "URL of the docker image for the Temporal AI PY worker"
+}
+
+variable "temporal_worker_ai_py_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the Temporal AI PY worker"
+}
+
 variable "ses_verified_domain_identity" {
   type        = string
   description = "A verified AWS SES identity to use for email sending in the application."
@@ -127,7 +161,3 @@ variable "temporal_port" {
   description = "The port of the Temporal cluster to connect to."
 }
 
-variable "openai_api_key" {
-  type        = string
-  description = "The OpenAI API key to use for the application."
-}
