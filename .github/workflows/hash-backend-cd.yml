@@ -26,17 +26,6 @@ env:
   HASH_ECS_CLUSTER_NAME: ${{ secrets.HASH_ECS_CLUSTER_NAME }}
   HASH_APP_SERVICE_NAME: ${{ secrets.HASH_APP_SERVICE_NAME }}
 
-  HASH_PG_HOST: ${{ secrets.HASH_PG_HOST }}
-  HASH_PG_PORT: ${{ secrets.HASH_PG_PORT }}
-
-  HASH_GRAPH_PG_USER: ${{ secrets.HASH_GRAPH_PG_USER }}
-  HASH_GRAPH_PG_PASSWORD: ${{ secrets.HASH_GRAPH_PG_PASSWORD }}
-  HASH_GRAPH_PG_DATABASE: ${{ secrets.HASH_GRAPH_PG_DATABASE }}
-
-  HASH_KRATOS_PG_USER: ${{ secrets.HASH_KRATOS_PG_USER }}
-  HASH_KRATOS_PG_PASSWORD: ${{ secrets.HASH_KRATOS_PG_PASSWORD }}
-  HASH_KRATOS_PG_DATABASE: ${{ secrets.HASH_KRATOS_PG_DATABASE }}
-
 name: HASH backend deployment
 jobs:
   build-graph:
