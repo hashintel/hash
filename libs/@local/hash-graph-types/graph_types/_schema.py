@@ -13,6 +13,8 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 
+from . import GraphAPIProtocol
+
 
 class Schema(BaseModel, ABC):
     @abstractmethod
@@ -20,6 +22,7 @@ class Schema(BaseModel, ABC):
         self,
         *,
         actor_id: UUID,
+        graph: GraphAPIProtocol,
     ) -> type[BaseModel] | Annotated[Any, ...]:
         ...
 
@@ -44,9 +47,13 @@ class OneOf(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, ...]:
         types = await asyncio.gather(
-            *[value.create_model(actor_id=actor_id) for value in self.one_of],
+            *[
+                value.create_model(actor_id=actor_id, graph=graph)
+                for value in self.one_of
+            ],
         )
 
         class OneOfSchema:
@@ -82,8 +89,9 @@ class Array(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, ...]:
-        ty = await self.items.create_model(actor_id=actor_id)
+        ty = await self.items.create_model(actor_id=actor_id, graph=graph)
 
         class ListSchema:
             @classmethod
@@ -110,6 +118,7 @@ class Object(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, ...]:
         async def async_value(
             key: str,
@@ -120,7 +129,7 @@ class Object(Schema, Generic[T]):
         types = dict(
             await asyncio.gather(
                 *(
-                    async_value(key, value.create_model(actor_id=actor_id))
+                    async_value(key, value.create_model(actor_id=actor_id, graph=graph))
                     for key, value in self.properties.items()
                 ),
             ),

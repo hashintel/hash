@@ -19,39 +19,36 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 from slugify import slugify
-from temporalio import workflow
 
+from . import GraphAPIProtocol
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
 from .property_type import PropertyTypeReference
 
-__all__ = ["EntityTypeSchema"]
+__all__ = ["EntityTypeSchema", "EntityTypeReference"]
 
 
 class EntityTypeReference(Schema):
+    """A reference to an entity type schema."""
+
     ref: str = Field(..., alias="$ref")
     cache: ClassVar[dict[str, type[RootModel]]] = {}
 
-    async def create_model(self, *, actor_id: UUID) -> type[RootModel]:
+    async def create_model(
+        self,
+        *,
+        actor_id: UUID,
+        graph: GraphAPIProtocol,
+    ) -> type[RootModel]:
+        """Creates a model from the referenced entity type schema."""
         if cached := self.cache.get(self.ref):
             return cached
 
-        schema = EntityTypeSchema(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getEntityType",
-                    arg={
-                        "entityTypeId": self.ref,
-                        "actorId": actor_id,
-                    },
-                )
-            )["schema"],
-        )
+        schema = await graph.get_entity_type(self.ref, actor_id=actor_id)
 
         model = create_model(
             slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=RootModel,
-            root=(await schema.create_entity_type(actor_id=actor_id), ...),
+            root=(await schema.create_entity_type(actor_id=actor_id, graph=graph), ...),
         )
         self.cache[self.ref] = model
         return model
@@ -60,7 +57,7 @@ class EntityTypeReference(Schema):
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
 
-    async def create_model(self, *, actor_id: UUID) -> Never:
+    async def create_model(self, *, actor_id: UUID, graph: GraphAPIProtocol) -> Never:
         raise NotImplementedError
 
 
@@ -82,6 +79,7 @@ class EntityTypeSchema(
         self,
         *,
         actor_id: UUID,
+        graph: GraphAPIProtocol,
     ) -> Annotated[Any, "EntityTypeAnnotation"]:
         """Create an annotated type from this schema."""
 
@@ -105,6 +103,6 @@ class EntityTypeSchema(
                 return json_schema
 
         return Annotated[
-            await Object.create_model(self, actor_id=actor_id),
+            await Object.create_model(self, actor_id=actor_id, graph=graph),
             EntityTypeAnnotation,
         ]
