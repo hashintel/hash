@@ -31,6 +31,7 @@ __all__ = ["DataTypeSchema", "DataTypeReference"]
 
 DataType: TypeAlias = str | float | bool | None | list[Any] | dict[str, Any]
 
+
 class DataTypeReference(Schema):
     """A reference to a data type schema."""
 
