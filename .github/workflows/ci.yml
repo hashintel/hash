@@ -60,9 +60,7 @@ jobs:
         if: ${{ success() || failure() }}
 
       - name: Setup python
-        run: |
-          yarn poetry:install-dev
-          yarn poetry:install-lint-tools
+        run: yarn poetry:install
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}

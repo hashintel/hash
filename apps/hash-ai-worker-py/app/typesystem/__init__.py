@@ -1,4 +1,4 @@
-"""Replicates the Block Protocol type system to be used in Python."""
+"""Replicates the Block Protocol type system for use in Python."""
 
 # This solution is not great as it _could_ lead to circular imports. However,
 # it is the best solution we have for now. The alternative is to have a single

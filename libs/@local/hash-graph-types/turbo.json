@@ -1,19 +1,18 @@
 {
   "extends": ["//"],
   "pipeline": {
-    "dev": {
-      "dependsOn": ["build"],
-      "persistent": true
+    "build": {
+      "dependsOn": ["^build", "codegen"],
+      "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
+      "outputs": ["dist/**"]
+    },
+    "poetry:venv": {
+      "cache": false
     },
     "poetry:install": {
-      "dependsOn": ["^build"],
       "cache": false
     },
     "poetry:install-production": {
-      "dependsOn": ["^build"],
-      "cache": false
-    },
-    "build:docker": {
       "cache": false
     },
     "fix:black": {
