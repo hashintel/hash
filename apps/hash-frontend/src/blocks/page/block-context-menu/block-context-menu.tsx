@@ -39,10 +39,10 @@ import { useKey } from "rooks";
 
 import { useUsers } from "../../../components/hooks/use-users";
 import { EditEntityModal } from "../../../pages/[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { getBlockDomId } from "../../../shared/get-block-dom-id";
 import { useFetchBlockSubgraph } from "../../use-fetch-block-subgraph";
 import { useUserBlocks } from "../../user-blocks";
 import { useBlockContext } from "../block-context";
-import { getBlockDomId } from "../block-view";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
 import { BlockLoaderInput } from "./block-loader-input";

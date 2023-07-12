@@ -12,9 +12,9 @@ import {
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
-import { getBlockDomId } from "../../../blocks/page/block-view";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
+import { getBlockDomId } from "../../get-block-dom-id";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";

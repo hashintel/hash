@@ -24,6 +24,8 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 });
 const { withSentryConfig } = require("@sentry/nextjs");
 
+const { DefinePlugin } = require("webpack");
+
 const { buildStamp } = require("./buildstamp");
 
 config({ silent: true, path: "../.." });
@@ -149,6 +151,13 @@ module.exports = withSentryConfig(
           // eslint-disable-next-line no-param-reassign
           webpackConfig.resolve.alias["@blockprotocol/type-system$"] =
             "@blockprotocol/type-system/slim";
+
+          webpackConfig.plugins.push(
+            new DefinePlugin({
+              __SENTRY_DEBUG__: false,
+              __SENTRY_TRACING__: false,
+            }),
+          );
 
           return webpackConfig;
         },
