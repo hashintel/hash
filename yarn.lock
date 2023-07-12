@@ -5538,17 +5538,17 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.8.0.tgz#fe2aa90e6df050a11cd57f5c0f47b0641fd2cad3"
   integrity "sha1-/iqpDm3wUKEc1X9cD0ewZB/SytM= sha512-TYh1MRcm4JnvpqtqOwT9WYaBYY4KERHdToxs/suDTLviGRsQkIjS5yYROTYTSJQUnYLOn/TuOh5GoMwfLSU+Ew=="
 
-"@ory/client@1.1.33":
-  version "1.1.33"
-  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.1.33.tgz#2a3253897128fac7e3ea62674a3a4322f759eef7"
-  integrity sha512-IC7SJpF6AqPxLrW/JBAPPaetA8LOfj1NHnRY2LoU8K6snY7jIj9moYvUn9H1fbwsWdnaPupKoM93NRfuP3pcbQ==
+"@ory/client@1.1.41":
+  version "1.1.41"
+  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.1.41.tgz#504fd7b08c6f2bcf8351158fa8c5becff4827dae"
+  integrity sha512-eSmyUgsA4npt6KsvmPxXpSVOE9jl4KQOytR/ppCBdiBuXnpGxPfRg0hMv5jPt/BcDpWpF9crsvdjepSL6I0NCw==
   dependencies:
     axios "^0.21.4"
 
-"@ory/integrations@1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-1.1.1.tgz#f29162c57a9726dcd795bc37de7d0e9658e43816"
-  integrity sha512-vynmVE92+f0KkRaoHtqg/CBSPxQ5ozH8pZ96N6n+fBfS2EmHYrpIqKR5riGxlJtLFStE+h8bCnlaJQb/EqqSYA==
+"@ory/integrations@1.1.4":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-1.1.4.tgz#266948d3dd6e8abb5b8cfe24b79a768de977749e"
+  integrity sha512-1oNoonkXteZTiTzTovA+cvi442xKPqd37zYHohIO9Ak0V42YQlWG6wTKv42KQi8k+75EI+1D8S2fkyaW/SHSEA==
   dependencies:
     "@types/tldjs" "^2.3.1"
     cookie "^0.4.1"
@@ -8804,10 +8804,10 @@ accepts@^1.3.5, accepts@~1.3.4, accepts@~1.3.5, accepts@~1.3.8:
     mime-types "~2.1.34"
     negotiator "0.6.3"
 
-acorn-import-assertions@^1.7.6:
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/acorn-import-assertions/-/acorn-import-assertions-1.8.0.tgz#ba2b5939ce62c238db6d93d81c9b111b29b855e9"
-  integrity "sha1-uitZOc5iwjjbbZPYHJsRGym4Vek= sha512-m7VZ3jwz4eK6A4Vtt8Ew1/mNbP24u0FhdyfA7fSvnJR6LMdfOYnmuIrrJAgrYfYJ10F/otaHTtrtrtmHdMNzEw=="
+acorn-import-assertions@^1.9.0:
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/acorn-import-assertions/-/acorn-import-assertions-1.9.0.tgz#507276249d684797c84e0734ef84860334cfb1ac"
+  integrity sha512-cmMwop9x+8KFhxvKrKfPYmN6/pKTYYHBqLa0DfvVZcKMJWNyWLnaqND7dx/qn66R7ewM1UX5XMaDVP5wlVTaVA==
 
 acorn-jsx@^5.0.0, acorn-jsx@^5.3.1, acorn-jsx@^5.3.2:
   version "5.3.2"
@@ -11825,10 +11825,10 @@ endent@^2.0.1:
     fast-json-parse "^1.0.3"
     objectorarray "^1.0.5"
 
-enhanced-resolve@^5.10.0, enhanced-resolve@^5.13.0:
-  version "5.13.0"
-  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.13.0.tgz#26d1ecc448c02de997133217b5c1053f34a0a275"
-  integrity sha512-eyV8f0y1+bzyfh8xAwW/WTSZpLbjhqc4ne9eGSH4Zo2ejdyiNG9pU6mf9DG8a7+Auk6MFTlNOT4Y2y/9k8GKVg==
+enhanced-resolve@^5.10.0, enhanced-resolve@^5.15.0:
+  version "5.15.0"
+  resolved "https://registry.yarnpkg.com/enhanced-resolve/-/enhanced-resolve-5.15.0.tgz#1af946c7d93603eb88e9896cee4904dc012e9c35"
+  integrity sha512-LXYT42KJ7lpIKECr2mAXIaMldcNCh/7E0KBKOu4KSfkHmP+mZmSs+8V5gBAqisWBy0OO4W5Oyys0GO1Y8KtdKg==
   dependencies:
     graceful-fs "^4.2.4"
     tapable "^2.2.0"
@@ -20183,10 +20183,10 @@ schema-utils@^2.6.5:
     ajv "^6.12.2"
     ajv-keywords "^3.4.1"
 
-schema-utils@^3.0, schema-utils@^3.0.0, schema-utils@^3.1.1, schema-utils@^3.1.2:
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/schema-utils/-/schema-utils-3.1.2.tgz#36c10abca6f7577aeae136c804b0c741edeadc99"
-  integrity sha512-pvjEHOgWc9OWA/f/DE3ohBWTD6EleVLf7iFUkoSwAxttdBhB9QUebQgxER2kWueOvRJXPHNnyrvvh9eZINB8Eg==
+schema-utils@^3.0, schema-utils@^3.0.0, schema-utils@^3.1.1, schema-utils@^3.2.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/schema-utils/-/schema-utils-3.3.0.tgz#f50a88877c3c01652a15b622ae9e9795df7a60fe"
+  integrity sha512-pN/yOAvcC+5rQ5nERGuwrjLlYvLTbCibnZ1I7B1LaiAz9BRBlE9GMgE/eqV30P7aJQUf7Ddimy/RsbYO/GrVGg==
   dependencies:
     "@types/json-schema" "^7.0.8"
     ajv "^6.12.5"
@@ -22824,10 +22824,10 @@ webpack-virtual-modules@^0.4.3, webpack-virtual-modules@^0.4.5:
   resolved "https://registry.yarnpkg.com/webpack-virtual-modules/-/webpack-virtual-modules-0.4.6.tgz#3e4008230731f1db078d9cb6f68baf8571182b45"
   integrity "sha1-PkAIIwcx8dsHjZy29ouvhXEYK0U= sha512-5tyDlKLqPfMqjT3Q9TAqf2YqjwmnUleZwzJi1A5qXnlBCdj2AtOJ6wAWdglTIDOPgOiOrXeBeFcsQ8+aGQ6QbA=="
 
-webpack@5, webpack@^5.72.0, webpack@^5.75.0, webpack@^5.76.0:
-  version "5.81.0"
-  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.81.0.tgz#27a2e8466c8b4820d800a8d90f06ef98294f9956"
-  integrity sha512-AAjaJ9S4hYCVODKLQTgG5p5e11hiMawBwV2v8MYLE0C/6UAGLuAF4n1qa9GOwdxnicaP+5k6M5HrLmD4+gIB8Q==
+webpack@5, webpack@5.88.1, webpack@^5.72.0, webpack@^5.75.0, webpack@^5.76.0:
+  version "5.88.1"
+  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.88.1.tgz#21eba01e81bd5edff1968aea726e2fbfd557d3f8"
+  integrity sha512-FROX3TxQnC/ox4N+3xQoWZzvGXSuscxR32rbzjpXgEzWudJFEJBpdlkkob2ylrv5yzzufD1zph1OoFsLtm6stQ==
   dependencies:
     "@types/eslint-scope" "^3.7.3"
     "@types/estree" "^1.0.0"
@@ -22835,10 +22835,10 @@ webpack@5, webpack@^5.72.0, webpack@^5.75.0, webpack@^5.76.0:
     "@webassemblyjs/wasm-edit" "^1.11.5"
     "@webassemblyjs/wasm-parser" "^1.11.5"
     acorn "^8.7.1"
-    acorn-import-assertions "^1.7.6"
+    acorn-import-assertions "^1.9.0"
     browserslist "^4.14.5"
     chrome-trace-event "^1.0.2"
-    enhanced-resolve "^5.13.0"
+    enhanced-resolve "^5.15.0"
     es-module-lexer "^1.2.1"
     eslint-scope "5.1.1"
     events "^3.2.0"
@@ -22848,7 +22848,7 @@ webpack@5, webpack@^5.72.0, webpack@^5.75.0, webpack@^5.76.0:
     loader-runner "^4.2.0"
     mime-types "^2.1.27"
     neo-async "^2.6.2"
-    schema-utils "^3.1.2"
+    schema-utils "^3.2.0"
     tapable "^2.1.1"
     terser-webpack-plugin "^5.3.7"
     watchpack "^2.4.0"

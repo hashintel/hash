@@ -41,8 +41,8 @@
     "@mui/icons-material": "5.11.9",
     "@mui/material": "5.11.9",
     "@mui/system": "5.11.9",
-    "@ory/client": "1.1.33",
-    "@ory/integrations": "1.1.1",
+    "@ory/client": "1.1.41",
+    "@ory/integrations": "1.1.4",
     "@sentry/nextjs": "7.30.0",
     "@sentry/react": "7.30.0",
     "@svgr/webpack": "6.2.1",
@@ -115,7 +115,8 @@
     "eslint": "8.33.0",
     "rimraf": "^3.0.2",
     "sass": "1.56.0",
-    "typescript": "5.0.4"
+    "typescript": "5.0.4",
+    "webpack": "5.88.1"
   },
   "engines": {
     "node": ">=v18.15.0"

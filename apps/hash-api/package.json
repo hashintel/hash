@@ -40,7 +40,7 @@
     "@opentelemetry/resources": "1.0",
     "@opentelemetry/sdk-trace-base": "1.0",
     "@opentelemetry/sdk-trace-node": "1.0",
-    "@ory/client": "1.1.33",
+    "@ory/client": "1.1.41",
     "@ory/kratos-client": "0.13.1",
     "@rudderstack/rudder-sdk-node": "2.0.3",
     "@snowplow/node-tracker": "3.3.1",

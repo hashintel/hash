@@ -4,18 +4,13 @@ import {
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
-import {
-  // defaultBlockComponentIds,
-  // fetchBlock,
-  HashBlock,
-} from "@local/hash-isomorphic-utils/blocks";
+import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
-  EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
@@ -25,7 +20,6 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -69,6 +63,10 @@ import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
+import {
+  isPageParsedUrlQuery,
+  parsePageUrlQueryParams,
+} from "../../shared/routing/route-page-info";
 import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -80,25 +78,6 @@ type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
   pageEntityId: EntityId;
   blocks: HashBlock[];
-};
-
-type PageParsedUrlQuery = {
-  shortname: string;
-  "page-slug": string;
-};
-
-export const isPageParsedUrlQuery = (
-  queryParams: NextParsedUrlQuery,
-): queryParams is PageParsedUrlQuery =>
-  typeof queryParams.shortname === "string" &&
-  typeof queryParams["page-slug"] === "string";
-
-export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
-  const workspaceShortname = params.shortname.slice(1);
-
-  const pageEntityUuid = params["page-slug"] as EntityUuid;
-
-  return { workspaceShortname, pageEntityUuid };
 };
 
 /**
