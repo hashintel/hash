@@ -370,7 +370,7 @@ jobs:
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
 
   deploy-temporal:
-    name: Deploy HASH images
+    name: Deploy Temporal images
     runs-on: ubuntu-latest
     needs:
       - build-ts-worker
