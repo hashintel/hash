@@ -4,7 +4,7 @@
     "build": {
       "dependsOn": ["^build", "codegen"],
       "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
-      "outputs": ["dist/"]
+      "outputs": ["dist/**"]
     },
     "poetry:venv": {
       "cache": false
