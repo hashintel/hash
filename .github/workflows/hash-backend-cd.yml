@@ -186,7 +186,7 @@ jobs:
         uses: ./.github/actions/docker-build-push
         id: build
         with:
-          SHORTNAME: "kratos"
+          SHORTNAME: "temporal-worker-ai-ts"
           CONTEXT_PATH: ${{ github.workspace }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-ts/docker/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
@@ -224,7 +224,7 @@ jobs:
         uses: ./.github/actions/docker-build-push
         id: build
         with:
-          SHORTNAME: "kratos"
+          SHORTNAME: "temporal-worker-ai-py"
           CONTEXT_PATH: ${{ github.workspace }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-py/docker/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
@@ -262,7 +262,7 @@ jobs:
         uses: ./.github/actions/docker-build-push
         id: build
         with:
-          SHORTNAME: "kratos"
+          SHORTNAME: "temporal-migrate"
           CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
           DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/migrate.Dockerfile
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
@@ -303,7 +303,7 @@ jobs:
         uses: ./.github/actions/docker-build-push
         id: build
         with:
-          SHORTNAME: "kratos"
+          SHORTNAME: "temporal-setup"
           CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
           DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/setup.Dockerfile
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
@@ -353,7 +353,7 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
 
-      - name: Redeploy api service
+      - name: Redeploy HASH backend service
         run: |
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
 
@@ -391,6 +391,6 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
 
-      - name: Redeploy api service
+      - name: Redeploy Temporal service
         run: |
           aws ecs update-service --cluster ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }} --service ${{ env.HASH_TEMPORAL_SERVICE_NAME }} --force-new-deployment 1> /dev/null
