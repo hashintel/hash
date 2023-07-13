@@ -4,6 +4,11 @@ locals {
   param_prefix   = "${var.param_prefix}/app"
   task_defs = [
     {
+      task_def = local.graph_migration_container_def
+      env_vars = aws_ssm_parameter.graph_env_vars
+      ecr_arn  = var.graph_image.ecr_arn
+    },
+    {
       task_def = local.graph_service_container_def
       env_vars = aws_ssm_parameter.graph_env_vars
       ecr_arn  = var.graph_image.ecr_arn
@@ -12,6 +17,11 @@ locals {
       task_def = local.type_fetcher_service_container_def
       env_vars = aws_ssm_parameter.type_fetcher_env_vars
       ecr_arn  = var.type_fetcher_image.ecr_arn
+    },
+    {
+      task_def = local.kratos_migration_container_def
+      env_vars = aws_ssm_parameter.kratos_env_vars
+      ecr_arn  = var.kratos_image.ecr_arn
     },
     {
       task_def = local.kratos_service_container_def
