@@ -5,12 +5,16 @@ on:
     branches:
       - main
     paths:
+      - "apps/hash-ai-worker-py/**"
+      - "apps/hash-ai-worker-ts/**"
       - "apps/hash-graph/**"
       - "apps/hash-api/**"
+      - "apps/hash-external-services/temporal/**"
       - "apps/hash-external-services/kratos/**"
       - "libs/@local/hash-backend-utils-utils/**"
       - "libs/@local/hash-isomorphic-utils/**"
       - "libs/@local/status/**"
+      - "infra/docker/api/prod/**"
 
 env:
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
@@ -22,9 +26,18 @@ env:
   HASH_API_RESOURCE_NAME: ${{ secrets.HASH_API_RESOURCE_NAME }}
   HASH_GRAPH_RESOURCE_NAME: ${{ secrets.HASH_GRAPH_RESOURCE_NAME }}
   HASH_KRATOS_RESOURCE_NAME: ${{ secrets.HASH_KRATOS_RESOURCE_NAME }}
+  HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraits
+  HASH_TEMPORAL_AI_PY_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraipy
+
+  HASH_TEMPORAL_SETUP_RESOURCE_NAME: h-temporal-prod-usea1-setup
+  HASH_TEMPORAL_MIGRATE_RESOURCE_NAME: h-temporal-prod-usea1-migrate
+  HASH_TEMPORAL_VERSION: 1.21.0.0
 
   HASH_ECS_CLUSTER_NAME: ${{ secrets.HASH_ECS_CLUSTER_NAME }}
   HASH_APP_SERVICE_NAME: ${{ secrets.HASH_APP_SERVICE_NAME }}
+
+  HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
+  HASH_TEMPORAL_SERVICE_NAME: h-temporal-prod-usea1-svc
 
 name: HASH backend deployment
 jobs:
@@ -55,8 +68,6 @@ jobs:
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
         id: build
-        env:
-          IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
         with:
           SHORTNAME: "graph"
           CONTEXT_PATH: ${{ github.workspace }}/
@@ -66,7 +77,7 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
 
   build-api:
     name: Build and push HASH api image
@@ -95,8 +106,6 @@ jobs:
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
         id: build
-        env:
-          IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
         with:
           SHORTNAME: "api"
           CONTEXT_PATH: ${{ github.workspace }}
@@ -106,7 +115,7 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
 
   build-kratos:
     name: Build and push Kratos image
@@ -135,8 +144,6 @@ jobs:
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
         id: build
-        env:
-          IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
         with:
           SHORTNAME: "kratos"
           CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/kratos
@@ -146,18 +153,178 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
           BUILD_ARGS: |
             ENV=prod
             API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
 
-  deploy:
+  build-ts-worker:
+    name: Build and push Temporal TS AI Worker
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
+        id: build
+        with:
+          SHORTNAME: "temporal-worker-ai-ts"
+          CONTEXT_PATH: ${{ github.workspace }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-ts/docker/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME }}
+
+  build-py-worker:
+    name: Build and push Temporal PY AI Worker
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
+        id: build
+        with:
+          SHORTNAME: "temporal-worker-ai-py"
+          CONTEXT_PATH: ${{ github.workspace }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-py/docker/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_PY_WORKER_RESOURCE_NAME }}
+
+  build-temporal-migrate:
+    name: Build and push Temporal Migrate image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
+        id: build
+        with:
+          SHORTNAME: "temporal-migrate"
+          CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/migrate.Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_TEMPORAL_MIGRATE_RESOURCE_NAME }}
+          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
+          BUILD_ARGS: |
+            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
+
+  build-temporal-setup:
+    name: Build and push Temporal Setup image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
+        id: build
+        with:
+          SHORTNAME: "temporal-setup"
+          CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/setup.Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.HASH_TEMPORAL_SETUP_RESOURCE_NAME }}
+          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
+          BUILD_ARGS: |
+            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
+
+  deploy-app:
     name: Deploy HASH images
     runs-on: ubuntu-latest
     needs:
       - build-graph
       - build-api
       - build-kratos
+      - build-ts-worker
+      - build-py-worker
     permissions:
       id-token: write
       contents: read
@@ -186,9 +353,44 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
 
-      - name: Redeploy api service
-        env:
-          HASH_ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
-          HASH_APP_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
+      - name: Redeploy HASH backend service
         run: |
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+
+  deploy-temporal:
+    name: Deploy Temporal images
+    runs-on: ubuntu-latest
+    needs:
+      - build-temporal-migrate
+      - build-temporal-setup
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - uses: ./.github/actions/docker-ecr-login
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Redeploy Temporal service
+        run: |
+          aws ecs update-service --cluster ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }} --service ${{ env.HASH_TEMPORAL_SERVICE_NAME }} --force-new-deployment 1> /dev/null
