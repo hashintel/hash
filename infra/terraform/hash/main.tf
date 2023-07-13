@@ -191,6 +191,18 @@ module "api_ecr" {
   ecr_name = "apiecr"
 }
 
+module "temporal_worker_ai_ts_ecr" {
+  source   = "../modules/container_registry"
+  prefix   = local.prefix
+  ecr_name = "temporalworkeraits"
+}
+
+module "temporal_worker_ai_py_ecr" {
+  source   = "../modules/container_registry"
+  prefix   = local.prefix
+  ecr_name = "temporalworkeraipy"
+}
+
 module "application" {
   depends_on                   = [module.networking, module.postgres]
   source                       = "./hash_application"
@@ -237,7 +249,18 @@ module "application" {
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
   ])
+  temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
+  temporal_worker_ai_ts_env_vars = [
+    { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
+    { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "" },
+    { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "" },
+    { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
+    { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
+  ]
+  temporal_worker_ai_py_image = module.temporal_worker_ai_py_ecr
+  temporal_worker_ai_py_env_vars = [
+    { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
+  ]
   temporal_host = module.temporal.host
   temporal_port = module.temporal.temporal_port
-  openai_api_key = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
 }
