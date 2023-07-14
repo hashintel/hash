@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - ".github/workflows/hash-backend-cd.yml"
       - "apps/hash-ai-worker-py/**"
       - "apps/hash-ai-worker-ts/**"
       - "apps/hash-graph/**"
