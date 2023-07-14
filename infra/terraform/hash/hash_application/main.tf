@@ -445,7 +445,7 @@ resource "aws_security_group" "app_sg" {
     to_port     = var.temporal_port
     protocol    = "tcp"
     description = "Allow outbound GRPC connections to Temporal"
-    cidr_blocks = [var.vpc.cidr_block]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
