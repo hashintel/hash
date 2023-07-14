@@ -2,7 +2,7 @@ name: Scheduled production Vercel lambda warm-up
 
 on:
   schedule:
-    - cron: "*/3 * * * *" ## Every 4 minutes
+    - cron: "*/3 * * * *" ## Every 3 minutes
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
