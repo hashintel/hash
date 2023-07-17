@@ -1,0 +1,273 @@
+import { Box, Container, Typography, typographyClasses } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
+
+import { Button } from "../components/button";
+import { FaIcon } from "../components/icons/fa-icon";
+import { Link } from "../components/link";
+import { PageLayout } from "../components/page-layout";
+import { NextPageWithLayout } from "../util/next-types";
+import { BlueStylishDivider } from "./blog/shared/blue-styled-divider";
+import { TechnologyTree } from "./roadmap/technology-tree";
+
+const headingLinks: { label: string; href: string; icon: ReactNode }[] = [
+  {
+    label: "Use Cases",
+    href: "#use-cases",
+    icon: <FaIcon name="ballot-check" type="regular" />,
+  },
+  {
+    label: "Technology Tree",
+    href: "#technology-tree",
+    icon: <FaIcon name="diagram-project" type="regular" />,
+  },
+  {
+    label: "Get Involved",
+    href: "#get-involved",
+    icon: <FaIcon name="teddy-bear" type="regular" />,
+  },
+];
+
+const Head: FunctionComponent = () => (
+  <Container sx={{ marginBottom: 10 }}>
+    <Box>
+      <Typography variant="hashHeading4" component="h2" mb={3}>
+        Where is HASH at
+      </Typography>
+      <Typography variant="hashLargeTitle" mb={5} sx={{ lineHeight: 1.1 }}>
+        Roadmap
+      </Typography>
+      <BlueStylishDivider mb={5} />
+      <Box display="flex">
+        <Box width={{ xs: 1, md: 725 }}>
+          <Typography mb={2} sx={{ lineHeight: 1.5 }}>
+            Here you’ll find the features we’re intending to build, information
+            around the order in which we’ll be addressing them, as well as
+            functional and technical specifications.
+          </Typography>
+          <Typography sx={{ lineHeight: 1.5 }}>
+            We’ve mapped these features to use-cases, so if you’re interested in
+            using HASH for a particular thing, you can follow along (or even
+            contribute!)
+          </Typography>
+        </Box>
+        <Box
+          marginLeft={16}
+          sx={{
+            marginLeft: 16,
+            display: {
+              lg: "block",
+              xs: "none",
+            },
+          }}
+        >
+          <Typography marginBottom={1}>
+            <strong>Quick-links</strong>
+          </Typography>
+          {headingLinks.map(({ label, href, icon }) => (
+            <Link
+              key={href}
+              href={href}
+              sx={{
+                "&:hover": {
+                  [`> .${typographyClasses.root}`]: {
+                    color: ({ palette }) => palette.teal[90],
+                  },
+                },
+              }}
+            >
+              <Typography
+                display="flex"
+                alignItems="center"
+                sx={{
+                  color: ({ palette }) => palette.gray[70],
+                  fontSize: 15,
+                  fontWeight: 500,
+                }}
+              >
+                <Box component="span" minWidth={22} marginRight={1.25}>
+                  {icon}
+                </Box>
+                {label}
+              </Typography>
+            </Link>
+          ))}
+        </Box>
+      </Box>
+    </Box>
+  </Container>
+);
+
+type UseCaseItem = {
+  name: string;
+  icon: ReactNode;
+};
+
+const useCaseItems: UseCaseItem[] = [
+  {
+    name: "Knowledge Management",
+    icon: <FaIcon name="sitemap" type="light" />,
+  },
+  {
+    name: "Data Management",
+    icon: <FaIcon name="binary" type="light" />,
+  },
+  {
+    name: "Business Intelligence",
+    icon: <FaIcon name="display-chart-up" type="light" />,
+  },
+  {
+    name: "Website Building",
+    icon: <FaIcon name="browser" type="light" />,
+  },
+  {
+    name: "Internal Tools/Apps",
+    icon: <FaIcon name="tools" type="light" />,
+  },
+  {
+    name: "Agent-Based Simulation",
+    icon: <FaIcon name="people" type="light" />,
+  },
+  {
+    name: "Entity Storage/ Retrieval",
+    icon: <FaIcon name="brain" type="light" />,
+  },
+];
+
+const UseCases: FunctionComponent = () => (
+  <Container sx={{ marginBottom: 10 }}>
+    <Typography id="use-cases" variant="hashHeading3" gutterBottom>
+      Use Cases
+    </Typography>
+    <Box
+      display="flex"
+      gap={2}
+      flexWrap="wrap"
+      sx={{ justifyContent: { xs: "space-between", sm: "flex-start" } }}
+    >
+      {useCaseItems.map(({ name, icon }) => (
+        <Box
+          key={name}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            width: 130,
+            padding: 1.25,
+          }}
+        >
+          {icon}
+          <Typography
+            sx={{
+              marginTop: 1.25,
+              textAlign: "center",
+              fontSize: 15,
+              fontWeight: 500,
+              color: ({ palette }) => palette.gray[80],
+              lineHeight: 1.2,
+            }}
+          >
+            {name}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  </Container>
+);
+
+const GetInvolved: FunctionComponent = () => (
+  <Container sx={{ marginBottom: 10 }}>
+    <Typography id="get-involved" variant="hashHeading3" marginBottom={5}>
+      Get Involved
+    </Typography>
+    <Typography variant="hashHeading4" marginBottom={3}>
+      <FaIcon
+        name="wind"
+        type="light"
+        sx={{ color: ({ palette }) => palette.teal[90], marginRight: 3 }}
+      />
+      Become an early adopter
+    </Typography>
+    <Typography>
+      <strong>Interested in using HASH?</strong>
+    </Typography>
+    <Box
+      component="ul"
+      sx={{
+        my: 1,
+        "> li": {
+          marginBottom: 0,
+        },
+      }}
+    >
+      <Typography component="li">
+        <strong>Create an account</strong> to try out the hosted version of HASH
+      </Typography>
+      <Typography component="li">
+        View the developer docs to <strong>self-host HASH</strong>.
+      </Typography>
+    </Box>
+    <Typography>
+      <strong>Got a use case in mind?</strong>
+    </Typography>
+    <Typography>
+      Discuss your use case with us, or get support by{" "}
+      <Link href="https://hash.ai/contact" openInNew>
+        <strong>contacting us</strong>
+      </Link>{" "}
+      or{" "}
+      <Link href="https://hash.ai/discord" openInNew>
+        <strong>joining the Discord community</strong>
+      </Link>
+      .
+    </Typography>
+    <Box marginTop={5} display="flex" gap={2} flexWrap="wrap">
+      <Button
+        variant="primarySquare"
+        size="medium"
+        color="purple"
+        href="https://hash.ai/discord"
+        startIcon={<FaIcon name="discord" type="brands" />}
+        sx={{ width: { xs: "100%", sm: "auto" } }}
+      >
+        <Typography>Join our Discord</Typography>
+      </Button>
+      <Button
+        variant="primarySquare"
+        size="medium"
+        color="blue"
+        href="https://app.hash.ai"
+        startIcon={<FaIcon name="check" type="regular" />}
+        sx={{ width: { xs: "100%", sm: "auto" } }}
+      >
+        <Typography>
+          Use at <strong>app.hash.ai</strong>
+        </Typography>
+      </Button>
+      <Button
+        variant="primarySquare"
+        size="medium"
+        href="https://github.com/hashintel/hash"
+        startIcon={<FaIcon name="github" type="brands" />}
+        sx={{ width: { xs: "100%", sm: "auto" } }}
+      >
+        <Typography>View on GitHub</Typography>
+      </Button>
+    </Box>
+  </Container>
+);
+
+const RoadmapPage: NextPageWithLayout = () => (
+  <>
+    <Head />
+    <UseCases />
+    <TechnologyTree />
+    <GetInvolved />
+  </>
+);
+
+RoadmapPage.getLayout = (page) => (
+  <PageLayout subscribe={false} community={false}>
+    {page}
+  </PageLayout>
+);
+
+export default RoadmapPage;

@@ -43,11 +43,11 @@ const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)({
 });
 
 const navLinks: { icon: ReactNode; name: string; href: string }[] = [
-  // {
-  //   icon: <FaIcon name="diagram-sankey" type="solid" />,
-  //   name: "Roadmap",
-  //   href: "/roadmap",
-  // },
+  {
+    icon: <FaIcon name="diagram-sankey" type="solid" />,
+    name: "Roadmap",
+    href: "/roadmap",
+  },
   // {
   //   icon: <FaIcon name="book-atlas" type="regular" />,
   //   name: "Docs",
