@@ -26,17 +26,39 @@ export const entityTypedef = gql`
     """
     existingEntityId: EntityId
     """
-    The type of which to instantiate the new entity.
+    The type of the new entity.
     """
     entityTypeId: VersionedUrl
     """
-    The properties of new entity.
+    The properties of the new entity.
     """
     entityProperties: EntityPropertiesObject
     """
     Associated Entities to either create/get and link to this entity.
     """
     linkedEntities: [LinkedEntityDefinition!]
+  }
+
+  """
+  An entity proposed for creation. The suggested data can be used in further calls, e.g. to createEntity
+  """
+  type ProposedEntity {
+    """
+    The suggested type of the proposed entity.
+    """
+    entityTypeId: VersionedUrl!
+    """
+    The suggested properties of the proposed entity.
+    """
+    properties: EntityPropertiesObject!
+    """
+    The link metadata of the entity, if this is proposed as a link entity
+    """
+    linkData: LinkData
+  }
+
+  type InferEntitiesResult {
+    entities: [ProposedEntity!]!
   }
 
   extend type Query {
@@ -85,19 +107,19 @@ export const entityTypedef = gql`
     """
     createEntity(
       """
-      The owner of the create entity. Defaults to the user calling the mutation.
+      The owner of the created entity. Defaults to the user calling the mutation.
       """
       ownedById: OwnedById
       """
-      The type of which to instantiate the new entity.
+      The type of the new entity.
       """
       entityTypeId: VersionedUrl!
       """
-      The properties of new entity.
+      The properties of the new entity.
       """
       properties: EntityPropertiesObject!
       """
-      Associated Entities to either create/get and link to this entity.
+      Associated Entities to either create or get, and then link to this entity.
       """
       linkedEntities: [LinkedEntityDefinition!]
       """
@@ -141,5 +163,16 @@ export const entityTypedef = gql`
       """
       entityId: EntityId!
     ): Boolean!
+
+    """
+    Propose entities which are inferred from an input.
+    Does NOT persist the entities – callers are responsible for doing something with the proposed entities.
+    """
+    inferEntities(
+      """
+      A string of text to infer entities from, e.g. a page of text.
+      """
+      textInput: String!
+    ): InferEntitiesResult!
   }
 `;

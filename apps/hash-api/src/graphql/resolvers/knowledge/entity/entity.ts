@@ -31,8 +31,10 @@ import {
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import {
+  Mutation,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
+  MutationInferEntitiesArgs,
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
   QueryResolvers,
@@ -305,4 +307,26 @@ export const archiveEntityResolver: ResolverFn<
   await archiveEntity(context, { entity, actorId: user.accountId });
 
   return true;
+};
+
+// @todo replace this with the actual implementation
+const inferEntitiesPlaceholder = async (_textInput: string) => {
+  return [
+    {
+      entityTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/3" as const,
+      properties: {},
+    },
+  ];
+};
+
+export const inferEntitiesResolver: ResolverFn<
+  Mutation["inferEntities"],
+  null,
+  LoggedInGraphQLContext,
+  MutationInferEntitiesArgs
+> = async (_, { textInput }) => {
+  const proposedEntities = await inferEntitiesPlaceholder(textInput);
+
+  return { entities: proposedEntities };
 };
