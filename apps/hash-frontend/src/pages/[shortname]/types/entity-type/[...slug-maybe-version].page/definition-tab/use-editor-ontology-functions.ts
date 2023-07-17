@@ -139,12 +139,12 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["canEditResource"]
   >(
     ({ kind, resource }) => {
-      if (!authenticatedUser) {
+      if (!authenticatedUser?.accountSignupComplete) {
         return {
           allowed: false,
-          message: `Sign in to edit ${
-            kind === "link-type" ? "link" : "property"
-          } type.`,
+          message: `${
+            authenticatedUser ? "Complete sign up" : "Sign in"
+          } to edit ${kind === "link-type" ? "link" : "property"} type.`,
         };
       }
 

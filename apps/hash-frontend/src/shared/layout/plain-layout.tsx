@@ -26,7 +26,7 @@ export const PlainLayout: FunctionComponent<{
         options={{ showSpinner: false }}
         showOnShallow
       />
-      {authenticatedUser ? <CommandBar /> : null}
+      {authenticatedUser?.accountSignupComplete ? <CommandBar /> : null}
       {children}
     </>
   );
