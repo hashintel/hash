@@ -1,9 +1,6 @@
 import { Entity } from "@local/hash-subgraph";
 
-import {
-  getCommentAuthor,
-  getCommentById,
-} from "../../../../graph/knowledge/system-types/comment";
+import { getCommentAuthor } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
@@ -17,10 +14,9 @@ export const commentAuthorResolver: ResolverFn<
 > = async ({ metadata }, _, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(context, {
-    entityId: metadata.recordId.entityId,
+  const author = await getCommentAuthor(context, {
+    commentEntityId: metadata.recordId.entityId,
   });
-  const author = await getCommentAuthor(context, { comment });
 
   return mapEntityToGQL(author.entity);
 };
