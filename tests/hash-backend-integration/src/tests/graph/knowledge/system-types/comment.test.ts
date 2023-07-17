@@ -77,23 +77,29 @@ describe("Comment", () => {
   it("createComment method can create a comment", async () => {
     const comment = await createComment(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      parent: testBlock.entity,
+      parentEntityId: testBlock.entity.metadata.recordId.entityId,
       tokens: [],
       author: testUser,
       actorId: testUser.accountId,
     });
 
-    const hasText = await getCommentText(graphContext, { comment });
+    const commentEntityId = comment.entity.metadata.recordId.entityId;
+
+    const hasText = await getCommentText(graphContext, { commentEntityId });
     expect(
       hasText.properties[
         SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
       ],
     ).toEqual([]);
 
-    const commentAuthor = await getCommentAuthor(graphContext, { comment });
+    const commentAuthor = await getCommentAuthor(graphContext, {
+      commentEntityId,
+    });
     expect(commentAuthor.entity).toEqual(testUser.entity);
 
-    const parentBlock = await getCommentParent(graphContext, { comment });
+    const parentBlock = await getCommentParent(graphContext, {
+      commentEntityId,
+    });
     expect(parentBlock).toEqual(testBlock.entity);
   });
 });
