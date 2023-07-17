@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 
+import { UseCaseId } from "./use-cases";
+
 export type TechnologyTreeNodeVariant =
   | "block-protocol"
   | "infrastructure"
@@ -12,22 +14,13 @@ export type TechnologyTreeNodeStatus =
   | "next-up"
   | "future";
 
-export type TechnologyTreeNodeUseCase =
-  | "knowledge-management"
-  | "data-management"
-  | "business-intelligence"
-  | "website-building"
-  | "internal-tools-apps"
-  | "agent-based-simulation"
-  | "entity-storage-retrieval";
-
 export type TechnologyTreeNodeData = {
   id: string;
   heading: ReactNode;
   body?: ReactNode;
   variant: TechnologyTreeNodeVariant;
   status: TechnologyTreeNodeStatus;
-  useCases: TechnologyTreeNodeUseCase[];
+  useCases: UseCaseId[];
   parentIds?: string[];
 };
 

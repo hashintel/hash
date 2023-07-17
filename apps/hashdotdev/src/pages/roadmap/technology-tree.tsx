@@ -7,19 +7,19 @@ import {
   technologyTreeData,
   TechnologyTreeNodeData,
   TechnologyTreeNodeStatus,
-  TechnologyTreeNodeUseCase,
 } from "./technology-tree-data";
 import {
   TechnologyTreeNode,
   technologyTreeNodeMinHeight,
   technologyTreeNodeWidth,
 } from "./technology-tree-node";
+import { UseCaseId } from "./use-cases";
 
 const generateLinePath = d3Line().curve(curveMonotoneX);
 
 export const TechnologyTree: FunctionComponent<{
   statuses?: TechnologyTreeNodeStatus[];
-  useCases?: TechnologyTreeNodeUseCase[];
+  useCases?: UseCaseId[];
 }> = ({ statuses, useCases }) => {
   const [focusedNodeId, setFocusedNodeId] = useState<string | undefined>();
 

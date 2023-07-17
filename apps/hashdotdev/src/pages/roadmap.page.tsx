@@ -8,6 +8,7 @@ import { PageLayout } from "../components/page-layout";
 import { NextPageWithLayout } from "../util/next-types";
 import { BlueStylishDivider } from "./blog/shared/blue-styled-divider";
 import { TechnologyTree } from "./roadmap/technology-tree";
+import { useCases } from "./roadmap/use-cases";
 
 const headingLinks: { label: string; href: string; icon: ReactNode }[] = [
   {
@@ -97,42 +98,6 @@ const Head: FunctionComponent = () => (
   </Container>
 );
 
-type UseCaseItem = {
-  name: string;
-  icon: ReactNode;
-};
-
-const useCaseItems: UseCaseItem[] = [
-  {
-    name: "Knowledge Management",
-    icon: <FaIcon name="sitemap" type="light" />,
-  },
-  {
-    name: "Data Management",
-    icon: <FaIcon name="binary" type="light" />,
-  },
-  {
-    name: "Business Intelligence",
-    icon: <FaIcon name="display-chart-up" type="light" />,
-  },
-  {
-    name: "Website Building",
-    icon: <FaIcon name="browser" type="light" />,
-  },
-  {
-    name: "Internal Tools/Apps",
-    icon: <FaIcon name="tools" type="light" />,
-  },
-  {
-    name: "Agent-Based Simulation",
-    icon: <FaIcon name="people" type="light" />,
-  },
-  {
-    name: "Entity Storage/ Retrieval",
-    icon: <FaIcon name="brain" type="light" />,
-  },
-];
-
 const UseCases: FunctionComponent = () => (
   <Container sx={{ marginBottom: 10 }}>
     <Typography id="use-cases" variant="hashHeading3" gutterBottom>
@@ -144,7 +109,7 @@ const UseCases: FunctionComponent = () => (
       flexWrap="wrap"
       sx={{ justifyContent: { xs: "space-between", sm: "flex-start" } }}
     >
-      {useCaseItems.map(({ name, icon }) => (
+      {useCases.map(({ name, icon }) => (
         /** @todo: make clickable when docs pages exist for each item */
         // <Link key={name} href={href}>
         <Box

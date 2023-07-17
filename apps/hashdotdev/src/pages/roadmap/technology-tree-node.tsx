@@ -1,9 +1,10 @@
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { FaIcon } from "../../components/icons/fa-icon";
 import { BlockProtocolIcon } from "./block-protocol-icon";
 import { TechnologyTreeNodeData } from "./technology-tree-data";
+import { useCases } from "./use-cases";
 
 export const technologyTreeNodeWidth = 300;
 export const technologyTreeNodeMinHeight = 115;
@@ -19,10 +20,14 @@ export const TechnologyTreeNode: FunctionComponent<{
   x,
   y,
   blurred,
-  data: { variant, heading, body, status },
+  data: { variant, heading, body, status, ...data },
   onHover,
   onUnhover,
 }) => {
+  const useCaseNames = data.useCases.map(
+    (useCaseId) => useCases.find(({ id }) => id === useCaseId)?.name,
+  );
+
   return (
     <Box
       sx={{
@@ -68,13 +73,27 @@ export const TechnologyTreeNode: FunctionComponent<{
             }}
           />
         </Typography>
-        <IconButton
-          sx={{ padding: 0 }}
-          onPointerOver={onHover}
-          onPointerLeave={onUnhover}
+        <Tooltip
+          title={
+            <>
+              Use cases:{" "}
+              {useCaseNames.length > 1
+                ? useCaseNames
+                    .slice(0, -1)
+                    .join(", ")
+                    .concat(` & ${useCaseNames.slice(-1)}`)
+                : useCaseNames[0]}
+            </>
+          }
         >
-          <FaIcon name="circle-info" type="regular" sx={{ fontSize: 14 }} />
-        </IconButton>
+          <IconButton
+            sx={{ padding: 0 }}
+            onPointerOver={onHover}
+            onPointerLeave={onUnhover}
+          >
+            <FaIcon name="circle-info" type="regular" sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
       <Typography
         sx={{
