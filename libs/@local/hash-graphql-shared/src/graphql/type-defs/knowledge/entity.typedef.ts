@@ -44,7 +44,7 @@ export const entityTypedef = gql`
   """
   type ProposedEntity {
     """
-    The suggested type of the proposed entity.
+    The type of the proposed entity.
     """
     entityTypeId: VersionedUrl!
     """
@@ -173,6 +173,10 @@ export const entityTypedef = gql`
       A string of text to infer entities from, e.g. a page of text.
       """
       textInput: String!
+      """
+      The ids of the possible entity types that inferred entities may be of.
+      """
+      entityTypeIds: [VersionedUrl!]!
     ): InferEntitiesResult!
   }
 `;

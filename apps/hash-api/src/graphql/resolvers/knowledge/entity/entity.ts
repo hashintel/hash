@@ -1,5 +1,7 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
+  AccountId,
   Entity,
   EntityRootType,
   OwnedById,
@@ -310,7 +312,11 @@ export const archiveEntityResolver: ResolverFn<
 };
 
 // @todo replace this with the actual implementation
-const inferEntitiesPlaceholder = async (_textInput: string) => {
+const inferEntitiesPlaceholder = async (
+  _textInput: string,
+  _entityTypeIds: VersionedUrl[],
+  _actorId: AccountId,
+) => {
   return [
     {
       entityTypeId:
@@ -325,8 +331,12 @@ export const inferEntitiesResolver: ResolverFn<
   null,
   LoggedInGraphQLContext,
   MutationInferEntitiesArgs
-> = async (_, { textInput }) => {
-  const proposedEntities = await inferEntitiesPlaceholder(textInput);
+> = async (_, { textInput, entityTypeIds }, { user }) => {
+  const proposedEntities = await inferEntitiesPlaceholder(
+    textInput,
+    entityTypeIds,
+    user.accountId,
+  );
 
   return { entities: proposedEntities };
 };
