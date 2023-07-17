@@ -145,6 +145,8 @@ const UseCases: FunctionComponent = () => (
       sx={{ justifyContent: { xs: "space-between", sm: "flex-start" } }}
     >
       {useCaseItems.map(({ name, icon }) => (
+        /** @todo: make clickable when docs pages exist for each item */
+        // <Link key={name} href={href}>
         <Box
           key={name}
           sx={{
@@ -152,6 +154,19 @@ const UseCases: FunctionComponent = () => (
             flexDirection: "column",
             width: 130,
             padding: 1.25,
+            borderRadius: "8px",
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderColor: "transparent",
+            // "&:hover": {
+            //   borderColor: ({ palette }) => palette.gray[20],
+            //   backgroundColor: ({ palette }) => palette.gray[10],
+            // },
+            // "&:active": {
+            //   color: ({ palette }) => palette.teal[90],
+            //   borderColor: ({ palette }) => palette.teal[30],
+            //   backgroundColor: ({ palette }) => palette.teal[20],
+            // },
           }}
         >
           {icon}
@@ -168,6 +183,7 @@ const UseCases: FunctionComponent = () => (
             {name}
           </Typography>
         </Box>
+        // </Link>
       ))}
     </Box>
   </Container>
