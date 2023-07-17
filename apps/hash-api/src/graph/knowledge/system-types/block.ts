@@ -199,7 +199,7 @@ export const getBlockComments: ImpureGraphFunction<
   Promise<Comment[]>
 > = async (ctx, { block }) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, {
-    entity: block.entity,
+    entityId: block.entity.metadata.recordId.entityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
   });
 

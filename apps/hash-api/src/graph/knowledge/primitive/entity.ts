@@ -435,21 +435,19 @@ export const updateEntityProperty: ImpureGraphFunction<
  */
 export const getEntityIncomingLinks: ImpureGraphFunction<
   {
-    entity: Entity;
+    entityId: EntityId;
     linkEntityType?: EntityTypeWithMetadata;
   },
   Promise<LinkEntity[]>
 > = async (context, params) => {
-  const { entity } = params;
+  const { entityId } = params;
   const filter: Filter = {
     all: [
       {
         equal: [
           { path: ["rightEntity", "uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(entityId),
           },
         ],
       },
@@ -457,9 +455,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
         equal: [
           { path: ["rightEntity", "ownedById"] },
           {
-            parameter: extractOwnedByIdFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractOwnedByIdFromEntityId(entityId),
           },
         ],
       },
