@@ -1,7 +1,14 @@
 import { Box, Container, Typography } from "@mui/material";
-import { curveMonotoneX, line as d3Line } from "d3";
+import {
+  curveMonotoneX,
+  line as d3Line,
+  select,
+  zoom as d3zoom,
+  zoomIdentity,
+  ZoomTransform,
+} from "d3";
 import { graphStratify, shapeEllipse, sugiyama, tweakShape } from "d3-dag";
-import { FunctionComponent, useMemo, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   technologyTreeData,
@@ -21,6 +28,9 @@ export const TechnologyTree: FunctionComponent<{
   statuses?: TechnologyTreeNodeStatus[];
   useCases?: UseCaseId[];
 }> = ({ statuses, useCases }) => {
+  const graphWrapperRef = useRef<Element>(null);
+  const graphRef = useRef<Element>(null);
+
   const [focusedNodeId, setFocusedNodeId] = useState<string | undefined>();
 
   const filteredTechnologyTreeData = useMemo(() => {
@@ -113,6 +123,47 @@ export const TechnologyTree: FunctionComponent<{
     };
   }, [filteredTechnologyTreeData]);
 
+  useEffect(() => {
+    if (graphRef.current && graphWrapperRef.current) {
+      const graphWrapper = select(graphWrapperRef.current);
+      const graph = select(graphRef.current);
+
+      const { height: graphWrapperHeight, width: graphWrapperWidth } =
+        graphWrapperRef.current.getBoundingClientRect();
+
+      const zoom = d3zoom().on(
+        "zoom",
+        (event: { transform: ZoomTransform }) => {
+          graph.style(
+            "transform",
+            `translate(${event.transform.x - graphWrapperWidth / 2}px, ${
+              event.transform.y + (graphWrapperHeight / 2 - layoutHeight / 2)
+            }px) scale(${
+              event.transform.k * (graphWrapperHeight / layoutHeight)
+            })`,
+          );
+        },
+      );
+
+      const initialScale = 0.9;
+
+      const initialTranslateX = 0;
+
+      const initialTranslateY = 0;
+
+      graphWrapper.call((selection) =>
+        zoom.transform(
+          selection,
+          zoomIdentity
+            .translate(initialTranslateX, initialTranslateY)
+            .scale(initialScale),
+        ),
+      );
+
+      graphWrapper.call(zoom);
+    }
+  }, [layoutHeight, layoutWidth]);
+
   /** @todo: animate changes in the graph */
 
   return (
@@ -132,16 +183,17 @@ export const TechnologyTree: FunctionComponent<{
       />
       <Box position="relative">
         <Box
+          ref={graphWrapperRef}
           sx={{
+            position: "relative",
             width: "100%",
             background:
               "linear-gradient(90deg, rgba(247, 250, 252, 0.00) 0%, #F7FAFC 10.94%, #F7FAFC 84.90%, rgba(247, 250, 252, 0.00) 100%)",
-            overflowX: "scroll",
+            overflow: "hidden",
+            height: "75vh",
           }}
         >
-          <Container
-            sx={{ position: "relative", paddingTop: 4, paddingBottom: 8 }}
-          >
+          <Box ref={graphRef}>
             <Box
               sx={{
                 position: "relative",
@@ -228,7 +280,7 @@ export const TechnologyTree: FunctionComponent<{
                 </g>
               </g>
             </Box>
-          </Container>
+          </Box>
         </Box>
       </Box>
     </Box>
