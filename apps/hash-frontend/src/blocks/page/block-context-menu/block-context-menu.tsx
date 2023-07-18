@@ -20,11 +20,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
-import {
-  EntityPropertiesObject,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -84,26 +80,25 @@ const BlockContextMenu: ForwardRefRenderFunction<
 
   const menuItems = useMemo(() => {
     /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-    const hasChildEntity =
-      !!(blockEntity?.properties as DraftEntity["properties"] | undefined)
-        ?.entity &&
-      Object.keys(
-        (
-          (blockEntity!.properties as DraftEntity["properties"]).entity as {
-            properties: EntityPropertiesObject;
-          }
-        ).properties,
-      ).length > 0;
+    const hasChildEntityWithData =
+      Object.keys(blockEntity?.blockChildEntity?.properties ?? []).length > 0;
     const items = [
       ...(currentComponentId && !isHashTextBlock(currentComponentId)
         ? [
             {
               key: "set-entity",
-              title: hasChildEntity ? "Swap Entity" : "Add an entity",
+              title: hasChildEntityWithData ? "Swap Entity" : "Add an entity",
               icon: <FontAwesomeIcon icon={faAdd} />,
               subMenu: (
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
+                  childEntityEntityTypeId={
+                    blockEntity?.blockChildEntity?.metadata.entityTypeId ?? null
+                  }
+                  childEntityEntityId={
+                    blockEntity?.blockChildEntity?.metadata.recordId.entityId ??
+                    null
+                  }
                   closeParentContextMenu={() => popupState.close()}
                 />
               ),

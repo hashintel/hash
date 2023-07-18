@@ -368,7 +368,7 @@ export class BlockView implements NodeView {
         .insertBlock(blockMeta.componentId, variant, newPosition)
         .then(({ tr }) => {
           /**
-           * calculate nextPosition to correctly focus the to the component inside, not the wrapper
+           * calculate nextPosition to correctly focus the component inside, not the wrapper
            * */
           const $pos = tr.doc.resolve(newPosition + 1);
           const nextPosition = findComponentNode(
