@@ -79,6 +79,7 @@ const Head: FunctionComponent = () => (
               <Typography
                 display="flex"
                 alignItems="center"
+                gutterBottom
                 sx={{
                   color: ({ palette }) => palette.gray[70],
                   fontSize: 15,
