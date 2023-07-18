@@ -169,8 +169,19 @@ export const TechnologyTree: FunctionComponent<{
   return (
     <Box marginBottom={10}>
       <Container>
-        <Typography id="technology-tree" variant="hashHeading3" gutterBottom>
+        <Typography
+          id="technology-tree"
+          variant="hashHeading3"
+          marginBottom={4}
+        >
           Technology Tree
+        </Typography>
+        <Typography marginBottom={4}>
+          Inspired by the “tech trees” of video games like Civilization, we’ve
+          broken down the key components required to build HASH into a tree-view
+          below. You can filter these by use-case to see what’s left to be built
+          unblocking a particular use-case, or slice the data by work area or
+          completion status.
         </Typography>
       </Container>
       <Box
