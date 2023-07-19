@@ -1,7 +1,6 @@
 """A data type schema as defined by the Block Protocol."""
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     ClassVar,
     Literal,
@@ -13,6 +12,7 @@ from uuid import UUID
 from pydantic import (
     Extra,
     Field,
+    PrivateAttr,
     RootModel,
     create_model,
 )
@@ -46,15 +46,15 @@ class DataTypeReference(Schema):
             return cached
 
         schema = await graph.get_data_type(self.ref, actor_id=actor_id)
+        model = await schema.create_data_type(actor_id=actor_id, graph=graph)
 
-        model = create_model(
-            slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=RootModel,
-            root=(
-                await schema.create_data_type(actor_id=actor_id, graph=graph),
-                Field(...),
-            ),
-        )
+        # Potential race condition here, another coroutine could have created the model
+        # before we did on the previous await statement.
+        # Just check if we have it in the cache again, this way we won't
+        # accidentally create the same model twice.
+        if cached := self.cache.get(self.ref):
+            return cached
+
         self.cache[self.ref] = model
         return model
 
@@ -70,6 +70,8 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         ...,
         alias="type",
     )
+
+    _cached: type[RootModel] | None = PrivateAttr(None)
 
     def _type(self) -> type[DataType]:
         match self.ty:
@@ -95,6 +97,10 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         graph: "GraphAPIProtocol",
     ) -> type[RootModel]:
         """Create an annotated type from this schema."""
+        # make sure that we don't duplicate work and create the same model twice
+        if self._cached is not None:
+            return self._cached
+
         # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
         _graph = graph
@@ -103,9 +109,13 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
 
         type_ = Literal[const] if const is not None else self._type()
 
-        return create_model(
+        base = type("Base", (DataTypeBase,), {"info": self.type_info()})
+
+        model = create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=(DataTypeBase, RootModel[type_]),
-            __cls_kwargs__={"info": self.type_info()},
-            root=(Field(...), ...),
+            __base__=(base, RootModel),
+            root=(type_, Field(...)),
         )
+
+        self._cached = model
+        return model

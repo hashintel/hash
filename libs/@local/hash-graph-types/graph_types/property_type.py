@@ -84,11 +84,14 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         graph: "GraphAPIProtocol",
     ) -> type[PropertyType]:
         """Create an annotated type from this schema."""
-        proxy = await self.create_model(actor_id=actor_id, graph=graph)
+        inner = await self.create_model(actor_id=actor_id, graph=graph)
+
+        base = type(
+            "SpecializedPropertyType", (PropertyType,), {"info": self.type_info()}
+        )
 
         return create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=(PropertyType, RootModel[proxy]),
-            __cls_kwargs__={"info": self.type_info()},
-            root=Field(...),
+            __base__=(base, RootModel[inner]),
+            root=(inner, Field(...)),
         )

@@ -12,7 +12,7 @@ class TypeInfo(BaseModel):
     identifier: str
     schema_url: str
     title: str
-    description: str
+    description: str | None = None
     kind: str
 
 
