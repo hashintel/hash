@@ -19,11 +19,12 @@ import {
 import { TechnologyTreeFilters } from "./technology-tree-filters";
 import {
   TechnologyTreeNode,
-  technologyTreeNodeMinHeight,
   technologyTreeNodeWidth,
 } from "./technology-tree-node";
 import { UseCaseId, useCases } from "./use-cases";
 import { VariantId, variants } from "./variants";
+
+const technologyTreeNodeMinHeight = 50;
 
 const generateLinePath = d3Line().curve(curveMonotoneX);
 
@@ -119,7 +120,7 @@ export const TechnologyTree: FunctionComponent = () => {
     // Configure the layout of the graph
     const layout = sugiyama()
       .nodeSize([technologyTreeNodeMinHeight, technologyTreeNodeWidth])
-      .gap([technologyTreeNodeMinHeight * 0.25, technologyTreeNodeWidth * 0.25])
+      .gap([technologyTreeNodeMinHeight * 2, technologyTreeNodeWidth * 0.3])
       .tweaks([shape]);
 
     // Generate the graph layout to obtain its size
@@ -204,7 +205,7 @@ export const TechnologyTree: FunctionComponent = () => {
             "linear-gradient(90deg, rgba(0, 141, 185, 0.00) 0%, #5DBEDC 20.83%, #DAF8FF 84.90%, rgba(218, 248, 255, 0.00) 100%)",
         }}
       />
-      <Box position="relative">
+      <Box sx={{ position: "relative", overflow: "hidden" }}>
         <TechnologyTreeFilters
           displayedStatuses={displayedStatuses}
           setDisplayedStatuses={setDisplayedStatuses}
@@ -334,10 +335,10 @@ export const TechnologyTree: FunctionComponent = () => {
                       ([x, y], index) => {
                         if (index === 0) {
                           // this is the start point of the edge
-                          return [y + technologyTreeNodeWidth / 2 - 60, x];
+                          return [y + technologyTreeNodeWidth / 2 - 27, x];
                         } else if (index === points.length - 1) {
                           // this is the end point of the edge
-                          return [y - technologyTreeNodeWidth / 2 + 48, x];
+                          return [y - technologyTreeNodeWidth / 2 + 18, x];
                         } else {
                           return [y, x];
                         }

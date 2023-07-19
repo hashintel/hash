@@ -8,7 +8,6 @@ import { useCases } from "./use-cases";
 import { variants } from "./variants";
 
 export const technologyTreeNodeWidth = 300;
-export const technologyTreeNodeMinHeight = 115;
 
 export const TechnologyTreeNode: FunctionComponent<{
   x: number;
