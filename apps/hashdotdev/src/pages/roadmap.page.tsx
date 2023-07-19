@@ -168,26 +168,45 @@ const GetInvolved: FunctionComponent = () => (
       />
       Become an early adopter
     </Typography>
-    <Typography>
+    <Typography marginBottom={1}>
       <strong>Interested in using HASH?</strong>
     </Typography>
     <Box
       component="ul"
       sx={{
-        my: 1,
+        marginTop: 0,
+        marginBottom: 2,
+        listStyle: "none",
+        paddingLeft: 0,
         "> li": {
-          marginBottom: 0,
+          marginBottom: 0.5,
+          svg: {
+            position: "relative",
+            top: 7,
+            marginRight: 2,
+            fontSize: 16,
+          },
         },
       }}
     >
-      <Typography component="li">
-        <strong>Create an account</strong> to try out the hosted version of HASH
-      </Typography>
-      <Typography component="li">
-        View the developer docs to <strong>self-host HASH</strong>.
-      </Typography>
+      <Box component="li" display="flex">
+        <FaIcon name="arrow-right" type="regular" />
+        <Typography>
+          <Link href="https://app.hash.ai/signup" openInNew>
+            <strong>Create an account</strong>
+          </Link>{" "}
+          to try out the hosted version of HASH
+        </Typography>
+      </Box>
+      <Box component="li" display="flex">
+        <FaIcon name="arrow-right" type="regular" />
+        <Typography>
+          {/* @todo: link to https://github.com/hashintel/hash */}
+          View the developer docs to <strong>self-host HASH</strong>.
+        </Typography>
+      </Box>
     </Box>
-    <Typography>
+    <Typography marginBottom={1}>
       <strong>Got a use case in mind?</strong>
     </Typography>
     <Typography>
@@ -217,7 +236,7 @@ const GetInvolved: FunctionComponent = () => (
         size="medium"
         color="blue"
         href="https://app.hash.ai"
-        startIcon={<FaIcon name="check" type="regular" />}
+        startIcon={<FaIcon name="arrow-right-to-bracket" type="solid" />}
         sx={{ width: { xs: "100%", sm: "auto" } }}
       >
         <Typography>
