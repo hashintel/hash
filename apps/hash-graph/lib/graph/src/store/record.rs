@@ -1,4 +1,4 @@
-use crate::{identifier::time::TimeAxis, store::query::QueryPath, subgraph::identifier::VertexId};
+use crate::{store::query::QueryPath, subgraph::identifier::VertexId};
 
 /// A record persisted in the [`store`].
 ///
@@ -6,6 +6,4 @@ use crate::{identifier::time::TimeAxis, store::query::QueryPath, subgraph::ident
 pub trait Record: Sized + Send {
     type VertexId: VertexId<Record = Self> + Send + Sync;
     type QueryPath<'p>: QueryPath + Send + Sync;
-
-    fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId;
 }

@@ -335,8 +335,11 @@ pub struct DataTypeWithMetadata {
 impl Record for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
     type VertexId = DataTypeVertexId;
+}
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
+impl DataTypeWithMetadata {
+    #[must_use]
+    pub fn vertex_id(&self, _time_axis: TimeAxis) -> DataTypeVertexId {
         let record_id = self.metadata().record_id();
         DataTypeVertexId {
             base_id: record_id.base_url.clone(),
@@ -375,8 +378,11 @@ pub struct PropertyTypeWithMetadata {
 impl Record for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
     type VertexId = PropertyTypeVertexId;
+}
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
+impl PropertyTypeWithMetadata {
+    #[must_use]
+    pub fn vertex_id(&self, _time_axis: TimeAxis) -> PropertyTypeVertexId {
         let record_id = self.metadata().record_id();
         PropertyTypeVertexId {
             base_id: record_id.base_url.clone(),
@@ -415,8 +421,11 @@ pub struct EntityTypeWithMetadata {
 impl Record for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
     type VertexId = EntityTypeVertexId;
+}
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
+impl EntityTypeWithMetadata {
+    #[must_use]
+    pub fn vertex_id(&self, _time_axis: TimeAxis) -> EntityTypeVertexId {
         let record_id = self.metadata().record_id();
         EntityTypeVertexId {
             base_id: record_id.base_url.clone(),

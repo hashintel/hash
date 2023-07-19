@@ -13,7 +13,7 @@ use crate::{
         crud::Read,
         postgres::ontology::OntologyId,
         query::{Filter, FilterExpression, ParameterList},
-        AsClient, PostgresStore, QueryError, Record,
+        AsClient, PostgresStore, QueryError,
     },
     subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };

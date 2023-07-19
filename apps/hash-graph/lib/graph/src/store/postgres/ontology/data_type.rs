@@ -14,7 +14,7 @@ use crate::{
         error::DeletionError,
         postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
-        Record, UpdateError,
+        UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
