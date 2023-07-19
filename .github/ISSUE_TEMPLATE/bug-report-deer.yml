@@ -4,7 +4,6 @@ labels:
   - "area: libs > deer"
   - "category: bug"
 assignees:
-  - Alfred-Mountfield
   - TimDiekmann
   - indietyp
 body:
