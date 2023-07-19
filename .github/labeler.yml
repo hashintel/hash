@@ -54,9 +54,6 @@
 "area: tests > integration":
   - "tests/hash-backend-integration/**"
 
-"area: infra":
-  - "infra/**"
-
 "area: infra > docker":
   - "infra/docker/**"
 
@@ -71,4 +68,3 @@
 
 "area: apps > hash-search-frontend":
   - "hash-frontend/**"
-  
