@@ -208,12 +208,13 @@ impl OntologyType for EntityType {
 
 pub trait OntologyTypeWithMetadata: Record {
     type OntologyType: OntologyType<WithMetadata = Self>;
+    type Metadata;
 
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
+    fn new(record: Self::OntologyType, metadata: Self::Metadata) -> Self;
 
     fn inner(&self) -> &Self::OntologyType;
 
-    fn metadata(&self) -> &OntologyElementMetadata;
+    fn metadata(&self) -> &Self::Metadata;
 }
 
 // TODO: Flatten when `#[feature(mut_restriction)]` is available.
@@ -349,9 +350,10 @@ impl DataTypeWithMetadata {
 }
 
 impl OntologyTypeWithMetadata for DataTypeWithMetadata {
+    type Metadata = OntologyElementMetadata;
     type OntologyType = DataType;
 
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: Self::Metadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -362,7 +364,7 @@ impl OntologyTypeWithMetadata for DataTypeWithMetadata {
         &self.inner
     }
 
-    fn metadata(&self) -> &OntologyElementMetadata {
+    fn metadata(&self) -> &Self::Metadata {
         &self.metadata
     }
 }
@@ -392,9 +394,10 @@ impl PropertyTypeWithMetadata {
 }
 
 impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
+    type Metadata = OntologyElementMetadata;
     type OntologyType = PropertyType;
 
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: Self::Metadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -405,7 +408,7 @@ impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
         &self.inner
     }
 
-    fn metadata(&self) -> &OntologyElementMetadata {
+    fn metadata(&self) -> &Self::Metadata {
         &self.metadata
     }
 }
@@ -435,9 +438,10 @@ impl EntityTypeWithMetadata {
 }
 
 impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
+    type Metadata = OntologyElementMetadata;
     type OntologyType = EntityType;
 
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: Self::Metadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -448,7 +452,7 @@ impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
         &self.inner
     }
 
-    fn metadata(&self) -> &OntologyElementMetadata {
+    fn metadata(&self) -> &Self::Metadata {
         &self.metadata
     }
 }

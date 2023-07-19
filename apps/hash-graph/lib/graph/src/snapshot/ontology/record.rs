@@ -6,7 +6,7 @@ use crate::{
         ontology::OntologyTypeRecordId,
         time::{LeftClosedTemporalInterval, TransactionTime},
     },
-    ontology::OntologyType,
+    ontology::{OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata},
 };
 
@@ -55,8 +55,10 @@ pub struct OntologyTypeMetadata {
 #[serde(
     rename_all = "camelCase",
     bound(
-        serialize = "T::Representation: Serialize",
-        deserialize = "T::Representation: Deserialize<'de>"
+        serialize = "T::Representation: Serialize, <T::WithMetadata as \
+                     OntologyTypeWithMetadata>::Metadata: Serialize",
+        deserialize = "T::Representation: Deserialize<'de>, <T::WithMetadata as \
+                       OntologyTypeWithMetadata>::Metadata: Deserialize<'de>"
     )
 )]
 pub struct OntologyTypeSnapshotRecord<T: OntologyType> {

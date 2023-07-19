@@ -7,7 +7,10 @@ use postgres_types::{FromSql, Type};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
 
 use crate::{
     identifier::{
@@ -15,8 +18,9 @@ use crate::{
         time::RightBoundedTemporalInterval,
     },
     ontology::{
-        ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
-        OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, ExternalOntologyElementMetadata,
+        OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata,
+        OwnedOntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     snapshot::{
@@ -166,24 +170,20 @@ where
 }
 
 #[async_trait]
-impl<C: AsClient, T> Read<T> for PostgresStore<C>
-where
-    Self: Read<OntologyTypeSnapshotRecord<T::OntologyType>, Record = T>,
-    T: OntologyTypeWithMetadata + Send,
-    <T::OntologyType as OntologyType>::Representation: Send + Sync,
-{
-    type Record = T;
+impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
+    type Record = DataTypeWithMetadata;
 
-    type ReadStream = impl futures::Stream<Item = Result<T, QueryError>> + Send + Sync;
+    type ReadStream =
+        impl futures::Stream<Item = Result<DataTypeWithMetadata, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
         &self,
-        filter: &Filter<T>,
+        filter: &Filter<DataTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
         let stream =
-            Read::<OntologyTypeSnapshotRecord<T::OntologyType>>::read(self, filter, temporal_axes)
+            Read::<OntologyTypeSnapshotRecord<DataType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
                     let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
@@ -220,7 +220,135 @@ where
                         ),
                     };
 
-                    Ok(T::new(
+                    Ok(DataTypeWithMetadata::new(
+                        record
+                            .schema
+                            .try_into()
+                            .into_report()
+                            .change_context(QueryError)?,
+                        metadata,
+                    ))
+                });
+        Ok(stream)
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
+    type Record = PropertyTypeWithMetadata;
+
+    type ReadStream =
+        impl futures::Stream<Item = Result<PropertyTypeWithMetadata, QueryError>> + Send + Sync;
+
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(
+        &self,
+        filter: &Filter<PropertyTypeWithMetadata>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError> {
+        let stream =
+            Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(self, filter, temporal_axes)
+                .await?
+                .and_then(|record| async move {
+                    let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
+                        unreachable!(
+                            "`OntologyTypeRecord` should always have provenance metadata if it is \
+                             read from the store"
+                        )
+                    });
+
+                    let metadata = match (
+                        record.metadata.custom.owned_by_id,
+                        record.metadata.custom.fetched_at,
+                    ) {
+                        (Some(owned_by_id), None) => {
+                            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                                record.metadata.record_id,
+                                provenance,
+                                owned_by_id,
+                            ))
+                        }
+                        (None, Some(fetched_at)) => {
+                            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+                                record.metadata.record_id,
+                                provenance,
+                                fetched_at,
+                            ))
+                        }
+                        (Some(_), Some(_)) => unreachable!(
+                            "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
+                        ),
+                        (None, None) => unreachable!(
+                            "Ontology type record has neither `owned_by_id` nor `fetched_at` \
+                             metadata"
+                        ),
+                    };
+
+                    Ok(PropertyTypeWithMetadata::new(
+                        record
+                            .schema
+                            .try_into()
+                            .into_report()
+                            .change_context(QueryError)?,
+                        metadata,
+                    ))
+                });
+        Ok(stream)
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
+    type Record = EntityTypeWithMetadata;
+
+    type ReadStream =
+        impl futures::Stream<Item = Result<EntityTypeWithMetadata, QueryError>> + Send + Sync;
+
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(
+        &self,
+        filter: &Filter<EntityTypeWithMetadata>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError> {
+        let stream =
+            Read::<OntologyTypeSnapshotRecord<EntityType>>::read(self, filter, temporal_axes)
+                .await?
+                .and_then(|record| async move {
+                    let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
+                        unreachable!(
+                            "`OntologyTypeRecord` should always have provenance metadata if it is \
+                             read from the store"
+                        )
+                    });
+
+                    let metadata = match (
+                        record.metadata.custom.owned_by_id,
+                        record.metadata.custom.fetched_at,
+                    ) {
+                        (Some(owned_by_id), None) => {
+                            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                                record.metadata.record_id,
+                                provenance,
+                                owned_by_id,
+                            ))
+                        }
+                        (None, Some(fetched_at)) => {
+                            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+                                record.metadata.record_id,
+                                provenance,
+                                fetched_at,
+                            ))
+                        }
+                        (Some(_), Some(_)) => unreachable!(
+                            "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
+                        ),
+                        (None, None) => unreachable!(
+                            "Ontology type record has neither `owned_by_id` nor `fetched_at` \
+                             metadata"
+                        ),
+                    };
+
+                    Ok(EntityTypeWithMetadata::new(
                         record
                             .schema
                             .try_into()
