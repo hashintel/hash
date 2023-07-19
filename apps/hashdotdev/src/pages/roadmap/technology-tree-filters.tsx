@@ -36,7 +36,8 @@ const FilterCheckboxItem: FunctionComponent<{
       marginBottom: -1,
       [`.${formControlLabelClasses.label}`]: {
         "> svg": {
-          color,
+          color: ({ palette }) =>
+            checked ? color ?? palette.black : palette.gray[80],
           minWidth: 20,
           fontSize: 14,
         },
@@ -56,7 +57,12 @@ const FilterCheckboxItem: FunctionComponent<{
         {icon}
         <Typography
           marginLeft={1}
-          sx={{ color, fontSize: 12, fontWeight: 600 }}
+          sx={{
+            color: ({ palette }) =>
+              checked ? color ?? palette.black : palette.gray[80],
+            fontSize: 12,
+            fontWeight: 600,
+          }}
         >
           {label}
         </Typography>
