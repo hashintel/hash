@@ -13,6 +13,7 @@ from pydantic import (
     GetJsonSchemaHandler,
     conlist,
     create_model,
+    RootModel,
 )
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
@@ -61,15 +62,15 @@ class OneOf(Schema, Generic[T]):
             ],
         )
 
-        class OneOfSchema:
-            @classmethod
-            def __get_pydantic_core_schema__(
-                cls,
-                _source_type: Any,  # noqa: ANN401
-                handler: GetCoreSchemaHandler,
-            ) -> CoreSchema:
-                return core_schema.union_schema([handler(t) for t in types])
+        union = None
+        for type_ in types:
+            union = type_ if union is None else union | type_
 
+        if union is None:
+            msg = "No types provided"
+            raise ValueError(msg)
+
+        class OneOfSchema(BaseModel):
             @classmethod
             def __get_pydantic_json_schema__(
                 cls,
@@ -81,7 +82,7 @@ class OneOf(Schema, Generic[T]):
                     json_schema["oneOf"] = any_of
                 return json_schema
 
-        return Annotated[OneOf[T], OneOfSchema]
+        return create_model("OneOf", __base__=(RootModel[union], OneOfSchema))
 
 
 class Array(Schema, Generic[T]):
@@ -124,7 +125,7 @@ class Object(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> Annotated[Any, ...]:
+    ) -> type[BaseModel]:
         async def async_value(
             key: str,
             value: Awaitable[type[BaseModel] | Any],

@@ -19,6 +19,7 @@ from pydantic_core import CoreSchema
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
+from .base import PropertyType, TypeInfo
 from .data_type import DataTypeReference
 
 if TYPE_CHECKING:
@@ -84,29 +85,26 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> Annotated[object, "PropertyTypeAnnotation"]:
+    ) -> type[PropertyType]:
         """Create an annotated type from this schema."""
 
-        class PropertyTypeAnnotation:
-            @classmethod
-            def __get_pydantic_json_schema__(
-                cls,
-                schema: CoreSchema,
-                handler: GetJsonSchemaHandler,
-            ) -> JsonSchemaValue:
-                json_schema = handler(schema)
-                json_schema.update(
-                    **{
-                        "$id": self.identifier,
-                        "$schema": self.schema_url,
-                        "title": self.title,
-                        "description": self.description,
-                        "kind": self.kind,
-                    },
-                )
-                return json_schema
+        proxy = await self.create_model(actor_id=actor_id, graph=graph)
 
-        return Annotated[
-            await self.create_model(actor_id=actor_id, graph=graph),
-            PropertyTypeAnnotation,
-        ]
+        # inject `PropertyType` into the base classes of the proxy
+        # we do this by simply creating a new model,
+        # with the same base classes as the previous ones
+        # and the same fields, but with `PropertyType` as the first base class
+        return create_model(
+            slugify(self.id, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            __base__=(PropertyType, *proxy.__bases__),
+            __cls_kwargs__={
+                "info": TypeInfo(
+                    identifier=self.identifier,
+                    schema_url=self.schema_url,
+                    title=self.title,
+                    description=self.description,
+                    kind=self.kind,
+                )
+            },
+            **proxy.model_fields,
+        )

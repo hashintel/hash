@@ -1,7 +1,6 @@
 """A data type schema as defined by the Block Protocol."""
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     ClassVar,
     Literal,
@@ -13,16 +12,13 @@ from uuid import UUID
 from pydantic import (
     Extra,
     Field,
-    GetCoreSchemaHandler,
-    GetJsonSchemaHandler,
     RootModel,
     create_model,
 )
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema, core_schema
 from slugify import slugify
 
 from ._schema import OntologyTypeSchema, Schema
+from .base import DataType as DataTypeBase
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
@@ -96,7 +92,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> Annotated[Any, "DataTypeAnnotation"]:
+    ) -> type[RootModel]:
         """Create an annotated type from this schema."""
         # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
@@ -104,49 +100,10 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
 
         const = self.model_extra.get("const") if self.model_extra else None
 
-        # TODO: Use `Field` instead when multiple fields are supported
-        #   https://github.com/pydantic/pydantic/issues/6349
-        #   https://github.com/pydantic/pydantic/issues/6353
-        class DataTypeAnnotation:
-            @classmethod
-            def __get_pydantic_core_schema__(
-                cls,
-                source_type: Any,  # noqa: ANN401
-                handler: GetCoreSchemaHandler,
-            ) -> CoreSchema:
-                schema = handler(source_type)
-                if const is not None:
-                    return core_schema.no_info_after_validator_function(
-                        cls.validate_const,
-                        schema,
-                    )
-                return schema
+        type_ = Literal[const] if const is not None else self._type()
 
-            @classmethod
-            def __get_pydantic_json_schema__(
-                cls,
-                schema: CoreSchema,
-                handler: GetJsonSchemaHandler,
-            ) -> JsonSchemaValue:
-                json_schema = handler(schema)
-                json_schema.update(
-                    **{
-                        "$id": self.identifier,
-                        "$schema": self.schema_url,
-                        "title": self.title,
-                        "description": self.description,
-                        "kind": self.kind,
-                    },
-                )
-                if const is not None:
-                    json_schema.update(const=const)
-
-                return json_schema
-
-            @classmethod
-            def validate_const(cls, v: DataType) -> None:
-                if v != const:
-                    msg = f"Value must be {const}"
-                    raise ValueError(msg)
-
-        return Annotated[self._type(), DataTypeAnnotation]
+        return create_model(
+            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            __base__=(RootModel[type_], DataTypeBase),
+            root=(Field(...),),
+        )

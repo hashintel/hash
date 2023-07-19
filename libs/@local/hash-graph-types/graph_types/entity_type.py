@@ -2,7 +2,6 @@
 
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     ClassVar,
     Literal,
@@ -13,15 +12,13 @@ from uuid import UUID
 from pydantic import (
     ConfigDict,
     Field,
-    GetJsonSchemaHandler,
     RootModel,
     create_model,
 )
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
+from .base import EntityType, TypeInfo
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
@@ -83,29 +80,22 @@ class EntityTypeSchema(
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> Annotated[Any, "EntityTypeAnnotation"]:
+    ) -> type[EntityType]:
         """Create an annotated type from this schema."""
+        # Take the fields from Object and create a new model, with a new baseclass.
+        proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
 
-        class EntityTypeAnnotation:
-            @classmethod
-            def __get_pydantic_json_schema__(
-                cls,
-                schema: CoreSchema,
-                handler: GetJsonSchemaHandler,
-            ) -> JsonSchemaValue:
-                json_schema = handler(schema)
-                json_schema.update(
-                    **{
-                        "$id": self.identifier,
-                        "$schema": self.schema_url,
-                        "title": self.title,
-                        "description": self.description,
-                        "kind": self.kind,
-                    },
+        return create_model(
+            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            __base__=EntityType,
+            __cls_kwargs__={
+                "info": TypeInfo(
+                    identifier=self.identifier,
+                    schema_url=self.schema_url,
+                    title=self.title,
+                    description=self.description,
+                    kind=self.kind,
                 )
-                return json_schema
-
-        return Annotated[
-            await Object.create_model(self, actor_id=actor_id, graph=graph),
-            EntityTypeAnnotation,
-        ]
+            },
+            **proxy.model_fields,
+        )

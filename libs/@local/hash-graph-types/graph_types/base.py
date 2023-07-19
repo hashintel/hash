@@ -1,16 +1,25 @@
 from abc import ABC
+from typing import ClassVar
 
 from pydantic import BaseModel, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
 
-class Type(ABC, BaseModel):
+class TypeInfo(BaseModel):
+    """Information about a type."""
+
+    identifier: str
+    schema_url: str
+    title: str
+    description: str
+    kind: str
+
+
+class Type(BaseModel, ABC):
     """Base class for all graph types."""
 
-
-class EntityType(ABC, Type):
-    """Base class for all entity types."""
+    info: ClassVar[TypeInfo]
 
     @classmethod
     def __get_pydantic_json_schema__(
@@ -21,15 +30,18 @@ class EntityType(ABC, Type):
         json_schema = handler(schema)
         json_schema.update(
             **{
-                "$id": cls.identifier,
-                "$schema": cls.schema_url,
-                "title": cls.title,
-                "description": cls.description,
-                "kind": cls.kind,
+                "$id": cls.info.identifier,
+                "$schema": cls.info.schema_url,
+                "title": cls.info.title,
+                "description": cls.info.description,
+                "kind": cls.info.kind,
             },
         )
-
         return json_schema
+
+
+class EntityType(Type, ABC):
+    """Base class for all entity types."""
 
 
 class PropertyType(ABC, Type):
