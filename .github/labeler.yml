@@ -1,4 +1,4 @@
-A-infra:
+"area: infra":
   - ".changeset/config.json"
   - ".github/**"
   - ".*ignore"
@@ -8,57 +8,67 @@ A-infra:
   - "*.md"
   - "*.yml"
 
-A-blocks:
+"area: blocks":
   - "blocks/**"
 
-A-hash:
+"area: apps > hash*":
   - "apps/hash-*/**"
   - "libs/@local/hash-*/**"
-  - "libs/hash-*/**"
 
-A-engine:
+"area: apps > sim-engine":
   - "apps/engine/**"
 
-A-learn:
+"area: apps > hash.ai":
   - "apps/hashdotai/docs/**"
   - "apps/hashdotai/glossary/**"
 
-A-error-stack:
+"area: libs > error-stack":
   - "libs/error-stack/**"
 
-A-deer:
+"area: libs > deer":
   - "libs/deer/**"
 
-A-antsi:
+"area: libs > antsi":
   - "libs/antsi/**"
 
-A-sarif:
+"area: libs > sarif":
   - "libs/sarif/**"
 
-A-backend:
+"type: backend":
   - "apps/hash-graph/**"
 
-C-dependencies:
+"area: dependencies":
+  - "**/patches/**"
   - "**/Cargo.lock"
   - "**/yarn.lock"
 
-frontend:
+"type: frontend":
   - "apps/hash-frontend/**"
 
-api:
+"area: apps > hash-api":
   - "apps/hash-api/**"
 
-integration:
+"area: tests":
+  - "tests/**"
+
+"area: tests > integration":
   - "tests/hash-backend-integration/**"
 
-docker:
+"area: infra":
+  - "infra/**"
+
+"area: infra > docker":
   - "infra/docker/**"
 
-playwright:
+"area: tests > playwright":
   - "tests/hash-playwright/**"
 
-realtime:
+"area: apps > hash-realtime":
   - "apps/hash-realtime/**"
 
-search-loader:
-  - "apps/hash-search-realtime/**"
+"area: apps > hash-search-loader":
+  - "apps/hash-search-loader/**"
+
+"area: apps > hash-search-frontend":
+  - "hash-frontend/**"
+  
