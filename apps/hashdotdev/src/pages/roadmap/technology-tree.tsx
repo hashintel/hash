@@ -10,6 +10,7 @@ import {
 import { graphStratify, shapeEllipse, sugiyama, tweakShape } from "d3-dag";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
+import { FaIcon } from "../../components/icons/fa-icon";
 import { statuses, StatusId } from "./statuses";
 import {
   technologyTreeData,
@@ -140,9 +141,12 @@ export const TechnologyTree: FunctionComponent = () => {
       const { height: graphWrapperHeight, width: graphWrapperWidth } =
         graphWrapperRef.current.getBoundingClientRect();
 
-      const zoom = d3zoom().on(
-        "zoom",
-        (event: { transform: ZoomTransform }) => {
+      const zoom = d3zoom()
+        .scaleExtent([
+          0.25 * (layoutHeight / graphWrapperHeight),
+          layoutHeight / graphWrapperHeight,
+        ])
+        .on("zoom", (event: { transform: ZoomTransform }) => {
           graph.style(
             "transform",
             `translate(${event.transform.x - graphWrapperWidth / 2}px, ${
@@ -151,8 +155,7 @@ export const TechnologyTree: FunctionComponent = () => {
               event.transform.k * (graphWrapperHeight / layoutHeight)
             })`,
           );
-        },
-      );
+        });
 
       const initialScale = 0.9;
 
@@ -210,6 +213,58 @@ export const TechnologyTree: FunctionComponent = () => {
           displayedUseCases={displayedUseCases}
           setDisplayedUseCases={setDisplayedUseCases}
         />
+        {nodes.length === 0 ? (
+          <Box
+            sx={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 1,
+              textAlign: "center",
+            }}
+          >
+            <FaIcon
+              name="warning"
+              type="light"
+              sx={{
+                fontSize: 42,
+                color: ({ palette }) => palette.gray[50],
+                marginBottom: 1,
+              }}
+            />
+            <Typography
+              sx={{
+                fontSize: 15,
+                color: ({ palette }) => palette.gray[90],
+                fontWeight: 500,
+              }}
+            >
+              No roadmap items match your current filters
+            </Typography>
+            {displayedStatuses.length === 0 ||
+            displayedVariants.length === 0 ||
+            displayedUseCases.length === 0 ? (
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  color: ({ palette }) => palette.gray[70],
+                  fontWeight: 400,
+                }}
+              >
+                Please select at least one{" "}
+                <strong>
+                  {displayedStatuses.length === 0
+                    ? "status"
+                    : displayedVariants.length === 0
+                    ? "type"
+                    : "use case"}
+                </strong>{" "}
+                to view matching deliverables
+              </Typography>
+            ) : null}
+          </Box>
+        ) : null}
         <Box
           ref={graphWrapperRef}
           sx={{
