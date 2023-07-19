@@ -87,7 +87,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         proxy = await self.create_model(actor_id=actor_id, graph=graph)
 
         return create_model(
-            slugify(self.id, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=(PropertyType, RootModel[proxy]),
             __cls_kwargs__={"info": self.type_info()},
             root=Field(...),
