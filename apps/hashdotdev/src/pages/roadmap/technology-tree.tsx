@@ -10,28 +10,37 @@ import {
 import { graphStratify, shapeEllipse, sugiyama, tweakShape } from "d3-dag";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
+import { statuses, StatusId } from "./statuses";
 import {
   technologyTreeData,
   TechnologyTreeNodeData,
-  TechnologyTreeNodeStatus,
 } from "./technology-tree-data";
+import { TechnologyTreeFilters } from "./technology-tree-filters";
 import {
   TechnologyTreeNode,
   technologyTreeNodeMinHeight,
   technologyTreeNodeWidth,
 } from "./technology-tree-node";
-import { UseCaseId } from "./use-cases";
+import { UseCaseId, useCases } from "./use-cases";
+import { VariantId, variants } from "./variants";
 
 const generateLinePath = d3Line().curve(curveMonotoneX);
 
-export const TechnologyTree: FunctionComponent<{
-  statuses?: TechnologyTreeNodeStatus[];
-  useCases?: UseCaseId[];
-}> = ({ statuses, useCases }) => {
+export const TechnologyTree: FunctionComponent = () => {
   const graphWrapperRef = useRef<Element>(null);
   const graphRef = useRef<Element>(null);
 
   const [focusedNodeId, setFocusedNodeId] = useState<string | undefined>();
+
+  const [displayedStatuses, setDisplayedStatuses] = useState<StatusId[]>(
+    statuses.map(({ id }) => id),
+  );
+  const [displayedVariants, setDisplayedVariants] = useState<VariantId[]>(
+    variants.map(({ id }) => id),
+  );
+  const [displayedUseCases, setDisplayedUseCases] = useState<UseCaseId[]>(
+    useCases.map(({ id }) => id),
+  );
 
   const filteredTechnologyTreeData = useMemo(() => {
     // Lookup map of id to node data
@@ -42,9 +51,9 @@ export const TechnologyTree: FunctionComponent<{
     // The filtered list of nodes
     const filteredNodes = technologyTreeData.filter(
       (node) =>
-        (!statuses || statuses.includes(node.status)) &&
-        (!useCases ||
-          node.useCases.some((useCase) => useCases.includes(useCase))),
+        displayedStatuses.includes(node.status) &&
+        displayedVariants.includes(node.variant) &&
+        node.useCases.some((useCase) => displayedUseCases.includes(useCase)),
     );
 
     // Lookup set of filtered node ids
@@ -70,7 +79,7 @@ export const TechnologyTree: FunctionComponent<{
       ...node,
       parentIds: getUnfilteredParents(node.id),
     }));
-  }, [statuses, useCases]);
+  }, [displayedStatuses, displayedVariants, displayedUseCases]);
 
   const blurredNodes = useMemo(() => {
     if (focusedNodeId) {
@@ -193,6 +202,14 @@ export const TechnologyTree: FunctionComponent<{
         }}
       />
       <Box position="relative">
+        <TechnologyTreeFilters
+          displayedStatuses={displayedStatuses}
+          setDisplayedStatuses={setDisplayedStatuses}
+          displayedVariants={displayedVariants}
+          setDisplayedVariants={setDisplayedVariants}
+          displayedUseCases={displayedUseCases}
+          setDisplayedUseCases={setDisplayedUseCases}
+        />
         <Box
           ref={graphWrapperRef}
           sx={{

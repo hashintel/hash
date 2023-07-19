@@ -1,25 +1,15 @@
 import { ReactNode } from "react";
 
+import { StatusId } from "./statuses";
 import { UseCaseId } from "./use-cases";
-
-export type TechnologyTreeNodeVariant =
-  | "block-protocol"
-  | "infrastructure"
-  | "feature"
-  | "experiment";
-
-export type TechnologyTreeNodeStatus =
-  | "done"
-  | "in-progress"
-  | "next-up"
-  | "future";
+import { VariantId } from "./variants";
 
 export type TechnologyTreeNodeData = {
   id: string;
   heading: ReactNode;
   body?: ReactNode;
-  variant: TechnologyTreeNodeVariant;
-  status: TechnologyTreeNodeStatus;
+  variant: VariantId;
+  status: StatusId;
   useCases: UseCaseId[];
   parentIds?: string[];
 };
@@ -44,7 +34,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "3",
     heading: "Block Protocol Graph Module - inc. type system",
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -53,7 +43,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["0"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -62,7 +52,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["1"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -71,7 +61,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["1", "3"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -80,7 +70,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["4"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -89,7 +79,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["6"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -98,7 +88,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["7"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -107,7 +97,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["8"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -116,7 +106,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["8"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -125,7 +115,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["9"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -134,7 +124,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["10"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -143,7 +133,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["12"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -152,7 +142,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["5"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -161,7 +151,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["11"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "experiment",
   },
   {
@@ -170,7 +160,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["13", "3"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -179,7 +169,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["15"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -188,7 +178,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["15"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -197,7 +187,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["15"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "experiment",
   },
   {
@@ -206,7 +196,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["14"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -215,7 +205,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["15", "7"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -224,7 +214,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["14"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -233,7 +223,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["20"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -242,7 +232,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["3"],
     status: "done",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -251,7 +241,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["21"],
     status: "in-progress",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -260,7 +250,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["23"],
     status: "in-progress",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -269,7 +259,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["3"],
     status: "in-progress",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -278,7 +268,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["26"],
     status: "next-up",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -287,7 +277,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["26"],
     status: "next-up",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -296,7 +286,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["24"],
     status: "next-up",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -305,7 +295,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["25", "28"],
     status: "next-up",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -314,7 +304,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["21", "22", "27"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -323,7 +313,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["9"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -332,7 +322,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["23", "27"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -341,7 +331,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["31"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -350,7 +340,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "basically a sync engine, powers our multi-backend & collab",
     parentIds: ["16"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -359,7 +349,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["32"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -368,7 +358,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["25"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -377,7 +367,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["21", "33", "34"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -386,7 +376,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["34"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -395,7 +385,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["35"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -404,7 +394,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["38"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -413,7 +403,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["39"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "block-protocol",
   },
   {
@@ -422,7 +412,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["39"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -431,7 +421,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["44"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -440,7 +430,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["44"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -449,7 +439,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["45", "13"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -458,7 +448,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["40"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -467,7 +457,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["40"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -476,7 +466,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["40", "42"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -485,7 +475,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["36"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -494,7 +484,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["24", "37"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -503,7 +493,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["37"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -512,7 +502,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["43"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -521,7 +511,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["46"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -530,7 +520,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["52"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -539,7 +529,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["53"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -548,7 +538,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["37"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -557,7 +547,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["49"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -566,7 +556,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["50"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -575,7 +565,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["51"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -584,7 +574,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["59"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -593,7 +583,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["60"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -602,7 +592,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["62"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -611,7 +601,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["63"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -620,7 +610,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["65"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -629,7 +619,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["57"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -638,7 +628,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["58"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -647,7 +637,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["24"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -656,7 +646,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "libgit2 or Gitea, replace legacy GitLab infra",
     parentIds: ["68"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -665,7 +655,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["69"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -674,7 +664,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["70"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -683,7 +673,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["18"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -692,7 +682,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "tech TBD",
     parentIds: ["72"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -701,7 +691,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["74"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
@@ -710,7 +700,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "placeholder body",
     parentIds: ["75"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -719,7 +709,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "prev. offered up until May 2023, we plan to reintro this",
     parentIds: ["75"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "feature",
   },
   {
@@ -728,7 +718,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Intelligent offloading of infrequently accessed data into cold storage",
     parentIds: ["75"],
     status: "future",
-    useCases: [],
+    useCases: ["website-building"],
     variant: "infrastructure",
   },
   // {
@@ -737,7 +727,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: [],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
   // {
@@ -746,7 +736,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: [],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
   // {
@@ -755,7 +745,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: ["80"],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
   // {
@@ -764,7 +754,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: [],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
   // {
@@ -773,7 +763,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: [],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
   // {
@@ -782,7 +772,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: [],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
   // {
@@ -791,7 +781,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   //   body: "placeholder body",
   //   parentIds: [],
   //   status: "future",
-  //   useCases: [],
+  //   useCases: ["website-building"],
   //   variant: "feature",
   // },
 ];

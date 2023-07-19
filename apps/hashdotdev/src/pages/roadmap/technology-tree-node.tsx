@@ -118,7 +118,7 @@ export const TechnologyTreeNode: FunctionComponent<{
                   ? "vial"
                   : variant === "feature"
                   ? "sparkles"
-                  : "binary"
+                  : "server"
               }
               type="regular"
               sx={{ fontSize: 14, color: ({ palette }) => palette.teal[90] }}
