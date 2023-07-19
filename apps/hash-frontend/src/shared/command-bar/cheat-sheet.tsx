@@ -35,7 +35,11 @@ export const CheatSheet = () => {
     ["?"],
     (evt) => {
       // Hack to detect if pressed inside an input or textarea
-      if (!("defaultValue" in (evt.target as any))) {
+      if (
+        evt.target &&
+        !("defaultValue" in evt.target) &&
+        !(evt.target as HTMLElement).isContentEditable
+      ) {
         setOpen(true);
       }
     },
