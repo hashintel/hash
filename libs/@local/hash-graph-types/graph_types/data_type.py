@@ -1,6 +1,7 @@
 """A data type schema as defined by the Block Protocol."""
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     ClassVar,
     Literal,
@@ -103,7 +104,8 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         type_ = Literal[const] if const is not None else self._type()
 
         return create_model(
-            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            slugify(self.id, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=(RootModel[type_], DataTypeBase),
-            root=(Field(...),),
+            __cls_kwargs__={"info": self.type_info()},
+            root=(Field(...), ...),
         )

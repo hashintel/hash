@@ -18,7 +18,7 @@ from pydantic import (
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import EntityType, TypeInfo
+from .base import EntityType
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
@@ -88,14 +88,6 @@ class EntityTypeSchema(
         return create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=EntityType,
-            __cls_kwargs__={
-                "info": TypeInfo(
-                    identifier=self.identifier,
-                    schema_url=self.schema_url,
-                    title=self.title,
-                    description=self.description,
-                    kind=self.kind,
-                )
-            },
+            __cls_kwargs__={"info": self.type_info()},
             **proxy.model_fields,
         )

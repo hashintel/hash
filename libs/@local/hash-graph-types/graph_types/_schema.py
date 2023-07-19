@@ -18,6 +18,8 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 
+from .base import TypeInfo
+
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
 
@@ -42,6 +44,15 @@ class OntologyTypeSchema(BaseModel, ABC):
     kind: Literal["dataType", "propertyType", "entityType"]
     schema_url: str = Field(..., alias="$schema")
 
+    def type_info(self) -> TypeInfo:
+        return TypeInfo(
+            identifier=self.identifier,
+            title=self.title,
+            description=self.description,
+            kind=self.kind,
+            schema_url=self.schema_url,
+        )
+
 
 T = TypeVar("T", bound=Schema)
 
@@ -54,7 +65,7 @@ class OneOf(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> Annotated[Any, ...]:
+    ) -> type[BaseModel]:
         types = await asyncio.gather(
             *[
                 value.create_model(actor_id=actor_id, graph=graph)
@@ -70,7 +81,7 @@ class OneOf(Schema, Generic[T]):
             msg = "No types provided"
             raise ValueError(msg)
 
-        class OneOfSchema(BaseModel):
+        class OneOfSchema:
             @classmethod
             def __get_pydantic_json_schema__(
                 cls,
@@ -82,7 +93,7 @@ class OneOf(Schema, Generic[T]):
                     json_schema["oneOf"] = any_of
                 return json_schema
 
-        return create_model("OneOf", __base__=(RootModel[union], OneOfSchema))
+        return Annotated[union, OneOfSchema]
 
 
 class Array(Schema, Generic[T]):
