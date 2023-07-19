@@ -17,6 +17,7 @@ import {
   archiveEntityResolver,
   createEntityResolver,
   getEntityResolver,
+  inferEntitiesResolver,
   queryEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
@@ -114,6 +115,7 @@ export const resolvers = {
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
+    inferEntities: loggedInAndSignedUpMiddleware(inferEntitiesResolver),
     updateEntity: loggedInMiddleware(updateEntityResolver),
     archiveEntity: loggedInMiddleware(archiveEntityResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),
