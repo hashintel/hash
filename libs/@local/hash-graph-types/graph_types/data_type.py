@@ -105,7 +105,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
 
         return create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=(RootModel[type_], DataTypeBase),
+            __base__=(DataTypeBase, RootModel[type_]),
             __cls_kwargs__={"info": self.type_info()},
             root=(Field(...), ...),
         )
