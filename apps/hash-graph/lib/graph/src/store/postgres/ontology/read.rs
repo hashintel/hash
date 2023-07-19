@@ -18,15 +18,11 @@ use crate::{
         time::RightBoundedTemporalInterval,
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, ExternalOntologyElementMetadata,
-        OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata,
-        OwnedOntologyElementMetadata, PropertyTypeWithMetadata,
+        CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeWithMetadata,
+        OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    snapshot::{
-        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-        OntologyTypeSnapshotRecord,
-    },
+    snapshot::OntologyTypeSnapshotRecord,
     store::{
         crud::Read,
         postgres::{
@@ -137,31 +133,36 @@ where
                 let provenance = ProvenanceMetadata::new(RecordCreatedById::new(
                     row.get(record_created_by_id_path_index),
                 ));
-                let temporal_versioning = OntologyTemporalMetadata {
-                    transaction_time: row.get(transaction_time_index),
-                };
-                let (owned_by_id, fetched_at) = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned { owned_by_id } => (Some(owned_by_id), None),
-                    AdditionalOntologyMetadata::External { fetched_at } => (None, Some(fetched_at)),
+
+                let custom_metadata = match additional_metadata {
+                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
+                        CustomOntologyMetadata::Owned {
+                            provenance,
+                            temporal_versioning: Some(row.get(transaction_time_index)),
+                            owned_by_id,
+                        }
+                    }
+                    AdditionalOntologyMetadata::External { fetched_at } => {
+                        CustomOntologyMetadata::External {
+                            provenance,
+                            temporal_versioning: Some(row.get(transaction_time_index)),
+                            fetched_at,
+                        }
+                    }
                 };
 
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
                         .into_report()
                         .change_context(QueryError)?,
-                    metadata: OntologyTypeMetadata {
+                    metadata: OntologyElementMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
                                 .into_report()
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
-                        custom: CustomOntologyMetadata {
-                            provenance: Some(provenance),
-                            temporal_versioning: Some(temporal_versioning),
-                            owned_by_id,
-                            fetched_at,
-                        },
+                        custom: custom_metadata,
                     },
                 })
             });
@@ -186,47 +187,13 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
             Read::<OntologyTypeSnapshotRecord<DataType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
-                    let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
-                        unreachable!(
-                            "`OntologyTypeRecord` should always have provenance metadata if it is \
-                             read from the store"
-                        )
-                    });
-
-                    let metadata = match (
-                        record.metadata.custom.owned_by_id,
-                        record.metadata.custom.fetched_at,
-                    ) {
-                        (Some(owned_by_id), None) => {
-                            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                                record.metadata.record_id,
-                                provenance,
-                                owned_by_id,
-                            ))
-                        }
-                        (None, Some(fetched_at)) => {
-                            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                                record.metadata.record_id,
-                                provenance,
-                                fetched_at,
-                            ))
-                        }
-                        (Some(_), Some(_)) => unreachable!(
-                            "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
-                        ),
-                        (None, None) => unreachable!(
-                            "Ontology type record has neither `owned_by_id` nor `fetched_at` \
-                             metadata"
-                        ),
-                    };
-
                     Ok(DataTypeWithMetadata::new(
                         record
                             .schema
                             .try_into()
                             .into_report()
                             .change_context(QueryError)?,
-                        metadata,
+                        record.metadata,
                     ))
                 });
         Ok(stream)
@@ -250,47 +217,13 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
             Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
-                    let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
-                        unreachable!(
-                            "`OntologyTypeRecord` should always have provenance metadata if it is \
-                             read from the store"
-                        )
-                    });
-
-                    let metadata = match (
-                        record.metadata.custom.owned_by_id,
-                        record.metadata.custom.fetched_at,
-                    ) {
-                        (Some(owned_by_id), None) => {
-                            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                                record.metadata.record_id,
-                                provenance,
-                                owned_by_id,
-                            ))
-                        }
-                        (None, Some(fetched_at)) => {
-                            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                                record.metadata.record_id,
-                                provenance,
-                                fetched_at,
-                            ))
-                        }
-                        (Some(_), Some(_)) => unreachable!(
-                            "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
-                        ),
-                        (None, None) => unreachable!(
-                            "Ontology type record has neither `owned_by_id` nor `fetched_at` \
-                             metadata"
-                        ),
-                    };
-
                     Ok(PropertyTypeWithMetadata::new(
                         record
                             .schema
                             .try_into()
                             .into_report()
                             .change_context(QueryError)?,
-                        metadata,
+                        record.metadata,
                     ))
                 });
         Ok(stream)
@@ -314,47 +247,13 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
             Read::<OntologyTypeSnapshotRecord<EntityType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
-                    let provenance = record.metadata.custom.provenance.unwrap_or_else(|| {
-                        unreachable!(
-                            "`OntologyTypeRecord` should always have provenance metadata if it is \
-                             read from the store"
-                        )
-                    });
-
-                    let metadata = match (
-                        record.metadata.custom.owned_by_id,
-                        record.metadata.custom.fetched_at,
-                    ) {
-                        (Some(owned_by_id), None) => {
-                            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                                record.metadata.record_id,
-                                provenance,
-                                owned_by_id,
-                            ))
-                        }
-                        (None, Some(fetched_at)) => {
-                            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                                record.metadata.record_id,
-                                provenance,
-                                fetched_at,
-                            ))
-                        }
-                        (Some(_), Some(_)) => unreachable!(
-                            "Ontology type record has both `owned_by_id` and `fetched_at` metadata"
-                        ),
-                        (None, None) => unreachable!(
-                            "Ontology type record has neither `owned_by_id` nor `fetched_at` \
-                             metadata"
-                        ),
-                    };
-
                     Ok(EntityTypeWithMetadata::new(
                         record
                             .schema
                             .try_into()
                             .into_report()
                             .change_context(QueryError)?,
-                        metadata,
+                        record.metadata,
                     ))
                 });
         Ok(stream)

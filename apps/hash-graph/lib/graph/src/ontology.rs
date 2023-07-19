@@ -25,7 +25,10 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
+    identifier::{
+        ontology::OntologyTypeRecordId,
+        time::{LeftClosedTemporalInterval, TimeAxis, TransactionTime},
+    },
     provenance::{OwnedById, ProvenanceMetadata},
     store::Record,
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
@@ -217,120 +220,52 @@ pub trait OntologyTypeWithMetadata: Record {
     fn metadata(&self) -> &Self::Metadata;
 }
 
-// TODO: Flatten when `#[feature(mut_restriction)]` is available.
+// TODO: Restrict mutable access when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
 //   see https://app.asana.com/0/0/1203977361907407/f
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
-pub enum OntologyElementMetadata {
-    Owned(OwnedOntologyElementMetadata),
-    External(ExternalOntologyElementMetadata),
-}
-
-impl OntologyElementMetadata {
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        match self {
-            Self::Owned(owned) => owned.record_id(),
-            Self::External(external) => external.record_id(),
-        }
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        match self {
-            Self::Owned(owned) => owned.provenance_metadata,
-            Self::External(external) => external.provenance_metadata,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OwnedOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    owned_by_id: OwnedById,
-}
-
-impl OwnedOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
+pub enum CustomOntologyMetadata {
+    #[schema(title = "CustomOwnedOntologyElementMetadata")]
+    #[serde(rename_all = "camelCase")]
+    Owned {
+        provenance: ProvenanceMetadata,
+        temporal_versioning: Option<LeftClosedTemporalInterval<TransactionTime>>,
         owned_by_id: OwnedById,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            owned_by_id,
-        }
-    }
+    },
+    #[schema(title = "CustomExternalOntologyElementMetadata")]
+    #[serde(rename_all = "camelCase")]
+    External {
+        provenance: ProvenanceMetadata,
+        temporal_versioning: Option<LeftClosedTemporalInterval<TransactionTime>>,
+        #[schema(value_type = String)]
+        #[serde(with = "crate::serde::time")]
+        fetched_at: OffsetDateTime,
+    },
+}
 
+impl CustomOntologyMetadata {
     #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
+    pub const fn provenance(&self) -> ProvenanceMetadata {
+        let (Self::External { provenance, .. } | Self::Owned { provenance, .. }) = self;
 
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
+        *provenance
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ExternalOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    #[schema(value_type = String)]
-    #[serde(with = "crate::serde::time")]
-    fetched_at: OffsetDateTime,
-}
-
-impl ExternalOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
-        fetched_at: OffsetDateTime,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            fetched_at,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn fetched_at(&self) -> OffsetDateTime {
-        self.fetched_at
-    }
+pub struct OntologyElementMetadata {
+    pub record_id: OntologyTypeRecordId,
+    pub custom: CustomOntologyMetadata,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: DataType,
-    metadata: OntologyElementMetadata,
+    pub inner: DataType,
+    pub metadata: OntologyElementMetadata,
 }
 
 impl Record for DataTypeWithMetadata {
@@ -341,7 +276,7 @@ impl Record for DataTypeWithMetadata {
 impl DataTypeWithMetadata {
     #[must_use]
     pub fn vertex_id(&self, _time_axis: TimeAxis) -> DataTypeVertexId {
-        let record_id = self.metadata().record_id();
+        let record_id = &self.metadata().record_id;
         DataTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
@@ -373,8 +308,8 @@ impl OntologyTypeWithMetadata for DataTypeWithMetadata {
 pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: PropertyType,
-    metadata: OntologyElementMetadata,
+    pub inner: PropertyType,
+    pub metadata: OntologyElementMetadata,
 }
 
 impl Record for PropertyTypeWithMetadata {
@@ -385,7 +320,7 @@ impl Record for PropertyTypeWithMetadata {
 impl PropertyTypeWithMetadata {
     #[must_use]
     pub fn vertex_id(&self, _time_axis: TimeAxis) -> PropertyTypeVertexId {
-        let record_id = self.metadata().record_id();
+        let record_id = &self.metadata().record_id;
         PropertyTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
@@ -417,8 +352,8 @@ impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
 pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: EntityType,
-    metadata: OntologyElementMetadata,
+    pub inner: EntityType,
+    pub metadata: OntologyElementMetadata,
 }
 
 impl Record for EntityTypeWithMetadata {
@@ -429,7 +364,7 @@ impl Record for EntityTypeWithMetadata {
 impl EntityTypeWithMetadata {
     #[must_use]
     pub fn vertex_id(&self, _time_axis: TimeAxis) -> EntityTypeVertexId {
-        let record_id = self.metadata().record_id();
+        let record_id = &self.metadata().record_id;
         EntityTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
