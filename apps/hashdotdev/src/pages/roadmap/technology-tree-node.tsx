@@ -59,19 +59,10 @@ export const TechnologyTreeNode: FunctionComponent<{
             fontWeight: 500,
             color: ({ palette }) =>
               status === "done" ? palette.teal[80] : palette.gray[90],
+            marginRight: 1,
           }}
         >
           {heading}
-          <FaIcon
-            name="arrow-right"
-            type="solid"
-            sx={{
-              fontSize: 14,
-              marginLeft: 1,
-              color: ({ palette }) =>
-                status === "done" ? palette.teal[40] : palette.gray[40],
-            }}
-          />
         </Typography>
         <Tooltip
           title={
@@ -87,7 +78,7 @@ export const TechnologyTreeNode: FunctionComponent<{
           }
         >
           <IconButton
-            sx={{ padding: 0 }}
+            sx={{ padding: 0, position: "relative", top: 3 }}
             onPointerOver={onHover}
             onPointerLeave={onUnhover}
           >
