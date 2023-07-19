@@ -5,6 +5,7 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    cast,
 )
 from uuid import UUID
 
@@ -12,6 +13,7 @@ from pydantic import (
     Field,
     RootModel,
     create_model,
+    BaseModel,
 )
 from slugify import slugify
 
@@ -86,12 +88,14 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         """Create an annotated type from this schema."""
         inner = await self.create_model(actor_id=actor_id, graph=graph)
 
-        base = type(
-            "SpecializedPropertyType", (PropertyType,), {"info": self.type_info()}
+        base: type[BaseModel] = type(
+            "Base", (PropertyType,), {"info": self.type_info()}
         )
 
-        return create_model(
+        model = create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=(base, RootModel[inner]),
+            __base__=(base, RootModel),
             root=(inner, Field(...)),
         )
+
+        return cast(type[PropertyType], model)

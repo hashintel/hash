@@ -2,7 +2,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
 from types import EllipsisType
-from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, TypeVar, cast
 from uuid import UUID
 
 from pydantic import (
@@ -65,7 +65,7 @@ class OneOf(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[BaseModel]:
+    ) -> object:
         types = await asyncio.gather(
             *[
                 value.create_model(actor_id=actor_id, graph=graph)
@@ -108,22 +108,13 @@ class Array(Schema, Generic[T]):
         actor_id: UUID,
         graph: "GraphAPIProtocol",
     ) -> type[list[T]]:
-        ty = await self.items.create_model(actor_id=actor_id, graph=graph)
+        type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
 
-        class ListSchema:
-            @classmethod
-            def __get_pydantic_core_schema__(
-                cls,
-                _source_type: Any,  # noqa: ANN401
-                handler: GetCoreSchemaHandler,
-            ) -> CoreSchema:
-                return core_schema.list_schema(
-                    handler.generate_schema(ty),
-                    min_length=self.min_items,
-                    max_length=self.max_items,
-                )
+        type_ = conlist(
+            type_items, min_length=self.min_items, max_length=self.max_items
+        )
 
-        return conlist(ty, min_length=self.min_items, max_length=self.max_items)
+        return cast(type[list[T]], type_)
 
 
 class Object(Schema, Generic[T]):
@@ -144,6 +135,9 @@ class Object(Schema, Generic[T]):
             return key, await value
 
         def default_value(key: str) -> None | EllipsisType:
+            if self.required is None:
+                return None
+
             if key in self.required:
                 return ...
 

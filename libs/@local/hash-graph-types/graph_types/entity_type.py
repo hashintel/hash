@@ -6,10 +6,12 @@ from typing import (
     ClassVar,
     Literal,
     Never,
+    cast,
 )
 from uuid import UUID
 
 from pydantic import (
+    BaseModel,
     ConfigDict,
     Field,
     RootModel,
@@ -85,9 +87,11 @@ class EntityTypeSchema(
         # Take the fields from Object and create a new model, with a new baseclass.
         proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
 
-        base = type("Base", (EntityType,), {"info": self.type_info()})
+        base: type[BaseModel] = type("Base", (EntityType,), {"info": self.type_info()})
 
-        return create_model(
+        model = create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=(base, proxy),
         )
+
+        return cast(type[EntityType], model)
