@@ -9,14 +9,12 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    GetCoreSchemaHandler,
     GetJsonSchemaHandler,
     conlist,
     create_model,
-    RootModel,
 )
 from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema, core_schema
+from pydantic_core import CoreSchema
 
 from .base import TypeInfo
 
@@ -111,7 +109,9 @@ class Array(Schema, Generic[T]):
         type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
 
         type_ = conlist(
-            type_items, min_length=self.min_items, max_length=self.max_items
+            type_items,
+            min_length=self.min_items,
+            max_length=self.max_items,
         )
 
         return cast(type[list[T]], type_)

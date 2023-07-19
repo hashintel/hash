@@ -10,10 +10,10 @@ from typing import (
 from uuid import UUID
 
 from pydantic import (
+    BaseModel,
     Field,
     RootModel,
     create_model,
-    BaseModel,
 )
 from slugify import slugify
 
@@ -89,7 +89,9 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         inner = await self.create_model(actor_id=actor_id, graph=graph)
 
         base: type[BaseModel] = type(
-            "Base", (PropertyType,), {"info": self.type_info()}
+            "Base",
+            (PropertyType,),
+            {"info": self.type_info()},
         )
 
         model = create_model(

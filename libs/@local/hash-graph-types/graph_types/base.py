@@ -1,3 +1,7 @@
+"""Base classes for all graph types created by `.create_model()`.
+
+These classes are primarily used as markers
+"""
 from abc import ABC
 from typing import ClassVar
 
@@ -27,6 +31,7 @@ class Type(BaseModel, ABC):
         schema: CoreSchema,
         handler: GetJsonSchemaHandler,
     ) -> JsonSchemaValue:
+        """Update the schema with additional type information."""
         json_schema = handler(schema)
         json_schema.update(
             **{
