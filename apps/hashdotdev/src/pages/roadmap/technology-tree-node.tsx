@@ -2,9 +2,10 @@ import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { FaIcon } from "../../components/icons/fa-icon";
-import { BlockProtocolIcon } from "./block-protocol-icon";
+import { statuses } from "./statuses";
 import { TechnologyTreeNodeData } from "./technology-tree-data";
 import { useCases } from "./use-cases";
+import { variants } from "./variants";
 
 export const technologyTreeNodeWidth = 300;
 export const technologyTreeNodeMinHeight = 115;
@@ -20,13 +21,17 @@ export const TechnologyTreeNode: FunctionComponent<{
   x,
   y,
   blurred,
-  data: { variant, heading, body, status, ...data },
+  data: { heading, body, ...data },
   onHover,
   onUnhover,
 }) => {
   const useCaseNames = data.useCases.map(
     (useCaseId) => useCases.find(({ id }) => id === useCaseId)?.name,
   );
+
+  const variant = variants.find(({ id }) => id === data.variant)!;
+
+  const status = statuses.find(({ id }) => id === data.status)!;
 
   return (
     <Box
@@ -38,7 +43,7 @@ export const TechnologyTreeNode: FunctionComponent<{
         transform: "translate(-50%, -50%)",
         width: technologyTreeNodeWidth,
         background: ({ palette }) =>
-          status === "done" ? palette.teal[10] : palette.white,
+          status.id === "done" ? palette.teal[10] : palette.white,
         borderRadius: "8px",
         borderColor: ({ palette }) => palette.gray[30],
         borderWidth: 1,
@@ -58,7 +63,7 @@ export const TechnologyTreeNode: FunctionComponent<{
             lineHeight: 1.2,
             fontWeight: 500,
             color: ({ palette }) =>
-              status === "done" ? palette.teal[80] : palette.gray[90],
+              status.id === "done" ? palette.teal[80] : palette.gray[90],
             marginRight: 1,
           }}
         >
@@ -97,24 +102,17 @@ export const TechnologyTreeNode: FunctionComponent<{
         {body}
       </Typography>
       <Box display="flex" justifyContent="space-between" marginTop={1.5}>
-        <Box display="flex" alignItems="center">
-          {variant === "block-protocol" ? (
-            <BlockProtocolIcon
-              sx={{ fontSize: 12, color: ({ palette }) => palette.teal[90] }}
-            />
-          ) : (
-            <FaIcon
-              name={
-                variant === "experiment"
-                  ? "vial"
-                  : variant === "feature"
-                  ? "sparkles"
-                  : "server"
-              }
-              type="regular"
-              sx={{ fontSize: 14, color: ({ palette }) => palette.teal[90] }}
-            />
-          )}
+        <Box
+          display="flex"
+          alignItems="center"
+          sx={{
+            svg: {
+              fontSize: variant.id === "block-protocol" ? 12 : 14,
+              color: ({ palette }) => palette.teal[90],
+            },
+          }}
+        >
+          {variant.icon}
           <Typography
             sx={{
               marginLeft: 0.5,
@@ -123,61 +121,24 @@ export const TechnologyTreeNode: FunctionComponent<{
               color: ({ palette }) => palette.teal[90],
             }}
           >
-            {variant === "block-protocol"
-              ? "Block Protocol"
-              : variant === "experiment"
-              ? "Experiment"
-              : variant === "feature"
-              ? "Feature"
-              : "Infrastructure"}
+            {variant.name}
           </Typography>
         </Box>
-        <Box display="flex" alignItems="center">
-          <FaIcon
-            name={
-              status === "done"
-                ? "circle-check"
-                : status === "future"
-                ? "radar"
-                : status === "in-progress"
-                ? "circle-half-stroke"
-                : "circle-arrow-right"
-            }
-            type="regular"
-            sx={{
-              fontSize: 14,
-              color: ({ palette }) =>
-                status === "done"
-                  ? palette.teal[90]
-                  : status === "next-up"
-                  ? palette.teal[50]
-                  : status === "in-progress"
-                  ? palette.teal[70]
-                  : palette.gray[50],
-            }}
-          />
+        <Box
+          display="flex"
+          alignItems="center"
+          sx={{ svg: { fontSize: 14, color: status.color } }}
+        >
+          {status.icon}
           <Typography
             sx={{
               marginLeft: 0.5,
               fontSize: 13,
               fontWeight: 500,
-              color: ({ palette }) =>
-                status === "done"
-                  ? palette.teal[90]
-                  : status === "next-up"
-                  ? palette.teal[50]
-                  : status === "in-progress"
-                  ? palette.teal[70]
-                  : palette.gray[50],
+              color: status.color,
             }}
           >
-            {status === "done"
-              ? "Done"
-              : status === "future"
-              ? "Future"
-              : status === "in-progress"
-              ? "In Progress"
-              : "Next Up"}
+            {status.name}
           </Typography>
         </Box>
       </Box>
