@@ -44,9 +44,9 @@ class EntityType(Type, ABC):
     """Base class for all entity types."""
 
 
-class PropertyType(ABC, Type):
+class PropertyType(Type, ABC):
     """Base class for all property types."""
 
 
-class DataType(ABC, Type):
+class DataType(Type, ABC):
     """Base class for all data types."""
