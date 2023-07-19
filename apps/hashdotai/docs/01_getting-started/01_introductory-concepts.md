@@ -1,6 +1,6 @@
 ---
 title: Introduction to HASH
-slug: getting-started
+slug: intro
 objectId: 66u35h23-5t55-442h-5t90-f12d99go10ef
 description: Getting started with HASH
 ---
