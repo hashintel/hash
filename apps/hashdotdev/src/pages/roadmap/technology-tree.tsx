@@ -219,6 +219,9 @@ export const TechnologyTree: FunctionComponent = () => {
               "linear-gradient(90deg, rgba(247, 250, 252, 0.00) 0%, #F7FAFC 10.94%, #F7FAFC 84.90%, rgba(247, 250, 252, 0.00) 100%)",
             overflow: "hidden",
             height: "75vh",
+            borderBottomColor: ({ palette }) => palette.gray[20],
+            borderBottomStyle: "solid",
+            borderBottomWidth: 1,
           }}
         >
           <Box ref={graphRef}>
