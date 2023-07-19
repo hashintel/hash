@@ -15,7 +15,7 @@ import {
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
 import { Box, IconButton, PopperPlacementType, Stack } from "@mui/material";
-import { ReactNode, useRef, useState } from "react";
+import { MouseEvent, ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
@@ -230,8 +230,8 @@ export const LinkEntityTypeSelector = ({
             zIndex: theme.zIndex.drawer,
           }),
         ]}
-        onClick={(evt) => {
-          evt.preventDefault();
+        onClick={(event: MouseEvent) => {
+          event.preventDefault();
           if (isReadonly) {
             return;
           }
@@ -239,12 +239,12 @@ export const LinkEntityTypeSelector = ({
         }}
         {...(entityTypeSelectorPopupOpen
           ? {
-              onMouseDown: (evt) => {
+              onMouseDown: (event: MouseEvent) => {
                 // This prevents the input field blurring when you click on
                 // tags. Because the field blurring hides the popup, and
                 // therefore the delete icons, without this line you wouldn't
                 // be able to hit the delete icons on tags
-                evt.preventDefault();
+                event.preventDefault();
               },
             }
           : {})}
