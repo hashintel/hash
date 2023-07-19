@@ -53,14 +53,18 @@ export const isOntologyTypeRecordId = (
 
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  ownedById: OwnedById;
-  provenance: ProvenanceMetadata;
+  custom: {
+    ownedById: OwnedById;
+    provenance: ProvenanceMetadata;
+  };
 };
 
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  fetchedAt: Timestamp;
-  provenance: ProvenanceMetadata;
+  custom: {
+    fetchedAt: Timestamp;
+    provenance: ProvenanceMetadata;
+  };
 };
 
 export type OntologyElementMetadata = Subtype<
@@ -96,10 +100,10 @@ export const isExternalOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is ExternalOntologyElementMetadata =>
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
+  (metadata as ExternalOntologyElementMetadata).custom.fetchedAt !== undefined;
 
 export const isOwnedOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is OwnedOntologyElementMetadata =>
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
+  (metadata as OwnedOntologyElementMetadata).custom.ownedById !== undefined;

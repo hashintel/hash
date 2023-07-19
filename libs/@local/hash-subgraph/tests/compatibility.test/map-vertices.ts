@@ -110,12 +110,14 @@ const mapOntologyMetadata = (
 ): OntologyElementMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    provenance: mapProvenanceMetadata(metadata.provenance),
-    ...("fetchedAt" in metadata
-      ? { fetchedAt: metadata.fetchedAt as Timestamp }
-      : ({} as {
-          fetchedAt: Timestamp;
-        })),
+    custom: {
+      provenance: mapProvenanceMetadata(metadata.custom.provenance),
+      ...("fetchedAt" in metadata.custom
+        ? { fetchedAt: metadata.custom.fetchedAt as Timestamp }
+        : ({} as {
+            fetchedAt: Timestamp;
+          })),
+    },
   };
 };
 
