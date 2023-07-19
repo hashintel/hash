@@ -1,8 +1,8 @@
 name: Bug Report (HASH Core)
 description: Report a bug, error or unexpected behavior in HASH Core
 labels:
-  - A-core
-  - C-bug
+  - "area: apps > sim-core"
+  - "category: bug"
 body:
   - type: markdown
     attributes:
