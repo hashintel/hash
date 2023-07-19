@@ -19,7 +19,8 @@ use crate::{
     },
     ontology::{
         CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeWithMetadata,
-        OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     snapshot::OntologyTypeSnapshotRecord,
@@ -134,18 +135,22 @@ where
                     row.get(record_created_by_id_path_index),
                 ));
 
+                let temporal_versioning = OntologyTemporalMetadata {
+                    transaction_time: row.get(transaction_time_index),
+                };
+
                 let custom_metadata = match additional_metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         CustomOntologyMetadata::Owned {
                             provenance,
-                            temporal_versioning: Some(row.get(transaction_time_index)),
+                            temporal_versioning: Some(temporal_versioning),
                             owned_by_id,
                         }
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
-                            temporal_versioning: Some(row.get(transaction_time_index)),
+                            temporal_versioning: Some(temporal_versioning),
                             fetched_at,
                         }
                     }

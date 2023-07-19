@@ -220,6 +220,12 @@ pub trait OntologyTypeWithMetadata: Record {
     fn metadata(&self) -> &Self::Metadata;
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OntologyTemporalMetadata {
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+}
+
 // TODO: Restrict mutable access when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
 //   see https://app.asana.com/0/0/1203977361907407/f
@@ -230,14 +236,14 @@ pub enum CustomOntologyMetadata {
     #[serde(rename_all = "camelCase")]
     Owned {
         provenance: ProvenanceMetadata,
-        temporal_versioning: Option<LeftClosedTemporalInterval<TransactionTime>>,
+        temporal_versioning: Option<OntologyTemporalMetadata>,
         owned_by_id: OwnedById,
     },
     #[schema(title = "CustomExternalOntologyElementMetadata")]
     #[serde(rename_all = "camelCase")]
     External {
         provenance: ProvenanceMetadata,
-        temporal_versioning: Option<LeftClosedTemporalInterval<TransactionTime>>,
+        temporal_versioning: Option<OntologyTemporalMetadata>,
         #[schema(value_type = String)]
         #[serde(with = "crate::serde::time")]
         fetched_at: OffsetDateTime,

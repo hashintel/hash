@@ -99,7 +99,7 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                 ontology_id,
                 base_url: metadata.record_id.base_url.as_str().to_owned(),
                 version: metadata.record_id.version,
-                transaction_time: temporal_versioning,
+                transaction_time: temporal_versioning.map(|t| t.transaction_time),
                 record_created_by_id: provenance.record_created_by_id,
             })
             .into_report()

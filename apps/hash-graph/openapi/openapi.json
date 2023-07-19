@@ -837,7 +837,7 @@
               "temporalVersioning": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
                   }
                 ],
                 "nullable": true
@@ -861,7 +861,7 @@
               "temporalVersioning": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
                   }
                 ],
                 "nullable": true
@@ -1769,6 +1769,17 @@
             }
           }
         ]
+      },
+      "OntologyTemporalMetadata": {
+        "type": "object",
+        "required": [
+          "transactionTime"
+        ],
+        "properties": {
+          "transactionTime": {
+            "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+          }
+        }
       },
       "OntologyTypeRecordId": {
         "type": "object",

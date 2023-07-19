@@ -61,7 +61,7 @@ use crate::{
     },
     ontology::{
         domain_validator::DomainValidator, CustomOntologyMetadata, OntologyElementMetadata,
-        OntologyTypeReference, Selector,
+        OntologyTemporalMetadata, OntologyTypeReference, Selector,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
@@ -238,6 +238,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,
+            OntologyTemporalMetadata,
             CustomOntologyMetadata,
             MaybeListOfOntologyElementMetadata,
             EntityVertexId,
