@@ -86,9 +86,14 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         for (schema, metadata) in data_types {
-            transaction
-                .create(schema.clone(), metadata.borrow(), on_conflict)
-                .await?;
+            if let Some(ontology_id) = transaction
+                .create_ontology_metadata(metadata.borrow(), on_conflict)
+                .await?
+            {
+                transaction
+                    .insert_with_id(ontology_id, schema.clone())
+                    .await?;
+            }
         }
 
         transaction.commit().await.change_context(InsertionError)?;

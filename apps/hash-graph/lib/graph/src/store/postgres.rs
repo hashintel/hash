@@ -13,8 +13,9 @@ use time::OffsetDateTime;
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
-    url::VersionedUrl, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference,
+    repr,
+    url::{BaseUrl, VersionedUrl},
+    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
 
 pub use self::{
@@ -234,17 +235,12 @@ where
     /// - If the [`BaseUrl`] already exists
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    #[tracing::instrument(level = "info", skip(self, database_type))]
-    async fn create<T>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn create_ontology_metadata(
         &self,
-        database_type: T,
         metadata: &OntologyElementMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<OntologyId>, InsertionError>
-    where
-        T: OntologyDatabaseType + Send,
-        T::Representation: Send,
-    {
+    ) -> Result<Option<OntologyId>, InsertionError> {
         let ontology_id = match metadata.custom {
             CustomOntologyMetadata::Owned {
                 provenance,
@@ -273,7 +269,6 @@ where
                 .await?
             }
         };
-        self.insert_with_id(ontology_id, database_type).await?;
 
         Ok(Some(ontology_id))
     }
@@ -354,6 +349,43 @@ where
                     T::table()
                 ),
                 &[&ontology_id, &value],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?
+            .map(|row| row.get(0)))
+    }
+
+    /// Inserts a [`EntityType`] identified by [`OntologyId`], and associated with an
+    /// [`OwnedById`], [`RecordCreatedById`], and the optional label property, into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if inserting failed.
+    #[tracing::instrument(level = "debug", skip(self, entity_type))]
+    async fn insert_entity_type_with_id(
+        &self,
+        ontology_id: OntologyId,
+        entity_type: EntityType,
+        label_property: Option<&BaseUrl>,
+    ) -> Result<Option<OntologyId>, InsertionError> {
+        let value_repr = repr::EntityType::from(entity_type);
+        let value = serde_json::to_value(value_repr)
+            .into_report()
+            .change_context(InsertionError)?;
+
+        let label_property = label_property.map(BaseUrl::as_str);
+
+        Ok(self
+            .as_client()
+            .query_opt(
+                r#"
+                    INSERT INTO entity_types (ontology_id, schema, label_property)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT DO NOTHING
+                    RETURNING ontology_id;
+                "#,
+                &[&ontology_id, &value, &label_property],
             )
             .await
             .into_report()

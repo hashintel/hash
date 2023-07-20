@@ -26,8 +26,9 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, CustomOntologyMetadata, EntityTypeQueryToken, EntityTypeWithMetadata,
-        OntologyElementMetadata, OntologyTypeReference,
+        patch_id_and_parse, CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTypeReference,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -111,7 +112,7 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response>
+) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
@@ -190,12 +191,15 @@ where
         ))
         })?;
 
-        metadata.push(OntologyElementMetadata {
+        metadata.push(EntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
-            custom: CustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(actor_id),
-                temporal_versioning: None,
-                owned_by_id,
+            custom: CustomEntityTypeMetadata {
+                common: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(actor_id),
+                    temporal_versioning: None,
+                    owned_by_id,
+                },
+                label_property: None,
             },
         });
 
@@ -425,7 +429,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
+) -> Result<Json<EntityTypeMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,
         mut type_to_update,
@@ -448,7 +452,7 @@ async fn update_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity_type(entity_type, actor_id)
+        .update_entity_type(entity_type, actor_id, None)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
