@@ -39,7 +39,7 @@ const FilterCheckboxItem: FunctionComponent<{
       [`.${formControlLabelClasses.label}`]: {
         "> svg": {
           color: ({ palette }) =>
-            checked ? color ?? palette.black : palette.gray[80],
+            color ?? (checked ? palette.black : palette.gray[80]),
           minWidth: 20,
           fontSize: 14,
         },
@@ -61,7 +61,7 @@ const FilterCheckboxItem: FunctionComponent<{
           marginLeft={1}
           sx={{
             color: ({ palette }) =>
-              checked ? color ?? palette.black : palette.gray[80],
+              color ?? (checked ? palette.black : palette.gray[80]),
             fontSize: 12,
             fontWeight: 600,
           }}
