@@ -329,7 +329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                  "$ref": "#/components/schemas/MaybeListOfEntityTypeMetadata"
                 }
               }
             }
@@ -770,6 +770,14 @@
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
@@ -1718,6 +1726,19 @@
           }
         }
       },
+      "MaybeListOfEntityTypeMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EntityTypeMetadata"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeMetadata"
+            }
+          }
+        ]
+      },
       "MaybeListOfOntologyElementMetadata": {
         "oneOf": [
           {
@@ -2464,6 +2485,14 @@
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"

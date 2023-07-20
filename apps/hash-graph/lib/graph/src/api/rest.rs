@@ -48,7 +48,7 @@ use crate::{
                 OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices,
                 Subgraph, Vertex, Vertices,
             },
-            MaybeListOfOntologyElementMetadata,
+            MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
     identifier::{
@@ -244,6 +244,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EntityTypeMetadata,
             CustomEntityTypeMetadata,
             MaybeListOfOntologyElementMetadata,
+            MaybeListOfEntityTypeMetadata,
             EntityVertexId,
             EntityIdWithInterval,
             DataTypeVertexId,
