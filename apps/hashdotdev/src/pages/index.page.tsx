@@ -355,7 +355,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Map external data to types and integrate it into your{" "}
+                  Map external data to types and integrate it into one unified{" "}
                   <strong>graph</strong>
                 </HomePageBodyTypography>
               </Box>
