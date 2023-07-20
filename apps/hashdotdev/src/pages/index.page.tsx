@@ -234,10 +234,10 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              The <i>Block Protocol</i> is an open standard for
+              The <i>Block Protocol</i> (<strong>Þ</strong>) is an open standard for
               creating <strong>blocks</strong> which work in any application, without
               either block or app requiring any special knowledge of one
-              another.
+              another (beyond support for the Þ itself).
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
