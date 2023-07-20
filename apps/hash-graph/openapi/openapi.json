@@ -1224,6 +1224,7 @@
           "examples",
           "properties",
           "required",
+          "labelProperty",
           "links",
           "inheritsFrom"
         ]
