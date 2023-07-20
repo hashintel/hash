@@ -234,8 +234,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              The <strong>Block Protocol</strong> is an open standard for
-              creating <i>blocks</i> which work in any application, without
+              The <i>Block Protocol</i> is an open standard for
+              creating <strong>blocks</strong> which work in any application, without
               either block or app requiring any special knowledge of one
               another.
             </HomePageBodyTypography>
@@ -338,7 +338,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              <strong>HASH</strong> is our open-source, all-in-one workspace
+              <i>HASH</i> is our open-source, all-in-one workspace
               platform built around structured data and interactive blocks.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
@@ -367,7 +367,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Use blocks with data to create <strong>apps</strong>
+                  Combine blocks, types and flows to create <strong>apps</strong>
                 </HomePageBodyTypography>
               </Box>
               <Box component="li">
