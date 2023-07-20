@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 export const entityTypeTypedef = gql`
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
+  scalar BaseUrl
 
   extend type Query {
     """
@@ -38,6 +39,10 @@ export const entityTypeTypedef = gql`
       """
       ownedById: OwnedById
       entityType: ConstructEntityTypeParams!
+      """
+      The label which is used as the label property for the entity type.
+      """
+      labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
 
     """
@@ -52,6 +57,10 @@ export const entityTypeTypedef = gql`
       New entity type schema contents to be used.
       """
       updatedEntityType: ConstructEntityTypeParams!
+      """
+      The label which is used as the label property for the entity type.
+      """
+      labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
   }
 `;

@@ -1,4 +1,5 @@
 import {
+  BaseUrl,
   ENTITY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -44,10 +45,11 @@ export const createEntityType: ImpureGraphFunction<
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
     actorId: AccountId;
+    labelProperty?: BaseUrl;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, params) => {
-  const { ownedById, actorId } = params;
+  const { ownedById, actorId, labelProperty } = params;
   const namespace = await getNamespaceOfAccountOwner(ctx, {
     ownerId: params.ownedById,
   });
@@ -71,6 +73,7 @@ export const createEntityType: ImpureGraphFunction<
     actorId,
     ownedById,
     schema,
+    labelProperty,
   });
 
   return { schema, metadata: metadata as EntityTypeMetadata };
@@ -176,10 +179,11 @@ export const updateEntityType: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
     schema: ConstructEntityTypeParams;
     actorId: AccountId;
+    labelProperty?: BaseUrl;
   },
   Promise<EntityTypeWithMetadata>
 > = async ({ graphApi }, params) => {
-  const { entityTypeId, schema, actorId } = params;
+  const { entityTypeId, schema, actorId, labelProperty } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     actorId,
     typeToUpdate: entityTypeId,
@@ -188,6 +192,7 @@ export const updateEntityType: ImpureGraphFunction<
       $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
     },
+    labelProperty,
   };
 
   const { data: metadata } = await graphApi.updateEntityType(updateArguments);
@@ -201,7 +206,7 @@ export const updateEntityType: ImpureGraphFunction<
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata: metadata as OntologyElementMetadata,
+    metadata: metadata as EntityTypeMetadata,
   };
 };
 
