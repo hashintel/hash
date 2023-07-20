@@ -1,10 +1,9 @@
 name: Bug Report (deer)
 description: Create a report to help us improve `deer`
 labels:
-  - A-deer
-  - C-bug
+  - "area: libs > deer"
+  - "category: bug"
 assignees:
-  - Alfred-Mountfield
   - TimDiekmann
   - indietyp
 body:
