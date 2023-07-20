@@ -24,7 +24,7 @@ import {
 } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useEntityTypesOptional } from "../../entity-types-context/hooks";
+import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -142,7 +142,7 @@ export const AccountEntityTypeList: FunctionComponent<
     }
   }, [searchVisible]);
 
-  const allEntityTypes = useEntityTypesOptional();
+  const allEntityTypes = useLatestEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
