@@ -1,8 +1,4 @@
-import {
-  extractBaseUrl,
-  extractVersion,
-  validateEntityType,
-} from "@blockprotocol/type-system";
+import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -17,7 +13,7 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { BaseUrl, linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -62,11 +58,9 @@ const Page: NextPageWithLayout = () => {
 
   const [convertTypeLoading, setConvertTypeLoading] = useState(false);
 
-  const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
-    string,
-    "v" | undefined,
-    `${number}` | undefined,
-  ]; // @todo validate that the URL is formatted as expected;
+  const [slug, _, requestedVersionString] = router.query[
+    "slug-maybe-version"
+  ] as [string, "v" | undefined, `${number}` | undefined]; // @todo validate that the URL is formatted as expected;
 
   const baseEntityTypeUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
@@ -101,42 +95,27 @@ const Page: NextPageWithLayout = () => {
     } else {
       return null;
     }
-  }, [router.query.draft]);
+  }, [reset, router.query.draft]);
 
-  const isReadonly = useIsReadonlyModeForResource(routeNamespace?.accountId);
-
-  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { properties: [], links: [] },
-  });
-  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+  const requestedVersion = requestedVersionString
+    ? parseInt(requestedVersionString, 10)
+    : null;
 
   const [
     remoteEntityType,
+    latestVersion,
     remotePropertyTypes,
     updateEntityType,
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUrl,
+    requestedVersion,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      if (
-        requestedVersion &&
-        parseInt(requestedVersion, 10) !== extractVersion(fetchedEntityType.$id)
-      ) {
-        /**
-         * @todo instead of redirecting to the latest version, handle loading earlier versions
-         *   - load requested version instead of always latest
-         *   - if a later version is available, provide an indicator + link to it
-         *   - put the form in readonly mode if not on the latest version
-         *   - check handling of external types
-         */
-        if (isHrefExternal(fetchedEntityType.$id)) {
-          // In the current routing this should never be the case, but this is a marker to handle it when external types exist
-          window.open(fetchedEntityType.$id);
-        } else {
-          void router.replace(fetchedEntityType.$id);
-        }
+      if (isHrefExternal(fetchedEntityType.$id)) {
+        // In the current routing this should never be the case, but this is a marker to handle it when external types exist
+        window.open(fetchedEntityType.$id);
       }
 
       // Load the initial form data after the entity type has been fetched
@@ -145,6 +124,14 @@ const Page: NextPageWithLayout = () => {
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
+
+  const userUnauthorized = useIsReadonlyModeForResource(
+    routeNamespace?.accountId,
+  );
+
+  const isLatest = !requestedVersion || requestedVersion === latestVersion;
+
+  const isReadonly = userUnauthorized || !isLatest;
 
   const entityTypeAndPropertyTypes = useMemo(
     () =>
@@ -175,8 +162,8 @@ const Page: NextPageWithLayout = () => {
         ...entityTypeSchema,
       });
 
-      if (!res.errors?.length) {
-        reset(data);
+      if (!res.errors?.length && res.data) {
+        void router.push(res.data.schema.$id);
       } else {
         throw new Error("Could not publish changes");
       }
@@ -186,13 +173,13 @@ const Page: NextPageWithLayout = () => {
   const currentTab = useCurrentTab();
 
   const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
-    useState<BaseUrl | null>(null);
+    useState<VersionedUrl | null>(null);
 
   const onNavigateToType = (url: VersionedUrl) => {
     if (isHrefExternal(url)) {
       window.open(url);
     } else {
-      setPreviewEntityTypeUrl(extractBaseUrl(url) as BaseUrl);
+      setPreviewEntityTypeUrl(url);
     }
   };
 
@@ -226,8 +213,8 @@ const Page: NextPageWithLayout = () => {
     });
 
     setConvertTypeLoading(false);
-    if (!res.errors?.length) {
-      reset(data);
+    if (!res.errors?.length && res.data) {
+      void router.push(res.data.schema.$id);
     } else {
       throw new Error("Could not publish changes");
     }
@@ -340,8 +327,9 @@ const Page: NextPageWithLayout = () => {
                         }
                         entityType={entityType}
                         isReadonly={isReadonly}
+                        latestVersion={latestVersion}
                       />
-                      {!isDraft && !entityTypeIsLink ? (
+                      {!isReadonly && !isDraft && !entityTypeIsLink ? (
                         <ConvertTypeButton
                           onClick={convertToLinkType}
                           loading={convertTypeLoading}
