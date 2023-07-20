@@ -2,9 +2,8 @@ mod batch;
 mod channel;
 
 pub use self::{
-    batch::{EntityTypeMetadataRowBatch, OntologyTypeMetadataRowBatch},
+    batch::OntologyTypeMetadataRowBatch,
     channel::{
-        entity_type_metadata_channel, ontology_metadata_channel, EntityTypeMetadataReceiver,
-        EntityTypeMetadataSender, OntologyTypeMetadataReceiver, OntologyTypeMetadataSender,
+        ontology_metadata_channel, OntologyTypeMetadataReceiver, OntologyTypeMetadataSender,
     },
 };

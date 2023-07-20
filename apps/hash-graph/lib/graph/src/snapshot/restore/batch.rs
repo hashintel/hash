@@ -6,8 +6,8 @@ use crate::{
         account::AccountRowBatch,
         entity::EntityRowBatch,
         ontology::{
-            DataTypeRowBatch, EntityTypeMetadataRowBatch, EntityTypeRowBatch,
-            OntologyTypeMetadataRowBatch, PropertyTypeRowBatch,
+            DataTypeRowBatch, EntityTypeRowBatch, OntologyTypeMetadataRowBatch,
+            PropertyTypeRowBatch,
         },
         WriteBatch,
     },
@@ -17,7 +17,6 @@ use crate::{
 pub enum SnapshotRecordBatch {
     Accounts(AccountRowBatch),
     OntologyTypes(OntologyTypeMetadataRowBatch),
-    EntityTypeMetadata(EntityTypeMetadataRowBatch),
     DataTypes(DataTypeRowBatch),
     PropertyTypes(PropertyTypeRowBatch),
     EntityTypes(EntityTypeRowBatch),
@@ -29,7 +28,6 @@ impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
     async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
         AccountRowBatch::begin(postgres_client).await?;
         OntologyTypeMetadataRowBatch::begin(postgres_client).await?;
-        EntityTypeMetadataRowBatch::begin(postgres_client).await?;
         DataTypeRowBatch::begin(postgres_client).await?;
         PropertyTypeRowBatch::begin(postgres_client).await?;
         EntityTypeRowBatch::begin(postgres_client).await?;
@@ -41,7 +39,6 @@ impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
         match self {
             Self::Accounts(account) => account.write(postgres_client).await,
             Self::OntologyTypes(ontology) => ontology.write(postgres_client).await,
-            Self::EntityTypeMetadata(metadata) => metadata.write(postgres_client).await,
             Self::DataTypes(data_type) => data_type.write(postgres_client).await,
             Self::PropertyTypes(property) => property.write(postgres_client).await,
             Self::EntityTypes(entity_type) => entity_type.write(postgres_client).await,
@@ -52,7 +49,6 @@ impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
     async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
         AccountRowBatch::commit(postgres_client).await?;
         OntologyTypeMetadataRowBatch::commit(postgres_client).await?;
-        EntityTypeMetadataRowBatch::commit(postgres_client).await?;
         DataTypeRowBatch::commit(postgres_client).await?;
         PropertyTypeRowBatch::commit(postgres_client).await?;
         EntityTypeRowBatch::commit(postgres_client).await?;

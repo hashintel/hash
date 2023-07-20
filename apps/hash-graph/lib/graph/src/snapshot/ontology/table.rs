@@ -29,12 +29,6 @@ pub struct OntologyOwnedMetadataRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "ontology_owned_metadata")]
-pub struct EntityTypeMetadataRow {
-    pub label_property: String,
-}
-
-#[derive(Debug, ToSql)]
 #[postgres(name = "ontology_external_metadata")]
 pub struct OntologyExternalMetadataRow {
     pub ontology_id: Uuid,
@@ -76,6 +70,9 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<repr::EntityType>,
+    // TODO: Add label property to database
+    //   see https://linear.app/hash/issue/H-156
+    // pub label_property: Option<String>,
 }
 
 #[derive(Debug, ToSql)]
