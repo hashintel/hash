@@ -113,6 +113,8 @@ blocks/**/.env
 # generated files
 *.gen.*
 *.tsbuildinfo
+feed.atom
+feed.rss
 
 # Sentry
 .sentryclirc
@@ -137,3 +139,7 @@ seed-users.json
 
 # SARIF files
 *.sarif
+
+# Turborepo
+.turbo/
+out/

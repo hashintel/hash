@@ -8,6 +8,7 @@ import {
   GraphApi as GraphApiClient,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
+import { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
@@ -45,6 +46,48 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   isOfType: { outgoing: 0 },
   hasLeftEntity: { incoming: 0, outgoing: 0 },
   hasRightEntity: { incoming: 0, outgoing: 0 },
+};
+
+/**
+ * Slices the datastore across this instant of time.
+ *
+ * Used to be passed as `temporalAxes` to structural queries.
+ */
+export const currentTimeInstantTemporalAxes: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "transactionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "decisionTime",
+    interval: {
+      start: null,
+      end: null,
+    },
+  },
+};
+
+/**
+ * According to the database's most up-to-date knowledge (transaction time),
+ * return the full history of entities and the times at which those decisions
+ * were made.
+ *
+ * Used to be passed as `temporalAxes` to structural queries.
+ */
+export const fullDecisionTimeAxis: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "transactionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "decisionTime",
+    interval: {
+      start: {
+        kind: "unbounded",
+      },
+      end: null,
+    },
+  },
 };
 
 const agentConfig = {

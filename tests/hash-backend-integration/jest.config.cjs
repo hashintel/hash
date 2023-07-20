@@ -1,4 +1,4 @@
-/** @type {import('jest').Config} */
+/** @type {import("jest").Config} */
 module.exports = {
   collectCoverage: process.env.TEST_COVERAGE === "true",
   collectCoverageFrom: [
@@ -19,7 +19,7 @@ module.exports = {
   },
   setupFiles: ["@local/hash-backend-utils/environment"],
   testMatch: [
-    "<rootDir>/src/tests/model/knowledge/**",
     "<rootDir>/src/tests/graph/**",
+    "<rootDir>/src/tests/subgraph/**",
   ],
 };

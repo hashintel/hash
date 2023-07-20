@@ -117,8 +117,9 @@ export const getBlockData: ImpureGraphFunction<
   Promise<Entity>
 > = async (ctx, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: block.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
   });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -149,8 +150,9 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { block, newBlockDataEntity, actorId } = params;
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entity: block.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
   });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -197,7 +199,7 @@ export const getBlockComments: ImpureGraphFunction<
   Promise<Comment[]>
 > = async (ctx, { block }) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, {
-    entity: block.entity,
+    entityId: block.entity.metadata.recordId.entityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
   });
 

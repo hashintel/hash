@@ -1,5 +1,28 @@
 # @hashintel/type-editor
 
+## 0.0.24
+
+### Patch Changes
+
+- [#2616](https://github.com/hashintel/hash/pull/2616) [`6ed0fcac1`](https://github.com/hashintel/hash/commit/6ed0fcac1f7931886c249d3a72ecb076960d0668) Thanks [@luisbettencourt](https://github.com/luisbettencourt)! - add 'open' link button to link destination entity types
+
+## 0.0.23
+
+### Patch Changes
+
+- [#2516](https://github.com/hashintel/hash/pull/2516) [`eb66cc431`](https://github.com/hashintel/hash/commit/eb66cc431fab214a5dfc50ff6a4fbb6a38f3232b) Thanks [@luisbettencourt](https://github.com/luisbettencourt)! - Added 'canEditResource' to the ontology functions to determine if a property/link type is editable.
+
+- [#2363](https://github.com/hashintel/hash/pull/2363) [`77d95f178`](https://github.com/hashintel/hash/commit/77d95f17888e4c33ae5d93df9b41792c393e0764) Thanks [@luisbettencourt](https://github.com/luisbettencourt)! - Changed the copy property type hover tooltip
+
+- [#2519](https://github.com/hashintel/hash/pull/2519) [`b3a0b3542`](https://github.com/hashintel/hash/commit/b3a0b354283f7925ad645653f364e794fdf9364f) Thanks [@luisbettencourt](https://github.com/luisbettencourt)! - Prevent 'add a property' button from appearing over the 'allow multiple' menu
+
+- [#2594](https://github.com/hashintel/hash/pull/2594) [`b54ec0de1`](https://github.com/hashintel/hash/commit/b54ec0de16b94218508386a618664538dab31909) Thanks [@yusufkinatas](https://github.com/yusufkinatas)! - Fix top offset related visual bug on Safari
+
+- [#2543](https://github.com/hashintel/hash/pull/2543) [`d0b0a5fd9`](https://github.com/hashintel/hash/commit/d0b0a5fd9596c6639e6cbaf8df0a13b1338fe1ee) Thanks [@luisbettencourt](https://github.com/luisbettencourt)! - Added the ability to upgrade the version of expected entity types in links
+
+- Updated dependencies [[`f3a2f5ee9`](https://github.com/hashintel/hash/commit/f3a2f5ee9c25a3c7fead39453a76e3b93438aa17), [`0581e2589`](https://github.com/hashintel/hash/commit/0581e258954552e4ad5a677ef1fa94e386e820ca), [`f84343c1c`](https://github.com/hashintel/hash/commit/f84343c1c5c1522b4799ebe0f2c1ba9ebcbad8eb)]:
+  - @hashintel/design-system@0.0.7
+
 ## 0.0.21
 
 ### Patch Changes

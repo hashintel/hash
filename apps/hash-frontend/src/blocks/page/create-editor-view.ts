@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import {
-  HashBlock,
+  ComponentIdHashBlockMap,
   paragraphBlockComponentId,
 } from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
@@ -15,7 +15,7 @@ import { save } from "@local/hash-isomorphic-utils/save";
 import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
-import { Plugin } from "prosemirror-state";
+import { Plugin, PluginKey } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { RefObject } from "react";
 
@@ -32,16 +32,18 @@ import { createFocusPageTitlePlugin } from "./focus-page-title-plugin";
 import { LoadingView } from "./loading-view";
 import styles from "./style.module.css";
 
-export type BlocksMap = Record<string, HashBlock>;
-
 const createSavePlugin = (
   ownedById: OwnedById,
   pageEntityId: EntityId,
+  blocks: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
+  const pluginKey = new PluginKey<unknown>("save");
 
-  const triggerSave = (view: EditorView) => {
+  let view: EditorView;
+
+  const triggerSave = () => {
     saveQueue = saveQueue.catch().then(async () => {
       const [newContents, newDraftToEntityId] = await save(
         client,
@@ -49,6 +51,7 @@ const createSavePlugin = (
         pageEntityId,
         view.state.doc,
         entityStorePluginState(view.state).store,
+        blocks,
       );
 
       if (!view.isDestroyed) {
@@ -61,74 +64,60 @@ const createSavePlugin = (
           },
         });
 
+        tr.setMeta(pluginKey, { skipSave: true });
+
         view.dispatch(tr);
       }
     });
   };
 
-  let latestView: EditorView | null = null;
-
-  let interval: ReturnType<typeof setInterval> | void;
-
   const minWaitTime = 400;
   const maxWaitTime = 2000;
 
-  const idleSave = () => {
-    if (!interval) {
-      interval = setInterval(() => {
-        if (latestView) {
-          triggerSave(latestView);
-        }
-      }, maxWaitTime);
-    }
-  };
-
   // Saving happens through a debounced write operation
-  const writeDebounce = debounce(() => {
-    if (latestView) {
-      triggerSave(latestView);
-    }
-  }, minWaitTime);
+  const writeDebounce = debounce(triggerSave, minWaitTime, {
+    maxWait: maxWaitTime,
+  });
 
   return new Plugin<unknown>({
-    view: (_viewOnCreation: EditorView) => {
-      return {
-        update: (view, prevState) => {
-          latestView = view;
-          if (view.state.doc !== prevState.doc) {
-            if (interval) {
-              interval = clearInterval(interval);
-            }
+    state: {
+      init: () => null,
+      apply(tr, _, oldState, newState) {
+        if (!tr.getMeta(pluginKey)?.skipSave) {
+          if (
+            oldState.doc !== newState.doc ||
+            entityStorePluginState(oldState) !==
+              entityStorePluginState(newState)
+          ) {
             writeDebounce();
-          } else {
-            idleSave();
           }
-        },
-        destroy: () => {
-          if (interval) {
-            interval = clearInterval(interval);
-          }
-          writeDebounce.cancel();
-        },
-      };
+        }
+      },
     },
+    view: () => ({
+      update(currentView) {
+        view = currentView;
+      },
+      destroy() {
+        writeDebounce.cancel();
+      },
+    }),
     props: {
       handleDOMEvents: {
-        keydown(view, evt) {
+        keydown(_, evt) {
           // Manual save for cmd+s or ctrl+s
           if (evt.key === "s" && (evt.metaKey || evt.ctrlKey)) {
             evt.preventDefault();
             writeDebounce.cancel();
-            triggerSave(view);
+            triggerSave();
 
             return true;
           }
           return false;
         },
-        blur(view) {
+        blur() {
           writeDebounce.cancel();
-          latestView = view;
-          idleSave();
+          triggerSave();
           return false;
         },
       },
@@ -145,7 +134,7 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: AccountId,
   pageEntityId: EntityId,
-  blocks: BlocksMap,
+  blocks: () => ComponentIdHashBlockMap,
   readonly: boolean,
   pageTitleRef: RefObject<HTMLTextAreaElement>,
   getLastSavedValue: () => BlockEntity[],
@@ -158,12 +147,12 @@ export const createEditorView = (
   const plugins: Plugin<unknown>[] = readonly
     ? []
     : [
-        createSavePlugin(accountId as OwnedById, pageEntityId, client),
         ...createFormatPlugins(renderPortal),
         createSuggester(renderPortal, accountId, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),
         errorPlugin,
         createFocusPageTitlePlugin(pageTitleRef),
+        createSavePlugin(accountId as OwnedById, pageEntityId, blocks, client),
       ];
 
   const state = createProseMirrorState({ accountId, plugins });
@@ -247,20 +236,22 @@ export const createEditorView = (
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  const blocksArray = Object.values(blocks);
+  const blocksArray = Object.values(blocks());
 
-  const paragraphBlock = blocksArray.find(
-    (block) => block.meta.componentId === paragraphBlockComponentId,
-  );
+  if (blocksArray.length) {
+    const paragraphBlock = blocksArray.find(
+      (block) => block.meta.componentId === paragraphBlockComponentId,
+    );
 
-  if (!paragraphBlock) {
-    throw new Error("missing required block-type paragraph");
-  }
+    if (!paragraphBlock) {
+      throw new Error("missing required block-type paragraph");
+    }
 
-  /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
-  manager.defineBlock(paragraphBlock);
-  for (const block of blocksArray) {
-    manager.defineBlock(block);
+    /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
+    manager.defineBlock(paragraphBlock);
+    for (const block of blocksArray) {
+      manager.defineBlock(block);
+    }
   }
 
   // @todo figure out how to use dev tools without it breaking fast refresh

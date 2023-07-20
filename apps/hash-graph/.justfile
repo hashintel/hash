@@ -19,18 +19,16 @@ run *arguments:
 
 
 # Generates the OpenAPI client for the Graph REST API
-generate-openapi-client:
-  just run server --write-openapi-spec
-  just yarn workspace @local/hash-graph-client-generator generate
-  just yarn workspace @local/hash-graph-client prettier --write .
-  just yarn workspace @local/hash-graph-client fix:eslint
+generate-openapi-specs:
+  cargo run --bin hash-graph -- server --write-openapi-specs
 
 [private]
 test *arguments:
   @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
   RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
-  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/rest-test.http
-  @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-client
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
+  @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
 
 [private]
 coverage *arguments:

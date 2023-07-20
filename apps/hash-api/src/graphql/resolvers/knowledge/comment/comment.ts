@@ -1,6 +1,5 @@
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -15,14 +14,10 @@ export const createCommentResolver: ResolverFn<
 > = async (_, { parentEntityId, tokens }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const parent = await getLatestEntityById(context, {
-    entityId: parentEntityId,
-  });
-
   const comment = await createComment(context, {
     tokens,
-    ownedById: extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId),
-    parent,
+    ownedById: extractOwnedByIdFromEntityId(parentEntityId),
+    parentEntityId,
     author: user,
     actorId: user.accountId,
   });

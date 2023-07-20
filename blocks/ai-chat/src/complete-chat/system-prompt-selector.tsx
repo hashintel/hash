@@ -3,7 +3,7 @@ import {
   DropdownSelector,
   DropdownSelectorProps,
   GroupedOptions,
-} from "@hashintel/design-system";
+} from "@hashintel/block-design-system";
 import { Box } from "@mui/material";
 
 import { CardsIcon } from "../icons/cards";

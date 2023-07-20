@@ -33,7 +33,7 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      const { rootEntityTypeIds, graphResolveDepths } = data;
+      const { operation, graphResolveDepths } = data;
 
       /**
        * @todo Add filtering to this query using structural querying.
@@ -43,7 +43,7 @@ export const useBlockProtocolQueryEntities = (): {
        */
       const { data: response } = await queryFn({
         variables: {
-          rootEntityTypeIds,
+          operation,
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },

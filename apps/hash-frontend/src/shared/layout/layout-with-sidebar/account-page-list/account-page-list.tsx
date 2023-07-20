@@ -39,6 +39,7 @@ import { useArchivePage } from "../../../../components/hooks/use-archive-page";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
+import { useWorkspaceShortnameByAccountId } from "../../../../components/hooks/use-workspace-shortname-by-account-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
@@ -70,6 +71,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const { data, loading: pagesLoading } = useAccountPages(
     accountId as OwnedById,
   );
+
+  const { shortname: ownerShortname } = useWorkspaceShortnameByAccountId({
+    accountId,
+  });
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
     useCreatePage(accountId as OwnedById);
@@ -132,12 +137,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         .filter((item) =>
           isPageCollapsed(item, treeItems, expandedPageIds, activeId),
         )
-        .map(({ page }) => page.entityId),
+        .map(({ page }) => page.metadata.recordId.entityId),
     [treeItems, expandedPageIds, activeId],
   );
 
   const pagesFlatIdList = useMemo(
-    () => treeItems.map(({ page }) => page.entityId),
+    () => treeItems.map(({ page }) => page.metadata.recordId.entityId),
     [treeItems],
   );
 
@@ -201,10 +206,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       const clonedItems = [...treeItems];
 
       const overIndex = clonedItems.findIndex(
-        ({ page }) => page.entityId === over.id,
+        ({ page }) => page.metadata.recordId.entityId === over.id,
       );
       const activeIndex = clonedItems.findIndex(
-        ({ page }) => page.entityId === active.id,
+        ({ page }) => page.metadata.recordId.entityId === active.id,
       );
       const activeTreeItem = clonedItems[activeIndex];
 
@@ -213,21 +218,19 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         (activeTreeItem.depth !== depth || active.id !== over.id)
       ) {
         clonedItems[activeIndex] = {
-          page: {
-            ...activeTreeItem.page,
-            parentPageEntityId,
-          },
+          page: activeTreeItem.page,
           depth,
         };
 
         const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
 
         const parentSortedItems = sortedItems.filter(
-          ({ page }) => page.parentPageEntityId === parentPageEntityId,
+          ({ page }) =>
+            page.parentPage?.metadata.recordId.entityId === parentPageEntityId,
         );
 
         const newIndex = parentSortedItems.findIndex(
-          ({ page }) => page.entityId === activeId,
+          ({ page }) => page.metadata.recordId.entityId === activeId,
         );
 
         const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
@@ -259,11 +262,18 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     parentId: string | null = null,
   ) => {
     return treeItemList
-      .filter(({ page }) => page.parentPageEntityId === parentId)
-      .map(({ page: { entityId, title, ownerShortname }, depth }) => {
+      .filter(({ page: { parentPage } }) =>
+        parentId
+          ? parentPage?.metadata.recordId.entityId === parentId
+          : !parentPage,
+      )
+      .map(({ page: { icon, metadata, title }, depth }) => {
+        const { entityId } = metadata.recordId;
+
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
+
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
@@ -274,10 +284,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            pagePath={constructPageRelativeUrl({
-              workspaceShortname: ownerShortname,
-              pageEntityUuid,
-            })}
+            icon={icon}
+            pagePath={
+              !ownerShortname
+                ? ""
+                : constructPageRelativeUrl({
+                    workspaceShortname: ownerShortname,
+                    pageEntityUuid,
+                  })
+            }
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={
@@ -295,6 +310,14 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 entityId,
                 getLastIndex(treeItemList, entityId),
               );
+
+              setExpandedPageIds((expandedIds) => {
+                if (!expandedIds.includes(entityId)) {
+                  return [...expandedIds, entityId];
+                }
+
+                return expandedIds;
+              });
             }}
             archivePage={archivePage}
           />

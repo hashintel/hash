@@ -10,7 +10,7 @@ import NextNProgress from "nextjs-progressbar";
 import { FunctionComponent, useEffect } from "react";
 
 import { PageLayout } from "../components/page-layout";
-import { FRONTEND_URL, SITE_DESCRIPTION } from "../config";
+import { SITE_DESCRIPTION, SITE_SOCIAL_COVER_IMAGE_URL } from "../config";
 import { theme } from "../theme";
 import { MuiProvider } from "../theme/mui-provider";
 import { NextPageWithLayout } from "../util/next-types";
@@ -23,7 +23,7 @@ const defaultSeoProps: DefaultSeoProps = {
     site: "@hashdevs",
   },
   openGraph: {
-    images: [{ url: `${FRONTEND_URL}/social-cover.png` }],
+    images: [{ url: SITE_SOCIAL_COVER_IMAGE_URL }],
     siteName: "HASH for Developers",
     type: "website",
   },

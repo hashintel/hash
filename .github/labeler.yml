@@ -1,63 +1,90 @@
-A-infra:
-  - ".changeset/config.json"
-  - ".github/**"
-  - ".*ignore"
-  - ".markdownlint*"
-  - "*.json"
-  - "*.md"
-  - "*.yml"
+"area: apps":
+  - "apps/**"
 
-A-blocks:
-  - "blocks/**"
-
-A-hash:
+"area: apps > hash*":
   - "apps/hash-*/**"
   - "libs/@local/hash-*/**"
-  - "libs/hash-*/**"
 
-A-engine:
-  - "apps/engine/**"
-
-A-learn:
+"area: apps > hash.ai":
   - "apps/hashdotai/docs/**"
   - "apps/hashdotai/glossary/**"
 
-A-error-stack:
-  - "libs/error-stack/**"
+"area: apps > hash-api":
+  - "apps/hash-api/**"
 
-A-deer:
-  - "libs/deer/**"
-
-A-antsi:
-  - "libs/antsi/**"
-
-A-sarif:
-  - "libs/sarif/**"
-
-A-backend:
+"area: apps > hash-graph*":
   - "apps/hash-graph/**"
 
-C-dependencies:
+"area: apps > hash-realtime":
+  - "apps/hash-realtime/**"
+
+"area: apps > hash-search-loader":
+  - "apps/hash-search-loader/**"
+
+"area: apps > sim-engine":
+  - "apps/engine/**"
+
+"area: blocks":
+  - "blocks/**"
+
+"area: dependencies":
+  - "**/patches/**"
   - "**/Cargo.lock"
   - "**/yarn.lock"
 
-frontend:
-  - "apps/hash-frontend/**"
+"area: infra":
+  - "infra/**"
+  - "**/*.json"
+  - "**/*.md"
+  - "**/*.yml"
+  - "**/.changeset/config.json"
+  - "**/.github/**"
+  - "**/.*ignore"
+  - "**/.markdownlint*"
 
-api:
-  - "apps/hash-api/**"
-
-integration:
-  - "tests/hash-backend-integration/**"
-
-docker:
+"area: infra > docker":
   - "infra/docker/**"
 
-playwright:
+"area: infra > terraform":
+  - "infra/terraform/**"
+
+"area: libs":
+  - "libs/**"
+
+"area: libs > antsi":
+  - "libs/antsi/**"
+
+"area: libs > deer":
+  - "libs/deer/**"
+
+"area: libs > error-stack":
+  - "libs/error-stack/**"
+
+"area: libs > sarif":
+  - "libs/sarif/**"
+
+"area: tests":
+  - "tests/**"
+  - "**/tests/**"
+  - "**/test/**"
+
+"area: tests > integration":
+  - "tests/hash-backend-integration/**"
+
+"area: tests > playwright":
   - "tests/hash-playwright/**"
 
-realtime:
-  - "apps/hash-realtime/**"
+"type: backend":
+  - "apps/hash-graph/**"
+  - "apps/hash-api/**"
+  - "libs/@local/**"
 
-search-loader:
-  - "apps/hash-search-realtime/**"
+"type: frontend":
+  - "apps/hash-frontend/**"
+  - "libs/@hashintel/**"
+
+"type: legal":
+  - "**/LICENSE**"
+  - "**/NOTICE**"
+  - "**/THIRD_PARTY_NOTICES**"
+  - "**/THIRD_PARTY_LICENSES**"

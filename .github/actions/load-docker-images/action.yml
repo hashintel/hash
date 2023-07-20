@@ -1,5 +1,18 @@
 name: Load docker images
 description: "Load docker images"
+inputs:
+  hash-graph:
+    description: "Load hash-graph image"
+    required: false
+    default: "false"
+  hash-ai-worker-ts:
+    description: "Build hash-ai-worker-ts image"
+    required: false
+    default: "false"
+  hash-ai-worker-py:
+    description: "Build hash-ai-worker-py image"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -8,13 +21,43 @@ runs:
       uses: docker/setup-buildx-action@v2
 
     - name: Download hash-graph image
+      if: inputs.hash-graph == 'true'
       uses: actions/download-artifact@v3
       with:
         name: hash-graph
         path: /tmp
 
     - name: Load hash-graph image
+      if: inputs.hash-graph == 'true'
       shell: bash
       run: |
         docker load --input /tmp/hash-graph.tar
+        docker image ls -a
+
+    - name: Download hash-ai-worker-ts image
+      if: inputs.hash-ai-worker-ts == 'true'
+      uses: actions/download-artifact@v3
+      with:
+        name: hash-ai-worker-ts
+        path: /tmp
+
+    - name: Load hash-ai-worker-ts image
+      if: inputs.hash-ai-worker-ts == 'true'
+      shell: bash
+      run: |
+        docker load --input /tmp/hash-ai-worker-ts.tar
+        docker image ls -a
+
+    - name: Download hash-ai-worker-py image
+      if: inputs.hash-ai-worker-py == 'true'
+      uses: actions/download-artifact@v3
+      with:
+        name: hash-ai-worker-py
+        path: /tmp
+
+    - name: Load hash-ai-worker-py image
+      if: inputs.hash-ai-worker-py == 'true'
+      shell: bash
+      run: |
+        docker load --input /tmp/hash-ai-worker-py.tar
         docker image ls -a

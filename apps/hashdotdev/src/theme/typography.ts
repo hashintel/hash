@@ -52,8 +52,8 @@ export const typography: ThemeOptions["typography"] = {
   hashBodyCopy: {
     fontSize: "var(--step-0)",
     fontWeight: 400,
-    lineHeight: 1.75,
-    color: customColors.gray[80],
+    lineHeight: 1.65,
+    color: customColors.gray[90],
   },
   hashLargeText: {
     fontSize: "var(--step-1)",
@@ -93,5 +93,9 @@ export const typography: ThemeOptions["typography"] = {
     fontWeight: 600,
     color: customColors.gray[80],
     lineHeight: 1.2,
+  },
+  hashCode: {
+    lineHeight: 1.5,
+    color: customColors.gray[80],
   },
 };

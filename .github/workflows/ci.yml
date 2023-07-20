@@ -17,14 +17,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-deployment:
+  build-hash-graph:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build images
+      - name: Build image
         uses: ./.github/actions/build-docker-images
+        with:
+          hash-graph: true
+
+  build-hash-ai-worker-ts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          hash-ai-worker-ts: true
+
+  build-hash-ai-worker-py:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          hash-ai-worker-py: true
 
   linting:
     name: Linting
@@ -35,17 +59,8 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: poetry
-
-      - name: Install dependencies
-        run: yarn turbo install:tools
+      - name: Setup python
+        run: yarn poetry:install
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
@@ -160,6 +175,31 @@ jobs:
             exit 1
           fi
 
+      - name: Run yarn lint:ruff
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:ruff; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:ruff` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:mypy
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:mypy; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
         ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
         ## https://yarnpkg.com/cli/dedupe
         ## https://github.com/yarnpkg/berry/issues/2297
@@ -199,7 +239,8 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    needs: build-deployment
+    needs: [build-hash-graph, build-hash-ai-worker-ts, build-hash-ai-worker-py]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -211,9 +252,15 @@ jobs:
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-ai-worker-ts: true
+          hash-ai-worker-py: true
 
       - name: Launch external services
-        run: yarn workspace @apps/hash-external-services deploy up --detach
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          yarn workspace @apps/hash-external-services deploy:test up --detach
 
       - run: yarn test:backend-integration
         env:
@@ -247,7 +294,8 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    needs: build-deployment
+    needs: [build-hash-graph, build-hash-ai-worker-ts, build-hash-ai-worker-py]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -269,9 +317,16 @@ jobs:
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-ai-worker-ts: true
+          hash-ai-worker-py: true
 
       - name: Launch external services
-        run: yarn workspace @apps/hash-external-services deploy up --detach
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          # if we use turbo here, this would cost time with the docker build step needing to check that all the layers are cached          
+          yarn workspace @apps/hash-external-services deploy up --detach
 
       ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
       # - name: Seed data

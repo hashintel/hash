@@ -10,21 +10,21 @@ pub use self::{
 use crate::store::postgres::query::Transpile;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Statement<'p> {
-    Select(SelectStatement<'p>),
+pub enum Statement {
+    Select(SelectStatement),
 }
 
-impl Transpile for Statement<'_> {
+impl Transpile for Statement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Statement::Select(statement) => statement.transpile(fmt),
+            Self::Select(statement) => statement.transpile(fmt),
         }
     }
 }
 
-impl<'p> From<SelectStatement<'p>> for Statement<'p> {
+impl From<SelectStatement> for Statement {
     #[inline]
-    fn from(statement: SelectStatement<'p>) -> Self {
+    fn from(statement: SelectStatement) -> Self {
         Self::Select(statement)
     }
 }

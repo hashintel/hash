@@ -1,4 +1,9 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityType } from "@blockprotocol/type-system/slim";
+import {
+  faArrowUpRightFromSquare,
+  faAsterisk,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
   FontAwesomeIcon,
@@ -9,7 +14,7 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, PopperPlacementType, Stack } from "@mui/material";
+import { Box, IconButton, PopperPlacementType, Stack } from "@mui/material";
 import { ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -18,14 +23,107 @@ import { useResizeObserverRef } from "rooks";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
+import { Link } from "../shared/link";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
+import { useTypeVersions } from "../shared/use-type-versions";
+import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
-const TypeChipLabel = ({ children }: { children: ReactNode }) => (
-  <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
-    <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
-    <Box component="span">{children}</Box>
-  </Stack>
-);
+const TypeChipLabel = ({
+  children,
+  currentVersion,
+  latestVersion,
+  onUpdate,
+  versionedUrl,
+}: {
+  children: ReactNode;
+  currentVersion?: number;
+  latestVersion?: number;
+  versionedUrl?: VersionedUrl;
+  onUpdate?: () => void;
+}) => {
+  const readonly = useIsReadonly();
+
+  return (
+    <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
+      <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
+      <Box component="span">{children}</Box>
+
+      {!readonly &&
+      currentVersion &&
+      latestVersion &&
+      onUpdate &&
+      currentVersion !== latestVersion ? (
+        <Box sx={{ my: ({ spacing }) => `-${spacing(0.5)} !important` }}>
+          <VersionUpgradeIndicator
+            currentVersion={currentVersion}
+            latestVersion={latestVersion}
+            onUpdateVersion={onUpdate}
+            mode="tooltip"
+          />
+        </Box>
+      ) : null}
+
+      {versionedUrl && (
+        <Link href={versionedUrl}>
+          <IconButton
+            sx={{
+              padding: 0,
+              background: "transparent !important",
+              color: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faArrowUpRightFromSquare}
+              sx={({ palette }) => ({
+                height: "11px",
+                width: "11px",
+                "&:hover": { fill: palette.primary.light },
+              })}
+            />
+          </IconButton>
+        </Link>
+      )}
+    </Stack>
+  );
+};
+
+const ChosenEntityType = ({
+  updateVersion,
+  onDelete,
+  entityType,
+}: {
+  updateVersion: (newVersion: VersionedUrl) => void;
+  onDelete?: () => void;
+  entityType: EntityType;
+}) => {
+  const { entityTypes } = useEntityTypesOptions();
+
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
+    entityType.$id,
+    entityTypes,
+  );
+
+  return (
+    <Chip
+      key={entityType.$id}
+      sx={{ m: 0.25 }}
+      tabIndex={-1}
+      onDelete={onDelete}
+      color="blue"
+      label={
+        <TypeChipLabel
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          onUpdate={() => updateVersion(`${baseUrl}v/${latestVersion}`)}
+          versionedUrl={entityType.$id}
+        >
+          {entityType.title}
+        </TypeChipLabel>
+      }
+    />
+  );
+};
 
 const linkEntityTypeSelectorDropdownProps = {
   query: "",
@@ -153,16 +251,25 @@ export const LinkEntityTypeSelector = ({
       >
         {chosenEntityTypeIds.length ? (
           chosenEntityTypeIds.map((entityTypeId) => {
-            const type = entityTypes[entityTypeId];
+            const entityType = entityTypes[entityTypeId];
 
-            if (!type) {
+            if (!entityType) {
               throw new Error("Entity type missing in links table");
             }
 
             return (
-              <Chip
-                sx={{ m: 0.25 }}
-                tabIndex={-1}
+              <ChosenEntityType
+                key={entityTypeId}
+                entityType={entityType}
+                updateVersion={(newVersion: VersionedUrl) =>
+                  setValue(
+                    `links.${linkIndex}.entityTypes`,
+                    chosenEntityTypeIds.map((id) =>
+                      id === entityTypeId ? newVersion : id,
+                    ),
+                    { shouldDirty: true },
+                  )
+                }
                 {...(entityTypeSelectorPopupOpen
                   ? {
                       onDelete: () => {
@@ -176,9 +283,6 @@ export const LinkEntityTypeSelector = ({
                       },
                     }
                   : {})}
-                color="blue"
-                label={<TypeChipLabel>{type.title}</TypeChipLabel>}
-                key={type.$id}
               />
             );
           })

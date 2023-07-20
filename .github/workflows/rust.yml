@@ -72,6 +72,8 @@ jobs:
 
       - name: Build images
         uses: ./.github/actions/build-docker-images
+        with:
+          hash-graph: true
 
   lint:
     name: lint
@@ -184,13 +186,17 @@ jobs:
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
-      - name: Load Docker images
+      - name: Load Docker image
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
+        with:
+          hash-graph: true
 
       - name: Launch external services
         if: matrix.directory == 'apps/hash-graph'
-        run: yarn workspace @apps/hash-external-services deploy up graph --wait
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          yarn workspace @apps/hash-external-services deploy up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -269,13 +275,17 @@ jobs:
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
-      - name: Load Docker images
+      - name: Load Docker image
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
+        with:
+          hash-graph: true
 
       - name: Launch external services
         if: matrix.directory == 'apps/hash-graph'
-        run: yarn workspace @apps/hash-external-services deploy up graph --wait
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          yarn workspace @apps/hash-external-services deploy up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
+use std::{collections::HashSet, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
@@ -6,16 +6,13 @@ use tokio_postgres::row::RowIndex;
 use crate::{
     store::{
         postgres::query::{
-            table::{
-                DataTypes, EntityEditions, EntityTemporalMetadata, EntityTypes, JsonField,
-                OntologyIds, PropertyTypes,
-            },
+            table::{EntityTemporalMetadata, OntologyIds},
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
             WindowStatement, WithExpression,
         },
-        query::{Filter, FilterExpression, Parameter},
+        query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -38,14 +35,14 @@ pub struct CompilerArtifacts<'p> {
     temporal_tables: Option<TemporalTableInfo>,
 }
 
-pub struct SelectCompiler<'c, 'p, T> {
-    statement: SelectStatement<'c>,
+pub struct SelectCompiler<'p, T> {
+    statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     _marker: PhantomData<fn(*const T)>,
 }
 
-impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
+impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// Creates a new, empty compiler.
     pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
         Self {
@@ -139,15 +136,17 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(
+    pub fn add_selection_path<'q>(
         &mut self,
-        path: &'c R::QueryPath<'_>,
-    ) -> impl RowIndex + Display + Copy {
-        let alias = self.add_join_statements(path);
-        self.statement.selects.push(SelectExpression::from_column(
-            path.terminating_column().aliased(alias),
-            None,
-        ));
+        path: &'p R::QueryPath<'q>,
+    ) -> impl RowIndex + Display + Copy
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let column = self.compile_path_column(path);
+        self.statement
+            .selects
+            .push(SelectExpression::from_column(column, None));
         self.statement.selects.len() - 1
     }
 
@@ -155,15 +154,16 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_distinct_selection_with_ordering(
+    pub fn add_distinct_selection_with_ordering<'q>(
         &mut self,
-        path: &'c R::QueryPath<'_>,
+        path: &'p R::QueryPath<'q>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
-    ) -> impl RowIndex + Display + Copy {
-        let column = path
-            .terminating_column()
-            .aliased(self.add_join_statements(path));
+    ) -> impl RowIndex + Display + Copy
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let column = self.compile_path_column(path);
         if distinctness == Distinctness::Distinct {
             self.statement.distinct.push(column);
         }
@@ -177,7 +177,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) {
+    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         let condition = self.compile_filter(filter);
         self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
@@ -192,7 +195,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
-    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition<'c> {
+    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         if let Some(condition) = self.compile_special_filter(filter) {
             return condition;
         }
@@ -213,16 +219,71 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
             Filter::Not(filter) => Condition::Not(Box::new(self.compile_filter(filter))),
             Filter::Equal(lhs, rhs) => Condition::Equal(
                 lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
             ),
             Filter::NotEqual(lhs, rhs) => Condition::NotEqual(
                 lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
                 rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression)),
+                    .map(|expression| self.compile_filter_expression(expression).0),
             ),
+            Filter::In(lhs, rhs) => Condition::In(
+                self.compile_filter_expression(lhs).0,
+                self.compile_parameter_list(rhs).0,
+            ),
+            Filter::StartsWith(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::StartsWith(left_filter, right_filter)
+            }
+            Filter::EndsWith(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::EndsWith(left_filter, right_filter)
+            }
+            Filter::ContainsSegment(lhs, rhs) => {
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let left_filter = if left_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+                } else {
+                    left_filter
+                };
+
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let right_filter = if right_parameter == ParameterType::Any {
+                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
+                } else {
+                    right_filter
+                };
+
+                Condition::ContainsSegment(left_filter, right_filter)
+            }
         }
     }
 
@@ -230,11 +291,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
     // When          more CTEs are needed, a test should be added to cover both CTEs in one
     // statement to          ensure compatibility
-    fn compile_latest_ontology_version_filter(
+    fn compile_latest_ontology_version_filter<'q>(
         &mut self,
-        path: &R::QueryPath<'_>,
+        path: &R::QueryPath<'q>,
         operator: EqualityOperator,
-    ) -> Condition<'c> {
+    ) -> Condition
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
@@ -259,7 +323,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                     .aliased(version_column.alias),
                             ),
                         ),
-                        Some(Cow::Borrowed("latest_version")),
+                        Some("latest_version"),
                     ),
                 ],
                 from: version_column.table(),
@@ -290,7 +354,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
-    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>> {
+    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
@@ -323,35 +390,16 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
-        let column = match path.terminating_column() {
-            Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(field)))) => {
-                self.artifacts.parameters.push(field);
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPathParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            }
-            Column::EntityEditions(EntityEditions::Properties(Some(JsonField::JsonPath(
-                field,
-            )))) => {
-                self.artifacts.parameters.push(field);
-                Column::EntityEditions(EntityEditions::Properties(Some(
-                    JsonField::JsonPathParameter(self.artifacts.parameters.len()),
-                )))
-            }
-            column => column,
+    pub fn compile_path_column<'q>(&mut self, path: &'p R::QueryPath<'q>) -> AliasedColumn
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let (column, parameter) = path
+            .terminating_column()
+            .into_owned(self.artifacts.parameters.len() + 1);
+
+        if let Some(parameter) = parameter {
+            self.artifacts.parameters.push(parameter);
         };
 
         let alias = self.add_join_statements(path);
@@ -365,23 +413,65 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     pub fn compile_filter_expression<'f: 'p>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> Expression<'c> {
+    ) -> (Expression, ParameterType)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
         match expression {
-            FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
+            FilterExpression::Path(path) => {
+                let column = self.compile_path_column(path);
+                let parameter_type = column.column.parameter_type();
+                (Expression::Column(column), parameter_type)
+            }
             FilterExpression::Parameter(parameter) => {
-                match parameter {
-                    Parameter::Number(number) => self.artifacts.parameters.push(number),
-                    Parameter::Text(text) => self.artifacts.parameters.push(text),
-                    Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
-                    Parameter::Any(json) => self.artifacts.parameters.push(json),
-                    Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
+                let parameter_type = match parameter {
+                    Parameter::Number(number) => {
+                        self.artifacts.parameters.push(number);
+                        ParameterType::Number
+                    }
+                    Parameter::Text(text) => {
+                        self.artifacts.parameters.push(text);
+                        ParameterType::Text
+                    }
+                    Parameter::Boolean(bool) => {
+                        self.artifacts.parameters.push(bool);
+                        ParameterType::Boolean
+                    }
+                    Parameter::Any(json) => {
+                        self.artifacts.parameters.push(json);
+                        ParameterType::Any
+                    }
+                    Parameter::Uuid(uuid) => {
+                        self.artifacts.parameters.push(uuid);
+                        ParameterType::Uuid
+                    }
                     Parameter::OntologyTypeVersion(version) => {
                         self.artifacts.parameters.push(version);
+                        ParameterType::OntologyTypeVersion
                     }
-                }
-                Expression::Parameter(self.artifacts.parameters.len())
+                };
+                (
+                    Expression::Parameter(self.artifacts.parameters.len()),
+                    parameter_type,
+                )
             }
         }
+    }
+
+    pub fn compile_parameter_list<'f: 'p>(
+        &mut self,
+        parameters: &'p ParameterList<'f>,
+    ) -> (Expression, ParameterType) {
+        let parameter_type = match parameters {
+            ParameterList::Uuid(uuids) => {
+                self.artifacts.parameters.push(uuids);
+                ParameterType::Uuid
+            }
+        };
+        (
+            Expression::Parameter(self.artifacts.parameters.len()),
+            parameter_type,
+        )
     }
 
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
@@ -390,7 +480,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
-    fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
+    fn add_join_statements<'q>(&mut self, path: &R::QueryPath<'q>) -> Alias
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
         let mut current_table = self.statement.from;
 
         if current_table.table == Table::EntityTemporalMetadata {

@@ -1,5 +1,18 @@
 name: Build docker images
 description: "Build docker images"
+inputs:
+  hash-graph:
+    description: "Build hash-graph image"
+    required: false
+    default: "false"
+  hash-ai-worker-ts:
+    description: "Build hash-ai-worker-ts image"
+    required: false
+    default: "false"
+  hash-ai-worker-py:
+    description: "Build hash-ai-worker-py image"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -7,7 +20,8 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Build images
+    - name: Build hash-graph image
+      if: inputs.hash-graph == 'true'
       uses: docker/build-push-action@v4
       with:
         context: .
@@ -19,13 +33,51 @@ runs:
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
+        # TODO: As caching does not work very reliably, we use `dev` for now
+        #   see https://app.asana.com/0/0/1202790039552161/f
+        #       https://app.asana.com/0/0/1203893407788521/f
         build-args: |
-          PROFILE=release
+          PROFILE=dev
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
 
     - name: Upload artifact
+      if: inputs.hash-graph == 'true'
       uses: actions/upload-artifact@v3
       with:
         name: hash-graph
         path: /tmp/hash-graph.tar
+
+    - name: Build hash-ai-worker-ts image
+      if: inputs.hash-ai-worker-ts == 'true'
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: apps/hash-ai-worker-ts/docker/Dockerfile
+        tags: hash-ai-worker-ts
+        outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
+
+    - name: Upload artifact
+      if: inputs.hash-ai-worker-ts == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: hash-ai-worker-ts
+        path: /tmp/hash-ai-worker-ts.tar
+
+    - name: Build hash-ai-worker-py image
+      if: inputs.hash-ai-worker-py == 'true'
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: apps/hash-ai-worker-py/docker/Dockerfile
+        tags: hash-ai-worker-py
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
+
+    - name: Upload artifact
+      if: inputs.hash-ai-worker-py == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: hash-ai-worker-py
+        path: /tmp/hash-ai-worker-py.tar

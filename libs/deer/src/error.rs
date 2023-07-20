@@ -63,6 +63,7 @@ use core::{
     fmt::{self, Debug, Display, Formatter},
 };
 
+pub use duplicate::{DuplicateField, DuplicateFieldError, DuplicateKey, DuplicateKeyError};
 use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
@@ -73,13 +74,14 @@ pub use location::Location;
 use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
 pub use unknown::{
-    ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
-    UnknownVariantError,
+    ExpectedField, ExpectedIdentifier, ExpectedVariant, ReceivedField, ReceivedIdentifier,
+    ReceivedVariant, UnknownFieldError, UnknownIdentifierError, UnknownVariantError,
 };
 pub use value::{MissingError, ReceivedValue, ValueError};
 
 use crate::error::serialize::{impl_serialize, Export};
 
+mod duplicate;
 mod extra;
 mod internal;
 mod location;
@@ -113,11 +115,11 @@ impl Id {
     }
 }
 
-pub(crate) fn fmt_fold_fields<'a>(
+pub(crate) fn fmt_fold_fields<T: Display>(
     fmt: &mut Formatter,
-    it: impl Iterator<Item = &'a str>,
+    iter: impl IntoIterator<Item = T>,
 ) -> fmt::Result {
-    for (idx, field) in it.enumerate() {
+    for (idx, field) in iter.into_iter().enumerate() {
         if idx > 0 {
             fmt.write_str(", ")?;
         }
@@ -467,5 +469,20 @@ pub trait ReportExt<C: Context> {
 impl<C: Context> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
         Export::new(self)
+    }
+}
+
+pub(crate) trait ResultExtPrivate<C: Context> {
+    fn extend_one(&mut self, error: Report<C>);
+}
+
+impl<T, C: Context> ResultExtPrivate<C> for Result<T, C> {
+    fn extend_one(&mut self, error: Report<C>) {
+        match self {
+            Err(errors) => {
+                errors.extend_one(error);
+            }
+            errors => *errors = Err(error),
+        }
     }
 }

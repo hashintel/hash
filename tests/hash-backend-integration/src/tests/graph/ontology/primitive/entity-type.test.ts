@@ -1,15 +1,20 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
+  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
+  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
+  getEntityTypeSubgraphById,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -25,6 +30,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -166,6 +172,20 @@ beforeAll(async () => {
   };
 });
 
+afterAll(async () => {
+  await deleteKratosIdentity({
+    kratosIdentityId: systemUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser2.kratosIdentityId,
+  });
+
+  await resetGraph();
+});
+
 describe("Entity type CRU", () => {
   let createdEntityType: EntityTypeWithMetadata;
 
@@ -203,5 +223,23 @@ describe("Entity type CRU", () => {
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
         updatedEntityType.metadata.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can load an external type on demand", async () => {
+    const entityTypeId =
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
+
+    await expect(
+      getEntityTypeById(graphContext, { entityTypeId }),
+    ).rejects.toThrow("Could not find entity type with ID");
+
+    await expect(
+      getEntityTypeSubgraphById(graphContext, {
+        entityTypeId,
+        actorId: testUser.accountId,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).resolves.not.toThrow();
   });
 });

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, convert::identity};
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -151,21 +151,9 @@ pub struct EdgeResolveDepths {
 }
 
 impl EdgeResolveDepths {
-    #[expect(
-        clippy::useless_let_if_seq,
-        reason = "Using a mutable variable is more readable"
-    )]
-    pub fn update(&mut self, other: Self) -> bool {
-        let mut changed = false;
-        if other.incoming > self.incoming {
-            self.incoming = other.incoming;
-            changed = true;
-        }
-        if other.outgoing > self.outgoing {
-            self.outgoing = other.outgoing;
-            changed = true;
-        }
-        changed
+    #[must_use]
+    pub const fn contains(self, other: Self) -> bool {
+        self.outgoing >= other.outgoing && self.incoming >= other.incoming
     }
 }
 
@@ -182,17 +170,9 @@ pub struct OutgoingEdgeResolveDepth {
 }
 
 impl OutgoingEdgeResolveDepth {
-    #[expect(
-        clippy::useless_let_if_seq,
-        reason = "Be consistent with `EdgeResolveDepths`"
-    )]
-    pub fn update(&mut self, other: Self) -> bool {
-        let mut changed = false;
-        if other.outgoing > self.outgoing {
-            self.outgoing = other.outgoing;
-            changed = true;
-        }
-        changed
+    #[must_use]
+    pub const fn contains(self, other: Self) -> bool {
+        self.outgoing >= other.outgoing && self.incoming >= other.incoming
     }
 }
 
@@ -208,6 +188,32 @@ pub struct GraphResolveDepths {
     pub is_of_type: OutgoingEdgeResolveDepth,
     pub has_left_entity: EdgeResolveDepths,
     pub has_right_entity: EdgeResolveDepths,
+}
+
+impl GraphResolveDepths {
+    #[must_use]
+    pub fn is_empty(self) -> bool {
+        self == Self::default()
+    }
+
+    #[must_use]
+    pub fn contains(self, other: Self) -> bool {
+        [
+            self.inherits_from.contains(other.inherits_from),
+            self.constrains_values_on
+                .contains(other.constrains_values_on),
+            self.constrains_properties_on
+                .contains(other.constrains_properties_on),
+            self.constrains_links_on.contains(other.constrains_links_on),
+            self.constrains_link_destinations_on
+                .contains(other.constrains_link_destinations_on),
+            self.is_of_type.contains(other.is_of_type),
+            self.has_left_entity.contains(other.has_left_entity),
+            self.has_right_entity.contains(other.has_right_entity),
+        ]
+        .into_iter()
+        .all(identity)
+    }
 }
 
 pub trait GraphResolveDepthIndex {
@@ -277,44 +283,5 @@ impl GraphResolveDepths {
         let depths = kind.depth_mut(direction, &mut self);
         *depths = depths.checked_sub(1)?;
         Some(self)
-    }
-
-    #[expect(
-        clippy::useless_let_if_seq,
-        reason = "Using a mutable variable is more readable"
-    )]
-    pub fn update(&mut self, other: Self) -> bool {
-        let mut changed = false;
-        if self.inherits_from.update(other.inherits_from) {
-            changed = true;
-        }
-        if self.constrains_values_on.update(other.constrains_values_on) {
-            changed = true;
-        }
-        if self
-            .constrains_properties_on
-            .update(other.constrains_properties_on)
-        {
-            changed = true;
-        }
-        if self.constrains_links_on.update(other.constrains_links_on) {
-            changed = true;
-        }
-        if self
-            .constrains_link_destinations_on
-            .update(other.constrains_link_destinations_on)
-        {
-            changed = true;
-        }
-        if self.is_of_type.update(other.is_of_type) {
-            changed = true;
-        }
-        if self.has_left_entity.update(other.has_left_entity) {
-            changed = true;
-        }
-        if self.has_right_entity.update(other.has_right_entity) {
-            changed = true;
-        }
-        changed
     }
 }

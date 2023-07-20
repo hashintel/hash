@@ -4,7 +4,7 @@ use std::{error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
 use derivative::Derivative;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use time::{format_description::well_known::Iso8601, serde::iso8601, OffsetDateTime};
+use time::{format_description::well_known::Iso8601, OffsetDateTime};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::axis::TemporalTagged;
@@ -19,7 +19,6 @@ use crate::identifier::time::axis::TemporalTagged;
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = ""),
@@ -30,8 +29,14 @@ use crate::identifier::time::axis::TemporalTagged;
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
-    #[serde(with = "iso8601")]
+    #[serde(with = "crate::serde::time")]
     time: OffsetDateTime,
+}
+
+impl<A> Clone for Timestamp<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> fmt::Debug for Timestamp<A> {

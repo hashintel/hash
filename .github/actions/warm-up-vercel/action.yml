@@ -1,0 +1,30 @@
+name: Warm-up Vercel Lambdas
+description: Calls key Vercel Lambda functions to warm them up
+
+inputs:
+  deployment-base-url:
+    description: "The base URL of the deployment to warm up (or 'https://app.hash.ai' for production)"
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    ## This pipeline warms up Lambda containers for new deployments and keeps them up by regular fetching.
+    ## Context: https://github.com/orgs/vercel/discussions/496
+    - name: Fetch URLs that use AWS Lambda
+      shell: bash
+      run: |
+        cat << EOF > curl-format.txt
+          %{url_effective}\n
+            Status code: %{response_code}\n
+            Time: %{time_total}\n
+          \n
+        EOF
+
+        for PATHNAME in "/" "/login" "/signup" "/@hash" "/@hash/00000000-0000-0000-0000-000000000000" "/@hash/types/entity-type/page/v/1" "/new/types/entity-type" "/new/entity" "/api/ory/self-service/logout/browser"; do
+          npx retry-cli@0.6.0 -- curl --output /dev/null --silent --write-out "@curl-format.txt" "${BASE_URL}${PATHNAME}"
+        done
+      env:
+        BASE_URL: ${{ inputs.deployment-base-url }}
+        NODE_OPTIONS: --no-deprecation ## https://github.com/tirsen/retry-cli/issues/7

@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { AuthenticatedUser } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
-const canUserEditResource = (
+export const canUserEditResource = (
   resourceAccountId?: AccountId,
   user?: AuthenticatedUser,
 ) => {
@@ -22,7 +22,8 @@ export const useIsReadonlyModeForApp = () => {
   const router = useRouter();
   const { authenticatedUser } = useAuthInfo();
 
-  const isReadonlyMode = "readonly" in router.query || !authenticatedUser;
+  const isReadonlyMode =
+    "readonly" in router.query || !authenticatedUser?.accountSignupComplete;
 
   return isReadonlyMode;
 };
@@ -32,8 +33,8 @@ export const useIsReadonlyModeForResource = (resourceAccountId?: AccountId) => {
 
   const appIsReadOnly = useIsReadonlyModeForApp();
 
-  if (!authenticatedUser) {
-    return false;
+  if (!authenticatedUser?.accountSignupComplete) {
+    return true;
   }
 
   return (

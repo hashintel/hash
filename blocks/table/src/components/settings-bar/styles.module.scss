@@ -1,0 +1,27 @@
+.settingsBar {
+  display: flex;
+  column-gap: 24px;
+  row-gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  .settingsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    column-gap: 24px;
+
+    .setting {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .settingLabel {
+        color: #91a5ba;
+        font-weight: 500;
+        font-size: 15px;
+        line-height: 15px;
+      }
+    }
+  }
+}

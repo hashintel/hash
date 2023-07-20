@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../../../../../../../../shared/filters";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
@@ -37,9 +38,14 @@ export const EntitySelector = ({
         setLoading(true);
         const { data } = await queryEntities({
           data: {
-            rootEntityTypeIds: expectedEntityTypes.map(
-              ({ schema }) => schema.$id,
-            ),
+            operation: {
+              multiFilter: {
+                filters: expectedEntityTypes.map(({ schema }) =>
+                  entityHasEntityTypeByVersionedUrlFilter(schema.$id),
+                ),
+                operator: expectedEntityTypes.length > 0 ? "OR" : "AND",
+              },
+            },
           },
         });
 

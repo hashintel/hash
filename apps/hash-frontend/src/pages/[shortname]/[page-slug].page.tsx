@@ -3,22 +3,14 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
-import {
-  getPageInfoQuery,
-  getPageQuery,
-} from "@local/hash-graphql-shared/queries/page.queries";
-import {
-  defaultBlockComponentIds,
-  fetchBlock,
-  HashBlock,
-} from "@local/hash-isomorphic-utils/blocks";
+import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
+import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
-  EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
@@ -28,11 +20,11 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
-import { Router } from "next/router";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { Router, useRouter } from "next/router";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
 // import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
@@ -46,6 +38,7 @@ import {
   PageSectionContainerProps,
 } from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
+import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -56,11 +49,7 @@ import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
-import {
-  GetPageInfoQuery,
-  GetPageInfoQueryVariables,
-  QueryEntitiesQuery,
-} from "../../graphql/api-types.gen";
+import { QueryEntitiesQuery } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -70,14 +59,20 @@ import {
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
+import {
+  isPageParsedUrlQuery,
+  parsePageUrlQueryParams,
+} from "../../shared/routing/route-page-info";
 import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
+import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -85,38 +80,20 @@ type PageProps = {
   blocks: HashBlock[];
 };
 
-type PageParsedUrlQuery = {
-  shortname: string;
-  "page-slug": string;
-};
-
-export const isPageParsedUrlQuery = (
-  queryParams: NextParsedUrlQuery,
-): queryParams is PageParsedUrlQuery =>
-  typeof queryParams.shortname === "string" &&
-  typeof queryParams["page-slug"] === "string";
-
-export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
-  const workspaceShortname = params.shortname.slice(1);
-
-  const pageEntityUuid = params["page-slug"] as EntityUuid;
-
-  return { workspaceShortname, pageEntityUuid };
-};
-
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
  * ahead of time so that the client doesn't need to
  *
- * @todo Include blocks present in the document in this
+ * @todo Include blocks present in the document in this, and remove fetching of these in canvas-page
  */
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   req,
   params,
 }) => {
-  const fetchedBlocks = await Promise.all(
-    defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
-  );
+  // Fetching block metadata can significantly slow down the server render, so disabling for now
+  // const fetchedBlocks = await Promise.all(
+  //   defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
+  // );
 
   if (!params || !isPageParsedUrlQuery(params)) {
     throw new Error(
@@ -134,17 +111,26 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     .query<QueryEntitiesQuery>({
       query: queryEntitiesQuery,
       variables: {
-        rootEntityTypeIds: [
-          types.entityType.user.entityTypeId,
-          types.entityType.org.entityTypeId,
-        ],
+        operation: {
+          multiFilter: {
+            filters: [
+              entityHasEntityTypeByVersionedUrlFilter(
+                types.entityType.user.entityTypeId,
+              ),
+              entityHasEntityTypeByVersionedUrlFilter(
+                types.entityType.org.entityTypeId,
+              ),
+            ],
+            operator: "OR",
+          },
+        },
         constrainsValuesOn: { outgoing: 0 },
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
         constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: 1, outgoing: 1 },
-        hasRightEntity: { incoming: 1, outgoing: 1 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
       context: { headers: { cookie } },
     })
@@ -187,29 +173,22 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   return {
     props: {
       pageWorkspace,
-      blocks: fetchedBlocks,
+      blocks: [],
       pageEntityId,
     },
   };
 };
 
-export const PageNotificationBanner: FunctionComponent = () => {
+export const PageNotificationBanner = ({
+  archived = false,
+}: {
+  archived: boolean;
+}) => {
   const { pageEntityId } = usePageContext();
   const [archivePage] = useArchivePage();
 
-  const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
-    getPageInfoQuery,
-    {
-      variables: {
-        entityId: pageEntityId,
-      },
-    },
-  );
-
-  const archived = data?.page.archived;
-
   return (
-    <Collapse in={!!archived}>
+    <Collapse in={archived}>
       <Box
         sx={({ palette }) => ({
           color: palette.common.white,
@@ -257,25 +236,31 @@ const generateCrumbsFromPages = ({
   pages: AccountPagesInfo["data"];
   ownerShortname: string;
 }) => {
-  const pageMap = new Map(pages.map((page) => [page.entityId, page]));
+  const pageMap = new Map(
+    pages.map((page) => [page.metadata.recordId.entityId, page]),
+  );
 
   let currentPage = pageMap.get(pageEntityId);
   let arr = [];
 
   while (currentPage) {
-    const pageEntityUuid = extractEntityUuidFromEntityId(currentPage.entityId);
+    const currentPageEntityId = currentPage.metadata.recordId.entityId;
+
+    const pageEntityUuid = extractEntityUuidFromEntityId(currentPageEntityId);
     arr.push({
       title: currentPage.title,
       href: constructPageRelativeUrl({
         workspaceShortname: ownerShortname,
         pageEntityUuid,
       }),
-      id: currentPage.entityId,
-      icon: <PageIcon entityId={currentPage.entityId} size="small" />,
+      id: currentPageEntityId,
+      icon: <PageIcon icon={currentPage.icon} size="small" />,
     });
 
-    if (currentPage.parentPageEntityId) {
-      currentPage = pageMap.get(currentPage.parentPageEntityId);
+    if (currentPage.parentPage) {
+      currentPage = pageMap.get(
+        currentPage.parentPage.metadata.recordId.entityId,
+      );
     } else {
       break;
     }
@@ -292,6 +277,11 @@ const Page: NextPageWithLayout<PageProps> = ({
   pageWorkspace,
 }) => {
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
+
+  const { asPath, query } = useRouter();
+  const canvasPage = query.canvas;
+
+  const routeHash = asPath.split("#")[1] ?? "";
 
   const { data: accountPages } = useAccountPages(pageOwnedById);
 
@@ -376,7 +366,7 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, contents } = data.page;
+  const { title, icon, archived, contents } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -384,7 +374,7 @@ const Page: NextPageWithLayout<PageProps> = ({
   return (
     <>
       <Head>
-        <title>{pageTitle} | Page | HASH</title>
+        <title>{pageTitle || "Untitled"} | HASH</title>
 
         {/*
           Rendering favicon.png again even if it's already defined on _document.page.tsx,
@@ -416,46 +406,49 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
+            isBlockPage
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner />
+          <PageNotificationBanner archived={!!archived} />
         </Box>
 
-        <PageSectionContainer {...pageSectionContainerProps}>
-          <Box position="relative">
-            <PageIconButton
-              entityId={pageEntityId}
-              readonly={isReadonlyMode}
-              sx={({ breakpoints }) => ({
-                mb: 2,
-                [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
-                  position: "absolute",
-                  top: 0,
-                  right: "calc(100% + 24px)",
-                },
-              })}
-            />
-            <Box
-              component="header"
-              ref={pageHeaderRef}
-              sx={{
-                scrollMarginTop:
-                  HEADER_HEIGHT +
-                  TOP_CONTEXT_BAR_HEIGHT +
-                  pageIconVariantSizes.medium.container,
-              }}
-            >
-              <PageTitle
-                value={title}
-                pageEntityId={pageEntityId}
+        {!canvasPage && (
+          <PageSectionContainer {...pageSectionContainerProps}>
+            <Box position="relative">
+              <PageIconButton
+                entityId={pageEntityId}
+                icon={icon}
                 readonly={isReadonlyMode}
+                sx={({ breakpoints }) => ({
+                  mb: 2,
+                  [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
+                    position: "absolute",
+                    top: 0,
+                    right: "calc(100% + 24px)",
+                  },
+                })}
               />
-              {/*
+              <Box
+                component="header"
+                ref={pageHeaderRef}
+                sx={{
+                  scrollMarginTop:
+                    HEADER_HEIGHT +
+                    TOP_CONTEXT_BAR_HEIGHT +
+                    pageIconVariantSizes.medium.container,
+                }}
+              >
+                <PageTitle
+                  value={title}
+                  pageEntityId={pageEntityId}
+                  readonly={isReadonlyMode}
+                />
+                {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs
             for them have been added
           */}
-              {/* <div style={{"marginRight":"1rem"}}>
+                {/* <div style={{"marginRight":"1rem"}}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -479,18 +472,26 @@ const Page: NextPageWithLayout<PageProps> = ({
               />
             </div>
           </div> */}
+              </Box>
             </Box>
-          </Box>
-        </PageSectionContainer>
+          </PageSectionContainer>
+        )}
 
         <CollabPositionProvider value={[]}>
-          <PageBlock
-            accountId={pageWorkspace.accountId}
-            contents={contents}
-            blocks={blocksMap}
-            pageComments={pageComments}
-            entityId={pageEntityId}
-          />
+          <UserBlocksProvider value={blocksMap}>
+            <BlockLoadedProvider routeHash={routeHash}>
+              {canvasPage ? (
+                <CanvasPageBlock contents={contents} />
+              ) : (
+                <PageBlock
+                  accountId={pageWorkspace.accountId}
+                  contents={contents}
+                  pageComments={pageComments}
+                  entityId={pageEntityId}
+                />
+              )}
+            </BlockLoadedProvider>
+          </UserBlocksProvider>
         </CollabPositionProvider>
       </PageContextProvider>
     </>

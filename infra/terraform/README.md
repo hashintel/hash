@@ -21,6 +21,29 @@ prod
 
 By default, the selected region is `us-east-1` and can be configured by editing the TF variables used for applying the TF plan, e.g. the one in [`./hash/prod-usea1.tfvars`](./hash/prod-usea1.tfvars).
 
+# Naming convention
+
+Resources use the following naming convention:
+
+```text
+{OWNER}-{PROJECT}-{ENV}-{REGION}-{RESOURCE DESCRIPTION}
+
+OWNER : 'h' for hash
+PROJECT : 'hash'
+ENV : 'dev' or 'prod'  (maybe others too later)
+REGION : AWS region shortened -- 'usea1' etc.
+RESOURCE DESCRIPTION : a short description of the resource e.g. 'subnetpub1'
+```
+
+Fields (e.g. Owner, Project) may _not_ include any hyphens.
+
+Example _valid_ names: `h-hash-prod-usea1-vpc`, `h-hash-dev-usea2-apisvc`
+Example _invalid_ name: `h-hash-prod-usea1-api-svc`
+
+(Inspired by https://stepan.wtf/cloud-naming-convention/)
+
+The region and environment fields are set by the variables supplied in the `*.tfvars` file. The config automatically shortens AWS region names, for example, `us-east-1` will be converted to `usea1`.
+
 # Deploying
 
 Deployment currently relies on a couple of manual steps - but is to be automated in the future. The container registries need to have images pushed in the correct place for the applications to start and the database has to be migrated manually. The order of executions for deployment:
@@ -31,25 +54,30 @@ Deployment currently relies on a couple of manual steps - but is to be automated
 
 ## Deploy infrastructure with terraform
 
-You must prepare a `tfvars` file containing secrets to spin up the environment. This can be done by creating a file in `./hash/prod.secrets.tfvars` containing the following definitions (change the values):
+Secret environment should be provided in HashiCorp Vault. These are expected in a kvv2 secrets engine path starting with `pipelines/hash/` and ending with the environment name, e.g. for a secrets engine `automation` the path would be `automation/pipelines/hash/prod`. The following secrets are expected:
 
-```tfvars
-hash_seed_users = [
-  { "email" = "admin@hash.ai", "shortname" = "instance-admin", "preferredName" = "Instance Admin", "password" = "changeme", "isInstanceAdmin" = true }
-]
-
-hash_system_user_password = "changeme"
-
-hash_block_protocol_api_key = "Generate at https://blockprotocol.org/settings/api-keys"
-
-kratos_secrets_cookie = "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
-kratos_secrets_cipher = "32-LONG-SECRET-NOT-SECURE-AT-ALL"
-
-kratos_api_key = "secret"
-
-pg_superuser_password    = "changeme"
-pg_kratos_user_password  = { raw = "changeme", hash = "See guide below to generate this" }
-pg_graph_user_password   = { raw = "changeme", hash = "See guide below to generate this" }
+```json
+{
+  "hash_block_protocol_api_key": "*",
+  "hash_seed_users": [
+    {
+      "email": "chageme@example.com",
+      "isInstanceAdmin": true,
+      "password": "changeme",
+      "preferredName": "Instance Admin",
+      "shortname": "instance-admin"
+    }
+  ],
+  "hash_system_user_password": "changeme",
+  "kratos_api_key": "changeme",
+  "kratos_secrets_cipher": "32-LONG-SECRET-NOT-SECURE-AT-ALL",
+  "kratos_secrets_cookie": "changeme",
+  "pg_graph_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
+  "pg_graph_user_password_raw": "changeme",
+  "pg_kratos_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
+  "pg_kratos_user_password_raw": "chageme",
+  "pg_superuser_password": "changeme"
+}
 ```
 
 <details>
@@ -70,7 +98,7 @@ To generate a hashed password in this form:
 1.  Extract password
     `select rolpassword from pg_authid where rolname = 'postgres';`
 1.  Copy the result, repeat from step 3 as needed
-1.  Quit wiht `\q` and stop the container
+1.  Quit with `\q` and stop the container
     `docker stop postgres-dummy`
 
 </details>
@@ -80,14 +108,7 @@ Deployment can then be done by issuing the following command after initializing 
 ```console
 $ terraform workspace show
 prod
-$ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars
-..
-```
-
-Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are deferred to the apply phase usually).
-
-```console
-$ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars -refresh=false
+$ terraform apply --var-file prod-usea1.tfvars
 ..
 ```
 
@@ -110,9 +131,7 @@ $ ./ssh_bastion.sh -N -L 5554:h-hash-dev-usea1-pg.*.us-east-1.rds.amazonaws.com:
 
 This will start an SSH tunnel making `localhost:5554` point to the remote RDS instance within the private subnet in AWS.
 
-To migrate the graph, you must first build the docker container that contains the graph and run it with the graph credentials and the you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file using the `migrate` subcommand:
-
-Look at the next step and build `hash-graph`.
+To migrate `hash-graph`, you must first build the docker container that contains the graph and run it with the graph credentials you should have in the Vault instance.
 
 ```console
 $ docker run --rm \
@@ -201,20 +220,126 @@ $ aws ecs execute-command --cluster h-hash-prod-usea1-ecs --task TASKID --contai
 
 where the `TASKID` is the ID of the Fargate service task. Note that this would start an `sh` session directly into your production container, and should be done with caution (if it ever should be done). It's recommended not to run commands against the production environment like this, and we may at some point restrict access to Fargate Exec.
 
+# Troubleshooting and guides
+
+## What to do if the HASH DB needs **Disaster Recovery**
+
+There's a [recovery playbook](./playbooks/db_recovery.md) on what we should do when the DB is on fire, please follow it to recover a snapshot.
+
+## Help! I need access to the private subnet!
+
+You can access the private subnet using the Bastion host. For more information, please see [the corresponding readme](./hash/bastion.md). You need an SSH privatekey to access the bastion, which you can find in `1password` if you have the appropriate access level.
+
+## How do I get the Terraform state from S3?
+
+Install the AWS CLI and follow instructions to add credentials. Credentials are generated in the IAM User security credentials page. `https://us-east-1.console.aws.amazon.com/iam/home#/users/NAME?section=security_credentials` for a user with the name `NAME`.
+
+Once the CLI has been configured, you should have a `.aws` folder in your home directory. Terraform will automatically pick this up and connect to the S3 Terraform State backend.
+
+## How do I log in to AWS ECR container registry?
+
+If you wish to pull/push container images to ECR manually, you must:
+
+1.  Login to the registry
+1.  Build and tag the image
+1.  Push the image to ECR
+
+Please see the [AWS docs](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html) for instructions on how to do so.
+
+## How do I migrate the database after it has been deployed?
+
+Using the Terraform scripts to deploy an instance of RDS will give you an empty DB (with appropriate DBs/users), which will need to be migrated. Note that we have a GitHub workflow to do this automatically at [`hash-backend-cd.yml`](/.github/workflows/hash-backend-cd.yml).
+
+To migrate the database locally, you'll need to ensure you've built the dockerfile for `hash-graph` and prepare your environment with some of the values in the Vault key-value entries for the environment you're migrating, see [Deploy infrastructure with terraform](#deploy-infrastructure-with-terraform) for where to look in the Vault.
+
+Build the dockerfile for `hash-graph`:
+
+```console
+$ turbo --filter @apps/hash-graph build:docker:prod
+..
+```
+
+Make sure your Vault CLI is logged in correctly. You can export the following environment variables (adjust the vault path to match your environment):
+
+```shell
+export HASH_PG_HOST=$(terraform output -raw rds_hostname)
+export HASH_PG_PORT=5554 # or the port you specify in your SSH tunnel
+export HASH_GRAPH_PG_DATABASE=graph
+export HASH_GRAPH_PG_USER=graph
+export HASH_GRAPH_PG_PASSWORD=$(vault kv get -field=pg_graph_user_password_raw automation/pipelines/hash/prod)
+export HASH_KRATOS_PG_DATABASE=kratos
+export HASH_KRATOS_PG_USER=kratos
+export HASH_KRATOS_PG_PASSWORD=$(vault kv get -field=pg_kratos_user_password_raw automation/pipelines/hash/prod)
+export HASH_KRATOS_API_SECRET=$(vault kv get -field=kratos_api_key automation/pipelines/hash/prod)
+```
+
+The migration requires an SSH tunnel to the VPC, see [this README](./hash/bastion.md) for more information on initiate the tunnel.
+
+Now you can run the `hash-graph` migration:
+
+```console
+$ docker run --rm \
+  --network host \
+  -e HASH_GRAPH_PG_USER \
+  -e HASH_GRAPH_PG_PASSWORD \
+  -e HASH_GRAPH_PG_HOST=$HASH_PG_HOST \
+  -e HASH_GRAPH_PG_PORT=$HASH_PG_PORT \
+  -e HASH_GRAPH_PG_DATABASE \
+  -e RUST_LOG=info \
+  hash-graph \
+  migrate
+..
+```
+
+And to migrate `kratos`:
+
+```console
+$ pwd
+/../hash/ # at root of repo
+$ docker build ./apps/hash-external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$HASH_KRATOS_API_SECRET -t kratos:latest
+..
+$ docker run --rm \
+  --network host \
+  -e LOG_LEVEL=info \
+  -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_PG_HOST}:${HASH_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
+  kratos:latest \
+  migrate sql -e --yes
+```
+
+## How do I redeploy a running Fargate task?
+
+The current Terraform modules define Fargate task definitions, which are parameterized over ECR container tags. This means that one can push a new Docker image with the same task, and trigger a new Fargate deployment to refresh the image of a service. Assuming an image has been pushed to ECR with the same tag defined in the task definition (e.g. `latest`), it is possible to trigger a redeploy with
+
+```console
+$ aws ecs update-service --cluster h-hash-prod-usea1-ecscluster --service h-hash-prod-usea1-apisvc --force-new-deployment
+..
+```
+
+Where `prod` is the Terraform workspace name, `usea1` is the region, and `apisvc` is the name of the service and `ecscluster` is the name of the ECS cluster.
+
 # Structure of the modules
 
 Under the [`./modules/`](./modules/) folder we define the HASH application through an ECS Fargate service and various external services.
 
-- [`variables`](./modules/variables/) - contains global variable validation/definitions used for the rest of the modules through the [`./hash/`](./hash/) entrypoint.
-- [`networking`](./modules/networking/) - contains the VPC (Virtual Private Cloud) definitions and networking setup defining private and public subnets.
+## Shared modules
+
+- [`base_network`](./modules/base_network/) - contains global VPC (Virtual Private Cloud) definitions and networking setup defining private and public subnets.
 - [`bastion`](./modules/bastion/) - a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) that resides in the public subnet with access to the private subnet. Accessible through SSH.
-- [`tunnel`](./modules/tunnel/) - a custom SSH tunnel using an external data source to allow terraform to connect to services on the private subnet of the VPC.
-- [`container_registry`](./modules/container_registry/) - is a thin wrapper around the `aws_ecr_repository` resource with container evicition policies
-- [`container_cluster`](./modules/container_cluster/) - is a thin wrapper around the `aws_ecs_cluster` resource.
+- [`container_cluster`](./modules/container_cluster/) - is a thin wrapper around the `aws_ecs_cluster` resource with container capacity providers.
+- [`container_registry`](./modules/container_registry/) - is a thin wrapper around the `aws_ecr_repository` resource with container evicition policies.
 - [`redis`](./modules/redis/) - [external service] a multi Availability Zone Redis cluster with encryption enabled.
+- [`tunnel`](./modules/tunnel/) - a custom SSH tunnel using an external data source to allow terraform to connect to services on the private subnet of the VPC.
+- [`variables`](./modules/variables/) - contains global variable validation/definitions generally useful for our Terraform infrastructure.
+- [`vault_aws_auth`](./modules/vault_aws_auth/) - contains the configuration for authenticating the AWS provider through the Vault AWS authentication backend.
+
+## HASH-specific modules
+
+- [`networking`](./modules/hash/networking/) - contains PrivateLink definitions for the various required AWS resources.
 - [`postgres`](./modules/postgres/) - [external service] a multi Availability Zone Postgres RDS cluster with encryption enabled.
 - [`postgres_roles`](./modules/postgres_roles/) - SQL configurations for the HASH application defining grants, roles and databases (requires an SSH tunnel to connect to the RDS instance).
-- [`hash_application`](./modules/hash_application/)` - the ECS Fargate container definition using the previous ECR and ECS cluster definitions to start the Graph layer, the HASH API and Kratos.
+- [`hash_application`](./modules/hash_application/) - the ECS Fargate container definition using the previous ECR and ECS cluster definitions to start the Graph layer, the HASH API and Kratos.
+
+**HASH infrastructure diagram**:
 
 ```mermaid
 graph TD;
@@ -237,3 +362,12 @@ graph TD;
     container_cluster-->hash_application
     container_registry-->hash_application
 ```
+
+## Archived HASH modules
+
+This list of modules are to be considered obsolete/out of date, and are kept here for reference in case of future re-use.
+
+- [`citus`](./modules/citus/) - Module for deploying a Citus cluster on AWS using EC2. - Along with [playbooks/citus.md](./playbooks/citus.md) - Instructions for administering the Citus cluster.
+- [`opensearch`](./modules/opensearch/) - Module for deploying an OpenSearch domain (wrapping `aws_elasticsearch_domain`).
+- [`realtime`](./modules/realtime/) - Module for deploying the `realtime` service cluster AWS ECS. This service is used to listen to the PG WAL in HASH.
+- [`search-loader`](./modules/search-loader/) - Module for deploying the `search-loader` service cluster on AWS ECS. This service is used to load data into the search cluster.

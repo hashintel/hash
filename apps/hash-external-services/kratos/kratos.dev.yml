@@ -1,4 +1,4 @@
-version: v0.11.0
+version: v0.13.0
 
 serve:
   public:
@@ -53,8 +53,14 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                can_interrupt: true
-                url: http://host.docker.internal:5001/kratos-after-registration
+                response:
+                  # required to have the identity id available to the hook (waits for the identity to be created)
+                  # @see https://github.com/ory/kratos/issues/3340#issuecomment-1609634498
+                  parse: false
+                # Note that while this is configured to be `localhost`
+                # the deployment process will replace this with a build-time
+                # value.
+                url: http://localhost:5001/kratos-after-registration
                 method: POST
                 body: file:///etc/config/kratos/hooks/after.registration.jsonnet
                 auth:

@@ -34,6 +34,8 @@ This directory contains the source code for all HASH-developed public [Block Pro
 
 You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
+**Please note:** this table/directory contains HASH-published blocks only, and does not contain the full extent of available Þ blocks.
+
 | Directory        | Spec Target | Status         | Þ Hub URL                                                                        | Description |
 | ---------------- | ----------- | -------------- | -------------------------------------------------------------------------------- | ----------- |
 | [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)           |             |
@@ -48,7 +50,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`embed`]        | 0.1         | Pending Update |                                                                                  |             |
 | [`faq`]          | 0.3         | **Maintained** | [@hash/blocks/faq](https://blockprotocol.org/@hash/blocks/faq)                   |             |
 | [`heading`]      | 0.3         | **Maintained** | [@hash/blocks/heading](https://blockprotocol.org/@hash/blocks/heading)           |             |
-| [`how-to`]       | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)               |             |
+| [`how-to`]       | 0.3         | **Maintained** | [@hash/blocks/how-to](https://blockprotocol.org/@hash/blocks/how-to)             |             |
 | [`image`]        | 0.3         | **Maintained** | [@hash/blocks/image](https://blockprotocol.org/@hash/blocks/image)               |             |
 | [`kanban-board`] | 0.3         | **Maintained** | [@hash/blocks/kanban-board](https://blockprotocol.org/@hash/blocks/kanban-board) |             |
 | [`minesweeper`]  | 0.3         | **Maintained** | [@hash/blocks/minesweeper](https://blockprotocol.org/@hash/blocks/minesweeper)   |             |
@@ -58,6 +60,14 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)               |             |
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |
+
+## Creating a block
+
+Run the following command to create a new block:
+
+```sh
+yarn create-block block-name
+```
 
 ## Running these blocks
 

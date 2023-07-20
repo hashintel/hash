@@ -2,25 +2,35 @@ import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityId } from "@local/hash-subgraph";
 
-import { AccountPage } from "../../../../components/hooks/use-account-pages";
+import { GetAccountPagesTreeQuery } from "../../../../graphql/api-types.gen";
 
 export interface TreeItem {
-  page: AccountPage;
+  page: GetAccountPagesTreeQuery["pages"][0];
   depth: number;
 }
 
 export const getTreeItemList = (
-  pagesList: AccountPage[],
+  pagesList: TreeItem["page"][],
   parentId: string | null = null,
   depth = 0,
 ): TreeItem[] => {
   const emptyList: TreeItem[] = [];
 
   return pagesList
-    .filter((page) => page.parentPageEntityId === parentId)
-    .sort((pageA, pageB) => (pageA.index > pageB.index ? 1 : -1))
+    .filter(({ parentPage }) =>
+      parentId
+        ? parentPage?.metadata.recordId.entityId === parentId
+        : !parentPage,
+    )
+    .sort((pageA, pageB) =>
+      (pageA.index ?? "ZZZ") > (pageB.index ?? "ZZZ") ? 1 : -1,
+    )
     .reduce((prev, page) => {
-      const children = getTreeItemList(pagesList, page.entityId, depth + 1);
+      const children = getTreeItemList(
+        pagesList,
+        page.metadata.recordId.entityId,
+        depth + 1,
+      );
 
       const item: TreeItem = {
         page,
@@ -37,14 +47,15 @@ export const isPageCollapsed = (
   expandedIds: string[],
   activeId: UniqueIdentifier | null,
 ): boolean => {
-  const { parentPageEntityId } = treeItem.page;
+  const parentPageEntityId =
+    treeItem.page.parentPage?.metadata.recordId.entityId;
 
   if (!parentPageEntityId) {
     return false;
   }
 
   const parentPage = treeItemList.find(
-    ({ page }) => page.entityId === parentPageEntityId,
+    ({ page }) => page.metadata.recordId.entityId === parentPageEntityId,
   );
 
   const parentExpanded =
@@ -61,8 +72,10 @@ export const getLastIndex = (
   treeItemList: TreeItem[],
   parentId: string | null = null,
 ) => {
-  const groupItems = treeItemList.filter(
-    ({ page }) => page.parentPageEntityId === parentId,
+  const groupItems = treeItemList.filter(({ page }) =>
+    parentId
+      ? page.parentPage?.metadata.recordId.entityId === parentId
+      : !page.parentPage,
   );
   return groupItems[groupItems.length - 1]?.page.index ?? null;
 };
@@ -80,14 +93,14 @@ export const getProjection = (
   dragDepth: number,
 ) => {
   const expandedPages = pages.filter(
-    ({ page }) => !collapsedPageIds.includes(page.entityId),
+    ({ page }) => !collapsedPageIds.includes(page.metadata.recordId.entityId),
   );
 
   const overItemIndex = expandedPages.findIndex(
-    ({ page }) => page.entityId === overId,
+    ({ page }) => page.metadata.recordId.entityId === overId,
   );
   const activeItemIndex = expandedPages.findIndex(
-    ({ page }) => page.entityId === activeId,
+    ({ page }) => page.metadata.recordId.entityId === activeId,
   );
 
   const activeItem = expandedPages[activeItemIndex];
@@ -107,17 +120,18 @@ export const getProjection = (
     }
 
     if (depth === previousItem.depth) {
-      return previousItem.page.parentPageEntityId ?? null;
+      return previousItem.page.parentPage?.metadata.recordId.entityId ?? null;
     }
 
     if (depth > previousItem.depth) {
-      return previousItem.page.entityId;
+      return previousItem.page.metadata.recordId.entityId;
     }
 
     const newParent = newItems
       .slice(0, overItemIndex)
       .reverse()
-      .find((item) => item.depth === depth)?.page.parentPageEntityId;
+      .find((item) => item.depth === depth)?.page.parentPage?.metadata
+      .recordId.entityId;
 
     return newParent ?? null;
   };

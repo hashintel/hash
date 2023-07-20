@@ -18,14 +18,14 @@ export const updateCommentTextResolver: ResolverFn<
 > = async (_, { entityId, tokens }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(context, {
-    entityId,
-  });
-
   await updateCommentText(context, {
-    comment,
+    commentEntityId: entityId,
     actorId: user.accountId,
     tokens,
+  });
+
+  const comment = await getCommentById(context, {
+    entityId,
   });
 
   return mapCommentToGQL(comment);

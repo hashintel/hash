@@ -10,6 +10,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructUser, User } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 export const useUsers = (
   cache = false,
@@ -22,14 +23,23 @@ export const useUsers = (
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
-      rootEntityTypeIds: [types.entityType.user.entityTypeId],
+      operation: {
+        multiFilter: {
+          filters: [
+            entityHasEntityTypeByVersionedUrlFilter(
+              types.entityType.user.entityTypeId,
+            ),
+          ],
+          operator: "AND",
+        },
+      },
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
       constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 1 },
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
+      isOfType: { outgoing: 0 },
+      hasLeftEntity: { incoming: 1, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: cache ? "cache-first" : "no-cache",

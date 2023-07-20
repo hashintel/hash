@@ -27,7 +27,7 @@ pub use self::{
 use crate::{
     identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
     provenance::{OwnedById, ProvenanceMetadata},
-    store::{query::Filter, Record},
+    store::Record,
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
@@ -58,6 +58,10 @@ impl fmt::Display for PatchAndParseError {
 ///   - "$id" already existed
 ///   - the [`serde_json::Value`] wasn't an 'Object'
 ///   - deserializing into `T` failed
+///
+/// # Panics
+///
+/// - if serializing the given [`VersionedUrl`] fails
 pub fn patch_id_and_parse<T: OntologyType>(
     id: &VersionedUrl,
     mut value: serde_json::Value,
@@ -286,7 +290,7 @@ pub struct ExternalOntologyElementMetadata {
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     #[schema(value_type = String)]
-    #[serde(with = "time::serde::iso8601")]
+    #[serde(with = "crate::serde::time")]
     fetched_at: OffsetDateTime,
 }
 
@@ -339,10 +343,6 @@ impl Record for DataTypeWithMetadata {
             revision_id: record_id.version,
         }
     }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_vertex_id(vertex_id)
-    }
 }
 
 impl OntologyTypeWithMetadata for DataTypeWithMetadata {
@@ -383,10 +383,6 @@ impl Record for PropertyTypeWithMetadata {
             revision_id: record_id.version,
         }
     }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_vertex_id(vertex_id)
-    }
 }
 
 impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
@@ -426,10 +422,6 @@ impl Record for EntityTypeWithMetadata {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
-    }
-
-    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 

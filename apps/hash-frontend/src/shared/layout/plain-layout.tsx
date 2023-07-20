@@ -1,14 +1,18 @@
 import { useTheme } from "@mui/material";
 import Head from "next/head";
 import NextNProgress from "nextjs-progressbar";
-import { FunctionComponent, ReactElement, ReactNode } from "react";
+import { FunctionComponent, ReactNode } from "react";
 
 import { isProduction } from "../../lib/config";
+import { useAuthInfo } from "../../pages/shared/auth-info-context";
+import { CommandBar } from "../command-bar";
 
 export const PlainLayout: FunctionComponent<{
   children?: ReactNode;
 }> = ({ children }) => {
   const { palette } = useTheme();
+
+  const { authenticatedUser } = useAuthInfo();
 
   return (
     <>
@@ -22,11 +26,8 @@ export const PlainLayout: FunctionComponent<{
         options={{ showSpinner: false }}
         showOnShallow
       />
+      {authenticatedUser?.accountSignupComplete ? <CommandBar /> : null}
       {children}
     </>
   );
-};
-
-export const getPlainLayout = (page: ReactElement) => {
-  return <PlainLayout>{page}</PlainLayout>;
 };

@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import { getBlockDomId } from "./page/block-view";
+import { getBlockDomId } from "../shared/get-block-dom-id";
 
 type OnBlockLoadedFunction = (blockEntityId: string) => void;
 

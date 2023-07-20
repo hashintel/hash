@@ -7,22 +7,24 @@ import {
 } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { forwardRef, FunctionComponent, useMemo } from "react";
+import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
 
 import { isHrefExternal } from "./link";
 import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
   loading?: boolean;
+  loadingText?: ReactNode;
   loadingWithoutText?: boolean;
   disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
 const LoadingContent: FunctionComponent<{
+  loadingText?: ReactNode;
   withText: boolean;
   variant: ButtonProps["variant"];
   size: ButtonProps["size"];
-}> = ({ withText, size, variant = "primary" }) => {
+}> = ({ loadingText, withText, size, variant = "primary" }) => {
   const theme = useTheme();
 
   const spinnerSize = useMemo(() => {
@@ -59,7 +61,7 @@ const LoadingContent: FunctionComponent<{
             ml: "12px",
           }}
         >
-          Loading...
+          {loadingText ?? "Loading..."}
         </Box>
       )}
     </Box>
@@ -69,7 +71,15 @@ const LoadingContent: FunctionComponent<{
 export const Button: FunctionComponent<ButtonProps & { openInNew?: boolean }> =
   forwardRef(
     (
-      { children, loading, loadingWithoutText, href, openInNew, ...props },
+      {
+        children,
+        loading,
+        loadingText,
+        loadingWithoutText,
+        href,
+        openInNew,
+        ...props
+      },
       ref,
     ) => {
       const linkProps = useMemo(() => {
@@ -96,6 +106,7 @@ export const Button: FunctionComponent<ButtonProps & { openInNew?: boolean }> =
         >
           {loading ? (
             <LoadingContent
+              loadingText={loadingText}
               withText={!loadingWithoutText}
               size={props.size}
               variant={props.variant}
