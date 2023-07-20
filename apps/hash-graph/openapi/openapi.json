@@ -827,20 +827,46 @@
         }
       },
       "CustomEntityTypeMetadata": {
-        "allOf": [
+        "oneOf": [
           {
-            "$ref": "#/components/schemas/CustomOntologyMetadata"
+            "type": "object",
+            "required": [
+              "provenance",
+              "ownedById"
+            ],
+            "properties": {
+              "labelProperty": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
           },
           {
             "type": "object",
+            "required": [
+              "provenance",
+              "fetchedAt"
+            ],
             "properties": {
+              "fetchedAt": {
+                "type": "string"
+              },
               "labelProperty": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BaseUrl"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
               }
             }
           }

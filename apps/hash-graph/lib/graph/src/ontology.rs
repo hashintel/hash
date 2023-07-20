@@ -181,13 +181,63 @@ impl OntologyType for PropertyType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomEntityTypeMetadata {
-    #[serde(flatten)]
-    pub common: CustomOntologyMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
+    #[serde(flatten)]
+    pub common: CustomOntologyMetadata,
+}
+
+// Utoipa does not know how to generate a schema for flattend enumerations
+impl ToSchema<'static> for CustomEntityTypeMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "CustomEntityTypeMetadata",
+            Schema::OneOf(
+                schema::OneOfBuilder::new()
+                    .item(
+                        schema::ObjectBuilder::new()
+                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
+                            .property(
+                                "provenance",
+                                Ref::from_schema_name(ProvenanceMetadata::schema().0),
+                            )
+                            .required("provenance")
+                            .property(
+                                "temporalVersioning",
+                                Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
+                            )
+                            .property("ownedById", Ref::from_schema_name(OwnedById::schema().0))
+                            .required("ownedById")
+                            .build(),
+                    )
+                    .item(
+                        schema::ObjectBuilder::new()
+                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
+                            .property(
+                                "provenance",
+                                Ref::from_schema_name(ProvenanceMetadata::schema().0),
+                            )
+                            .required("provenance")
+                            .property(
+                                "temporalVersioning",
+                                Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
+                            )
+                            .property(
+                                "fetchedAt",
+                                schema::ObjectBuilder::new()
+                                    .schema_type(schema::SchemaType::String),
+                            )
+                            .required("fetchedAt")
+                            .build(),
+                    )
+                    .build(),
+            )
+            .into(),
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
