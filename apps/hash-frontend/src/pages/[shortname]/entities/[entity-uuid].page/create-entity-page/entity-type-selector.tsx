@@ -3,7 +3,7 @@ import { SelectorAutocomplete } from "@hashintel/design-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
-import { useEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
+import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
 
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
@@ -11,7 +11,7 @@ export const EntityTypeSelector: FunctionComponent<{
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const entityTypes = useEntityTypesOptional();
+  const entityTypes = useLatestEntityTypesOptional();
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);

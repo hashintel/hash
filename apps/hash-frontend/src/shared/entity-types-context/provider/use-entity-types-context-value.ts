@@ -27,7 +27,11 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
 
     setTypes((currentTypes) => ({ ...currentTypes, loading: true }));
 
-    const res = await queryEntityTypes({ data: {} });
+    const res = await queryEntityTypes({
+      data: {
+        latestOnly: false,
+      },
+    });
 
     if (controller.signal.aborted) {
       return;

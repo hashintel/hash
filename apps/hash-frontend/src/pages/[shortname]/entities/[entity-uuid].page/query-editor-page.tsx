@@ -10,7 +10,7 @@ import { useCallback, useState } from "react";
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import {
   useEntityTypesLoading,
-  useEntityTypesOptional,
+  useLatestEntityTypesOptional,
 } from "../../../../shared/entity-types-context/hooks";
 import { useLatestPropertyTypesContextValue } from "../../types/entity-type/[...slug-maybe-version].page/shared/use-latest-property-types-context-value";
 import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
@@ -55,7 +55,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const { queryEntities } = useBlockProtocolQueryEntities();
   const { propertyTypes } = useLatestPropertyTypesContextValue();
-  const entityTypes = useEntityTypesOptional();
+  const entityTypes = useLatestEntityTypesOptional();
   const entityTypesLoading = useEntityTypesLoading();
 
   const entityTypeSchemas = entityTypes?.map((type) => type.schema) ?? [];
