@@ -71,14 +71,15 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 #[async_trait]
 impl<C: AsClient, T> Read<OntologyTypeSnapshotRecord<T>> for PostgresStore<C>
 where
-    T: OntologyType<WithMetadata: PostgresRecord, Representation: Send>,
-    for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath + PostgresQueryPath,
+    T: OntologyType<Representation: Send, Metadata = OntologyElementMetadata>,
+    OntologyTypeWithMetadata<T>: PostgresRecord,
+    for<'p> <OntologyTypeWithMetadata<T> as Record>::QueryPath<'p>:
+        OntologyQueryPath + PostgresQueryPath,
 {
-    type Record = T::WithMetadata;
+    type Record = OntologyTypeWithMetadata<T>;
 
-    type ReadStream = impl futures::Stream<Item = Result<OntologyTypeSnapshotRecord<T>, QueryError>>
-        + Send
-        + Sync;
+    type ReadStream =
+        impl Stream<Item = Result<OntologyTypeSnapshotRecord<T>, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -192,14 +193,14 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
             Read::<OntologyTypeSnapshotRecord<DataType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
-                    Ok(DataTypeWithMetadata::new(
-                        record
+                    Ok(DataTypeWithMetadata {
+                        schema: record
                             .schema
                             .try_into()
                             .into_report()
                             .change_context(QueryError)?,
-                        record.metadata,
-                    ))
+                        metadata: record.metadata,
+                    })
                 });
         Ok(stream)
     }
@@ -222,14 +223,14 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
             Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
-                    Ok(PropertyTypeWithMetadata::new(
-                        record
+                    Ok(PropertyTypeWithMetadata {
+                        schema: record
                             .schema
                             .try_into()
                             .into_report()
                             .change_context(QueryError)?,
-                        record.metadata,
-                    ))
+                        metadata: record.metadata,
+                    })
                 });
         Ok(stream)
     }
@@ -252,14 +253,14 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
             Read::<OntologyTypeSnapshotRecord<EntityType>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
-                    Ok(EntityTypeWithMetadata::new(
-                        record
+                    Ok(EntityTypeWithMetadata {
+                        schema: record
                             .schema
                             .try_into()
                             .into_report()
                             .change_context(QueryError)?,
-                        record.metadata,
-                    ))
+                        metadata: record.metadata,
+                    })
                 });
         Ok(stream)
     }
