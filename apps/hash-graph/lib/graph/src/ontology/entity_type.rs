@@ -170,7 +170,14 @@ pub enum EntityTypeQueryPath<'p> {
     Required,
     /// The label property metadata of the entity type.
     ///
-    /// Only used internally and not available for deserialization, yet.
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["labelProperty"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::LabelProperty);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     LabelProperty,
     /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
     ///
@@ -435,6 +442,7 @@ pub enum EntityTypeQueryToken {
     Examples,
     Properties,
     Required,
+    LabelProperty,
     Links,
     InheritsFrom,
     #[serde(skip)]
@@ -448,9 +456,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, `title`, \
-         `description`, `examples`, `properties`, `required`, `links`, `inheritsFrom`";
+    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
+                                         `ownedById`, `recordCreatedById`, `title`, \
+                                         `description`, `examples`, `properties`, `required`, \
+                                         `labelProperty`, `links`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -494,6 +503,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                 }
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
+            EntityTypeQueryToken::LabelProperty => EntityTypeQueryPath::LabelProperty,
             EntityTypeQueryToken::Links => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
