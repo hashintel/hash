@@ -313,7 +313,7 @@ const Page: NextPageWithLayout = () => {
                                   component="span"
                                   color={(theme) => theme.palette.blue[70]}
                                 >
-                                  /types/entity-types/
+                                  /types/entity-type/
                                 </Typography>
                                 <Typography
                                   component="span"
