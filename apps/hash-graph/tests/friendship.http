@@ -621,7 +621,8 @@ Accept: application/json
         "ordered": false
       }
     }
-  }
+  },
+  "labelProperty": "http://localhost:3000/@alice/types/property-type/name/"
 }
 
 > {%
