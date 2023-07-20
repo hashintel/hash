@@ -12,10 +12,11 @@ use futures::{
 use uuid::Uuid;
 
 use crate::{
-    ontology::{CustomOntologyMetadata, OntologyElementMetadata},
+    ontology::{CustomOntologyMetadata, EntityTypeMetadata, OntologyElementMetadata},
     snapshot::{
         account::AccountSender,
         ontology::{
+            metadata::batch::EntityTypeMetadataRowBatch, table::EntityTypeMetadataRow,
             OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
             OntologyTypeMetadataRowBatch,
         },
@@ -190,6 +191,105 @@ pub fn ontology_metadata_channel(
                     .map(OntologyTypeMetadataRowBatch::ExternalMetadata)
                     .boxed(),
             ]),
+        },
+    )
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityTypeMetadataSender {
+    common: OntologyTypeMetadataSender,
+    entity_type_metadata: Sender<EntityTypeMetadataRow>,
+}
+
+impl Sink<(Uuid, EntityTypeMetadata)> for EntityTypeMetadataSender {
+    type Error = Report<SnapshotRestoreError>;
+
+    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        ready!(self.common.poll_ready_unpin(cx))
+            .attach_printable("could not poll common ontology metadata sender")?;
+        ready!(self.entity_type_metadata.poll_ready_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll entity type metadata sender")?;
+
+        Poll::Ready(Ok(()))
+    }
+
+    fn start_send(
+        mut self: Pin<&mut Self>,
+        (ontology_id, metadata): (Uuid, EntityTypeMetadata),
+    ) -> Result<(), Self::Error> {
+        self.common
+            .start_send_unpin((ontology_id, OntologyElementMetadata {
+                record_id: metadata.record_id,
+                custom: metadata.custom.common,
+            }))
+            .attach_printable("could not send common ontology metadata")?;
+
+        if let Some(label_property) = metadata.custom.label_property {
+            self.entity_type_metadata
+                .start_send(EntityTypeMetadataRow {
+                    label_property: label_property.to_string(),
+                })
+                .into_report()
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send id")?;
+        }
+
+        Ok(())
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        ready!(self.common.poll_flush_unpin(cx))
+            .attach_printable("could not flush common ontology metadata sender")?;
+        ready!(self.entity_type_metadata.poll_flush_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush entity type metadata sender")?;
+
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        ready!(self.common.poll_close_unpin(cx))
+            .attach_printable("could not close common ontology metadata sender")?;
+        ready!(self.entity_type_metadata.poll_close_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close entity type metadata sender")?;
+
+        Poll::Ready(Ok(()))
+    }
+}
+
+pub struct EntityTypeMetadataReceiver {
+    stream: SelectAll<BoxStream<'static, EntityTypeMetadataRowBatch>>,
+}
+
+impl Stream for EntityTypeMetadataReceiver {
+    type Item = EntityTypeMetadataRowBatch;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.stream.poll_next_unpin(cx)
+    }
+}
+
+pub fn entity_type_metadata_channel(
+    chunk_size: usize,
+    common_metadata_sender: OntologyTypeMetadataSender,
+) -> (EntityTypeMetadataSender, EntityTypeMetadataReceiver) {
+    let (entity_type_metadata_tx, entity_type_metadata_rx) = mpsc::channel(chunk_size);
+
+    (
+        EntityTypeMetadataSender {
+            common: common_metadata_sender,
+            entity_type_metadata: entity_type_metadata_tx,
+        },
+        EntityTypeMetadataReceiver {
+            stream: select_all([entity_type_metadata_rx
+                .ready_chunks(chunk_size)
+                .map(EntityTypeMetadataRowBatch::EntityType)
+                .boxed()]),
         },
     )
 }

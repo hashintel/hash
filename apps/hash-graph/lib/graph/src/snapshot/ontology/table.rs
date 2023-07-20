@@ -29,6 +29,12 @@ pub struct OntologyOwnedMetadataRow {
 }
 
 #[derive(Debug, ToSql)]
+#[postgres(name = "ontology_owned_metadata")]
+pub struct EntityTypeMetadataRow {
+    pub label_property: String,
+}
+
+#[derive(Debug, ToSql)]
 #[postgres(name = "ontology_external_metadata")]
 pub struct OntologyExternalMetadataRow {
     pub ontology_id: Uuid,

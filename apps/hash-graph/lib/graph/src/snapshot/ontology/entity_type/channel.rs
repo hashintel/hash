@@ -18,11 +18,11 @@ use crate::{
     snapshot::{
         ontology::{
             entity_type::batch::EntityTypeRowBatch,
+            metadata::EntityTypeMetadataSender,
             table::{
                 EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
                 EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
             },
-            OntologyTypeMetadataSender,
         },
         OntologyTypeSnapshotRecord, SnapshotRestoreError,
     },
@@ -34,7 +34,7 @@ use crate::{
 /// [`entity_type_channel`] function.
 #[derive(Debug, Clone)]
 pub struct EntityTypeSender {
-    metadata: OntologyTypeMetadataSender,
+    metadata: EntityTypeMetadataSender,
     schema: Sender<EntityTypeRow>,
     inherits_from: Sender<Vec<EntityTypeInheritsFromRow>>,
     constrains_properties: Sender<Vec<EntityTypeConstrainsPropertiesOnRow>>,
@@ -263,7 +263,7 @@ impl Stream for EntityTypeReceiver {
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
 pub fn entity_type_channel(
     chunk_size: usize,
-    metadata_sender: OntologyTypeMetadataSender,
+    metadata_sender: EntityTypeMetadataSender,
 ) -> (EntityTypeSender, EntityTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (inherits_from_tx, inherits_from_rx) = mpsc::channel(chunk_size);

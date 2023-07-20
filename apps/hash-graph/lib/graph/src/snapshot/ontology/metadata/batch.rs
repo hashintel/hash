@@ -4,7 +4,10 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::{
-        ontology::{OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
+        ontology::{
+            table::EntityTypeMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
+            OntologyOwnedMetadataRow,
+        },
         WriteBatch,
     },
     store::{AsClient, InsertionError, PostgresStore},
@@ -120,6 +123,29 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             .await
             .into_report()
             .change_context(InsertionError)?;
+        Ok(())
+    }
+}
+
+pub enum EntityTypeMetadataRowBatch {
+    EntityType(Vec<EntityTypeMetadataRow>),
+}
+
+#[async_trait]
+impl<C: AsClient> WriteBatch<C> for EntityTypeMetadataRowBatch {
+    async fn begin(_postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+        Ok(())
+    }
+
+    async fn write(&self, _postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+        match self {
+            Self::EntityType(_entity_type_metadata) => {
+                unimplemented!("https://linear.app/hash/issue/H-156")
+            }
+        }
+    }
+
+    async fn commit(_postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
         Ok(())
     }
 }
