@@ -32,7 +32,7 @@ import { useKeys } from "rooks";
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { WorkspaceContext } from "../pages/shared/workspace-context";
-import { CheatSheet } from "./command-bar/cheat-sheet";
+// import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   // childMenu,
   CommandBarOption,
@@ -501,7 +501,7 @@ export const CommandBar: FunctionComponent = () => {
           </CustomScreenContext.Provider>
         </CenterContainer>
       </Modal>
-      <CheatSheet />
+      {/* <CheatSheet /> */}
     </>
   );
 };

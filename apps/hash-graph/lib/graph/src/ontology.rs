@@ -58,6 +58,10 @@ impl fmt::Display for PatchAndParseError {
 ///   - "$id" already existed
 ///   - the [`serde_json::Value`] wasn't an 'Object'
 ///   - deserializing into `T` failed
+///
+/// # Panics
+///
+/// - if serializing the given [`VersionedUrl`] fails
 pub fn patch_id_and_parse<T: OntologyType>(
     id: &VersionedUrl,
     mut value: serde_json::Value,

@@ -13,15 +13,15 @@ type-fetcher = { path = "../../lib/type-fetcher" }
 
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
 
-axum = "0.6.18"
-clap = { version = "4.3.11", features = ["cargo", "derive", "env", "wrap_help"] }
+axum = "0.6.19"
+clap = { version = "4.3.16", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.3.2"
 error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = { version = "0.3.28" }
 regex = "1.9.1"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
-semver = { version = "1.0.17", default-features = false }
-serde_json = "1.0.100"
+semver = { version = "1.0.18", default-features = false }
+serde_json = "1.0.103"
 tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"] }
 time = "0.3.23"
 tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros"] }
@@ -29,7 +29,7 @@ tokio-postgres = { version = "0.7.8", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec"] }
 tracing = "0.1.37"
-uuid = "1.4.0"
+uuid = "1.4.1"
 
 [features]
 test-server = ["graph/test-server"]

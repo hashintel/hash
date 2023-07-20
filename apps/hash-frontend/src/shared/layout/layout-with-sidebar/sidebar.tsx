@@ -68,7 +68,7 @@ export const PageSidebar: FunctionComponent = () => {
         icon={faHome}
         title="Home"
         href="/"
-        tooltipTitle="View your inbox and latest activity"
+        tooltipTitle=""
         active={router.pathname === "/[shortname]"}
       />
       {/* 

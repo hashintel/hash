@@ -1,8 +1,8 @@
 name: Bug Report (HASH Engine)
 description: Create a report to help us improve HASH Engine
 labels:
-  - A-engine
-  - C-bug
+  - "area: apps > sim-engine"
+  - "category: bug"
 body:
   - type: markdown
     attributes:
