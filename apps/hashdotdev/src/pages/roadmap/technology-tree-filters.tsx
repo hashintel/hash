@@ -5,9 +5,11 @@ import {
   formControlLabelClasses,
   IconButton,
   styled,
+  Theme,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
-import { FunctionComponent, ReactNode, useState } from "react";
+import { FunctionComponent, ReactNode, useEffect, useState } from "react";
 
 import { FaIcon } from "../../components/icons/fa-icon";
 import { statuses, StatusId } from "./statuses";
@@ -86,7 +88,15 @@ export const TechnologyTreeFilters: FunctionComponent<{
   displayedUseCases,
   setDisplayedUseCases,
 }) => {
-  const [open, setOpen] = useState<boolean>(true);
+  const isMobile = useMediaQuery<Theme>((theme) =>
+    theme.breakpoints.down("md"),
+  );
+
+  const [open, setOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    setOpen(!isMobile);
+  }, [isMobile]);
 
   return (
     <>
