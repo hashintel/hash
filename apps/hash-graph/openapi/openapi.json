@@ -818,6 +818,58 @@
           }
         }
       },
+      "CustomOntologyMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "CustomOwnedOntologyElementMetadata",
+            "required": [
+              "provenance",
+              "ownedById"
+            ],
+            "properties": {
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "CustomExternalOntologyElementMetadata",
+            "required": [
+              "provenance",
+              "fetchedAt"
+            ],
+            "properties": {
+              "fetchedAt": {
+                "type": "string"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
       "DataTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`DataTypeQueryPath`].",
@@ -1172,25 +1224,6 @@
           },
           "revisionId": {
             "$ref": "#/components/schemas/Timestamp"
-          }
-        }
-      },
-      "ExternalOntologyElementMetadata": {
-        "type": "object",
-        "required": [
-          "recordId",
-          "provenance",
-          "fetchedAt"
-        ],
-        "properties": {
-          "fetchedAt": {
-            "type": "string"
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/ProvenanceMetadata"
-          },
-          "recordId": {
-            "$ref": "#/components/schemas/OntologyTypeRecordId"
           }
         }
       },
@@ -1679,14 +1712,19 @@
         ]
       },
       "OntologyElementMetadata": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/OwnedOntologyElementMetadata"
+        "type": "object",
+        "required": [
+          "recordId",
+          "custom"
+        ],
+        "properties": {
+          "custom": {
+            "$ref": "#/components/schemas/CustomOntologyMetadata"
           },
-          {
-            "$ref": "#/components/schemas/ExternalOntologyElementMetadata"
+          "recordId": {
+            "$ref": "#/components/schemas/OntologyTypeRecordId"
           }
-        ]
+        }
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -1731,6 +1769,17 @@
             }
           }
         ]
+      },
+      "OntologyTemporalMetadata": {
+        "type": "object",
+        "required": [
+          "transactionTime"
+        ],
+        "properties": {
+          "transactionTime": {
+            "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+          }
+        }
       },
       "OntologyTypeRecordId": {
         "type": "object",
@@ -1897,25 +1946,6 @@
       "OwnedById": {
         "type": "string",
         "format": "uuid"
-      },
-      "OwnedOntologyElementMetadata": {
-        "type": "object",
-        "required": [
-          "recordId",
-          "provenance",
-          "ownedById"
-        ],
-        "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/ProvenanceMetadata"
-          },
-          "recordId": {
-            "$ref": "#/components/schemas/OntologyTypeRecordId"
-          }
-        }
       },
       "PropertyTypeQueryToken": {
         "type": "string",

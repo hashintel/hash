@@ -26,8 +26,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeReference, OwnedOntologyElementMetadata,
+        patch_id_and_parse, CustomOntologyMetadata, EntityTypeQueryToken, EntityTypeWithMetadata,
+        OntologyElementMetadata, OntologyTypeReference,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -190,13 +190,14 @@ where
         ))
         })?;
 
-        metadata.push(OntologyElementMetadata::Owned(
-            OwnedOntologyElementMetadata::new(
-                entity_type.id().clone().into(),
-                ProvenanceMetadata::new(actor_id),
+        metadata.push(OntologyElementMetadata {
+            record_id: entity_type.id().clone().into(),
+            custom: CustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata::new(actor_id),
+                temporal_versioning: None,
                 owned_by_id,
-            ),
-        ));
+            },
+        });
 
         entity_types.push(entity_type);
     }

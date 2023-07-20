@@ -81,11 +81,9 @@ pub enum EntityTypeQueryPath<'p> {
     /// The transaction time of the [`EntityType`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
-    /// of the [`OntologyElementMetadata`].
+    /// `temporalAxes` parameter on [`StructuralQuery`].
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].

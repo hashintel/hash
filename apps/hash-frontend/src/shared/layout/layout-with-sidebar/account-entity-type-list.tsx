@@ -149,7 +149,7 @@ export const AccountEntityTypeList: FunctionComponent<
       return allEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.ownedById === ownedById,
+          root.metadata.custom.ownedById === ownedById,
       );
     }
 
