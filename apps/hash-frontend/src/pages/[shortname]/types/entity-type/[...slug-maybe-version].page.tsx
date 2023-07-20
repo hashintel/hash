@@ -75,6 +75,11 @@ const Page: NextPageWithLayout = () => {
   const entityTypeEntitiesValue =
     useEntityTypeEntitiesContextValue(baseEntityTypeUrl);
 
+  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
+    defaultValues: { properties: [], links: [] },
+  });
+  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
       const entityType = JSON.parse(
@@ -86,6 +91,7 @@ const Page: NextPageWithLayout = () => {
 
       const validationResult = validateEntityType(entityType);
       if (validationResult.type === "Ok") {
+        reset(getFormDataFromSchema(entityType));
         return entityType as EntityType;
       } else {
         throw Error(
