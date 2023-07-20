@@ -18,9 +18,6 @@
 "area: apps > hash-realtime":
   - "apps/hash-realtime/**"
 
-"area: apps > hash-search-frontend":
-  - "hash-frontend/**"
-
 "area: apps > hash-search-loader":
   - "apps/hash-search-loader/**"
 
