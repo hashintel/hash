@@ -16,7 +16,6 @@ import {
   EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
-  OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
