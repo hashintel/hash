@@ -13,9 +13,10 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use time::OffsetDateTime;
 use type_system::{
-    repr, url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference,
-    ParseDataTypeError, ParseEntityTypeError, ParsePropertyTypeError, PropertyType,
-    PropertyTypeReference,
+    repr,
+    url::{BaseUrl, VersionedUrl},
+    DataType, DataTypeReference, EntityType, EntityTypeReference, ParseDataTypeError,
+    ParseEntityTypeError, ParsePropertyTypeError, PropertyType, PropertyTypeReference,
 };
 use utoipa::{
     openapi::{schema, Ref, RefOr, Schema},
@@ -180,9 +181,25 @@ impl OntologyType for PropertyType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomEntityTypeMetadata {
+    #[serde(flatten)]
+    pub common: CustomOntologyMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityTypeMetadata {
+    pub record_id: OntologyTypeRecordId,
+    pub custom: CustomEntityTypeMetadata,
+}
+
 impl OntologyType for EntityType {
     type ConversionError = ParseEntityTypeError;
-    type Metadata = OntologyElementMetadata;
+    type Metadata = EntityTypeMetadata;
     type Representation = repr::EntityType;
 
     fn id(&self) -> &VersionedUrl {
@@ -319,7 +336,7 @@ impl ToSchema<'static> for EntityTypeWithMetadata {
                 .required("schema")
                 .property(
                     "metadata",
-                    Ref::from_schema_name(OntologyElementMetadata::schema().0),
+                    Ref::from_schema_name(EntityTypeMetadata::schema().0),
                 )
                 .required("metadata")
                 .build()

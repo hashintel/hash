@@ -18,9 +18,9 @@ use crate::{
         time::RightBoundedTemporalInterval,
     },
     ontology::{
-        CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeWithMetadata,
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata,
-        PropertyTypeWithMetadata,
+        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
+        EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     snapshot::OntologyTypeSnapshotRecord,
@@ -169,6 +169,101 @@ where
                             version: row.get(version_index),
                         },
                         custom: custom_metadata,
+                    },
+                })
+            });
+        Ok(stream)
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore<C> {
+    type Record = OntologyTypeWithMetadata<EntityType>;
+
+    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<EntityType>, QueryError>>
+        + Send
+        + Sync;
+
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(
+        &self,
+        filter: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError> {
+        let mut compiler = SelectCompiler::new(temporal_axes);
+
+        let base_url_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::BaseUrl,
+            Distinctness::Distinct,
+            None,
+        );
+        let version_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::Version,
+            Distinctness::Distinct,
+            None,
+        );
+        let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
+        let record_created_by_id_path_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
+        let additional_metadata_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata(None));
+        let transaction_time_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
+
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        let stream = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .map(|row| row.into_report().change_context(QueryError))
+            .and_then(move |row| async move {
+                let additional_metadata: AdditionalOntologyMetadata =
+                    row.get(additional_metadata_index);
+
+                let provenance = ProvenanceMetadata::new(RecordCreatedById::new(
+                    row.get(record_created_by_id_path_index),
+                ));
+
+                let temporal_versioning = OntologyTemporalMetadata {
+                    transaction_time: row.get(transaction_time_index),
+                };
+
+                let custom_metadata = match additional_metadata {
+                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
+                        CustomOntologyMetadata::Owned {
+                            provenance,
+                            temporal_versioning: Some(temporal_versioning),
+                            owned_by_id,
+                        }
+                    }
+                    AdditionalOntologyMetadata::External { fetched_at } => {
+                        CustomOntologyMetadata::External {
+                            provenance,
+                            temporal_versioning: Some(temporal_versioning),
+                            fetched_at,
+                        }
+                    }
+                };
+
+                Ok(OntologyTypeSnapshotRecord {
+                    schema: serde_json::from_value(row.get(schema_index))
+                        .into_report()
+                        .change_context(QueryError)?,
+                    metadata: EntityTypeMetadata {
+                        record_id: OntologyTypeRecordId {
+                            base_url: BaseUrl::new(row.get(base_url_index))
+                                .into_report()
+                                .change_context(QueryError)?,
+                            version: row.get(version_index),
+                        },
+                        custom: CustomEntityTypeMetadata {
+                            common: custom_metadata,
+                            label_property: None,
+                        },
                     },
                 })
             });
