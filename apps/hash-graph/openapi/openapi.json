@@ -818,6 +818,26 @@
           }
         }
       },
+      "CustomEntityTypeMetadata": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CustomOntologyMetadata"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "labelProperty": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BaseUrl"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
       "CustomOntologyMetadata": {
         "oneOf": [
           {
@@ -1141,6 +1161,21 @@
           }
         }
       },
+      "EntityTypeMetadata": {
+        "type": "object",
+        "required": [
+          "recordId",
+          "custom"
+        ],
+        "properties": {
+          "custom": {
+            "$ref": "#/components/schemas/CustomEntityTypeMetadata"
+          },
+          "recordId": {
+            "$ref": "#/components/schemas/OntologyTypeRecordId"
+          }
+        }
+      },
       "EntityTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`EntityTypeQueryPath`].",
@@ -1201,7 +1236,7 @@
         ],
         "properties": {
           "metadata": {
-            "$ref": "#/components/schemas/OntologyElementMetadata"
+            "$ref": "#/components/schemas/EntityTypeMetadata"
           },
           "schema": {
             "$ref": "./models/entity_type.json"
