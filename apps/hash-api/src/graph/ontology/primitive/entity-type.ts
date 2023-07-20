@@ -11,6 +11,7 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
+  EntityTypeMetadata,
   EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
@@ -72,7 +73,7 @@ export const createEntityType: ImpureGraphFunction<
     schema,
   });
 
-  return { schema, metadata: metadata as OntologyElementMetadata };
+  return { schema, metadata: metadata as EntityTypeMetadata };
 };
 
 /**

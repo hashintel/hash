@@ -72,6 +72,10 @@ export type OntologyElementMetadata = Subtype<
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
+export type EntityTypeMetadata = OntologyElementMetadata & {
+  custom: { labelProperty?: BaseUrl };
+};
+
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
@@ -92,7 +96,7 @@ export type EntityTypeWithMetadata = Subtype<
   EntityTypeWithMetadataBp,
   {
     schema: EntityType;
-    metadata: OntologyElementMetadata;
+    metadata: EntityTypeMetadata;
   }
 >;
 
