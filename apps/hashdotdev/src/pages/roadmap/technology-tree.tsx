@@ -10,6 +10,7 @@ import {
 import { graphStratify, shapeEllipse, sugiyama, tweakShape } from "d3-dag";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
+import { AnchorTag } from "../../components/anchor-tag";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { statuses, StatusId } from "./statuses";
 import {
@@ -182,11 +183,9 @@ export const TechnologyTree: FunctionComponent = () => {
   return (
     <Box marginBottom={10}>
       <Container>
-        <Typography
-          id="technology-tree"
-          variant="hashHeading3"
-          marginBottom={4}
-        >
+        <AnchorTag id="technology-tree" />
+
+        <Typography id="" variant="hashHeading3" marginBottom={4}>
           Technology Tree
         </Typography>
         <Typography marginBottom={4}>

@@ -1,6 +1,7 @@
 import { Box, Container, Typography, typographyClasses } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
+import { AnchorTag } from "../components/anchor-tag";
 import { Button } from "../components/button";
 import { FaIcon } from "../components/icons/fa-icon";
 import { Link } from "../components/link";
@@ -101,7 +102,8 @@ const Head: FunctionComponent = () => (
 
 const UseCases: FunctionComponent = () => (
   <Container sx={{ marginBottom: 10 }}>
-    <Typography id="use-cases" variant="hashHeading3" gutterBottom>
+    <AnchorTag id="use-cases" />
+    <Typography variant="hashHeading3" gutterBottom>
       Use Cases
     </Typography>
     <Box
@@ -148,7 +150,8 @@ const UseCases: FunctionComponent = () => (
 
 const GetInvolved: FunctionComponent = () => (
   <Container sx={{ marginBottom: 10 }}>
-    <Typography id="get-involved" variant="hashHeading3" marginBottom={5}>
+    <AnchorTag id="get-involved" />
+    <Typography variant="hashHeading3" marginBottom={5}>
       Get Involved
     </Typography>
     <Typography variant="hashHeading4" marginBottom={3}>
