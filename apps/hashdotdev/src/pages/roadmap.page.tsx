@@ -118,21 +118,12 @@ const UseCases: FunctionComponent = () => (
           sx={{
             display: "flex",
             flexDirection: "column",
-            width: 130,
-            padding: 1.25,
+            width: 135,
+            padding: ({ spacing }) => spacing(2, 1.5),
             borderRadius: "8px",
             borderStyle: "solid",
             borderWidth: 1,
-            borderColor: "transparent",
-            // "&:hover": {
-            //   borderColor: ({ palette }) => palette.gray[20],
-            //   backgroundColor: ({ palette }) => palette.gray[10],
-            // },
-            // "&:active": {
-            //   color: ({ palette }) => palette.teal[90],
-            //   borderColor: ({ palette }) => palette.teal[30],
-            //   backgroundColor: ({ palette }) => palette.teal[20],
-            // },
+            borderColor: ({ palette }) => palette.gray[30],
           }}
         >
           {icon}
