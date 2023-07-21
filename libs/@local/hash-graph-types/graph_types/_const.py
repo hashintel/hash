@@ -47,22 +47,24 @@ _Undefined = object()
 
 
 @overload
-def constant(const_: T) -> type[T]:
+def constant(const_: T, /) -> type[T]:
     ...
 
 
 @overload
-def constant(type_: type[T], const_: T) -> type[T]:
+def constant(type_: type[T], const_: T, /) -> type[T]:
     ...
 
 
-def constant(type_: type[T] | T, const_: T = _Undefined) -> type[T]:
+def constant(type_: type[T] | T, const_: T | object = _Undefined, /) -> type[T]:
     if const_ is _Undefined:
-        const_ = type_
-
-        type_ = type(const_)
+        value = cast(T, type_)
+        ty = cast(type[T], type(const_))
+    else:
+        value = cast(T, const_)
+        ty = cast(type[T], type_)
 
     class Annotation(ConstAnnotation):
-        const = const_
+        const = value
 
-    return cast(type[T], Annotated[type_, Annotation])
+    return cast(type[T], Annotated[ty, Annotation])
