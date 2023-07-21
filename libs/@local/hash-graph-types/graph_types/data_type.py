@@ -104,7 +104,8 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
 
         type_ = self._type()
         if "const" in (self.model_extra or {}):
-            const = self.model_extra["const"]
+            # `const` can only be in `model_extra`, therefore it is safe to index!
+            const = self.model_extra["const"]  # type: ignore[index]
             type_ = constant(type_, const)
 
         base: type[BaseModel] = type(
