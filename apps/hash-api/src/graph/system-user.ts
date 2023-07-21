@@ -58,7 +58,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
   const existingSystemUserEntity = existingUserEntities.find(
     ({ properties }) =>
       properties[
-        extractBaseUrl(types.propertyType.shortName.propertyTypeId)
+        extractBaseUrl(types.propertyType.shortname.propertyTypeId)
       ] === systemUserShortname,
   );
 

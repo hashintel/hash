@@ -36,7 +36,7 @@ export const constructMinimalUser = (params: {
   const { userEntity } = params;
 
   const shortname: string = userEntity.properties[
-    extractBaseUrl(types.propertyType.shortName.propertyTypeId)
+    extractBaseUrl(types.propertyType.shortname.propertyTypeId)
   ] as string;
 
   const preferredName: string = userEntity.properties[
@@ -192,8 +192,11 @@ export type MinimalOrg = {
   kind: "org";
   entityRecordId: EntityRecordId;
   accountId: AccountId;
-  shortname: string;
+  description?: string;
+  location?: string;
   name: string;
+  shortname: string;
+  website?: string;
 };
 
 export const constructMinimalOrg = (params: {
@@ -201,8 +204,20 @@ export const constructMinimalOrg = (params: {
 }): MinimalOrg => {
   const { orgEntity } = params;
 
+  const description = orgEntity.properties[
+    extractBaseUrl(types.propertyType.description.propertyTypeId)
+  ] as string | undefined;
+
+  const location = orgEntity.properties[
+    extractBaseUrl(types.propertyType.location.propertyTypeId)
+  ] as string | undefined;
+
+  const website = orgEntity.properties[
+    extractBaseUrl(types.propertyType.website.propertyTypeId)
+  ] as string | undefined;
+
   const shortname: string = orgEntity.properties[
-    extractBaseUrl(types.propertyType.shortName.propertyTypeId)
+    extractBaseUrl(types.propertyType.shortname.propertyTypeId)
   ] as string;
 
   const name: string = orgEntity.properties[
@@ -215,8 +230,11 @@ export const constructMinimalOrg = (params: {
     accountId: extractAccountId(
       orgEntity.metadata.recordId.entityId as AccountEntityId,
     ),
+    description,
+    location,
     shortname,
     name,
+    website,
   };
 };
 

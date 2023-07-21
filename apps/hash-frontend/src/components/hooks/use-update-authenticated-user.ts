@@ -76,7 +76,7 @@ export const useUpdateAuthenticatedUser = () => {
               ...(params.shortname
                 ? {
                     [extractBaseUrl(
-                      types.propertyType.shortName.propertyTypeId,
+                      types.propertyType.shortname.propertyTypeId,
                     )]: params.shortname,
                   }
                 : {}),

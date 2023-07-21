@@ -13,7 +13,7 @@ export const createOrgResolver: ResolverFn<
   MutationCreateOrgArgs
 > = async (
   _,
-  { name, shortname, orgSize, hasLeftEntity, hasRightEntity },
+  { name, shortname, orgSize, website, hasLeftEntity, hasRightEntity },
   { dataSources, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -21,8 +21,9 @@ export const createOrgResolver: ResolverFn<
   const org = await createOrg(context, {
     shortname,
     name,
-    providedInfo: { orgSize },
+    providedInfo: orgSize ? { orgSize } : undefined,
     actorId: user.accountId,
+    website,
   });
 
   return await getLatestEntityRootedSubgraph(context, {

@@ -72,7 +72,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   ] as string;
 
   const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
+    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
   ] as string;
 
   return {
@@ -92,6 +92,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @param params.name - the name of the organization
  * @param params.providedInfo - optional metadata about the organization
  * @param params.orgAccountId - the account Id of the org
+ * @param params.website - the website of the organization
  *
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
@@ -101,10 +102,11 @@ export const createOrg: ImpureGraphFunction<
     name: string;
     providedInfo?: OrgProvidedInfo;
     orgAccountId?: AccountId;
+    website?: string | null;
   },
   Promise<Org>
 > = async (ctx, params) => {
-  const { shortname, name, providedInfo, actorId } = params;
+  const { shortname, name, providedInfo, website, actorId } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -123,7 +125,7 @@ export const createOrg: ImpureGraphFunction<
     params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
   const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl]: shortname,
+    [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
     [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl]: name,
     ...(providedInfo
       ? {
@@ -132,6 +134,12 @@ export const createOrg: ImpureGraphFunction<
               [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUrl]:
                 providedInfo.orgSize,
             },
+        }
+      : {}),
+    ...(website
+      ? {
+          [SYSTEM_TYPES.propertyType.website.metadata.recordId.baseUrl]:
+            website,
         }
       : {}),
   };
@@ -187,7 +195,7 @@ export const getOrgByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
+                  SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
                 ],
               },
               { parameter: params.shortname },
@@ -212,10 +220,10 @@ export const getOrgByShortname: ImpureGraphFunction<
 };
 
 /**
- * Update the shortname of a User.
+ * Update the shortname of an Org.
  *
  * @param params.org - the org
- * @param params.updatedShortname - the new shortname to assign to the User
+ * @param params.updatedShortname - the new shortname to assign to the Org
  * @param params.actorId - the id of the account that is updating the shortname
  */
 export const updateOrgShortname: ImpureGraphFunction<
@@ -240,7 +248,7 @@ export const updateOrgShortname: ImpureGraphFunction<
   const updatedOrg = await updateEntityProperty(ctx, {
     entity: org.entity,
     propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
+      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
     value: updatedShortname,
     actorId,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));

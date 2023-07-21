@@ -116,6 +116,9 @@ export const ActionsDropdownInner: FunctionComponent<{
               >
                 <ListItemText primary="Create Entity Type" />
               </MenuItem>,
+              <MenuItem key="org" href="/new/org" onClick={popupState.close}>
+                <ListItemText primary="Create Organization" />
+              </MenuItem>,
             ]
           : null}
       </Menu>

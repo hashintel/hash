@@ -24,7 +24,11 @@ export const orgTypedef = gql`
       """
       The size of the organization.
       """
-      orgSize: OrgSize!
+      orgSize: OrgSize
+      """
+      The website of the organization.
+      """
+      website: String
       """
       The depths that \`hasLeftEntity\` edges are resolved to.
       """
