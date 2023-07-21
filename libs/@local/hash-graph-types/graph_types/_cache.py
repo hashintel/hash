@@ -6,7 +6,7 @@ T = TypeVar("T")
 
 
 class Cache(Generic[T]):
-    _cache = dict[str, T]
+    _cache: dict[str, T]
     _pending: dict[str, Event]
 
     def __init__(self) -> None:

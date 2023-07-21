@@ -1,4 +1,4 @@
-from typing import Annotated, Any, TypeVar
+from typing import Annotated, Any, TypeVar, cast, overload, Literal
 
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
@@ -43,23 +43,26 @@ class ConstAnnotation:
         return v
 
 
-class Const:
-    def __class_getitem__(cls, item: tuple[type[T], T] | T) -> T:
-        if isinstance(item, tuple):
-            if len(item) != 2:  # noqa: PLR2004
-                msg = "Const must be a tuple of length 2"
-                raise ValueError(msg)
+_Undefined = object()
 
-            type_, const_ = item
 
-            if not isinstance(const_, type_):
-                msg = "Const value must be an instance of the type"
-                raise TypeError(msg)
-        else:
-            type_ = type(item)
-            const_ = item
+@overload
+def constant(const_: T) -> type[T]:
+    ...
 
-        class Annotation(ConstAnnotation):
-            const = const_
 
-        return Annotated[type_, Annotation]
+@overload
+def constant(type_: type[T], const_: T) -> type[T]:
+    ...
+
+
+def constant(type_: type[T] | T, const_: T = _Undefined) -> type[T]:
+    if const_ is _Undefined:
+        const_ = type_
+
+        type_ = type(const_)
+
+    class Annotation(ConstAnnotation):
+        const = const_
+
+    return cast(type[T], Annotated[type_, Annotation])

@@ -6,6 +6,7 @@ from typing import (
     Literal,
     TypeAlias,
     assert_never,
+    cast,
 )
 from uuid import UUID
 
@@ -14,11 +15,12 @@ from pydantic import (
     Field,
     RootModel,
     create_model,
+    BaseModel,
 )
 from slugify import slugify
 
 from ._cache import Cache
-from ._const import Const
+from ._const import constant
 from ._schema import OntologyTypeSchema, Schema
 from .base import DataType as DataTypeBase
 
@@ -100,14 +102,21 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         _actor_id = actor_id
         _graph = graph
 
+        const = self.model_extra.get("const") if self.model_extra else None
+
         type_ = self._type()
-        if const := self.model_extra.get("const"):
-            type_ = Const[type_, const]
+        if const:
+            type_ = constant(type_, const)
 
-        base = type("Base", (DataTypeBase,), {"info": self.type_info()})
+        base: type[BaseModel] = type(
+            "Base", (DataTypeBase,), {"info": self.type_info()}
+        )
 
-        return create_model(
-            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=(base, RootModel),
-            root=(type_, Field(...)),
+        return cast(
+            type[DataTypeBase],
+            create_model(
+                slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+                __base__=(base, RootModel),
+                root=(type_, Field(...)),
+            ),
         )
