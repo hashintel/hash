@@ -226,7 +226,7 @@ class InferEntitiesWorkflowResult(BaseModel, extra=Extra.forbid):
 
 @workflow.defn(name="inferEntities")
 class InferEntitiesWorkflow:
-    """A workflow that reads an entity type from the provided URL."""
+    """Infers entities of the specified type(s) from the provided text input."""
 
     @workflow.run
     async def infer_entities(
