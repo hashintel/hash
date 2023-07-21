@@ -329,7 +329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                  "$ref": "#/components/schemas/MaybeListOfEntityTypeMetadata"
                 }
               }
             }
@@ -771,6 +771,14 @@
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
           },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
+          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -817,6 +825,104 @@
             ]
           }
         }
+      },
+      "CustomEntityTypeMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "provenance",
+              "ownedById"
+            ],
+            "properties": {
+              "labelProperty": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "provenance",
+              "fetchedAt"
+            ],
+            "properties": {
+              "fetchedAt": {
+                "type": "string"
+              },
+              "labelProperty": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
+          }
+        ]
+      },
+      "CustomOntologyMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "CustomOwnedOntologyElementMetadata",
+            "required": [
+              "provenance",
+              "ownedById"
+            ],
+            "properties": {
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "CustomExternalOntologyElementMetadata",
+            "required": [
+              "provenance",
+              "fetchedAt"
+            ],
+            "properties": {
+              "fetchedAt": {
+                "type": "string"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        ]
       },
       "DataTypeQueryToken": {
         "type": "string",
@@ -1089,6 +1195,21 @@
           }
         }
       },
+      "EntityTypeMetadata": {
+        "type": "object",
+        "required": [
+          "recordId",
+          "custom"
+        ],
+        "properties": {
+          "custom": {
+            "$ref": "#/components/schemas/CustomEntityTypeMetadata"
+          },
+          "recordId": {
+            "$ref": "#/components/schemas/OntologyTypeRecordId"
+          }
+        }
+      },
       "EntityTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`EntityTypeQueryPath`].",
@@ -1103,6 +1224,7 @@
           "examples",
           "properties",
           "required",
+          "labelProperty",
           "links",
           "inheritsFrom"
         ]
@@ -1149,7 +1271,7 @@
         ],
         "properties": {
           "metadata": {
-            "$ref": "#/components/schemas/OntologyElementMetadata"
+            "$ref": "#/components/schemas/EntityTypeMetadata"
           },
           "schema": {
             "$ref": "./models/entity_type.json"
@@ -1172,25 +1294,6 @@
           },
           "revisionId": {
             "$ref": "#/components/schemas/Timestamp"
-          }
-        }
-      },
-      "ExternalOntologyElementMetadata": {
-        "type": "object",
-        "required": [
-          "recordId",
-          "provenance",
-          "fetchedAt"
-        ],
-        "properties": {
-          "fetchedAt": {
-            "type": "string"
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/ProvenanceMetadata"
-          },
-          "recordId": {
-            "$ref": "#/components/schemas/OntologyTypeRecordId"
           }
         }
       },
@@ -1650,6 +1753,19 @@
           }
         }
       },
+      "MaybeListOfEntityTypeMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EntityTypeMetadata"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeMetadata"
+            }
+          }
+        ]
+      },
       "MaybeListOfOntologyElementMetadata": {
         "oneOf": [
           {
@@ -1679,14 +1795,19 @@
         ]
       },
       "OntologyElementMetadata": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/OwnedOntologyElementMetadata"
+        "type": "object",
+        "required": [
+          "recordId",
+          "custom"
+        ],
+        "properties": {
+          "custom": {
+            "$ref": "#/components/schemas/CustomOntologyMetadata"
           },
-          {
-            "$ref": "#/components/schemas/ExternalOntologyElementMetadata"
+          "recordId": {
+            "$ref": "#/components/schemas/OntologyTypeRecordId"
           }
-        ]
+        }
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -1731,6 +1852,17 @@
             }
           }
         ]
+      },
+      "OntologyTemporalMetadata": {
+        "type": "object",
+        "required": [
+          "transactionTime"
+        ],
+        "properties": {
+          "transactionTime": {
+            "$ref": "#/components/schemas/LeftClosedTemporalInterval"
+          }
+        }
       },
       "OntologyTypeRecordId": {
         "type": "object",
@@ -1897,25 +2029,6 @@
       "OwnedById": {
         "type": "string",
         "format": "uuid"
-      },
-      "OwnedOntologyElementMetadata": {
-        "type": "object",
-        "required": [
-          "recordId",
-          "provenance",
-          "ownedById"
-        ],
-        "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/ProvenanceMetadata"
-          },
-          "recordId": {
-            "$ref": "#/components/schemas/OntologyTypeRecordId"
-          }
-        }
       },
       "PropertyTypeQueryToken": {
         "type": "string",
@@ -2399,6 +2512,14 @@
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"

@@ -13,11 +13,15 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use time::OffsetDateTime;
 use type_system::{
-    repr, url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference,
-    ParseDataTypeError, ParseEntityTypeError, ParsePropertyTypeError, PropertyType,
-    PropertyTypeReference,
+    repr,
+    url::{BaseUrl, VersionedUrl},
+    DataType, DataTypeReference, EntityType, EntityTypeReference, ParseDataTypeError,
+    ParseEntityTypeError, ParsePropertyTypeError, PropertyType, PropertyTypeReference,
 };
-use utoipa::ToSchema;
+use utoipa::{
+    openapi::{schema, Ref, RefOr, Schema},
+    ToSchema,
+};
 
 pub use self::{
     data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor, DataTypeQueryToken},
@@ -25,7 +29,10 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
+    identifier::{
+        ontology::OntologyTypeRecordId,
+        time::{LeftClosedTemporalInterval, TimeAxis, TransactionTime},
+    },
     provenance::{OwnedById, ProvenanceMetadata},
     store::Record,
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
@@ -131,7 +138,7 @@ pub trait OntologyType:
 {
     type ConversionError: Context;
     type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
-    type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
+    type Metadata;
 
     fn id(&self) -> &VersionedUrl;
 
@@ -140,8 +147,8 @@ pub trait OntologyType:
 
 impl OntologyType for DataType {
     type ConversionError = ParseDataTypeError;
+    type Metadata = OntologyElementMetadata;
     type Representation = repr::DataType;
-    type WithMetadata = DataTypeWithMetadata;
 
     fn id(&self) -> &VersionedUrl {
         self.id()
@@ -154,8 +161,8 @@ impl OntologyType for DataType {
 
 impl OntologyType for PropertyType {
     type ConversionError = ParsePropertyTypeError;
+    type Metadata = OntologyElementMetadata;
     type Representation = repr::PropertyType;
-    type WithMetadata = PropertyTypeWithMetadata;
 
     fn id(&self) -> &VersionedUrl {
         self.id()
@@ -174,10 +181,76 @@ impl OntologyType for PropertyType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomEntityTypeMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(flatten)]
+    pub common: CustomOntologyMetadata,
+}
+
+// Utoipa does not know how to generate a schema for flattend enumerations
+impl ToSchema<'static> for CustomEntityTypeMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "CustomEntityTypeMetadata",
+            Schema::OneOf(
+                schema::OneOfBuilder::new()
+                    .item(
+                        schema::ObjectBuilder::new()
+                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
+                            .property(
+                                "provenance",
+                                Ref::from_schema_name(ProvenanceMetadata::schema().0),
+                            )
+                            .required("provenance")
+                            .property(
+                                "temporalVersioning",
+                                Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
+                            )
+                            .property("ownedById", Ref::from_schema_name(OwnedById::schema().0))
+                            .required("ownedById")
+                            .build(),
+                    )
+                    .item(
+                        schema::ObjectBuilder::new()
+                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
+                            .property(
+                                "provenance",
+                                Ref::from_schema_name(ProvenanceMetadata::schema().0),
+                            )
+                            .required("provenance")
+                            .property(
+                                "temporalVersioning",
+                                Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
+                            )
+                            .property(
+                                "fetchedAt",
+                                schema::ObjectBuilder::new()
+                                    .schema_type(schema::SchemaType::String),
+                            )
+                            .required("fetchedAt")
+                            .build(),
+                    )
+                    .build(),
+            )
+            .into(),
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityTypeMetadata {
+    pub record_id: OntologyTypeRecordId,
+    pub custom: CustomEntityTypeMetadata,
+}
+
 impl OntologyType for EntityType {
     type ConversionError = ParseEntityTypeError;
+    type Metadata = EntityTypeMetadata;
     type Representation = repr::EntityType;
-    type WithMetadata = EntityTypeWithMetadata;
 
     fn id(&self) -> &VersionedUrl {
         self.id()
@@ -206,138 +279,133 @@ impl OntologyType for EntityType {
     }
 }
 
-pub trait OntologyTypeWithMetadata: Record {
-    type OntologyType: OntologyType<WithMetadata = Self>;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
-
-    fn inner(&self) -> &Self::OntologyType;
-
-    fn metadata(&self) -> &OntologyElementMetadata;
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OntologyTemporalMetadata {
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-// TODO: Flatten when `#[feature(mut_restriction)]` is available.
+// TODO: Restrict mutable access when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
 //   see https://app.asana.com/0/0/1203977361907407/f
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
-pub enum OntologyElementMetadata {
-    Owned(OwnedOntologyElementMetadata),
-    External(ExternalOntologyElementMetadata),
-}
-
-impl OntologyElementMetadata {
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        match self {
-            Self::Owned(owned) => owned.record_id(),
-            Self::External(external) => external.record_id(),
-        }
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        match self {
-            Self::Owned(owned) => owned.provenance_metadata,
-            Self::External(external) => external.provenance_metadata,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OwnedOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    owned_by_id: OwnedById,
-}
-
-impl OwnedOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
+pub enum CustomOntologyMetadata {
+    #[schema(title = "CustomOwnedOntologyElementMetadata")]
+    #[serde(rename_all = "camelCase")]
+    Owned {
+        provenance: ProvenanceMetadata,
+        temporal_versioning: Option<OntologyTemporalMetadata>,
         owned_by_id: OwnedById,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            owned_by_id,
-        }
-    }
+    },
+    #[schema(title = "CustomExternalOntologyElementMetadata")]
+    #[serde(rename_all = "camelCase")]
+    External {
+        provenance: ProvenanceMetadata,
+        temporal_versioning: Option<OntologyTemporalMetadata>,
+        #[schema(value_type = String)]
+        #[serde(with = "crate::serde::time")]
+        fetched_at: OffsetDateTime,
+    },
+}
 
+impl CustomOntologyMetadata {
     #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
+    pub const fn provenance(&self) -> ProvenanceMetadata {
+        let (Self::External { provenance, .. } | Self::Owned { provenance, .. }) = self;
 
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
+        *provenance
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ExternalOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    #[schema(value_type = String)]
-    #[serde(with = "crate::serde::time")]
-    fetched_at: OffsetDateTime,
+pub struct OntologyElementMetadata {
+    pub record_id: OntologyTypeRecordId,
+    pub custom: CustomOntologyMetadata,
 }
 
-impl ExternalOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
-        fetched_at: OffsetDateTime,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            fetched_at,
-        }
-    }
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    deny_unknown_fields,
+    bound(
+        serialize = "S: Clone, S::Metadata: Serialize",
+        deserialize = "S: Deserialize<'de>, S::Metadata: Deserialize<'de>"
+    )
+)]
+pub struct OntologyTypeWithMetadata<S: OntologyType> {
+    #[serde(serialize_with = "serialize_ontology_type")]
+    pub schema: S,
+    pub metadata: S::Metadata,
+}
 
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn fetched_at(&self) -> OffsetDateTime {
-        self.fetched_at
+// Utoipa's signature is too... not generic enough, thus we have to implement it for all ontology
+// types.
+impl ToSchema<'static> for DataTypeWithMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "DataTypeWithMetadata",
+            schema::ObjectBuilder::new()
+                .property("schema", Ref::from_schema_name("VAR_DATA_TYPE"))
+                .required("schema")
+                .property(
+                    "metadata",
+                    Ref::from_schema_name(OntologyElementMetadata::schema().0),
+                )
+                .required("metadata")
+                .build()
+                .into(),
+        )
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
-pub struct DataTypeWithMetadata {
-    #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: DataType,
-    metadata: OntologyElementMetadata,
+impl ToSchema<'static> for PropertyTypeWithMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "PropertyTypeWithMetadata",
+            schema::ObjectBuilder::new()
+                .property("schema", Ref::from_schema_name("VAR_PROPERTY_TYPE"))
+                .required("schema")
+                .property(
+                    "metadata",
+                    Ref::from_schema_name(OntologyElementMetadata::schema().0),
+                )
+                .required("metadata")
+                .build()
+                .into(),
+        )
+    }
 }
+
+impl ToSchema<'static> for EntityTypeWithMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "EntityTypeWithMetadata",
+            schema::ObjectBuilder::new()
+                .property("schema", Ref::from_schema_name("VAR_ENTITY_TYPE"))
+                .required("schema")
+                .property(
+                    "metadata",
+                    Ref::from_schema_name(EntityTypeMetadata::schema().0),
+                )
+                .required("metadata")
+                .build()
+                .into(),
+        )
+    }
+}
+
+pub type DataTypeWithMetadata = OntologyTypeWithMetadata<DataType>;
 
 impl Record for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
     type VertexId = DataTypeVertexId;
+}
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        let record_id = self.metadata().record_id();
+impl DataTypeWithMetadata {
+    #[must_use]
+    pub fn vertex_id(&self, _time_axis: TimeAxis) -> DataTypeVertexId {
+        let record_id = &self.metadata.record_id;
         DataTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
@@ -345,39 +413,17 @@ impl Record for DataTypeWithMetadata {
     }
 }
 
-impl OntologyTypeWithMetadata for DataTypeWithMetadata {
-    type OntologyType = DataType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PropertyTypeWithMetadata {
-    #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: PropertyType,
-    metadata: OntologyElementMetadata,
-}
+pub type PropertyTypeWithMetadata = OntologyTypeWithMetadata<PropertyType>;
 
 impl Record for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
     type VertexId = PropertyTypeVertexId;
+}
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        let record_id = self.metadata().record_id();
+impl PropertyTypeWithMetadata {
+    #[must_use]
+    pub fn vertex_id(&self, _time_axis: TimeAxis) -> PropertyTypeVertexId {
+        let record_id = &self.metadata.record_id;
         PropertyTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
@@ -385,61 +431,20 @@ impl Record for PropertyTypeWithMetadata {
     }
 }
 
-impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
-    type OntologyType = PropertyType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
-pub struct EntityTypeWithMetadata {
-    #[schema(value_type = VAR_ENTITY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: EntityType,
-    metadata: OntologyElementMetadata,
-}
+pub type EntityTypeWithMetadata = OntologyTypeWithMetadata<EntityType>;
 
 impl Record for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
     type VertexId = EntityTypeVertexId;
+}
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        let record_id = self.metadata().record_id();
+impl EntityTypeWithMetadata {
+    #[must_use]
+    pub fn vertex_id(&self, _time_axis: TimeAxis) -> EntityTypeVertexId {
+        let record_id = &self.metadata.record_id;
         EntityTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
-    }
-}
-
-impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
-    type OntologyType = EntityType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
     }
 }

@@ -19,8 +19,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OntologyTypeReference,
-        OwnedOntologyElementMetadata, PropertyTypeQueryToken, PropertyTypeWithMetadata,
+        patch_id_and_parse, CustomOntologyMetadata, OntologyElementMetadata, OntologyTypeReference,
+        PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -138,13 +138,14 @@ where
                 StatusCode::UNPROCESSABLE_ENTITY
             })?;
 
-        metadata.push(OntologyElementMetadata::Owned(
-            OwnedOntologyElementMetadata::new(
-                property_type.id().clone().into(),
-                ProvenanceMetadata::new(actor_id),
+        metadata.push(OntologyElementMetadata {
+            record_id: property_type.id().clone().into(),
+            custom: CustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata::new(actor_id),
+                temporal_versioning: None,
                 owned_by_id,
-            ),
-        ));
+            },
+        });
 
         property_types.push(property_type);
     }

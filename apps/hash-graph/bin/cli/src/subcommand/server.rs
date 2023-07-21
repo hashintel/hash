@@ -13,7 +13,8 @@ use graph::{
     identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
     ontology::{
-        domain_validator::DomainValidator, ExternalOntologyElementMetadata, OntologyElementMetadata,
+        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
+        EntityTypeMetadata, OntologyElementMetadata,
     },
     provenance::{ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -234,12 +235,14 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
 
-        let data_type_metadata =
-            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                data_type.id().clone().into(),
-                ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
-                OffsetDateTime::now_utc(),
-            ));
+        let data_type_metadata = OntologyElementMetadata {
+            record_id: data_type.id().clone().into(),
+            custom: CustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
+                temporal_versioning: None,
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+        };
 
         if let Err(error) = connection
             .create_data_type(data_type, &data_type_metadata)
@@ -271,12 +274,17 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         Vec::default(),
     );
 
-    let link_entity_type_metadata =
-        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-            link_entity_type.id().clone().into(),
-            ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
-            OffsetDateTime::now_utc(),
-        ));
+    let link_entity_type_metadata = EntityTypeMetadata {
+        record_id: link_entity_type.id().clone().into(),
+        custom: CustomEntityTypeMetadata {
+            common: CustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
+                temporal_versioning: None,
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+            label_property: None,
+        },
+    };
 
     let title = link_entity_type.title().to_owned();
 

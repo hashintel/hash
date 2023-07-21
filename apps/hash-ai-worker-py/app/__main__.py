@@ -9,7 +9,12 @@ from temporalio.worker import Worker
 
 from app.activities import complete
 from app.encoding import pydantic_data_converter
-from app.workflows import DataTypeWorkflow, EntityTypeWorkflow, PropertyTypeWorkflow
+from app.workflows import (
+    DataTypeWorkflow,
+    EntityTypeWorkflow,
+    InferEntitiesWorkflow,
+    PropertyTypeWorkflow,
+)
 
 load_dotenv()
 load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
@@ -35,6 +40,7 @@ async def run_worker(stop_event: asyncio.Event) -> None:
             DataTypeWorkflow,
             PropertyTypeWorkflow,
             EntityTypeWorkflow,
+            InferEntitiesWorkflow,
         ],
         # Register activities
         activities=[
