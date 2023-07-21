@@ -102,24 +102,14 @@ export const ActionsDropdownInner: FunctionComponent<{
         </MenuItem>
         {activeWorkspace
           ? [
-              <MenuItem
-                key="entity"
-                href="/new/entity"
-                onClick={popupState.close}
-              >
-                <ListItemText primary="Create Entity" />
-              </MenuItem>,
-              <MenuItem
-                key="entity-type"
-                href="/new/types/entity-type"
-                onClick={popupState.close}
-              >
-                <ListItemText primary="Create Entity Type" />
-              </MenuItem>,
-              <MenuItem key="org" href="/new/org" onClick={popupState.close}>
-                <ListItemText primary="Create Organization" />
-              </MenuItem>,
-            ]
+              { href: "/new/entity", label: "Create Entity" },
+              { href: "/new/types/entity-type", label: "Create Entity Type" },
+              { href: "/new/org", label: "Create Organization" },
+            ].map(({ href, label }) => (
+              <MenuItem key={href} href={href} onClick={popupState.close}>
+                <ListItemText primary={label} />
+              </MenuItem>
+            ))
           : null}
       </Menu>
     </Box>
