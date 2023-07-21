@@ -18,10 +18,7 @@ use type_system::{DataType, EntityType, PropertyType};
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
-    ontology::{
-        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-        OntologyTypeSnapshotRecord,
-    },
+    ontology::OntologyTypeSnapshotRecord,
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{

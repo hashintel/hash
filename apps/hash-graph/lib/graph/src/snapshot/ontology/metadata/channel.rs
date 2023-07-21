@@ -12,15 +12,14 @@ use futures::{
 use uuid::Uuid;
 
 use crate::{
-    identifier::account::AccountId,
-    provenance::{OwnedById, RecordCreatedById},
+    ontology::{CustomOntologyMetadata, OntologyElementMetadata},
     snapshot::{
         account::AccountSender,
         ontology::{
             OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
             OntologyTypeMetadataRowBatch,
         },
-        OntologyTypeMetadata, SnapshotRestoreError,
+        SnapshotRestoreError,
     },
 };
 
@@ -32,7 +31,7 @@ pub struct OntologyTypeMetadataSender {
     external_metadata: Sender<OntologyExternalMetadataRow>,
 }
 
-impl Sink<(Uuid, OntologyTypeMetadata)> for OntologyTypeMetadataSender {
+impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -56,34 +55,14 @@ impl Sink<(Uuid, OntologyTypeMetadata)> for OntologyTypeMetadataSender {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        (ontology_id, metadata): (Uuid, OntologyTypeMetadata),
+        (ontology_id, metadata): (Uuid, OntologyElementMetadata),
     ) -> Result<(), Self::Error> {
-        let record_created_by_id = metadata.custom.provenance.map_or_else(
-            || RecordCreatedById::new(AccountId::new(Uuid::new_v4())),
-            |p| p.record_created_by_id,
-        );
-
-        self.account
-            .start_send_unpin(record_created_by_id.as_account_id())
-            .attach_printable("could not send account")?;
-
-        self.id
-            .start_send(OntologyIdRow {
-                ontology_id,
-                base_url: metadata.record_id.base_url.as_str().to_owned(),
-                version: metadata.record_id.version,
-                transaction_time: metadata
-                    .custom
-                    .temporal_versioning
-                    .and_then(|temporal_versioning| temporal_versioning.transaction_time),
-                record_created_by_id,
-            })
-            .into_report()
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send id")?;
-
-        match (metadata.custom.owned_by_id, metadata.custom.fetched_at) {
-            (Some(owned_by_id), _) => {
+        let (provenance, temporal_versioning) = match metadata.custom {
+            CustomOntologyMetadata::Owned {
+                provenance,
+                temporal_versioning,
+                owned_by_id,
+            } => {
                 self.owned_metadata
                     .start_send(OntologyOwnedMetadataRow {
                         ontology_id,
@@ -92,8 +71,13 @@ impl Sink<(Uuid, OntologyTypeMetadata)> for OntologyTypeMetadataSender {
                     .into_report()
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send owned metadata")?;
+                (provenance, temporal_versioning)
             }
-            (None, Some(fetched_at)) => {
+            CustomOntologyMetadata::External {
+                provenance,
+                temporal_versioning,
+                fetched_at,
+            } => {
                 self.external_metadata
                     .start_send(OntologyExternalMetadataRow {
                         ontology_id,
@@ -102,18 +86,25 @@ impl Sink<(Uuid, OntologyTypeMetadata)> for OntologyTypeMetadataSender {
                     .into_report()
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send external metadata")?;
+                (provenance, temporal_versioning)
             }
-            (None, None) => {
-                self.owned_metadata
-                    .start_send(OntologyOwnedMetadataRow {
-                        ontology_id,
-                        owned_by_id: OwnedById::new(record_created_by_id.as_account_id()),
-                    })
-                    .into_report()
-                    .change_context(SnapshotRestoreError::Read)
-                    .attach_printable("could not send owned metadata")?;
-            }
-        }
+        };
+
+        self.account
+            .start_send_unpin(provenance.record_created_by_id.as_account_id())
+            .attach_printable("could not send account")?;
+
+        self.id
+            .start_send(OntologyIdRow {
+                ontology_id,
+                base_url: metadata.record_id.base_url.as_str().to_owned(),
+                version: metadata.record_id.version,
+                transaction_time: temporal_versioning.map(|t| t.transaction_time),
+                record_created_by_id: provenance.record_created_by_id,
+            })
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send id")?;
 
         Ok(())
     }

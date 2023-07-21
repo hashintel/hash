@@ -219,8 +219,11 @@ pub struct Entity {
 impl Record for Entity {
     type QueryPath<'p> = EntityQueryPath<'p>;
     type VertexId = EntityVertexId;
+}
 
-    fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
+impl Entity {
+    #[must_use]
+    pub fn vertex_id(&self, time_axis: TimeAxis) -> EntityVertexId {
         let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
             TimeAxis::DecisionTime => self
                 .metadata

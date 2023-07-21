@@ -1,9 +1,6 @@
-use graph::{
-    ontology::OntologyTypeWithMetadata,
-    store::{
-        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        BaseUrlAlreadyExists,
-    },
+use graph::store::{
+    error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+    BaseUrlAlreadyExists,
 };
 use type_system::{repr, DataType};
 
@@ -49,7 +46,7 @@ async fn query() {
         .await
         .expect("could not get data type");
 
-    assert_eq!(data_type.inner(), &empty_list_dt);
+    assert_eq!(data_type.schema, empty_list_dt);
 }
 
 #[tokio::test]
@@ -91,8 +88,8 @@ async fn update() {
         .await
         .expect("could not get property type");
 
-    assert_eq!(&object_dt_v1, returned_object_dt_v1.inner());
-    assert_eq!(&object_dt_v2, returned_object_dt_v2.inner());
+    assert_eq!(object_dt_v1, returned_object_dt_v1.schema);
+    assert_eq!(object_dt_v2, returned_object_dt_v2.schema);
 }
 
 #[tokio::test]

@@ -70,6 +70,7 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<repr::EntityType>,
+    pub label_property: Option<String>,
 }
 
 #[derive(Debug, ToSql)]
