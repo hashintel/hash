@@ -18,6 +18,7 @@ from pydantic import (
 from slugify import slugify
 
 from ._cache import Cache
+from ._const import Const
 from ._schema import OntologyTypeSchema, Schema
 from .base import DataType as DataTypeBase
 
@@ -99,9 +100,9 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         _actor_id = actor_id
         _graph = graph
 
-        const = self.model_extra.get("const") if self.model_extra else None
-
-        type_ = Literal[const] if const is not None else self._type()
+        type_ = self._type()
+        if const := self.model_extra.get("const"):
+            type_ = Const[type_, const]
 
         base = type("Base", (DataTypeBase,), {"info": self.type_info()})
 
