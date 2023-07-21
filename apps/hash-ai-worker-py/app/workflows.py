@@ -12,6 +12,8 @@ from pydantic import (
 )
 from temporalio import workflow
 
+from ._status import Status, StatusCode
+
 with workflow.unsafe.imports_passed_through():
     from graph_types import (
         DataTypeReference,
@@ -199,3 +201,46 @@ class EntityTypeWorkflow:
         print_schema(entity_type_model, params.entity_type)
 
         return entity_type_model.model_json_schema()
+
+
+class ProposedEntity(BaseModel, extra=Extra.forbid):
+    """An entity proposed by AI."""
+
+    entity_type_id: str = Field(..., alias="entityTypeId")
+    properties: Any
+
+
+class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
+    """Parameters for entity inference workflow."""
+
+    text_input: str = Field(..., alias="textInput")
+    entity_type_ids: list[str] = Field(..., alias="entityTypeIds")
+    actor_id: UUID = Field(..., alias="actorId")
+
+
+class InferEntitiesWorkflowResult(BaseModel, extra=Extra.forbid):
+    """Result of entity inference workflow."""
+
+    entities: list[ProposedEntity]
+
+
+@workflow.defn(name="inferEntities")
+class InferEntitiesWorkflow:
+    """Infers entities of the specified type(s) from the provided text input."""
+
+    @workflow.run
+    async def infer_entities(
+        self,
+        params: InferEntitiesWorkflowParameter,
+    ) -> Status[InferEntitiesWorkflowResult]:
+        """Infer entities from the provided text input."""
+        if len(params.entity_type_ids) > 0:
+            return Status(
+                code=StatusCode.UNIMPLEMENTED,
+                message="Entity inference is not yet implemented.",
+            )
+
+        return Status(
+            code=StatusCode.INVALID_ARGUMENT,
+            message="At least one entity type ID must be provided.",
+        )
