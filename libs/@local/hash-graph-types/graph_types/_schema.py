@@ -16,7 +16,7 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
-from .base import OntologyTypeInfo
+from .base import OntologyType, OntologyTypeInfo
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
@@ -105,7 +105,7 @@ class Array(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[list[T]]:
+    ) -> type[list[OntologyType]]:
         type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
 
         type_ = conlist(
