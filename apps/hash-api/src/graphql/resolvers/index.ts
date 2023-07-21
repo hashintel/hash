@@ -126,11 +126,11 @@ export const resolvers = {
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
+    createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+
     // HASH instance admin mutations
     createUser:
       loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
-    createOrg:
-      loggedInAndSignedUpHashInstanceAdminMiddleware(createOrgResolver),
   },
 
   JSONObject: JSONObjectResolver,

@@ -148,9 +148,21 @@ export type SystemEntityTypeTitle =
  * @see https://app.asana.com/0/1202805690238892/1203132327925695/f
  */
 const systemPropertyTypes = {
-  shortName: {
+  description: {
+    title: "Description",
+    description: "A textual description of something",
+  },
+  location: {
+    title: "Location",
+    description: "A location for something, expressed as a single string",
+  },
+  website: {
+    title: "Website",
+    description: "A URL for a website",
+  },
+  shortname: {
     title: "Shortname",
-    description: undefined,
+    description: "A unique identifier for something, in the form of a slug",
   },
   email: {
     title: "Email",

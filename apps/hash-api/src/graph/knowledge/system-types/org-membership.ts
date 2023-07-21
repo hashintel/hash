@@ -1,4 +1,5 @@
 import {
+  EntityId,
   EntityPropertiesObject,
   extractEntityUuidFromEntityId,
   OwnedById,
@@ -67,23 +68,21 @@ export const createOrgMembership: ImpureGraphFunction<
     | "ownedById"
   > & {
     responsibility: string;
-    org: Org;
-    user: User;
+    orgEntityId: EntityId;
+    userEntityId: EntityId;
   },
   Promise<OrgMembership>
-> = async (ctx, { user, org, responsibility, actorId }) => {
+> = async (ctx, { userEntityId, orgEntityId, responsibility, actorId }) => {
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUrl]:
       responsibility,
   };
 
   const linkEntity = await createLinkEntity(ctx, {
-    ownedById: extractEntityUuidFromEntityId(
-      org.entity.metadata.recordId.entityId,
-    ) as Uuid as OwnedById,
+    ownedById: extractEntityUuidFromEntityId(orgEntityId) as Uuid as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
-    leftEntityId: user.entity.metadata.recordId.entityId,
-    rightEntityId: org.entity.metadata.recordId.entityId,
+    leftEntityId: userEntityId,
+    rightEntityId: orgEntityId,
     properties,
     actorId,
   });

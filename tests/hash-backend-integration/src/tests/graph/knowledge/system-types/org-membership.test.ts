@@ -62,9 +62,9 @@ describe("OrgMembership", () => {
   it("can create an OrgMembership", async () => {
     testOrgMembership = await createOrgMembership(graphContext, {
       responsibility: "test",
-      org: testOrg,
+      orgEntityId: testOrg.entity.metadata.recordId.entityId,
       actorId: testUser.accountId,
-      user: testUser,
+      userEntityId: testUser.entity.metadata.recordId.entityId,
     });
   });
 

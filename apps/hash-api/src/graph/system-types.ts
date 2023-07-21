@@ -14,8 +14,13 @@ import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 export let SYSTEM_TYPES: {
   dataType: {};
   propertyType: {
+    // General
+    description: PropertyTypeWithMetadata;
+    location: PropertyTypeWithMetadata;
+    website: PropertyTypeWithMetadata;
+
     // General account related
-    shortName: PropertyTypeWithMetadata;
+    shortname: PropertyTypeWithMetadata;
 
     // User-related
     email: PropertyTypeWithMetadata;
@@ -193,13 +198,22 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
 export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
   const shortnamePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.shortName(context);
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.shortname(context);
+
+  const descriptionPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.description(context);
+
+  const locationPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
 
   const orgNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgName(context);
 
   const orgProvidedInfoPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(context);
+
+  const websitePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -214,15 +228,42 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: true,
       },
       {
+        propertyType: descriptionPropertyType,
+        required: false,
+      },
+      {
+        propertyType: locationPropertyType,
+        required: false,
+      },
+      {
         propertyType: orgProvidedInfoPropertyType,
+        required: false,
+      },
+      {
+        propertyType: websitePropertyType,
         required: false,
       },
     ],
   })(context);
 };
 
+const descriptionPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.description,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const locationPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.location,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const websitePropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.website,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.shortName,
+  ...types.propertyType.shortname,
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
@@ -278,7 +319,7 @@ const orgMembershipLinkEntityTypeInitializer = async (
 const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
   const shortnamePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.shortName(context);
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.shortname(context);
 
   const emailPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.email(
     context,
@@ -687,7 +728,11 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 > = {
   dataType: {},
   propertyType: {
-    shortName: shortnamePropertyTypeInitializer,
+    description: descriptionPropertyTypeInitializer,
+    location: locationPropertyTypeInitializer,
+    website: websitePropertyTypeInitializer,
+
+    shortname: shortnamePropertyTypeInitializer,
 
     email: emailPropertyTypeInitializer,
     kratosIdentityId: kratosIdentityIdPropertyTypeInitializer,

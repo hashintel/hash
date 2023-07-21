@@ -70,7 +70,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
 
         const shortname =
           entity.properties[
-            extractBaseUrl(types.propertyType.shortName.propertyTypeId)
+            extractBaseUrl(types.propertyType.shortname.propertyTypeId)
           ];
 
         if (!shortname) {
