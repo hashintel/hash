@@ -13,7 +13,8 @@ use graph::{
     identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
     ontology::{
-        domain_validator::DomainValidator, CustomOntologyMetadata, OntologyElementMetadata,
+        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
+        EntityTypeMetadata, OntologyElementMetadata,
     },
     provenance::{ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -273,12 +274,15 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         Vec::default(),
     );
 
-    let link_entity_type_metadata = OntologyElementMetadata {
+    let link_entity_type_metadata = EntityTypeMetadata {
         record_id: link_entity_type.id().clone().into(),
-        custom: CustomOntologyMetadata::External {
-            provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
-            temporal_versioning: None,
-            fetched_at: OffsetDateTime::now_utc(),
+        custom: CustomEntityTypeMetadata {
+            common: CustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
+                temporal_versioning: None,
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+            label_property: None,
         },
     };
 

@@ -209,6 +209,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata(None));
         let transaction_time_index =
             compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
+        let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -249,6 +250,13 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                     }
                 };
 
+                let label_property = row
+                    .get::<_, Option<String>>(label_property_index)
+                    .map(BaseUrl::new)
+                    .transpose()
+                    .into_report()
+                    .change_context(QueryError)?;
+
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
                         .into_report()
@@ -262,7 +270,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                         },
                         custom: CustomEntityTypeMetadata {
                             common: custom_metadata,
-                            label_property: None,
+                            label_property,
                         },
                     },
                 })

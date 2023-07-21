@@ -190,9 +190,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
         for (schema, metadata) in property_types {
             if let Some(ontology_id) = transaction
-                .create(schema.clone(), metadata.borrow(), on_conflict)
+                .create_ontology_metadata(metadata.borrow(), on_conflict)
                 .await?
             {
+                transaction
+                    .insert_with_id(ontology_id, schema.clone())
+                    .await?;
+
                 inserted_property_types.push((ontology_id, schema));
             }
         }

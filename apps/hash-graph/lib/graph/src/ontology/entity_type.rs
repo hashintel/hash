@@ -168,6 +168,10 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
+    /// The label property metadata of the entity type.
+    ///
+    /// Only used internally and not available for deserialization, yet.
+    LabelProperty,
     /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding reversed edge is [`PropertyTypeQueryPath::EntityTypeEdge`].
@@ -342,7 +346,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Schema(_) | Self::AdditionalMetadata(_) | Self::Examples | Self::Required => {
                 ParameterType::Any
             }
-            Self::BaseUrl => ParameterType::BaseUrl,
+            Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
@@ -370,6 +374,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Description => fmt.write_str("description"),
             Self::Examples => fmt.write_str("examples"),
             Self::Required => fmt.write_str("required"),
+            Self::LabelProperty => fmt.write_str("labelProperty"),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,

@@ -25,9 +25,9 @@ use crate::{
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
-        domain_validator::DomainValidator, CustomOntologyMetadata, DataTypeWithMetadata,
-        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeReference,
-        PropertyTypeWithMetadata,
+        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
+        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTypeReference, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -157,7 +157,7 @@ where
 struct FetchedOntologyTypes {
     data_types: Vec<(DataType, OntologyElementMetadata)>,
     property_types: Vec<(PropertyType, OntologyElementMetadata)>,
-    entity_types: Vec<(EntityType, OntologyElementMetadata)>,
+    entity_types: Vec<(EntityType, EntityTypeMetadata)>,
 }
 
 enum FetchBehavior {
@@ -363,9 +363,16 @@ where
                             }
                         }
 
-                        fetched_ontology_types
-                            .entity_types
-                            .push((entity_type, metadata));
+                        fetched_ontology_types.entity_types.push((
+                            entity_type,
+                            EntityTypeMetadata {
+                                record_id: metadata.record_id,
+                                custom: CustomEntityTypeMetadata {
+                                    common: metadata.custom,
+                                    label_property: None,
+                                },
+                            },
+                        ));
                     }
                 }
             }
@@ -466,7 +473,10 @@ where
                     fetched_ontology_types
                         .entity_types
                         .iter()
-                        .map(|(_, metadata)| metadata.clone()),
+                        .map(|(_, metadata)| OntologyElementMetadata {
+                            record_id: metadata.record_id.clone(),
+                            custom: metadata.custom.common.clone(),
+                        }),
                 )
                 .collect::<Vec<_>>();
 
@@ -661,10 +671,7 @@ where
     async fn create_entity_types(
         &mut self,
         entity_types: impl IntoIterator<
-            Item = (
-                EntityType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
@@ -674,7 +681,12 @@ where
         self.insert_external_types(entity_types.iter().map(|(entity_type, metadata)| {
             (
                 entity_type,
-                metadata.borrow().custom.provenance().record_created_by_id(),
+                metadata
+                    .borrow()
+                    .custom
+                    .common
+                    .provenance()
+                    .record_created_by_id(),
             )
         }))
         .await?;
@@ -695,12 +707,15 @@ where
         &mut self,
         entity_type: EntityType,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+        label_property: Option<BaseUrl>,
+    ) -> Result<EntityTypeMetadata, UpdateError> {
         self.insert_external_types(once((&entity_type, actor_id)))
             .await
             .change_context(UpdateError)?;
 
-        self.store.update_entity_type(entity_type, actor_id).await
+        self.store
+            .update_entity_type(entity_type, actor_id, label_property)
+            .await
     }
 }
 
