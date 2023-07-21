@@ -76,6 +76,10 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         Poll::Ready(Ok(()))
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Add better functions to the `type-system` crate to easier read link mappings"
+    )]
     fn start_send(
         mut self: Pin<&mut Self>,
         entity_type: OntologyTypeSnapshotRecord<EntityType>,
@@ -181,13 +185,11 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
                 schema: Json(schema.into()),
-                // TODO: Add label property to database
-                //   see https://linear.app/hash/issue/H-156
-                // label_property: entity_type
-                //     .metadata
-                //     .custom
-                //     .label_property
-                //     .map(|label_property| label_property.to_string()),
+                label_property: entity_type
+                    .metadata
+                    .custom
+                    .label_property
+                    .map(|label_property| label_property.to_string()),
             })
             .into_report()
             .change_context(SnapshotRestoreError::Read)

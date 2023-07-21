@@ -70,9 +70,7 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<repr::EntityType>,
-    // TODO: Add label property to database
-    //   see https://linear.app/hash/issue/H-156
-    // pub label_property: Option<String>,
+    pub label_property: Option<String>,
 }
 
 #[derive(Debug, ToSql)]
