@@ -42,6 +42,7 @@ import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import { setupFileProxyHandler, setupStorageProviders } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
@@ -122,6 +123,14 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
+  const temporalClient = process.env.HASH_TEMPORAL_SERVER_HOST
+    ? await createTemporalClient(logger, {
+        host: process.env.HASH_TEMPORAL_SERVER_HOST,
+        port: parseInt(process.env.HASH_TEMPORAL_SERVER_PORT || "7233", 10),
+        namespace: "HASH",
+      })
+    : undefined;
+
   const context = { graphApi, uploadProvider };
 
   setupFileProxyHandler(app, uploadProvider, redis);
@@ -194,6 +203,7 @@ const main = async () => {
     graphApi,
     search,
     uploadProvider,
+    temporalClient,
     cache: redis,
     emailTransporter,
     logger,

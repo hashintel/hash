@@ -1,7 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
-  AccountId,
   Entity,
   EntityRootType,
   OwnedById,
@@ -32,6 +30,7 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { genId } from "../../../../util";
 import {
   Mutation,
   MutationArchiveEntityArgs,
@@ -311,32 +310,31 @@ export const archiveEntityResolver: ResolverFn<
   return true;
 };
 
-// @todo replace this with the actual implementation
-const inferEntitiesPlaceholder = async (
-  _textInput: string,
-  _entityTypeIds: VersionedUrl[],
-  _actorId: AccountId,
-) => {
-  return [
-    {
-      entityTypeId:
-        "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/3" as const,
-      properties: {},
-    },
-  ];
-};
-
 export const inferEntitiesResolver: ResolverFn<
   Mutation["inferEntities"],
   null,
   LoggedInGraphQLContext,
   MutationInferEntitiesArgs
-> = async (_, { textInput, entityTypeIds }, { user }) => {
-  const proposedEntities = await inferEntitiesPlaceholder(
-    textInput,
-    entityTypeIds,
-    user.accountId,
-  );
+> = async (_, { textInput, entityTypeIds }, { user, temporal }) => {
+  if (!temporal) {
+    throw new Error("Temporal client not available");
+  }
 
-  return { entities: proposedEntities };
+  const status = await temporal.workflow.execute("inferEntities", {
+    taskQueue: "aipy",
+    args: [
+      {
+        textInput,
+        entityTypeIds,
+        actorId: user.accountId,
+      },
+    ],
+    workflowId: `inferEntities-${genId()}`,
+  });
+
+  if (status.code !== "OK") {
+    throw new Error(status.message);
+  }
+
+  return status.contents[0];
 };
