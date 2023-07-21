@@ -16,7 +16,7 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
-from .base import OntologyType, OntologyTypeInfo
+from .base import OntologyTypeInfo
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol

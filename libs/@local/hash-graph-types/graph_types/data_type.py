@@ -11,11 +11,11 @@ from typing import (
 from uuid import UUID
 
 from pydantic import (
+    BaseModel,
     Extra,
     Field,
     RootModel,
     create_model,
-    BaseModel,
 )
 from slugify import slugify
 
@@ -102,14 +102,13 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         _actor_id = actor_id
         _graph = graph
 
-        const = self.model_extra.get("const") if self.model_extra else None
-
         type_ = self._type()
-        if const:
+        if "const" in (self.model_extra or {}):
+            const = self.model_extra["const"]
             type_ = constant(type_, const)
 
         base: type[BaseModel] = type(
-            "Base", (DataTypeBase,), {"info": self.type_info()}
+            "Base", (DataTypeBase,), {"info": self.type_info()},
         )
 
         return cast(

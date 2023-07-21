@@ -1,4 +1,4 @@
-from typing import Annotated, Any, TypeVar, cast, overload, Literal
+from typing import Annotated, Any, TypeVar, cast, overload
 
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
