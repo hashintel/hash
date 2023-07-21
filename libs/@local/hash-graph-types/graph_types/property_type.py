@@ -17,6 +17,7 @@ from pydantic import (
 )
 from slugify import slugify
 
+from ._cache import Cache
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
 from .base import PropertyType
 from .data_type import DataTypeReference
@@ -27,34 +28,33 @@ if TYPE_CHECKING:
 __all__ = ["PropertyTypeSchema", "PropertyTypeReference"]
 
 
+async def fetch_model(
+    ref: str,
+    *,
+    actor_id: UUID,
+    graph: "GraphAPIProtocol",
+) -> type[PropertyType]:
+    schema = await graph.get_property_type(ref, actor_id=actor_id)
+    return await schema.create_property_type(actor_id=actor_id, graph=graph)
+
+
 class PropertyTypeReference(Schema):
     """A reference to a property type schema."""
 
     ref: str = Field(..., alias="$ref")
-    cache: ClassVar[dict[str, type[RootModel]]] = {}
+    _cache: ClassVar[Cache[type[PropertyType]]] = Cache()
 
     async def create_model(
         self,
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[RootModel]:
+    ) -> type[PropertyType]:
         """Creates a model from the referenced property type schema."""
-        if cached := self.cache.get(self.ref):
-            return cached
-
-        schema = await graph.get_property_type(self.ref, actor_id=actor_id)
-
-        model = create_model(
-            slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=RootModel,
-            root=(
-                await schema.create_property_type(actor_id=actor_id, graph=graph),
-                ...,
-            ),
+        return await self._cache.get(
+            self.ref,
+            on_miss=lambda: fetch_model(self.ref, actor_id=actor_id, graph=graph),
         )
-        self.cache[self.ref] = model
-        return model
 
 
 class PropertyValue(RootModel, Schema):

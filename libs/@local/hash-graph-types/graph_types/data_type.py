@@ -12,12 +12,12 @@ from uuid import UUID
 from pydantic import (
     Extra,
     Field,
-    PrivateAttr,
     RootModel,
     create_model,
 )
 from slugify import slugify
 
+from ._cache import Cache
 from ._schema import OntologyTypeSchema, Schema
 from .base import DataType as DataTypeBase
 
@@ -29,34 +29,34 @@ __all__ = ["DataTypeSchema", "DataTypeReference"]
 DataType: TypeAlias = str | float | bool | None | list[Any] | dict[str, Any]
 
 
+async def fetch_model(
+    ref: str,
+    *,
+    actor_id: UUID,
+    graph: "GraphAPIProtocol",
+) -> type[DataTypeBase]:
+    schema = await graph.get_data_type(ref, actor_id=actor_id)
+    return await schema.create_data_type(actor_id=actor_id, graph=graph)
+
+
 class DataTypeReference(Schema):
     """A reference to a data type schema."""
 
     ref: str = Field(..., alias="$ref")
-    cache: ClassVar[dict[str, type[RootModel]]] = {}
+
+    _cache: ClassVar[Cache[type[DataTypeBase]]] = Cache()
 
     async def create_model(
         self,
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[RootModel]:
+    ) -> type[DataTypeBase]:
         """Creates a model from the referenced data type schema."""
-        if cached := self.cache.get(self.ref):
-            return cached
-
-        schema = await graph.get_data_type(self.ref, actor_id=actor_id)
-        model = await schema.create_data_type(actor_id=actor_id, graph=graph)
-
-        # Potential race condition here, another coroutine could have created the model
-        # before we did on the previous await statement.
-        # Just check if we have it in the cache again, this way we won't
-        # accidentally create the same model twice.
-        if cached := self.cache.get(self.ref):
-            return cached
-
-        self.cache[self.ref] = model
-        return model
+        return await self._cache.get(
+            self.ref,
+            on_miss=lambda: fetch_model(self.ref, actor_id=actor_id, graph=graph),
+        )
 
 
 class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
@@ -70,8 +70,6 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         ...,
         alias="type",
     )
-
-    _cached: type[RootModel] | None = PrivateAttr(None)
 
     def _type(self) -> type[DataType]:
         match self.ty:
@@ -95,12 +93,8 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[RootModel]:
+    ) -> type[DataTypeBase]:
         """Create an annotated type from this schema."""
-        # make sure that we don't duplicate work and create the same model twice
-        if self._cached is not None:
-            return self._cached
-
         # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
         _graph = graph
@@ -111,11 +105,8 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
 
         base = type("Base", (DataTypeBase,), {"info": self.type_info()})
 
-        model = create_model(
+        return create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
             __base__=(base, RootModel),
             root=(type_, Field(...)),
         )
-
-        self._cached = model
-        return model
