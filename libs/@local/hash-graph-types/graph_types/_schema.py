@@ -105,7 +105,7 @@ class Array(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[list[OntologyType]]:
+    ) -> type[list[BaseModel]]:
         type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
 
         type_ = conlist(
