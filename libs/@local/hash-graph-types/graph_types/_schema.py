@@ -114,7 +114,7 @@ class Array(Schema, Generic[T]):
             max_length=self.max_items,
         )
 
-        return cast(type[list[T]], type_)
+        return cast(type[list[BaseModel]], type_)
 
 
 class Object(Schema, Generic[T]):
