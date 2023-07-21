@@ -10,7 +10,7 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
 
-class TypeInfo(BaseModel):
+class OntologyTypeInfo(BaseModel):
     """Information about a type."""
 
     identifier: str
@@ -20,10 +20,10 @@ class TypeInfo(BaseModel):
     kind: str
 
 
-class Type(BaseModel, ABC):
-    """Base class for all graph types."""
+class OntologyType(BaseModel, ABC):
+    """Base class for all graph ontology types."""
 
-    info: ClassVar[TypeInfo]
+    info: ClassVar[OntologyTypeInfo]
 
     @classmethod
     def __get_pydantic_json_schema__(
@@ -45,13 +45,13 @@ class Type(BaseModel, ABC):
         return json_schema
 
 
-class EntityType(Type, ABC):
+class EntityType(OntologyType, ABC):
     """Base class for all entity types."""
 
 
-class PropertyType(Type, ABC):
+class PropertyType(OntologyType, ABC):
     """Base class for all property types."""
 
 
-class DataType(Type, ABC):
+class DataType(OntologyType, ABC):
     """Base class for all data types."""
