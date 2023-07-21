@@ -15,12 +15,16 @@ export const PageLayout: FunctionComponent<{
   recentBlogPosts?: boolean;
   community?: boolean;
   contentWrapperSx?: BoxProps["sx"];
+  navbarSx?: BoxProps["sx"];
+  navbarLogoEndAdornment?: ReactNode;
 }> = ({
   children,
   subscribe = true,
   recentBlogPosts = false,
   community = true,
   contentWrapperSx,
+  navbarSx,
+  navbarLogoEndAdornment,
 }) => {
   const theme = useTheme();
 
@@ -62,7 +66,7 @@ export const PageLayout: FunctionComponent<{
         },
       }}
     >
-      <Navbar />
+      <Navbar sx={navbarSx} logoEndAdornment={navbarLogoEndAdornment} />
       <Box flexGrow={1} display="flex" flexDirection="column">
         <GradientContainer
           sx={[

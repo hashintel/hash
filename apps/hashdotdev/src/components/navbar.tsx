@@ -2,6 +2,7 @@ import { faBars, faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   alpha,
   Box,
+  BoxProps,
   buttonClasses,
   ButtonProps,
   Container,
@@ -48,11 +49,11 @@ const navLinks: { icon: ReactNode; name: string; href: string }[] = [
     name: "Roadmap",
     href: "/roadmap",
   },
-  // {
-  //   icon: <FaIcon name="book-atlas" type="regular" />,
-  //   name: "Docs",
-  //   href: "/docs",
-  // },
+  {
+    icon: <FaIcon name="book-atlas" type="regular" />,
+    name: "Docs",
+    href: "/docs",
+  },
   // {
   //   icon: <FaIcon name="map" type="solid" />,
   //   name: "Tutorials",
@@ -222,7 +223,10 @@ const MobileNav: FunctionComponent<{
   );
 };
 
-export const Navbar: FunctionComponent = () => {
+export const Navbar: FunctionComponent<{
+  logoEndAdornment?: ReactNode;
+  sx?: BoxProps["sx"];
+}> = ({ logoEndAdornment, sx }) => {
   const theme = useTheme();
   const mobileNav = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -251,19 +255,24 @@ export const Navbar: FunctionComponent = () => {
   return (
     <>
       <Box
-        sx={{
-          display: "flex",
-          height: NAV_HEIGHT,
-          transition: ({ transitions }) => transitions.create("background"),
-          background: isWhiteBackground ? "#fff" : "rgba(255, 255, 255, 0.20)",
-          borderBottomWidth: 1,
-          borderBottomStyle: "solid",
-          borderBottomColor: "rgba(255, 255, 255, 0.17)",
-          alignItems: "center",
-          position: "fixed",
-          width: "100%",
-          zIndex: "appBar",
-        }}
+        sx={[
+          {
+            display: "flex",
+            height: NAV_HEIGHT,
+            transition: ({ transitions }) => transitions.create("background"),
+            background: isWhiteBackground
+              ? "#fff"
+              : "rgba(255, 255, 255, 0.20)",
+            borderBottomWidth: 1,
+            borderBottomStyle: "solid",
+            borderBottomColor: "rgba(255, 255, 255, 0.17)",
+            alignItems: "center",
+            position: "fixed",
+            width: "100%",
+            zIndex: "appBar",
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
         component="nav"
       >
         <Container>
@@ -308,7 +317,10 @@ export const Navbar: FunctionComponent = () => {
               },
             }}
           >
-            <Logo mr={2} onClick={() => setMobileNavOpen(false)} />
+            <Box mr={2} display="flex">
+              <Logo onClick={() => setMobileNavOpen(false)} />
+              {logoEndAdornment}
+            </Box>
             {mobileNav ? (
               <MobileNavButton
                 open={mobileNavOpen}
