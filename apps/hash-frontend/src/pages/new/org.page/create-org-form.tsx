@@ -6,10 +6,13 @@ import {
   CreateOrgMutationVariables,
 } from "../../../graphql/api-types.gen";
 import { createOrgMutation } from "../../../graphql/queries/knowledge/org.queries";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { OrgForm, OrgFormData } from "../../shared/org-form";
 
 export const CreateOrgForm = () => {
   const router = useRouter();
+
+  const { refetch: refetchUser } = useAuthenticatedUser();
 
   const [createOrg] = useMutation<
     CreateOrgMutation,
@@ -23,6 +26,8 @@ export const CreateOrgForm = () => {
     if (errors?.[0]) {
       throw new Error(errors[0].message);
     }
+
+    await refetchUser();
 
     void router.push(`/@${orgData.shortname}`);
   };

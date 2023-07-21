@@ -10,7 +10,7 @@ export const orgTypedef = gql`
 
   extend type Mutation {
     """
-    Create an organization.
+    Create an organization. The creator will be automatically added as an org member.
     """
     createOrg(
       """

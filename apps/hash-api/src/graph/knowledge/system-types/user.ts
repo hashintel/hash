@@ -39,7 +39,6 @@ import {
   shortnameIsTaken,
 } from "./account.fields";
 import { addHashInstanceAdmin, getHashInstance } from "./hash-instance";
-import { Org } from "./org";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
@@ -458,19 +457,19 @@ export const updateUserPreferredName: ImpureGraphFunction<
  */
 export const joinOrg: ImpureGraphFunction<
   {
-    user: User;
-    org: Org;
+    userEntityId: EntityId;
+    orgEntityId: EntityId;
     responsibility: string;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { user, org, responsibility, actorId } = params;
+  const { userEntityId, orgEntityId, responsibility, actorId } = params;
 
   await createOrgMembership(ctx, {
     responsibility,
-    org,
-    user,
+    orgEntityId,
+    userEntityId,
     actorId,
   });
 };

@@ -32,6 +32,7 @@ import {
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
+import { joinOrg } from "./user";
 
 /**
  * @todo revisit organization size provided info. These constant strings could
@@ -98,6 +99,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  */
 export const createOrg: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+    foundingUserEntityId: EntityId;
     shortname: string;
     name: string;
     providedInfo?: OrgProvidedInfo;
@@ -106,7 +108,14 @@ export const createOrg: ImpureGraphFunction<
   },
   Promise<Org>
 > = async (ctx, params) => {
-  const { shortname, name, providedInfo, website, actorId } = params;
+  const {
+    foundingUserEntityId,
+    shortname,
+    name,
+    providedInfo,
+    website,
+    actorId,
+  } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -150,6 +159,13 @@ export const createOrg: ImpureGraphFunction<
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountId as EntityUuid,
     actorId,
+  });
+
+  await joinOrg(ctx, {
+    actorId,
+    orgEntityId: entity.metadata.recordId.entityId,
+    responsibility: "Owner",
+    userEntityId: foundingUserEntityId,
   });
 
   return getOrgFromEntity({ entity });

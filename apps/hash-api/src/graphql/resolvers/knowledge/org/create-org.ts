@@ -19,6 +19,7 @@ export const createOrgResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const org = await createOrg(context, {
+    foundingUserEntityId: user.entity.metadata.recordId.entityId,
     shortname,
     name,
     providedInfo: orgSize ? { orgSize } : undefined,
