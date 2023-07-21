@@ -1,10 +1,11 @@
-import { EntityType } from "@blockprotocol/type-system/slim";
+import { EntityType, extractVersion } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
 
 import { LinkedIcon } from "../../../../../../shared/icons/linked-icon";
+import { Link } from "../../../../../../shared/ui/link";
 import { isLinkEntityType } from "../../[...slug-maybe-version].page";
 import { EntityTypeDescription } from "../entity-type-description";
 
@@ -12,18 +13,39 @@ interface EntityTypeHeaderProps {
   ontologyChip: ReactNode;
   entityType: EntityType;
   isReadonly: boolean;
+  latestVersion?: number | null;
 }
 
 export const EntityTypeHeader = ({
   ontologyChip,
   entityType,
   isReadonly,
+  latestVersion,
 }: EntityTypeHeaderProps) => {
   const entityTypeIsLink = isLinkEntityType(entityType);
 
+  const isLatest =
+    !latestVersion || extractVersion(entityType.$id) === latestVersion;
+  const latestVersionUrl = entityType.$id.replace(/\d+$/, `${latestVersion}`);
+
   return (
     <Box>
-      {ontologyChip}
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {ontologyChip}
+
+        {!isLatest && (
+          <Link
+            href={latestVersionUrl}
+            sx={{
+              textDecoration: "none",
+            }}
+          >
+            <Typography color="inherit" sx={{ fontSize: 11, fontWeight: 600 }}>
+              {`–> v${latestVersion} available`}
+            </Typography>
+          </Link>
+        )}
+      </Stack>
       <Typography variant="h1" fontWeight="bold" my={3}>
         {entityTypeIsLink ? (
           <Tooltip
@@ -34,7 +56,7 @@ export const EntityTypeHeader = ({
               <LinkedIcon
                 sx={({ palette }) => ({
                   fontSize: 40,
-                  mr: 3,
+                  mr: 2,
                   stroke: palette.gray[50],
                   verticalAlign: "middle",
                 })}

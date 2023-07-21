@@ -15,9 +15,6 @@ pub use self::{
     property_type::{
         property_type_channel, PropertyTypeReceiver, PropertyTypeRowBatch, PropertyTypeSender,
     },
-    record::{
-        CustomOntologyMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
-        OntologyTypeSnapshotRecord,
-    },
+    record::OntologyTypeSnapshotRecord,
     table::{DataTypeRow, OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
 };

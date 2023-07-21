@@ -394,7 +394,7 @@ macro_rules! impl_ontology_column {
                         }
                     };
                     table.transpile(fmt)?;
-                    write!(fmt, r#"."{}""#, column)
+                    write!(fmt, r#"."{column}""#)
                 }
 
                 pub const fn parameter_type(self) -> ParameterType {
@@ -411,7 +411,59 @@ macro_rules! impl_ontology_column {
 
 impl_ontology_column!(DataTypes);
 impl_ontology_column!(PropertyTypes);
-impl_ontology_column!(EntityTypes);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityTypes<'p> {
+    OntologyId,
+    Schema(Option<JsonField<'p>>),
+    LabelProperty,
+}
+impl<'p> EntityTypes<'p> {
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::OntologyId => false,
+            Self::Schema(_) | Self::LabelProperty => true,
+        }
+    }
+
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (EntityTypes<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::OntologyId => (EntityTypes::OntologyId, None),
+            Self::Schema(None) => (EntityTypes::Schema(None), None),
+            Self::Schema(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityTypes::Schema(Some(path)), parameter)
+            }
+            Self::LabelProperty => (EntityTypes::LabelProperty, None),
+        }
+    }
+}
+impl EntityTypes<'static> {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::Schema(None) => "schema",
+            Self::Schema(Some(path)) => {
+                return transpile_json_field(path, "schema", table, fmt);
+            }
+            Self::LabelProperty => "label_property",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::Schema(Some(JsonField::StaticText(_))) => ParameterType::Text,
+            Self::Schema(_) => ParameterType::Any,
+            Self::LabelProperty => ParameterType::BaseUrl,
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityTemporalMetadata {

@@ -81,11 +81,9 @@ pub enum EntityTypeQueryPath<'p> {
     /// The transaction time of the [`EntityType`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is currently not part
-    /// of the [`OntologyElementMetadata`].
+    /// `temporalAxes` parameter on [`StructuralQuery`].
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
@@ -170,6 +168,17 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
+    /// The label property metadata of the entity type.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["labelProperty"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::LabelProperty);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    LabelProperty,
     /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding reversed edge is [`PropertyTypeQueryPath::EntityTypeEdge`].
@@ -344,7 +353,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Schema(_) | Self::AdditionalMetadata(_) | Self::Examples | Self::Required => {
                 ParameterType::Any
             }
-            Self::BaseUrl => ParameterType::BaseUrl,
+            Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
@@ -372,6 +381,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Description => fmt.write_str("description"),
             Self::Examples => fmt.write_str("examples"),
             Self::Required => fmt.write_str("required"),
+            Self::LabelProperty => fmt.write_str("labelProperty"),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
@@ -432,6 +442,7 @@ pub enum EntityTypeQueryToken {
     Examples,
     Properties,
     Required,
+    LabelProperty,
     Links,
     InheritsFrom,
     #[serde(skip)]
@@ -445,9 +456,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, `title`, \
-         `description`, `examples`, `properties`, `required`, `links`, `inheritsFrom`";
+    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
+                                         `ownedById`, `recordCreatedById`, `title`, \
+                                         `description`, `examples`, `properties`, `required`, \
+                                         `labelProperty`, `links`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -491,6 +503,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                 }
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
+            EntityTypeQueryToken::LabelProperty => EntityTypeQueryPath::LabelProperty,
             EntityTypeQueryToken::Links => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;

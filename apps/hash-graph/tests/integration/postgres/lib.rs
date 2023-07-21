@@ -27,8 +27,8 @@ use graph::{
         LinkData,
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
-        ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
+        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
+        EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
@@ -129,11 +129,14 @@ impl DatabaseTestWrapper {
                 .expect("could not parse data type representation");
             let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
-            let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                data_type.id().clone().into(),
-                ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                OwnedById::new(account_id),
-            ));
+            let metadata = OntologyElementMetadata {
+                record_id: data_type.id().clone().into(),
+                custom: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    temporal_versioning: None,
+                    owned_by_id: OwnedById::new(account_id),
+                },
+            };
 
             (data_type, metadata)
         });
@@ -147,11 +150,14 @@ impl DatabaseTestWrapper {
             let property_type =
                 PropertyType::try_from(property_type_repr).expect("could not parse property type");
 
-            let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                property_type.id().clone().into(),
-                ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                OwnedById::new(account_id),
-            ));
+            let metadata = OntologyElementMetadata {
+                record_id: property_type.id().clone().into(),
+                custom: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    temporal_versioning: None,
+                    owned_by_id: OwnedById::new(account_id),
+                },
+            };
 
             (property_type, metadata)
         });
@@ -165,11 +171,17 @@ impl DatabaseTestWrapper {
             let entity_type =
                 EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
-            let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                entity_type.id().clone().into(),
-                ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                OwnedById::new(account_id),
-            ));
+            let metadata = EntityTypeMetadata {
+                record_id: entity_type.id().clone().into(),
+                custom: CustomEntityTypeMetadata {
+                    common: CustomOntologyMetadata::Owned {
+                        provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                        temporal_versioning: None,
+                        owned_by_id: OwnedById::new(account_id),
+                    },
+                    label_property: None,
+                },
+            };
 
             (entity_type, metadata)
         });
@@ -200,11 +212,14 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            data_type.id().clone().into(),
-            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
-            OwnedById::new(self.account_id),
-        ));
+        let metadata = OntologyElementMetadata {
+            record_id: data_type.id().clone().into(),
+            custom: CustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                temporal_versioning: None,
+                owned_by_id: OwnedById::new(self.account_id),
+            },
+        };
 
         self.store.create_data_type(data_type, &metadata).await?;
 
@@ -215,11 +230,14 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-            data_type.id().clone().into(),
-            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
-            OffsetDateTime::now_utc(),
-        ));
+        let metadata = OntologyElementMetadata {
+            record_id: data_type.id().clone().into(),
+            custom: CustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                temporal_versioning: None,
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+        };
 
         self.store.create_data_type(data_type, &metadata).await?;
 
@@ -263,11 +281,14 @@ impl DatabaseApi<'_> {
         &mut self,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            property_type.id().clone().into(),
-            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
-            OwnedById::new(self.account_id),
-        ));
+        let metadata = OntologyElementMetadata {
+            record_id: property_type.id().clone().into(),
+            custom: CustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                temporal_versioning: None,
+                owned_by_id: OwnedById::new(self.account_id),
+            },
+        };
 
         self.store
             .create_property_type(property_type, &metadata)
@@ -312,12 +333,18 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            entity_type.id().clone().into(),
-            ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
-            OwnedById::new(self.account_id),
-        ));
+    ) -> Result<EntityTypeMetadata, InsertionError> {
+        let metadata = EntityTypeMetadata {
+            record_id: entity_type.id().clone().into(),
+            custom: CustomEntityTypeMetadata {
+                common: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                    temporal_versioning: None,
+                    owned_by_id: OwnedById::new(self.account_id),
+                },
+                label_property: None,
+            },
+        };
 
         self.store
             .create_entity_type(entity_type, &metadata)
@@ -353,9 +380,9 @@ impl DatabaseApi<'_> {
     pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<EntityTypeMetadata, UpdateError> {
         self.store
-            .update_entity_type(entity_type, RecordCreatedById::new(self.account_id))
+            .update_entity_type(entity_type, RecordCreatedById::new(self.account_id), None)
             .await
     }
 

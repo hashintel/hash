@@ -1,5 +1,6 @@
 import {
   extractBaseUrl as extractBaseUrlBp,
+  extractVersion,
   ParseVersionedUrlError,
   validateVersionedUrl,
   VersionedUrl,
@@ -28,6 +29,29 @@ export class InvalidVersionedUrlComponentsError extends Error {
     this.error = error;
   }
 }
+
+/**
+ * Extract the baseUrl and version from a versioned URL
+ *
+ * @param versionedUrl a versioned URL
+ * @throws {ParseVersionedUrlError} if the versionedUrl is invalid
+ *
+ * @todo - Expose this through the Type System package
+ */
+export const componentsFromVersionedUrl = (
+  versionedUrl: VersionedUrl,
+): {
+  baseUrl: BaseUrl;
+  version: number;
+} => {
+  const baseUrl = extractBaseUrl(versionedUrl);
+  const version = extractVersion(versionedUrl);
+
+  return {
+    baseUrl,
+    version,
+  };
+};
 
 /** @todo - Expose this through the Type System package */
 export const versionedUrlFromComponents = (

@@ -25,9 +25,9 @@ use crate::{
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
-        domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeWithMetadata,
-        ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyTypeReference,
-        PropertyTypeWithMetadata,
+        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
+        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTypeReference, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -157,7 +157,7 @@ where
 struct FetchedOntologyTypes {
     data_types: Vec<(DataType, OntologyElementMetadata)>,
     property_types: Vec<(PropertyType, OntologyElementMetadata)>,
-    entity_types: Vec<(EntityType, OntologyElementMetadata)>,
+    entity_types: Vec<(EntityType, EntityTypeMetadata)>,
 }
 
 enum FetchBehavior {
@@ -243,6 +243,11 @@ where
         Ok(references)
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Large parts of this function is is written out three times and this should be \
+                  moved to another function at some point."
+    )]
     async fn fetch_external_ontology_types(
         &self,
         ontology_type_references: Vec<VersionedUrl>,
@@ -282,11 +287,14 @@ where
                         let data_type = DataType::try_from(data_type_repr)
                             .into_report()
                             .change_context(StoreError)?;
-                        let metadata = ExternalOntologyElementMetadata::new(
-                            data_type.id().clone().into(),
-                            provenance_metadata,
-                            fetched_at,
-                        );
+                        let metadata = OntologyElementMetadata {
+                            record_id: data_type.id().clone().into(),
+                            custom: CustomOntologyMetadata::External {
+                                provenance: provenance_metadata,
+                                fetched_at,
+                                temporal_versioning: None,
+                            },
+                        };
 
                         for referenced_ontology_type in self
                             .collect_external_ontology_types(&data_type)
@@ -301,17 +309,20 @@ where
 
                         fetched_ontology_types
                             .data_types
-                            .push((data_type, OntologyElementMetadata::External(metadata)));
+                            .push((data_type, metadata));
                     }
                     OntologyTypeRepr::PropertyType(property_type) => {
                         let property_type = PropertyType::try_from(property_type)
                             .into_report()
                             .change_context(StoreError)?;
-                        let metadata = ExternalOntologyElementMetadata::new(
-                            property_type.id().clone().into(),
-                            provenance_metadata,
-                            fetched_at,
-                        );
+                        let metadata = OntologyElementMetadata {
+                            record_id: property_type.id().clone().into(),
+                            custom: CustomOntologyMetadata::External {
+                                provenance: provenance_metadata,
+                                fetched_at,
+                                temporal_versioning: None,
+                            },
+                        };
 
                         for referenced_ontology_type in self
                             .collect_external_ontology_types(&property_type)
@@ -326,17 +337,20 @@ where
 
                         fetched_ontology_types
                             .property_types
-                            .push((property_type, OntologyElementMetadata::External(metadata)));
+                            .push((property_type, metadata));
                     }
                     OntologyTypeRepr::EntityType(entity_type) => {
                         let entity_type = EntityType::try_from(entity_type)
                             .into_report()
                             .change_context(StoreError)?;
-                        let metadata = ExternalOntologyElementMetadata::new(
-                            entity_type.id().clone().into(),
-                            provenance_metadata,
-                            fetched_at,
-                        );
+                        let metadata = OntologyElementMetadata {
+                            record_id: entity_type.id().clone().into(),
+                            custom: CustomOntologyMetadata::External {
+                                provenance: provenance_metadata,
+                                fetched_at,
+                                temporal_versioning: None,
+                            },
+                        };
 
                         for referenced_ontology_type in self
                             .collect_external_ontology_types(&entity_type)
@@ -349,9 +363,16 @@ where
                             }
                         }
 
-                        fetched_ontology_types
-                            .entity_types
-                            .push((entity_type, OntologyElementMetadata::External(metadata)));
+                        fetched_ontology_types.entity_types.push((
+                            entity_type,
+                            EntityTypeMetadata {
+                                record_id: metadata.record_id,
+                                custom: CustomEntityTypeMetadata {
+                                    common: metadata.custom,
+                                    label_property: None,
+                                },
+                            },
+                        ));
                     }
                 }
             }
@@ -452,7 +473,10 @@ where
                     fetched_ontology_types
                         .entity_types
                         .iter()
-                        .map(|(_, metadata)| metadata.clone()),
+                        .map(|(_, metadata)| OntologyElementMetadata {
+                            record_id: metadata.record_id.clone(),
+                            custom: metadata.custom.common.clone(),
+                        }),
                 )
                 .collect::<Vec<_>>();
 
@@ -496,8 +520,8 @@ where
         .await?
         .into_iter()
         .find(|metadata| {
-            metadata.record_id().base_url == reference.url().base_url
-                && metadata.record_id().version.inner() == reference.url().version
+            metadata.record_id.base_url == reference.url().base_url
+                && metadata.record_id.version.inner() == reference.url().version
         })
         .ok_or_else(|| {
             Report::new(InsertionError).attach_printable(format!(
@@ -556,10 +580,7 @@ where
         self.insert_external_types(data_types.iter().map(|(data_type, metadata)| {
             (
                 data_type,
-                metadata
-                    .borrow()
-                    .provenance_metadata()
-                    .record_created_by_id(),
+                metadata.borrow().custom.provenance().record_created_by_id(),
             )
         }))
         .await?;
@@ -609,10 +630,7 @@ where
         self.insert_external_types(property_types.iter().map(|(property_type, metadata)| {
             (
                 property_type,
-                metadata
-                    .borrow()
-                    .provenance_metadata()
-                    .record_created_by_id(),
+                metadata.borrow().custom.provenance().record_created_by_id(),
             )
         }))
         .await?;
@@ -653,10 +671,7 @@ where
     async fn create_entity_types(
         &mut self,
         entity_types: impl IntoIterator<
-            Item = (
-                EntityType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
@@ -668,7 +683,9 @@ where
                 entity_type,
                 metadata
                     .borrow()
-                    .provenance_metadata()
+                    .custom
+                    .common
+                    .provenance()
                     .record_created_by_id(),
             )
         }))
@@ -690,12 +707,15 @@ where
         &mut self,
         entity_type: EntityType,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+        label_property: Option<BaseUrl>,
+    ) -> Result<EntityTypeMetadata, UpdateError> {
         self.insert_external_types(once((&entity_type, actor_id)))
             .await
             .change_context(UpdateError)?;
 
-        self.store.update_entity_type(entity_type, actor_id).await
+        self.store
+            .update_entity_type(entity_type, actor_id, label_property)
+            .await
     }
 }
 

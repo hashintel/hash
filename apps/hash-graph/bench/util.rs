@@ -2,7 +2,10 @@ use std::mem::ManuallyDrop;
 
 use graph::{
     identifier::account::AccountId,
-    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        OntologyElementMetadata,
+    },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
@@ -198,14 +201,14 @@ pub async fn seed<D, P, E, C>(
         let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
         match store
-            .create_data_type(
-                data_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    data_type.id().clone().into(),
-                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_data_type(data_type.clone(), &OntologyElementMetadata {
+                record_id: data_type.id().clone().into(),
+                custom: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    temporal_versioning: None,
+                    owned_by_id: OwnedById::new(account_id),
+                },
+            })
             .await
         {
             Ok(_) => {}
@@ -229,14 +232,14 @@ pub async fn seed<D, P, E, C>(
             PropertyType::try_from(property_typee_repr).expect("could not parse property type");
 
         match store
-            .create_property_type(
-                property_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    property_type.id().clone().into(),
-                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_property_type(property_type.clone(), &OntologyElementMetadata {
+                record_id: property_type.id().clone().into(),
+                custom: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    temporal_versioning: None,
+                    owned_by_id: OwnedById::new(account_id),
+                },
+            })
             .await
         {
             Ok(_) => {}
@@ -260,21 +263,24 @@ pub async fn seed<D, P, E, C>(
             EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
         match store
-            .create_entity_type(
-                entity_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    entity_type.id().clone().into(),
-                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_entity_type(entity_type.clone(), &EntityTypeMetadata {
+                record_id: entity_type.id().clone().into(),
+                custom: CustomEntityTypeMetadata {
+                    common: CustomOntologyMetadata::Owned {
+                        provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                        temporal_versioning: None,
+                        owned_by_id: OwnedById::new(account_id),
+                    },
+                    label_property: None,
+                },
+            })
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(entity_type, RecordCreatedById::new(account_id))
+                        .update_entity_type(entity_type, RecordCreatedById::new(account_id), None)
                         .await
                         .expect("failed to update entity type");
                 } else {
