@@ -329,7 +329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                  "$ref": "#/components/schemas/MaybeListOfEntityTypeMetadata"
                 }
               }
             }
@@ -771,6 +771,14 @@
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
           },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
+          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -819,20 +827,46 @@
         }
       },
       "CustomEntityTypeMetadata": {
-        "allOf": [
+        "oneOf": [
           {
-            "$ref": "#/components/schemas/CustomOntologyMetadata"
+            "type": "object",
+            "required": [
+              "provenance",
+              "ownedById"
+            ],
+            "properties": {
+              "labelProperty": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
           },
           {
             "type": "object",
+            "required": [
+              "provenance",
+              "fetchedAt"
+            ],
             "properties": {
+              "fetchedAt": {
+                "type": "string"
+              },
               "labelProperty": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BaseUrl"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/ProvenanceMetadata"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
               }
             }
           }
@@ -1718,6 +1752,19 @@
           }
         }
       },
+      "MaybeListOfEntityTypeMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EntityTypeMetadata"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeMetadata"
+            }
+          }
+        ]
+      },
       "MaybeListOfOntologyElementMetadata": {
         "oneOf": [
           {
@@ -2464,6 +2511,14 @@
         "properties": {
           "actorId": {
             "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"

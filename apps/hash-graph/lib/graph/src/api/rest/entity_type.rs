@@ -90,6 +90,8 @@ struct CreateEntityTypeRequest {
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
     actor_id: RecordCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    label_property: Option<BaseUrl>,
 }
 
 #[utoipa::path(
@@ -98,7 +100,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfOntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
 
         (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
@@ -142,6 +144,7 @@ where
         schema,
         owned_by_id,
         actor_id,
+        label_property,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -199,7 +202,7 @@ where
                     temporal_versioning: None,
                     owned_by_id,
                 },
-                label_property: None,
+                label_property: label_property.clone(),
             },
         });
 
@@ -410,6 +413,8 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    label_property: Option<BaseUrl>,
 }
 
 #[utoipa::path(
@@ -434,6 +439,7 @@ async fn update_entity_type<P: StorePool + Send>(
         schema,
         mut type_to_update,
         actor_id,
+        label_property,
     }) = body;
 
     type_to_update.version += 1;
@@ -452,7 +458,7 @@ async fn update_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity_type(entity_type, actor_id, None)
+        .update_entity_type(entity_type, actor_id, label_property)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
