@@ -14,11 +14,10 @@ class Cache(Generic[T]):
         self._pending = {}
 
     async def get(self, key: str, *, on_miss: Callable[[], Awaitable[T]]) -> T:
-        if key in self._cache:
-            return self._cache[key]
+        if value := self._cache.get(key):
+            return value
 
-        if key in self._pending:
-            event = self._pending[key]
+        if event := self._pending.get(key):
             await event.wait()
             return self._cache[key]
 
@@ -27,9 +26,9 @@ class Cache(Generic[T]):
 
         try:
             value = await on_miss()
+            self._cache[key] = value
         finally:
             event.set()
             del self._pending[key]
 
-        self._cache[key] = value
         return value
