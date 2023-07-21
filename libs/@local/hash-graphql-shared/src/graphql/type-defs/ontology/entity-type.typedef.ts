@@ -40,7 +40,7 @@ export const entityTypeTypedef = gql`
       ownedById: OwnedById
       entityType: ConstructEntityTypeParams!
       """
-      The label which is used as the label property for the entity type.
+      The property which should be used as the label for entities of this type.
       """
       labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
@@ -58,7 +58,7 @@ export const entityTypeTypedef = gql`
       """
       updatedEntityType: ConstructEntityTypeParams!
       """
-      The label which is used as the label property for the entity type.
+      The property which should be used as the label for entities of this type.
       """
       labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
