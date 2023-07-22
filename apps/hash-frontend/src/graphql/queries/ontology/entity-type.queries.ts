@@ -29,12 +29,14 @@ export const queryEntityTypesQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $latestOnly: Boolean = true
   ) {
     queryEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      latestOnly: $latestOnly
     ) {
       ...SubgraphFields
     }

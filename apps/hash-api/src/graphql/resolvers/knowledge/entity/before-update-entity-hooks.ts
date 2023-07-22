@@ -65,7 +65,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentShortname = user.shortname;
 
   const updatedShortname = updatedProperties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
+    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
   ] as string | undefined;
 
   if (currentShortname !== updatedShortname) {

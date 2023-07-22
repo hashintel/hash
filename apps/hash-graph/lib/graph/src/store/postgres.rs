@@ -8,12 +8,14 @@ mod traversal_context;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use time::OffsetDateTime;
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
-    url::VersionedUrl, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference,
+    repr,
+    url::{BaseUrl, VersionedUrl},
+    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
 
 pub use self::{
@@ -25,9 +27,7 @@ use crate::{
         account::AccountId,
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     },
-    ontology::{
-        ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
-    },
+    ontology::{CustomOntologyMetadata, OntologyElementMetadata},
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{
@@ -71,7 +71,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_owned_ontology_id(
         &self,
-        metadata: &OwnedOntologyElementMetadata,
+        record_id: &OntologyTypeRecordId,
+        provenance: ProvenanceMetadata,
+        owned_by_id: OwnedById,
         on_conflict: ConflictBehavior,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
@@ -87,10 +89,10 @@ where
                     resume_on_conflict := $5
                 );"#,
                 &[
-                    &metadata.record_id().base_url.as_str(),
-                    &metadata.record_id().version,
-                    &metadata.provenance_metadata().record_created_by_id(),
-                    &metadata.owned_by_id(),
+                    &record_id.base_url.as_str(),
+                    &record_id.version,
+                    &provenance.record_created_by_id(),
+                    &owned_by_id,
                     &(on_conflict == ConflictBehavior::Skip),
                 ],
             )
@@ -100,15 +102,15 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::INVALID_PARAMETER_VALUE) => report
                     .change_context(BaseUrlAlreadyExists)
-                    .attach_printable(metadata.record_id().base_url.clone())
+                    .attach_printable(record_id.base_url.clone())
                     .change_context(InsertionError),
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(VersionedUrl::from(metadata.record_id().clone()))
+                    .attach_printable(VersionedUrl::from(record_id.clone()))
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUrl::from(metadata.record_id().clone())),
+                    .attach_printable(VersionedUrl::from(record_id.clone())),
             })
     }
 
@@ -122,7 +124,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_external_ontology_id(
         &self,
-        metadata: &ExternalOntologyElementMetadata,
+        record_id: &OntologyTypeRecordId,
+        provenance: ProvenanceMetadata,
+        fetched_at: OffsetDateTime,
         on_conflict: ConflictBehavior,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
@@ -138,10 +142,10 @@ where
                     resume_on_conflict := $5
                 );"#,
                 &[
-                    &metadata.record_id().base_url.as_str(),
-                    &metadata.record_id().version,
-                    &metadata.provenance_metadata().record_created_by_id(),
-                    &metadata.fetched_at(),
+                    &record_id.base_url.as_str(),
+                    &record_id.version,
+                    &provenance.record_created_by_id(),
+                    &fetched_at,
                     &(on_conflict == ConflictBehavior::Skip),
                 ],
             )
@@ -151,15 +155,15 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::INVALID_PARAMETER_VALUE) => report
                     .change_context(BaseUrlAlreadyExists)
-                    .attach_printable(metadata.record_id().base_url.clone())
+                    .attach_printable(record_id.base_url.clone())
                     .change_context(InsertionError),
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(VersionedUrl::from(metadata.record_id().clone()))
+                    .attach_printable(VersionedUrl::from(record_id.clone()))
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUrl::from(metadata.record_id().clone())),
+                    .attach_printable(VersionedUrl::from(record_id.clone())),
             })
     }
 
@@ -231,27 +235,40 @@ where
     /// - If the [`BaseUrl`] already exists
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    #[tracing::instrument(level = "info", skip(self, database_type))]
-    async fn create<T>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn create_ontology_metadata(
         &self,
-        database_type: T,
         metadata: &OntologyElementMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<OntologyId>, InsertionError>
-    where
-        T: OntologyDatabaseType + Send,
-        T::Representation: Send,
-    {
-        let ontology_id = match metadata {
-            OntologyElementMetadata::Owned(metadata) => {
-                self.create_owned_ontology_id(metadata, on_conflict).await?
+    ) -> Result<Option<OntologyId>, InsertionError> {
+        let ontology_id = match metadata.custom {
+            CustomOntologyMetadata::Owned {
+                provenance,
+                owned_by_id,
+                ..
+            } => {
+                self.create_owned_ontology_id(
+                    &metadata.record_id,
+                    provenance,
+                    owned_by_id,
+                    on_conflict,
+                )
+                .await?
             }
-            OntologyElementMetadata::External(metadata) => {
-                self.create_external_ontology_id(metadata, on_conflict)
-                    .await?
+            CustomOntologyMetadata::External {
+                provenance,
+                fetched_at,
+                ..
+            } => {
+                self.create_external_ontology_id(
+                    &metadata.record_id,
+                    provenance,
+                    fetched_at,
+                    on_conflict,
+                )
+                .await?
             }
         };
-        self.insert_with_id(ontology_id, database_type).await?;
 
         Ok(Some(ontology_id))
     }
@@ -286,14 +303,14 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            ontology_id,
-            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                record_id,
-                ProvenanceMetadata::new(record_created_by_id),
+        Ok((ontology_id, OntologyElementMetadata {
+            record_id,
+            custom: CustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata::new(record_created_by_id),
                 owned_by_id,
-            )),
-        ))
+                temporal_versioning: None,
+            },
+        }))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
@@ -332,6 +349,43 @@ where
                     T::table()
                 ),
                 &[&ontology_id, &value],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?
+            .map(|row| row.get(0)))
+    }
+
+    /// Inserts a [`EntityType`] identified by [`OntologyId`], and associated with an
+    /// [`OwnedById`], [`RecordCreatedById`], and the optional label property, into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if inserting failed.
+    #[tracing::instrument(level = "debug", skip(self, entity_type))]
+    async fn insert_entity_type_with_id(
+        &self,
+        ontology_id: OntologyId,
+        entity_type: EntityType,
+        label_property: Option<&BaseUrl>,
+    ) -> Result<Option<OntologyId>, InsertionError> {
+        let value_repr = repr::EntityType::from(entity_type);
+        let value = serde_json::to_value(value_repr)
+            .into_report()
+            .change_context(InsertionError)?;
+
+        let label_property = label_property.map(BaseUrl::as_str);
+
+        Ok(self
+            .as_client()
+            .query_opt(
+                r#"
+                    INSERT INTO entity_types (ontology_id, schema, label_property)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT DO NOTHING
+                    RETURNING ontology_id;
+                "#,
+                &[&ontology_id, &value, &label_property],
             )
             .await
             .into_report()

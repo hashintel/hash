@@ -1,4 +1,6 @@
 export const scalars = {
+  BaseUrl: "@blockprotocol/type-system#BaseUrl",
+
   Date: "string",
 
   JSONObject: "@blockprotocol/core#JsonObject",
