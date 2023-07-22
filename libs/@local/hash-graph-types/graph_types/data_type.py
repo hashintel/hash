@@ -109,7 +109,9 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
             type_ = constant(type_, const)
 
         base: type[BaseModel] = type(
-            "Base", (DataTypeBase,), {"info": self.type_info()},
+            "Base",
+            (DataTypeBase,),
+            {"info": self.type_info()},
         )
 
         return cast(
