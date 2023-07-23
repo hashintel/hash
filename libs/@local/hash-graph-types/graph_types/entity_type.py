@@ -20,7 +20,7 @@ from slugify import slugify
 
 from ._cache import Cache
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import EntityType
+from .base import EntityType, EntityTypeInfo
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
@@ -79,6 +79,14 @@ class EntityTypeSchema(
     links: dict[str, Array[OneOf[EntityTypeReference] | EmptyDict]] | None = None
     all_of: list[EntityTypeReference] | None = Field(None, alias="allOf")
 
+    def type_info(self) -> EntityTypeInfo:
+        """Return the type information for this schema."""
+        original = super().type_info()
+
+        return EntityTypeInfo(
+            **(original.model_dump() | {"all_of": self.all_of or []}),
+        )
+
     async def create_entity_type(
         self,
         *,
@@ -89,7 +97,11 @@ class EntityTypeSchema(
         # Take the fields from Object and create a new model, with a new baseclass.
         proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
 
-        base: type[BaseModel] = type("Base", (EntityType,), {"info": self.type_info()})
+        base: type[BaseModel] = type(
+            "Base",
+            (EntityType,),
+            {"info": self.type_info()},
+        )
 
         model = create_model(
             slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),

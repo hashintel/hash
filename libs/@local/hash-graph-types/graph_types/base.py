@@ -5,7 +5,7 @@ These classes are primarily used as markers
 from abc import ABC
 from typing import ClassVar
 
-from pydantic import BaseModel, GetJsonSchemaHandler
+from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
@@ -13,8 +13,10 @@ from pydantic_core import CoreSchema
 class OntologyTypeInfo(BaseModel):
     """Information about a type."""
 
-    identifier: str
-    schema_url: str
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: str = Field(..., alias="$id")
+    schema_url: str = Field(..., alias="$schema")
     title: str
     description: str | None = None
     kind: str
@@ -33,20 +35,20 @@ class OntologyType(BaseModel, ABC):
     ) -> JsonSchemaValue:
         """Update the schema with additional type information."""
         json_schema = handler(schema)
-        json_schema.update(
-            **{
-                "$id": cls.info.identifier,
-                "$schema": cls.info.schema_url,
-                "title": cls.info.title,
-                "description": cls.info.description,
-                "kind": cls.info.kind,
-            },
-        )
+        json_schema.update(cls.info.model_dump(by_alias=True))
         return json_schema
+
+
+class EntityTypeInfo(OntologyTypeInfo):
+    """Information about an entity type."""
+
+    all_of: list[str] | None = Field(..., alias="allOf")
 
 
 class EntityType(OntologyType, ABC):
     """Base class for all entity types."""
+
+    info: ClassVar[EntityTypeInfo]
 
 
 class PropertyType(OntologyType, ABC):
