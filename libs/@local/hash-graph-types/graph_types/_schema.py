@@ -13,9 +13,11 @@ from pydantic import (
     conlist,
     create_model,
 )
+from pydantic.fields import FieldInfo
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
+from ._annotations import omit_default
 from .base import OntologyTypeInfo
 
 if TYPE_CHECKING:
@@ -117,6 +119,9 @@ class Array(Schema, Generic[T]):
         return cast(type[list[BaseModel]], type_)
 
 
+U = TypeVar("U")
+
+
 class Object(Schema, Generic[T]):
     ty: Literal["object"] = Field(..., alias="type")
     properties: dict[str, T]
@@ -134,14 +139,17 @@ class Object(Schema, Generic[T]):
         ) -> tuple[str, type[BaseModel] | Any]:
             return key, await value
 
-        def default_value(key: str) -> None | EllipsisType:
-            if self.required is None:
-                return None
+        def field_type(key: str, type_: type[U]) -> type[U]:
+            if self.required is None or key not in self.required:
+                return omit_default(type_)
 
-            if key in self.required:
-                return ...
+            return type_
 
-            return None
+        def field_info(key: str) -> FieldInfo:
+            if self.required is None or key not in self.required:
+                return Field(None)
+
+            return Field(...)
 
         types = dict(
             await asyncio.gather(
@@ -152,7 +160,10 @@ class Object(Schema, Generic[T]):
             ),
         )
 
-        types = {key: (value, default_value(key)) for key, value in types.items()}
+        types = {
+            key: (field_type(key, value), field_info(key))
+            for key, value in types.items()
+        }
 
         return create_model(
             "DictSchema",

@@ -19,8 +19,8 @@ from pydantic import (
 )
 from slugify import slugify
 
+from ._annotations import constant
 from ._cache import Cache
-from ._const import constant
 from ._schema import OntologyTypeSchema, Schema
 from .base import DataType as DataTypeBase
 
@@ -109,7 +109,9 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
             type_ = constant(type_, const)
 
         class_name = slugify(
-            self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"
+            self.identifier,
+            regex_pattern=r"[^a-z0-9_]+",
+            separator="_",
         )
 
         base: type[BaseModel] = type(
