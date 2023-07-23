@@ -97,14 +97,20 @@ class EntityTypeSchema(
         # Take the fields from Object and create a new model, with a new baseclass.
         proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
 
+        class_name = slugify(
+            self.identifier,
+            regex_pattern=r"[^a-z0-9_]+",
+            separator="_",
+        )
+
         base: type[BaseModel] = type(
-            "Base",
+            f"{class_name}Base",
             (EntityType,),
             {"info": self.type_info()},
         )
 
         model = create_model(
-            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            class_name,
             __base__=(base, proxy),
         )
 

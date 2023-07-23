@@ -88,14 +88,18 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         """Create an annotated type from this schema."""
         inner = await self.create_model(actor_id=actor_id, graph=graph)
 
+        class_name = slugify(
+            self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"
+        )
+
         base: type[BaseModel] = type(
-            "Base",
+            f"{class_name}Base",
             (PropertyType,),
             {"info": self.type_info()},
         )
 
         model = create_model(
-            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            class_name,
             __base__=(base, RootModel),
             root=(inner, Field(...)),
         )

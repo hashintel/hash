@@ -108,8 +108,12 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
             const = self.model_extra["const"]  # type: ignore[index]
             type_ = constant(type_, const)
 
+        class_name = slugify(
+            self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"
+        )
+
         base: type[BaseModel] = type(
-            "Base",
+            f"{class_name}Base",
             (DataTypeBase,),
             {"info": self.type_info()},
         )
@@ -117,7 +121,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         return cast(
             type[DataTypeBase],
             create_model(
-                slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+                class_name,
                 __base__=(base, RootModel),
                 root=(type_, Field(...)),
             ),
