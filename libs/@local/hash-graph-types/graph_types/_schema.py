@@ -1,22 +1,17 @@
 import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
-from types import EllipsisType
-from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, TypeVar
 from uuid import UUID
 
 from pydantic import (
     BaseModel,
-    ConfigDict,
     Field,
+    GetCoreSchemaHandler,
     GetJsonSchemaHandler,
-    conlist,
-    create_model,
 )
 from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema
-
-from .base import OntologyTypeInfo
+from pydantic_core import CoreSchema, core_schema
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
@@ -42,15 +37,6 @@ class OntologyTypeSchema(BaseModel, ABC):
     kind: Literal["dataType", "propertyType", "entityType"]
     schema_url: str = Field(..., alias="$schema")
 
-    def type_info(self) -> OntologyTypeInfo:
-        return OntologyTypeInfo(
-            identifier=self.identifier,
-            title=self.title,
-            description=self.description,
-            kind=self.kind,
-            schema_url=self.schema_url,
-        )
-
 
 T = TypeVar("T", bound=Schema)
 
@@ -63,7 +49,7 @@ class OneOf(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> object:
+    ) -> Annotated[Any, ...]:
         types = await asyncio.gather(
             *[
                 value.create_model(actor_id=actor_id, graph=graph)
@@ -71,15 +57,15 @@ class OneOf(Schema, Generic[T]):
             ],
         )
 
-        union = None
-        for type_ in types:
-            union = type_ if union is None else union | type_
-
-        if union is None:
-            msg = "No types provided"
-            raise ValueError(msg)
-
         class OneOfSchema:
+            @classmethod
+            def __get_pydantic_core_schema__(
+                cls,
+                _source_type: Any,  # noqa: ANN401
+                handler: GetCoreSchemaHandler,
+            ) -> CoreSchema:
+                return core_schema.union_schema([handler(t) for t in types])
+
             @classmethod
             def __get_pydantic_json_schema__(
                 cls,
@@ -91,7 +77,7 @@ class OneOf(Schema, Generic[T]):
                     json_schema["oneOf"] = any_of
                 return json_schema
 
-        return Annotated[union, OneOfSchema]
+        return Annotated[OneOf[T], OneOfSchema]
 
 
 class Array(Schema, Generic[T]):
@@ -105,16 +91,23 @@ class Array(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[list[BaseModel]]:
-        type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
+    ) -> Annotated[Any, ...]:
+        ty = await self.items.create_model(actor_id=actor_id, graph=graph)
 
-        type_ = conlist(
-            type_items,
-            min_length=self.min_items,
-            max_length=self.max_items,
-        )
+        class ListSchema:
+            @classmethod
+            def __get_pydantic_core_schema__(
+                cls,
+                _source_type: Any,  # noqa: ANN401
+                handler: GetCoreSchemaHandler,
+            ) -> CoreSchema:
+                return core_schema.list_schema(
+                    handler.generate_schema(ty),
+                    min_length=self.min_items,
+                    max_length=self.max_items,
+                )
 
-        return cast(type[list[BaseModel]], type_)
+        return Annotated[list[T], ListSchema]
 
 
 class Object(Schema, Generic[T]):
@@ -127,21 +120,12 @@ class Object(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[BaseModel]:
+    ) -> Annotated[Any, ...]:
         async def async_value(
             key: str,
             value: Awaitable[type[BaseModel] | Any],
         ) -> tuple[str, type[BaseModel] | Any]:
             return key, await value
-
-        def default_value(key: str) -> None | EllipsisType:
-            if self.required is None:
-                return None
-
-            if key in self.required:
-                return ...
-
-            return None
 
         types = dict(
             await asyncio.gather(
@@ -152,10 +136,36 @@ class Object(Schema, Generic[T]):
             ),
         )
 
-        types = {key: (value, default_value(key)) for key, value in types.items()}
+        class DictSchema:
+            @classmethod
+            def __get_pydantic_core_schema__(
+                cls,
+                _source_type: Any,  # noqa: ANN401
+                handler: GetCoreSchemaHandler,
+            ) -> CoreSchema:
+                return core_schema.typed_dict_schema(
+                    {
+                        property_type_id: core_schema.typed_dict_field(
+                            handler.generate_schema(property_type),
+                            required=(
+                                property_type_id in self.required
+                                if self.required
+                                else None
+                            ),
+                        )
+                        for property_type_id, property_type in types.items()
+                    },
+                    extra_behavior="forbid",
+                )
 
-        return create_model(
-            "DictSchema",
-            __config__=ConfigDict(extra="forbid"),
-            **types,
-        )
+            @classmethod
+            def __get_pydantic_json_schema__(
+                cls,
+                schema: CoreSchema,
+                handler: GetJsonSchemaHandler,
+            ) -> JsonSchemaValue:
+                json_schema = handler(schema)
+                json_schema.update(additionalProperties=False)
+                return json_schema
+
+        return Annotated[dict[str, Any], DictSchema]

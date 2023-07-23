@@ -2,25 +2,26 @@
 
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     ClassVar,
     Literal,
     Never,
-    cast,
 )
 from uuid import UUID
 
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Field,
+    GetJsonSchemaHandler,
+    RootModel,
     create_model,
 )
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema
 from slugify import slugify
 
-from ._cache import Cache
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import EntityType
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
@@ -29,33 +30,31 @@ if TYPE_CHECKING:
 __all__ = ["EntityTypeSchema", "EntityTypeReference"]
 
 
-async def fetch_model(
-    ref: str,
-    *,
-    actor_id: UUID,
-    graph: "GraphAPIProtocol",
-) -> type[EntityType]:
-    schema = await graph.get_entity_type(ref, actor_id=actor_id)
-    return await schema.create_entity_type(actor_id=actor_id, graph=graph)
-
-
 class EntityTypeReference(Schema):
     """A reference to an entity type schema."""
 
     ref: str = Field(..., alias="$ref")
-    cache: ClassVar[Cache[type[EntityType]]] = Cache()
+    cache: ClassVar[dict[str, type[RootModel]]] = {}
 
     async def create_model(
         self,
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[EntityType]:
+    ) -> type[RootModel]:
         """Creates a model from the referenced entity type schema."""
-        return await self.cache.get(
-            self.ref,
-            on_miss=lambda: fetch_model(self.ref, actor_id=actor_id, graph=graph),
+        if cached := self.cache.get(self.ref):
+            return cached
+
+        schema = await graph.get_entity_type(self.ref, actor_id=actor_id)
+
+        model = create_model(
+            slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
+            __base__=RootModel,
+            root=(await schema.create_entity_type(actor_id=actor_id, graph=graph), ...),
         )
+        self.cache[self.ref] = model
+        return model
 
 
 class EmptyDict(Schema):
@@ -84,16 +83,29 @@ class EntityTypeSchema(
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[EntityType]:
+    ) -> Annotated[Any, "EntityTypeAnnotation"]:
         """Create an annotated type from this schema."""
-        # Take the fields from Object and create a new model, with a new baseclass.
-        proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
 
-        base: type[BaseModel] = type("Base", (EntityType,), {"info": self.type_info()})
+        class EntityTypeAnnotation:
+            @classmethod
+            def __get_pydantic_json_schema__(
+                cls,
+                schema: CoreSchema,
+                handler: GetJsonSchemaHandler,
+            ) -> JsonSchemaValue:
+                json_schema = handler(schema)
+                json_schema.update(
+                    **{
+                        "$id": self.identifier,
+                        "$schema": self.schema_url,
+                        "title": self.title,
+                        "description": self.description,
+                        "kind": self.kind,
+                    },
+                )
+                return json_schema
 
-        model = create_model(
-            slugify(self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=(base, proxy),
-        )
-
-        return cast(type[EntityType], model)
+        return Annotated[
+            await Object.create_model(self, actor_id=actor_id, graph=graph),
+            EntityTypeAnnotation,
+        ]
