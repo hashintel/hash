@@ -57,7 +57,6 @@ import { VaultClient } from "./vault";
 declare global {
   namespace Express {
     interface Request {
-      vaultClient?: VaultClient;
       context: ImpureGraphContext & {
         temporalClient?: TemporalClient;
         vaultClient?: VaultClient;

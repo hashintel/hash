@@ -126,7 +126,7 @@ export const oAuthLinearCallback: RequestHandler<
   async (req, res) => {
     const { code, state } = req.query;
 
-    if (!req.vaultClient) {
+    if (!req.context.vaultClient) {
       res.status(501).send({ error: "Vault integration is not configured." });
       return;
     }
@@ -143,11 +143,22 @@ export const oAuthLinearCallback: RequestHandler<
       return;
     }
 
+    if (
+      stateData.actorEntityId !== req.user?.entity.metadata.recordId.entityId
+    ) {
+      res.status(403).send({ error: "State mismatch" });
+      return;
+    }
+
     const now = new Date();
     if (stateData.expires < now) {
       res.status(400).send({ error: "State expired" });
       return;
     }
+
+    const { actorEntityId, ownedById, ownerType } = stateData;
+
+    stateMap.delete(state);
 
     if (!linearClientId || !linearClientSecret) {
       res.status(501).send({ error: "Linear integration is not configured." });
@@ -186,9 +197,9 @@ export const oAuthLinearCallback: RequestHandler<
     const linearOrgId = org.id;
 
     // @todo give the path components some more thought
-    const vaultPath = `${stateData.ownerType}/${stateData.ownedById}/linear/user/${stateData.actorEntityId}/workspace/${linearOrgId}`;
+    const vaultPath = `${ownerType}/${ownedById}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
 
-    await req.vaultClient.write({
+    await req.context.vaultClient.write({
       data: { value: access_token },
       secretMountPath: "secret",
       path: vaultPath,
@@ -199,16 +210,16 @@ export const oAuthLinearCallback: RequestHandler<
         expiredAt.toISOString(),
       [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
         vaultPath,
-      // @todo create a Linear Org/Workspace entity and create a link to it instead of doing this
+      // @todo create a Linear Workspace entity and create an authorizesDataFrom link to it instead of doing this
       "https://example.com/property-types/linear-org-id/": linearOrgId,
     };
 
     const secretEntity = await createEntity(req.context, {
       actorId: extractEntityUuidFromEntityId(
-        stateData.actorEntityId,
+        actorEntityId,
       ) as Uuid as AccountId,
       entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-      ownedById: stateData.ownedById as Uuid as OwnedById,
+      ownedById: ownedById as Uuid as OwnedById,
       properties: secretMetadata,
     });
 

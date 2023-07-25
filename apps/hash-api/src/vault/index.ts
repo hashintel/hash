@@ -25,7 +25,9 @@ export class VaultClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError<{ errors: string[] }>) => {
-        const vaultErrorMessages = error.response?.data.errors ?? [];
+        const vaultErrorMessages = error.response?.data.errors ?? [
+          error.message,
+        ];
 
         return Promise.reject(
           new Error(`Vault API Error: ${vaultErrorMessages.join(", ")}`),

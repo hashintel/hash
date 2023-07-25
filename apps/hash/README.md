@@ -128,6 +128,16 @@ To run HASH locally, please follow these steps:
 
     See `package.json` → `scripts` for details and more options.
 
+1.  To develop using external integrations, you need a locally running Hashicorp Vault for secret storage
+
+    First, [install Vault](https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install).
+
+    Then run a dev server:
+
+    ```sh
+    vault server -dev -dev-root-token-id=dev_root_token
+    ```
+
 #### External services test mode
 
 The external services of the system can be started in 'test mode' to prevent polluting the development database.
