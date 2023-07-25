@@ -1,0 +1,50 @@
+{
+  "name": "@apps/hash-integration-worker",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "A TypeScript worker for HASH for data integration",
+  "license": "AGPL-3.0",
+  "exports": {
+    ".": "./src/main.ts",
+    "./workflows": "./src/workflows.ts",
+    "./activities": "./src/activities.ts"
+  },
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./src/main.ts"
+      ],
+      "workflows": [
+        "./src/workflows.ts"
+      ],
+      "activities": [
+        "./src/activities.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
+    "build:docker": "docker buildx build --tag hash-integration-worker --file ./docker/Dockerfile ../../",
+    "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/main.ts",
+    "exe": "ts-node --transpile-only",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts"
+  },
+  "dependencies": {
+    "@temporalio/activity": "1.8.1",
+    "@temporalio/worker": "1.8.1",
+    "@temporalio/workflow": "1.8.1",
+    "dotenv-flow": "3.2.0",
+    "ts-node": "10.9.1",
+    "typescript": "5.0.4"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/dotenv-flow": "3.2.0",
+    "eslint": "8.33.0",
+    "ts-node-dev": "2.0.0"
+  }
+}

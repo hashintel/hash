@@ -10,6 +10,7 @@
         "@apps/hash-graph#build:docker",
         "@apps/hash-ai-worker-ts#build:docker",
         "@apps/hash-ai-worker-py#build:docker",
+        "@apps/hash-integration-worker#build:docker",
         "codegen"
       ]
     },
