@@ -13,6 +13,10 @@ inputs:
     description: "Build hash-ai-worker-py image"
     required: false
     default: "false"
+  hash-integration-worker:
+    description: "Build hash-integration-worker image"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -60,4 +64,18 @@ runs:
       shell: bash
       run: |
         docker load --input /tmp/hash-ai-worker-py.tar
+        docker image ls -a
+
+    - name: Download hash-integration-worker image
+      if: inputs.hash-integration-worker == 'true'
+      uses: actions/download-artifact@v3
+      with:
+        name: hash-integration-worker
+        path: /tmp
+
+    - name: Load hash-integration-worker image
+      if: inputs.hash-integration-worker == 'true'
+      shell: bash
+      run: |
+        docker load --input /tmp/hash-integration-worker.tar
         docker image ls -a
