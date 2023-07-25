@@ -1,6 +1,8 @@
 import * as http from "node:http";
 import * as path from "node:path";
 
+import { LinearClient } from "@linear/sdk";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
@@ -34,6 +36,9 @@ const createHealthCheckServer = () => {
   return server;
 };
 
+const createLinearClient = () =>
+  new LinearClient({ apiKey: getRequiredEnv("HASH_LINEAR_API_KEY") });
+
 const workflowOption = () =>
   process.env.NODE_ENV === "production"
     ? {
@@ -44,9 +49,11 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
+  const linearClient = createLinearClient();
+
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: activities.createIntegrationActivities(),
+    activities: activities.createLinearIntegrationActivities({ linearClient }),
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
