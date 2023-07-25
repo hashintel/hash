@@ -5,6 +5,7 @@ import {
   Cycle as LinearCycles,
   Document as LinearDocument,
   Issue as LinearIssue,
+  IssueLabel as LinearIssueLabel,
   Organization as LinearOrganization,
   Project as LinearProject,
   ProjectMilestone as LinearProjectMilestone,
@@ -32,6 +33,9 @@ export const linearTeams = async (): Promise<LinearTeam[]> =>
 export const linearIssues = async (filter?: {
   teamId?: string;
 }): Promise<LinearIssue[]> => await linear.issues(filter);
+export const linearIssueLabels = async (filter?: {
+  teamId?: string;
+}): Promise<LinearIssueLabel[]> => await linear.issueLabels(filter);
 export const linearUsers = async (): Promise<LinearUser[]> =>
   await linear.users();
 export const linearCycles = async (filter?: {
