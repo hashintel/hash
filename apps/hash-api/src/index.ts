@@ -27,6 +27,8 @@ import {
   EmailTransporter,
 } from "./email/transporters";
 import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import { ensureLinearTypesExist } from "./graph/linear-types";
+import { ensureLinearUserExists } from "./graph/linear-user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { getAwsRegion } from "./lib/aws-config";
@@ -147,6 +149,12 @@ const main = async () => {
   setupFileProxyHandler(app, uploadProvider, redis);
 
   await ensureSystemGraphIsInitialized({ logger, context });
+
+  if (process.env.LINEAR_CLIENT_ID) {
+    await ensureLinearUserExists({ logger, context });
+
+    await ensureLinearTypesExist({ logger, context });
+  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.

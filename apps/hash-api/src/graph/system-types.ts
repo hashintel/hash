@@ -815,7 +815,6 @@ export const ensureSystemTypesExist = async (params: {
   // eslint-disable-next-line guard-for-in
   for (const typeKind in SYSTEM_TYPES_INITIALIZERS) {
     initializedSystemTypes[typeKind] = {};
-
     const inner =
       SYSTEM_TYPES_INITIALIZERS[
         typeKind as keyof typeof SYSTEM_TYPES_INITIALIZERS

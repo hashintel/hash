@@ -206,6 +206,7 @@ export const propertyTypeInitializer = (
 
 type linkDestinationConstraint =
   | EntityTypeWithMetadata
+  | `${string}v/${number}`
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
   | "SELF_REFERENCE";
 
@@ -274,12 +275,16 @@ export const generateSystemEntityTypeSchema = (
           ordered,
           items: destinationEntityTypes
             ? {
-                oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
-                  $ref:
-                    entityTypeOrReference === "SELF_REFERENCE"
-                      ? params.entityTypeId
-                      : entityTypeOrReference.schema.$id,
-                })),
+                oneOf: destinationEntityTypes.map(
+                  (entityTypeIdOrReference) => ({
+                    $ref:
+                      entityTypeIdOrReference === "SELF_REFERENCE"
+                        ? params.entityTypeId
+                        : typeof entityTypeIdOrReference === "object"
+                        ? entityTypeIdOrReference.schema.$id
+                        : entityTypeIdOrReference,
+                  }),
+                ),
               }
             : {},
           minItems,
