@@ -32,15 +32,15 @@ export const createLinearIntegrationActivities = ({
   linearClient: LinearClient;
 }) => ({
   async me(): Promise<User> {
-    return await linearClient.viewer;
+    return linearClient.viewer;
   },
 
   async organization(): Promise<Organization> {
-    return await linearClient.organization;
+    return linearClient.organization;
   },
 
   async teams(): Promise<Team[]> {
-    return await linearClient.teams().then(readNodes);
+    return linearClient.teams().then(readNodes);
   },
 
   async issues(filter?: { teamId?: string }): Promise<Issue[]> {
@@ -100,7 +100,7 @@ export const createLinearIntegrationActivities = ({
   },
 
   async documents(): Promise<Document[]> {
-    return await linearClient.documents().then(readNodes);
+    return linearClient.documents().then(readNodes);
   },
 
   async issueLabels(filter?: { teamId?: string }): Promise<IssueLabel[]> {
@@ -111,10 +111,10 @@ export const createLinearIntegrationActivities = ({
         team: { id: { eq: filter.teamId } },
       };
     }
-    return await linearClient.issueLabels().then(readNodes);
+    return linearClient.issueLabels().then(readNodes);
   },
 
   async attachments(): Promise<Attachment[]> {
-    return await linearClient.attachments().then(readNodes);
+    return linearClient.attachments().then(readNodes);
   },
 });

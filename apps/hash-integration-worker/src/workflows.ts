@@ -1,20 +1,7 @@
-import {
-  Attachment as LinearAttachment,
-  Comment as LinearComment,
-  CustomView as LinearCustomView,
-  Cycle as LinearCycles,
-  Document as LinearDocument,
-  Issue as LinearIssue,
-  IssueLabel as LinearIssueLabel,
-  Organization as LinearOrganization,
-  Project as LinearProject,
-  ProjectMilestone as LinearProjectMilestone,
-  Team as LinearTeam,
-  User as LinearUser,
-} from "@linear/sdk";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createLinearIntegrationActivities } from "./activities";
+import * as mappings from "./mappings";
 
 export const linear = proxyActivities<
   ReturnType<typeof createLinearIntegrationActivities>
@@ -25,33 +12,57 @@ export const linear = proxyActivities<
   },
 });
 
-export const linearMe = async (): Promise<LinearUser> => await linear.me();
-export const linearOrganization = async (): Promise<LinearOrganization> =>
-  await linear.organization();
-export const linearTeams = async (): Promise<LinearTeam[]> =>
-  await linear.teams();
+export const linearMe = async (): Promise<object> =>
+  mappings.userToEntity(await linear.me());
+export const linearOrganization = async (): Promise<object> =>
+  mappings.organizationToEntity(await linear.organization());
+export const linearTeams = async (): Promise<object[]> =>
+  await linear.teams().then((teams) => teams.map(mappings.teamToEntity));
 export const linearIssues = async (filter?: {
   teamId?: string;
-}): Promise<LinearIssue[]> => await linear.issues(filter);
+}): Promise<object[]> =>
+  await linear
+    .issues(filter)
+    .then((issues) => issues.map(mappings.issueToEntity));
 export const linearIssueLabels = async (filter?: {
   teamId?: string;
-}): Promise<LinearIssueLabel[]> => await linear.issueLabels(filter);
-export const linearUsers = async (): Promise<LinearUser[]> =>
-  await linear.users();
+}): Promise<object[]> =>
+  await linear
+    .issueLabels(filter)
+    .then((issueLabels) => issueLabels.map(mappings.issueLabelToEntity));
+export const linearUsers = async (): Promise<object[]> =>
+  await linear.users().then((users) => users.map(mappings.userToEntity));
 export const linearCycles = async (filter?: {
   teamId?: string;
-}): Promise<LinearCycles[]> => await linear.cycles(filter);
-export const linearCustomViews = async (): Promise<LinearCustomView[]> =>
-  await linear.customViews();
-export const linearProjects = async (): Promise<LinearProject[]> =>
-  await linear.projects();
+}): Promise<object[]> =>
+  await linear
+    .cycles(filter)
+    .then((cycles) => cycles.map(mappings.cycleToEntity));
+export const linearCustomViews = async (): Promise<object[]> =>
+  await linear
+    .customViews()
+    .then((customViews) => customViews.map(mappings.customViewToEntity));
+export const linearProjects = async (): Promise<object[]> =>
+  await linear
+    .projects()
+    .then((projects) => projects.map(mappings.projectToEntity));
 export const linearComments = async (filter?: {
   teamId?: string;
-}): Promise<LinearComment[]> => await linear.comments(filter);
-export const linearProjectMilestones = async (): Promise<
-  LinearProjectMilestone[]
-> => await linear.projectMilestones();
-export const linearDocuments = async (): Promise<LinearDocument[]> =>
-  await linear.documents();
-export const linearAttachments = async (): Promise<LinearAttachment[]> =>
-  await linear.attachments();
+}): Promise<object[]> =>
+  await linear
+    .comments(filter)
+    .then((comments) => comments.map(mappings.commentToEntity));
+export const linearProjectMilestones = async (): Promise<object[]> =>
+  await linear
+    .projectMilestones()
+    .then((projectMilestones) =>
+      projectMilestones.map(mappings.projectMilestoneToEntity),
+    );
+export const linearDocuments = async (): Promise<object[]> =>
+  await linear
+    .documents()
+    .then((documents) => documents.map(mappings.documentToEntity));
+export const linearAttachments = async (): Promise<object[]> =>
+  await linear
+    .attachments()
+    .then((attachments) => attachments.map(mappings.attachmentToEntity));
