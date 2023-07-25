@@ -136,7 +136,7 @@ provider "postgresql" {
   scheme    = "postgres"
   host      = module.tunnel.host
   username  = "superuser"
-  port      = 5432
+  port      = module.tunnel.port
   password  = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
   superuser = false
 }
