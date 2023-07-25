@@ -2,6 +2,7 @@ version: "3.9"
 
 volumes:
   hash-postgres-data:
+  hash-vault-data:
   logs:
 
 services:
@@ -375,3 +376,16 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
+
+  vault:
+    image: hashicorp/vault
+    ports:
+      - "8200:8200"
+    volumes:
+      - hash-postgres-data:/vault/file:rw
+      # - ./vault/config:/vault/config:rw - for when we need a config file
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN}"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
