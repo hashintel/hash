@@ -44,6 +44,7 @@ import { setupFileProxyHandler, setupStorageProviders } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
+import { VaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -131,6 +132,14 @@ const main = async () => {
       })
     : undefined;
 
+  const vaultClient =
+    process.env.HASH_VAULT_ENDPOINT && process.env.HASH_VAULT_ROOT_TOKEN
+      ? new VaultClient({
+          endpoint: process.env.HASH_VAULT_ENDPOINT,
+          token: process.env.HASH_VAULT_ROOT_TOKEN,
+        })
+      : undefined;
+
   const context = { graphApi, uploadProvider };
 
   setupFileProxyHandler(app, uploadProvider, redis);
@@ -204,6 +213,7 @@ const main = async () => {
     search,
     uploadProvider,
     temporalClient,
+    vaultClient,
     cache: redis,
     emailTransporter,
     logger,
