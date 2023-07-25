@@ -3,6 +3,7 @@ import {
   DataTypeReference,
   ENTITY_TYPE_META_SCHEMA,
   EntityType,
+  extractBaseUrl,
   Object,
   OneOf,
   PROPERTY_TYPE_META_SCHEMA,
@@ -206,7 +207,7 @@ export const propertyTypeInitializer = (
 
 type linkDestinationConstraint =
   | EntityTypeWithMetadata
-  | `${string}v/${number}`
+  | VersionedUrl
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
   | "SELF_REFERENCE";
 
@@ -215,7 +216,7 @@ export type EntityTypeCreatorParams = {
   title: string;
   description?: string;
   properties?: {
-    propertyType: PropertyTypeWithMetadata;
+    propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
@@ -242,20 +243,36 @@ export const generateSystemEntityTypeSchema = (
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyType.metadata.recordId.baseUrl]: array
+        [typeof propertyType === "object"
+          ? propertyType.metadata.recordId.baseUrl
+          : extractBaseUrl(propertyType)]: array
           ? {
               type: "array",
-              items: { $ref: propertyType.schema.$id },
+              items: {
+                $ref:
+                  typeof propertyType === "object"
+                    ? propertyType.schema.$id
+                    : propertyType,
+              },
               ...(array === true ? {} : array),
             }
-          : { $ref: propertyType.schema.$id },
+          : {
+              $ref:
+                typeof propertyType === "object"
+                  ? propertyType.schema.$id
+                  : propertyType,
+            },
       }),
       {},
     ) ?? {};
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyType }) => propertyType.metadata.recordId.baseUrl);
+    .map(({ propertyType }) =>
+      typeof propertyType === "object"
+        ? propertyType.metadata.recordId.baseUrl
+        : extractBaseUrl(propertyType),
+    );
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(
