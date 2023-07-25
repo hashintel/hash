@@ -34,7 +34,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --system --gid 60000 hash && \
-    useradd --system tsworker -G hash && \
+    useradd --system integrationworker -G hash && \
     install -d -m 0775 -o integrationworker -g hash /log
 
 USER integrationworker:hash
