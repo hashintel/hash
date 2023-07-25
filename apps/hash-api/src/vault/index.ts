@@ -34,7 +34,9 @@ export class VaultClient {
     );
   }
 
-  async write<D = any>(params: {
+  async write<
+    D extends Record<string, string> = Record<"value", string>,
+  >(params: {
     secretMountPath: string;
     path: string;
     data: D;

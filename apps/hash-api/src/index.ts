@@ -11,6 +11,8 @@ import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/red
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { Session } from "@ory/client";
+import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
 import express from "express";
@@ -26,9 +28,15 @@ import {
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
+} from "./graph";
+import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
 import {
@@ -45,6 +53,20 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
 import { VaultClient } from "./vault";
+
+declare global {
+  namespace Express {
+    interface Request {
+      vaultClient?: VaultClient;
+      context: ImpureGraphContext & {
+        temporalClient?: TemporalClient;
+        vaultClient?: VaultClient;
+      };
+      session: Session | undefined;
+      user: User | undefined;
+    }
+  }
+}
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -222,6 +244,18 @@ const main = async () => {
     statsd,
   });
 
+  // Make the data sources/clients available to REST controllers
+  // @todo figure out sharing of context between REST and GraphQL without repeating this
+  app.use((req, _res, next) => {
+    req.context = {
+      graphApi,
+      temporalClient,
+      uploadProvider,
+      vaultClient,
+    };
+    next();
+  });
+
   app.get("/", (_, res) => res.send("Hello World"));
 
   // Used by AWS Application Load Balancer (ALB) for health checks
@@ -243,6 +277,10 @@ const main = async () => {
     }
     next();
   });
+
+  // Integrations
+  app.get("/oauth/linear", oAuthLinear);
+  app.get("/oauth/linear/callback", oAuthLinearCallback);
 
   // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not

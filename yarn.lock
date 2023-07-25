@@ -4495,7 +4495,7 @@
     tslib "^2.4.0"
     value-or-promise "1.0.12"
 
-"@graphql-typed-document-node/core@3.1.1", "@graphql-typed-document-node/core@^3.1.1":
+"@graphql-typed-document-node/core@3.1.1", "@graphql-typed-document-node/core@^3.1.0", "@graphql-typed-document-node/core@^3.1.1":
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/@graphql-typed-document-node/core/-/core-3.1.1.tgz#076d78ce99822258cf813ecc1e7fa460fa74d052"
   integrity "sha1-B214zpmCIljPgT7MHn+kYPp00FI= sha512-NQ17ii0rK1b34VZonlmT2QMJFI70m0TRwbknO/ihlbatXyaktDhN/98vBiUU6kNBPljqGqyIrl2T4nY2RpFANg=="
@@ -4849,6 +4849,15 @@
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@leichtgewicht/ip-codec/-/ip-codec-2.0.3.tgz#0300943770e04231041a51bd39f0439b5c7ab4f0"
   integrity "sha1-AwCUN3DgQjEEGlG9OfBDm1x6tPA= sha512-nkalE/f1RvRGChwBnEIoBfSEYOXnCRdleKuv6+lePbMDrMZXeDQnqak5XDOeBgrPPyPfAdcCu/B5z+v3VhplGg=="
+
+"@linear/sdk@6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@linear/sdk/-/sdk-6.0.0.tgz#9c0c572e9fa9ae3978264226a0278e7671e8ce85"
+  integrity sha512-EvDoE3pgnU6TW8GUP+BgiXSD0mKRNV/d5r4uxvCczVk6AxDiABDZJjkf1OowKECNyMo/GoNQZHmvSJqehtQoug==
+  dependencies:
+    "@graphql-typed-document-node/core" "^3.1.0"
+    graphql "^15.4.0"
+    isomorphic-unfetch "^3.1.0"
 
 "@lit-labs/react@1.0.6":
   version "1.0.6"
@@ -13624,7 +13633,7 @@ graphql-ws@5.11.2:
   resolved "https://registry.yarnpkg.com/graphql-ws/-/graphql-ws-5.11.2.tgz#d5e0acae8b4d4a4cf7be410a24135cfcefd7ddc0"
   integrity "sha1-1eCsrotNSkz3vkEKJBNc/O/X3cA= sha512-4EiZ3/UXYcjm+xFGP544/yW1+DVI8ZpKASFbzrV5EDTFWJp0ZvLl4Dy2fSZAzz9imKp5pZMIcjB0x/H69Pv/6w=="
 
-graphql@15.5.1:
+graphql@15.5.1, graphql@^15.4.0:
   version "15.5.1"
   resolved "https://registry.yarnpkg.com/graphql/-/graphql-15.5.1.tgz#f2f84415d8985e7b84731e7f3536f8bb9d383aad"
   integrity "sha1-8vhEFdiYXnuEcx5/NTb4u504Oq0= sha512-FeTRX67T3LoE3LWAxxOlW2K3Bz+rMYAC18rRguK4wgXaTZMiJwSUwDmPFo3UadAKbzirKIg5Qy+sNJXbpPRnQw=="
