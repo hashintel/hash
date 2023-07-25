@@ -133,9 +133,11 @@ const main = async () => {
     : undefined;
 
   const vaultClient =
-    process.env.HASH_VAULT_ENDPOINT && process.env.HASH_VAULT_ROOT_TOKEN
+    process.env.HASH_VAULT_HOST &&
+    process.env.HASH_VAULT_PORT &&
+    process.env.HASH_VAULT_ROOT_TOKEN
       ? new VaultClient({
-          endpoint: process.env.HASH_VAULT_ENDPOINT,
+          endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
           token: process.env.HASH_VAULT_ROOT_TOKEN,
         })
       : undefined;

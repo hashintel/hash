@@ -380,7 +380,7 @@ services:
   vault:
     image: hashicorp/vault
     ports:
-      - "8200:8200"
+      - "${HASH_VAULT_PORT}:8200"
     volumes:
       - hash-postgres-data:/vault/file:rw
       # - ./vault/config:/vault/config:rw - for when we need a config file
