@@ -13,6 +13,7 @@ import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { UploadableStorageProvider } from "../storage";
 import { TemporalClient } from "../temporal";
+import { VaultClient } from "../vault/index";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -21,6 +22,7 @@ export interface CreateApolloServerParams {
   cache: CacheAdapter;
   uploadProvider: UploadableStorageProvider;
   temporalClient?: TemporalClient;
+  vaultClient?: VaultClient;
   search?: SearchAdapter;
   emailTransporter: EmailTransporter;
   logger: Logger;
@@ -34,6 +36,7 @@ export const createApolloServer = ({
   emailTransporter,
   uploadProvider,
   temporalClient,
+  vaultClient,
   logger,
   statsd,
 }: CreateApolloServerParams) => {
@@ -66,6 +69,7 @@ export const createApolloServer = ({
         requestId: ctx.res.get("x-hash-request-id") ?? "",
       }),
       temporal: temporalClient,
+      vault: vaultClient,
     }),
     // @todo: we may want to disable introspection at some point for production
     introspection: true,
