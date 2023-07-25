@@ -377,6 +377,20 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  hash-temporal-worker-integration:
+    image: hash-integration-worker
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      HASH_TEMPORAL_HOST: "temporal"
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
   vault:
     image: hashicorp/vault
     ports:

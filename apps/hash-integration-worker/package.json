@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "@linear/sdk": "6.0.0",
+    "@local/hash-backend-utils": "0.0.0-private",
     "@temporalio/activity": "1.8.1",
     "@temporalio/worker": "1.8.1",
     "@temporalio/workflow": "1.8.1",
