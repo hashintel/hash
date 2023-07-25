@@ -248,6 +248,8 @@ module "application" {
     { name = "HASH_SEED_USERS", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_seed_users"]) },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
+    { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
+    { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.temporal_port },
   ])
   temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
