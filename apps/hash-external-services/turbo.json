@@ -19,6 +19,8 @@
       "dependsOn": [
         "@apps/hash-graph#build:docker:test",
         "@apps/hash-ai-worker-ts#build:docker",
+        "@apps/hash-ai-worker-py#build:docker",
+        "@apps/hash-integration-worker#build:docker",
         "codegen"
       ]
     },
@@ -28,6 +30,7 @@
         "@apps/hash-graph#build:docker:offline",
         "@apps/hash-ai-worker-ts#build:docker",
         "@apps/hash-ai-worker-py#build:docker",
+        "@apps/hash-integration-worker#build:docker",
         "codegen"
       ]
     },
