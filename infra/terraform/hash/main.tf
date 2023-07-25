@@ -203,6 +203,12 @@ module "temporal_worker_ai_py_ecr" {
   ecr_name = "temporalworkeraipy"
 }
 
+module "temporal_worker_integration_ecr" {
+  source   = "../modules/container_registry"
+  prefix   = local.prefix
+  ecr_name = "temporalworkerintegration"
+}
+
 module "application" {
   depends_on                   = [module.networking, module.postgres]
   source                       = "./hash_application"
@@ -262,6 +268,11 @@ module "application" {
   temporal_worker_ai_py_image = module.temporal_worker_ai_py_ecr
   temporal_worker_ai_py_env_vars = [
     { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
+  ]
+  temporal_worker_integration_image = module.temporal_worker_integration_ecr
+  temporal_worker_integration_env_vars = [
+    # TODO: Going to be replaced by the OAuth authentication method
+    { name = "HASH_LINEAR_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_linear_api_key"]) },
   ]
   temporal_host = module.temporal.host
   temporal_port = module.temporal.temporal_port

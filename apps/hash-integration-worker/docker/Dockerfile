@@ -34,10 +34,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --system --gid 60000 hash && \
-    useradd --system tsworker -G hash && \
-    install -d -m 0775 -o tsworker -g hash /log
+    useradd --system integrationworker -G hash && \
+    install -d -m 0775 -o integrationworker -g hash /log
 
-USER tsworker:hash
+USER integrationworker:hash
 ENV NODE_ENV production
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4100/health || exit 1
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4300/health || exit 1

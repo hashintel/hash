@@ -145,6 +145,23 @@ variable "temporal_worker_ai_py_env_vars" {
   description = "A list of environment variables to save as system parameters and inject into the Temporal AI PY worker"
 }
 
+variable "temporal_worker_integration_image" {
+  type = object({
+    url     = string
+    ecr_arn = optional(string)
+  })
+  description = "URL of the docker image for the Temporal integration worker"
+}
+
+variable "temporal_worker_integration_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the Temporal integration worker"
+}
+
 variable "ses_verified_domain_identity" {
   type        = string
   description = "A verified AWS SES identity to use for email sending in the application."
