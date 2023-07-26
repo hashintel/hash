@@ -221,7 +221,7 @@ export type EntityTypeCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks?: {
-    linkEntityType: EntityTypeWithMetadata;
+    linkEntityType: EntityTypeWithMetadata | VersionedUrl;
     destinationEntityTypes?: [
       linkDestinationConstraint,
       ...linkDestinationConstraint[],
@@ -287,7 +287,9 @@ export const generateSystemEntityTypeSchema = (
         },
       ): EntityType["links"] => ({
         ...prev,
-        [linkEntityType.schema.$id]: {
+        [typeof linkEntityType === "object"
+          ? linkEntityType.schema.$id
+          : linkEntityType]: {
           type: "array",
           ordered,
           items: destinationEntityTypes
