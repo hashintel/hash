@@ -25,11 +25,11 @@ export const linearImport = async (params: {
     }),
   );
 
-  const users = linear.readUsers().then((usersEntity) =>
+  const users = linear.readUsers().then((userEntities) =>
     linear.createPartialEntities({
       ownedById: params.ownedById,
       actorId: params.actorId,
-      entities: usersEntity,
+      entities: userEntities,
     }),
   );
 
