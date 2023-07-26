@@ -480,11 +480,11 @@ export const joinOrg: ImpureGraphFunction<
  * @param params.user - the user
  */
 export const getUserOrgMemberships: ImpureGraphFunction<
-  { user: User },
+  { userEntityId: EntityId },
   Promise<OrgMembership[]>
-> = async (ctx, { user }) => {
+> = async (ctx, { userEntityId }) => {
   const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: user.entity.metadata.recordId.entityId,
+    entityId: userEntityId,
     linkEntityTypeVersionedUrl:
       SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
   });
@@ -501,7 +501,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
  * @param params.orgEntityUuid - the entity Uuid of the org the user may be a member of
  */
 export const isUserMemberOfOrg: ImpureGraphFunction<
-  { user: User; orgEntityUuid: EntityUuid },
+  { userEntityId: EntityId; orgEntityUuid: EntityUuid },
   Promise<boolean>
 > = async (ctx, params) => {
   const orgMemberships = await getUserOrgMemberships(ctx, params);
