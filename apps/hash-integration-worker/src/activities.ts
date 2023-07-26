@@ -9,7 +9,7 @@ import {
 import { GraphApi } from "@local/hash-graph-client";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
@@ -43,7 +43,7 @@ const updateEntity = async (params: {
         all: [
           {
             equal: [
-              { path: ["versionedUrl"] },
+              { path: ["type", "versionedUrl"] },
               { parameter: params.entity.entityTypeId },
             ],
           },
@@ -140,19 +140,21 @@ export const createLinearIntegrationActivities = ({
     return linearClient.organization.then(organizationToEntity);
   },
 
-  async createUsers(params: {
-    users: User[];
+  async createUser(params: {
+    user: User;
     actorId: string;
     ownedById: string;
   }): Promise<void> {
-    await this.createPartialEntities({
-      entities: params.users.map(userToEntity),
+    const entity = userToEntity(params.user);
+    await graphApiClient.createEntity({
       actorId: params.actorId,
       ownedById: params.ownedById,
+      entityTypeId: entity.entityTypeId,
+      properties: entity.properties,
     });
   },
 
-  async updateUsers(params: { user: User; actorId: string }): Promise<void> {
+  async updateUser(params: { user: User; actorId: string }): Promise<void> {
     await updateEntity({
       graphApiClient,
       entity: userToEntity(params.user),
@@ -167,15 +169,17 @@ export const createLinearIntegrationActivities = ({
       .then((users) => users.map(userToEntity));
   },
 
-  async createIssues(params: {
-    issues: Issue[];
+  async createIssue(params: {
+    issue: Issue;
     actorId: string;
     ownedById: string;
   }): Promise<void> {
-    await this.createPartialEntities({
-      entities: params.issues.map(issueToEntity),
+    const entity = issueToEntity(params.issue);
+    await graphApiClient.createEntity({
       actorId: params.actorId,
       ownedById: params.ownedById,
+      entityTypeId: entity.entityTypeId,
+      properties: entity.properties,
     });
   },
 
