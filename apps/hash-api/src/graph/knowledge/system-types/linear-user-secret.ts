@@ -27,7 +27,7 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.linearUserSecret.schema.$id
+    SYSTEM_TYPES.entityType.userSecret.schema.$id
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -73,7 +73,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
             equal: [
               { path: ["type", "versionedUrl"] },
               {
-                parameter: SYSTEM_TYPES.entityType.linearUserSecret.schema.$id,
+                parameter: SYSTEM_TYPES.entityType.userSecret.schema.$id,
               },
             ],
           },

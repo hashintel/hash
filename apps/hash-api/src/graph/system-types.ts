@@ -59,7 +59,6 @@ export let SYSTEM_TYPES: {
 
     // Secret storage related
     vaultPath: PropertyTypeWithMetadata;
-    linearOrgId: PropertyTypeWithMetadata;
 
     // HASH Instance related
     userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
@@ -72,6 +71,12 @@ export let SYSTEM_TYPES: {
     externalFileUrl: PropertyTypeWithMetadata;
     objectStoreKey: PropertyTypeWithMetadata;
     fileKey: PropertyTypeWithMetadata;
+
+    // Linear Integration related
+    linearOrgId: PropertyTypeWithMetadata;
+
+    // Sync With Linear related
+    linearTeamId: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -82,7 +87,8 @@ export let SYSTEM_TYPES: {
     page: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
     file: EntityTypeWithMetadata;
-    linearUserSecret: EntityTypeWithMetadata;
+    userSecret: EntityTypeWithMetadata;
+    linearIntegration: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -102,7 +108,9 @@ export let SYSTEM_TYPES: {
     hasText: EntityTypeWithMetadata;
     author: EntityTypeWithMetadata;
 
-    authorizesDataFrom: EntityTypeWithMetadata;
+    // Linear Integration related
+    syncLinearDataWith: EntityTypeWithMetadata;
+    usesUserSecret: EntityTypeWithMetadata;
   };
 };
 
@@ -127,9 +135,6 @@ const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
 export const adminLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.admin,
 );
-
-export const authorizesDataFromLinkEntityTypeInitializer =
-  entityTypeInitializer(types.linkEntityType.authorizesDataFrom);
 
 export const hashInstanceEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -581,48 +586,72 @@ const vaultPathPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
+const linearTeamIdPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.linearTeamId,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const syncLinearDataWithLinkEntityTypeInitializer = entityTypeInitializer({
+  ...types.linkEntityType.syncLinearDataWith,
+  properties: [
+    {
+      propertyType: types.propertyType.linearTeamId.propertyTypeId,
+      array: true,
+    },
+  ],
+});
+
+const usesUserSecretLinkEntityTypeInitializer = entityTypeInitializer({
+  ...types.linkEntityType.usesUserSecret,
+});
+
+const userSecretEntityTypeInitializer = entityTypeInitializer({
+  ...types.entityType.userSecret,
+  properties: [
+    {
+      propertyType: types.propertyType.expiredAt.propertyTypeId,
+      required: true,
+    },
+    {
+      propertyType: types.propertyType.connectionSourceName.propertyTypeId,
+      required: true,
+    },
+    {
+      propertyType: types.propertyType.vaultPath.propertyTypeId,
+      required: true,
+    },
+  ],
+});
+
 const linearOrgIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.linearOrgId,
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const linearUserSecretEntityTypeInitializer = async (
-  context: ImpureGraphContext,
-) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-
-  const expiredAtPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.expiredAt(context);
-
-  const connectionSourceNamePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.connectionSourceName(context);
-
-  const vaultPathEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.vaultPath(context);
-
-  const authorizesDataFromLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.authorizesDataFrom(context);
-
-  const linearOrgIdPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.linearOrgId(context);
-
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
-  return entityTypeInitializer({
-    ...types.entityType.linearUserSecret,
-    properties: [
-      { propertyType: expiredAtPropertyType },
-      { propertyType: connectionSourceNamePropertyType, required: true },
-      { propertyType: vaultPathEntityType, required: true },
-      { propertyType: linearOrgIdPropertyType, required: true },
-    ],
-    outgoingLinks: [
-      {
-        linkEntityType: authorizesDataFromLinkEntityType,
-      },
-    ],
-  })(context);
-};
+const linearIntegrationEntityTypeInitializer = entityTypeInitializer({
+  ...types.entityType.linearIntegration,
+  properties: [
+    {
+      propertyType: types.propertyType.linearOrgId.propertyTypeId,
+      required: true,
+    },
+  ],
+  outgoingLinks: [
+    {
+      linkEntityType: types.linkEntityType.syncLinearDataWith.linkEntityTypeId,
+      destinationEntityTypes: [
+        types.entityType.user.entityTypeId,
+        types.entityType.org.entityTypeId,
+      ],
+    },
+    {
+      linkEntityType: types.linkEntityType.usesUserSecret.linkEntityTypeId,
+      destinationEntityTypes: [types.entityType.userSecret.entityTypeId],
+      minItems: 1,
+      maxItems: 1,
+    },
+  ],
+});
 
 const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.hasText,
@@ -834,6 +863,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     connectionSourceName: connectionSourceNamePropertyTypeInitializer,
     vaultPath: vaultPathPropertyTypeInitializer,
     linearOrgId: linearOrgIdPropertyTypeInitializer,
+    linearTeamId: linearTeamIdPropertyTypeInitializer,
 
     userSelfRegistrationIsEnabled:
       userSelfRegistrationIsEnabledPropertyTypeInitializer,
@@ -848,6 +878,17 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     objectStoreKey: objectStoreKeyPropertyTypeInitializer,
     fileKey: fileKeyPropertyTypeInitializer,
   },
+  linkEntityType: {
+    admin: adminLinkEntityTypeInitializer,
+    orgMembership: orgMembershipLinkEntityTypeInitializer,
+    blockData: blockDataLinkEntityTypeInitializer,
+    contains: containsLinkEntityTypeInitializer,
+    parent: parentLinkEntityTypeInitializer,
+    hasText: hasTextLinkEntityTypeInitializer,
+    author: authorLinkEntityTypeInitializer,
+    syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
+    usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
+  },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
     user: userEntityTypeInitializer,
@@ -857,17 +898,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     file: fileEntityTypeInitializer,
-    linearUserSecret: linearUserSecretEntityTypeInitializer,
-  },
-  linkEntityType: {
-    admin: adminLinkEntityTypeInitializer,
-    authorizesDataFrom: authorizesDataFromLinkEntityTypeInitializer,
-    orgMembership: orgMembershipLinkEntityTypeInitializer,
-    blockData: blockDataLinkEntityTypeInitializer,
-    contains: containsLinkEntityTypeInitializer,
-    parent: parentLinkEntityTypeInitializer,
-    hasText: hasTextLinkEntityTypeInitializer,
-    author: authorLinkEntityTypeInitializer,
+    userSecret: userSecretEntityTypeInitializer,
+    linearIntegration: linearIntegrationEntityTypeInitializer,
   },
 };
 
