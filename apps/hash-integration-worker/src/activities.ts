@@ -14,6 +14,7 @@ import {
   teamToEntity,
   userToEntity,
 } from "./mappings";
+import { GraphApi } from "@local/hash-graph-client";
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   const nodes = connection.nodes;
@@ -27,8 +28,11 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
 
 export const createLinearIntegrationActivities = ({
   linearClient,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  graphApiClient,
 }: {
   linearClient: LinearClient;
+  graphApiClient: GraphApi;
 }) => ({
   async me(): Promise<object> {
     return linearClient.viewer.then(userToEntity);
