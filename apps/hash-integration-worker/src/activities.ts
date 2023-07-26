@@ -1,4 +1,5 @@
 import { Connection, LinearClient, LinearDocument } from "@linear/sdk";
+import { GraphApi } from "@local/hash-graph-client";
 
 import {
   attachmentToEntity,
@@ -14,7 +15,6 @@ import {
   teamToEntity,
   userToEntity,
 } from "./mappings";
-import { GraphApi } from "@local/hash-graph-client";
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   const nodes = connection.nodes;
