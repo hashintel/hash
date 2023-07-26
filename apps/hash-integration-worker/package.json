@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/main.ts",
     "./workflows": "./src/workflows.ts",
-    "./activities": "./src/activities.ts"
+    "./activities": "./src/activities.ts",
+    "./graph": "./src/graph.ts"
   },
   "typesVersions": {
     "*": {
@@ -19,6 +20,9 @@
       ],
       "activities": [
         "./src/activities.ts"
+      ],
+      "graph": [
+        "./src/graph.ts"
       ]
     }
   },

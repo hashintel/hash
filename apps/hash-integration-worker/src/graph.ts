@@ -5,10 +5,13 @@ import axios from "axios";
 
 // TODO: Mostly copied from `hash-api`. Instead of importing `hash-api` or reimplementing the logic here we should
 //       probably move out shared code into a separate package.
-export const createGraphClient = (
-  _logger: Logger,
-  { host, port }: { host: string; port: number },
-): GraphApi => {
+export const createGraphClient = ({
+  host,
+  port,
+}: {
+  host: string;
+  port: number;
+}): GraphApi => {
   const agentConfig = {
     maxSockets: 128,
     maxFreeSockets: 20,
