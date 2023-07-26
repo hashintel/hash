@@ -45,9 +45,8 @@ export const linearWebhook: RequestHandler<{}, "ok", string> = async (
     return;
   }
 
-  const payload = JSON.parse(req.body) as LinearWebhookPayload;
+  const _payload = JSON.parse(req.body) as LinearWebhookPayload;
 
-  console.log(payload);
   // @todo trigger update to HASH entities based on the payload
 
   res.send("ok");
