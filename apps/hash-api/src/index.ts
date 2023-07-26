@@ -7,8 +7,6 @@ import {
   monorepoRootDir,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { Session } from "@ory/client";
@@ -40,6 +38,7 @@ import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
+import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
 import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
 import {
@@ -320,10 +319,9 @@ const main = async () => {
     cors: CORS_CONFIG,
   });
 
-  // Start the HTTP server before setting up collab
+  // Start the HTTP server before setting up the integration listener
   // This is done because the Redis client blocks when instantiated
   // and we must ensure that the health checks are available ASAP.
-  // It is not a problem to set up collab after the fact that we begin listening.
   await new Promise<void>((resolve) => {
     httpServer.listen({ port }, () => {
       logger.info(`Listening on port ${port}`);
@@ -332,17 +330,15 @@ const main = async () => {
     });
   });
 
-  // Connect to Redis queue for collab
-  const collabRedisClient = new AsyncRedisClient(logger, {
-    host: getRequiredEnv("HASH_REDIS_HOST"),
-    port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-  });
-  shutdown.addCleanup("collabRedisClient", async () =>
-    collabRedisClient.close(),
+  const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher(
+    graphApi,
   );
-  const collabRedisQueue = new RedisQueueExclusiveConsumer(collabRedisClient);
-  shutdown.addCleanup("collabRedisQueue", async () =>
-    collabRedisQueue.release(),
+
+  integrationSyncBackWatcher.start();
+
+  shutdown.addCleanup(
+    "Integration sync back watcher",
+    integrationSyncBackWatcher.stop,
   );
 };
 
