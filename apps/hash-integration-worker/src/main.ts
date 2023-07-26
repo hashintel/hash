@@ -7,6 +7,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
+import { createGraphClient } from "./graph";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
@@ -51,9 +52,17 @@ const workflowOption = () =>
 async function run() {
   const linearClient = createLinearClient();
 
+  const graphApiClient = createGraphClient({
+    host: getRequiredEnv("HASH_GRAPH_API_HOST"),
+    port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
+  });
+
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: activities.createLinearIntegrationActivities({ linearClient }),
+    activities: activities.createLinearIntegrationActivities({
+      linearClient,
+      graphApiClient,
+    }),
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),

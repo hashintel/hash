@@ -273,6 +273,8 @@ module "application" {
   temporal_worker_integration_env_vars = [
     # TODO: Going to be replaced by the OAuth authentication method
     { name = "HASH_LINEAR_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_linear_api_key"]) },
+    { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
+    { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
   ]
   temporal_host = module.temporal.host
   temporal_port = module.temporal.temporal_port

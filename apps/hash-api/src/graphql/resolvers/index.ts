@@ -2,6 +2,7 @@ import { JSONObjectResolver } from "graphql-scalars";
 
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
+import { linearTeamsResolver } from "./integrations/linear/linear-teams";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
@@ -88,6 +89,8 @@ export const resolvers = {
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
+    // Integration
+    linearTeams: loggedInAndSignedUpMiddleware(linearTeamsResolver),
   },
 
   Mutation: {

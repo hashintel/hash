@@ -612,23 +612,23 @@ const organizationEntityTypeInitializer = async (
   const previousUrlKeyPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.previousUrlKey(context);
 
-  const projectUpdateRemindersDayPropertyType =
-    await LINEAR_TYPES_INITIALIZERS.propertyType.projectUpdateRemindersDay(
-      context,
-    );
+  // const projectUpdateRemindersDayPropertyType =
+  //   await LINEAR_TYPES_INITIALIZERS.propertyType.projectUpdateRemindersDay(
+  //     context,
+  //   );
 
   const projectUpdateRemindersHourPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.projectUpdateRemindersHour(
       context,
     );
 
-  const projectUpdatesReminderFrequencyPropertyType =
-    await LINEAR_TYPES_INITIALIZERS.propertyType.projectUpdatesReminderFrequency(
-      context,
-    );
-
-  const releaseChannelPropertyType =
-    await LINEAR_TYPES_INITIALIZERS.propertyType.releaseChannel(context);
+  // const projectUpdatesReminderFrequencyPropertyType =
+  //   await LINEAR_TYPES_INITIALIZERS.propertyType.projectUpdatesReminderFrequency(
+  //     context,
+  //   );
+  //
+  // const releaseChannelPropertyType =
+  //   await LINEAR_TYPES_INITIALIZERS.propertyType.releaseChannel(context);
 
   const roadmapEnabledPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.roadmapEnabled(context);
@@ -729,22 +729,22 @@ const organizationEntityTypeInitializer = async (
         required: true,
         array: true,
       },
-      {
-        propertyType: projectUpdateRemindersDayPropertyType,
-        required: true,
-      },
+      // {
+      //   propertyType: projectUpdateRemindersDayPropertyType,
+      //   required: true,
+      // },
       {
         propertyType: projectUpdateRemindersHourPropertyType,
         required: true,
       },
-      {
-        propertyType: projectUpdatesReminderFrequencyPropertyType,
-        required: true,
-      },
-      {
-        propertyType: releaseChannelPropertyType,
-        required: true,
-      },
+      // {
+      //   propertyType: projectUpdatesReminderFrequencyPropertyType,
+      //   required: true,
+      // },
+      // {
+      //   propertyType: releaseChannelPropertyType,
+      //   required: true,
+      // },
       {
         propertyType: roadmapEnabledPropertyType,
         required: true,

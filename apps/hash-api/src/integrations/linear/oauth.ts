@@ -210,15 +210,15 @@ export const oAuthLinearCallback: RequestHandler<
         expiredAt.toISOString(),
       [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
         vaultPath,
-      // @todo create a Linear Workspace entity and create an authorizesDataFrom link to it instead of doing this
-      "https://example.com/property-types/linear-org-id/": linearOrgId,
+      [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
+        linearOrgId,
     };
 
     const secretEntity = await createEntity(req.context, {
       actorId: extractEntityUuidFromEntityId(
         actorEntityId,
       ) as Uuid as AccountId,
-      entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
+      entityTypeId: SYSTEM_TYPES.entityType.linearUserSecret.schema.$id,
       ownedById: ownedById as Uuid as OwnedById,
       properties: secretMetadata,
     });
