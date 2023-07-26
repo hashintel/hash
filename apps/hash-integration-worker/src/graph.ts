@@ -1,4 +1,3 @@
-import { Logger } from "@local/hash-backend-utils/logger";
 import { Configuration, GraphApi } from "@local/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
