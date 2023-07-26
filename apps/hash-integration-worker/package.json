@@ -4,28 +4,6 @@
   "private": true,
   "description": "A TypeScript worker for HASH for data integration",
   "license": "AGPL-3.0",
-  "exports": {
-    ".": "./src/main.ts",
-    "./workflows": "./src/workflows.ts",
-    "./activities": "./src/activities.ts",
-    "./graph": "./src/graph.ts"
-  },
-  "typesVersions": {
-    "*": {
-      ".": [
-        "./src/main.ts"
-      ],
-      "workflows": [
-        "./src/workflows.ts"
-      ],
-      "activities": [
-        "./src/activities.ts"
-      ],
-      "graph": [
-        "./src/graph.ts"
-      ]
-    }
-  },
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-integration-worker --file ./docker/Dockerfile ../../",
@@ -37,9 +15,12 @@
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts"
   },
   "dependencies": {
+    "@blockprotocol/type-system": "0.1.1",
     "@linear/sdk": "6.0.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
     "@temporalio/activity": "1.8.1",
     "@temporalio/worker": "1.8.1",
     "@temporalio/workflow": "1.8.1",

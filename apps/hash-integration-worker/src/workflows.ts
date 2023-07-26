@@ -1,17 +1,3 @@
-import {
-  Attachment as LinearAttachment,
-  Comment as LinearComment,
-  CustomView as LinearCustomView,
-  Cycle as LinearCycles,
-  Document as LinearDocument,
-  Issue as LinearIssue,
-  IssueLabel as LinearIssueLabel,
-  Organization as LinearOrganization,
-  Project as LinearProject,
-  ProjectMilestone as LinearProjectMilestone,
-  Team as LinearTeam,
-  User as LinearUser,
-} from "@linear/sdk";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createLinearIntegrationActivities } from "./activities";
@@ -25,33 +11,30 @@ export const linear = proxyActivities<
   },
 });
 
-export const linearMe = async (): Promise<LinearUser> => await linear.me();
-export const linearOrganization = async (): Promise<LinearOrganization> =>
-  await linear.organization();
-export const linearTeams = async (): Promise<LinearTeam[]> =>
-  await linear.teams();
+export const linearMe = async (): Promise<object> => linear.me();
+export const linearUsers = async (): Promise<object[]> => linear.users();
+
+export const linearOrganization = async (): Promise<object> =>
+  linear.organization();
+export const linearTeams = async (): Promise<object[]> => linear.teams();
 export const linearIssues = async (filter?: {
   teamId?: string;
-}): Promise<LinearIssue[]> => await linear.issues(filter);
+}): Promise<object[]> => linear.issues(filter);
 export const linearIssueLabels = async (filter?: {
   teamId?: string;
-}): Promise<LinearIssueLabel[]> => await linear.issueLabels(filter);
-export const linearUsers = async (): Promise<LinearUser[]> =>
-  await linear.users();
+}): Promise<object[]> => linear.issueLabels(filter);
 export const linearCycles = async (filter?: {
   teamId?: string;
-}): Promise<LinearCycles[]> => await linear.cycles(filter);
-export const linearCustomViews = async (): Promise<LinearCustomView[]> =>
-  await linear.customViews();
-export const linearProjects = async (): Promise<LinearProject[]> =>
-  await linear.projects();
+}): Promise<object[]> => linear.cycles(filter);
+export const linearCustomViews = async (): Promise<object[]> =>
+  linear.customViews();
+export const linearProjects = async (): Promise<object[]> => linear.projects();
 export const linearComments = async (filter?: {
   teamId?: string;
-}): Promise<LinearComment[]> => await linear.comments(filter);
-export const linearProjectMilestones = async (): Promise<
-  LinearProjectMilestone[]
-> => await linear.projectMilestones();
-export const linearDocuments = async (): Promise<LinearDocument[]> =>
-  await linear.documents();
-export const linearAttachments = async (): Promise<LinearAttachment[]> =>
-  await linear.attachments();
+}): Promise<object[]> => linear.comments(filter);
+export const linearProjectMilestones = async (): Promise<object[]> =>
+  linear.projectMilestones();
+export const linearDocuments = async (): Promise<object[]> =>
+  linear.documents();
+export const linearAttachments = async (): Promise<object[]> =>
+  linear.attachments();
