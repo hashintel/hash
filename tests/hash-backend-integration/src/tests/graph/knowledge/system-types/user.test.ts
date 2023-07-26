@@ -133,7 +133,7 @@ describe("User model class", () => {
 
     expect(
       await isUserMemberOfOrg(graphContext, {
-        user: createdUser,
+        userEntityId: createdUser.entity.metadata.recordId.entityId,
         orgEntityUuid,
       }),
     ).toBe(false);
@@ -147,7 +147,7 @@ describe("User model class", () => {
 
     expect(
       await isUserMemberOfOrg(graphContext, {
-        user: createdUser,
+        userEntityId: createdUser.entity.metadata.recordId.entityId,
         orgEntityUuid,
       }),
     ).toBe(true);

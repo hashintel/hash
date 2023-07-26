@@ -145,6 +145,10 @@ const systemEntityTypes = {
     title: "File",
     description: "A file.",
   },
+  userSecret: {
+    title: "User Secret",
+    description: "A secret or credential belonging to a user",
+  },
 } as const;
 
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
@@ -221,6 +225,7 @@ const systemPropertyTypes = {
     title: "Component Id",
     description: undefined,
   },
+  // @todo this could be a timestamp – archivedAt
   archived: {
     title: "Archived",
     description: "Whether or not something has been archived.",
@@ -253,6 +258,18 @@ const systemPropertyTypes = {
   deletedAt: {
     title: "Deleted At",
     description: "Stringified timestamp of when something was deleted.",
+  },
+  expiredAt: {
+    title: "Expired At",
+    description: "Stringified timestamp of when something expired.",
+  },
+  connectionSourceName: {
+    title: "Connection Source Name",
+    description: "The name of the connection source.",
+  },
+  vaultPath: {
+    title: "Vault Path",
+    description: "The path to a secret in Hashicorp Vault.",
   },
   fileUrl: {
     title: "File URL",
@@ -313,6 +330,11 @@ const systemLinkEntityTypes = {
   admin: {
     title: "Admin",
     description: "The admin of something.",
+  },
+  authorizesDataFrom: {
+    title: "Authorizes Data From",
+    description:
+      "The thing that data access is authorized from (e.g. data from a specific workspace, account, or team is authorized).",
   },
 } as const;
 

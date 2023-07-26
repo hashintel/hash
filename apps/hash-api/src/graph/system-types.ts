@@ -17,6 +17,7 @@ export let SYSTEM_TYPES: {
     // General
     description: PropertyTypeWithMetadata;
     location: PropertyTypeWithMetadata;
+    // @todo use 'url' when this is available? or rename to websiteUrl?
     website: PropertyTypeWithMetadata;
 
     // General account related
@@ -48,9 +49,16 @@ export let SYSTEM_TYPES: {
     // Text-related
     tokens: PropertyTypeWithMetadata;
 
-    // Comment-related
+    // Timestamps
     resolvedAt: PropertyTypeWithMetadata;
     deletedAt: PropertyTypeWithMetadata;
+    expiredAt: PropertyTypeWithMetadata;
+
+    // Integration related
+    connectionSourceName: PropertyTypeWithMetadata;
+
+    // Secret storage related
+    vaultPath: PropertyTypeWithMetadata;
 
     // HASH Instance related
     userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
@@ -73,6 +81,7 @@ export let SYSTEM_TYPES: {
     page: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
     file: EntityTypeWithMetadata;
+    userSecret: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -91,6 +100,8 @@ export let SYSTEM_TYPES: {
     // Comment-related
     hasText: EntityTypeWithMetadata;
     author: EntityTypeWithMetadata;
+
+    authorizesDataFrom: EntityTypeWithMetadata;
   };
 };
 
@@ -115,6 +126,9 @@ const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
 export const adminLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.admin,
 );
+
+export const authorizesDataFromLinkEntityTypeInitializer =
+  entityTypeInitializer(types.linkEntityType.authorizesDataFrom);
 
 export const hashInstanceEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -551,6 +565,53 @@ const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
+const expiredAtPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.expiredAt,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const connectionSourceNamePropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.connectionSourceName,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const vaultPathPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.vaultPath,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const userSecretEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const expiredAtPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.expiredAt(context);
+
+  const connectionSourceNamePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.connectionSourceName(context);
+
+  const vaultPathEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.vaultPath(context);
+
+  const authorizesDataFromLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.authorizesDataFrom(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.userSecret,
+    properties: [
+      { propertyType: expiredAtPropertyType },
+      { propertyType: connectionSourceNamePropertyType, required: true },
+      { propertyType: vaultPathEntityType, required: true },
+    ],
+    outgoingLinks: [
+      {
+        linkEntityType: authorizesDataFromLinkEntityType,
+      },
+    ],
+  })(context);
+};
+
 const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.hasText,
 );
@@ -756,6 +817,10 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
     resolvedAt: resolvedAtPropertyTypeInitializer,
     deletedAt: deletedAtPropertyTypeInitializer,
+    expiredAt: expiredAtPropertyTypeInitializer,
+
+    connectionSourceName: connectionSourceNamePropertyTypeInitializer,
+    vaultPath: vaultPathPropertyTypeInitializer,
 
     userSelfRegistrationIsEnabled:
       userSelfRegistrationIsEnabledPropertyTypeInitializer,
@@ -779,9 +844,11 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     file: fileEntityTypeInitializer,
+    userSecret: userSecretEntityTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
+    authorizesDataFrom: authorizesDataFromLinkEntityTypeInitializer,
     orgMembership: orgMembershipLinkEntityTypeInitializer,
     blockData: blockDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,

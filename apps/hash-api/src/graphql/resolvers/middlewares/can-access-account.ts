@@ -27,7 +27,7 @@ export const canAccessAccountMiddleware: ResolverMiddleware<
       isAllowed = true;
     } else {
       isAllowed = await isUserMemberOfOrg(context, {
-        user,
+        userEntityId: user.entity.metadata.recordId.entityId,
         orgEntityUuid: args.ownedById,
       });
     }
