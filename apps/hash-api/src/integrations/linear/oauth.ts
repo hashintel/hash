@@ -107,7 +107,7 @@ export const oAuthLinear: RequestHandler<
 
     stateMap.set(state, {
       actorEntityId: req.user.entity.metadata.recordId.entityId,
-      expires: new Date(Date.now() + 1000 * 60 * 5),
+      expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
       ownedById: ownedById as EntityUuid,
       ownerType,
     });

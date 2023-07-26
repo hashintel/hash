@@ -607,7 +607,6 @@ const userSecretEntityTypeInitializer = async (context: ImpureGraphContext) => {
     outgoingLinks: [
       {
         linkEntityType: authorizesDataFromLinkEntityType,
-        minItems: 0,
       },
     ],
   })(context);

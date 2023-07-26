@@ -249,8 +249,8 @@ const systemPropertyTypes = {
     description: "Stringified timestamp of when something was deleted.",
   },
   expiredAt: {
-    title: "Revoked At",
-    description: "Stringified timestamp of when something was revoked.",
+    title: "Expired At",
+    description: "Stringified timestamp of when something expired.",
   },
   connectionSourceName: {
     title: "Connection Source Name",
