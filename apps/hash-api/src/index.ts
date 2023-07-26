@@ -15,7 +15,7 @@ import { Session } from "@ory/client";
 import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
-import express from "express";
+import express, { raw } from "express";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
@@ -39,6 +39,7 @@ import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
+import { linearWebhook } from "./integrations/linear/webhook";
 import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
 import {
@@ -187,8 +188,20 @@ const main = async () => {
   // Potentially only in development mode
   app.use(helmet({ contentSecurityPolicy: false }));
 
-  // Parse request body as JSON - allow higher than the default 100kb limit
-  app.use(json({ limit: "16mb" }));
+  const jsonParser = json({
+    // default is 100kb
+    limit: "16mb",
+  });
+  const rawParser = raw({ type: "application/json" });
+
+  // Body parsing middleware
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/webhooks/")) {
+      // webhooks typically need the raw body for signature verification
+      return rawParser(req, res, next);
+    }
+    return jsonParser(req, res, next);
+  });
 
   // Set up authentication related middleware and routes
   setupAuth({ app, logger, context });
@@ -288,6 +301,7 @@ const main = async () => {
   // Integrations
   app.get("/oauth/linear", oAuthLinear);
   app.get("/oauth/linear/callback", oAuthLinearCallback);
+  app.post("/webhooks/linear", linearWebhook);
 
   // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not
