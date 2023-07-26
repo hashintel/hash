@@ -1,4 +1,4 @@
-import { LinearClient, Team } from "@linear/sdk";
+import { LinearClient, Organization, Team } from "@linear/sdk";
 
 import { TemporalClient } from "../temporal";
 
@@ -16,6 +16,18 @@ export const listTeams = async (params: {
     teams.push(...teamsConnection.nodes);
   }
   return teams;
+};
+
+export const getOrganization = async (params: {
+  apiKey: string;
+}): Promise<Organization> => {
+  const { apiKey } = params;
+
+  const linearClient = new LinearClient({ apiKey });
+
+  const organization = await linearClient.organization;
+
+  return organization;
 };
 
 export class Linear {
