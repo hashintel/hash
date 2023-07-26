@@ -35,7 +35,6 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
 
 export const createLinearIntegrationActivities = ({
   linearClient,
-
   graphApiClient,
 }: {
   linearClient: LinearClient;
