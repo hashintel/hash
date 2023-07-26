@@ -134,9 +134,9 @@ const systemEntityTypes = {
     title: "File",
     description: "A file.",
   },
-  userSecret: {
-    title: "User Secret",
-    description: "A secret or credential belonging to a user",
+  linearUserSecret: {
+    title: "Linear User Secret",
+    description: "A linear secret or credential belonging to a user",
   },
 } as const;
 
@@ -259,6 +259,10 @@ const systemPropertyTypes = {
   vaultPath: {
     title: "Vault Path",
     description: "The path to a secret in Hashicorp Vault.",
+  },
+  linearOrgId: {
+    title: "Linear Org Id",
+    description: "The unique identifier for an org in Linear.",
   },
   fileUrl: {
     title: "File URL",

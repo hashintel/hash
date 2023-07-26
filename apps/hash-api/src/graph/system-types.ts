@@ -59,6 +59,7 @@ export let SYSTEM_TYPES: {
 
     // Secret storage related
     vaultPath: PropertyTypeWithMetadata;
+    linearOrgId: PropertyTypeWithMetadata;
 
     // HASH Instance related
     userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
@@ -81,7 +82,7 @@ export let SYSTEM_TYPES: {
     page: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
     file: EntityTypeWithMetadata;
-    userSecret: EntityTypeWithMetadata;
+    linearUserSecret: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -580,7 +581,14 @@ const vaultPathPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const userSecretEntityTypeInitializer = async (context: ImpureGraphContext) => {
+const linearOrgIdPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.linearOrgId,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const linearUserSecretEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
   const expiredAtPropertyType =
@@ -595,14 +603,18 @@ const userSecretEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const authorizesDataFromLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.authorizesDataFrom(context);
 
+  const linearOrgIdPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.linearOrgId(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.userSecret,
+    ...types.entityType.linearUserSecret,
     properties: [
       { propertyType: expiredAtPropertyType },
       { propertyType: connectionSourceNamePropertyType, required: true },
       { propertyType: vaultPathEntityType, required: true },
+      { propertyType: linearOrgIdPropertyType, required: true },
     ],
     outgoingLinks: [
       {
@@ -821,6 +833,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
     connectionSourceName: connectionSourceNamePropertyTypeInitializer,
     vaultPath: vaultPathPropertyTypeInitializer,
+    linearOrgId: linearOrgIdPropertyTypeInitializer,
 
     userSelfRegistrationIsEnabled:
       userSelfRegistrationIsEnabledPropertyTypeInitializer,
@@ -844,7 +857,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     file: fileEntityTypeInitializer,
-    userSecret: userSecretEntityTypeInitializer,
+    linearUserSecret: linearUserSecretEntityTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
