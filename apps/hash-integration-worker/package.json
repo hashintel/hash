@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/main.ts",
     "./workflows": "./src/workflows.ts",
-    "./activities": "./src/activities.ts"
+    "./activities": "./src/activities.ts",
+    "./graph": "./src/graph.ts"
   },
   "typesVersions": {
     "*": {
@@ -19,6 +20,9 @@
       ],
       "activities": [
         "./src/activities.ts"
+      ],
+      "graph": [
+        "./src/graph.ts"
       ]
     }
   },
@@ -35,9 +39,12 @@
   "dependencies": {
     "@linear/sdk": "6.0.0",
     "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
     "@temporalio/activity": "1.8.1",
     "@temporalio/worker": "1.8.1",
     "@temporalio/workflow": "1.8.1",
+    "agentkeepalive": "4.2.1",
+    "axios": "0.27.2",
     "dotenv-flow": "3.2.0",
     "ts-node": "10.9.1",
     "typescript": "5.0.4"
