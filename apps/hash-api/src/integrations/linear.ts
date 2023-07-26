@@ -1,19 +1,25 @@
-import { Team } from "@linear/sdk";
+import { LinearClient, Team } from "@linear/sdk";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
 import { TemporalClient } from "../temporal";
-import { genId } from "../util";
+
+export const listTeams = async (): Promise<Team[]> => {
+  const linearClient = new LinearClient({
+    apiKey: getRequiredEnv("HASH_LINEAR_API_KEY"),
+  });
+  let teamsConnection = await linearClient.teams();
+  const teams = teamsConnection.nodes;
+  while (teamsConnection.pageInfo.hasNextPage) {
+    teamsConnection = await teamsConnection.fetchNext();
+    teams.push(...teamsConnection.nodes);
+  }
+  return teams;
+};
 
 export class Linear {
   private readonly temporalClient: TemporalClient;
 
   constructor(temporalClient: TemporalClient) {
     this.temporalClient = temporalClient;
-  }
-
-  public async teams(): Promise<Team[]> {
-    return this.temporalClient.workflow.execute("linearListTeams", {
-      taskQueue: "integration",
-      workflowId: `linearTeams-${genId()}`,
-    });
   }
 }

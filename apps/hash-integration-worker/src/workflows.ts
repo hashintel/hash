@@ -25,9 +25,6 @@ export const linear = proxyActivities<
   },
 });
 
-export const linearListTeams = async (): Promise<LinearTeam[]> =>
-  await linear.teams();
-
 export const linearMe = async (): Promise<LinearUser> => await linear.me();
 export const linearOrganization = async (): Promise<LinearOrganization> =>
   await linear.organization();
