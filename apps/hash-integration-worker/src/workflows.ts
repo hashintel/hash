@@ -14,6 +14,40 @@ export const linear = proxyActivities<
 export const linearMe = async (): Promise<object> => linear.me();
 export const linearUsers = async (): Promise<object[]> => linear.users();
 
+export const linearImport = async (params: {
+  ownedById: string;
+  actorId: string;
+  teamIds: string[];
+}): Promise<void> => {
+  const organization = linear.organization().then((organizationProperties) =>
+    linear.insertOrganization({
+      ownedById: params.ownedById,
+      actorId: params.actorId,
+      properties: organizationProperties,
+    }),
+  );
+
+  const users = linear.users().then((usersProperties) =>
+    linear.insertUsers({
+      ownedById: params.ownedById,
+      actorId: params.actorId,
+      properties: usersProperties,
+    }),
+  );
+
+  const issues = params.teamIds.map((teamId) =>
+    linear.issues({ teamId }).then((issuesProperties) =>
+      linear.insertIssues({
+        ownedById: params.ownedById,
+        actorId: params.actorId,
+        properties: issuesProperties,
+      }),
+    ),
+  );
+
+  await Promise.all([organization, users, ...issues]);
+};
+
 export const linearOrganization = async (): Promise<object> =>
   linear.organization();
 export const linearTeams = async (): Promise<object[]> => linear.teams();

@@ -1,5 +1,6 @@
 import { Connection, LinearClient, LinearDocument } from "@linear/sdk";
 import { GraphApi } from "@local/hash-graph-client";
+import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 
 import {
   attachmentToEntity,
@@ -28,12 +29,59 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
 
 export const createLinearIntegrationActivities = ({
   linearClient,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   graphApiClient,
 }: {
   linearClient: LinearClient;
   graphApiClient: GraphApi;
 }) => ({
+  async insertOrganization(params: {
+    properties: object;
+    actorId: string;
+    ownedById: string;
+  }): Promise<void> {
+    await graphApiClient.createEntity({
+      actorId: params.actorId,
+      entityTypeId: linearTypes.entityType.organization.entityTypeId,
+      ownedById: params.ownedById,
+      properties: params.properties,
+    });
+  },
+
+  async insertUsers(params: {
+    properties: object[];
+    actorId: string;
+    ownedById: string;
+  }): Promise<void> {
+    await Promise.all(
+      params.properties.map((properties) =>
+        graphApiClient.createEntity({
+          actorId: params.actorId,
+          entityTypeId: linearTypes.entityType.user.entityTypeId,
+          ownedById: params.ownedById,
+          properties,
+        }),
+      ),
+    );
+  },
+
+  async insertIssues(params: {
+    properties: object[];
+    actorId: string;
+    ownedById: string;
+  }): Promise<void> {
+    await Promise.all(
+      params.properties.map((properties) =>
+        graphApiClient.createEntity({
+          actorId: params.actorId,
+          entityTypeId: linearTypes.entityType.issue.entityTypeId,
+          ownedById: params.ownedById,
+          properties,
+        }),
+      ),
+    );
+  },
+
   async me(): Promise<object> {
     return linearClient.viewer.then(userToEntity);
   },
