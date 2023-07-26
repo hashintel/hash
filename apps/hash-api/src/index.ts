@@ -27,8 +27,8 @@ import {
   EmailTransporter,
 } from "./email/transporters";
 import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import { ensureLinearOrgExists } from "./graph/linear-org";
 import { ensureLinearTypesExist } from "./graph/linear-types";
-import { ensureLinearUserExists } from "./graph/linear-user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { getAwsRegion } from "./lib/aws-config";
@@ -151,7 +151,7 @@ const main = async () => {
   await ensureSystemGraphIsInitialized({ logger, context });
 
   if (process.env.LINEAR_CLIENT_ID) {
-    await ensureLinearUserExists({ logger, context });
+    await ensureLinearOrgExists({ logger, context });
 
     await ensureLinearTypesExist({ logger, context });
   }
