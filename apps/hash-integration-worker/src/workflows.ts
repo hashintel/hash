@@ -2,7 +2,7 @@ import { proxyActivities } from "@temporalio/workflow";
 
 import { createLinearIntegrationActivities } from "./activities";
 
-export const linear = proxyActivities<
+const linear = proxyActivities<
   ReturnType<typeof createLinearIntegrationActivities>
 >({
   startToCloseTimeout: "180 second",
@@ -38,3 +38,9 @@ export const linearDocuments = async (): Promise<object[]> =>
   linear.documents();
 export const linearAttachments = async (): Promise<object[]> =>
   linear.attachments();
+
+export const updateLinearIssue = async (
+  ...args: Parameters<typeof linear.updateIssue>
+) => {
+  await linear.updateIssue(...args);
+};

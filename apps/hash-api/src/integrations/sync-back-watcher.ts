@@ -82,6 +82,7 @@ export const createIntegrationSyncBackWatcher = async (
     stop: async () => {
       clearInterval(interval);
       await queue.release();
+      await redisClient.close();
     },
 
     start: () => {

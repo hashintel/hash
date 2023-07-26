@@ -1,4 +1,4 @@
-import { Connection, LinearClient, LinearDocument } from "@linear/sdk";
+import { Connection, Issue, LinearClient, LinearDocument } from "@linear/sdk";
 import { GraphApi } from "@local/hash-graph-client";
 
 import {
@@ -155,5 +155,21 @@ export const createLinearIntegrationActivities = ({
       .attachments()
       .then(readNodes)
       .then((attachments) => attachments.map(attachmentToEntity));
+  },
+
+  async updateIssue(
+    apiKey: string,
+    id: Issue["id"],
+    update: LinearDocument.IssueUpdateInput,
+  ): Promise<Issue | undefined> {
+    const client = new LinearClient({ apiKey });
+
+    const updatedIssue = await client
+      .updateIssue(id, update)
+      .then((data) => data.issue);
+
+    console.log({ updatedIssue });
+
+    return updatedIssue;
   },
 });
