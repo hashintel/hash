@@ -34,6 +34,8 @@ import {
   ImpureGraphContext,
 } from "./graph";
 import { User } from "./graph/knowledge/system-types/user";
+import { ensureLinearOrgExists } from "./graph/linear-org";
+import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
@@ -168,6 +170,12 @@ const main = async () => {
   setupFileProxyHandler(app, uploadProvider, redis);
 
   await ensureSystemGraphIsInitialized({ logger, context });
+
+  if (process.env.LINEAR_CLIENT_ID) {
+    await ensureLinearOrgExists({ logger, context });
+
+    await ensureLinearTypesExist({ logger, context });
+  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
