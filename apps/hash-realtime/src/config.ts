@@ -10,8 +10,7 @@ export const MONITOR_TABLES = supportedRealtimeTables.map(
   (table) => `public.${table}`,
 );
 
-// The realtime service will push all updates from the Postgres changestream to the
-// following queues.
+// The realtime service will push updates from the Postgres change stream to the following queues.
 export const generateQueues = (
   logger: Logger,
 ): { name: string; producer: QueueProducer }[] => {
@@ -26,7 +25,7 @@ export const generateQueues = (
       ),
     },
     {
-      name: getRequiredEnv("HASH_COLLAB_QUEUE_NAME"),
+      name: getRequiredEnv("HASH_INTEGRATION_QUEUE_NAME"),
       producer: new RedisQueueProducer(
         new AsyncRedisClient(logger, {
           host: getRequiredEnv("HASH_REDIS_HOST"),

@@ -147,8 +147,8 @@ resource "aws_ecs_task_definition" "task" {
       },
       {
         # value must match the same environment variable in the api service
-        name  = "HASH_COLLAB_QUEUE_NAME"
-        value = "collab"
+        name  = "HASH_INTEGRATION_QUEUE_NAME"
+        value = "integration"
       },
       {
         name  = "HASH_REDIS_HOST"

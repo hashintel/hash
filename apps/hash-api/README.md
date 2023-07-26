@@ -35,7 +35,7 @@ The HASH Backend API service is configured using the following environment varia
   StatsD server. If enabled, the following variables must be set:
   - `STATSD_HOST`: the hostname of the StatsD server.
   - `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
-- `HASH_COLLAB_QUEUE_NAME` The name of the Redis queue which updates to entities are published to, which collab can then respond to
+- `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to used to decide what changes should be written to connected applications (for two-way sync between them and HASH)
 - Snowplow telemetry:
   - `HASH_TELEMETRY_ENABLED`: (default: `false`) whether Snowplow is used or not. `true` or `false`.
   - `HASH_TELEMETRY_HTTPS`: (default: `false`) set to "1" to connect to the Snowplow over an HTTPS connection. `true` or `false`.
