@@ -6,10 +6,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "../graph";
+import { fullDecisionTimeAxis, zeroedGraphResolveDepths } from "../graph";
 import { logger } from "../logger";
 import { getRequiredEnv } from "../util";
 import {
@@ -51,7 +48,7 @@ export const createIntegrationSyncBackWatcher = async (
               ],
             },
             graphResolveDepths: zeroedGraphResolveDepths,
-            temporalAxes: currentTimeInstantTemporalAxes,
+            temporalAxes: fullDecisionTimeAxis,
           })
           .then(({ data: subgraph }) =>
             getRoots(subgraph as Subgraph<EntityRootType>),
