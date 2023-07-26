@@ -1,20 +1,19 @@
+import { Connection, LinearClient, LinearDocument } from "@linear/sdk";
+
 import {
-  Attachment,
-  Comment,
-  Connection,
-  CustomView,
-  Cycle,
-  Document,
-  Issue,
-  IssueLabel,
-  LinearClient,
-  LinearDocument,
-  Organization,
-  Project,
-  ProjectMilestone,
-  Team,
-  User,
-} from "@linear/sdk";
+  attachmentToEntity,
+  commentToEntity,
+  customViewToEntity,
+  cycleToEntity,
+  documentToEntity,
+  issueLabelToEntity,
+  issueToEntity,
+  organizationToEntity,
+  projectMilestoneToEntity,
+  projectToEntity,
+  teamToEntity,
+  userToEntity,
+} from "./mappings";
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   const nodes = connection.nodes;
@@ -31,51 +30,69 @@ export const createLinearIntegrationActivities = ({
 }: {
   linearClient: LinearClient;
 }) => ({
-  async me(): Promise<User> {
-    return linearClient.viewer;
+  async me(): Promise<object> {
+    return linearClient.viewer.then(userToEntity);
   },
 
-  async organization(): Promise<Organization> {
-    return linearClient.organization;
+  async organization(): Promise<object> {
+    return linearClient.organization.then(organizationToEntity);
   },
 
-  async teams(): Promise<Team[]> {
-    return linearClient.teams().then(readNodes);
+  async teams(): Promise<object[]> {
+    return linearClient
+      .teams()
+      .then(readNodes)
+      .then((teams) => teams.map(teamToEntity));
   },
 
-  async issues(filter?: { teamId?: string }): Promise<Issue[]> {
+  async issues(filter?: { teamId?: string }): Promise<object[]> {
     const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
       filter: {},
     };
     if (filter?.teamId) {
       issuesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
     }
-    return linearClient.issues(issuesQueryVariables).then(readNodes);
+    return linearClient
+      .issues(issuesQueryVariables)
+      .then(readNodes)
+      .then((issues) => issues.map(issueToEntity));
   },
 
-  async users(): Promise<User[]> {
-    return linearClient.users().then(readNodes);
+  async users(): Promise<object[]> {
+    return linearClient
+      .users()
+      .then(readNodes)
+      .then((users) => users.map(userToEntity));
   },
 
-  async cycles(filter?: { teamId?: string }): Promise<Cycle[]> {
+  async cycles(filter?: { teamId?: string }): Promise<object[]> {
     const cyclesQueryVariables: LinearDocument.CyclesQueryVariables = {
       filter: {},
     };
     if (filter?.teamId) {
       cyclesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
     }
-    return linearClient.cycles(cyclesQueryVariables).then(readNodes);
+    return linearClient
+      .cycles(cyclesQueryVariables)
+      .then(readNodes)
+      .then((cycles) => cycles.map(cycleToEntity));
   },
 
-  async customViews(): Promise<CustomView[]> {
-    return linearClient.customViews().then(readNodes);
+  async customViews(): Promise<object[]> {
+    return linearClient
+      .customViews()
+      .then(readNodes)
+      .then((customViews) => customViews.map(customViewToEntity));
   },
 
-  async projects(): Promise<Project[]> {
-    return linearClient.projects().then(readNodes);
+  async projects(): Promise<object[]> {
+    return linearClient
+      .projects()
+      .then(readNodes)
+      .then((projects) => projects.map(projectToEntity));
   },
 
-  async comments(filter?: { teamId?: string }): Promise<Comment[]> {
+  async comments(filter?: { teamId?: string }): Promise<object[]> {
     const commentsQueryVariables: LinearDocument.CommentsQueryVariables = {
       filter: {},
     };
@@ -84,26 +101,38 @@ export const createLinearIntegrationActivities = ({
         team: { id: { eq: filter.teamId } },
       };
     }
-    return linearClient.comments(commentsQueryVariables).then(readNodes);
+    return linearClient
+      .comments(commentsQueryVariables)
+      .then(readNodes)
+      .then((comments) => comments.map(commentToEntity));
   },
 
-  async projectMilestones(): Promise<ProjectMilestone[]> {
+  async projectMilestones(): Promise<object[]> {
     return (
       await Promise.all(
         (
           await linearClient.projects().then(readNodes)
         ).map(
-          async (project) => await project.projectMilestones().then(readNodes),
+          async (project) =>
+            await project
+              .projectMilestones()
+              .then(readNodes)
+              .then((projectMilestones) =>
+                projectMilestones.map(projectMilestoneToEntity),
+              ),
         ),
       )
     ).flat();
   },
 
-  async documents(): Promise<Document[]> {
-    return linearClient.documents().then(readNodes);
+  async documents(): Promise<object[]> {
+    return linearClient
+      .documents()
+      .then(readNodes)
+      .then((documents) => documents.map(documentToEntity));
   },
 
-  async issueLabels(filter?: { teamId?: string }): Promise<IssueLabel[]> {
+  async issueLabels(filter?: { teamId?: string }): Promise<object[]> {
     const issueLabelsQueryVariables: LinearDocument.IssueLabelsQueryVariables =
       { filter: {} };
     if (filter?.teamId) {
@@ -111,10 +140,16 @@ export const createLinearIntegrationActivities = ({
         team: { id: { eq: filter.teamId } },
       };
     }
-    return linearClient.issueLabels().then(readNodes);
+    return linearClient
+      .issueLabels()
+      .then(readNodes)
+      .then((issueLabels) => issueLabels.map(issueLabelToEntity));
   },
 
-  async attachments(): Promise<Attachment[]> {
-    return linearClient.attachments().then(readNodes);
+  async attachments(): Promise<object[]> {
+    return linearClient
+      .attachments()
+      .then(readNodes)
+      .then((attachments) => attachments.map(attachmentToEntity));
   },
 });
