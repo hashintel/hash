@@ -1,12 +1,14 @@
 import { LinearClient, Team } from "@linear/sdk";
-import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
 import { TemporalClient } from "../temporal";
 
-export const listTeams = async (): Promise<Team[]> => {
-  const linearClient = new LinearClient({
-    apiKey: getRequiredEnv("HASH_LINEAR_API_KEY"),
-  });
+export const listTeams = async (params: {
+  apiKey: string;
+}): Promise<Team[]> => {
+  const { apiKey } = params;
+
+  const linearClient = new LinearClient({ apiKey });
+
   let teamsConnection = await linearClient.teams();
   const teams = teamsConnection.nodes;
   while (teamsConnection.pageInfo.hasNextPage) {

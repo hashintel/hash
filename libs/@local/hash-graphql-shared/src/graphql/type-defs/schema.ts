@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 import { deprecatedTypedef } from "./deprecated.typedef";
 import { embedTypeDef } from "./embed.typedef";
+import { linearTypedef } from "./integration/linear.typedef";
 import { blockTypedef } from "./knowledge/block.typedef";
 import { commentTypedef } from "./knowledge/comment.typedef";
 import { entityTypedef } from "./knowledge/entity.typedef";
@@ -61,5 +62,6 @@ export const schema = [
   deprecatedTypedef,
   ...ontology,
   ...knowledge,
+  linearTypedef,
   subgraphTypedef,
 ];
