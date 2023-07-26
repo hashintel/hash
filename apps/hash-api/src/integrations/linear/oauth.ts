@@ -13,6 +13,7 @@ import {
 import { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
+import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 
@@ -210,18 +211,41 @@ export const oAuthLinearCallback: RequestHandler<
         expiredAt.toISOString(),
       [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
         vaultPath,
-      [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
-        linearOrgId,
     };
 
-    const secretEntity = await createEntity(req.context, {
-      actorId: extractEntityUuidFromEntityId(
-        actorEntityId,
-      ) as Uuid as AccountId,
-      entityTypeId: SYSTEM_TYPES.entityType.linearUserSecret.schema.$id,
+    const actorId = extractEntityUuidFromEntityId(
+      actorEntityId,
+    ) as Uuid as AccountId;
+
+    const userSecretEntity = await createEntity(req.context, {
+      actorId,
+      entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
       ownedById: ownedById as Uuid as OwnedById,
       properties: secretMetadata,
     });
 
-    res.status(200).send(secretEntity);
+    const linearIntegrationProperties = {
+      [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
+        linearOrgId,
+    };
+
+    const linearIntegrationEntity = await createEntity(req.context, {
+      actorId: extractEntityUuidFromEntityId(
+        actorEntityId,
+      ) as Uuid as AccountId,
+      entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+      ownedById: ownedById as Uuid as OwnedById,
+      properties: linearIntegrationProperties,
+    });
+
+    await createLinkEntity(req.context, {
+      ownedById: ownedById as Uuid as OwnedById,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
+      leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
+      rightEntityId: userSecretEntity.metadata.recordId.entityId,
+      properties: {},
+      actorId,
+    });
+
+    res.status(200).send(userSecretEntity);
   };

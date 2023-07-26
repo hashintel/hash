@@ -145,9 +145,13 @@ const systemEntityTypes = {
     title: "File",
     description: "A file.",
   },
-  linearUserSecret: {
-    title: "Linear User Secret",
-    description: "A linear secret or credential belonging to a user",
+  userSecret: {
+    title: "User Secret",
+    description: "A secret or credential belonging to a user.",
+  },
+  linearIntegration: {
+    title: "Linear Integration",
+    description: "An instance of an integration with Linear.",
   },
 } as const;
 
@@ -296,6 +300,10 @@ const systemPropertyTypes = {
     description:
       "Key used to uniquely identify a file in a third-party system.",
   },
+  linearTeamId: {
+    title: "Linear Team Id",
+    description: "The unique identifier for a team in Linear.",
+  },
 } as const;
 
 type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;
@@ -335,10 +343,13 @@ const systemLinkEntityTypes = {
     title: "Admin",
     description: "The admin of something.",
   },
-  authorizesDataFrom: {
-    title: "Authorizes Data From",
-    description:
-      "The thing that data access is authorized from (e.g. data from a specific workspace, account, or team is authorized).",
+  syncLinearDataWith: {
+    title: "Sync Linear Data With",
+    description: "Something that syncs linear data with something.",
+  },
+  usesUserSecret: {
+    title: "Uses User Secret",
+    description: "Something that uses a user secret.",
   },
 } as const;
 
