@@ -4,28 +4,6 @@
   "private": true,
   "description": "A TypeScript worker for HASH for data integration",
   "license": "AGPL-3.0",
-  "exports": {
-    ".": "./src/main.ts",
-    "./workflows": "./src/workflows.ts",
-    "./activities": "./src/activities.ts",
-    "./mappings": "./src/mappings.ts"
-  },
-  "typesVersions": {
-    "*": {
-      ".": [
-        "./src/main.ts"
-      ],
-      "workflows": [
-        "./src/workflows.ts"
-      ],
-      "activities": [
-        "./src/activities.ts"
-      ],
-      "mappings": [
-        "./src/mappings.ts"
-      ]
-    }
-  },
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-integration-worker --file ./docker/Dockerfile ../../",
