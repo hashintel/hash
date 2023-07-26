@@ -17,7 +17,7 @@ import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-type PartialEntity = {
+export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
   entityTypeId: VersionedUrl;
 };

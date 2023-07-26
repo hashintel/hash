@@ -1,6 +1,12 @@
-import { Connection, LinearClient, LinearDocument } from "@linear/sdk";
+import {
+  Connection,
+  Issue,
+  LinearClient,
+  LinearDocument,
+  Team,
+  User,
+} from "@linear/sdk";
 import { GraphApi } from "@local/hash-graph-client";
-import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 
 import {
   attachmentToEntity,
@@ -11,9 +17,9 @@ import {
   issueLabelToEntity,
   issueToEntity,
   organizationToEntity,
+  PartialEntity,
   projectMilestoneToEntity,
   projectToEntity,
-  teamToEntity,
   userToEntity,
 } from "./mappings";
 
@@ -35,29 +41,16 @@ export const createLinearIntegrationActivities = ({
   linearClient: LinearClient;
   graphApiClient: GraphApi;
 }) => ({
-  async insertOrganization(params: {
-    properties: object;
-    actorId: string;
-    ownedById: string;
-  }): Promise<void> {
-    await graphApiClient.createEntity({
-      actorId: params.actorId,
-      entityTypeId: linearTypes.entityType.organization.entityTypeId,
-      ownedById: params.ownedById,
-      properties: params.properties,
-    });
-  },
-
-  async insertUsers(params: {
-    properties: object[];
+  async createPartialEntities(params: {
+    entities: PartialEntity[];
     actorId: string;
     ownedById: string;
   }): Promise<void> {
     await Promise.all(
-      params.properties.map((properties) =>
+      params.entities.map(({ properties, entityTypeId }) =>
         graphApiClient.createEntity({
           actorId: params.actorId,
-          entityTypeId: linearTypes.entityType.user.entityTypeId,
+          entityTypeId,
           ownedById: params.ownedById,
           properties,
         }),
@@ -65,39 +58,42 @@ export const createLinearIntegrationActivities = ({
     );
   },
 
-  async insertIssues(params: {
-    properties: object[];
-    actorId: string;
-    ownedById: string;
-  }): Promise<void> {
-    await Promise.all(
-      params.properties.map((properties) =>
-        graphApiClient.createEntity({
-          actorId: params.actorId,
-          entityTypeId: linearTypes.entityType.issue.entityTypeId,
-          ownedById: params.ownedById,
-          properties,
-        }),
-      ),
-    );
-  },
-
-  async me(): Promise<object> {
-    return linearClient.viewer.then(userToEntity);
-  },
-
-  async organization(): Promise<object> {
+  async readOrganization(): Promise<PartialEntity> {
     return linearClient.organization.then(organizationToEntity);
   },
 
-  async teams(): Promise<object[]> {
-    return linearClient
-      .teams()
-      .then(readNodes)
-      .then((teams) => teams.map(teamToEntity));
+  async createUsers(params: {
+    users: User[];
+    actorId: string;
+    ownedById: string;
+  }): Promise<void> {
+    await this.createPartialEntities({
+      entities: params.users.map(userToEntity),
+      actorId: params.actorId,
+      ownedById: params.ownedById,
+    });
   },
 
-  async issues(filter?: { teamId?: string }): Promise<object[]> {
+  async readUsers(): Promise<PartialEntity[]> {
+    return linearClient
+      .users()
+      .then(readNodes)
+      .then((users) => users.map(userToEntity));
+  },
+
+  async createIssues(params: {
+    issues: Issue[];
+    actorId: string;
+    ownedById: string;
+  }): Promise<void> {
+    await this.createPartialEntities({
+      entities: params.issues.map(issueToEntity),
+      actorId: params.actorId,
+      ownedById: params.ownedById,
+    });
+  },
+
+  async readIssues(filter?: { teamId?: string }): Promise<PartialEntity[]> {
     const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
       filter: {},
     };
@@ -110,14 +106,11 @@ export const createLinearIntegrationActivities = ({
       .then((issues) => issues.map(issueToEntity));
   },
 
-  async users(): Promise<object[]> {
-    return linearClient
-      .users()
-      .then(readNodes)
-      .then((users) => users.map(userToEntity));
+  async readTeams(): Promise<Team[]> {
+    return linearClient.teams().then(readNodes);
   },
 
-  async cycles(filter?: { teamId?: string }): Promise<object[]> {
+  async readCycles(filter?: { teamId?: string }): Promise<object[]> {
     const cyclesQueryVariables: LinearDocument.CyclesQueryVariables = {
       filter: {},
     };
@@ -130,21 +123,21 @@ export const createLinearIntegrationActivities = ({
       .then((cycles) => cycles.map(cycleToEntity));
   },
 
-  async customViews(): Promise<object[]> {
+  async readCustomViews(): Promise<object[]> {
     return linearClient
       .customViews()
       .then(readNodes)
       .then((customViews) => customViews.map(customViewToEntity));
   },
 
-  async projects(): Promise<object[]> {
+  async readProjects(): Promise<object[]> {
     return linearClient
       .projects()
       .then(readNodes)
       .then((projects) => projects.map(projectToEntity));
   },
 
-  async comments(filter?: { teamId?: string }): Promise<object[]> {
+  async readComments(filter?: { teamId?: string }): Promise<object[]> {
     const commentsQueryVariables: LinearDocument.CommentsQueryVariables = {
       filter: {},
     };
@@ -159,7 +152,7 @@ export const createLinearIntegrationActivities = ({
       .then((comments) => comments.map(commentToEntity));
   },
 
-  async projectMilestones(): Promise<object[]> {
+  async readProjectMilestones(): Promise<object[]> {
     return (
       await Promise.all(
         (
@@ -177,14 +170,14 @@ export const createLinearIntegrationActivities = ({
     ).flat();
   },
 
-  async documents(): Promise<object[]> {
+  async readDocuments(): Promise<object[]> {
     return linearClient
       .documents()
       .then(readNodes)
       .then((documents) => documents.map(documentToEntity));
   },
 
-  async issueLabels(filter?: { teamId?: string }): Promise<object[]> {
+  async readIssueLabels(filter?: { teamId?: string }): Promise<object[]> {
     const issueLabelsQueryVariables: LinearDocument.IssueLabelsQueryVariables =
       { filter: {} };
     if (filter?.teamId) {
@@ -198,7 +191,7 @@ export const createLinearIntegrationActivities = ({
       .then((issueLabels) => issueLabels.map(issueLabelToEntity));
   },
 
-  async attachments(): Promise<object[]> {
+  async readAttachments(): Promise<object[]> {
     return linearClient
       .attachments()
       .then(readNodes)

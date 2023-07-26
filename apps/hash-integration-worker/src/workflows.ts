@@ -1,3 +1,4 @@
+import { Issue, Team, User } from "@linear/sdk";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createLinearIntegrationActivities } from "./activities";
@@ -11,36 +12,33 @@ export const linear = proxyActivities<
   },
 });
 
-export const linearMe = async (): Promise<object> => linear.me();
-export const linearUsers = async (): Promise<object[]> => linear.users();
-
 export const linearImport = async (params: {
   ownedById: string;
   actorId: string;
   teamIds: string[];
 }): Promise<void> => {
-  const organization = linear.organization().then((organizationProperties) =>
-    linear.insertOrganization({
+  const organization = linear.readOrganization().then((organizationEntity) =>
+    linear.createPartialEntities({
       ownedById: params.ownedById,
       actorId: params.actorId,
-      properties: organizationProperties,
+      entities: [organizationEntity],
     }),
   );
 
-  const users = linear.users().then((usersProperties) =>
-    linear.insertUsers({
+  const users = linear.readUsers().then((usersEntity) =>
+    linear.createPartialEntities({
       ownedById: params.ownedById,
       actorId: params.actorId,
-      properties: usersProperties,
+      entities: usersEntity,
     }),
   );
 
   const issues = params.teamIds.map((teamId) =>
-    linear.issues({ teamId }).then((issuesProperties) =>
-      linear.insertIssues({
+    linear.readIssues({ teamId }).then((issuesEntity) =>
+      linear.createPartialEntities({
         ownedById: params.ownedById,
         actorId: params.actorId,
-        properties: issuesProperties,
+        entities: issuesEntity,
       }),
     ),
   );
@@ -48,27 +46,28 @@ export const linearImport = async (params: {
   await Promise.all([organization, users, ...issues]);
 };
 
-export const linearOrganization = async (): Promise<object> =>
-  linear.organization();
-export const linearTeams = async (): Promise<object[]> => linear.teams();
-export const linearIssues = async (filter?: {
-  teamId?: string;
-}): Promise<object[]> => linear.issues(filter);
-export const linearIssueLabels = async (filter?: {
-  teamId?: string;
-}): Promise<object[]> => linear.issueLabels(filter);
-export const linearCycles = async (filter?: {
-  teamId?: string;
-}): Promise<object[]> => linear.cycles(filter);
-export const linearCustomViews = async (): Promise<object[]> =>
-  linear.customViews();
-export const linearProjects = async (): Promise<object[]> => linear.projects();
-export const linearComments = async (filter?: {
-  teamId?: string;
-}): Promise<object[]> => linear.comments(filter);
-export const linearProjectMilestones = async (): Promise<object[]> =>
-  linear.projectMilestones();
-export const linearDocuments = async (): Promise<object[]> =>
-  linear.documents();
-export const linearAttachments = async (): Promise<object[]> =>
-  linear.attachments();
+export const createUser = async (params: {
+  user: User;
+  ownedById: string;
+  actorId: string;
+}): Promise<void> => {
+  await linear.createUsers({
+    users: [params.user],
+    ownedById: params.ownedById,
+    actorId: params.actorId,
+  });
+};
+
+export const createIssue = async (params: {
+  issue: Issue;
+  ownedById: string;
+  actorId: string;
+}): Promise<void> => {
+  await linear.createIssues({
+    issues: [params.issue],
+    ownedById: params.ownedById,
+    actorId: params.actorId,
+  });
+};
+
+export const linearTeams = async (): Promise<Team[]> => linear.readTeams();
