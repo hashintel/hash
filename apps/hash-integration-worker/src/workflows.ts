@@ -34,11 +34,11 @@ export const linearImport = async (params: {
   );
 
   const issues = params.teamIds.map((teamId) =>
-    linear.readIssues({ teamId }).then((issuesEntity) =>
+    linear.readIssues({ teamId }).then((issueEntities) =>
       linear.createPartialEntities({
         ownedById: params.ownedById,
         actorId: params.actorId,
-        entities: issuesEntity,
+        entities: issueEntities,
       }),
     ),
   );
