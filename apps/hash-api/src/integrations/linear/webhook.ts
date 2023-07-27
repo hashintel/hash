@@ -4,7 +4,7 @@ import { RequestHandler } from "express";
 
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
-import { genId, getRequiredEnv } from "../../util";
+import { genId } from "../../util";
 
 type LinearWebhookPayloadBase = {
   action: string;
