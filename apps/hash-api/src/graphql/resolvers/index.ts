@@ -3,6 +3,7 @@ import { JSONObjectResolver } from "graphql-scalars";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
+import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
@@ -136,6 +137,10 @@ export const resolvers = {
     // HASH instance admin mutations
     createUser:
       loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
+    // Integration
+    syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
+      syncLinearIntegrationWithWorkspacesMutation,
+    ),
   },
 
   JSONObject: JSONObjectResolver,

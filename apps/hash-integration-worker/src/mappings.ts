@@ -31,11 +31,11 @@ export const userToEntity = (user: User): PartialEntity => {
       [extractBaseUrl(linearTypes.propertyType.admin.propertyTypeId)]:
         user.admin,
       [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
-        user.archivedAt?.toISOString(),
+        user.archivedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.avatarUrl.propertyTypeId)]:
         user.avatarUrl,
       [extractBaseUrl(linearTypes.propertyType.createdAt.propertyTypeId)]:
-        user.createdAt.toISOString(),
+        user.createdAt.toString(),
       [extractBaseUrl(
         linearTypes.propertyType.createdIssueCount.propertyTypeId,
       )]: user.createdIssueCount,
@@ -52,17 +52,17 @@ export const userToEntity = (user: User): PartialEntity => {
       [extractBaseUrl(linearTypes.propertyType.id.propertyTypeId)]: user.id,
       [extractBaseUrl(linearTypes.propertyType.isMe.propertyTypeId)]: user.isMe,
       [extractBaseUrl(linearTypes.propertyType.lastSeen.propertyTypeId)]:
-        user.lastSeen?.toISOString(),
+        user.lastSeen?.toString(),
       [extractBaseUrl(linearTypes.propertyType.statusEmoji.propertyTypeId)]:
         user.statusEmoji,
       [extractBaseUrl(linearTypes.propertyType.statusLabel.propertyTypeId)]:
         user.statusLabel,
       [extractBaseUrl(linearTypes.propertyType.statusUntilAt.propertyTypeId)]:
-        user.statusUntilAt?.toISOString(),
+        user.statusUntilAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.timezone.propertyTypeId)]:
         user.timezone,
       [extractBaseUrl(linearTypes.propertyType.updatedAt.propertyTypeId)]:
-        user.updatedAt.toISOString(),
+        user.updatedAt.toString(),
       [extractBaseUrl(linearTypes.propertyType.url.propertyTypeId)]: user.url,
     },
   };
@@ -78,15 +78,15 @@ export const organizationToEntity = (
         linearTypes.propertyType.allowedAuthService.propertyTypeId,
       )]: organization.allowedAuthServices,
       [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
-        organization.archivedAt?.toISOString(),
+        organization.archivedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.createdAt.propertyTypeId)]:
-        organization.createdAt.toISOString(),
+        organization.createdAt.toString(),
       [extractBaseUrl(
         linearTypes.propertyType.createdIssueCount.propertyTypeId,
       )]: organization.createdIssueCount,
       [extractBaseUrl(
         linearTypes.propertyType.deletionRequestedAt.propertyTypeId,
-      )]: organization.deletionRequestedAt?.toISOString(),
+      )]: organization.deletionRequestedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.gitBranchFormat.propertyTypeId)]:
         organization.gitBranchFormat,
       [extractBaseUrl(
@@ -118,9 +118,9 @@ export const organizationToEntity = (
       [extractBaseUrl(linearTypes.propertyType.scimEnabled.propertyTypeId)]:
         organization.scimEnabled,
       [extractBaseUrl(linearTypes.propertyType.trialEndsAt.propertyTypeId)]:
-        organization.trialEndsAt?.toISOString(),
+        organization.trialEndsAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.updatedAt.propertyTypeId)]:
-        organization.updatedAt.toISOString(),
+        organization.updatedAt.toString(),
       [extractBaseUrl(linearTypes.propertyType.urlKey.propertyTypeId)]:
         organization.urlKey,
       [extractBaseUrl(linearTypes.propertyType.userCount.propertyTypeId)]:
@@ -138,19 +138,19 @@ export const issueToEntity = (issue: Issue): PartialEntity => {
     entityTypeId: linearTypes.entityType.organization.entityTypeId,
     properties: {
       [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
-        issue.archivedAt?.toISOString(),
+        issue.archivedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.autoArchivedAt.propertyTypeId)]:
-        issue.autoArchivedAt?.toISOString(),
+        issue.autoArchivedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.autoClosedAt.propertyTypeId)]:
-        issue.autoClosedAt?.toISOString(),
+        issue.autoClosedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.branchName.propertyTypeId)]:
         issue.branchName,
       [extractBaseUrl(linearTypes.propertyType.canceledAt.propertyTypeId)]:
-        issue.canceledAt?.toISOString(),
+        issue.canceledAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.completedAt.propertyTypeId)]:
-        issue.completedAt?.toISOString(),
+        issue.completedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.createdAt.propertyTypeId)]:
-        issue.createdAt.toISOString(),
+        issue.createdAt.toString(),
       [extractBaseUrl(
         linearTypes.propertyType.customerTicketCount.propertyTypeId,
       )]: issue.customerTicketCount,
@@ -174,13 +174,13 @@ export const issueToEntity = (issue: Issue): PartialEntity => {
       [extractBaseUrl(linearTypes.propertyType.priorityLabel.propertyTypeId)]:
         issue.priorityLabel,
       [extractBaseUrl(linearTypes.propertyType.snoozedUntilAt.propertyTypeId)]:
-        issue.snoozedUntilAt?.toISOString(),
+        issue.snoozedUntilAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.sortOrder.propertyTypeId)]:
         issue.sortOrder,
       [extractBaseUrl(linearTypes.propertyType.startedAt.propertyTypeId)]:
-        issue.startedAt?.toISOString(),
+        issue.startedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.startedTriageAt.propertyTypeId)]:
-        issue.startedTriageAt?.toISOString(),
+        issue.startedTriageAt?.toString(),
       [extractBaseUrl(
         linearTypes.propertyType.subIssueSortOrder.propertyTypeId,
       )]: issue.subIssueSortOrder,
@@ -189,9 +189,9 @@ export const issueToEntity = (issue: Issue): PartialEntity => {
       [extractBaseUrl(linearTypes.propertyType.trashed.propertyTypeId)]:
         issue.trashed,
       [extractBaseUrl(linearTypes.propertyType.triagedAt.propertyTypeId)]:
-        issue.triagedAt?.toISOString(),
+        issue.triagedAt?.toString(),
       [extractBaseUrl(linearTypes.propertyType.updatedAt.propertyTypeId)]:
-        issue.updatedAt.toISOString(),
+        issue.updatedAt.toString(),
       [extractBaseUrl(linearTypes.propertyType.url.propertyTypeId)]: issue.url,
     },
   };
