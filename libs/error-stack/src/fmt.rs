@@ -824,6 +824,7 @@ impl Opaque {
     }
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
     config: &mut Config,
