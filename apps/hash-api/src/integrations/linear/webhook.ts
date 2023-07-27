@@ -69,7 +69,7 @@ export const linearWebhook: RequestHandler<{}, "ok", string> = async (
           // @todo Use correct account IDs
           actorId: "00000000-0000-0000-0000-000000000000",
           ownedById: "00000000-0000-0000-0000-000000000000",
-          issue: (payload as LinearWebhookPayloadChange).data,
+          payload: (payload as LinearWebhookPayloadChange).data,
         },
       ],
       workflowId: `${workflow}-${genId()}`,
