@@ -1,10 +1,18 @@
 import { GraphApi } from "@local/hash-graph-client";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  Entity,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { v4 as uuid } from "uuid";
 
-import { getLinearUserSecretByLinearOrgId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { systemUserAccountId } from "../../graph/system-user";
 import { createTemporalClient } from "../../temporal";
 import { createVaultClient } from "../../vault";
 
@@ -40,17 +48,18 @@ export const processEntityChange = async (
     );
   }
 
-  const owningAccountId = extractOwnedByIdFromEntityId(
+  const owningAccountUuId = extractOwnedByIdFromEntityId(
     entity.metadata.recordId.entityId,
   );
 
-  const linearOrgId = "123"; // @todo
-
-  const linearApiKey = await getLinearUserSecretByLinearOrgId(
+  const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
     { graphApi, uploadProvider: null as any }, // @todo uploadProvider shouldn't be required
     {
-      linearOrgId,
-      userAccountId: owningAccountId, // @todo this function will be changed in a PR soon
+      hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(
+        systemUserAccountId as OwnedById,
+        owningAccountUuId as Uuid as EntityUuid,
+      ),
+      vaultClient,
     },
   );
 
