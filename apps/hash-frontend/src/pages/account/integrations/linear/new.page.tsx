@@ -1,3 +1,4 @@
+import { EntityId } from "@blockprotocol/graph/temporal";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -19,8 +20,11 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
   const { queryEntities } = useBlockProtocolQueryEntities();
 
+  const [syncedTeamsWithWorkspaces, setSyncedTeamsWithWorkspaces] =
+    useState<boolean>(false);
+
   const linearIntegrationEntityId = useMemo(() => {
-    return router.query.linearIntegrationEntityId as string;
+    return router.query.linearIntegrationEntityId as EntityId;
   }, [router]);
 
   const [linearIntegrationEntities, setLinearIntegrationEntities] =
@@ -79,7 +83,19 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         Linear
       </Typography>
       <Typography>Connecting to Linear</Typography>
-      {linearOrgId ? <SelectLinearTeams linearOrgId={linearOrgId} /> : null}
+      {syncedTeamsWithWorkspaces ? (
+        <Typography>Synced Linear Teams with Workspaces</Typography>
+      ) : linearOrgId && linearIntegrationEntity ? (
+        <SelectLinearTeams
+          linearIntegrationEntityId={
+            linearIntegrationEntity.metadata.recordId.entityId
+          }
+          linearOrgId={linearOrgId}
+          onSyncedLinearTeamsWithWorkspaces={() =>
+            setSyncedTeamsWithWorkspaces(true)
+          }
+        />
+      ) : null}
     </Container>
   );
 };

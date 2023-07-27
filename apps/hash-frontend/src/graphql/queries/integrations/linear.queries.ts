@@ -17,3 +17,15 @@ export const getLinearOrganizationQuery = gql`
     }
   }
 `;
+
+export const syncLinearIntegrationWithWorkspacesMutation = gql`
+  mutation syncLinearIntegrationWithWorkspaces(
+    $linearIntegrationEntityId: EntityId!
+    $syncWithWorkspaces: [SyncWithWorkspace!]!
+  ) {
+    syncLinearIntegrationWithWorkspaces(
+      linearIntegrationEntityId: $linearIntegrationEntityId
+      syncWithWorkspaces: $syncWithWorkspaces
+    )
+  }
+`;

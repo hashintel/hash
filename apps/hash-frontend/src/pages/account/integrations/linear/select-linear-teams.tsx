@@ -1,5 +1,6 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { Chip, MenuItem, Select } from "@hashintel/design-system";
+import { EntityId } from "@local/hash-subgraph/.";
 import {
   Box,
   Table,
@@ -9,34 +10,39 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 
 import {
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
+  SyncLinearIntegrationWithWorkspacesMutation,
+  SyncLinearIntegrationWithWorkspacesMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { getLinearOrganizationQuery } from "../../../../graphql/queries/integrations/linear.queries";
+import {
+  getLinearOrganizationQuery,
+  syncLinearIntegrationWithWorkspacesMutation,
+} from "../../../../graphql/queries/integrations/linear.queries";
 import { MinimalUser, Org } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 const SelectWorkspaces: FunctionComponent<{
-  selectedWorkspaceAccountIds: string[];
+  selectedWorkspaceEntityIds: EntityId[];
   possibleWorkspaces: (Org | MinimalUser)[];
-  setSelectedWorkspaceAccountIds: (accountIds: string[]) => void;
+  setSelectedWorkspaceEntityIds: (entityIds: EntityId[]) => void;
 }> = ({
-  selectedWorkspaceAccountIds,
+  selectedWorkspaceEntityIds,
   possibleWorkspaces,
-  setSelectedWorkspaceAccountIds,
+  setSelectedWorkspaceEntityIds,
 }) => {
   return (
     <Select
       fullWidth
       multiple
-      value={selectedWorkspaceAccountIds}
+      value={selectedWorkspaceEntityIds}
       onChange={({ target: { value } }) =>
-        setSelectedWorkspaceAccountIds(
-          typeof value === "string" ? value.split(",") : value,
+        setSelectedWorkspaceEntityIds(
+          typeof value === "string" ? (value.split(",") as EntityId[]) : value,
         )
       }
       // input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
@@ -44,7 +50,7 @@ const SelectWorkspaces: FunctionComponent<{
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
           {selected.map((value) => {
             const workspace = possibleWorkspaces.find(
-              ({ accountId }) => accountId === value,
+              ({ entityRecordId: { entityId } }) => entityId === value,
             )!;
 
             return (
@@ -62,7 +68,10 @@ const SelectWorkspaces: FunctionComponent<{
       )}
     >
       {possibleWorkspaces.map((userOrOrg) => (
-        <MenuItem key={userOrOrg.accountId} value={userOrOrg.accountId}>
+        <MenuItem
+          key={userOrOrg.entityRecordId.entityId}
+          value={userOrOrg.entityRecordId.entityId}
+        >
           {userOrOrg.kind === "org" ? userOrOrg.name : userOrOrg.preferredName}
         </MenuItem>
       ))}
@@ -70,18 +79,34 @@ const SelectWorkspaces: FunctionComponent<{
   );
 };
 
-export const SelectLinearTeams: FunctionComponent<{ linearOrgId: string }> = ({
+export const SelectLinearTeams: FunctionComponent<{
+  linearIntegrationEntityId: EntityId;
+  linearOrgId: string;
+  onSyncedLinearTeamsWithWorkspaces: () => void;
+}> = ({
+  linearIntegrationEntityId,
   linearOrgId,
+  onSyncedLinearTeamsWithWorkspaces,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
+  const [
+    syncLinearIntegrationWithWorkspaces,
+    { loading: loadingSyncLinearIntegrationWithWorkspaces },
+  ] = useMutation<
+    SyncLinearIntegrationWithWorkspacesMutation,
+    SyncLinearIntegrationWithWorkspacesMutationVariables
+  >(syncLinearIntegrationWithWorkspacesMutation, { awaitRefetchQueries: true });
 
   const possibleWorkspaces = [authenticatedUser, ...authenticatedUser.memberOf];
 
   const [syncTeamsWithWorkspace, setSyncTeamsWithWorkspace] = useState<
-    Map<string, string[]>
+    Map<EntityId, string[]>
   >(
-    new Map<string, string[]>(
-      possibleWorkspaces.map((workspace) => [workspace.accountId, []]),
+    new Map<EntityId, string[]>(
+      possibleWorkspaces.map((workspace) => [
+        workspace.entityRecordId.entityId,
+        [],
+      ]),
     ),
   );
 
@@ -91,6 +116,30 @@ export const SelectLinearTeams: FunctionComponent<{ linearOrgId: string }> = ({
   >(getLinearOrganizationQuery, { variables: { linearOrgId } });
 
   const linearOrganization = data?.getLinearOrganization;
+
+  const handleSaveAndContinue = useCallback(async () => {
+    /** @todo: add proper error handling */
+
+    await syncLinearIntegrationWithWorkspaces({
+      variables: {
+        linearIntegrationEntityId,
+        syncWithWorkspaces: Array.from(syncTeamsWithWorkspace.entries())
+          .map(([workspaceEntityId, linearTeamIds]) => ({
+            workspaceEntityId,
+            linearTeamIds,
+          }))
+          /** Don't sync to workspaces where no team has been selected */
+          .filter(({ linearTeamIds }) => linearTeamIds.length !== 0),
+      },
+    });
+
+    onSyncedLinearTeamsWithWorkspaces();
+  }, [
+    onSyncedLinearTeamsWithWorkspaces,
+    syncLinearIntegrationWithWorkspaces,
+    linearIntegrationEntityId,
+    syncTeamsWithWorkspace,
+  ]);
 
   return (
     <Box>
@@ -117,43 +166,43 @@ export const SelectLinearTeams: FunctionComponent<{ linearOrgId: string }> = ({
             <TableCell>{linearOrganization?.name}</TableCell>
             <TableCell>
               <SelectWorkspaces
-                selectedWorkspaceAccountIds={possibleWorkspaces
+                selectedWorkspaceEntityIds={possibleWorkspaces
+                  .map(({ entityRecordId: { entityId } }) => entityId)
                   .filter(
-                    ({ accountId }) =>
+                    (entityId) =>
                       linearOrganization &&
                       linearOrganization.teams.length ===
-                        syncTeamsWithWorkspace.get(accountId)?.length,
-                  )
-                  .map(({ accountId }) => accountId)}
+                        syncTeamsWithWorkspace.get(entityId)?.length,
+                  )}
                 possibleWorkspaces={possibleWorkspaces}
-                setSelectedWorkspaceAccountIds={(accountIds) =>
+                setSelectedWorkspaceEntityIds={(entityIds) =>
                   setSyncTeamsWithWorkspace((prev) => {
-                    for (const accountId of accountIds) {
-                      const previousTeams = prev.get(accountId) ?? [];
+                    for (const entityId of entityIds) {
+                      const previousTeams = prev.get(entityId) ?? [];
 
                       if (
                         linearOrganization &&
                         previousTeams.length !== linearOrganization.teams.length
                       ) {
                         prev.set(
-                          accountId,
+                          entityId,
                           linearOrganization.teams.map(({ id }) => id),
                         );
                       }
                     }
 
-                    const excludedAccountIds = possibleWorkspaces
-                      .map(({ accountId }) => accountId)
-                      .filter((accountId) => !accountIds.includes(accountId));
+                    const excludedEntityIds = possibleWorkspaces
+                      .map(({ entityRecordId: { entityId } }) => entityId)
+                      .filter((entityId) => !entityId.includes(entityId));
 
-                    for (const excludedAccountId of excludedAccountIds) {
-                      const previousTeams = prev.get(excludedAccountId) ?? [];
+                    for (const excludedEntityId of excludedEntityIds) {
+                      const previousTeams = prev.get(excludedEntityId) ?? [];
 
                       if (
                         linearOrganization &&
                         previousTeams.length === linearOrganization.teams.length
                       ) {
-                        prev.set(excludedAccountId, []);
+                        prev.set(excludedEntityId, []);
                       }
                     }
 
@@ -169,28 +218,28 @@ export const SelectLinearTeams: FunctionComponent<{ linearOrgId: string }> = ({
               <TableCell>{name}</TableCell>
               <TableCell>
                 <SelectWorkspaces
-                  selectedWorkspaceAccountIds={possibleWorkspaces
-                    .filter(({ accountId }) =>
-                      syncTeamsWithWorkspace.get(accountId)?.includes(teamId),
-                    )
-                    .map(({ accountId }) => accountId)}
+                  selectedWorkspaceEntityIds={possibleWorkspaces
+                    .map(({ entityRecordId: { entityId } }) => entityId)
+                    .filter((entityId) =>
+                      syncTeamsWithWorkspace.get(entityId)?.includes(teamId),
+                    )}
                   possibleWorkspaces={possibleWorkspaces}
-                  setSelectedWorkspaceAccountIds={(accountIds) =>
+                  setSelectedWorkspaceEntityIds={(entityIds) =>
                     setSyncTeamsWithWorkspace((prev) => {
-                      for (const accountId of accountIds) {
-                        const previousTeams = prev.get(accountId) ?? [];
+                      for (const entityId of entityIds) {
+                        const previousTeams = prev.get(entityId) ?? [];
 
                         if (!previousTeams.includes(teamId)) {
-                          prev.set(accountId, [...previousTeams, teamId]);
+                          prev.set(entityId, [...previousTeams, teamId]);
                         }
                       }
 
-                      const excludedAccountIds = possibleWorkspaces
-                        .map(({ accountId }) => accountId)
-                        .filter((accountId) => !accountIds.includes(accountId));
+                      const excludedEntityIds = possibleWorkspaces
+                        .map(({ entityRecordId: { entityId } }) => entityId)
+                        .filter((entityId) => !entityIds.includes(entityId));
 
-                      for (const excludedAccountId of excludedAccountIds) {
-                        const previousTeams = prev.get(excludedAccountId) ?? [];
+                      for (const excludedEntityId of excludedEntityIds) {
+                        const previousTeams = prev.get(excludedEntityId) ?? [];
 
                         if (
                           previousTeams.includes(teamId) &&
@@ -198,7 +247,7 @@ export const SelectLinearTeams: FunctionComponent<{ linearOrgId: string }> = ({
                             linearOrganization.teams.length
                         ) {
                           prev.set(
-                            excludedAccountId,
+                            excludedEntityId,
                             previousTeams.filter((id) => id !== teamId),
                           );
                         }
@@ -215,7 +264,12 @@ export const SelectLinearTeams: FunctionComponent<{ linearOrgId: string }> = ({
       </Table>
       <Box display="flex" justifyContent="flex-end" columnGap={2}>
         <Button variant="tertiary">Exit without granting access</Button>
-        <Button>Save and continue</Button>
+        <Button
+          disabled={loadingSyncLinearIntegrationWithWorkspaces}
+          onClick={handleSaveAndContinue}
+        >
+          Save and continue
+        </Button>
       </Box>
     </Box>
   );
