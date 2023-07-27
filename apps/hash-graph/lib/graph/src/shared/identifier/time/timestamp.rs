@@ -1,5 +1,6 @@
 use core::fmt;
 use std::{error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
+use std::cmp::Ordering;
 
 use derivative::Derivative;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
@@ -22,8 +23,7 @@ use crate::identifier::time::axis::TemporalTagged;
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = ""),
-    PartialOrd(bound = ""),
-    Ord(bound = "")
+    Ord(bound = ""),
 )]
 #[serde(transparent, bound = "")]
 pub struct Timestamp<A> {
@@ -31,6 +31,12 @@ pub struct Timestamp<A> {
     axis: PhantomData<A>,
     #[serde(with = "crate::serde::time")]
     time: OffsetDateTime,
+}
+
+impl<A> PartialOrd for Timestamp<A> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl<A> Clone for Timestamp<A> {

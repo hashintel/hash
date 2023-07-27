@@ -31,7 +31,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{
-            DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+            OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
             VersionedUrlAlreadyExists,
         },
         postgres::ontology::{OntologyDatabaseType, OntologyId},
@@ -45,6 +45,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
         time::{DecisionTime, Timestamp},
     },
+    store::error::DeletionError,
     knowledge::{EntityProperties, LinkOrder},
 };
 

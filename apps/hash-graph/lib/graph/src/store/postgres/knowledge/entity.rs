@@ -17,7 +17,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
-        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
@@ -32,6 +32,9 @@ use crate::{
         Subgraph,
     },
 };
+
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
