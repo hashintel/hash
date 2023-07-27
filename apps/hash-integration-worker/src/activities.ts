@@ -7,6 +7,10 @@ import {
   User,
 } from "@linear/sdk";
 import { GraphApi } from "@local/hash-graph-client";
+import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
   attachmentToEntity,
@@ -22,6 +26,81 @@ import {
   projectToEntity,
   userToEntity,
 } from "./mappings";
+
+const updateEntity = async (params: {
+  graphApiClient: GraphApi;
+  entity: PartialEntity;
+  actorId: string;
+}): Promise<void> => {
+  const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
+  const linearId = params.entity.properties[idBaseUrl];
+  if (!linearId) {
+    throw new Error(`No linear id found.`);
+  }
+  const [entity, ...unexpectedEntities] = await params.graphApiClient
+    .getEntitiesByQuery({
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              { parameter: params.entity.entityTypeId },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["properties", idBaseUrl],
+              },
+              { parameter: linearId },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
+      },
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
+        },
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
+        },
+      },
+    })
+    .then(({ data: linearEntities }) =>
+      getRoots(linearEntities as Subgraph<EntityRootType>),
+    );
+
+  if (unexpectedEntities.length > 0) {
+    throw new Error(`More than one entities returned.`);
+  }
+
+  if (!entity) {
+    throw new Error(`No entity returned.`);
+  }
+
+  await params.graphApiClient.updateEntity({
+    actorId: params.actorId,
+    archived: false,
+    entityId: entity.metadata.recordId.entityId,
+    entityTypeId: entity.metadata.entityTypeId,
+    properties: params.entity.properties,
+  });
+};
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   const nodes = connection.nodes;
@@ -61,15 +140,25 @@ export const createLinearIntegrationActivities = ({
     return linearClient.organization.then(organizationToEntity);
   },
 
-  async createUsers(params: {
-    users: User[];
+  async createUser(params: {
+    user: User;
     actorId: string;
     ownedById: string;
   }): Promise<void> {
-    await this.createPartialEntities({
-      entities: params.users.map(userToEntity),
+    const entity = userToEntity(params.user);
+    await graphApiClient.createEntity({
       actorId: params.actorId,
       ownedById: params.ownedById,
+      entityTypeId: entity.entityTypeId,
+      properties: entity.properties,
+    });
+  },
+
+  async updateUser(params: { user: User; actorId: string }): Promise<void> {
+    await updateEntity({
+      graphApiClient,
+      entity: userToEntity(params.user),
+      actorId: params.actorId,
     });
   },
 
@@ -80,15 +169,17 @@ export const createLinearIntegrationActivities = ({
       .then((users) => users.map(userToEntity));
   },
 
-  async createIssues(params: {
-    issues: Issue[];
+  async createIssue(params: {
+    issue: Issue;
     actorId: string;
     ownedById: string;
   }): Promise<void> {
-    await this.createPartialEntities({
-      entities: params.issues.map(issueToEntity),
+    const entity = issueToEntity(params.issue);
+    await graphApiClient.createEntity({
       actorId: params.actorId,
       ownedById: params.ownedById,
+      entityTypeId: entity.entityTypeId,
+      properties: entity.properties,
     });
   },
 
@@ -103,6 +194,14 @@ export const createLinearIntegrationActivities = ({
       .issues(issuesQueryVariables)
       .then(readNodes)
       .then((issues) => issues.map(issueToEntity));
+  },
+
+  async updateIssue(params: { issue: Issue; actorId: string }): Promise<void> {
+    await updateEntity({
+      graphApiClient,
+      entity: issueToEntity(params.issue),
+      actorId: params.actorId,
+    });
   },
 
   async readTeams(): Promise<Team[]> {

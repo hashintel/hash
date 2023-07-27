@@ -47,27 +47,45 @@ export const linearImport = async (params: {
 };
 
 export const createUser = async (params: {
-  user: User;
+  payload: User;
   ownedById: string;
   actorId: string;
 }): Promise<void> => {
-  await linear.createUsers({
-    users: [params.user],
+  await linear.createUser({
+    user: params.payload,
     ownedById: params.ownedById,
     actorId: params.actorId,
   });
 };
 
+export const updateUser = async (params: {
+  payload: User;
+  actorId: string;
+}): Promise<void> =>
+  linear.updateUser({
+    user: params.payload,
+    actorId: params.actorId,
+  });
+
 export const createIssue = async (params: {
-  issue: Issue;
+  payload: Issue;
   ownedById: string;
   actorId: string;
 }): Promise<void> => {
-  await linear.createIssues({
-    issues: [params.issue],
+  await linear.createIssue({
+    issue: params.payload,
     ownedById: params.ownedById,
     actorId: params.actorId,
   });
 };
+
+export const updateIssue = async (params: {
+  payload: Issue;
+  actorId: string;
+}): Promise<void> =>
+  linear.updateIssue({
+    issue: params.payload,
+    actorId: params.actorId,
+  });
 
 export const linearTeams = async (): Promise<Team[]> => linear.readTeams();
