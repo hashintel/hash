@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   AccountId,
   Entity,
@@ -14,6 +15,11 @@ import { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
+import {
+  getLinearIntegrationByLinearOrgId,
+  getLinearIntegrationFromEntity,
+  LinearIntegration,
+} from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 
@@ -217,35 +223,50 @@ export const oAuthLinearCallback: RequestHandler<
       actorEntityId,
     ) as Uuid as AccountId;
 
-    const userSecretEntity = await createEntity(req.context, {
-      actorId,
-      entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-      ownedById: ownedById as Uuid as OwnedById,
-      properties: secretMetadata,
-    });
+    const existingLinearIntegration = await getLinearIntegrationByLinearOrgId(
+      req.context,
+      { linearOrgId, userAccountId: actorId },
+    );
 
-    const linearIntegrationProperties = {
-      [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
-        linearOrgId,
-    };
+    let linearIntegration: LinearIntegration;
 
-    const linearIntegrationEntity = await createEntity(req.context, {
-      actorId: extractEntityUuidFromEntityId(
-        actorEntityId,
-      ) as Uuid as AccountId,
-      entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-      ownedById: ownedById as Uuid as OwnedById,
-      properties: linearIntegrationProperties,
-    });
+    if (existingLinearIntegration) {
+      linearIntegration = existingLinearIntegration;
+    } else {
+      const userSecretEntity = await createEntity(req.context, {
+        actorId,
+        entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
+        ownedById: ownedById as Uuid as OwnedById,
+        properties: secretMetadata,
+      });
 
-    await createLinkEntity(req.context, {
-      ownedById: ownedById as Uuid as OwnedById,
-      linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
-      leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
-      rightEntityId: userSecretEntity.metadata.recordId.entityId,
-      properties: {},
-      actorId,
-    });
+      const linearIntegrationProperties = {
+        [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
+          linearOrgId,
+      };
 
-    res.status(200).send(userSecretEntity);
+      const linearIntegrationEntity = await createEntity(req.context, {
+        actorId,
+        entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+        ownedById: ownedById as Uuid as OwnedById,
+        properties: linearIntegrationProperties,
+      });
+
+      await createLinkEntity(req.context, {
+        ownedById: ownedById as Uuid as OwnedById,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
+        leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
+        rightEntityId: userSecretEntity.metadata.recordId.entityId,
+        properties: {},
+        actorId,
+      });
+
+      linearIntegration = getLinearIntegrationFromEntity({
+        entity: linearIntegrationEntity,
+      });
+    }
+
+    res.redirect(
+      `${frontendUrl}/account/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
+    );
   };

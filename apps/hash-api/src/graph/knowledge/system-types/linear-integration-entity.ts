@@ -6,7 +6,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
+import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   currentTimeInstantTemporalAxes,
   ImpureGraphFunction,
@@ -15,19 +15,18 @@ import {
 } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 
-export type LinearUserSecret = {
-  connectionSourceName: string;
-  vaultPath: string;
+export type LinearIntegration = {
+  linearOrgId: string;
   entity: Entity;
 };
 
-export const getLinearUserSecretFromEntity: PureGraphFunction<
+export const getLinearIntegrationFromEntity: PureGraphFunction<
   { entity: Entity },
-  LinearUserSecret
+  LinearIntegration
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.userSecret.schema.$id
+    SYSTEM_TYPES.entityType.linearIntegration.schema.$id
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -36,17 +35,12 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
     );
   }
 
-  const connectionSourceName = entity.properties[
-    SYSTEM_TYPES.propertyType.connectionSourceName.metadata.recordId.baseUrl
-  ] as string;
-
-  const vaultPath = entity.properties[
-    SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl
+  const linearOrgId = entity.properties[
+    SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
   ] as string;
 
   return {
-    connectionSourceName,
-    vaultPath,
+    linearOrgId,
     entity,
   };
 };
@@ -54,9 +48,9 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 /**
  * Get a linear user secret by the linear org ID
  */
-export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
+export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string },
-  Promise<LinearUserSecret>
+  Promise<LinearIntegration | null>
 > = async ({ graphApi }, { userAccountId, linearOrgId }) => {
   const entities = await graphApi
     .getEntitiesByQuery({
@@ -69,23 +63,6 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
             equal: [
               { path: ["type", "versionedUrl"] },
               {
-                parameter: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "leftEntity", "type", "versionedUrl"] },
-              {
                 parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
               },
             ],
@@ -94,8 +71,6 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
             equal: [
               {
                 path: [
-                  "incomingLinks",
-                  "leftEntity",
                   "properties",
                   SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
                     .baseUrl,
@@ -113,17 +88,11 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
 
   if (entities.length > 1) {
     throw new Error(
-      `More than one linear user secret found for the user with the linear org ID ${linearOrgId}`,
+      `More than one linear integration found for the user with the linear org ID ${linearOrgId}`,
     );
   }
 
   const entity = entities[0];
 
-  if (!entity) {
-    throw new NotFoundError(
-      `Could not find a linear user secret for the user with the linear org ID ${linearOrgId}`,
-    );
-  }
-
-  return getLinearUserSecretFromEntity({ entity });
+  return entity ? getLinearIntegrationFromEntity({ entity }) : null;
 };

@@ -25,10 +25,29 @@ export const linearTypedef = gql`
     private: Boolean!
   }
 
+  type LinearOrganization {
+    """
+    The unique identifier of the entity.
+    """
+    id: ID!
+    """
+    The organization's logo URL.
+    """
+    logoUrl: String
+    """
+    The organization's name.
+    """
+    name: String!
+    """
+    Teams associated with the organization.
+    """
+    teams: [LinearTeam!]!
+  }
+
   extend type Query {
     """
-    Get the linear teams in a linear org
+    Get the linear organization
     """
-    linearTeams(linearOrgId: ID!): [LinearTeam!]!
+    getLinearOrganization(linearOrgId: ID!): LinearOrganization!
   }
 `;
