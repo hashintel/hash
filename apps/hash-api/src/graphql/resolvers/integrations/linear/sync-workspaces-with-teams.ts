@@ -1,4 +1,5 @@
-import { Entity } from "@local/hash-subgraph";
+import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { ForbiddenError } from "apollo-server-errors";
 
 import {
   getLinearIntegrationById,
@@ -23,6 +24,14 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   const linearIntegration = await getLinearIntegrationById(dataSources, {
     entityId: linearIntegrationEntityId,
   });
+
+  const linearIntegrationOwnedById = extractOwnedByIdFromEntityId(
+    linearIntegration.entity.metadata.recordId.entityId,
+  );
+
+  if (linearIntegrationOwnedById !== user.accountId) {
+    throw new ForbiddenError("User does not own the linear integration");
+  }
 
   await Promise.all(
     syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) =>
