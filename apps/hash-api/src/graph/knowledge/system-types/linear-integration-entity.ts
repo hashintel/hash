@@ -1,7 +1,10 @@
 import {
   AccountId,
   Entity,
+  EntityId,
   EntityRootType,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -14,6 +17,8 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
+import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
   linearOrgId: string;
@@ -95,4 +100,98 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
   const entity = entities[0];
 
   return entity ? getLinearIntegrationFromEntity({ entity }) : null;
+};
+
+/**
+ * Get a system linear integration entity by its entity id.
+ *
+ * @param params.entityId - the entity id of the block
+ */
+export const getLinearIntegrationById: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<LinearIntegration>
+> = async (ctx, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, { entityId });
+
+  return getLinearIntegrationFromEntity({ entity });
+};
+
+export const syncLinearIntegrationWithWorkspace: ImpureGraphFunction<
+  {
+    linearIntegrationEntityId: EntityId;
+    workspaceEntityId: EntityId;
+    linearTeamIds: string[];
+    actorId: AccountId;
+  },
+  Promise<void>
+> = async (
+  context,
+  { linearIntegrationEntityId, workspaceEntityId, linearTeamIds, actorId },
+) => {
+  const existingLinkEntities = await context.graphApi
+    .getEntitiesByQuery({
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              {
+                parameter:
+                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  linearIntegrationEntityId,
+                ),
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(workspaceEntityId),
+              },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    })
+    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+
+  if (existingLinkEntities.length > 1) {
+    throw new Error(
+      `More than one "syncLinearDataWith" link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the workspace entity with ID ${workspaceEntityId}`,
+    );
+  } else if (existingLinkEntities[0]) {
+    const [existingLinkEntity] = existingLinkEntities;
+
+    await updateEntity(context, {
+      entity: existingLinkEntity,
+      actorId,
+      properties: {
+        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+          linearTeamIds,
+      },
+    });
+  } else {
+    await createLinkEntity(context, {
+      ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
+      linkEntityType: SYSTEM_TYPES.linkEntityType.syncLinearDataWith,
+      leftEntityId: linearIntegrationEntityId,
+      rightEntityId: workspaceEntityId,
+      actorId,
+      properties: {
+        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+          linearTeamIds,
+      },
+    });
+  }
 };
