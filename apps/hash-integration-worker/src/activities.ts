@@ -112,11 +112,13 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   return nodes;
 };
 
+const createLinearClient = (apiKey: string) => new LinearClient({ apiKey });
+
+type ParamsWithApiKey<T = {}> = T & { apiKey: string };
+
 export const createLinearIntegrationActivities = ({
-  linearClient,
   graphApiClient,
 }: {
-  linearClient: LinearClient;
   graphApiClient: GraphApi;
 }) => ({
   async createPartialEntities(params: {
@@ -136,8 +138,10 @@ export const createLinearIntegrationActivities = ({
     );
   },
 
-  async readOrganization(): Promise<PartialEntity> {
-    return linearClient.organization.then(organizationToEntity);
+  async readOrganization({
+    apiKey,
+  }: ParamsWithApiKey<{}>): Promise<PartialEntity> {
+    return createLinearClient(apiKey).organization.then(organizationToEntity);
   },
 
   async createUser(params: {
@@ -162,8 +166,8 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async readUsers(): Promise<PartialEntity[]> {
-    return linearClient
+  async readUsers({ apiKey }: ParamsWithApiKey): Promise<PartialEntity[]> {
+    return createLinearClient(apiKey)
       .users()
       .then(readNodes)
       .then((users) => users.map(userToEntity));
@@ -183,14 +187,19 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async readIssues(filter?: { teamId?: string }): Promise<PartialEntity[]> {
+  async readIssues({
+    apiKey,
+    filter,
+  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<
+    PartialEntity[]
+  > {
     const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
       filter: {},
     };
     if (filter?.teamId) {
       issuesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
     }
-    return linearClient
+    return createLinearClient(apiKey)
       .issues(issuesQueryVariables)
       .then(readNodes)
       .then((issues) => issues.map(issueToEntity));
@@ -204,38 +213,44 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async readTeams(): Promise<Team[]> {
-    return linearClient.teams().then(readNodes);
+  async readTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {
+    return createLinearClient(apiKey).teams().then(readNodes);
   },
 
-  async readCycles(filter?: { teamId?: string }): Promise<object[]> {
+  async readCycles({
+    apiKey,
+    filter,
+  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
     const cyclesQueryVariables: LinearDocument.CyclesQueryVariables = {
       filter: {},
     };
     if (filter?.teamId) {
       cyclesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
     }
-    return linearClient
+    return createLinearClient(apiKey)
       .cycles(cyclesQueryVariables)
       .then(readNodes)
       .then((cycles) => cycles.map(cycleToEntity));
   },
 
-  async readCustomViews(): Promise<object[]> {
-    return linearClient
+  async readCustomViews({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+    return createLinearClient(apiKey)
       .customViews()
       .then(readNodes)
       .then((customViews) => customViews.map(customViewToEntity));
   },
 
-  async readProjects(): Promise<object[]> {
-    return linearClient
+  async readProjects({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+    return createLinearClient(apiKey)
       .projects()
       .then(readNodes)
       .then((projects) => projects.map(projectToEntity));
   },
 
-  async readComments(filter?: { teamId?: string }): Promise<object[]> {
+  async readComments({
+    apiKey,
+    filter,
+  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
     const commentsQueryVariables: LinearDocument.CommentsQueryVariables = {
       filter: {},
     };
@@ -244,13 +259,15 @@ export const createLinearIntegrationActivities = ({
         team: { id: { eq: filter.teamId } },
       };
     }
-    return linearClient
+    return createLinearClient(apiKey)
       .comments(commentsQueryVariables)
       .then(readNodes)
       .then((comments) => comments.map(commentToEntity));
   },
 
-  async readProjectMilestones(): Promise<object[]> {
+  async readProjectMilestones({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+    const linearClient = createLinearClient(apiKey);
+
     return (
       await Promise.all(
         (
@@ -268,14 +285,17 @@ export const createLinearIntegrationActivities = ({
     ).flat();
   },
 
-  async readDocuments(): Promise<object[]> {
-    return linearClient
+  async readDocuments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+    return createLinearClient(apiKey)
       .documents()
       .then(readNodes)
       .then((documents) => documents.map(documentToEntity));
   },
 
-  async readIssueLabels(filter?: { teamId?: string }): Promise<object[]> {
+  async readIssueLabels({
+    apiKey,
+    filter,
+  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
     const issueLabelsQueryVariables: LinearDocument.IssueLabelsQueryVariables =
       { filter: {} };
     if (filter?.teamId) {
@@ -283,16 +303,39 @@ export const createLinearIntegrationActivities = ({
         team: { id: { eq: filter.teamId } },
       };
     }
-    return linearClient
+    return createLinearClient(apiKey)
       .issueLabels()
       .then(readNodes)
       .then((issueLabels) => issueLabels.map(issueLabelToEntity));
   },
 
-  async readAttachments(): Promise<object[]> {
-    return linearClient
+  async readAttachments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+    return createLinearClient(apiKey)
       .attachments()
       .then(readNodes)
       .then((attachments) => attachments.map(attachmentToEntity));
+  },
+
+  async updateLinearIssue(
+    apiKey: string,
+    issueId: Issue["id"],
+    update: LinearDocument.IssueUpdateInput,
+  ): Promise<PartialEntity | undefined> {
+    const client = new LinearClient({ apiKey });
+
+    const updatedIssue = await client
+      .updateIssue(issueId, update)
+      .then(async (data) => {
+        const issue = await data.issue;
+        if (issue) {
+          return issueToEntity(issue);
+        }
+        return undefined;
+      });
+
+    // eslint-disable-next-line no-console
+    console.log({ updatedIssue });
+
+    return updatedIssue;
   },
 });

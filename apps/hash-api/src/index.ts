@@ -54,7 +54,7 @@ import { setupFileProxyHandler, setupStorageProviders } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
-import { VaultClient } from "./vault";
+import { createVaultClient, VaultClient } from "./vault";
 
 declare global {
   namespace Express {
@@ -147,23 +147,9 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
-  const temporalClient = process.env.HASH_TEMPORAL_SERVER_HOST
-    ? await createTemporalClient(logger, {
-        host: process.env.HASH_TEMPORAL_SERVER_HOST,
-        port: parseInt(process.env.HASH_TEMPORAL_SERVER_PORT || "7233", 10),
-        namespace: "HASH",
-      })
-    : undefined;
+  const temporalClient = await createTemporalClient(logger);
 
-  const vaultClient =
-    process.env.HASH_VAULT_HOST &&
-    process.env.HASH_VAULT_PORT &&
-    process.env.HASH_VAULT_ROOT_TOKEN
-      ? new VaultClient({
-          endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-          token: process.env.HASH_VAULT_ROOT_TOKEN,
-        })
-      : undefined;
+  const vaultClient = createVaultClient();
 
   const context = { graphApi, uploadProvider };
 

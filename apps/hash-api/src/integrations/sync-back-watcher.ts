@@ -14,9 +14,12 @@ import {
   supportedTypeIds as linearEntityTypeIds,
 } from "./linear/sync-back";
 
-const sendEntityToRelevantProcessor = (entity: Entity) => {
+const sendEntityToRelevantProcessor = (
+  entity: Entity,
+  graphApiClient: GraphApi,
+) => {
   if (linearEntityTypeIds.includes(entity.metadata.entityTypeId)) {
-    processLinearEntityChange(entity);
+    void processLinearEntityChange(entity, graphApiClient);
   }
 };
 
@@ -61,7 +64,7 @@ export const createIntegrationSyncBackWatcher = async (
         );
       }
 
-      sendEntityToRelevantProcessor(entity);
+      sendEntityToRelevantProcessor(entity, graphApiClient);
 
       return true;
     });
