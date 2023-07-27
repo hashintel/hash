@@ -35,5 +35,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     ),
   );
 
+  /** @todo: trigger temporal workflow for syncing the relevant linear team data with the workspaces */
+
   return linearIntegration.entity;
 };
