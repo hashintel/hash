@@ -51,11 +51,13 @@ export const linearWebhook: RequestHandler<{}, "ok", string> = async (
 
   const payload = JSON.parse(req.body) as LinearWebhookPayload;
 
-  const temporalClient = await createTemporalClient(logger, {
-    host: getRequiredEnv("HASH_TEMPORAL_SERVER_HOST"),
-    port: parseInt(process.env.HASH_TEMPORAL_SERVER_PORT || "7233", 10),
-    namespace: "HASH",
-  });
+  const temporalClient = await createTemporalClient(logger);
+
+  if (!temporalClient) {
+    throw new Error(
+      "Cannot create Temporal client – are there missing environment variables?",
+    );
+  }
 
   if (
     ["create", "update"].includes(payload.action) &&

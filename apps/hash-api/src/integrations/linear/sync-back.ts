@@ -9,11 +9,11 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { v4 as uuid } from "uuid";
 
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemUserAccountId } from "../../graph/system-user";
 import { createTemporalClient } from "../../temporal";
+import { genId } from "../../util";
 import { createVaultClient } from "../../vault";
 
 export const supportedTypeIds = Object.values(linearTypes.entityType).map(
@@ -75,7 +75,7 @@ export const processEntityChange = async (
 
       // @todo check this works
       const result = await temporalClient.workflow.start("updateLinearIssue", {
-        workflowId: uuid(),
+        workflowId: genId(),
         taskQueue: "integration",
         args: [
           { linearApiKey, issueId: resourceId, update: entity.properties },
