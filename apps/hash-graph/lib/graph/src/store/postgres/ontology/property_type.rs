@@ -1,11 +1,14 @@
 use std::{borrow::Borrow, collections::HashMap};
 
 use async_trait::async_trait;
-use error_stack::{
-    Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use type_system::PropertyType;
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
@@ -28,11 +31,6 @@ use crate::{
         Subgraph,
     },
 };
-
-#[cfg(hash_graph_test_environment)]
-use error_stack::IntoReport;
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.

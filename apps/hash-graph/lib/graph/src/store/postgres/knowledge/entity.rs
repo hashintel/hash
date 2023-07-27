@@ -8,6 +8,8 @@ use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
@@ -32,9 +34,6 @@ use crate::{
         Subgraph,
     },
 };
-
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].

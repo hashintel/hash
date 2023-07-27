@@ -1,10 +1,14 @@
 use std::borrow::Borrow;
 
 use async_trait::async_trait;
-use error_stack::{ Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use type_system::DataType;
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
@@ -19,12 +23,6 @@ use crate::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
     },
 };
-
-
-#[cfg(hash_graph_test_environment)]
-use error_stack::IntoReport;
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
