@@ -8,6 +8,8 @@ use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
@@ -17,7 +19,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
-        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,

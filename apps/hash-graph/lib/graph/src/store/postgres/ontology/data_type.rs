@@ -1,17 +1,20 @@
 use std::borrow::Borrow;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use type_system::DataType;
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::RecordCreatedById,
     store::{
         crud::Read,
-        error::DeletionError,
         postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
         UpdateError,

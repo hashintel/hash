@@ -1,10 +1,14 @@
 use std::{borrow::Borrow, collections::HashMap};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use type_system::{url::BaseUrl, EntityType};
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::{ontology::OntologyTypeRecordId, time::RightBoundedTemporalInterval},
     ontology::{
@@ -14,7 +18,6 @@ use crate::{
     provenance::{ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
-        error::DeletionError,
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,

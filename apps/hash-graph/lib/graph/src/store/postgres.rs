@@ -30,10 +30,7 @@ use crate::{
     ontology::{CustomOntologyMetadata, OntologyElementMetadata},
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
-        error::{
-            DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
-            VersionedUrlAlreadyExists,
-        },
+        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
         AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError,
         StoreError, UpdateError,
@@ -46,6 +43,7 @@ use crate::{
         time::{DecisionTime, Timestamp},
     },
     knowledge::{EntityProperties, LinkOrder},
+    store::error::DeletionError,
 };
 
 /// A Postgres-backed store
