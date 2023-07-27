@@ -28,7 +28,12 @@ const bpMultiFilterFieldPathToPathExpression = (
 
       // case `EntityQueryToken.OwnedById`
       if (pathRoot === "ownedById") {
-        return ["properties", ...rest];
+        if (rest.length !== 0) {
+          throw new InvalidEntityQueryError(
+            `Invalid filter field path, unable to add more filters on top of \`ownedById\``,
+          );
+        }
+        return ["ownedById"];
       }
 
       if (pathRoot === "metadata") {
