@@ -316,7 +316,7 @@ export const createLinearIntegrationActivities = ({
       .then((attachments) => attachments.map(attachmentToEntity));
   },
 
-  async updateIssue(
+  async updateLinearIssue(
     apiKey: string,
     issueId: Issue["id"],
     update: LinearDocument.IssueUpdateInput,
@@ -333,6 +333,7 @@ export const createLinearIntegrationActivities = ({
         return undefined;
       });
 
+    // eslint-disable-next-line no-console
     console.log({ updatedIssue });
 
     return updatedIssue;

@@ -64,6 +64,7 @@ export const processEntityChange = async (
       // eslint-disable-next-line no-console
       console.log("Change to Linear Issue detected");
 
+      // @todo check this works
       const result = await temporalClient.workflow.start("updateLinearIssue", {
         workflowId: uuid(),
         taskQueue: "integration",
