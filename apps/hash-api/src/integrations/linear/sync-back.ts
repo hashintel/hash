@@ -67,9 +67,12 @@ export const processEntityChange = async (
       const result = await temporalClient.workflow.start("updateLinearIssue", {
         workflowId: uuid(),
         taskQueue: "integration",
-        args: [linearApiKey, resourceId, entity.properties],
+        args: [
+          { linearApiKey, issueId: resourceId, update: entity.properties },
+        ],
       });
 
+      // eslint-disable-next-line no-console
       console.log({ result });
     }
   }

@@ -13,31 +13,36 @@ const linear = proxyActivities<
 });
 
 export const linearImport = async (params: {
+  apiKey: string;
   ownedById: string;
   actorId: string;
   teamIds: string[];
 }): Promise<void> => {
-  const organization = linear.readOrganization().then((organizationEntity) =>
-    linear.createPartialEntities({
-      ownedById: params.ownedById,
-      actorId: params.actorId,
-      entities: [organizationEntity],
-    }),
-  );
+  const { apiKey, ownedById, actorId, teamIds } = params;
 
-  const users = linear.readUsers().then((userEntities) =>
+  const organization = linear
+    .readOrganization({ apiKey })
+    .then((organizationEntity) =>
+      linear.createPartialEntities({
+        ownedById,
+        actorId,
+        entities: [organizationEntity],
+      }),
+    );
+
+  const users = linear.readUsers({ apiKey }).then((userEntities) =>
     linear.createPartialEntities({
-      ownedById: params.ownedById,
-      actorId: params.actorId,
+      ownedById,
+      actorId,
       entities: userEntities,
     }),
   );
 
-  const issues = params.teamIds.map((teamId) =>
-    linear.readIssues({ teamId }).then((issueEntities) =>
+  const issues = teamIds.map((teamId) =>
+    linear.readIssues({ apiKey, filter: { teamId } }).then((issueEntities) =>
       linear.createPartialEntities({
-        ownedById: params.ownedById,
-        actorId: params.actorId,
+        ownedById,
+        actorId,
         entities: issueEntities,
       }),
     ),
@@ -70,7 +75,11 @@ export const createIssue = async (params: {
   });
 };
 
-export const linearTeams = async (): Promise<Team[]> => linear.readTeams();
+export const linearTeams = async ({
+  apiKey,
+}: {
+  apiKey: string;
+}): Promise<Team[]> => linear.readTeams({ apiKey });
 
 export const updateLinearIssue = async (
   ...args: Parameters<typeof linear.updateIssue>
