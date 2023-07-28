@@ -333,16 +333,12 @@ export const createLinearIntegrationActivities = ({
     const updatedIssue = await client
       .updateIssue(issueId, linearUpdate)
       .then(async (data) => {
-        console.log({ data });
         const issue = await data.issue;
         if (issue) {
           return issueToEntity(issue);
         }
         return undefined;
       });
-
-    // eslint-disable-next-line no-console
-    console.log({ updatedIssue });
 
     return updatedIssue;
   },
