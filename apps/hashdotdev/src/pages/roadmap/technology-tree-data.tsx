@@ -149,7 +149,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "16",
-    heading: "Prototype Multiplayer",
+    heading: "Multiplayer Prototype",
     body: "Proof-of-concept multiplayer editing and live collaboration",
     parentIds: ["11"],
     status: "done",
@@ -240,7 +240,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "26",
     heading: "AI Type Creation",
-    body: "placeholder body",
+    body: "LLM-assisted new and existing type suggestions",
     parentIds: ["21"],
     status: "in-progress",
     useCases: ["website-building"],
@@ -248,8 +248,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "27",
-    heading: "User & Org Management",
-    body: "placeholder body",
+    heading: "User & Org Administration",
+    body: "Basic account and shared workspace management",
     parentIds: ["23"],
     status: "in-progress",
     useCases: ["website-building"],
@@ -267,7 +267,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "29",
     heading: "Type Archival (Soft Deletion)",
-    body: "placeholder body",
+    body: "Ability to hide outdated or redundant types in the UI",
     parentIds: ["26"],
     status: "next-up",
     useCases: ["website-building"],
@@ -276,7 +276,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "30",
     heading: "AI Entity Creation",
-    body: "placeholder body",
+    body: "LLM-assisted new entity creation",
     parentIds: ["26"],
     status: "next-up",
     useCases: ["website-building"],
@@ -285,7 +285,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "31",
     heading: "Block Protocol Actions Module",
-    body: "placeholder body",
+    body: "Specification for users/apps defining block action-handling",
     parentIds: ["24"],
     status: "next-up",
     useCases: ["website-building"],
@@ -294,7 +294,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "32",
     heading: "Type Inheritance",
-    body: "placeholder body",
+    body: "Set parent types whose expected property and link types will be inherited",
     parentIds: ["25", "28"],
     status: "next-up",
     useCases: ["website-building"],
@@ -303,7 +303,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "33",
     heading: "Notifications",
-    body: "placeholder body",
+    body: "User-facing in-app alerts upon notifiable events",
     parentIds: ["21", "22", "27"],
     status: "future",
     useCases: ["website-building"],
@@ -311,8 +311,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "34",
-    heading: "Data Query & Selection Interfaces",
-    body: "placeholder body",
+    heading: "Data Querying & Selection",
+    body: "Interface for identifying and loading entities into blocks",
     parentIds: ["9"],
     status: "future",
     useCases: ["website-building"],
