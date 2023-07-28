@@ -258,7 +258,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "28",
     heading: "Entity Validation",
-    body: "placeholder body",
+    body: "Description coming soon",
     parentIds: ["3"],
     status: "in-progress",
     useCases: ["website-building"],
@@ -393,7 +393,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "43",
     heading: "Datastore Transactions",
-    body: "placeholder body",
+    body: "Description coming soon",
     parentIds: ["38"],
     status: "future",
     useCases: ["website-building"],
@@ -402,7 +402,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "44",
     heading: "Data Mapping RFC",
-    body: "placeholder body",
+    body: "Description coming soon",
     parentIds: ["39"],
     status: "future",
     useCases: ["website-building"],
@@ -420,7 +420,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "46",
     heading: "Structural Data Mapping",
-    body: "placeholder body",
+    body: "Description coming soon",
     parentIds: ["44"],
     status: "future",
     useCases: ["website-building"],
@@ -429,7 +429,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "47",
     heading: "Semantic Data Mapping",
-    body: "placeholder body",
+    body: "Description coming soon",
     parentIds: ["44"],
     status: "future",
     useCases: ["website-building"],
@@ -690,7 +690,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "76",
     heading: "Optimized Simulation Run Storage",
-    body: "placeholder body",
+    body: "Description coming soon",
     parentIds: ["75"],
     status: "future",
     useCases: ["website-building"],
@@ -698,8 +698,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "77",
-    heading: "REPL Block - e.g. Python Notebook",
-    body: "placeholder body",
+    heading: "REPL Block",
+    body: "Support for individually executable blocks (JavaScript/Python notebook-style) within pages",
     parentIds: ["75"],
     status: "future",
     useCases: ["website-building"],
@@ -708,7 +708,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "78",
     heading: "Self-service hCloud",
-    body: "prev. offered up until May 2023, we plan to reintro this",
+    body: "Offered up until May 2023, we plan to re-introduce this as part of Flows",
     parentIds: ["75"],
     status: "future",
     useCases: ["website-building"],
@@ -726,7 +726,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "80",
   //   heading: "Composite Blocks",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: [],
   //   status: "future",
   //   useCases: ["website-building"],
@@ -735,7 +735,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "81",
   //   heading: "Improved support for self-hosting",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: [],
   //   status: "future",
   //   useCases: ["website-building"],
@@ -744,7 +744,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "82",
   //   heading: "Federated Instances",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: ["80"],
   //   status: "future",
   //   useCases: ["website-building"],
@@ -753,7 +753,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "83",
   //   heading: "ALL SIMULATION STUFF (break down)",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: [],
   //   status: "future",
   //   useCases: ["website-building"],
@@ -762,7 +762,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "84",
   //   heading: "Type Rebranding and Redirection",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: [],
   //   status: "future",
   //   useCases: ["website-building"],
@@ -771,7 +771,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "85",
   //   heading: "iOS & Android mobile apps",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: [],
   //   status: "future",
   //   useCases: ["website-building"],
@@ -780,7 +780,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   // {
   //   id: "86",
   //   heading: "macOS, Windows & Linux desktop apps",
-  //   body: "placeholder body",
+  //   body: "Description coming soon",
   //   parentIds: [],
   //   status: "future",
   //   useCases: ["website-building"],
