@@ -1,5 +1,7 @@
 import { Chip, MenuItem, Select } from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId } from "@local/hash-subgraph/.";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Table,
@@ -10,9 +12,13 @@ import {
 } from "@mui/material";
 import { Dispatch, Fragment, FunctionComponent, SetStateAction } from "react";
 
-import { GetLinearOrganizationQuery } from "../../../graphql/api-types.gen";
+import {
+  GetLinearOrganizationQuery,
+  SyncWithWorkspace,
+} from "../../../graphql/api-types.gen";
 import { MinimalUser, Org } from "../../../lib/user-and-org";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { LinearIntegration } from "./use-linear-integrations";
 
 const SelectWorkspaces: FunctionComponent<{
   selectedWorkspaceEntityIds: EntityId[];
@@ -76,6 +82,58 @@ export type LinearOrganizationTeamsWithWorkspaces = Omit<
     workspaceEntityIds: EntityId[];
   })[];
 };
+
+export const mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces =
+  (params: { linearIntegrations: LinearIntegration[] }) =>
+  (
+    organization: LinearOrganization,
+  ): LinearOrganizationTeamsWithWorkspaces => ({
+    ...organization,
+    teams: organization.teams.map((team) => ({
+      ...team,
+      workspaceEntityIds: params.linearIntegrations
+        .find(
+          ({ entity }) =>
+            entity.properties[
+              extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
+            ] === organization.id,
+        )!
+        .syncedWithWorkspaces.filter(
+          ({ linearTeamIds }) =>
+            linearTeamIds.length === 0 || linearTeamIds.includes(team.id),
+        )
+        .map(
+          ({ workspaceEntity }) => workspaceEntity.metadata.recordId.entityId,
+        ),
+    })),
+  });
+
+export const mapLinearOrganizationToSyncWithWorkspacesInputVariable = (params: {
+  linearOrganization: LinearOrganizationTeamsWithWorkspaces;
+  possibleWorkspaces: (Org | MinimalUser)[];
+}): SyncWithWorkspace[] =>
+  params.possibleWorkspaces
+    .filter(({ entityRecordId: { entityId } }) =>
+      params.linearOrganization.teams.some(({ workspaceEntityIds }) =>
+        workspaceEntityIds.includes(entityId),
+      ),
+    )
+    .map(({ entityRecordId: { entityId: workspaceEntityId } }) => {
+      const linearTeamIds = params.linearOrganization.teams
+        .filter(({ workspaceEntityIds }) =>
+          workspaceEntityIds.includes(workspaceEntityId),
+        )
+        .map(({ id }) => id);
+
+      /** @todo: allow the user to decide whether to sync future teams */
+      const syncAllTeams =
+        params.linearOrganization.teams.length === linearTeamIds.length;
+
+      return {
+        workspaceEntityId,
+        linearTeamIds: syncAllTeams ? [] : linearTeamIds,
+      };
+    });
 
 export const SelectLinearTeamsTable: FunctionComponent<{
   linearOrganizations: LinearOrganizationTeamsWithWorkspaces[];

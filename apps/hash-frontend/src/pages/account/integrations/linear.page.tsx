@@ -28,6 +28,8 @@ import {
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import {
   LinearOrganizationTeamsWithWorkspaces,
+  mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
+  mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
 } from "./select-linear-teams-table";
 import {
@@ -70,26 +72,11 @@ const DataAccess: FunctionComponent<{
   const [linearOrganizations, setLinearOrganizations] = useState<
     LinearOrganizationTeamsWithWorkspaces[]
   >(
-    connectedLinearOrganizations.map((organization) => ({
-      ...organization,
-      teams: organization.teams.map((team) => ({
-        ...team,
-        workspaceEntityIds: linearIntegrations
-          .find(
-            ({ entity }) =>
-              entity.properties[
-                extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
-              ] === organization.id,
-          )!
-          .syncedWithWorkspaces.filter(
-            ({ linearTeamIds }) =>
-              linearTeamIds.length === 0 || linearTeamIds.includes(team.id),
-          )
-          .map(
-            ({ workspaceEntity }) => workspaceEntity.metadata.recordId.entityId,
-          ),
-      })),
-    })),
+    connectedLinearOrganizations.map(
+      mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces({
+        linearIntegrations,
+      }),
+    ),
   );
 
   const handleSave = useCallback(async () => {
@@ -106,27 +93,10 @@ const DataAccess: FunctionComponent<{
         return syncLinearIntegrationWithWorkspaces({
           variables: {
             linearIntegrationEntityId: entity.metadata.recordId.entityId,
-            syncWithWorkspaces: possibleWorkspaces
-              .filter(({ entityRecordId: { entityId } }) =>
-                linearOrganization.teams.some(({ workspaceEntityIds }) =>
-                  workspaceEntityIds.includes(entityId),
-                ),
-              )
-              .map(({ entityRecordId: { entityId: workspaceEntityId } }) => {
-                const linearTeamIds = linearOrganization.teams
-                  .filter(({ workspaceEntityIds }) =>
-                    workspaceEntityIds.includes(workspaceEntityId),
-                  )
-                  .map(({ id }) => id);
-
-                /** @todo: allow the user to decide whether to sync future teams */
-                const syncAllTeams =
-                  linearOrganization.teams.length === linearTeamIds.length;
-
-                return {
-                  workspaceEntityId,
-                  linearTeamIds: syncAllTeams ? [] : linearTeamIds,
-                };
+            syncWithWorkspaces:
+              mapLinearOrganizationToSyncWithWorkspacesInputVariable({
+                linearOrganization,
+                possibleWorkspaces,
               }),
           },
         });
