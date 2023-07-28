@@ -67,7 +67,8 @@ export const useLinearIntegrations = () => {
 
                   return (
                     linkEntity.metadata.entityTypeId ===
-                    types.linkEntityType.syncLinearDataWith.linkEntityTypeId
+                      types.linkEntityType.syncLinearDataWith
+                        .linkEntityTypeId && !linkEntity.metadata.archived
                   );
                 })
                 .map((linkAndTarget) => {
