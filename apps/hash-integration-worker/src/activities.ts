@@ -37,7 +37,7 @@ const updateEntity = async (params: {
   if (!linearId) {
     throw new Error(`No linear id found.`);
   }
-  const [entity, ...unexpectedEntities] = await params.graphApiClient
+  const entities = await params.graphApiClient
     .getEntitiesByQuery({
       filter: {
         all: [
@@ -85,21 +85,15 @@ const updateEntity = async (params: {
       getRoots(linearEntities as Subgraph<EntityRootType>),
     );
 
-  if (unexpectedEntities.length > 0) {
-    throw new Error(`More than one entities returned.`);
+  for (const entity of entities) {
+    await params.graphApiClient.updateEntity({
+      actorId: params.actorId,
+      archived: false,
+      entityId: entity.metadata.recordId.entityId,
+      entityTypeId: entity.metadata.entityTypeId,
+      properties: params.entity.properties,
+    });
   }
-
-  if (!entity) {
-    throw new Error(`No entity returned.`);
-  }
-
-  await params.graphApiClient.updateEntity({
-    actorId: params.actorId,
-    archived: false,
-    entityId: entity.metadata.recordId.entityId,
-    entityTypeId: entity.metadata.entityTypeId,
-    properties: params.entity.properties,
-  });
 };
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
