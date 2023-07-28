@@ -537,7 +537,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "59",
     heading: "Financial Accounting Datastore",
-    body: "TigerBeetle-based backend for dedicated storage of financial accounting data",
+    body: "TigerBeetle-based backend for dedicated storage and processing of financial accounting data",
     parentIds: ["37"],
     status: "future",
     useCases: ["website-building"],
@@ -645,7 +645,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "71",
     heading: "Git Datastore",
-    body: "libgit2 or Gitea-based backend for dedicated storage of source code and Git repositories",
+    body: "libgit2 or Gitea-based backend for dedicated storage and processing of source code and Git repositories",
     parentIds: ["68"],
     status: "future",
     useCases: ["website-building"],
@@ -672,7 +672,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "74",
     heading: "Canvas AutoLayout",
-    body: "placeholder body",
+    body: "Dynamically position blocks relative to one another",
     parentIds: ["18"],
     status: "future",
     useCases: ["website-building"],
@@ -680,9 +680,9 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "75",
-    heading: "Time Series DB graph backend",
-    body: "tech TBD",
-    parentIds: ["72"],
+    heading: "Time Series Datastore",
+    body: "Open-source (TBD) backend for dedicated storage and processing of time series data",
+    parentIds: ["73"],
     status: "future",
     useCases: ["website-building"],
     variant: "infrastructure",
@@ -691,7 +691,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "76",
     heading: "Optimized Simulation Run Storage",
     body: "placeholder body",
-    parentIds: ["74"],
+    parentIds: ["75"],
     status: "future",
     useCases: ["website-building"],
     variant: "infrastructure",
