@@ -321,7 +321,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "35",
     heading: "Authorization",
-    body: "Basic permissions and attribute-based access control (ABAC))",
+    body: "Basic permissions and attribute-based access control (ABAC)",
     parentIds: ["23", "27"],
     status: "future",
     useCases: ["website-building"],
