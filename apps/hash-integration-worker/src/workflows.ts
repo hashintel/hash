@@ -58,7 +58,7 @@ export const createUser = async (params: {
 }): Promise<void> => {
   await linear.createUser({
     user: params.payload,
-    ownedById: params.ownedById,
+    workspaceAccountId: params.ownedById,
     actorId: params.actorId,
   });
 };
@@ -79,7 +79,7 @@ export const createIssue = async (params: {
 }): Promise<void> => {
   await linear.createIssue({
     issue: params.payload,
-    ownedById: params.ownedById,
+    workspaceAccountId: params.ownedById,
     actorId: params.actorId,
   });
 };
