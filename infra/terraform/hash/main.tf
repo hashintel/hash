@@ -256,6 +256,9 @@ module "application" {
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
     { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
     { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.temporal_port },
+    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
+    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
+    { name = "LINEAR_WEBHOOK_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_webhook_secret"]) },
   ])
   temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
@@ -271,8 +274,6 @@ module "application" {
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
-    # TODO: Going to be replaced by the OAuth authentication method
-    { name = "HASH_LINEAR_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_linear_api_key"]) },
     { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
     { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
   ]
