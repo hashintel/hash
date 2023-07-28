@@ -20,6 +20,7 @@ const IntegrationsPage: NextPageWithLayout = () => {
           Integrations
         </Typography>
         <Button
+          openInNewTab={false}
           href={`${apiOrigin}/oauth/linear?ownedById=${activeWorkspace.accountId}`}
         >
           Connect Linear account
