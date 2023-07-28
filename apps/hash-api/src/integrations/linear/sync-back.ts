@@ -70,20 +70,11 @@ export const processEntityChange = async (
 
   switch (entityTypeId) {
     case linearTypes.entityType.issue.entityTypeId: {
-      // eslint-disable-next-line no-console
-      console.log("Change to Linear Issue detected");
-
-      // @todo check this works
-      const result = await temporalClient.workflow.start("updateLinearIssue", {
+      await temporalClient.workflow.start("updateLinearIssue", {
         workflowId: genId(),
         taskQueue: "integration",
-        args: [
-          { linearApiKey, issueId: resourceId, update: entity.properties },
-        ],
+        args: [linearApiKey, resourceId, entity.properties],
       });
-
-      // eslint-disable-next-line no-console
-      console.log({ result });
     }
   }
 };

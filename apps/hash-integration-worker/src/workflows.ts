@@ -100,7 +100,7 @@ export const linearTeams = async ({
 }): Promise<Team[]> => linear.readTeams({ apiKey });
 
 export const updateLinearIssue = async (
-  ...args: Parameters<typeof linear.updateIssue>
+  ...args: Parameters<typeof linear.updateLinearIssue>
 ) => {
-  await linear.updateIssue(...args);
+  await linear.updateLinearIssue(...args);
 };
