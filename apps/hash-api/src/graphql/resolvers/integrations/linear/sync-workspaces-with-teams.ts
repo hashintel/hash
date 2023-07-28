@@ -55,19 +55,21 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   });
 
   await Promise.all(
-    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      await linearClient.triggerWorkspaceSync({
-        ownedById: userAccountId,
-        actorId: user.accountId,
-        teamIds: linearTeamIds,
-      });
-      return linkIntegrationToWorkspace(dataSources, {
-        linearIntegrationEntityId,
-        workspaceEntityId,
-        linearTeamIds,
-        actorId: user.accountId,
-      });
-    }),
+    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) =>
+      Promise.all([
+        linearClient.triggerWorkspaceSync({
+          ownedById: userAccountId,
+          actorId: user.accountId,
+          teamIds: linearTeamIds,
+        }),
+        linkIntegrationToWorkspace(dataSources, {
+          linearIntegrationEntityId,
+          workspaceEntityId,
+          linearTeamIds,
+          actorId: user.accountId,
+        }),
+      ]),
+    ),
   );
 
   return linearIntegration.entity;
