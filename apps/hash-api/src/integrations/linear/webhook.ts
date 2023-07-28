@@ -64,18 +64,22 @@ export const linearWebhook: RequestHandler<{}, "ok", string> = async (
     ["Issue", "User"].includes(payload.type)
   ) {
     const workflow = `${payload.action}${payload.type}`;
-    await temporalClient.workflow.execute(workflow, {
-      taskQueue: "integration",
-      args: [
-        {
-          // @todo Use correct account IDs
-          actorId: "00000000-0000-0000-0000-000000000000",
-          ownedById: "00000000-0000-0000-0000-000000000000",
-          payload: (payload as LinearWebhookPayloadChange).data,
-        },
-      ],
-      workflowId: `${workflow}-${genId()}`,
-    });
+    const errorMessage: string | undefined =
+      await temporalClient.workflow.execute(workflow, {
+        taskQueue: "integration",
+        args: [
+          {
+            // @todo Use correct account IDs
+            actorId: "00000000-0000-0000-0000-000000000000",
+            ownedById: "00000000-0000-0000-0000-000000000000",
+            payload: (payload as LinearWebhookPayloadChange).data,
+          },
+        ],
+        workflowId: `${workflow}-${genId()}`,
+      });
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
   }
 
   res.send("ok");

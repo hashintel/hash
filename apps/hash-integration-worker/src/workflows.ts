@@ -1,4 +1,4 @@
-import { Issue, Team, User } from "@linear/sdk";
+import { Issue, User } from "@linear/sdk";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createLinearIntegrationActivities } from "./activities";
@@ -17,7 +17,7 @@ export const syncWorkspace = async (params: {
   workspaceAccountId: string;
   actorId: string;
   teamIds: string[];
-}): Promise<void> => {
+}): Promise<string | undefined> => {
   const { apiKey, workspaceAccountId, actorId, teamIds } = params;
 
   const organization = linear
@@ -48,15 +48,20 @@ export const syncWorkspace = async (params: {
     ),
   );
 
-  await Promise.all([organization, users, ...issues]);
+  try {
+    await Promise.all([organization, users, ...issues]);
+  } catch (error) {
+    return error instanceof Error ? error.message : "Unknown error";
+  }
+  return undefined;
 };
 
 export const createUser = async (params: {
   payload: User;
   ownedById: string;
   actorId: string;
-}): Promise<void> => {
-  await linear.createUser({
+}): Promise<string | undefined> => {
+  return linear.createUser({
     user: params.payload,
     workspaceAccountId: params.ownedById,
     actorId: params.actorId,
@@ -66,7 +71,7 @@ export const createUser = async (params: {
 export const updateUser = async (params: {
   payload: User;
   actorId: string;
-}): Promise<void> =>
+}): Promise<string | undefined> =>
   linear.updateUser({
     user: params.payload,
     actorId: params.actorId,
@@ -76,31 +81,22 @@ export const createIssue = async (params: {
   payload: Issue;
   ownedById: string;
   actorId: string;
-}): Promise<void> => {
-  await linear.createIssue({
+}): Promise<string | undefined> =>
+  linear.createIssue({
     issue: params.payload,
     workspaceAccountId: params.ownedById,
     actorId: params.actorId,
   });
-};
 
 export const updateIssue = async (params: {
   payload: Issue;
   actorId: string;
-}): Promise<void> =>
+}): Promise<string | undefined> =>
   linear.updateIssue({
     issue: params.payload,
     actorId: params.actorId,
   });
 
-export const linearTeams = async ({
-  apiKey,
-}: {
-  apiKey: string;
-}): Promise<Team[]> => linear.readTeams({ apiKey });
-
 export const updateLinearIssue = async (
   ...args: Parameters<typeof linear.updateIssue>
-) => {
-  await linear.updateIssue(...args);
-};
+): Promise<string | undefined> => linear.updateIssue(...args);

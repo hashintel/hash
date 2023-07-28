@@ -32,7 +32,7 @@ const createOrUpdateEntity = async (params: {
   entity: PartialEntity;
   actorId: string;
   workspaceAccountId?: string;
-}): Promise<void> => {
+}): Promise<string | undefined> => {
   const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
   const updatedAtBaseUrl = extractBaseUrl(
     linearTypes.propertyType.updatedAt.propertyTypeId,
@@ -69,64 +69,70 @@ const createOrUpdateEntity = async (params: {
       ],
     });
   }
-  const entities = await params.graphApiClient
-    .getEntitiesByQuery({
-      filter: {
-        all: filters,
-      },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
+
+  try {
+    const entities = await params.graphApiClient
+      .getEntitiesByQuery({
+        filter: {
+          all: filters,
         },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 0 },
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          isOfType: { outgoing: 0 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+        temporalAxes: {
+          pinned: {
+            axis: "transactionTime",
+            timestamp: null,
+          },
+          variable: {
+            axis: "decisionTime",
+            interval: {
+              start: null,
+              end: null,
+            },
           },
         },
-      },
-    })
-    .then(({ data: linearEntities }) =>
-      getRoots(linearEntities as Subgraph<EntityRootType>),
-    );
+      })
+      .then(({ data: linearEntities }) =>
+        getRoots(linearEntities as Subgraph<EntityRootType>),
+      );
 
-  for (const existingEntity of entities) {
-    if (
-      updatedAt &&
-      existingEntity.properties[updatedAtBaseUrl] &&
-      existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
-    ) {
-      continue;
+    for (const existingEntity of entities) {
+      if (
+        updatedAt &&
+        existingEntity.properties[updatedAtBaseUrl] &&
+        existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
+      ) {
+        continue;
+      }
+
+      await params.graphApiClient.updateEntity({
+        actorId: params.actorId,
+        archived: false,
+        entityId: existingEntity.metadata.recordId.entityId,
+        entityTypeId: existingEntity.metadata.entityTypeId,
+        properties: params.entity.properties,
+      });
     }
 
-    await params.graphApiClient.updateEntity({
-      actorId: params.actorId,
-      archived: false,
-      entityId: existingEntity.metadata.recordId.entityId,
-      entityTypeId: existingEntity.metadata.entityTypeId,
-      properties: params.entity.properties,
-    });
+    if (entities.length === 0 && params.workspaceAccountId) {
+      await params.graphApiClient.createEntity({
+        actorId: params.actorId,
+        ownedById: params.workspaceAccountId,
+        ...params.entity,
+      });
+    }
+  } catch (error) {
+    return error instanceof Error ? error.message : "Unknown error";
   }
-
-  if (entities.length === 0 && params.workspaceAccountId) {
-    await params.graphApiClient.createEntity({
-      actorId: params.actorId,
-      ownedById: params.workspaceAccountId,
-      ...params.entity,
-    });
-  }
+  return undefined;
 };
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
@@ -175,9 +181,9 @@ export const createLinearIntegrationActivities = ({
     user: User;
     actorId: string;
     workspaceAccountId: string;
-  }): Promise<void> {
+  }): Promise<string | undefined> {
     const entity = userToEntity(params.user);
-    await createOrUpdateEntity({
+    return await createOrUpdateEntity({
       graphApiClient,
       actorId: params.actorId,
       workspaceAccountId: params.workspaceAccountId,
@@ -185,8 +191,11 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async updateUser(params: { user: User; actorId: string }): Promise<void> {
-    await createOrUpdateEntity({
+  async updateUser(params: {
+    user: User;
+    actorId: string;
+  }): Promise<string | undefined> {
+    return await createOrUpdateEntity({
       graphApiClient,
       entity: userToEntity(params.user),
       actorId: params.actorId,
@@ -204,9 +213,9 @@ export const createLinearIntegrationActivities = ({
     issue: Issue;
     actorId: string;
     workspaceAccountId: string;
-  }): Promise<void> {
+  }): Promise<string | undefined> {
     const entity = issueToEntity(params.issue);
-    await createOrUpdateEntity({
+    return await createOrUpdateEntity({
       graphApiClient,
       actorId: params.actorId,
       workspaceAccountId: params.workspaceAccountId,
@@ -232,8 +241,11 @@ export const createLinearIntegrationActivities = ({
       .then((issues) => issues.map(issueToEntity));
   },
 
-  async updateIssue(params: { issue: Issue; actorId: string }): Promise<void> {
-    await createOrUpdateEntity({
+  async updateIssue(params: {
+    issue: Issue;
+    actorId: string;
+  }): Promise<string | undefined> {
+    return createOrUpdateEntity({
       graphApiClient,
       entity: issueToEntity(params.issue),
       actorId: params.actorId,
