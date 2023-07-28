@@ -321,7 +321,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "35",
     heading: "Authorization",
-    body: "placeholder body",
+    body: "Basic permissions and attribute-based access control (ABAC))",
     parentIds: ["23", "27"],
     status: "future",
     useCases: ["website-building"],
@@ -330,7 +330,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "36",
     heading: "Block Action Mapping",
-    body: "placeholder body",
+    body: "Interface for mapping blocks to available actions",
     parentIds: ["31"],
     status: "future",
     useCases: ["website-building"],
@@ -339,7 +339,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "37",
     heading: "Realtime Service",
-    body: "basically a sync engine, powers our multi-backend & collab",
+    body: "Engine for synchronizing data between backend datastores, user sessions (via Collab), and external services (via Flows)",
     parentIds: ["16"],
     status: "future",
     useCases: ["website-building"],
@@ -348,7 +348,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "38",
     heading: "Multi-Type Entities",
-    body: "placeholder body",
+    body: "Allow a single entity to have more than one assigned type",
     parentIds: ["32"],
     status: "future",
     useCases: ["website-building"],
