@@ -40,13 +40,13 @@ export class Linear {
     this.apiKey = params.apiKey;
   }
 
-  public async syncWorkspace(params: {
+  public async triggerWorkspaceSync(params: {
     ownedById: string;
     actorId: string;
     teamIds: string[];
   }): Promise<void> {
     // TODO: Implement error handling
-    await this.temporalClient.workflow.execute("syncWorkspace", {
+    await this.temporalClient.workflow.start("syncWorkspace", {
       taskQueue: "integration",
       args: [
         {

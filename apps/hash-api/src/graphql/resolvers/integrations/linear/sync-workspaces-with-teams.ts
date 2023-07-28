@@ -56,16 +56,16 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
   await Promise.all(
     syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      await linkIntegrationToWorkspace(dataSources, {
+      await linearClient.triggerWorkspaceSync({
+        ownedById: userAccountId,
+        actorId: user.accountId,
+        teamIds: linearTeamIds,
+      });
+      return linkIntegrationToWorkspace(dataSources, {
         linearIntegrationEntityId,
         workspaceEntityId,
         linearTeamIds,
         actorId: user.accountId,
-      });
-      return linearClient.syncWorkspace({
-        ownedById: userAccountId,
-        actorId: user.accountId,
-        teamIds: linearTeamIds,
       });
     }),
   );
