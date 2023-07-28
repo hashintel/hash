@@ -1,4 +1,8 @@
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  Entity,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 
 import {
   getLinearIntegrationById,
@@ -55,10 +59,12 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   });
 
   await Promise.all(
-    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) =>
-      Promise.all([
+    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
+      const workspaceAccountId =
+        extractEntityUuidFromEntityId(workspaceEntityId);
+      return Promise.all([
         linearClient.triggerWorkspaceSync({
-          ownedById: userAccountId,
+          workspaceAccountId,
           actorId: user.accountId,
           teamIds: linearTeamIds,
         }),
@@ -68,8 +74,8 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           linearTeamIds,
           actorId: user.accountId,
         }),
-      ]),
-    ),
+      ]);
+    }),
   );
 
   return linearIntegration.entity;

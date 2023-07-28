@@ -41,7 +41,7 @@ export class Linear {
   }
 
   public async triggerWorkspaceSync(params: {
-    ownedById: string;
+    workspaceAccountId: string;
     actorId: string;
     teamIds: string[];
   }): Promise<void> {
