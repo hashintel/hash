@@ -132,7 +132,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "14",
     heading: "Block Protocol API Middleware",
-    body: "placeholder body",
+    body: "Handler for OpenAI, Mapbox and other third-party APIs",
     parentIds: ["12"],
     status: "done",
     useCases: ["website-building"],
@@ -141,7 +141,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "15",
     heading: "Linear Pages",
-    body: "placeholder body",
+    body: "Single-column block-based documents",
     parentIds: ["5"],
     status: "done",
     useCases: ["website-building"],
@@ -150,7 +150,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "16",
     heading: "Prototype Multiplayer",
-    body: "placeholder body",
+    body: "Proof-of-concept multiplayer editing and live collaboration",
     parentIds: ["11"],
     status: "done",
     useCases: ["website-building"],
@@ -159,7 +159,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "17",
     heading: "Entity Archival (Soft Deletion)",
-    body: "placeholder body",
+    body: "Ability to archive or hide entities including pages",
     parentIds: ["13", "3"],
     status: "done",
     useCases: ["website-building"],
@@ -168,7 +168,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "18",
     heading: "Canvas Pages",
-    body: "placeholder body",
+    body: "Freeform drag-and-drop canvases for blocks",
     parentIds: ["15"],
     status: "done",
     useCases: ["website-building"],
