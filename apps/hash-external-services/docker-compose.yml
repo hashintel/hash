@@ -385,6 +385,8 @@ services:
         condition: service_healthy
     environment:
       HASH_TEMPORAL_HOST: "temporal"
+      HASH_GRAPH_API_HOST: graph
+      HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
     tmpfs:
       - /tmp
     read_only: true
