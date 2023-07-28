@@ -177,7 +177,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "19",
     heading: "Block-Level Comments",
-    body: "placeholder body",
+    body: "The ability to comment on blocks within pages",
     parentIds: ["15"],
     status: "done",
     useCases: ["website-building"],
@@ -185,8 +185,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "20",
-    heading: "Prototype implementation of search",
-    body: "placeholder body",
+    heading: "Search Prototype",
+    body: "MVP implementation of OpenSearch-based full text search",
     parentIds: ["15"],
     status: "done",
     useCases: ["website-building"],
@@ -194,8 +194,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "21",
-    heading: "Task Executor - powered by Temporal",
-    body: "placeholder body",
+    heading: "Task Executor",
+    body: "Temporal-based executor for flows and other logic",
     parentIds: ["14"],
     status: "done",
     useCases: ["website-building"],
@@ -203,8 +203,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "22",
-    heading: "@mentioning of users and entities",
-    body: "placeholder body",
+    heading: "@mentions",
+    body: "Ability to @mention users and other entities within pages",
     parentIds: ["15", "7"],
     status: "done",
     useCases: ["website-building"],
@@ -212,8 +212,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "23",
-    heading: "API-powered blocks - e.g. OpenAI & Mapbox",
-    body: "placeholder body",
+    heading: "API-Based Blocks",
+    body: "OpenAI and Mapbox-enabled blocks built atop the Þ API middleware",
     parentIds: ["14"],
     status: "done",
     useCases: ["website-building"],
@@ -222,7 +222,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "24",
     heading: "Command Bar",
-    body: "placeholder body",
+    body: "Command or k-bar for quickly accessing AI capabilities and shortcuts",
     parentIds: ["20"],
     status: "done",
     useCases: ["website-building"],
@@ -231,7 +231,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "25",
     heading: "Type Inheritance RFC",
-    body: "placeholder body",
+    body: "Proposal for supporting type inheritance in the Block Protocol Graph Module",
     parentIds: ["3"],
     status: "done",
     useCases: ["website-building"],
