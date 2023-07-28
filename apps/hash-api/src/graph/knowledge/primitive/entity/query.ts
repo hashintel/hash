@@ -195,8 +195,9 @@ const bpMultiFilterFieldPathToPathExpression = (
         }
       }
 
-      // case `IncomingLinks` - should be unreachable at present as the BP query syntax doesn't support filtering across links
-      // case `OutgoingLinks`  - should be unreachable at present as the BP query syntax doesn't support filtering across links
+      if (pathRoot === "incomingLinks" || pathRoot === "outgoingLinks") {
+        return field;
+      }
 
       throw new InvalidEntityQueryError(
         `Invalid filter field path, unknown field \`${pathRoot}\``,
