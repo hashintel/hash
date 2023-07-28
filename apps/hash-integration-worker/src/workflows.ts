@@ -12,19 +12,19 @@ const linear = proxyActivities<
   },
 });
 
-export const linearImport = async (params: {
+export const syncWorkspace = async (params: {
   apiKey: string;
-  ownedById: string;
+  workspaceAccountId: string;
   actorId: string;
   teamIds: string[];
 }): Promise<void> => {
-  const { apiKey, ownedById, actorId, teamIds } = params;
+  const { apiKey, workspaceAccountId, actorId, teamIds } = params;
 
   const organization = linear
     .readOrganization({ apiKey })
     .then((organizationEntity) =>
       linear.createPartialEntities({
-        ownedById,
+        workspaceAccountId,
         actorId,
         entities: [organizationEntity],
       }),
@@ -32,7 +32,7 @@ export const linearImport = async (params: {
 
   const users = linear.readUsers({ apiKey }).then((userEntities) =>
     linear.createPartialEntities({
-      ownedById,
+      workspaceAccountId,
       actorId,
       entities: userEntities,
     }),
@@ -41,7 +41,7 @@ export const linearImport = async (params: {
   const issues = teamIds.map((teamId) =>
     linear.readIssues({ apiKey, filter: { teamId } }).then((issueEntities) =>
       linear.createPartialEntities({
-        ownedById,
+        workspaceAccountId,
         actorId,
         entities: issueEntities,
       }),

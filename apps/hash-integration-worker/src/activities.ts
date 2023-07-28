@@ -118,14 +118,14 @@ export const createLinearIntegrationActivities = ({
   async createPartialEntities(params: {
     entities: PartialEntity[];
     actorId: string;
-    ownedById: string;
+    workspaceAccountId: string;
   }): Promise<void> {
     await Promise.all(
       params.entities.map(({ properties, entityTypeId }) =>
         graphApiClient.createEntity({
           actorId: params.actorId,
           entityTypeId,
-          ownedById: params.ownedById,
+          ownedById: params.workspaceAccountId,
           properties,
         }),
       ),

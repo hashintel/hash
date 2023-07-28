@@ -1,6 +1,7 @@
 import { LinearClient, Organization, Team } from "@linear/sdk";
 
 import { TemporalClient } from "../temporal";
+import { genId } from "../util";
 
 export const listTeams = async (params: {
   apiKey: string;
@@ -32,8 +33,28 @@ export const getOrganization = async (params: {
 
 export class Linear {
   private readonly temporalClient: TemporalClient;
+  private readonly apiKey: string;
 
-  constructor(temporalClient: TemporalClient) {
-    this.temporalClient = temporalClient;
+  constructor(params: { temporalClient: TemporalClient; apiKey: string }) {
+    this.temporalClient = params.temporalClient;
+    this.apiKey = params.apiKey;
+  }
+
+  public async triggerWorkspaceSync(params: {
+    workspaceAccountId: string;
+    actorId: string;
+    teamIds: string[];
+  }): Promise<void> {
+    // TODO: Implement error handling
+    await this.temporalClient.workflow.start("syncWorkspace", {
+      taskQueue: "integration",
+      args: [
+        {
+          apiKey: this.apiKey,
+          ...params,
+        },
+      ],
+      workflowId: `syncWorkspace-${genId()}`,
+    });
   }
 }

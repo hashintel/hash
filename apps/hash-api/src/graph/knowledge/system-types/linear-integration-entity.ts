@@ -116,7 +116,7 @@ export const getLinearIntegrationById: ImpureGraphFunction<
   return getLinearIntegrationFromEntity({ entity });
 };
 
-export const syncLinearIntegrationWithWorkspace: ImpureGraphFunction<
+export const linkIntegrationToWorkspace: ImpureGraphFunction<
   {
     linearIntegrationEntityId: EntityId;
     workspaceEntityId: EntityId;

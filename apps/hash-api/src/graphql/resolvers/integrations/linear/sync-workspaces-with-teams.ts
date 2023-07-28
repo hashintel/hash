@@ -1,9 +1,15 @@
-import { Entity } from "@local/hash-subgraph";
+import {
+  Entity,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 
 import {
   getLinearIntegrationById,
-  syncLinearIntegrationWithWorkspace,
+  linkIntegrationToWorkspace,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
+import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
+import { Linear } from "../../../../integrations/linear";
 import {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
   ResolverFn,
@@ -18,24 +24,59 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 > = async (
   _,
   { linearIntegrationEntityId, syncWithWorkspaces },
-  { dataSources, user },
+  { dataSources, user, temporal, vault },
 ) => {
+  if (!vault) {
+    throw new Error("Vault client not available");
+  }
+
+  if (!temporal) {
+    throw new Error("Temporal client not available");
+  }
+
   const linearIntegration = await getLinearIntegrationById(dataSources, {
     entityId: linearIntegrationEntityId,
   });
 
-  await Promise.all(
-    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) =>
-      syncLinearIntegrationWithWorkspace(dataSources, {
-        linearIntegrationEntityId,
-        workspaceEntityId,
-        linearTeamIds,
-        actorId: user.accountId,
-      }),
-    ),
+  const userAccountId = extractOwnedByIdFromEntityId(
+    linearIntegration.entity.metadata.recordId.entityId,
   );
 
-  /** @todo: trigger temporal workflow for syncing the relevant linear team data with the workspaces */
+  const linearUserSecret = await getLinearUserSecretByLinearOrgId(dataSources, {
+    userAccountId,
+    linearOrgId: linearIntegration.linearOrgId,
+  });
+
+  const vaultSecret = await vault.read<{ value: string }>({
+    secretMountPath: "secret",
+    path: linearUserSecret.vaultPath,
+  });
+
+  const apiKey = vaultSecret.data.value;
+  const linearClient = new Linear({
+    temporalClient: temporal,
+    apiKey,
+  });
+
+  await Promise.all(
+    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
+      const workspaceAccountId =
+        extractEntityUuidFromEntityId(workspaceEntityId);
+      return Promise.all([
+        linearClient.triggerWorkspaceSync({
+          workspaceAccountId,
+          actorId: user.accountId,
+          teamIds: linearTeamIds,
+        }),
+        linkIntegrationToWorkspace(dataSources, {
+          linearIntegrationEntityId,
+          workspaceEntityId,
+          linearTeamIds,
+          actorId: user.accountId,
+        }),
+      ]);
+    }),
+  );
 
   return linearIntegration.entity;
 };

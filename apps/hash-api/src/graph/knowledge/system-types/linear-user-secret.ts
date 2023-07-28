@@ -59,7 +59,7 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId?: AccountId; linearOrgId: string },
+  { userAccountId: AccountId; linearOrgId: string },
   Promise<LinearUserSecret>
 > = async ({ graphApi }, { userAccountId, linearOrgId }) => {
   const entities = await graphApi
