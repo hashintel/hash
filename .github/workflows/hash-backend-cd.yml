@@ -366,6 +366,7 @@ jobs:
       - build-kratos
       - build-ts-worker
       - build-py-worker
+      - build-integration-worker
     permissions:
       id-token: write
       contents: read
