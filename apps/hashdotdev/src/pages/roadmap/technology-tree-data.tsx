@@ -17,8 +17,8 @@ export type TechnologyTreeNodeData = {
 export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "0",
-    heading: "Block Protocol Core Specification",
-    body: "Placeholder body two lines hopefully bla bla bla",
+    heading: "Block Protocol Core",
+    body: "Specification for passing structured data between blocks and embedding applications",
     status: "done",
     useCases: ["website-building"],
     variant: "block-protocol",
@@ -26,13 +26,15 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "1",
     heading: "UX/UI Outline",
+    body: "Basic application screens and functionality outline",
     status: "done",
     useCases: ["website-building"],
     variant: "infrastructure",
   },
   {
     id: "3",
-    heading: "Block Protocol Graph Module - inc. type system",
+    heading: "Block Protocol Graph Module",
+    body: "Type System and methods for accessing structured data",
     status: "done",
     useCases: ["website-building"],
     variant: "block-protocol",
@@ -40,7 +42,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "4",
     heading: "Block Protocol Hook Module",
-    body: "placeholder body",
+    body: "Inject native application experiences and handlers within blocks",
     parentIds: ["0"],
     status: "done",
     useCases: ["website-building"],
@@ -49,7 +51,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "5",
     heading: "Frontend App Scaffolding",
-    body: "placeholder body",
+    body: "Basic application screens and frame implemented",
     parentIds: ["1"],
     status: "done",
     useCases: ["website-building"],
@@ -57,8 +59,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "6",
-    heading: "Rust Graph",
-    body: "placeholder body",
+    heading: "Graph Layer",
+    body: "Rust implementation of the Graph Module atop Postgres",
     parentIds: ["1", "3"],
     status: "done",
     useCases: ["website-building"],
@@ -66,8 +68,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "7",
-    heading: "Hook Providers",
-    body: "placeholder body",
+    heading: "Text Hook Provider",
+    body: "Hook provider for rich text-editing within blocks",
     parentIds: ["4"],
     status: "done",
     useCases: ["website-building"],
@@ -75,8 +77,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "8",
-    heading: "Core System Types - e.g. User, Org, etc.",
-    body: "placeholder body",
+    heading: "Core System Types",
+    body: "User, workspace, and other key types required by HASH itself",
     parentIds: ["6"],
     status: "done",
     useCases: ["website-building"],
@@ -84,8 +86,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "9",
-    heading: "Basic Primitive Blocks - e.g. heading, paragraph",
-    body: "placeholder body",
+    heading: "Basic Primitive Blocks",
+    body: "Key blocks such as heading, paragraph, image, etc.",
     parentIds: ["7"],
     status: "done",
     useCases: ["website-building"],
@@ -94,7 +96,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "10",
     heading: "Entity Type Editor",
-    body: "placeholder body",
+    body: "Interface for managing entity types in HASH",
     parentIds: ["8"],
     status: "done",
     useCases: ["website-building"],
@@ -102,8 +104,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "11",
-    heading: "Basic Authentication - Kratos and login/logout/signup",
-    body: "placeholder body",
+    heading: "Basic Authentication",
+    body: "Implement login/logout/signup atop Kratos",
     parentIds: ["8"],
     status: "done",
     useCases: ["website-building"],
@@ -112,7 +114,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "12",
     heading: "Block Protocol Service Module",
-    body: "placeholder body",
+    body: "Allow blocks to connect to external services without handling integration logic themselves",
     parentIds: ["9"],
     status: "done",
     useCases: ["website-building"],
@@ -121,7 +123,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "13",
     heading: "Entity Editor",
-    body: "placeholder body",
+    body: "Interface for managing entities in HASH",
     parentIds: ["10"],
     status: "done",
     useCases: ["website-building"],
