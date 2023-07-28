@@ -357,7 +357,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "39",
     heading: "Custom Data Types RFC",
-    body: "placeholder body",
+    body: "Proposed specification extension allowing for user-defined non-primitive Data Types",
     parentIds: ["25"],
     status: "future",
     useCases: ["website-building"],
@@ -366,7 +366,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "40",
     heading: "Flows",
-    body: "placeholder body",
+    body: "Scheduled and responsive execution of user-defined logic",
     parentIds: ["21", "33", "34"],
     status: "future",
     useCases: ["website-building"],
@@ -374,8 +374,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "41",
-    heading: "Advanced Blocks - entity table and kanban",
-    body: "placeholder body",
+    heading: "Advanced Blocks",
+    body: "Blocks which allow users to query and insert multiple entities of varying types (e.g. table, kanban, timeline)",
     parentIds: ["34"],
     status: "future",
     useCases: ["website-building"],
@@ -383,8 +383,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "42",
-    heading: "External-Facing API & Webhooks",
-    body: "placeholder body",
+    heading: "External API & Webhooks",
+    body: "API endpoints for interfacing with HASH designed for external user consumption",
     parentIds: ["35"],
     status: "future",
     useCases: ["website-building"],
