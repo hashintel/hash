@@ -12,7 +12,7 @@ const linear = proxyActivities<
   },
 });
 
-export const linearImport = async (params: {
+export const syncWorkspace = async (params: {
   apiKey: string;
   ownedById: string;
   actorId: string;
