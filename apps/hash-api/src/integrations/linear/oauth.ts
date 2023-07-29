@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
+import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   AccountId,
@@ -27,8 +28,7 @@ const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
 
 const linearOAuthCallbackUrl =
-  process.env.LINEAR_OAUTH_CALLBACK_URL ??
-  "http://localhost:5001/oauth/linear/callback";
+  process.env.LINEAR_OAUTH_CALLBACK_URL ?? `${apiOrigin}/oauth/linear/callback`;
 
 /**
  * @todo oauth state will need to be store somewhere other than memory if we need:
