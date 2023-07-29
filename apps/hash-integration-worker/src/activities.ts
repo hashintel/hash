@@ -8,7 +8,11 @@ import {
 } from "@linear/sdk";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  EntityPropertiesObject,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -18,6 +22,7 @@ import {
   customViewToEntity,
   cycleToEntity,
   documentToEntity,
+  entityPropertiesToIssueUpdate,
   issueLabelToEntity,
   issueToEntity,
   organizationToEntity,
@@ -346,12 +351,14 @@ export const createLinearIntegrationActivities = ({
   async updateLinearIssue(
     apiKey: string,
     issueId: Issue["id"],
-    update: LinearDocument.IssueUpdateInput,
+    update: EntityPropertiesObject,
   ): Promise<PartialEntity | undefined> {
-    const client = new LinearClient({ apiKey });
+    const client = createLinearClient(apiKey);
+
+    const linearUpdate = entityPropertiesToIssueUpdate(update);
 
     const updatedIssue = await client
-      .updateIssue(issueId, update)
+      .updateIssue(issueId, linearUpdate)
       .then(async (data) => {
         const issue = await data.issue;
         if (issue) {
@@ -359,9 +366,6 @@ export const createLinearIntegrationActivities = ({
         }
         return undefined;
       });
-
-    // eslint-disable-next-line no-console
-    console.log({ updatedIssue });
 
     return updatedIssue;
   },

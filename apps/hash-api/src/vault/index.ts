@@ -25,9 +25,10 @@ export class VaultClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError<{ errors: string[] }>) => {
-        const vaultErrorMessages = error.response?.data.errors ?? [
-          error.message,
-        ];
+        const vaultErrorMessages =
+          error.status?.toString() === "404"
+            ? ["Secret not found"]
+            : error.response?.data.errors ?? [error.message];
 
         return Promise.reject(
           new Error(`Vault API Error: ${vaultErrorMessages.join(", ")}`),

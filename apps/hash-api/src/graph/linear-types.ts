@@ -93,9 +93,8 @@ export let LINEAR_TYPES: {
     // User
     assignedIssue: EntityTypeWithMetadata;
     createdIssue: EntityTypeWithMetadata;
-    organization: EntityTypeWithMetadata;
     // Organization
-    user: EntityTypeWithMetadata;
+    hasMember: EntityTypeWithMetadata;
     // Issue
     assignee: EntityTypeWithMetadata;
     attachment: EntityTypeWithMetadata;
@@ -243,10 +242,6 @@ const createdIssueLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.createdIssue,
 });
 
-const organizationLinkEntityTypeInitializer = entityTypeInitializer({
-  ...linearTypes.linkEntityType.organization,
-});
-
 export const userEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -264,8 +259,6 @@ export const userEntityTypeInitializer = async (
 
   const assignedIssueLinkType =
     await LINEAR_TYPES_INITIALIZERS.linkEntityType.assignedIssue(context);
-
-  const issueEntityTypeId = linearTypes.entityType.issue.entityTypeId;
 
   const avatarUrlPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.avatarUrl(context);
@@ -314,12 +307,6 @@ export const userEntityTypeInitializer = async (
     context,
   );
 
-  const organizationLinkEntityType =
-    await LINEAR_TYPES_INITIALIZERS.linkEntityType.organization(context);
-
-  const organizationEntityTypeId =
-    linearTypes.entityType.organization.entityTypeId;
-
   const statusEmojiPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.statusEmoji(context);
 
@@ -345,6 +332,10 @@ export const userEntityTypeInitializer = async (
   const urlPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.url(
     context,
   );
+
+  // const issueEntityType = await LINEAR_TYPES_INITIALIZERS.entityType.issue(
+  //   context,
+  // );
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -443,15 +434,13 @@ export const userEntityTypeInitializer = async (
     outgoingLinks: [
       {
         linkEntityType: assignedIssueLinkType,
-        destinationEntityTypes: [issueEntityTypeId],
+        // @todo handle cyclical dependencies in entityTypeInitializer
+        // destinationEntityTypes: [issueEntityType],
       },
       {
         linkEntityType: createdIssueLinkEntityType,
-        destinationEntityTypes: [issueEntityTypeId],
-      },
-      {
-        linkEntityType: organizationLinkEntityType,
-        destinationEntityTypes: [organizationEntityTypeId],
+        // @todo handle cyclical dependencies in entityTypeInitializer
+        // destinationEntityTypes: [issueEntityType],
       },
       // {
       //   linkEntityType: teamLinkEntityType,
@@ -558,8 +547,8 @@ const userCountPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "number" }],
 });
 
-const userLinkEntityTypeInitializer = entityTypeInitializer({
-  ...linearTypes.linkEntityType.user,
+const hasMemberLinkEntityTypeInitializer = entityTypeInitializer({
+  ...linearTypes.linkEntityType.hasMember,
 });
 
 const organizationEntityTypeInitializer = async (
@@ -665,10 +654,12 @@ const organizationEntityTypeInitializer = async (
   //   context,
   // );
 
-  const userLinkEntityType =
-    await LINEAR_TYPES_INITIALIZERS.linkEntityType.user(context);
+  const hasMemberLinkEntityType =
+    await LINEAR_TYPES_INITIALIZERS.linkEntityType.hasMember(context);
 
-  const userEntityTypeId = linearTypes.entityType.user.entityTypeId;
+  const userEntityType = await LINEAR_TYPES_INITIALIZERS.entityType.user(
+    context,
+  );
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -784,8 +775,8 @@ const organizationEntityTypeInitializer = async (
       //   destinationEntityTypes: [teamEntityType],
       // },
       {
-        linkEntityType: userLinkEntityType,
-        destinationEntityTypes: [userEntityTypeId],
+        linkEntityType: hasMemberLinkEntityType,
+        destinationEntityTypes: [userEntityType],
       },
     ],
   })(context);
@@ -956,7 +947,9 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const assigneeLinkEntityType =
     await LINEAR_TYPES_INITIALIZERS.linkEntityType.assignee(context);
 
-  const userEntityTypeId = linearTypes.entityType.user.entityTypeId;
+  const userEntityType = await LINEAR_TYPES_INITIALIZERS.entityType.user(
+    context,
+  );
 
   // const attachmentLinkEntityType =
   //   await LINEAR_TYPES_INITIALIZERS.linkEntityType.attachment(context);
@@ -1220,7 +1213,7 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
     outgoingLinks: [
       {
         linkEntityType: assigneeLinkEntityType,
-        destinationEntityTypes: [userEntityTypeId],
+        destinationEntityTypes: [userEntityType],
       },
       // {
       //   linkEntityType: attachmentLinkEntityType,
@@ -1236,7 +1229,7 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
       // },
       {
         linkEntityType: creatorLinkEntityType,
-        destinationEntityTypes: [userEntityTypeId],
+        destinationEntityTypes: [userEntityType],
       },
       // {
       //   linkEntityType: cycleLinkEntityType,
@@ -1260,11 +1253,11 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
       // },
       {
         linkEntityType: snoozedByLinkEntityType,
-        destinationEntityTypes: [userEntityTypeId],
+        destinationEntityTypes: [userEntityType],
       },
       {
         linkEntityType: subscriberLinkEntityType,
-        destinationEntityTypes: [userEntityTypeId],
+        destinationEntityTypes: [userEntityType],
       },
       // {
       //   linkEntityType: teamLinkEntityType,
@@ -1370,9 +1363,8 @@ export const LINEAR_TYPES_INITIALIZERS: FlattenAndPromisify<
     // User
     assignedIssue: assignedIssueLinkEntityTypeInitializer,
     createdIssue: createdIssueLinkEntityTypeInitializer,
-    organization: organizationLinkEntityTypeInitializer,
     // Organization
-    user: userLinkEntityTypeInitializer,
+    hasMember: hasMemberLinkEntityTypeInitializer,
     // Issue
     assignee: assigneeLinkEntityTypeInitializer,
     attachment: attachmentLinkEntityTypeInitializer,
