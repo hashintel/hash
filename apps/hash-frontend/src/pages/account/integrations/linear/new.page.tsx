@@ -1,7 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { EntityId } from "@blockprotocol/graph/temporal";
 import { Button } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -51,45 +51,52 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   >(getLinearOrganizationQuery);
 
   const linearIntegrationEntityId = useMemo(() => {
-    return router.query.linearIntegrationEntityId as EntityId;
+    return router.query.linearIntegrationEntityId as EntityId | undefined;
   }, [router]);
 
   const { linearIntegrations } = useLinearIntegrations();
 
-  const linearIntegration = useMemo(() => {
-    if (linearIntegrations && linearIntegrationEntityId) {
-      return linearIntegrations.find(
+  useEffect(() => {
+    void (async () => {
+      if (!linearIntegrations || !linearIntegrationEntityId) {
+        return;
+      }
+
+      const linearIntegration = linearIntegrations.find(
         ({ entity }) =>
           entity.metadata.recordId.entityId === linearIntegrationEntityId,
       );
-    }
-  }, [linearIntegrations, linearIntegrationEntityId]);
 
-  useEffect(() => {
-    void (async () => {
-      if (linearIntegration && linearIntegrations) {
-        const linearOrgId = linearIntegration.entity.properties[
-          extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
-        ] as string;
+      if (!linearIntegration) {
+        void router.push("/account/integrations");
+        return;
+      }
+      const linearOrgId = linearIntegration.entity.properties[
+        extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
+      ] as string;
 
-        const { data } = await getLinearOrganization({
-          variables: { linearOrgId },
-        });
+      const { data } = await getLinearOrganization({
+        variables: { linearOrgId },
+      });
 
-        if (data) {
-          const organization = data.getLinearOrganization;
+      if (data) {
+        const organization = data.getLinearOrganization;
 
-          setLinearOrganization(
-            mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces({
-              linearIntegrations,
-            })(organization),
-          );
-        } else {
-          throw new Error("Could not get linear organization");
-        }
+        setLinearOrganization(
+          mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces({
+            linearIntegrations,
+          })(organization),
+        );
+      } else {
+        throw new Error("Could not get linear organization");
       }
     })();
-  }, [linearIntegrations, linearIntegration, getLinearOrganization]);
+  }, [
+    linearIntegrations,
+    linearIntegrationEntityId,
+    router,
+    getLinearOrganization,
+  ]);
 
   const possibleWorkspaces = useMemo(
     () => [authenticatedUser, ...authenticatedUser.memberOf],
@@ -97,13 +104,12 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   );
 
   const handleSaveAndContinue = useCallback(async () => {
-    if (linearIntegration && linearOrganization) {
+    if (linearIntegrationEntityId && linearOrganization) {
       /** @todo: add proper error handling */
 
       await syncLinearIntegrationWithWorkspaces({
         variables: {
-          linearIntegrationEntityId:
-            linearIntegration.entity.metadata.recordId.entityId,
+          linearIntegrationEntityId,
           syncWithWorkspaces:
             mapLinearOrganizationToSyncWithWorkspacesInputVariable({
               linearOrganization,
@@ -116,7 +122,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
     }
   }, [
     syncLinearIntegrationWithWorkspaces,
-    linearIntegration,
+    linearIntegrationEntityId,
     linearOrganization,
     possibleWorkspaces,
     router,
