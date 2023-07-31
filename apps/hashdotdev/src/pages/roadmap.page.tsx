@@ -33,7 +33,7 @@ const Head: FunctionComponent = () => (
   <Container sx={{ marginBottom: 10 }}>
     <Box>
       <Typography variant="hashHeading4" component="h2" mb={3}>
-        Where is HASH at
+        Where HASH is at
       </Typography>
       <Typography variant="hashLargeTitle" mb={5} sx={{ lineHeight: 1.1 }}>
         Roadmap
