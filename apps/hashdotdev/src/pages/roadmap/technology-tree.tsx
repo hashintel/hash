@@ -127,7 +127,7 @@ export const TechnologyTree: FunctionComponent = () => {
     // Configure the layout of the graph
     const layout = sugiyama()
       .nodeSize([technologyTreeNodeMinHeight, technologyTreeNodeWidth])
-      .gap([technologyTreeNodeMinHeight * 2, technologyTreeNodeWidth * 0.3])
+      .gap([technologyTreeNodeMinHeight * 2.25, technologyTreeNodeWidth * 0.3])
       .tweaks([shape]);
 
     // Generate the graph layout to obtain its size
