@@ -10,6 +10,10 @@ on:
   issue_comment:
     types: [ edited ]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   create:
     runs-on: ubuntu-latest
@@ -24,9 +28,10 @@ jobs:
 
       - name: Find Overrides
         id: find
+        env:
+          BODY: ${{ github.event.pull_request.body }}
         run: |
-          BODY="${{ github.event.pull_request.body }}"
-          sed -E s#/override\s+(\w+)\s*(:\s*\w+)*#\1\2#g <<< "$BODY" > overrides.txt
+          echo "$BODY" | sed -E 's#/override\s+(\w+)\s*(:\s*\w+)*#\1\2#g' > overrides.txt
           cat overrides.txt | cut -d: -f1 | xargs -I{} echo "--override={}" > overrides2.txt
           echo "overrides=$(cat overrides2.txt)" >> "$GITHUB_OUTPUT"
 
