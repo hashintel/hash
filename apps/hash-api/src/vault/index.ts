@@ -71,13 +71,14 @@ export class VaultClient {
   }
 }
 
+// @todo allow authentication via app role instead (H-233)
 export const createVaultClient = () => {
   return process.env.HASH_VAULT_HOST &&
     process.env.HASH_VAULT_PORT &&
-    process.env.HASH_VAULT_ROOT_TOKEN
+    process.env.HASH_VAULT_TOKEN
     ? new VaultClient({
         endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-        token: process.env.HASH_VAULT_ROOT_TOKEN,
+        token: process.env.HASH_VAULT_TOKEN,
       })
     : undefined;
 };

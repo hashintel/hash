@@ -403,7 +403,7 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN}"
+      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_TOKEN}"
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
     security_opt:
       - no-new-privileges:true
