@@ -1,0 +1,51 @@
+name: PR Checklist
+on:
+  pull_request:
+    types: [ opened ]
+  pull_request_comment:
+    types: [ edited ]
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Find Overrides
+        id: find
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          sed -E s#/override\s+(\w+)\s*(:\s*\w+)*#\1\2#g <<< "$BODY" > overrides.txt
+          cat overrides.txt | cut -d: -f1 | xargs -I{} echo "--override={}" > overrides2.txt
+          echo "overrides=$(cat overrides2.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Checklist
+        id: create
+        run: |
+          python .github/scripts/pr/create.py ${{ steps.find.outputs.overrides }} > checklist.md
+          echo "checklist=$(cat checklist.md)" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.create.outputs.checklist }}
+
+  verify:
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'pull_request_comment' && github.event.action == 'edited'
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      # find the comment, execute script
