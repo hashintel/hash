@@ -42,7 +42,7 @@ const Head: FunctionComponent = () => (
       <Box display="flex">
         <Box width={{ xs: 1, md: 725 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            Here you’ll find the features we’re intending to build, information
+            Here you’ll find the features we’ve built and are building, information
             around the order in which we’ll be addressing them, as well as
             functional and technical specifications.
           </Typography>
