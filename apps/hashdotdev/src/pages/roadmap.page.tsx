@@ -42,9 +42,9 @@ const Head: FunctionComponent = () => (
       <Box display="flex">
         <Box width={{ xs: 1, md: 725 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            Here you’ll find the features we’ve built and are building, information
-            around the order in which we’ll be addressing them, as well as
-            functional and technical specifications.
+            Here you’ll find the features we’ve built and are building,
+            information around the order in which we’ll be addressing them, as
+            well as functional and technical specifications.
           </Typography>
           <Typography sx={{ lineHeight: 1.5 }}>
             We’ve mapped these features to use cases, so if you’re interested in
@@ -120,7 +120,10 @@ const UseCases: FunctionComponent = () => (
           sx={{
             display: "flex",
             flexDirection: "column",
-            width: 135,
+            width: ({ spacing }) => ({
+              xs: `calc(50% - ${spacing(1)})`,
+              sm: 135,
+            }),
             padding: ({ spacing }) => spacing(2, 1.5),
             borderRadius: "8px",
             borderStyle: "solid",
