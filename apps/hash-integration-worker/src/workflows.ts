@@ -3,6 +3,7 @@ import {
   CreateHashUserWorkflow,
   ReadLinearTeamsWorkflow,
   SyncWorkspaceWorkflow,
+  UpdateHashIssueWorkflow,
   UpdateHashUserWorkflow,
   UpdateLinearIssueWorkflow,
 } from "@local/hash-backend-utils/temporal-workflow-types";
@@ -55,7 +56,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   await Promise.all([organization, users, ...issues]);
 };
 
-export const createLinearUser: CreateHashUserWorkflow = async (params) => {
+export const createHashUser: CreateHashUserWorkflow = async (params) => {
   await linear.createHashUser({
     user: params.payload,
     workspaceAccountId: params.ownedById,
@@ -69,13 +70,19 @@ export const updateHashUser: UpdateHashUserWorkflow = async (params) =>
     actorId: params.actorId,
   });
 
-export const createLHashIssue: CreateHashIssueWorkflow = async (params) => {
+export const createHashIssue: CreateHashIssueWorkflow = async (params) => {
   await linear.createHashIssue({
     issue: params.payload,
     workspaceAccountId: params.ownedById,
     actorId: params.actorId,
   });
 };
+
+export const updateHashIssue: UpdateHashIssueWorkflow = async (params) =>
+  linear.updateHashIssue({
+    issue: params.payload,
+    actorId: params.actorId,
+  });
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
   linear.readLinearTeams({ apiKey });

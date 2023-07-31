@@ -49,6 +49,7 @@ export type UpdateHashUserWorkflow = (params: {
 export type WorkflowTypeMap = {
   createHashIssue: CreateHashIssueWorkflow;
   createHashUser: CreateHashUserWorkflow;
+  readLinearTeams: ReadLinearTeamsWorkflow;
   syncWorkspace: SyncWorkspaceWorkflow;
   updateHashIssue: UpdateHashIssueWorkflow;
   updateHashUser: UpdateHashUserWorkflow;
