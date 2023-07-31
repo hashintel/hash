@@ -23,6 +23,7 @@ if len(sys.argv) != 2:
 CONTENT = sys.argv[1]
 
 sections = CONTENT.split("\n/override", 1)
+
 if len(sections) == 1:
     sys.exit(0)
 
