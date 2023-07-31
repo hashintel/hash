@@ -74,6 +74,7 @@ const FilterCheckboxItem: FunctionComponent<{
 );
 
 export const TechnologyTreeFilters: FunctionComponent<{
+  isWideScreen: boolean;
   displayedStatuses: StatusId[];
   setDisplayedStatuses: (displayedStatuses: StatusId[]) => void;
   displayedVariants: VariantId[];
@@ -81,6 +82,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
   displayedUseCases: UseCaseId[];
   setDisplayedUseCases: (displayedUseCases: UseCaseId[]) => void;
 }> = ({
+  isWideScreen,
   displayedStatuses,
   setDisplayedStatuses,
   displayedVariants,
@@ -127,21 +129,33 @@ export const TechnologyTreeFilters: FunctionComponent<{
       </IconButton>
       <Box
         sx={{
-          zIndex: 2,
+          zIndex: isWideScreen ? 0 : 2,
           position: "absolute",
           right: 0,
-          top: ({ spacing }) => spacing(2),
-          transform: open ? "translateX(0%)" : "translateX(100%)",
+          top: ({ spacing }) => (isWideScreen ? 0 : spacing(2)),
+          transform: ({ spacing }) =>
+            isWideScreen
+              ? open
+                ? `translateX(calc(100% - ${spacing(0.5)}))`
+                : "translateX(0%)"
+              : open
+              ? "translateX(0%)"
+              : "translateX(100%)",
+          height: isWideScreen ? "100%" : "unset",
           transition: ({ transitions }) => transitions.create("transform"),
-          py: 1.5,
-          px: 1.75,
-          borderTopLeftRadius: "8px",
-          borderBottomLeftRadius: "8px",
+          py: isWideScreen ? 3 : 1.5,
+          paddingLeft: isWideScreen ? 3.25 : 1.75,
+          paddingRight: 1.75,
+          borderTopLeftRadius: isWideScreen ? "0px" : "8px",
+          borderBottomLeftRadius: isWideScreen ? "0px" : "8px",
+          borderTopRightRadius: isWideScreen ? "8px" : "0px",
+          borderBottomRightRadius: isWideScreen ? "8px" : "0px",
           background: ({ palette }) => palette.white,
           borderWidth: 1,
           borderColor: ({ palette }) => palette.gray[20],
           borderStyle: "solid",
-          borderRightWidth: 0,
+          borderRightWidth: isWideScreen ? 1 : 0,
+          borderLeftWidth: isWideScreen ? 0 : 1,
         }}
       >
         <Box display="flex" justifyContent="space-between" marginBottom={2}>

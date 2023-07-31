@@ -1,4 +1,10 @@
-import { Box, Container, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Theme,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
 import {
   curveMonotoneX,
   line as d3Line,
@@ -180,11 +186,14 @@ export const TechnologyTree: FunctionComponent = () => {
 
   /** @todo: animate changes in the graph */
 
+  const useWidescreenFilters = useMediaQuery<Theme>((theme) =>
+    theme.breakpoints.up(1800),
+  );
+
   return (
     <Box marginBottom={10}>
       <Container>
         <AnchorTag id="technology-tree" />
-
         <Typography id="" variant="hashHeading3" marginBottom={4}>
           Technology Tree
         </Typography>
@@ -196,190 +205,219 @@ export const TechnologyTree: FunctionComponent = () => {
           completion status.
         </Typography>
       </Container>
-      <Box
-        sx={{
-          width: "100%",
-          height: 4,
-          background:
-            "linear-gradient(90deg, rgba(0, 141, 185, 0.00) 0%, #5DBEDC 20.83%, #DAF8FF 84.90%, rgba(218, 248, 255, 0.00) 100%)",
-        }}
-      />
-      <Box sx={{ position: "relative", overflow: "hidden" }}>
-        <TechnologyTreeFilters
-          displayedStatuses={displayedStatuses}
-          setDisplayedStatuses={setDisplayedStatuses}
-          displayedVariants={displayedVariants}
-          setDisplayedVariants={setDisplayedVariants}
-          displayedUseCases={displayedUseCases}
-          setDisplayedUseCases={setDisplayedUseCases}
-        />
-        {nodes.length === 0 ? (
-          <Box
-            sx={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 1,
-              textAlign: "center",
-            }}
-          >
-            <FaIcon
-              name="warning"
-              type="light"
-              sx={{
-                fontSize: 42,
-                color: ({ palette }) => palette.gray[50],
-                marginBottom: 1,
-              }}
-            />
-            <Typography
-              sx={{
-                fontSize: 15,
-                color: ({ palette }) => palette.gray[90],
-                fontWeight: 500,
-              }}
-            >
-              No roadmap items match your current filters
-            </Typography>
-            {displayedStatuses.length === 0 ||
-            displayedVariants.length === 0 ||
-            displayedUseCases.length === 0 ? (
-              <Typography
-                sx={{
-                  fontSize: 14,
-                  color: ({ palette }) => palette.gray[70],
-                  fontWeight: 400,
-                }}
-              >
-                Please select at least one{" "}
-                <strong>
-                  {displayedStatuses.length === 0
-                    ? "status"
-                    : displayedVariants.length === 0
-                    ? "type"
-                    : "use case"}
-                </strong>{" "}
-                to view matching deliverables
-              </Typography>
-            ) : null}
-          </Box>
-        ) : null}
+      <Container>
         <Box
-          ref={graphWrapperRef}
           sx={{
             position: "relative",
-            width: "100%",
-            background:
-              "linear-gradient(90deg, rgba(247, 250, 252, 0.00) 0%, #F7FAFC 10.94%, #F7FAFC 84.90%, rgba(247, 250, 252, 0.00) 100%)",
-            overflow: "hidden",
-            height: "75vh",
-            borderBottomColor: ({ palette }) => palette.gray[20],
-            borderBottomStyle: "solid",
-            borderBottomWidth: 1,
+            overflow: useWidescreenFilters ? "unset" : "hidden",
+            borderWidth: useWidescreenFilters ? 0 : 1,
+            borderStyle: "solid",
+            borderColor: ({ palette }) => palette.gray[30],
+            borderRadius: "8px",
           }}
         >
-          <Box ref={graphRef}>
+          <TechnologyTreeFilters
+            isWideScreen={useWidescreenFilters}
+            displayedStatuses={displayedStatuses}
+            setDisplayedStatuses={setDisplayedStatuses}
+            displayedVariants={displayedVariants}
+            setDisplayedVariants={setDisplayedVariants}
+            displayedUseCases={displayedUseCases}
+            setDisplayedUseCases={setDisplayedUseCases}
+          />
+          <Box
+            sx={{
+              zIndex: 1,
+              position: "relative",
+              overflow: "hidden",
+              background: "#F7FAFC",
+              borderWidth: useWidescreenFilters ? 1 : 0,
+              borderStyle: "solid",
+              borderColor: ({ palette }) => palette.gray[30],
+              borderRadius: "8px",
+            }}
+          >
             <Box
               sx={{
-                position: "relative",
-                zIndex: 1,
+                width: "100%",
+                height: 4,
+                background:
+                  "linear-gradient(90deg, rgba(0, 141, 185, 0.20) 0%, #5DBEDC 20.83%, #DAF8FF 84.90%, rgba(218, 248, 255, 0.20) 100%)",
               }}
-            >
-              {nodes.map(({ x, y, data }) => (
-                <TechnologyTreeNode
-                  key={data.id}
-                  x={x}
-                  y={y}
-                  data={data}
-                  blurred={blurredNodes.includes(data.id)}
-                  onHover={() => setFocusedNodeId(data.id)}
-                  onUnhover={() => setFocusedNodeId(undefined)}
+            />
+            {nodes.length === 0 ? (
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 1,
+                  textAlign: "center",
+                }}
+              >
+                <FaIcon
+                  name="warning"
+                  type="light"
+                  sx={{
+                    fontSize: 42,
+                    color: ({ palette }) => palette.gray[50],
+                    marginBottom: 1,
+                  }}
                 />
-              ))}
-            </Box>
+                <Typography
+                  sx={{
+                    fontSize: 15,
+                    color: ({ palette }) => palette.gray[90],
+                    fontWeight: 500,
+                  }}
+                >
+                  No roadmap items match your current filters
+                </Typography>
+                {displayedStatuses.length === 0 ||
+                displayedVariants.length === 0 ||
+                displayedUseCases.length === 0 ? (
+                  <Typography
+                    sx={{
+                      fontSize: 14,
+                      color: ({ palette }) => palette.gray[70],
+                      fontWeight: 400,
+                    }}
+                  >
+                    Please select at least one{" "}
+                    <strong>
+                      {displayedStatuses.length === 0
+                        ? "status"
+                        : displayedVariants.length === 0
+                        ? "type"
+                        : "use case"}
+                    </strong>{" "}
+                    to view matching deliverables
+                  </Typography>
+                ) : null}
+              </Box>
+            ) : null}
             <Box
-              component="svg"
+              ref={graphWrapperRef}
               sx={{
                 position: "relative",
-                width: layoutWidth + 4,
-                height: layoutHeight + 4,
+                width: "100%",
+                overflow: "hidden",
+                height: "75vh",
+                borderBottomColor: ({ palette }) => palette.gray[20],
+                borderBottomStyle: "solid",
+                borderBottomWidth: 1,
               }}
             >
-              <g transform="translate(2, 2)">
-                <defs id="defs">
-                  <marker
-                    id="arrow-head"
-                    refX="6"
-                    refY="6"
-                    markerWidth="10"
-                    markerHeight="16"
-                    markerUnits="userSpaceOnUse"
-                    orient="auto-start-reverse"
-                  >
-                    <Box
-                      component="path"
-                      d="M 1 1 L 6 6 L 1 11.25"
-                      fill="none"
-                      stroke="blue"
-                      strokeWidth="1"
-                      sx={{ stroke: ({ palette }) => palette.gray[40] }}
+              <Box ref={graphRef}>
+                <Box
+                  sx={{
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                >
+                  {nodes.map(({ x, y, data }) => (
+                    <TechnologyTreeNode
+                      key={data.id}
+                      x={x}
+                      y={y}
+                      data={data}
+                      blurred={blurredNodes.includes(data.id)}
+                      onHover={() => setFocusedNodeId(data.id)}
+                      onUnhover={() => setFocusedNodeId(undefined)}
                     />
-                  </marker>
-                </defs>
-                <g id="links">
-                  {links
-                    /** Ensure there aren't any duplicate edges to avoid duplicate react keys */
-                    .filter(
-                      (link, i, all) =>
-                        all.findIndex(
-                          ({ source, target }) =>
-                            source.data.id === link.source.data.id &&
-                            target.data.id === link.target.data.id,
-                        ) === i,
-                    )
-                    .map(({ source, target, points }) => {
-                      // Shift points to start from right side of source node and end at left side of target node
-                      const shiftedPoints = points.map<[number, number]>(
-                        ([x, y], index) => {
-                          if (index === 0) {
-                            // this is the start point of the edge
-                            return [y + technologyTreeNodeWidth / 2 - 27, x];
-                          } else if (index === points.length - 1) {
-                            // this is the end point of the edge
-                            return [y - technologyTreeNodeWidth / 2 + 18, x];
-                          } else {
-                            return [y, x];
-                          }
-                        },
-                      );
-
-                      const pathD =
-                        generateLinePath(shiftedPoints) ?? undefined;
-
-                      const opacity = blurredNodes.includes(source.data.id)
-                        ? 0.2
-                        : 1;
-
-                      return (
+                  ))}
+                </Box>
+                <Box
+                  component="svg"
+                  sx={{
+                    position: "relative",
+                    width: layoutWidth + 4,
+                    height: layoutHeight + 4,
+                  }}
+                >
+                  <g transform="translate(2, 2)">
+                    <defs id="defs">
+                      <marker
+                        id="arrow-head"
+                        refX="6"
+                        refY="6"
+                        markerWidth="10"
+                        markerHeight="16"
+                        markerUnits="userSpaceOnUse"
+                        orient="auto-start-reverse"
+                      >
                         <Box
                           component="path"
-                          key={`${source.data.id}-${target.data.id}`}
-                          d={pathD}
+                          d="M 1 1 L 6 6 L 1 11.25"
                           fill="none"
+                          stroke="blue"
                           strokeWidth="1"
-                          opacity={opacity}
-                          markerEnd="url(#arrow-head)"
                           sx={{ stroke: ({ palette }) => palette.gray[40] }}
                         />
-                      );
-                    })}
-                </g>
-              </g>
+                      </marker>
+                    </defs>
+                    <g id="links">
+                      {links
+                        /** Ensure there aren't any duplicate edges to avoid duplicate react keys */
+                        .filter(
+                          (link, i, all) =>
+                            all.findIndex(
+                              ({ source, target }) =>
+                                source.data.id === link.source.data.id &&
+                                target.data.id === link.target.data.id,
+                            ) === i,
+                        )
+                        .map(({ source, target, points }) => {
+                          // Shift points to start from right side of source node and end at left side of target node
+                          const shiftedPoints = points.map<[number, number]>(
+                            ([x, y], index) => {
+                              if (index === 0) {
+                                // this is the start point of the edge
+                                return [
+                                  y + technologyTreeNodeWidth / 2 - 27,
+                                  x,
+                                ];
+                              } else if (index === points.length - 1) {
+                                // this is the end point of the edge
+                                return [
+                                  y - technologyTreeNodeWidth / 2 + 18,
+                                  x,
+                                ];
+                              } else {
+                                return [y, x];
+                              }
+                            },
+                          );
+
+                          const pathD =
+                            generateLinePath(shiftedPoints) ?? undefined;
+
+                          const opacity = blurredNodes.includes(source.data.id)
+                            ? 0.2
+                            : 1;
+
+                          return (
+                            <Box
+                              component="path"
+                              key={`${source.data.id}-${target.data.id}`}
+                              d={pathD}
+                              fill="none"
+                              strokeWidth="1"
+                              opacity={opacity}
+                              markerEnd="url(#arrow-head)"
+                              sx={{ stroke: ({ palette }) => palette.gray[40] }}
+                            />
+                          );
+                        })}
+                    </g>
+                  </g>
+                </Box>
+              </Box>
             </Box>
           </Box>
         </Box>
-      </Box>
+      </Container>
     </Box>
   );
 };
