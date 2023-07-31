@@ -89,7 +89,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         inner = await self.create_model(actor_id=actor_id, graph=graph)
 
         class_name = slugify(
-            self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_"
+            self.identifier, regex_pattern=r"[^a-z0-9_]+", separator="_",
         )
 
         base: type[BaseModel] = type(
