@@ -63,7 +63,7 @@ const Head: FunctionComponent = () => (
           }}
         >
           <Typography marginBottom={1}>
-            <strong>Quick-links</strong>
+            <strong>Quick links</strong>
           </Typography>
           {headingLinks.map(({ label, href, icon }) => (
             <Link
