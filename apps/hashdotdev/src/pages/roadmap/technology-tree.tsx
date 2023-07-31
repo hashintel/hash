@@ -187,7 +187,7 @@ export const TechnologyTree: FunctionComponent = () => {
   /** @todo: animate changes in the graph */
 
   const useWidescreenFilters = useMediaQuery<Theme>((theme) =>
-    theme.breakpoints.up(1800),
+    theme.breakpoints.up(1960),
   );
 
   return (
@@ -205,7 +205,13 @@ export const TechnologyTree: FunctionComponent = () => {
           completion status.
         </Typography>
       </Container>
-      <Container>
+      <Container
+        sx={{
+          maxWidth: {
+            lg: 1500,
+          },
+        }}
+      >
         <Box
           sx={{
             position: "relative",
