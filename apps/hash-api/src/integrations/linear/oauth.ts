@@ -27,8 +27,7 @@ import { SYSTEM_TYPES } from "../../graph/system-types";
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
 
-const linearOAuthCallbackUrl =
-  process.env.LINEAR_OAUTH_CALLBACK_URL ?? `${apiOrigin}/oauth/linear/callback`;
+const linearOAuthCallbackUrl = `${apiOrigin}/oauth/linear/callback`;
 
 /**
  * @todo oauth state will need to be store somewhere other than memory if we need:
