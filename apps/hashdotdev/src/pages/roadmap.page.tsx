@@ -120,6 +120,7 @@ const UseCases: FunctionComponent = () => (
           sx={{
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             width: ({ spacing }) => ({
               xs: `calc(50% - ${spacing(1)})`,
               sm: 135,
