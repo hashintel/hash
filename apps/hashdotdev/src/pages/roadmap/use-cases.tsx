@@ -13,7 +13,7 @@ export type UseCaseId =
 
 type UseCase = {
   id: UseCaseId;
-  name: string;
+  name: ReactNode;
   icon: ReactNode;
 };
 
@@ -50,7 +50,13 @@ export const useCases: UseCase[] = [
   },
   {
     id: "entity-storage-retrieval",
-    name: "Entity Storage/ Retrieval",
+    name: (
+      <>
+        Entity Storage/
+        <wbr />
+        Retrieval
+      </>
+    ),
     icon: <FaIcon name="brain" type="light" />,
   },
 ];
