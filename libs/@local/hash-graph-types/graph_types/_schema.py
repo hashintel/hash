@@ -16,6 +16,7 @@ from pydantic.fields import FieldInfo
 from pydantic.json_schema import JsonSchemaValue, SkipJsonSchema
 from pydantic_core import CoreSchema
 
+from ._annotations.ref import not_required
 from .base import OntologyTypeInfo
 
 if TYPE_CHECKING:
@@ -137,15 +138,21 @@ class Object(Schema, Generic[T]):
         ) -> tuple[str, type[BaseModel] | Any]:
             return key, await value
 
-        def field_type(key: str, type_: type[U]) -> type[U] | SkipJsonSchema[None]:
+        def field_type(key: str, type_: type[U]) -> type[U]:
             if self.required is None or key not in self.required:
-                return type_ | SkipJsonSchema[None]
+                return not_required(type_)
 
             return type_
 
+        def field_extra(extra: dict[str, Any]) -> None:
+            any_of = extra.pop("anyOf", None)
+
+            extra.clear()
+            extra.update(any_of[0])
+
         def field_info(key: str) -> FieldInfo:
             if self.required is None or key not in self.required:
-                return Field(None, json_schema_extra=lambda x: x.pop("default"))
+                return Field(None, json_schema_extra=field_extra)
 
             return Field(...)
 
