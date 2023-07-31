@@ -137,7 +137,15 @@ export const TechnologyTree: FunctionComponent = () => {
       layoutWidth: width,
       layoutHeight: height,
       nodes: Array.from(graph.nodes()),
-      links: Array.from(graph.links()),
+      links: Array.from(graph.links()).filter(
+        /** Ensure there aren't any duplicate edges between nodes in the graph */
+        (link, i, all) =>
+          all.findIndex(
+            ({ source, target }) =>
+              source.data.id === link.source.data.id &&
+              target.data.id === link.target.data.id,
+          ) === i,
+      ),
     };
   }, [filteredTechnologyTreeData]);
 
@@ -364,58 +372,42 @@ export const TechnologyTree: FunctionComponent = () => {
                       </marker>
                     </defs>
                     <g id="links">
-                      {links
-                        /** Ensure there aren't any duplicate edges to avoid duplicate react keys */
-                        .filter(
-                          (link, i, all) =>
-                            all.findIndex(
-                              ({ source, target }) =>
-                                source.data.id === link.source.data.id &&
-                                target.data.id === link.target.data.id,
-                            ) === i,
-                        )
-                        .map(({ source, target, points }) => {
-                          // Shift points to start from right side of source node and end at left side of target node
-                          const shiftedPoints = points.map<[number, number]>(
-                            ([x, y], index) => {
-                              if (index === 0) {
-                                // this is the start point of the edge
-                                return [
-                                  y + technologyTreeNodeWidth / 2 - 27,
-                                  x,
-                                ];
-                              } else if (index === points.length - 1) {
-                                // this is the end point of the edge
-                                return [
-                                  y - technologyTreeNodeWidth / 2 + 18,
-                                  x,
-                                ];
-                              } else {
-                                return [y, x];
-                              }
-                            },
-                          );
+                      {links.map(({ source, target, points }) => {
+                        // Shift points to start from right side of source node and end at left side of target node
+                        const shiftedPoints = points.map<[number, number]>(
+                          ([x, y], index) => {
+                            if (index === 0) {
+                              // this is the start point of the edge
+                              return [y + technologyTreeNodeWidth / 2 - 27, x];
+                            } else if (index === points.length - 1) {
+                              // this is the end point of the edge
+                              return [y - technologyTreeNodeWidth / 2 + 18, x];
+                            } else {
+                              return [y, x];
+                            }
+                          },
+                        );
 
-                          const pathD =
-                            generateLinePath(shiftedPoints) ?? undefined;
+                        const pathD =
+                          generateLinePath(shiftedPoints) ?? undefined;
 
-                          const opacity = blurredNodes.includes(source.data.id)
-                            ? 0.2
-                            : 1;
+                        const opacity = blurredNodes.includes(source.data.id)
+                          ? 0.2
+                          : 1;
 
-                          return (
-                            <Box
-                              component="path"
-                              key={`${source.data.id}-${target.data.id}`}
-                              d={pathD}
-                              fill="none"
-                              strokeWidth="1"
-                              opacity={opacity}
-                              markerEnd="url(#arrow-head)"
-                              sx={{ stroke: ({ palette }) => palette.gray[40] }}
-                            />
-                          );
-                        })}
+                        return (
+                          <Box
+                            component="path"
+                            key={`${source.data.id}-${target.data.id}`}
+                            d={pathD}
+                            fill="none"
+                            strokeWidth="1"
+                            opacity={opacity}
+                            markerEnd="url(#arrow-head)"
+                            sx={{ stroke: ({ palette }) => palette.gray[40] }}
+                          />
+                        );
+                      })}
                     </g>
                   </g>
                 </Box>
