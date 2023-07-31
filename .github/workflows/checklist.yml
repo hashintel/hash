@@ -36,7 +36,7 @@ jobs:
         env:
           BODY: ${{ github.event.pull_request.body }}
         run: |
-          python .github/scripts/pr/find_overrides.py > overrides.txt
+          python .github/scripts/pr/find_overrides.py "$BODY" > overrides.txt
           
           echo "overrides=$(cat overrides.txt)" >> "$GITHUB_OUTPUT"
 
