@@ -29,12 +29,11 @@ export const useLinearIntegrations = () => {
           operation: {
             multiFilter: {
               filters: [
-                /** @todo: figure out how to make this work */
-                // {
-                //   field: ["ownedById"],
-                //   operator: "EQUALS",
-                //   value: authenticatedUser.accountId,
-                // },
+                {
+                  field: ["ownedById"],
+                  operator: "EQUALS",
+                  value: authenticatedUser.accountId,
+                },
                 {
                   field: ["metadata", "entityTypeId"],
                   operator: "EQUALS",
