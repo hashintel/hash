@@ -83,8 +83,8 @@ class EntityTypeSchema(
         """Return the type information for this schema."""
         original = super().type_info()
 
-        return EntityTypeInfo(
-            **(original.model_dump() | {"all_of": self.all_of or []}),
+        return EntityTypeInfo.model_validate(
+            (original.model_dump() | {"all_of": self.all_of or []}),
         )
 
     async def create_entity_type(

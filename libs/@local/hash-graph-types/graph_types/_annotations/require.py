@@ -1,8 +1,7 @@
-from typing import TypeVar, Any, Annotated
+from typing import Annotated, Any, TypeVar, cast
 
-from pydantic import GetJsonSchemaHandler, GetCoreSchemaHandler
-from pydantic.json_schema import JsonSchemaValue, SkipJsonSchema
-from pydantic_core import CoreSchema, core_schema, PydanticOmit
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 
 T = TypeVar("T")
 
@@ -20,4 +19,4 @@ class NotRequiredAnnotation:
 
 
 def not_required(type_: type[T]) -> type[T]:
-    return Annotated[type_, NotRequiredAnnotation]
+    return cast(type[T], Annotated[type_, NotRequiredAnnotation])

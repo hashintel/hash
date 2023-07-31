@@ -13,10 +13,10 @@ from pydantic import (
     create_model,
 )
 from pydantic.fields import FieldInfo
-from pydantic.json_schema import JsonSchemaValue, SkipJsonSchema
+from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
-from ._annotations.ref import not_required
+from ._annotations import not_required
 from .base import OntologyTypeInfo
 
 if TYPE_CHECKING:
@@ -151,10 +151,12 @@ class Object(Schema, Generic[T]):
             extra.update(any_of[0])
 
         def field_info(key: str) -> FieldInfo:
+            # cast is necessary here because `Field`
+            # return `FieldInfo`, even though it doesn't.
             if self.required is None or key not in self.required:
-                return Field(None, json_schema_extra=field_extra)
+                return cast(FieldInfo, Field(None, json_schema_extra=field_extra))
 
-            return Field(...)
+            return cast(FieldInfo, Field(...))
 
         types = dict(
             await asyncio.gather(
