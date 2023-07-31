@@ -52,7 +52,11 @@ def render_items(items: list[Item]) -> str:
 
 
 def render_section(section: Section) -> str:
-    description = f"\n> {section['description']}" if section["description"] else ""
+    description = (
+        f"\n> {section['emoji']} {section['description']}"
+        if section["description"]
+        else ""
+    )
 
     return f"""## <!-- {section["id"]} --> {section["title"]}
 {description}
