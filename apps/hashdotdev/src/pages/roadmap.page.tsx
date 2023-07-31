@@ -42,12 +42,12 @@ const Head: FunctionComponent = () => (
       <Box display="flex">
         <Box width={{ xs: 1, md: 725 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            Here you’ll find the features we’re intending to build, information
+            Here you’ll find the features we’ve built and are building, information
             around the order in which we’ll be addressing them, as well as
             functional and technical specifications.
           </Typography>
           <Typography sx={{ lineHeight: 1.5 }}>
-            We’ve mapped these features to use-cases, so if you’re interested in
+            We’ve mapped these features to use cases, so if you’re interested in
             using HASH for a particular thing, you can follow along (or even
             contribute!)
           </Typography>
@@ -63,7 +63,7 @@ const Head: FunctionComponent = () => (
           }}
         >
           <Typography marginBottom={1}>
-            <strong>Quick-links</strong>
+            <strong>Quick links</strong>
           </Typography>
           {headingLinks.map(({ label, href, icon }) => (
             <Link
