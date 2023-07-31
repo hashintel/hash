@@ -1,12 +1,7 @@
 name: PR Checklist
 on:
-#  pull_request:
-#    types: [ opened ]
   pull_request:
-  push:
-    branches:
-      - main
-      - dev/**
+    types: [ opened ]
   issue_comment:
     types: [ edited ]
 
@@ -18,7 +13,7 @@ jobs:
   create:
     runs-on: ubuntu-latest
 
-#    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
 
     steps:
       - name: Checkout
