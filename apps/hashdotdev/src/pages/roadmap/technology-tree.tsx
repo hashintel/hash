@@ -337,7 +337,9 @@ export const TechnologyTree: FunctionComponent = () => {
                       y={y}
                       data={data}
                       blurred={blurredNodes.includes(data.id)}
-                      selected={focusedNodeId === data.id}
+                      selected={
+                        focusedNodeId !== undefined && focusedNodeId === data.id
+                      }
                       onSelected={() => setFocusedNodeId(data.id)}
                       onDeselected={() => setFocusedNodeId(undefined)}
                     />
