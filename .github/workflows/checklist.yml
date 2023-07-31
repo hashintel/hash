@@ -31,22 +31,21 @@ jobs:
         with:
           python-version: 3.11
 
-#      - name: Find Overrides
-#        id: find
-#        env:
-#          BODY: ${{ github.event.pull_request.body }}
-#        run: |
-#          echo "$BODY" | sed -E 's#/override\s+(\w+)\s*(:\s*\w+)*#\1\2#g' > overrides.txt
-#          cat overrides.txt
-#          cat overrides.txt | cut -d: -f1 | xargs -I{} echo "--override={}" > overrides2.txt
-#          echo "overrides=$(cat overrides2.txt)" >> "$GITHUB_OUTPUT"
+      - name: Find Overrides
+        id: find
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python .github/scripts/pr/find_overrides.py > overrides.txt
+          
+          echo "overrides=$(cat overrides.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Create Checklist
         id: create
-#        env:
-#          OVERRIDES: ${{ steps.find.outputs.overrides }}
+        env:
+          OVERRIDES: ${{ steps.find.outputs.overrides }}
         run: |
-          python .github/scripts/pr/create.py > checklist.md
+          python .github/scripts/pr/create.py $OVERRIDES > checklist.md
           
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
