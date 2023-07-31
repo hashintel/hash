@@ -47,7 +47,7 @@ const Head: FunctionComponent = () => (
             functional and technical specifications.
           </Typography>
           <Typography sx={{ lineHeight: 1.5 }}>
-            We’ve mapped these features to use-cases, so if you’re interested in
+            We’ve mapped these features to use cases, so if you’re interested in
             using HASH for a particular thing, you can follow along (or even
             contribute!)
           </Typography>
