@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-TITLE: str = "Pre-Merge Checklist"
+TITLE: str = "Pre-Merge Checklist 🚀"
 
 
 class SectionValidation(TypedDict):
