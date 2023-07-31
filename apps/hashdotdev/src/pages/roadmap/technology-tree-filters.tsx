@@ -142,6 +142,8 @@ export const TechnologyTreeFilters: FunctionComponent<{
               ? "translateX(0%)"
               : "translateX(100%)",
           height: isWideScreen ? "100%" : "unset",
+          maxHeight: ({ spacing }) =>
+            isWideScreen ? "unset" : `calc(100% - ${spacing(4)})`,
           transition: ({ transitions }) => transitions.create("transform"),
           py: isWideScreen ? 3 : 1.5,
           paddingLeft: isWideScreen ? 3.25 : 1.75,
@@ -156,6 +158,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
           borderStyle: "solid",
           borderRightWidth: isWideScreen ? 1 : 0,
           borderLeftWidth: isWideScreen ? 0 : 1,
+          overflowY: "auto",
         }}
       >
         <Box display="flex" justifyContent="space-between" marginBottom={2}>

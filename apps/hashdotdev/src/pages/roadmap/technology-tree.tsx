@@ -303,7 +303,7 @@ export const TechnologyTree: FunctionComponent = () => {
                 position: "relative",
                 width: "100%",
                 overflow: "hidden",
-                height: "75vh",
+                height: "50vh",
                 borderBottomColor: ({ palette }) => palette.gray[20],
                 borderBottomStyle: "solid",
                 borderBottomWidth: 1,
