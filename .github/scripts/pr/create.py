@@ -65,6 +65,7 @@ def render_sections(sections: list[Section]) -> str:
 
 
 content = f"""# {TITLE}
+<!-- Generated Checklist -->
 
 {render_sections(SECTIONS)}
 """

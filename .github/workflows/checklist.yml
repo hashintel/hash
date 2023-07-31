@@ -49,3 +49,15 @@ jobs:
           python-version: 3.11
 
       # find the comment, execute script
+      - name: Find Comment
+        uses: peter-evans/find-comment@v2
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: "<!-- Generated Checklist -->"
+
+      - name: Verify Checklist
+        id: verify
+        run: |
+          python .github/scripts/pr/verify.py "${{ steps.find.outputs.comment-body }}"
