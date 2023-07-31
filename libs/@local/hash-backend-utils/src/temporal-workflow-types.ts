@@ -39,7 +39,7 @@ export type UpdateLinearIssueWorkflow = (params: {
   apiKey: string;
   issueId: Issue["id"];
   payload: EntityPropertiesObject;
-}) => Promise<PartialEntity | undefined>;
+}) => Promise<void>;
 
 export type UpdateHashUserWorkflow = (params: {
   payload: User;

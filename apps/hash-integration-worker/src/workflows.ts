@@ -88,5 +88,5 @@ export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
   linear.readLinearTeams({ apiKey });
 
 export const updateLinearIssue: UpdateLinearIssueWorkflow = async (params) => {
-  return await linear.updateLinearIssue(params);
+  await linear.updateLinearIssue(params);
 };
