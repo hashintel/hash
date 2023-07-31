@@ -23,6 +23,7 @@ import {
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../graph/system-types";
+import { isProdEnv } from "../../lib/env-config";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -42,7 +43,6 @@ const stateMap = new Map<
     actorEntityId: EntityId;
     expires: Date;
     ownedById: EntityUuid;
-    ownerType: "user" | "org";
   }
 >();
 
@@ -83,7 +83,7 @@ export const oAuthLinear: RequestHandler<
     const { ownedById } = req.query;
 
     if (!ownedById) {
-      res.status(400).send("No ownedById for secret provided.");
+      res.status(400).send("No ownedById for integration provided.");
       return;
     }
 
@@ -104,18 +104,12 @@ export const oAuthLinear: RequestHandler<
       return;
     }
 
-    const ownerType =
-      extractEntityUuidFromEntityId(userEntityId) === ownedById
-        ? "user"
-        : "org";
-
     const state = crypto.randomBytes(16).toString("hex");
 
     stateMap.set(state, {
       actorEntityId: req.user.entity.metadata.recordId.entityId,
       expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
       ownedById: ownedById as EntityUuid,
-      ownerType,
     });
 
     res.redirect(generateLinearOAuthUrl(state));
@@ -162,7 +156,7 @@ export const oAuthLinearCallback: RequestHandler<
       return;
     }
 
-    const { actorEntityId, ownedById, ownerType } = stateData;
+    const { actorEntityId, ownedById } = stateData;
 
     stateMap.delete(state);
 
@@ -203,7 +197,9 @@ export const oAuthLinearCallback: RequestHandler<
     const linearOrgId = org.id;
 
     // @todo give the path components some more thought
-    const vaultPath = `${ownerType}/${ownedById}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
+    const vaultPath = `user/${
+      isProdEnv ? "prod" : "dev"
+    }/user-${actorEntityId}/linear/org-${linearOrgId}`;
 
     await req.context.vaultClient.write({
       data: { value: access_token },
@@ -235,7 +231,7 @@ export const oAuthLinearCallback: RequestHandler<
       const userSecretEntity = await createEntity(req.context, {
         actorId,
         entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-        ownedById: ownedById as Uuid as OwnedById,
+        ownedById: actorId as OwnedById, // all secrets are owned by the user
         properties: secretMetadata,
       });
 
@@ -247,7 +243,7 @@ export const oAuthLinearCallback: RequestHandler<
       const linearIntegrationEntity = await createEntity(req.context, {
         actorId,
         entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-        ownedById: ownedById as Uuid as OwnedById,
+        ownedById: ownedById as Uuid as OwnedById, // the integration is owned by the workspace it is attached to
         properties: linearIntegrationProperties,
       });
 
