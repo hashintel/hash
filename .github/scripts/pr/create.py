@@ -7,7 +7,7 @@ def render_item(item: Item) -> str:
     mark = "x" if item["checked"] else " "
     description = f"\n    {item['description']}" if item["description"] else ""
 
-    return f"""- [{mark}] {item["title"]}{description}"""
+    return f"""- [{mark}] <!-- {item["id"]} --> {item["title"]}{description}"""
 
 
 def render_items(items: list[Item]) -> str:
@@ -17,7 +17,7 @@ def render_items(items: list[Item]) -> str:
 def render_section(section: Section) -> str:
     description = f"\n> {section['description']}" if section["description"] else ""
 
-    return f"""## {section["title"]}
+    return f"""## <!-- {section["id"]} --> {section["title"]}
 {description}
 
 {render_items(section["items"])}"""
