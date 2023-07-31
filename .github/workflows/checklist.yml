@@ -26,19 +26,22 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Find Overrides
-        id: find
-        env:
-          BODY: ${{ github.event.pull_request.body }}
-        run: |
-          echo "$BODY" | sed -E 's#/override\s+(\w+)\s*(:\s*\w+)*#\1\2#g' > overrides.txt
-          cat overrides.txt | cut -d: -f1 | xargs -I{} echo "--override={}" > overrides2.txt
-          echo "overrides=$(cat overrides2.txt)" >> "$GITHUB_OUTPUT"
+#      - name: Find Overrides
+#        id: find
+#        env:
+#          BODY: ${{ github.event.pull_request.body }}
+#        run: |
+#          echo "$BODY" | sed -E 's#/override\s+(\w+)\s*(:\s*\w+)*#\1\2#g' > overrides.txt
+#          cat overrides.txt
+#          cat overrides.txt | cut -d: -f1 | xargs -I{} echo "--override={}" > overrides2.txt
+#          echo "overrides=$(cat overrides2.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Create Checklist
         id: create
+#        env:
+#          OVERRIDES: ${{ steps.find.outputs.overrides }}
         run: |
-          python .github/scripts/pr/create.py ${{ steps.find.outputs.overrides }} > checklist.md
+          python .github/scripts/pr/create.py > checklist.md
           echo "checklist=$(cat checklist.md)" >> "$GITHUB_OUTPUT"
 
       - name: Comment on PR
