@@ -50,12 +50,13 @@ jobs:
           
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
-          echo "checklist<<$EOF" >> "GITHUB_OUTPUT"
-          cat checklist.md >> "GITHUB_OUTPUT"
-          echo "$EOF" >> "GITHUB_OUTPUT"
+          echo "checklist<<$EOF" >> "$GITHUB_OUTPUT"
+          cat checklist.md >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
+
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: ${{ steps.create.outputs.checklist }}
