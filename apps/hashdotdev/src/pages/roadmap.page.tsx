@@ -1,8 +1,8 @@
 import { Box, Container, Typography, typographyClasses } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
-import { AnchorTag } from "../components/anchor-tag";
 import { Button } from "../components/button";
+import { HiddenAnchorFragmentTag } from "../components/hidden-anchor-fragment-tag";
 import { FaIcon } from "../components/icons/fa-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
@@ -102,7 +102,7 @@ const Head: FunctionComponent = () => (
 
 const UseCases: FunctionComponent = () => (
   <Container sx={{ marginBottom: 10 }}>
-    <AnchorTag id="use-cases" />
+    <HiddenAnchorFragmentTag id="use-cases" />
     <Typography variant="hashHeading3" gutterBottom>
       Use Cases
     </Typography>
@@ -150,7 +150,7 @@ const UseCases: FunctionComponent = () => (
 
 const GetInvolved: FunctionComponent = () => (
   <Container sx={{ marginBottom: 10 }}>
-    <AnchorTag id="get-involved" />
+    <HiddenAnchorFragmentTag id="get-involved" />
     <Typography variant="hashHeading3" marginBottom={5}>
       Get Involved
     </Typography>
