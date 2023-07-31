@@ -199,8 +199,11 @@ const GetInvolved: FunctionComponent = () => (
       <Box component="li" display="flex">
         <FaIcon name="arrow-right" type="regular" />
         <Typography>
-          {/* @todo: link to https://github.com/hashintel/hash */}
-          View the developer docs to <strong>self-host HASH</strong>.
+          View the developer docs to{" "}
+          <Link href="https://github.com/hashintel/hash" openInNew>
+            <strong>self-host HASH</strong>
+          </Link>
+          .
         </Typography>
       </Box>
     </Box>
