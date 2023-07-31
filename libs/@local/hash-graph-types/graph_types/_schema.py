@@ -13,7 +13,7 @@ from pydantic import (
     create_model,
 )
 from pydantic.fields import FieldInfo
-from pydantic.json_schema import JsonSchemaValue
+from pydantic.json_schema import JsonSchemaValue, SkipJsonSchema
 from pydantic_core import CoreSchema
 
 from .base import OntologyTypeInfo
@@ -137,9 +137,15 @@ class Object(Schema, Generic[T]):
         ) -> tuple[str, type[BaseModel] | Any]:
             return key, await value
 
+        def field_type(key: str, type_: type[U]) -> type[U] | SkipJsonSchema[None]:
+            if self.required is None or key not in self.required:
+                return type_ | SkipJsonSchema[None]
+
+            return type_
+
         def field_info(key: str) -> FieldInfo:
             if self.required is None or key not in self.required:
-                return Field(None)
+                return Field(None, json_schema_extra=lambda x: x.pop("default"))
 
             return Field(...)
 
@@ -152,7 +158,10 @@ class Object(Schema, Generic[T]):
             ),
         )
 
-        types = {key: (value, field_info(key)) for key, value in types.items()}
+        types = {
+            key: (field_type(key, value), field_info(key))
+            for key, value in types.items()
+        }
 
         return create_model(
             "DictSchema",
