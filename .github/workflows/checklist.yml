@@ -47,7 +47,12 @@ jobs:
 #          OVERRIDES: ${{ steps.find.outputs.overrides }}
         run: |
           python .github/scripts/pr/create.py > checklist.md
-          echo "checklist=$(cat checklist.md)" >> "$GITHUB_OUTPUT"
+          
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          
+          echo "checklist<<$EOF" >> "GITHUB_OUTPUT"
+          cat checklist.md >> "GITHUB_OUTPUT"
+          echo "$EOF" >> "GITHUB_OUTPUT"
 
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
