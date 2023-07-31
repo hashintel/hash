@@ -10,7 +10,14 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import { Dispatch, Fragment, FunctionComponent, SetStateAction } from "react";
+import {
+  Dispatch,
+  Fragment,
+  FunctionComponent,
+  SetStateAction,
+  useCallback,
+  useMemo,
+} from "react";
 
 import {
   GetLinearOrganizationQuery,
@@ -143,7 +150,126 @@ export const SelectLinearTeamsTable: FunctionComponent<{
 }> = ({ linearOrganizations, setLinearOrganizations }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const possibleWorkspaces = [authenticatedUser, ...authenticatedUser.memberOf];
+  const possibleWorkspaces = useMemo(
+    () => [authenticatedUser, ...authenticatedUser.memberOf],
+    [authenticatedUser],
+  );
+
+  const handleSelectAllWorkspacesChange = useCallback(
+    (params: { linearOrganization: LinearOrganizationTeamsWithWorkspaces }) =>
+      (entityIds: EntityId[]) =>
+        setLinearOrganizations((prev) => {
+          const { id: linearOrgId, teams } = params.linearOrganization;
+          const linearOrgIndex = prev.findIndex(({ id }) => id === linearOrgId);
+
+          const previousOrganization = prev[linearOrgIndex]!;
+
+          const previousSelectedWorkspaceEntityIds = possibleWorkspaces
+            .map(({ entityRecordId: { entityId } }) => entityId)
+            .filter((workspaceEntityId) => {
+              const selectedTeams = previousOrganization.teams.filter(
+                ({ workspaceEntityIds }) =>
+                  workspaceEntityIds.includes(workspaceEntityId),
+              );
+
+              return selectedTeams.length === teams.length;
+            });
+
+          const addedEntityIds = entityIds.filter(
+            (entityId) =>
+              !previousSelectedWorkspaceEntityIds.includes(entityId),
+          );
+
+          const removedWorkspaceEntityIds =
+            previousSelectedWorkspaceEntityIds.filter(
+              (entityId) => !entityIds.includes(entityId),
+            );
+
+          return [
+            ...prev.slice(0, linearOrgIndex),
+            {
+              ...prev[linearOrgIndex]!,
+              teams: teams.map((team) => {
+                return {
+                  ...team,
+                  workspaceEntityIds: Array.from(
+                    new Set([
+                      ...team.workspaceEntityIds.filter(
+                        (entityId) =>
+                          !removedWorkspaceEntityIds.includes(entityId),
+                      ),
+                      ...addedEntityIds,
+                    ]),
+                  ),
+                };
+              }),
+            },
+            ...prev.slice(linearOrgIndex + 1),
+          ];
+        }),
+    [possibleWorkspaces, setLinearOrganizations],
+  );
+
+  const handleSelectWorkspaceChange = useCallback(
+    (params: {
+        linearOrganization: LinearOrganizationTeamsWithWorkspaces;
+        linearTeamId: string;
+      }) =>
+      (entityIds: EntityId[]) =>
+        setLinearOrganizations((prev) => {
+          const { linearOrganization, linearTeamId } = params;
+          const linearOrgIndex = prev.findIndex(
+            ({ id }) => id === linearOrganization.id,
+          );
+
+          const previousOrganization = prev[linearOrgIndex]!;
+
+          const linearTeamIndex = previousOrganization.teams.findIndex(
+            ({ id }) => id === linearTeamId,
+          );
+
+          const previousTeam = previousOrganization.teams[linearTeamIndex]!;
+
+          const previousSelectedWorkspaceEntityIds =
+            previousOrganization.teams.find(({ id }) => id === linearTeamId)
+              ?.workspaceEntityIds ?? [];
+
+          const addedEntityIds = entityIds.filter(
+            (entityId) =>
+              !previousSelectedWorkspaceEntityIds.includes(entityId),
+          );
+
+          const removedWorkspaceEntityIds =
+            previousSelectedWorkspaceEntityIds.filter(
+              (entityId) => !entityIds.includes(entityId),
+            );
+
+          return [
+            ...prev.slice(0, linearOrgIndex),
+            {
+              ...previousOrganization,
+              teams: [
+                ...previousOrganization.teams.slice(0, linearTeamIndex),
+                {
+                  ...previousTeam,
+                  workspaceEntityIds: Array.from(
+                    new Set([
+                      ...previousTeam.workspaceEntityIds.filter(
+                        (entityId) =>
+                          !removedWorkspaceEntityIds.includes(entityId),
+                      ),
+                      ...addedEntityIds,
+                    ]),
+                  ),
+                },
+                ...previousOrganization.teams.slice(linearTeamIndex + 1),
+              ],
+            },
+            ...prev.slice(linearOrgIndex + 1),
+          ];
+        }),
+    [setLinearOrganizations],
+  );
 
   return (
     <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -159,89 +285,33 @@ export const SelectLinearTeamsTable: FunctionComponent<{
         </TableRow>
       </TableHead>
       <TableBody>
-        {linearOrganizations.map(
-          ({ id: linearOrgId, name: orgName, teams }) => (
-            <Fragment key={linearOrgId}>
-              <TableRow>
-                <TableCell>Workspace</TableCell>
-                <TableCell>{orgName}</TableCell>
-                <TableCell>
-                  <SelectWorkspaces
-                    selectedWorkspaceEntityIds={possibleWorkspaces
-                      .map(({ entityRecordId: { entityId } }) => entityId)
-                      .filter(
-                        (entityId) =>
-                          teams.length ===
-                          teams.filter(({ workspaceEntityIds }) =>
+        {linearOrganizations.map((linearOrganization) => (
+          <Fragment key={linearOrganization.id}>
+            <TableRow>
+              <TableCell>Workspace</TableCell>
+              <TableCell>{linearOrganization.name}</TableCell>
+              <TableCell>
+                <SelectWorkspaces
+                  selectedWorkspaceEntityIds={possibleWorkspaces
+                    .map(({ entityRecordId: { entityId } }) => entityId)
+                    .filter(
+                      (entityId) =>
+                        linearOrganization.teams.length ===
+                        linearOrganization.teams.filter(
+                          ({ workspaceEntityIds }) =>
                             workspaceEntityIds.includes(entityId),
-                          ).length,
-                      )}
-                    possibleWorkspaces={possibleWorkspaces}
-                    setSelectedWorkspaceEntityIds={(entityIds) =>
-                      setLinearOrganizations((prev) => {
-                        const linearOrgIndex = prev.findIndex(
-                          ({ id }) => id === linearOrgId,
-                        );
-
-                        const previousOrganization = prev[linearOrgIndex]!;
-
-                        const previousSelectedWorkspaceEntityIds =
-                          possibleWorkspaces
-                            .map(({ entityRecordId: { entityId } }) => entityId)
-                            .filter((workspaceEntityId) => {
-                              const selectedTeams =
-                                previousOrganization.teams.filter(
-                                  ({ workspaceEntityIds }) =>
-                                    workspaceEntityIds.includes(
-                                      workspaceEntityId,
-                                    ),
-                                );
-
-                              return selectedTeams.length === teams.length;
-                            });
-
-                        const addedEntityIds = entityIds.filter(
-                          (entityId) =>
-                            !previousSelectedWorkspaceEntityIds.includes(
-                              entityId,
-                            ),
-                        );
-
-                        const removedWorkspaceEntityIds =
-                          previousSelectedWorkspaceEntityIds.filter(
-                            (entityId) => !entityIds.includes(entityId),
-                          );
-
-                        return [
-                          ...prev.slice(0, linearOrgIndex),
-                          {
-                            ...prev[linearOrgIndex]!,
-                            teams: teams.map((team) => {
-                              return {
-                                ...team,
-                                workspaceEntityIds: Array.from(
-                                  new Set([
-                                    ...team.workspaceEntityIds.filter(
-                                      (entityId) =>
-                                        !removedWorkspaceEntityIds.includes(
-                                          entityId,
-                                        ),
-                                    ),
-                                    ...addedEntityIds,
-                                  ]),
-                                ),
-                              };
-                            }),
-                          },
-                          ...prev.slice(linearOrgIndex + 1),
-                        ];
-                      })
-                    }
-                  />
-                </TableCell>
-              </TableRow>
-              {teams.map(({ id: teamId, name: teamName }) => (
-                <TableRow key={teamId}>
+                        ).length,
+                    )}
+                  possibleWorkspaces={possibleWorkspaces}
+                  setSelectedWorkspaceEntityIds={handleSelectAllWorkspacesChange(
+                    { linearOrganization },
+                  )}
+                />
+              </TableCell>
+            </TableRow>
+            {linearOrganization.teams.map(
+              ({ id: linearTeamId, name: teamName }) => (
+                <TableRow key={linearTeamId}>
                   <TableCell>Team</TableCell>
                   <TableCell>{teamName}</TableCell>
                   <TableCell>
@@ -249,83 +319,21 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                       selectedWorkspaceEntityIds={possibleWorkspaces
                         .map(({ entityRecordId: { entityId } }) => entityId)
                         .filter((entityId) =>
-                          teams
-                            .find(({ id }) => id === teamId)
+                          linearOrganization.teams
+                            .find(({ id }) => id === linearTeamId)
                             ?.workspaceEntityIds.includes(entityId),
                         )}
                       possibleWorkspaces={possibleWorkspaces}
-                      setSelectedWorkspaceEntityIds={(entityIds) =>
-                        setLinearOrganizations((prev) => {
-                          const linearOrgIndex = prev.findIndex(
-                            ({ id }) => id === linearOrgId,
-                          );
-
-                          const previousOrganization = prev[linearOrgIndex]!;
-
-                          const linearTeamIndex =
-                            previousOrganization.teams.findIndex(
-                              ({ id }) => id === teamId,
-                            );
-
-                          const previousTeam =
-                            previousOrganization.teams[linearTeamIndex]!;
-
-                          const previousSelectedWorkspaceEntityIds =
-                            previousOrganization.teams.find(
-                              ({ id }) => id === teamId,
-                            )?.workspaceEntityIds ?? [];
-
-                          const addedEntityIds = entityIds.filter(
-                            (entityId) =>
-                              !previousSelectedWorkspaceEntityIds.includes(
-                                entityId,
-                              ),
-                          );
-
-                          const removedWorkspaceEntityIds =
-                            previousSelectedWorkspaceEntityIds.filter(
-                              (entityId) => !entityIds.includes(entityId),
-                            );
-
-                          return [
-                            ...prev.slice(0, linearOrgIndex),
-                            {
-                              ...previousOrganization,
-                              teams: [
-                                ...previousOrganization.teams.slice(
-                                  0,
-                                  linearTeamIndex,
-                                ),
-                                {
-                                  ...previousTeam,
-                                  workspaceEntityIds: Array.from(
-                                    new Set([
-                                      ...previousTeam.workspaceEntityIds.filter(
-                                        (entityId) =>
-                                          !removedWorkspaceEntityIds.includes(
-                                            entityId,
-                                          ),
-                                      ),
-                                      ...addedEntityIds,
-                                    ]),
-                                  ),
-                                },
-                                ...previousOrganization.teams.slice(
-                                  linearTeamIndex + 1,
-                                ),
-                              ],
-                            },
-                            ...prev.slice(linearOrgIndex + 1),
-                          ];
-                        })
-                      }
+                      setSelectedWorkspaceEntityIds={handleSelectWorkspaceChange(
+                        { linearOrganization, linearTeamId },
+                      )}
                     />
                   </TableCell>
                 </TableRow>
-              ))}
-            </Fragment>
-          ),
-        )}
+              ),
+            )}
+          </Fragment>
+        ))}
       </TableBody>
     </Table>
   );
