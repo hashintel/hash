@@ -200,8 +200,8 @@ export const TechnologyTree: FunctionComponent = () => {
         <Typography marginBottom={4}>
           Inspired by the “tech trees” of video games like Civilization, we’ve
           broken down the key components required to build HASH into a tree-view
-          below. You can filter these by use-case to see what’s left to be built
-          unblocking a particular use-case, or slice the data by work area or
+          below. You can filter these by use case to see what’s left to be built
+          unblocking a particular use case, or slice the data by work area or
           completion status.
         </Typography>
       </Container>
