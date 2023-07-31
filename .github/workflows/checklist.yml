@@ -3,7 +3,7 @@ on:
   pull_request:
     types: [ opened ]
   issue_comment:
-    types: [ edited ]
+    types: [ edited, created ]
 
 defaults:
   run:
@@ -58,7 +58,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
-    if: github.event_name == 'issue_comment' && github.event.action == 'edited'
+    if: github.event_name == 'issue_comment'
 
     steps:
       - name: Checkout
