@@ -337,8 +337,9 @@ export const TechnologyTree: FunctionComponent = () => {
                       y={y}
                       data={data}
                       blurred={blurredNodes.includes(data.id)}
-                      onHover={() => setFocusedNodeId(data.id)}
-                      onUnhover={() => setFocusedNodeId(undefined)}
+                      selected={focusedNodeId === data.id}
+                      onSelected={() => setFocusedNodeId(data.id)}
+                      onDeselected={() => setFocusedNodeId(undefined)}
                     />
                   ))}
                 </Box>

@@ -14,15 +14,17 @@ export const TechnologyTreeNode: FunctionComponent<{
   y: number;
   blurred: boolean;
   data: TechnologyTreeNodeData;
-  onHover: () => void;
-  onUnhover: () => void;
+  selected: boolean;
+  onSelected: () => void;
+  onDeselected: () => void;
 }> = ({
   x,
   y,
   blurred,
   data: { heading, body, ...data },
-  onHover,
-  onUnhover,
+  selected,
+  onSelected,
+  onDeselected,
 }) => {
   const useCaseNames = data.useCases.map(
     (useCaseId) => useCases.find(({ id }) => id === useCaseId)?.name,
@@ -69,6 +71,7 @@ export const TechnologyTreeNode: FunctionComponent<{
           {heading}
         </Typography>
         <Tooltip
+          open={selected}
           title={
             <>
               Use cases:{" "}
@@ -83,8 +86,8 @@ export const TechnologyTreeNode: FunctionComponent<{
         >
           <IconButton
             sx={{ padding: 0, position: "relative", top: 3 }}
-            onPointerOver={onHover}
-            onPointerLeave={onUnhover}
+            onClick={onSelected}
+            onBlur={onDeselected}
           >
             <FaIcon name="circle-info" type="regular" sx={{ fontSize: 14 }} />
           </IconButton>
