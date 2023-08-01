@@ -205,7 +205,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let entity_types = entity_types.into_iter();
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let mut transaction = self.transaction().await.change_context(InsertionError)?;
 
         let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
         for (schema, metadata) in entity_types {

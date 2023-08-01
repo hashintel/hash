@@ -86,7 +86,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         > + Send,
         on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let mut transaction = self.transaction().await.change_context(InsertionError)?;
 
         for (schema, metadata) in data_types {
             if let Some(ontology_id) = transaction
