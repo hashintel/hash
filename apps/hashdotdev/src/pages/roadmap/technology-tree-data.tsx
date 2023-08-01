@@ -368,7 +368,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Flows",
     body: "Scheduled and responsive execution of user-defined logic",
     parentIds: ["21"],
-    status: "future",
+    status: "next-up",
     useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation"],
     variant: "feature",
   },
