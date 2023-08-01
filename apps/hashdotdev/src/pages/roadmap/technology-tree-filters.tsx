@@ -27,7 +27,7 @@ const FilterCheckboxItem: FunctionComponent<{
   checked: boolean;
   onChange: (checked: boolean) => void;
   icon: ReactNode;
-  label: string;
+  label: ReactNode;
   color?: string;
 }> = ({ checked, onChange, icon, label, color }) => (
   <FormControlLabel
