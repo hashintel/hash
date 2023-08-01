@@ -402,7 +402,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "44",
     heading: "Data Mapping RFC",
-    body: "Description coming soon",
+    body: "Proposal for a system to map between data of different types",
     parentIds: ["39"],
     status: "future",
     useCases: ["website-building"],
