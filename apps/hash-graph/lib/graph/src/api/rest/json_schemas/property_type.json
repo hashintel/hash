@@ -11,9 +11,7 @@
     },
     "kind": {
       "type": "string",
-      "enum": [
-        "propertyType"
-      ]
+      "enum": ["propertyType"]
     },
     "$id": {
       "$ref": "#/definitions/VersionedUrl"
@@ -31,13 +29,7 @@
       }
     }
   },
-  "required": [
-    "$schema",
-    "kind",
-    "$id",
-    "title",
-    "oneOf"
-  ],
+  "required": ["$schema", "kind", "$id", "title", "oneOf"],
   "additionalProperties": false,
   "definitions": {
     "PropertyValues": {
@@ -53,19 +45,14 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "object"
-              ]
+              "enum": ["object"]
             },
             "properties": {
               "$ref": "#/definitions/PropertyTypeObject"
             }
           },
           "minProperties": 1,
-          "required": [
-            "type",
-            "properties"
-          ]
+          "required": ["type", "properties"]
         },
         {
           "title": "propertyArrayValue",
@@ -73,9 +60,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "array"
-              ]
+              "enum": ["array"]
             },
             "items": {
               "type": "object",
@@ -88,9 +73,7 @@
                   "minItems": 1
                 }
               },
-              "required": [
-                "oneOf"
-              ],
+              "required": ["oneOf"],
               "additionalProperties": false
             },
             "minItems": {
@@ -102,10 +85,7 @@
               "minimum": 0
             }
           },
-          "required": [
-            "type",
-            "items"
-          ],
+          "required": ["type", "items"],
           "additionalProperties": false
         }
       ]
@@ -128,9 +108,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "array"
-                  ]
+                  "enum": ["array"]
                 },
                 "items": {
                   "$ref": "#/definitions/PropertyTypeReference"
@@ -144,10 +122,7 @@
                   "minimum": 0
                 }
               },
-              "required": [
-                "type",
-                "items"
-              ],
+              "required": ["type", "items"],
               "additionalProperties": false
             }
           ]
@@ -175,9 +150,7 @@
           "$ref": "#/definitions/BaseUrl"
         }
       },
-      "required": [
-        "$ref"
-      ],
+      "required": ["$ref"],
       "additionalProperties": false
     },
     "DataTypeReference": {
@@ -187,9 +160,7 @@
           "$ref": "#/definitions/VersionedUrl"
         }
       },
-      "required": [
-        "$ref"
-      ],
+      "required": ["$ref"],
       "additionalProperties": false
     }
   }

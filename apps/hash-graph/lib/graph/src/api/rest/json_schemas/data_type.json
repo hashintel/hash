@@ -10,9 +10,7 @@
     },
     "kind": {
       "type": "string",
-      "enum": [
-        "dataType"
-      ]
+      "enum": ["dataType"]
     },
     "$id": {
       "$ref": "#/$defs/VersionedUrl"
@@ -27,13 +25,7 @@
       "type": "string"
     }
   },
-  "required": [
-    "$schema",
-    "kind",
-    "$id",
-    "title",
-    "type"
-  ],
+  "required": ["$schema", "kind", "$id", "title", "type"],
   "oneOf": [
     {
       "properties": {
