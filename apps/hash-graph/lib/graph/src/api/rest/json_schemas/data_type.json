@@ -1,4 +1,5 @@
 {
+  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
   "title": "Data Type",
   "description": "Specifies the structure of a Data Type",
   "type": "object",
@@ -9,17 +10,13 @@
       ]
     },
     "kind": {
+      "type": "string",
       "enum": [
         "dataType"
       ]
     },
     "$id": {
-      "title": "Versioned URL",
-      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048,
-      "x-$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
+      "$ref": "#/$defs/VersionedUrl"
     },
     "title": {
       "type": "string"
@@ -94,5 +91,14 @@
       }
     }
   ],
-  "x-$comment": "The following `oneOf` only ensures, that no custom data types are allowed yet"
+  "$defs": {
+    "VersionedUrl": {
+      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
+      "title": "Versioned URL",
+      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    }
+  }
 }
