@@ -189,7 +189,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "MVP implementation of OpenSearch-based full text search",
     parentIds: ["15", "13"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "internal-tools-apps"],
     variant: "experiment",
   },
   {
@@ -198,7 +198,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Temporal-based executor for flows and other logic",
     parentIds: ["14"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "internal-tools-apps", "agent-based-simulation"],
     variant: "infrastructure",
   },
   {
@@ -207,7 +207,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to @mention users and other entities within pages",
     parentIds: ["15", "7"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -216,7 +216,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "OpenAI and Mapbox-enabled blocks built atop the Þ API middleware",
     parentIds: ["14"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -225,7 +225,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Command or k-bar for quickly accessing AI capabilities and shortcuts",
     parentIds: ["20"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -234,7 +234,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Proposal for supporting type inheritance in the Block Protocol Graph Module",
     parentIds: ["3"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "block-protocol",
   },
   {
@@ -243,7 +243,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "LLM-assisted new and existing type suggestions",
     parentIds: ["21"],
     status: "in-progress",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -252,7 +252,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Basic account and shared workspace management",
     parentIds: ["23"],
     status: "in-progress",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -261,7 +261,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Validate that entities comply with their schema when inserting and updating",
     parentIds: ["8", "17", "3"],
     status: "in-progress",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -270,7 +270,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to hide outdated or redundant types in the UI",
     parentIds: ["26"],
     status: "next-up",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -279,7 +279,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "LLM-assisted new entity creation",
     parentIds: ["26"],
     status: "next-up",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -288,7 +288,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Specification for users/apps defining block action-handling",
     parentIds: ["24"],
     status: "next-up",
-    useCases: ["website-building"],
+    useCases: ["website-building", "internal-tools-apps"],
     variant: "block-protocol",
   },
   {
@@ -297,7 +297,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Set parent types whose expected property and link types will be inherited",
     parentIds: ["25", "28"],
     status: "in-progress",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -306,7 +306,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "User-facing in-app alerts upon notifiable events",
     parentIds: ["21", "22", "27"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -315,7 +315,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Interface for identifying and loading entities into blocks",
     parentIds: ["9"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -324,7 +324,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Basic permissions and attribute-based access control (ABAC)",
     parentIds: ["23", "27"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -333,7 +333,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Interface for mapping blocks to available actions",
     parentIds: ["31"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -342,7 +342,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Engine for synchronizing data between backend datastores, user sessions (via Collab), and external services (via Flows)",
     parentIds: ["16", "20"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "entity-storage-retrieval"],
     variant: "infrastructure",
   },
   {
@@ -351,7 +351,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Allow a single entity to have more than one assigned type",
     parentIds: ["32"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -360,7 +360,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Proposed specification extension allowing for user-defined non-primitive Data Types",
     parentIds: ["25"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "block-protocol",
   },
   {
@@ -369,7 +369,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Scheduled and responsive execution of user-defined logic",
     parentIds: ["21", "33", "34"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation"],
     variant: "feature",
   },
   {
@@ -378,7 +378,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Blocks which allow users to query and insert multiple entities of varying types (e.g. table, kanban, timeline)",
     parentIds: ["34"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -387,7 +387,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "API endpoints for interfacing with HASH designed for external user consumption",
     parentIds: ["35"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -396,7 +396,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Complex API requests composed of multiple interdependent operations",
     parentIds: ["38"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
