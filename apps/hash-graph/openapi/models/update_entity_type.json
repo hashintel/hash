@@ -28,7 +28,7 @@
         }
       }
     },
-    "properties": { "$ref": "#/$defs/propertyTypeObject" },
+    "properties": { "$ref": "#/definitions/PropertyTypeObject" },
     "required": {
       "type": "array",
       "items": {
@@ -36,12 +36,12 @@
         "format": "uri"
       }
     },
-    "links": { "$ref": "#/$defs/linkTypeObject" }
+    "links": { "$ref": "#/definitions/LinkTypeObject" }
   },
   "additionalProperties": false,
   "required": ["$schema", "kind", "type", "title", "properties"],
-  "$defs": {
-    "propertyTypeObject": {
+  "definitions": {
+    "PropertyTypeObject": {
       "type": "object",
       "propertyNames": {
         "$comment": "Property names must be a valid URL to a Property Type",
@@ -52,7 +52,7 @@
         ".*": {
           "oneOf": [
             {
-              "$ref": "#/$defs/propertyTypeReference"
+              "$ref": "#/definitions/PropertyTypeReference"
             },
             {
               "type": "object",
@@ -61,7 +61,7 @@
                   "enum": ["array"]
                 },
                 "items": {
-                  "$ref": "#/$defs/propertyTypeReference"
+                  "$ref": "#/definitions/PropertyTypeReference"
                 },
                 "minItems": {
                   "type": "integer",
@@ -80,7 +80,7 @@
       },
       "minimumProperties": 1
     },
-    "propertyTypeReference": {
+    "PropertyTypeReference": {
       "type": "object",
       "properties": {
         "$ref": {
@@ -92,7 +92,7 @@
       "required": ["$ref"],
       "additionalProperties": false
     },
-    "linkTypeObject": {
+    "LinkTypeObject": {
       "type": "object",
       "propertyNames": {
         "$comment": "Property names must be a valid URL to a Property Type",
@@ -108,7 +108,7 @@
               "items": {
                 "oneOf": [
                   {
-                    "$ref": "#/$defs/entityTypeReference"
+                    "$ref": "#/definitions/EntityTypeReference"
                   },
                   {
                     "type": "object",
@@ -117,7 +117,7 @@
                         "enum": ["array"]
                       },
                       "items": {
-                        "$ref": "#/$defs/entityTypeReference"
+                        "$ref": "#/definitions/EntityTypeReference"
                       },
                       "ordered": {
                         "type": "boolean",
@@ -143,7 +143,7 @@
         }
       }
     },
-    "entityTypeReference": {
+    "EntityTypeReference": {
       "type": "object",
       "properties": {
         "$ref": {

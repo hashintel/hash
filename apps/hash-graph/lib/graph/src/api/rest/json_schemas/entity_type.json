@@ -1,5 +1,4 @@
 {
-  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
   "title": "Entity Type",
   "description": "Specifies the structure of a Block Protocol entity type",
   "type": "object",
@@ -17,7 +16,7 @@
       ]
     },
     "$id": {
-      "$ref": "#/$defs/VersionedUrl"
+      "$ref": "#/definitions/VersionedUrl"
     },
     "type": {
       "type": "string",
@@ -34,7 +33,7 @@
     "allOf": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/EntityTypeReference"
+        "$ref": "#/definitions/EntityTypeReference"
       }
     },
     "examples": {
@@ -44,18 +43,18 @@
       }
     },
     "properties": {
-      "$ref": "#/$defs/PropertyTypeObject"
+      "$ref": "#/definitions/PropertyTypeObject"
     },
     "required": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/BaseUrl"
+        "$ref": "#/definitions/BaseUrl"
       }
     },
     "links": {
       "type": "object",
       "propertyNames": {
-        "$ref": "#/$defs/VersionedUrl"
+        "$ref": "#/definitions/VersionedUrl"
       },
       "x-patternProperties": {
         "^.*$": {
@@ -72,7 +71,7 @@
               "default": false
             },
             "items": {
-              "$ref": "#/$defs/OneOfEntityTypeReference"
+              "$ref": "#/definitions/OneOfEntityTypeReference"
             },
             "minItems": {
               "type": "integer",
@@ -102,9 +101,8 @@
     "title",
     "properties"
   ],
-  "$defs": {
+  "definitions": {
     "VersionedUrl": {
-      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
       "title": "Versioned URL",
       "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
       "type": "string",
@@ -112,7 +110,6 @@
       "maxLength": 2048
     },
     "BaseUrl": {
-      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url",
       "title": "Base URL",
       "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
       "type": "string",
@@ -123,7 +120,7 @@
       "type": "object",
       "properties": {
         "$ref": {
-          "$ref": "#/$defs/VersionedUrl"
+          "$ref": "#/definitions/VersionedUrl"
         }
       },
       "required": [
@@ -135,7 +132,7 @@
       "type": "object",
       "properties": {
         "$ref": {
-          "$ref": "#/$defs/BaseUrl"
+          "$ref": "#/definitions/BaseUrl"
         }
       },
       "required": [
@@ -150,14 +147,13 @@
         "oneOf": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/EntityTypeReference"
+            "$ref": "#/definitions/EntityTypeReference"
           }
         }
       },
       "additionalProperties": false
     },
     "PropertyTypeObject": {
-      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object",
       "title": "Property Type Object",
       "description": "A JSON object where each entry is constrained by a property type.",
       "type": "object",
@@ -168,7 +164,7 @@
         ".*": {
           "oneOf": [
             {
-              "$ref": "#/$defs/PropertyTypeReference"
+              "$ref": "#/definitions/PropertyTypeReference"
             },
             {
               "type": "object",
@@ -180,7 +176,7 @@
                   ]
                 },
                 "items": {
-                  "$ref": "#/$defs/PropertyTypeReference"
+                  "$ref": "#/definitions/PropertyTypeReference"
                 },
                 "minItems": {
                   "type": "integer",

@@ -1,5 +1,4 @@
 {
-  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
   "title": "Property Type",
   "description": "Specifies the structure of a Block Protocol property type",
   "type": "object",
@@ -17,7 +16,7 @@
       ]
     },
     "$id": {
-      "$ref": "#/$defs/VersionedUrl"
+      "$ref": "#/definitions/VersionedUrl"
     },
     "title": {
       "type": "string"
@@ -28,7 +27,7 @@
     "oneOf": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/PropertyValues"
+        "$ref": "#/definitions/PropertyValues"
       }
     }
   },
@@ -40,13 +39,13 @@
     "oneOf"
   ],
   "additionalProperties": false,
-  "$defs": {
+  "definitions": {
     "PropertyValues": {
       "title": "propertyValues",
       "description": "The definition of potential property values, either references to data types, objects made up of more property types, or an array where the items are defined from a set of other property values definitions.",
       "oneOf": [
         {
-          "$ref": "#/$defs/DataTypeReference"
+          "$ref": "#/definitions/DataTypeReference"
         },
         {
           "title": "propertyObjectValue",
@@ -59,7 +58,7 @@
               ]
             },
             "properties": {
-              "$ref": "#/$defs/PropertyTypeObject"
+              "$ref": "#/definitions/PropertyTypeObject"
             }
           },
           "minProperties": 1,
@@ -84,7 +83,7 @@
                 "oneOf": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/PropertyValues"
+                    "$ref": "#/definitions/PropertyValues"
                   },
                   "minItems": 1
                 }
@@ -112,18 +111,17 @@
       ]
     },
     "PropertyTypeObject": {
-      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object",
       "title": "Property Type Object",
       "description": "A JSON object where each entry is constrained by a property type.",
       "type": "object",
       "propertyNames": {
-        "$ref": "#/$defs/BaseUrl"
+        "$ref": "#/definitions/BaseUrl"
       },
       "patternProperties": {
         ".*": {
           "oneOf": [
             {
-              "$ref": "#/$defs/PropertyTypeReference"
+              "$ref": "#/definitions/PropertyTypeReference"
             },
             {
               "type": "object",
@@ -135,7 +133,7 @@
                   ]
                 },
                 "items": {
-                  "$ref": "#/$defs/PropertyTypeReference"
+                  "$ref": "#/definitions/PropertyTypeReference"
                 },
                 "minItems": {
                   "type": "integer",
@@ -157,7 +155,6 @@
       }
     },
     "VersionedUrl": {
-      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
       "title": "Versioned URL",
       "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
       "type": "string",
@@ -165,7 +162,6 @@
       "maxLength": 2048
     },
     "BaseUrl": {
-      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url",
       "title": "Base URL",
       "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
       "type": "string",
@@ -176,7 +172,7 @@
       "type": "object",
       "properties": {
         "$ref": {
-          "$ref": "#/$defs/BaseUrl"
+          "$ref": "#/definitions/BaseUrl"
         }
       },
       "required": [
@@ -188,7 +184,7 @@
       "type": "object",
       "properties": {
         "$ref": {
-          "$ref": "#/$defs/VersionedUrl"
+          "$ref": "#/definitions/VersionedUrl"
         }
       },
       "required": [
