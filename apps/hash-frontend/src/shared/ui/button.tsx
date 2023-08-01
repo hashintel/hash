@@ -12,13 +12,18 @@ import { isHrefExternal } from "../is-href-external";
 
 export type ButtonProps = {
   children: ReactNode;
+  openInNewTab?: boolean;
   href?: UrlObject | string;
 } & Omit<BaseButtonProps, "href">; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
 export const Button: FunctionComponent<ButtonProps> = forwardRef(
-  ({ children, href, ...props }, ref) => {
+  ({ children, href, openInNewTab, ...props }, ref) => {
     const linkProps = useMemo(() => {
-      if (href && typeof href === "string" && isHrefExternal(href)) {
+      if (
+        href &&
+        typeof href === "string" &&
+        (openInNewTab || (openInNewTab !== false && isHrefExternal(href)))
+      ) {
         return {
           rel: "noopener",
           target: "_blank",
@@ -27,7 +32,7 @@ export const Button: FunctionComponent<ButtonProps> = forwardRef(
       }
 
       return {};
-    }, [href]);
+    }, [openInNewTab, href]);
 
     const Component = (
       <BaseButton {...props} {...linkProps} ref={ref}>
@@ -35,7 +40,13 @@ export const Button: FunctionComponent<ButtonProps> = forwardRef(
       </BaseButton>
     );
 
-    if (href && !(typeof href === "string" && isHrefExternal(href))) {
+    if (
+      href &&
+      !(
+        typeof href === "string" &&
+        (openInNewTab || (openInNewTab !== false && isHrefExternal(href)))
+      )
+    ) {
       return (
         <Link href={href} passHref legacyBehavior>
           {Component}
