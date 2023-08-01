@@ -486,7 +486,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Generation of per-entity, property, link and type embeddings, vector datastore backend, and frontend",
     parentIds: ["24", "37"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -495,7 +495,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Y CRDT-based production implementation of collaborative page, entity and type editing",
     parentIds: ["37"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -504,7 +504,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to permanently delete information from the backend datastore(s)",
     parentIds: ["43"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -513,7 +513,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Programmatic calculation of properties, supported independently of Flows.",
     parentIds: ["46"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management"],
     variant: "feature",
   },
   {
@@ -522,7 +522,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to bundle entites, types, and blocks on pages into distributable apps",
     parentIds: ["52"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -531,7 +531,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Natural language questions and answers based on the contents of a workspace and (optionally) global graph",
     parentIds: ["53"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -540,7 +540,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "TigerBeetle-based backend for dedicated storage and processing of financial accounting data",
     parentIds: ["37"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management"],
     variant: "feature",
   },
   {
@@ -549,7 +549,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to one-time import information from Notion (two-way sync when Notion supports webhooks)",
     parentIds: ["49"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -558,7 +558,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Support for user composition/triggering of emails via Flows",
     parentIds: ["50"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -566,8 +566,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Linear Integration",
     body: "Two-way sync of information with one or more Linear workspaces",
     parentIds: ["51"],
-    status: "done",
-    useCases: ["website-building"],
+    status: "in-progress",
+    useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -576,7 +576,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to read information from Ramp and take actions via Flows",
     parentIds: ["59"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -585,7 +585,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Two-way sync of information with one or more Asana organizations",
     parentIds: ["60"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -594,7 +594,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Two-way sync of information with GitHub and ability to trigger actions via Flows",
     parentIds: ["62"],
     status: "next-up",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "internal-tools-apps", "agent-based-simulation"],
     variant: "feature",
   },
   {
@@ -603,7 +603,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to read information from Brex and take actions via Flows",
     parentIds: ["63"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management"],
     variant: "feature",
   },
   {
@@ -612,7 +612,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Read and manage (two-way sync) emails stored in Gmail and Google Workspace",
     parentIds: ["65"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -621,7 +621,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Publish and distribute or discover user-created HASH Applications",
     parentIds: ["57"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -630,7 +630,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Production-ready implementation of full-text search",
     parentIds: ["58"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management"],
     variant: "feature",
   },
   {
@@ -639,7 +639,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Full support for using HASH via keyboard alone",
     parentIds: ["24"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -648,7 +648,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "libgit2 or Gitea-based backend for dedicated storage and processing of source code and Git repositories",
     parentIds: ["69"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "internal-tools-apps", "agent-based-simulation"],
     variant: "infrastructure",
   },
   {
