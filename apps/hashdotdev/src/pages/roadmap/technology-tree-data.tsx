@@ -690,7 +690,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "76",
     heading: "Optimized Simulation Run Storage",
-    body: "Description coming soon",
+    body: "Move to a more efficient data format for storing simulation data (e.g. Parquet)",
     parentIds: ["75"],
     status: "future",
     useCases: ["website-building"],
