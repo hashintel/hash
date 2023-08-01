@@ -392,8 +392,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "43",
-    heading: "Datastore Transactions",
-    body: "Description coming soon",
+    heading: "API Transactions",
+    body: "Complex API requests composed of multiple interdependent operations",
     parentIds: ["38"],
     status: "future",
     useCases: ["website-building"],
