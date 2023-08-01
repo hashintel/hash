@@ -23,7 +23,6 @@ import {
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../graph/system-types";
-import { isProdEnv } from "../../lib/env-config";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -196,22 +195,19 @@ export const oAuthLinearCallback: RequestHandler<
 
     const linearOrgId = org.id;
 
-    // @todo give the path components some more thought
-    const vaultPath = `user/${
-      isProdEnv ? "prod" : "dev"
-    }/user-${actorEntityId}/linear/org-${linearOrgId}`;
+    const secretSubPath = `linear/org-${linearOrgId}`;
 
-    await req.context.vaultClient.write({
+    const secretData = await req.context.vaultClient.writeUserSecret({
       data: { value: access_token },
-      secretMountPath: "secret",
-      path: vaultPath,
+      secretSubPath,
+      userUuid: extractEntityUuidFromEntityId(actorEntityId),
     });
 
     const secretMetadata = {
       [SYSTEM_TYPES.propertyType.expiredAt.metadata.recordId.baseUrl]:
         expiredAt.toISOString(),
       [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
-        vaultPath,
+        secretData.path,
     };
 
     const actorId = extractEntityUuidFromEntityId(

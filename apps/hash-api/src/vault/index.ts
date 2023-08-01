@@ -1,4 +1,7 @@
+import { EntityUuid } from "@local/hash-subgraph";
 import axios, { AxiosError, AxiosInstance } from "axios";
+
+import { isProdEnv } from "../lib/env-config";
 
 type VaultSecret<D = any> = {
   data: D;
@@ -37,41 +40,53 @@ export class VaultClient {
     );
   }
 
-  async write<
+  /**
+   * Creates a user secret in Vault. Returns the data, metadata, and path of the created secret to be used in calls to readUserSecret
+   *
+   * @param params.data The data to store in the secret. Must be an object, the shape of which defaults to { value: string }
+   * @param params.secretSubPath The path to store the secret at within the user's namespace, which will be automatically prepended.
+   * @param params.userUuid The uuid of the user to store the secret for (its accountId)
+   */
+  async writeUserSecret<
     D extends Record<string, string> = Record<"value", string>,
   >(params: {
-    secretMountPath: string;
-    path: string;
     data: D;
-  }): Promise<VaultSecret<D>> {
-    const { secretMountPath, path, data } = params;
+    secretSubPath: string;
+    userUuid: EntityUuid;
+  }): Promise<VaultSecret<D> & { path: string }> {
+    const { data, secretSubPath, userUuid } = params;
+
+    const secretPath = `user/${
+      isProdEnv ? "prod" : "dev"
+    }/${userUuid}/${secretSubPath.replace(/^\//, "")}`;
+
+    const postPath = `/secret/data/${secretPath}`;
 
     const response = await this.client.post<{ data: VaultSecret["metadata"] }>(
-      `/${secretMountPath}/data/${path}`,
+      postPath,
       { data },
     );
 
     return {
       data,
       metadata: response.data.data,
+      path: secretPath,
     };
   }
 
-  async read<D = any>(params: {
-    secretMountPath: string;
+  async readUserSecret<D = any>(params: {
     path: string;
   }): Promise<VaultSecret<D>> {
-    const { secretMountPath, path } = params;
+    const { path } = params;
 
     const response = await this.client.get<{ data: VaultSecret<D> }>(
-      `/${secretMountPath}/data/${path}`,
+      `/secret/data/${path}`,
     );
 
     return response.data.data;
   }
 }
 
-// @todo allow authentication via app role instead (H-233)
 export const createVaultClient = () => {
   return process.env.HASH_VAULT_HOST &&
     process.env.HASH_VAULT_PORT &&
