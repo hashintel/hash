@@ -258,7 +258,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "28",
     heading: "Entity Validation",
-    body: "Description coming soon",
+    body: "Validate that entities comply with their schema when inserting and updating",
     parentIds: ["8", "17", "3"],
     status: "in-progress",
     useCases: ["website-building"],
