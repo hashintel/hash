@@ -5,6 +5,7 @@ import { createContext, useContext } from "react";
 export type EntityTypeEntitiesContextValue = {
   entities?: Entity[];
   entityTypes?: EntityType[];
+  loading: boolean;
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
 };

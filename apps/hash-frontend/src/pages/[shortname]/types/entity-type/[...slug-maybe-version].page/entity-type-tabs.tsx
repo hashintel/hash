@@ -29,7 +29,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
     name: "properties.length",
   });
 
-  const { entities } = useEntityTypeEntities();
+  const { entities, loading } = useEntityTypeEntities();
 
   const baseUrl = getEntityTypeBaseUrl(
     router.query["slug-maybe-version"]![0] as string,
@@ -92,6 +92,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
                 value={getTabValue("entities")}
                 href={getTabUrl(baseUrl, "entities")}
                 label="Entities"
+                loading={loading}
                 count={entities?.length ?? 0}
                 active={currentTab === "entities"}
               />,

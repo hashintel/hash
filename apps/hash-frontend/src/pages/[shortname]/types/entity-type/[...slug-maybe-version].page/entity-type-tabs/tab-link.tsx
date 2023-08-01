@@ -1,3 +1,4 @@
+import { LoadingSpinner, theme } from "@hashintel/design-system";
 import {
   Box,
   SxProps,
@@ -16,6 +17,7 @@ export type TabLinkProps = {
   value: string;
   count?: number;
   icon?: ReactElement;
+  loading?: boolean;
   active?: boolean;
   sx?: SxProps<Theme>;
 };
@@ -25,6 +27,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
   href,
   value,
   count,
+  loading,
   active,
   icon,
   sx,
@@ -48,7 +51,15 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
       </Typography>
     }
     icon={
-      typeof count === "number" ? (
+      loading ? (
+        <Box ml={1}>
+          <LoadingSpinner
+            color={theme.palette.gray[30]}
+            size={18}
+            thickness={6}
+          />
+        </Box>
+      ) : typeof count === "number" ? (
         <Box
           sx={({ palette }) => ({
             display: "flex",
