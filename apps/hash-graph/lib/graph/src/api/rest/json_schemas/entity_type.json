@@ -9,6 +9,21 @@
         "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
       ]
     },
+    "allOf": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "$ref": {
+            "$ref": "#/$defs/entityTypeReference"
+          }
+        },
+        "required": [
+          "$ref"
+        ],
+        "additionalProperties": false
+      }
+    },
     "kind": {
       "enum": ["entityType"]
     },
