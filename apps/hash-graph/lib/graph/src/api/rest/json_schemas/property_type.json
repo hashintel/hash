@@ -53,7 +53,10 @@
           "type": "object",
           "properties": {
             "type": {
-              "const": "object"
+              "type": "string",
+              "enum": [
+                "object"
+              ]
             },
             "properties": {
               "$ref": "#/$defs/PropertyTypeObject"
@@ -70,7 +73,10 @@
           "type": "object",
           "properties": {
             "type": {
-              "const": "array"
+              "type": "string",
+              "enum": [
+                "array"
+              ]
             },
             "items": {
               "type": "object",
@@ -111,7 +117,7 @@
       "description": "A JSON object where each entry is constrained by a property type.",
       "type": "object",
       "propertyNames": {
-        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url"
+        "$ref": "#/$defs/BaseUrl"
       },
       "patternProperties": {
         ".*": {

@@ -41,6 +41,9 @@
           "properties": {
             "type": {
               "enum": ["object"]
+            },
+            "properties": {
+              "$ref": "#/$defs/propertyTypeObject"
             }
           },
           "required": ["type", "properties"],

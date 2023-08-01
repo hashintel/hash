@@ -1,6 +1,7 @@
 {
-  "$id": "https://blockprotocol.org/type-system/0.2/schema/meta/entity-type",
-  "description": "Specifies the structure of an Entity Type",
+  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "title": "Entity Type",
+  "description": "Specifies the structure of a Block Protocol entity type",
   "type": "object",
   "properties": {
     "$schema": {
@@ -10,63 +11,176 @@
       ]
     },
     "kind": {
-      "enum": ["entityType"]
+      "type": "string",
+      "enum": [
+        "entityType"
+      ]
     },
     "$id": {
-      "type": "string",
-      "format": "uri"
+      "$ref": "#/$defs/VersionedUrl"
     },
     "type": {
-      "enum": ["object"]
+      "type": "string",
+      "enum": [
+        "object"
+      ]
     },
-    "title": { "type": "string" },
-    "description": { "type": "string" },
-    "examples": {
-      "$comment": "Example Entity instances",
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "allOf": {
       "type": "array",
       "items": {
-        "type": "object",
-        "propertyNames": {
-          "$comment": "Property names must be a valid URL to a Property Type",
-          "type": "string",
-          "format": "uri"
-        }
+        "$ref": "#/$defs/EntityTypeReference"
       }
     },
-    "properties": { "$ref": "#/$defs/propertyTypeObject" },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "properties": {
+      "$ref": "#/$defs/PropertyTypeObject"
+    },
     "required": {
       "type": "array",
       "items": {
-        "type": "string",
-        "format": "uri"
+        "$ref": "#/$defs/BaseUrl"
       }
     },
-    "links": { "$ref": "#/$defs/linkTypeObject" }
-  },
-  "additionalProperties": false,
-  "required": ["$schema", "kind", "$id", "type", "title", "properties"],
-  "$defs": {
-    "propertyTypeObject": {
+    "links": {
       "type": "object",
       "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
+        "$ref": "#/$defs/VersionedUrl"
+      },
+      "x-patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "array"
+              ]
+            },
+            "ordered": {
+              "type": "boolean",
+              "default": false
+            },
+            "items": {
+              "$ref": "#/$defs/OneOfEntityTypeReference"
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "type",
+            "ordered",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "kind",
+    "type",
+    "$id",
+    "title",
+    "properties"
+  ],
+  "$defs": {
+    "VersionedUrl": {
+      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
+      "title": "Versioned URL",
+      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    },
+    "BaseUrl": {
+      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url",
+      "title": "Base URL",
+      "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    },
+    "EntityTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$ref": "#/$defs/VersionedUrl"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false
+    },
+    "PropertyTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$ref": "#/$defs/BaseUrl"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false
+    },
+    "OneOfEntityTypeReference": {
+      "description": "Specifies a set of entity types inside a oneOf",
+      "type": "object",
+      "properties": {
+        "oneOf": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EntityTypeReference"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "PropertyTypeObject": {
+      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-object",
+      "title": "Property Type Object",
+      "description": "A JSON object where each entry is constrained by a property type.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url"
       },
       "patternProperties": {
         ".*": {
           "oneOf": [
             {
-              "$ref": "#/$defs/propertyTypeReference"
+              "$ref": "#/$defs/PropertyTypeReference"
             },
             {
               "type": "object",
               "properties": {
                 "type": {
-                  "enum": ["array"]
+                  "type": "string",
+                  "enum": [
+                    "array"
+                  ]
                 },
                 "items": {
-                  "$ref": "#/$defs/propertyTypeReference"
+                  "$ref": "#/$defs/PropertyTypeReference"
                 },
                 "minItems": {
                   "type": "integer",
@@ -77,87 +191,15 @@
                   "minimum": 0
                 }
               },
-              "required": ["type", "items"],
+              "required": [
+                "type",
+                "items"
+              ],
               "additionalProperties": false
             }
           ]
         }
-      },
-      "minimumProperties": 1
-    },
-    "propertyTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "linkTypeObject": {
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
-      },
-      "patternProperties": {
-        ".*": {
-          "type": "object",
-          "properties": {
-            "oneOf": {
-              "type": "array",
-              "items": {
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/entityTypeReference"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "enum": ["array"]
-                      },
-                      "items": {
-                        "$ref": "#/$defs/entityTypeReference"
-                      },
-                      "ordered": {
-                        "type": "boolean",
-                        "default": false
-                      },
-                      "minItems": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "maxItems": {
-                        "type": "integer",
-                        "minimum": 0
-                      }
-                    },
-                    "required": ["type", "ordered"],
-                    "additionalProperties": false
-                  }
-                ]
-              },
-              "minItems": 1
-            }
-          }
-        }
       }
-    },
-    "entityTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
     }
   }
 }
