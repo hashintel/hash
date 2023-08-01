@@ -16,13 +16,13 @@ function convertRef(value: any) {
 }
 
 async function resolve(source: string) {
-    let bundle = await $RefParser.bundle(source);
+    // let bundle = await $RefParser.bundle(source);
 
     // bundle urlencodes the $ref, so we need to decode it
-    convertRef(bundle);
-    console.log(JSON.stringify(bundle, null, 2));
+    // convertRef(bundle);
+    // console.log(JSON.stringify(bundle, null, 2));
 
-    let compliant = await convert(bundle);
+    let compliant = await convert(source, {dereference: true, dereferenceOptions: {dereference: {circular: 'ignore'}}});
 
     return JSON.stringify(compliant, null, 2);
 }
@@ -30,7 +30,7 @@ async function resolve(source: string) {
 async function resolveAndWrite(source: string, target: string) {
     let resolved = await resolve(source);
 
-    const file = await Deno.open(target, { create: true, write: true });
+    const file = await Deno.open(target, { create: true, write: true, truncate: true });
     await Deno.writeAll(file, new TextEncoder().encode(resolved));
     file.close();
 }

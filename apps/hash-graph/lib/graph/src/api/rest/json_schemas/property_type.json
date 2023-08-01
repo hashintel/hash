@@ -56,8 +56,14 @@
           "type": "object",
           "properties": {
             "$ref": {
-              "$comment": "The versioned URL of a data type (the $id of the data type's schema)",
-              "$ref": "#/properties/$id"
+              "$schema": "https://json-schema.org/draft/2019-09/schema",
+              "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
+              "title": "Versioned URL",
+              "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048,
+              "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
             }
           },
           "required": [
@@ -99,8 +105,14 @@
                       "type": "object",
                       "properties": {
                         "$ref": {
-                          "$comment": "The versioned URL of a property type (the $id of the property type's schema)",
-                          "$ref": "#/properties/$id"
+                          "$schema": "https://json-schema.org/draft/2019-09/schema",
+                          "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
+                          "title": "Versioned URL",
+                          "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+                          "type": "string",
+                          "format": "uri",
+                          "maxLength": 2048,
+                          "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
                         }
                       },
                       "required": [
@@ -115,8 +127,28 @@
                           "const": "array"
                         },
                         "items": {
-                          "$comment": "Property object values must be defined through references to the full Versioned URL of the same property type used for the property name.",
-                          "$ref": "#/$defs/propertyValues/oneOf/1/properties/properties/patternProperties/.*/oneOf/0"
+                          "$schema": "https://json-schema.org/draft/2019-09/schema",
+                          "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-reference",
+                          "title": "Property Type Reference",
+                          "description": "A reference to a property type.",
+                          "type": "object",
+                          "properties": {
+                            "$ref": {
+                              "$schema": "https://json-schema.org/draft/2019-09/schema",
+                              "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
+                              "title": "Versioned URL",
+                              "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+                              "type": "string",
+                              "format": "uri",
+                              "maxLength": 2048,
+                              "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
+                            }
+                          },
+                          "required": [
+                            "$ref"
+                          ],
+                          "additionalProperties": false,
+                          "$comment": "Property object values must be defined through references to the full Versioned URL of the same property type used for the property name."
                         },
                         "minItems": {
                           "type": "integer",
@@ -184,7 +216,5 @@
         }
       ]
     }
-  }
-}
   }
 }
