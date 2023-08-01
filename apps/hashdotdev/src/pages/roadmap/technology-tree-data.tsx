@@ -405,7 +405,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Proposal for a system to map between data of different types",
     parentIds: ["39"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management"],
     variant: "block-protocol",
   },
   {
@@ -414,7 +414,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Interface allowing user definition of non-primitive Data Types",
     parentIds: ["39"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "internal-tools-apps", "agent-based-simulation"],
     variant: "feature",
   },
   {
@@ -423,7 +423,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Description coming soon",
     parentIds: ["44"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management"],
     variant: "feature",
   },
   {
@@ -432,7 +432,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Description coming soon",
     parentIds: ["44"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management"],
     variant: "feature",
   },
   {
@@ -441,7 +441,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Application-level support for rendering binary files using blocks on File entity pages",
     parentIds: ["45", "13"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -450,8 +450,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to ingest information from external services as entities ",
     parentIds: ["40"],
     status: "done",
-    useCases: ["website-building"],
-    variant: "infrastructure",
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "internal-tools-apps"],
+    variant: "experiment",
   },
   {
     id: "50",
@@ -459,8 +459,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to write information out to connected external services",
     parentIds: ["40"],
     status: "done",
-    useCases: ["website-building"],
-    variant: "infrastructure",
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "internal-tools-apps"],
+    variant: "experiment",
   },
   {
     id: "51",
@@ -468,8 +468,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to synchronize information to/fro external services via the Realtime Service",
     parentIds: ["40", "42"],
     status: "done",
-    useCases: ["website-building"],
-    variant: "infrastructure",
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "internal-tools-apps"],
+    variant: "experiment",
   },
   {
     id: "52",
@@ -477,7 +477,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Basic blocks designed for data- and action-mapping (e.g. button, dropdown, etc.)",
     parentIds: ["36"],
     status: "future",
-    useCases: ["website-building"],
+    useCases: ["website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
