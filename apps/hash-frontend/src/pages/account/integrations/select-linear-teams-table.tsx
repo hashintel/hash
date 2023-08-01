@@ -132,14 +132,9 @@ export const mapLinearOrganizationToSyncWithWorkspacesInputVariable = (params: {
         )
         .map(({ id }) => id);
 
-      /** @todo: allow the user to decide whether to sync future teams */
-      const syncAllTeams =
-        params.linearOrganization.teams.length === linearTeamIds.length;
+      /** @todo: allow the user to opt-in to sync with future teams in the linear organization */
 
-      return {
-        workspaceEntityId,
-        linearTeamIds: syncAllTeams ? [] : linearTeamIds,
-      };
+      return { workspaceEntityId, linearTeamIds };
     });
 
 export const SelectLinearTeamsTable: FunctionComponent<{
