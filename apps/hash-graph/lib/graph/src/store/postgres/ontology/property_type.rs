@@ -188,7 +188,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         on_conflict: ConflictBehavior,
     ) -> Result<(), InsertionError> {
         let property_types = property_types.into_iter();
-        let mut transaction = self.transaction().await.change_context(InsertionError)?;
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
         for (schema, metadata) in property_types {

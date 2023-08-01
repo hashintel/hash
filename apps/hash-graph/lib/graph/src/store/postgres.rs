@@ -58,97 +58,6 @@ enum OntologyLocation {
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
-    async fn create_base_url(
-        &mut self,
-        base_url: &BaseUrl,
-        on_conflict: ConflictBehavior,
-        location: OntologyLocation,
-    ) -> Result<(), InsertionError> {
-        const INSERTION_QUERY: &str = r#"
-            INSERT INTO base_urls (base_url) VALUES ($1);
-        "#;
-        match on_conflict {
-            ConflictBehavior::Fail => {
-                self.as_client()
-                    .query(INSERTION_QUERY, &[&base_url.as_str()])
-                    .await
-                    .into_report()
-                    .map_err(|report| match report.current_context().code() {
-                        Some(&SqlState::UNIQUE_VIOLATION) => report
-                            .change_context(BaseUrlAlreadyExists)
-                            .attach_printable(base_url.clone())
-                            .change_context(InsertionError),
-                        _ => report
-                            .change_context(InsertionError)
-                            .attach_printable(base_url.clone()),
-                    })?;
-            }
-            ConflictBehavior::Skip => {
-                let savepoint = self
-                    .client
-                    .savepoint("insert_base_url")
-                    .await
-                    .into_report()
-                    .change_context(InsertionError)?;
-
-                let result = savepoint
-                    .as_client()
-                    .query(INSERTION_QUERY, &[&base_url.as_str()])
-                    .await;
-
-                if let Err(error) = result {
-                    savepoint
-                        .rollback()
-                        .await
-                        .into_report()
-                        .change_context(InsertionError)?;
-
-                    if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                        let query = match location {
-                            OntologyLocation::Owned => {
-                                r#"
-                                    SELECT EXISTS (SELECT 1
-                                    FROM ontology_owned_metadata
-                                    NATURAL JOIN ontology_ids
-                                    WHERE base_url = $1);
-                                "#
-                            }
-                            OntologyLocation::External => {
-                                r#"
-                                    SELECT EXISTS (SELECT 1
-                                    FROM ontology_external_metadata
-                                    NATURAL JOIN ontology_ids
-                                    WHERE base_url = $1);
-                                "#
-                            }
-                        };
-
-                        let is_correct: bool = self
-                            .as_client()
-                            .query_one(query, &[&base_url.as_str()])
-                            .await
-                            .into_report()
-                            .change_context(InsertionError)
-                            .map(|row| row.get(0))?;
-                        if !is_correct {
-                            return Err(Report::new(BaseUrlAlreadyExists)
-                                .attach_printable(base_url.clone())
-                                .change_context(InsertionError));
-                        }
-                    }
-                } else {
-                    savepoint
-                        .commit()
-                        .await
-                        .into_report()
-                        .change_context(InsertionError)?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     /// Inserts the specified [`OntologyDatabaseType`].
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
@@ -163,7 +72,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
-        &mut self,
+        &self,
         metadata: &OntologyElementMetadata,
         on_conflict: ConflictBehavior,
     ) -> Result<Option<OntologyId>, InsertionError> {
@@ -350,6 +259,86 @@ where
     #[must_use]
     pub const fn new(client: C) -> Self {
         Self { client }
+    }
+
+    async fn create_base_url(
+        &self,
+        base_url: &BaseUrl,
+        on_conflict: ConflictBehavior,
+        location: OntologyLocation,
+    ) -> Result<(), InsertionError> {
+        match on_conflict {
+            ConflictBehavior::Fail => {
+                self.as_client()
+                    .query("INSERT INTO base_urls (base_url) VALUES ($1);", &[
+                        &base_url.as_str(),
+                    ])
+                    .await
+                    .into_report()
+                    .map_err(|report| match report.current_context().code() {
+                        Some(&SqlState::UNIQUE_VIOLATION) => report
+                            .change_context(BaseUrlAlreadyExists)
+                            .attach_printable(base_url.clone())
+                            .change_context(InsertionError),
+                        _ => report
+                            .change_context(InsertionError)
+                            .attach_printable(base_url.clone()),
+                    })?;
+            }
+            ConflictBehavior::Skip => {
+                let created = self
+                    .as_client()
+                    .query_opt(
+                        r#"
+                            INSERT INTO base_urls (base_url) VALUES ($1)
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        "#,
+                        &[&base_url.as_str()],
+                    )
+                    .await
+                    .into_report()
+                    .change_context(InsertionError)?
+                    .is_some();
+
+                if !created {
+                    let query = match location {
+                        OntologyLocation::Owned => {
+                            r#"
+                                SELECT EXISTS (SELECT 1
+                                FROM ontology_owned_metadata
+                                NATURAL JOIN ontology_ids
+                                WHERE base_url = $1);
+                            "#
+                        }
+                        OntologyLocation::External => {
+                            r#"
+                                SELECT EXISTS (SELECT 1
+                                FROM ontology_external_metadata
+                                NATURAL JOIN ontology_ids
+                                WHERE base_url = $1);
+                            "#
+                        }
+                    };
+
+                    let is_correct: bool = self
+                        .as_client()
+                        .query_one(query, &[&base_url.as_str()])
+                        .await
+                        .into_report()
+                        .change_context(InsertionError)
+                        .map(|row| row.get(0))?;
+
+                    if !is_correct {
+                        return Err(Report::new(BaseUrlAlreadyExists)
+                            .attach_printable(base_url.clone())
+                            .change_context(InsertionError));
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 
     async fn create_ontology_id(
