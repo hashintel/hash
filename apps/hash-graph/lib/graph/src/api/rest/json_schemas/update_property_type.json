@@ -59,7 +59,7 @@
                 "oneOf": {
                   "type": "array",
                   "items": {
-                    "$ref": "propertyValuesUpdate"
+                    "$ref": "#/$defs/propertyValuesUpdate"
                   },
                   "minItems": 1
                 }

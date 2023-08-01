@@ -48,7 +48,7 @@
               "enum": ["object"]
             },
             "properties": {
-              "$ref": "propertyTypeObject"
+              "$ref": "#/$defs/propertyTypeObject"
             }
           },
           "required": ["type", "properties"],
@@ -67,7 +67,7 @@
                 "oneOf": {
                   "type": "array",
                   "items": {
-                    "$ref": "propertyValues"
+                    "$ref": "#/$defs/propertyValues"
                   },
                   "minItems": 1
                 }
