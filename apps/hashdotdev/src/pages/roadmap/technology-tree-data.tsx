@@ -28,7 +28,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "UX/UI Outline",
     body: "Basic application screens and functionality outline",
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "infrastructure",
   },
   {
@@ -36,7 +36,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Block Protocol Graph Module",
     body: "Type System and methods for accessing structured data",
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "block-protocol",
   },
   {
@@ -45,7 +45,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Inject native application experiences and handlers within blocks",
     parentIds: ["0"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "website-building", "internal-tools-apps"],
     variant: "block-protocol",
   },
   {
@@ -54,7 +54,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Basic application screens and frame implemented",
     parentIds: ["1"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "infrastructure",
   },
   {
@@ -63,7 +63,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Rust implementation of the Graph Module atop Postgres",
     parentIds: ["1", "3"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "infrastructure",
   },
   {
@@ -72,7 +72,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Hook provider for rich text-editing within blocks",
     parentIds: ["4"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "website-building", "internal-tools-apps"],
     variant: "infrastructure",
   },
   {
@@ -81,7 +81,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "User, workspace, and other key types required by HASH itself",
     parentIds: ["6"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "infrastructure",
   },
   {
@@ -90,7 +90,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Key blocks such as heading, paragraph, image, etc.",
     parentIds: ["7"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "business-intelligence", "website-building"],
     variant: "feature",
   },
   {
@@ -99,7 +99,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Interface for managing entity types in HASH",
     parentIds: ["8"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -108,7 +108,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Implement login/logout/signup atop Kratos",
     parentIds: ["8"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -117,7 +117,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Allow blocks to connect to external services without handling integration logic themselves",
     parentIds: ["9"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation"],
     variant: "block-protocol",
   },
   {
@@ -126,7 +126,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Interface for managing entities in HASH",
     parentIds: ["10"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -135,7 +135,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Handler for OpenAI, Mapbox and other third-party APIs",
     parentIds: ["12"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation"],
     variant: "block-protocol",
   },
   {
@@ -144,7 +144,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Single-column block-based documents",
     parentIds: ["5"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "business-intelligence"],
     variant: "feature",
   },
   {
@@ -153,7 +153,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Proof-of-concept multiplayer editing and live collaboration",
     parentIds: ["11"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "internal-tools-apps"],
     variant: "experiment",
   },
   {
@@ -162,7 +162,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Ability to archive or hide entities including pages",
     parentIds: ["10", "3"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "feature",
   },
   {
@@ -171,7 +171,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Freeform drag-and-drop canvases for blocks",
     parentIds: ["15"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "business-intelligence", "website-building", "internal-tools-apps"],
     variant: "feature",
   },
   {
@@ -180,7 +180,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "The ability to comment on blocks within pages",
     parentIds: ["15"],
     status: "done",
-    useCases: ["website-building"],
+    useCases: ["knowledge-management", "business-intelligence"],
     variant: "feature",
   },
   {
