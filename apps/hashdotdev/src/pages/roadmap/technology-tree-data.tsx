@@ -20,7 +20,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Block Protocol Core",
     body: "Specification for passing structured data between blocks and embedding applications",
     status: "done",
-    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building"],
+    useCases: ["knowledge-management", "data-management", "business-intelligence", "website-building", "internal-tools-apps", "agent-based-simulation", "entity-storage-retrieval"],
     variant: "block-protocol",
   },
   {
