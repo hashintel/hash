@@ -321,7 +321,7 @@ where
                         }
                     };
 
-                    let is_correct: bool = self
+                    let exists_in_specified_location: bool = self
                         .as_client()
                         .query_one(query, &[&base_url.as_str()])
                         .await
@@ -329,7 +329,7 @@ where
                         .change_context(InsertionError)
                         .map(|row| row.get(0))?;
 
-                    if !is_correct {
+                    if !exists_in_specified_location {
                         return Err(Report::new(BaseUrlAlreadyExists)
                             .attach_printable(base_url.clone())
                             .change_context(InsertionError));
