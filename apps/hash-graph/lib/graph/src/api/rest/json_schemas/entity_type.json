@@ -52,7 +52,7 @@
       "propertyNames": {
         "$ref": "#/definitions/VersionedUrl"
       },
-      "x-patternProperties": {
+      "patternProperties": {
         "^.*$": {
           "type": "object",
           "properties": {
