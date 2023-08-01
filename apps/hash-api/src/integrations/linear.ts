@@ -1,5 +1,6 @@
 import { LinearClient, Organization, Team } from "@linear/sdk";
 import { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
+import { AccountId } from "@local/hash-subgraph";
 
 import { TemporalClient } from "../temporal";
 import { genId } from "../util";
@@ -42,8 +43,8 @@ export class Linear {
   }
 
   public async triggerWorkspaceSync(params: {
-    workspaceAccountId: string;
-    actorId: string;
+    workspaceAccountId: AccountId;
+    actorId: AccountId;
     teamIds: string[];
   }): Promise<void> {
     // TODO: Implement error handling

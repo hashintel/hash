@@ -10,6 +10,7 @@ import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types
 import { GraphApi } from "@local/hash-graph-client";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  AccountId,
   EntityPropertiesObject,
   EntityRootType,
   Subgraph,
@@ -35,8 +36,8 @@ import {
 const createOrUpdateHashEntity = async (params: {
   graphApiClient: GraphApi;
   entity: PartialEntity;
-  actorId: string;
-  workspaceAccountId?: string;
+  actorId: AccountId;
+  workspaceAccountId?: AccountId;
 }): Promise<void> => {
   const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
   const updatedAtBaseUrl = extractBaseUrl(
@@ -155,8 +156,8 @@ export const createLinearIntegrationActivities = ({
 }) => ({
   async createPartialEntities(params: {
     entities: PartialEntity[];
-    actorId: string;
-    workspaceAccountId: string;
+    actorId: AccountId;
+    workspaceAccountId: AccountId;
   }): Promise<void> {
     await Promise.all(
       params.entities.map((entity) =>
@@ -178,8 +179,8 @@ export const createLinearIntegrationActivities = ({
 
   async createHashUser(params: {
     user: User;
-    actorId: string;
-    workspaceAccountId: string;
+    actorId: AccountId;
+    workspaceAccountId: AccountId;
   }): Promise<void> {
     const entity = userToEntity(params.user);
     await createOrUpdateHashEntity({
@@ -190,7 +191,10 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async updateHashUser(params: { user: User; actorId: string }): Promise<void> {
+  async updateHashUser(params: {
+    user: User;
+    actorId: AccountId;
+  }): Promise<void> {
     await createOrUpdateHashEntity({
       graphApiClient,
       entity: userToEntity(params.user),
@@ -209,8 +213,8 @@ export const createLinearIntegrationActivities = ({
 
   async createHashIssue(params: {
     issue: Issue;
-    actorId: string;
-    workspaceAccountId: string;
+    actorId: AccountId;
+    workspaceAccountId: AccountId;
   }): Promise<void> {
     const entity = issueToEntity(params.issue);
     await createOrUpdateHashEntity({
@@ -241,7 +245,7 @@ export const createLinearIntegrationActivities = ({
 
   async updateHashIssue(params: {
     issue: Issue;
-    actorId: string;
+    actorId: AccountId;
   }): Promise<void> {
     await createOrUpdateHashEntity({
       graphApiClient,

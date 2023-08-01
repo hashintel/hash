@@ -1,6 +1,11 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Issue, Team, User } from "@linear/sdk";
-import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import {
+  AccountId,
+  Entity,
+  EntityPropertiesObject,
+  OwnedById,
+} from "@local/hash-subgraph";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
@@ -9,14 +14,14 @@ export type PartialEntity = {
 
 export type CreateHashIssueWorkflow = (params: {
   payload: Issue;
-  ownedById: string;
-  actorId: string;
+  ownedById: OwnedById;
+  actorId: AccountId;
 }) => Promise<void>;
 
 export type CreateHashUserWorkflow = (params: {
   payload: User;
-  ownedById: string;
-  actorId: string;
+  ownedById: OwnedById;
+  actorId: AccountId;
 }) => Promise<void>;
 
 export type ReadLinearTeamsWorkflow = (params: {
@@ -25,14 +30,14 @@ export type ReadLinearTeamsWorkflow = (params: {
 
 export type SyncWorkspaceWorkflow = (params: {
   apiKey: string;
-  workspaceAccountId: string;
-  actorId: string;
+  workspaceAccountId: AccountId;
+  actorId: AccountId;
   teamIds: string[];
 }) => Promise<void>;
 
 export type UpdateHashIssueWorkflow = (params: {
   payload: Issue;
-  actorId: string;
+  actorId: AccountId;
 }) => Promise<void>;
 
 export type UpdateLinearIssueWorkflow = (params: {
@@ -43,7 +48,7 @@ export type UpdateLinearIssueWorkflow = (params: {
 
 export type UpdateHashUserWorkflow = (params: {
   payload: User;
-  actorId: string;
+  actorId: AccountId;
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {

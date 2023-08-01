@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
+import { AccountId, OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
 import { logger } from "../../logger";
@@ -75,8 +76,8 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
         args: [
           {
             // @todo Use correct account IDs
-            actorId: "00000000-0000-0000-0000-000000000000",
-            ownedById: "00000000-0000-0000-0000-000000000000",
+            actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+            ownedById: "00000000-0000-0000-0000-000000000000" as OwnedById,
             payload: payload.data,
           },
         ],
