@@ -1,4 +1,5 @@
 {
+  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
   "title": "Entity Type",
   "description": "Specifies the structure of a Block Protocol entity type",
   "type": "object",
@@ -10,19 +11,16 @@
       ]
     },
     "kind": {
+      "type": "string",
       "enum": [
         "entityType"
       ]
     },
     "$id": {
-      "title": "Versioned URL",
-      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048,
-      "x-$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
+      "$ref": "#/$defs/VersionedUrl"
     },
     "type": {
+      "type": "string",
       "enum": [
         "object"
       ]
@@ -36,173 +34,45 @@
     "allOf": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "$ref": {
-            "type": "string",
-            "x-$comment": "The versioned URL of a entity type (the $id of the entity type's schema)"
-          }
-        },
-        "required": [
-          "$ref"
-        ],
-        "additionalProperties": false
-      },
-      "maxItems": 1,
-      "x-$comment": "Present if this entity type is a link entity type."
+        "$ref": "#/$defs/EntityTypeReference"
+      }
     },
     "examples": {
       "type": "array",
       "items": {
         "type": "object"
-      },
-      "x-$comment": "Example Entity instances"
+      }
     },
     "properties": {
-      "title": "Property Type Object",
-      "description": "A JSON object where each entry is constrained by a property type.",
-      "type": "object",
-      "x-patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "$schema": "https://json-schema.org/draft/2019-09/schema",
-              "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-reference",
-              "title": "Property Type Reference",
-              "description": "A reference to a property type.",
-              "type": "object",
-              "properties": {
-                "$ref": {
-                  "$schema": "https://json-schema.org/draft/2019-09/schema",
-                  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
-                  "title": "Versioned URL",
-                  "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-                  "type": "string",
-                  "format": "uri",
-                  "maxLength": 2048,
-                  "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
-                }
-              },
-              "required": [
-                "$ref"
-              ],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "const": "array"
-                },
-                "items": {
-                  "$schema": "https://json-schema.org/draft/2019-09/schema",
-                  "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type-reference",
-                  "title": "Property Type Reference",
-                  "description": "A reference to a property type.",
-                  "type": "object",
-                  "properties": {
-                    "$ref": {
-                      "$schema": "https://json-schema.org/draft/2019-09/schema",
-                      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
-                      "title": "Versioned URL",
-                      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-                      "type": "string",
-                      "format": "uri",
-                      "maxLength": 2048,
-                      "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
-                    }
-                  },
-                  "required": [
-                    "$ref"
-                  ],
-                  "additionalProperties": false,
-                  "$comment": "Property object values must be defined through references to the full Versioned URL of the same property type used for the property name."
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": [
-                "type",
-                "items"
-              ],
-              "additionalProperties": false
-            }
-          ]
-        }
-      },
-      "additionalProperties": true,
-      "x-propertyNames": {
-        "$comment": "Property names must be a valid Base URL to a property type",
-        "$schema": "https://json-schema.org/draft/2019-09/schema",
-        "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url",
-        "title": "Base URL",
-        "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
-        "type": "string",
-        "format": "uri",
-        "maxLength": 2048
-      }
+      "$ref": "#/$defs/PropertyTypeObject"
     },
     "required": {
       "type": "array",
       "items": {
-        "title": "Base URL",
-        "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
-        "type": "string",
-        "format": "uri",
-        "maxLength": 2048
+        "$ref": "#/$defs/BaseUrl"
       }
     },
     "links": {
       "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/VersionedUrl"
+      },
       "x-patternProperties": {
-        ".*": {
+        "^.*$": {
           "type": "object",
           "properties": {
             "type": {
-              "const": "array"
+              "type": "string",
+              "enum": [
+                "array"
+              ]
             },
             "ordered": {
               "type": "boolean",
               "default": false
             },
             "items": {
-              "description": "Specifies a set of entity types inside a oneOf",
-              "type": "object",
-              "properties": {
-                "oneOf": {
-                  "type": "array",
-                  "items": {
-                    "$schema": "https://json-schema.org/draft/2019-09/schema",
-                    "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type-reference",
-                    "title": "Entity Type Reference",
-                    "description": "A reference to a entity type.",
-                    "type": "object",
-                    "properties": {
-                      "$ref": {
-                        "$schema": "https://json-schema.org/draft/2019-09/schema",
-                        "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
-                        "title": "Versioned URL",
-                        "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-                        "type": "string",
-                        "format": "uri",
-                        "maxLength": 2048,
-                        "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
-                      }
-                    },
-                    "required": [
-                      "$ref"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "additionalProperties": false
+              "$ref": "#/$defs/OneOfEntityTypeReference"
             },
             "minItems": {
               "type": "integer",
@@ -220,17 +90,6 @@
           ],
           "additionalProperties": false
         }
-      },
-      "additionalProperties": true,
-      "x-propertyNames": {
-        "$schema": "https://json-schema.org/draft/2019-09/schema",
-        "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
-        "title": "Versioned URL",
-        "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-        "type": "string",
-        "format": "uri",
-        "maxLength": 2048,
-        "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
       }
     }
   },
@@ -243,35 +102,43 @@
     "title",
     "properties"
   ],
-  "x-$defs": {
-    "oneOfEntityTypeReference": {
+  "$defs": {
+    "VersionedUrl": {
+      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
+      "title": "Versioned URL",
+      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    },
+    "BaseUrl": {
+      "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url",
+      "title": "Base URL",
+      "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    },
+    "EntityTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$ref": "#/$defs/VersionedUrl"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false
+    },
+    "OneOfEntityTypeReference": {
       "description": "Specifies a set of entity types inside a oneOf",
       "type": "object",
       "properties": {
         "oneOf": {
           "type": "array",
           "items": {
-            "$schema": "https://json-schema.org/draft/2019-09/schema",
-            "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type-reference",
-            "title": "Entity Type Reference",
-            "description": "A reference to a entity type.",
-            "type": "object",
-            "properties": {
-              "$ref": {
-                "$schema": "https://json-schema.org/draft/2019-09/schema",
-                "$id": "https://blockprotocol.org/types/modules/graph/0.3/schema/versioned-url",
-                "title": "Versioned URL",
-                "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-                "type": "string",
-                "format": "uri",
-                "maxLength": 2048,
-                "$comment": "The version number must be a valid unsigned 32-bit integer, that is, between 0 and 4,294,967,295 (inclusive)."
-              }
-            },
-            "required": [
-              "$ref"
-            ],
-            "additionalProperties": false
+            "$ref": "#/$defs/EntityTypeReference"
           }
         }
       },
