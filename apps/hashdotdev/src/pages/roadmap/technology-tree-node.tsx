@@ -1,5 +1,5 @@
 import { Box, IconButton, Tooltip, Typography } from "@mui/material";
-import { FunctionComponent } from "react";
+import { Fragment, FunctionComponent } from "react";
 
 import { FaIcon } from "../../components/icons/fa-icon";
 import { statuses } from "./statuses";
@@ -78,8 +78,15 @@ export const TechnologyTreeNode: FunctionComponent<{
               {useCaseNames.length > 1
                 ? useCaseNames
                     .slice(0, -1)
-                    .join(", ")
-                    .concat(` & ${useCaseNames.slice(-1)}`)
+                    .map((item) => (
+                      <Fragment key={item?.toString()}>{item}, </Fragment>
+                    ))
+                    .concat(
+                      <Fragment key="last">
+                        {" "}
+                        & {useCaseNames.slice(-1)}
+                      </Fragment>,
+                    )
                 : useCaseNames[0]}
             </>
           }
