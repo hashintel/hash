@@ -10,6 +10,8 @@ packages = [{ include = "graph_client" }]
 [tool.poetry.dependencies]
 python = "^3.11"
 
+pydantic = "^2.1.1"
+
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.0.0"
 
