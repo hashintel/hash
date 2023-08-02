@@ -16,8 +16,6 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  console.log({ authenticatedUser });
-
   const org = authenticatedUser.memberOf.find(
     (orgOption) => orgOption.shortname === shortname,
   );
