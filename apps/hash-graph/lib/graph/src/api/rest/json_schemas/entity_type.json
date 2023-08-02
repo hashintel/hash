@@ -65,7 +65,17 @@
               "default": false
             },
             "items": {
-              "$ref": "#/definitions/OneOfEntityTypeReference"
+              "description": "Specifies a set of entity types inside a oneOf",
+              "type": "object",
+              "properties": {
+                "oneOf": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/EntityTypeReference"
+                  }
+                }
+              },
+              "additionalProperties": false
             },
             "minItems": {
               "type": "integer",
@@ -117,19 +127,6 @@
         }
       },
       "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "OneOfEntityTypeReference": {
-      "description": "Specifies a set of entity types inside a oneOf",
-      "type": "object",
-      "properties": {
-        "oneOf": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/EntityTypeReference"
-          }
-        }
-      },
       "additionalProperties": false
     },
     "PropertyTypeObject": {
