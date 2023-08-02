@@ -137,7 +137,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
   h2: (props: TypographyProps<"h2">) => {
-    const anchor = slugify(stringifyChildren(props.children));
+    const anchor = slugify(stringifyChildren(props.children)).toLowerCase();
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { headingRef } = usePageHeading({ anchor });
@@ -156,7 +156,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
   h3: (props: TypographyProps<"h3">) => {
-    const anchor = slugify(stringifyChildren(props.children));
+    const anchor = slugify(stringifyChildren(props.children)).toLowerCase();
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { headingRef } = usePageHeading({ anchor });
