@@ -1,4 +1,3 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Attachment,
   Comment,
@@ -14,14 +13,10 @@ import {
   Team,
   User,
 } from "@linear/sdk";
+import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import { EntityPropertiesObject } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-
-export type PartialEntity = {
-  properties: Partial<Entity["properties"]>;
-  entityTypeId: VersionedUrl;
-};
 
 const toIsoString = (date: string | Date): string => {
   if (typeof date === "string") {
