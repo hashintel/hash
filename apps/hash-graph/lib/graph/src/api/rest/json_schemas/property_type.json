@@ -97,7 +97,7 @@
       "propertyNames": {
         "$ref": "#/definitions/BaseUrl"
       },
-      "patternProperties": {
+      "x-patternProperties": {
         ".*": {
           "oneOf": [
             {

@@ -49,11 +49,11 @@
     },
     "links": {
       "type": "object",
-      "propertyNames": {
+      "x-propertyNames": {
         "$ref": "#/definitions/VersionedUrl"
       },
-      "patternProperties": {
-        "^.*$": {
+      "x-patternProperties": {
+        ".*$": {
           "type": "object",
           "properties": {
             "type": {
@@ -136,7 +136,7 @@
       "propertyNames": {
         "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url"
       },
-      "patternProperties": {
+      "x-patternProperties": {
         ".*": {
           "oneOf": [
             {
