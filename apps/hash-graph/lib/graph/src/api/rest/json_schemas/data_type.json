@@ -15,6 +15,7 @@
     },
     "$id": {
       "type": "string",
+      "format": "uri",
       "enum": [
         "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
         "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
