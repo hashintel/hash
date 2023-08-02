@@ -9,6 +9,7 @@
       "libs/@hashintel/*",
       "libs/@local/*",
       "libs/@local/*/typescript",
+      "libs/@local/*/python",
       "tests/*"
     ]
   },
