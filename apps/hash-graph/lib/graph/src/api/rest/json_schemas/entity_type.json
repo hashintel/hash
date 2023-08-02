@@ -109,7 +109,7 @@
       "required": ["$ref"],
       "additionalProperties": false
     },
-    "PropertyTypeReference": {
+    "PropertyObjectReference": {
       "type": "object",
       "properties": {
         "$ref": {
@@ -143,7 +143,7 @@
         ".*": {
           "oneOf": [
             {
-              "$ref": "#/definitions/PropertyTypeReference"
+              "$ref": "#/definitions/PropertyObjectReference"
             },
             {
               "type": "object",
@@ -153,7 +153,7 @@
                   "enum": ["array"]
                 },
                 "items": {
-                  "$ref": "#/definitions/PropertyTypeReference"
+                  "$ref": "#/definitions/PropertyObjectReference"
                 },
                 "minItems": {
                   "type": "integer",
