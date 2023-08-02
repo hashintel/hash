@@ -2,74 +2,40 @@
  * This module contains type definitions for tables in the Postgres database. Column
  * names are converted from snake_case to camelCase for consistency.
  */
+import { JsonObject } from "@blockprotocol/core";
+import { Uuid } from "@local/hash-subgraph";
+
 import { Wal2JsonMsg } from "./wal2json";
 
-export class Entity {
-  constructor(
-    /**
-     * @todo Update table definition when provenance info is added for updates
-     *   https://app.asana.com/0/1202805690238892/1202848989198291/f
-     */
-    public entityId: string,
-    public version: string,
-    public entityTypeVersionId: string,
-    public properties: Record<string, unknown>,
-    public createdBy: string,
-  ) {}
+type EntityEditionRecord = {
+  archived: boolean;
+  entityEditionId: Uuid;
+  properties: JsonObject;
+  leftToRightOrder?: number;
+  rightToLeftOrder?: number;
+  recordCreatedById?: Uuid; // the UUID of the user who created this record
+};
 
-  private static parseFromRow(row: Record<string, unknown>): Entity {
-    return {
-      entityId: row.entity_id as string,
-      version: row.version as string,
-      entityTypeVersionId: row.entity_type_version_id as string,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      properties:
-        typeof row.properties === "string"
-          ? JSON.parse(row.properties)
-          : row.properties,
-      createdBy: row.created_by as string,
-    };
-  }
+export const entityEditionTableName = "entity_editions";
 
-  static parseWal2JsonMsg(msg: Wal2JsonMsg): Entity {
-    if (msg.table !== "entities") {
-      throw new Error(`invalid table "${msg.table}" for an 'entities' update`);
-    }
-    const obj = Object.fromEntries(
-      msg.columns.map(({ name, value }) => [name, value]),
+export const entityEditionRecordFromRealtimeMessage = (
+  message: Wal2JsonMsg,
+): EntityEditionRecord => {
+  if (message.table !== entityEditionTableName) {
+    throw new Error(
+      `Invalid table "${message.table}", expected ${entityEditionTableName}`,
     );
-    return this.parseFromRow(obj);
   }
-}
+  const obj = Object.fromEntries(
+    message.columns.map(({ name, value }) => [name, value]),
+  );
 
-export class Link {
-  constructor(
-    /**
-     * @todo Update table definition when provenance info is added for updates
-     *   https://app.asana.com/0/1202805690238892/1202848989198291/f
-     */
-    public sourceEntityId: string,
-    public targetEntityId: string,
-    public linkTypeVersionId: string,
-    public createdBy: string,
-  ) {}
-
-  private static parseFromRow(row: Record<string, unknown>): Link {
-    return {
-      sourceEntityId: row.source_entity_id as string,
-      targetEntityId: row.target_entity_id as string,
-      linkTypeVersionId: row.link_type_version_id as string,
-      createdBy: row.created_by as string,
-    };
-  }
-
-  static parseWal2JsonMsg(msg: Wal2JsonMsg): Link {
-    if (msg.table !== "links") {
-      throw new Error(`invalid table "${msg.table}" for a 'link' update`);
-    }
-    const obj = Object.fromEntries(
-      msg.columns.map(({ name, value }) => [name, value]),
-    );
-    return this.parseFromRow(obj);
-  }
-}
+  return {
+    archived: obj.archived as boolean,
+    entityEditionId: obj.entity_edition_id as Uuid,
+    properties: JSON.parse(obj.properties as string) as JsonObject,
+    leftToRightOrder: obj.left_to_right_order as number | undefined,
+    rightToLeftOrder: obj.right_to_left_order as number | undefined,
+    recordCreatedById: obj.record_created_by_id as Uuid | undefined,
+  };
+};

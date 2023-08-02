@@ -11,7 +11,10 @@ import {
   getEntityTypesByBaseUrl,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -65,6 +68,7 @@ const getPropertyTypes = (
 
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
+  requestedVersion: number | null,
   accountId: AccountId | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
@@ -80,9 +84,12 @@ export const useEntityTypeValue = (
 
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
-  const contextEntityType = useMemo(() => {
+  const { contextEntityType, latestVersion } = useMemo<{
+    contextEntityType: EntityType | null;
+    latestVersion: number | null;
+  }>(() => {
     if (entityTypesLoading || !entityTypesSubgraph) {
-      return null;
+      return { contextEntityType: null, latestVersion: null };
     }
 
     const relevantEntityTypes = getEntityTypesByBaseUrl(
@@ -91,22 +98,50 @@ export const useEntityTypeValue = (
     );
 
     if (relevantEntityTypes.length > 0) {
-      const relevantVersions = relevantEntityTypes.map(
+      const availableVersions = relevantEntityTypes.map(
         ({
           metadata: {
             recordId: { version },
           },
         }) => version,
       );
-      const relevantVersionIndex = relevantVersions.indexOf(
-        Math.max(...relevantVersions),
-      );
 
-      return relevantEntityTypes[relevantVersionIndex]!.schema;
+      const maxVersion = Math.max(...availableVersions);
+
+      // Return the requested version if one has been specified and it exists
+      if (requestedVersion) {
+        const indexOfRequestedVersion =
+          availableVersions.indexOf(requestedVersion);
+
+        if (indexOfRequestedVersion >= 0) {
+          return {
+            contextEntityType:
+              relevantEntityTypes[indexOfRequestedVersion]!.schema,
+            latestVersion: maxVersion,
+          };
+        } else {
+          // eslint-disable-next-line no-console -- intentional debugging logging
+          console.warn(
+            `Requested version ${requestedVersion} not found – redirecting to latest.`,
+          );
+        }
+      }
+
+      // Otherwise, return the latest version
+      const relevantVersionIndex = availableVersions.indexOf(maxVersion);
+      return {
+        contextEntityType: relevantEntityTypes[relevantVersionIndex]!.schema,
+        latestVersion: maxVersion,
+      };
     }
 
-    return null;
-  }, [entityTypeBaseUrl, entityTypesLoading, entityTypesSubgraph]);
+    return { contextEntityType: null, latestVersion: null };
+  }, [
+    entityTypeBaseUrl,
+    entityTypesLoading,
+    entityTypesSubgraph,
+    requestedVersion,
+  ]);
 
   const [stateEntityType, setStateEntityType] = useState(contextEntityType);
 
@@ -114,7 +149,10 @@ export const useEntityTypeValue = (
     stateEntityType !== contextEntityType &&
     (contextEntityType ||
       (stateEntityType &&
-        extractBaseUrl(stateEntityType.$id) !== entityTypeBaseUrl))
+        (requestedVersion && entityTypeBaseUrl
+          ? stateEntityType.$id !==
+            versionedUrlFromComponents(entityTypeBaseUrl, requestedVersion)
+          : extractBaseUrl(stateEntityType.$id) !== entityTypeBaseUrl)))
   ) {
     setStateEntityType(contextEntityType);
   }
@@ -205,6 +243,7 @@ export const useEntityTypeValue = (
 
   return [
     entityTypeUnavailable ? null : stateEntityType,
+    latestVersion,
     propertyTypes,
     updateCallback,
     publishDraft,

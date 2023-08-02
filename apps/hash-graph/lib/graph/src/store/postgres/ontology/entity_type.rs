@@ -1,24 +1,30 @@
 use std::{borrow::Borrow, collections::HashMap};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::EntityType;
+use type_system::{url::BaseUrl, EntityType};
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
-    identifier::time::RightBoundedTemporalInterval,
-    ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
-    provenance::RecordCreatedById,
+    identifier::{ontology::OntologyTypeRecordId, time::RightBoundedTemporalInterval},
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        EntityTypeWithMetadata, OntologyElementMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
-        error::DeletionError,
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
             TraversalContext,
         },
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
-        Record, UpdateError,
+        UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -193,10 +199,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn create_entity_types(
         &mut self,
         entity_types: impl IntoIterator<
-            Item = (
-                EntityType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
@@ -206,10 +209,23 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
         for (schema, metadata) in entity_types {
+            let metadata = metadata.borrow();
+            let ontology_metadata = OntologyElementMetadata {
+                record_id: metadata.record_id.clone(),
+                custom: metadata.custom.common.clone(),
+            };
             if let Some(ontology_id) = transaction
-                .create(schema.clone(), metadata.borrow(), on_conflict)
+                .create_ontology_metadata(&ontology_metadata, on_conflict)
                 .await?
             {
+                transaction
+                    .insert_entity_type_with_id(
+                        ontology_id,
+                        schema.clone(),
+                        metadata.custom.label_property.as_ref(),
+                    )
+                    .await?;
+
                 inserted_entity_types.push((ontology_id, schema));
             }
         }
@@ -300,15 +316,32 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         record_created_by_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+        label_property: Option<BaseUrl>,
+    ) -> Result<EntityTypeMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        // This clone is currently necessary because we extract the references as we insert them.
-        // We can only insert them after the type has been created, and so we currently extract them
-        // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (ontology_id, metadata) = transaction
-            .update::<EntityType>(entity_type.clone(), record_created_by_id)
+        let url = entity_type.id();
+        let record_id = OntologyTypeRecordId::from(url.clone());
+
+        let (ontology_id, owned_by_id) = transaction
+            .update_owned_ontology_id(url, record_created_by_id)
             .await?;
+        transaction
+            .insert_entity_type_with_id(ontology_id, entity_type.clone(), label_property.as_ref())
+            .await
+            .change_context(UpdateError)?;
+
+        let metadata = EntityTypeMetadata {
+            record_id,
+            custom: CustomEntityTypeMetadata {
+                common: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(record_created_by_id),
+                    owned_by_id,
+                    temporal_versioning: None,
+                },
+                label_property,
+            },
+        };
 
         transaction
             .insert_entity_type_references(&entity_type, ontology_id)

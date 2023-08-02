@@ -2,6 +2,8 @@ import { JSONObjectResolver } from "graphql-scalars";
 
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
+import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
+import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
@@ -88,6 +90,10 @@ export const resolvers = {
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
+    // Integration
+    getLinearOrganization: loggedInAndSignedUpMiddleware(
+      getLinearOrganizationResolver,
+    ),
   },
 
   Mutation: {
@@ -126,11 +132,15 @@ export const resolvers = {
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
+    createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+
     // HASH instance admin mutations
     createUser:
       loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
-    createOrg:
-      loggedInAndSignedUpHashInstanceAdminMiddleware(createOrgResolver),
+    // Integration
+    syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
+      syncLinearIntegrationWithWorkspacesMutation,
+    ),
   },
 
   JSONObject: JSONObjectResolver,

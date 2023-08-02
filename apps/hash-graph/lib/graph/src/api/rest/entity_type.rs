@@ -26,8 +26,9 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeReference, OwnedOntologyElementMetadata,
+        patch_id_and_parse, CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTypeReference,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -89,6 +90,8 @@ struct CreateEntityTypeRequest {
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
     actor_id: RecordCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    label_property: Option<BaseUrl>,
 }
 
 #[utoipa::path(
@@ -97,7 +100,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfOntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
 
         (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
@@ -111,7 +114,7 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, Response>
+) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
@@ -141,6 +144,7 @@ where
         schema,
         owned_by_id,
         actor_id,
+        label_property,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -190,13 +194,17 @@ where
         ))
         })?;
 
-        metadata.push(OntologyElementMetadata::Owned(
-            OwnedOntologyElementMetadata::new(
-                entity_type.id().clone().into(),
-                ProvenanceMetadata::new(actor_id),
-                owned_by_id,
-            ),
-        ));
+        metadata.push(EntityTypeMetadata {
+            record_id: entity_type.id().clone().into(),
+            custom: CustomEntityTypeMetadata {
+                common: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata::new(actor_id),
+                    temporal_versioning: None,
+                    owned_by_id,
+                },
+                label_property: label_property.clone(),
+            },
+        });
 
         entity_types.push(entity_type);
     }
@@ -405,6 +413,8 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = String)]
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    label_property: Option<BaseUrl>,
 }
 
 #[utoipa::path(
@@ -424,11 +434,12 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
+) -> Result<Json<EntityTypeMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,
         mut type_to_update,
         actor_id,
+        label_property,
     }) = body;
 
     type_to_update.version += 1;
@@ -447,7 +458,7 @@ async fn update_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity_type(entity_type, actor_id)
+        .update_entity_type(entity_type, actor_id, label_property)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");

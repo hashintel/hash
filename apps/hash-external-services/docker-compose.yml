@@ -2,6 +2,7 @@ version: "3.9"
 
 volumes:
   hash-postgres-data:
+  hash-vault-data:
   logs:
 
 services:
@@ -373,5 +374,36 @@ services:
     tmpfs:
       - /tmp
     read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  hash-temporal-worker-integration:
+    image: hash-integration-worker
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      HASH_TEMPORAL_HOST: "temporal"
+      HASH_GRAPH_API_HOST: graph
+      HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  vault:
+    image: hashicorp/vault
+    ports:
+      - "${HASH_VAULT_PORT}:8200"
+    volumes:
+      - hash-postgres-data:/vault/file:rw
+      # - ./vault/config:/vault/config:rw - for when we need a config file
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN}"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
     security_opt:
       - no-new-privileges:true

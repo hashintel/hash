@@ -5,7 +5,7 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::ontology::OntologyElementMetadata;
+use crate::ontology::{EntityTypeMetadata, OntologyElementMetadata};
 
 pub mod subgraph;
 
@@ -44,6 +44,16 @@ impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
         (
             "MaybeListOfOntologyElementMetadata",
             Self::generate_schema(OntologyElementMetadata::schema().0, Action::Reference),
+        )
+    }
+}
+
+pub type MaybeListOfEntityTypeMetadata = ListOrValue<EntityTypeMetadata>;
+impl ToSchema<'_> for MaybeListOfEntityTypeMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "MaybeListOfEntityTypeMetadata",
+            Self::generate_schema(EntityTypeMetadata::schema().0, Action::Reference),
         )
     }
 }

@@ -12,7 +12,7 @@
 "area: apps > hash-api":
   - "apps/hash-api/**"
 
-"area: apps > hash-graph*":
+"area: apps > hash-graph":
   - "apps/hash-graph/**"
 
 "area: apps > hash-realtime":

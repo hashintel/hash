@@ -33,6 +33,7 @@ export const ConvertTypeButton = ({
         <Box>
           <Button
             variant="tertiary"
+            size="xs"
             onClick={onOpen}
             loading={loading}
             disabled={disabled}

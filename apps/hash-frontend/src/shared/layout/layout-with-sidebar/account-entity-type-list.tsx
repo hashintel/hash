@@ -14,17 +14,10 @@ import {
 } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import {
-  FunctionComponent,
-  Ref,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useEntityTypesOptional } from "../../entity-types-context/hooks";
+import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -34,7 +27,6 @@ import { NavLink } from "./nav-link";
 
 type SearchInputProps = {
   searchVisible: boolean;
-  searchInputRef: Ref<HTMLInputElement>;
   showSearchInput: () => void;
   // eslint-disable-next-line react/no-unused-prop-types -- @todo remove prop or use it in the component body
   hideSearchInput: () => void;
@@ -43,7 +35,6 @@ type SearchInputProps = {
 
 const SearchInput: FunctionComponent<SearchInputProps> = ({
   searchVisible,
-  searchInputRef,
   showSearchInput,
   // hideSearchInput,
   onChangeText,
@@ -64,7 +55,6 @@ const SearchInput: FunctionComponent<SearchInputProps> = ({
         variant="outlined"
         size="small"
         placeholder="Search for types"
-        inputRef={searchInputRef}
         onChange={(evt) => onChangeText(evt.target.value)}
         sx={({ palette }) => ({
           position: "absolute",
@@ -130,26 +120,19 @@ export const AccountEntityTypeList: FunctionComponent<
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const sortActionsPopupState = usePopupState({
     variant: "popover",
     popupId: "type-sort-actions-menu",
   });
 
-  useEffect(() => {
-    if (searchVisible) {
-      searchInputRef.current?.focus();
-    }
-  }, [searchVisible]);
-
-  const allEntityTypes = useEntityTypesOptional();
+  const allEntityTypes = useLatestEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
       return allEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.ownedById === ownedById,
+          root.metadata.custom.ownedById === ownedById,
       );
     }
 
@@ -245,7 +228,6 @@ export const AccountEntityTypeList: FunctionComponent<
 
               <SearchInput
                 searchVisible={searchVisible}
-                searchInputRef={searchInputRef}
                 showSearchInput={() => setSearchVisible(true)}
                 hideSearchInput={() => setSearchVisible(false)}
                 onChangeText={(query) => setSearchQuery(query)}
