@@ -6,6 +6,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.MACHINE_USER_TOKEN }}
 
       - name: Warm up repo
         uses: ./.github/actions/warm-up-repo
@@ -20,3 +22,5 @@ jobs:
           git add .
           git commit -m '`yarn fix`'
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
