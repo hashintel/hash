@@ -16,5 +16,7 @@
     "poetry:install-production": "poetry install --no-root --no-interaction --only main"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@apidevtools/swagger-cli": "4.0.4"
+  }
 }
