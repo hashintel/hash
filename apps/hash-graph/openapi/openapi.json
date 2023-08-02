@@ -879,6 +879,7 @@
             "title": "CustomOwnedOntologyElementMetadata",
             "required": [
               "provenance",
+              "temporalVersioning",
               "ownedById"
             ],
             "properties": {
@@ -889,12 +890,7 @@
                 "$ref": "#/components/schemas/ProvenanceMetadata"
               },
               "temporalVersioning": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
               }
             }
           },
@@ -903,6 +899,7 @@
             "title": "CustomExternalOntologyElementMetadata",
             "required": [
               "provenance",
+              "temporalVersioning",
               "fetchedAt"
             ],
             "properties": {
@@ -913,12 +910,7 @@
                 "$ref": "#/components/schemas/ProvenanceMetadata"
               },
               "temporalVersioning": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
               }
             }
           }

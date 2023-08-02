@@ -26,8 +26,12 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
+        time::{LeftClosedTemporalInterval, TransactionTime},
     },
-    ontology::{CustomOntologyMetadata, OntologyElementMetadata},
+    ontology::{
+        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        PartialCustomOntologyMetadata,
+    },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -201,21 +205,21 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query: &str = r#"
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time
-              ) VALUES ($1, tstzrange(now(), NULL, '[)'));
+              ) VALUES ($1, tstzrange(now(), NULL, '[)'))
+              RETURNING transaction_time;
             "#;
 
         self.as_client()
-            .query(query, &[&ontology_id])
+            .query_one(query, &[&ontology_id])
             .await
             .into_report()
-            .change_context(InsertionError)?;
-
-        Ok(())
+            .change_context(InsertionError)
+            .map(|row| row.get(0))
     }
 
     async fn create_ontology_owned_metadata(
@@ -610,59 +614,53 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
-        metadata: &OntologyElementMetadata,
+        record_id: &OntologyTypeRecordId,
+        custom_metadata: &PartialCustomOntologyMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<OntologyId>, InsertionError> {
-        match metadata.custom {
-            CustomOntologyMetadata::Owned {
+    ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
+    {
+        match custom_metadata {
+            PartialCustomOntologyMetadata::Owned {
                 provenance,
                 owned_by_id,
-                ..
             } => {
-                self.create_base_url(
-                    &metadata.record_id.base_url,
-                    on_conflict,
-                    OntologyLocation::Owned,
-                )
-                .await?;
+                self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
+                    .await?;
                 let ontology_id = self
-                    .create_ontology_id(
-                        &metadata.record_id,
-                        provenance.record_created_by_id,
-                        on_conflict,
-                    )
+                    .create_ontology_id(record_id, provenance.record_created_by_id, on_conflict)
                     .await?;
                 if let Some(ontology_id) = ontology_id {
-                    self.create_ontology_temporal_metadata(ontology_id).await?;
-                    self.create_ontology_owned_metadata(ontology_id, owned_by_id)
+                    let transaction_time =
+                        self.create_ontology_temporal_metadata(ontology_id).await?;
+                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
+                    Ok(Some((ontology_id, transaction_time)))
+                } else {
+                    Ok(None)
                 }
-                Ok(ontology_id)
             }
-            CustomOntologyMetadata::External {
+            PartialCustomOntologyMetadata::External {
                 provenance,
                 fetched_at,
-                ..
             } => {
                 self.create_base_url(
-                    &metadata.record_id.base_url,
+                    &record_id.base_url,
                     ConflictBehavior::Skip,
                     OntologyLocation::External,
                 )
                 .await?;
                 let ontology_id = self
-                    .create_ontology_id(
-                        &metadata.record_id,
-                        provenance.record_created_by_id,
-                        on_conflict,
-                    )
+                    .create_ontology_id(record_id, provenance.record_created_by_id, on_conflict)
                     .await?;
                 if let Some(ontology_id) = ontology_id {
-                    self.create_ontology_temporal_metadata(ontology_id).await?;
-                    self.create_ontology_external_metadata(ontology_id, fetched_at)
+                    let transaction_time =
+                        self.create_ontology_temporal_metadata(ontology_id).await?;
+                    self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
+                    Ok(Some((ontology_id, transaction_time)))
+                } else {
+                    Ok(None)
                 }
-                Ok(ontology_id)
             }
         }
     }
@@ -690,7 +688,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let url = database_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id) = self
+        let (ontology_id, owned_by_id, transaction_time) = self
             .update_owned_ontology_id(url, record_created_by_id)
             .await?;
         self.insert_with_id(ontology_id, database_type)
@@ -702,7 +700,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             custom: CustomOntologyMetadata::Owned {
                 provenance: ProvenanceMetadata::new(record_created_by_id),
                 owned_by_id,
-                temporal_versioning: None,
+                temporal_versioning: OntologyTemporalMetadata { transaction_time },
             },
         }))
     }
@@ -720,7 +718,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         url: &VersionedUrl,
         record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OwnedById), UpdateError> {
+    ) -> Result<
+        (
+            OntologyId,
+            OwnedById,
+            LeftClosedTemporalInterval<TransactionTime>,
+        ),
+        UpdateError,
+    > {
         let Some(owned_by_id) = self
             .as_client()
             .query_opt(
@@ -777,14 +782,15 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .change_context(UpdateError)?
             .expect("ontology id should have been created");
 
-        self.create_ontology_temporal_metadata(ontology_id)
+        let transaction_time = self
+            .create_ontology_temporal_metadata(ontology_id)
             .await
             .change_context(UpdateError)?;
         self.create_ontology_owned_metadata(ontology_id, owned_by_id)
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, owned_by_id))
+        Ok((ontology_id, owned_by_id, transaction_time))
     }
 
     /// # Errors

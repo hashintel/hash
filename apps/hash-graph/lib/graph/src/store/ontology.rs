@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, iter};
+use std::iter;
 
 use async_trait::async_trait;
 use error_stack::Result;
@@ -7,7 +7,7 @@ use type_system::{url::BaseUrl, DataType, EntityType, PropertyType};
 use crate::{
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        PropertyTypeWithMetadata,
+        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::RecordCreatedById,
     store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
@@ -28,10 +28,13 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     async fn create_data_type(
         &mut self,
         schema: DataType,
-        metadata: &OntologyElementMetadata,
-    ) -> Result<(), InsertionError> {
-        self.create_data_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
-            .await
+        metadata: PartialOntologyElementMetadata,
+    ) -> Result<OntologyElementMetadata, InsertionError> {
+        Ok(self
+            .create_data_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .await?
+            .pop()
+            .expect("created exactly one data type"))
     }
 
     /// Creates the provided [`DataType`]s.
@@ -44,12 +47,10 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_types(
         &mut self,
-        data_types: impl IntoIterator<
-            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -87,10 +88,13 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn create_property_type(
         &mut self,
         schema: PropertyType,
-        metadata: &OntologyElementMetadata,
-    ) -> Result<(), InsertionError> {
-        self.create_property_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
-            .await
+        metadata: PartialOntologyElementMetadata,
+    ) -> Result<OntologyElementMetadata, InsertionError> {
+        Ok(self
+            .create_property_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .await?
+            .pop()
+            .expect("created exactly one property type"))
     }
 
     /// Creates the provided [`PropertyType`]s.
@@ -104,14 +108,11 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
-            Item = (
-                PropertyType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -149,10 +150,13 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn create_entity_type(
         &mut self,
         schema: EntityType,
-        metadata: &EntityTypeMetadata,
-    ) -> Result<(), InsertionError> {
-        self.create_entity_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
-            .await
+        metadata: PartialEntityTypeMetadata,
+    ) -> Result<EntityTypeMetadata, InsertionError> {
+        Ok(self
+            .create_entity_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .await?
+            .pop()
+            .expect("created exactly one entity type"))
     }
 
     /// Creates the provided [`EntityType`]s.
@@ -165,12 +169,10 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_types(
         &mut self,
-        entity_types: impl IntoIterator<
-            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///

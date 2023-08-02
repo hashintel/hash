@@ -19,8 +19,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, CustomOntologyMetadata, DataTypeQueryToken, DataTypeWithMetadata,
-        OntologyElementMetadata, OntologyTypeReference,
+        patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
+        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -118,7 +118,7 @@ where
 
     let schema_iter = schema.into_iter();
     let mut data_types = Vec::with_capacity(schema_iter.size_hint().0);
-    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
     for schema in schema_iter {
         let data_type: DataType = schema.try_into().into_report().map_err(|report| {
@@ -133,11 +133,10 @@ where
             StatusCode::UNPROCESSABLE_ENTITY
         })?;
 
-        metadata.push(OntologyElementMetadata {
+        partial_metadata.push(PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
-            custom: CustomOntologyMetadata::Owned {
+            custom: PartialCustomOntologyMetadata::Owned {
                 provenance: ProvenanceMetadata::new(actor_id),
-                temporal_versioning: None,
                 owned_by_id,
             },
         });
@@ -145,9 +144,9 @@ where
         data_types.push(data_type);
     }
 
-    store
+    let mut metadata = store
         .create_data_types(
-            data_types.into_iter().zip(metadata.iter()),
+            data_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
         .await

@@ -113,7 +113,7 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
         self.temporal_metadata
             .start_send(OntologyTemporalMetadataRow {
                 ontology_id,
-                transaction_time: temporal_versioning.map(|t| t.transaction_time),
+                transaction_time: temporal_versioning.transaction_time,
             })
             .into_report()
             .change_context(SnapshotRestoreError::Read)
