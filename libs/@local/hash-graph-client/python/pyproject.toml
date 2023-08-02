@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "hash-graph-client"
 version = "0.0.0"
-description = "Type definitions for the type system and entity validation based on schemas"
+description = "OpenAPI client for the HASH Graph API"
 license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
