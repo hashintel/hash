@@ -193,8 +193,7 @@ const setBlockChildEntity = (
     targetEntity.metadata.recordId.entityId,
   );
 
-  // Add target entity to draft store if it is not
-  // present there
+  // Add target entity to draft store if it is not present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
     const targetEntityDraftId = generateDraftIdForEntity(
@@ -223,7 +222,8 @@ const setBlockChildEntity = (
     );
   }
 
-  draftBlockEntity.properties.entity = targetDraftEntity;
+  // @todo sort out entity store types – search https://app.asana.com/0/0/1203099452204542/f
+  draftBlockEntity.blockChildEntity = targetDraftEntity as any;
 };
 
 /**
@@ -577,13 +577,13 @@ class ProsemirrorStateChangeHandler {
     // Block -> Entity -> Entity -> Component node
     //  firstChild refers to ^
     //  firstchild.firstChild refers to  ^
-    // and we'd like to update the child entity's text contents approrpiately.
+    // and we'd like to update the child entity's text contents appropriately.
 
     if (
       isTextEntity(childEntity) &&
       node.firstChild &&
       node.firstChild.firstChild &&
-      // Check if the next next entity node's child is a component node
+      // Check if the next entity node's child is a component node
       isComponentNode(node.firstChild.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);

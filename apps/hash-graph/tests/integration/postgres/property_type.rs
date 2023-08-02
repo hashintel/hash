@@ -1,4 +1,3 @@
-use graph::ontology::OntologyTypeWithMetadata;
 use graph_test_data::{data_type, property_type};
 use type_system::{repr, PropertyType};
 
@@ -44,7 +43,7 @@ async fn query() {
         .await
         .expect("could not get property type");
 
-    assert_eq!(property_type.inner(), &favorite_quote_pt);
+    assert_eq!(property_type.schema, favorite_quote_pt);
 }
 
 #[tokio::test]
@@ -86,6 +85,6 @@ async fn update() {
     // TODO: we probably want to be testing more interesting queries, checking an update should
     //  probably use getLatestVersion
     //  https://app.asana.com/0/0/1202884883200974/f
-    assert_eq!(&user_id_pt_v1, returned_user_id_pt_v1.inner());
-    assert_eq!(&user_id_pt_v2, returned_user_id_pt_v2.inner());
+    assert_eq!(user_id_pt_v1, returned_user_id_pt_v1.schema);
+    assert_eq!(user_id_pt_v2, returned_user_id_pt_v2.schema);
 }

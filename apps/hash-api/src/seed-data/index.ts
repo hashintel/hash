@@ -77,8 +77,8 @@ export const seedOrgsAndUsers = async (params: {
 
     for (const user of createdUsers) {
       await joinOrg(context, {
-        user,
-        org: sharedOrg,
+        userEntityId: user.entity.metadata.recordId.entityId,
+        orgEntityId: sharedOrg.entity.metadata.recordId.entityId,
         responsibility: "Member",
         actorId: systemUserAccountId,
       });

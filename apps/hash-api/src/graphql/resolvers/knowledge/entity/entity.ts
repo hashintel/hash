@@ -30,9 +30,12 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { genId } from "../../../../util";
 import {
+  Mutation,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
+  MutationInferEntitiesArgs,
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
   QueryResolvers,
@@ -305,4 +308,33 @@ export const archiveEntityResolver: ResolverFn<
   await archiveEntity(context, { entity, actorId: user.accountId });
 
   return true;
+};
+
+export const inferEntitiesResolver: ResolverFn<
+  Mutation["inferEntities"],
+  null,
+  LoggedInGraphQLContext,
+  MutationInferEntitiesArgs
+> = async (_, { textInput, entityTypeIds }, { user, temporal }) => {
+  if (!temporal) {
+    throw new Error("Temporal client not available");
+  }
+
+  const status = await temporal.workflow.execute("inferEntities", {
+    taskQueue: "aipy",
+    args: [
+      {
+        textInput,
+        entityTypeIds,
+        actorId: user.accountId,
+      },
+    ],
+    workflowId: `inferEntities-${genId()}`,
+  });
+
+  if (status.code !== "OK") {
+    throw new Error(status.message);
+  }
+
+  return status.contents[0];
 };

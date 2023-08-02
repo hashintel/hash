@@ -139,20 +139,20 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["canEditResource"]
   >(
     ({ kind, resource }) => {
-      if (!authenticatedUser) {
+      if (!authenticatedUser?.accountSignupComplete) {
         return {
           allowed: false,
-          message: `Sign in to edit ${
-            kind === "link-type" ? "link" : "property"
-          } type.`,
+          message: `${
+            authenticatedUser ? "Complete sign up" : "Sign in"
+          } to edit ${kind === "link-type" ? "link" : "property"} type.`,
         };
       }
 
       const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
       const resourceAccountId =
         resourceMetadata &&
-        "ownedById" in resourceMetadata &&
-        resourceMetadata.ownedById;
+        "ownedById" in resourceMetadata.custom &&
+        resourceMetadata.custom.ownedById;
 
       return resourceAccountId &&
         canUserEditResource(resourceAccountId, authenticatedUser)

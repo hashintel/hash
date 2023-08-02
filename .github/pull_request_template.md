@@ -5,11 +5,11 @@
 
 ## 🔗 Related links
 
-<!-- Add links to any context it is worth capturing (e.g. Issues, Discussions, Discord, Asana) -->
+<!-- Add links to any context it is worth capturing (e.g. Issues, Discussions, Discord) -->
 <!-- Mark any links which are not publicly accessible as _(internal)_ -->
 <!-- Don't rely on links to explain the PR, especially internal ones: use the sections above -->
 
-- [Asana task](link) _(internal)_
+- ...
 
 ## 🚫 Blocked by
 
@@ -30,55 +30,55 @@
 ### 🚢 Has this modified a publishable library?
 
 <!-- Confirm you have taken the necessary action to record a changeset or publish a change, as appropriate -->
-<!-- Remove the initial placeholder, and uncomment AT LEAST ONE of these. This MUST be done prior to merging. Do not delete this section! see libs/README.md for info on publishing -->
+<!-- Tick AT LEAST ONE box and delete the rest. Do not delete this section! see libs/README.md for info on publishing -->
 
 This PR:
 
-- [ ] **⚠️ This is a placeholder, please uncomment at least one of the lines following this one and then delete this. ⚠️**
+- [ ] modifies an **npm**-publishable library and **I have added a changeset file(s)**
 
-<!-- - [x] modifies an **npm**-publishable library and **I have added a changeset file(s)** -->
+- [ ] modifies a **Cargo**-publishable library and **I have amended the version**
 
-<!-- - [x] modifies a **Cargo**-publishable library and **I have amended the version** -->
+- [ ] modifies a **Cargo**-publishable library, but **it is not yet ready to publish**
 
-<!-- - [x] modifies a **Cargo**-publishable library, but **it is not yet ready to publish** -->
+- [ ] modifies a **block** that will need publishing via GitHub action once merged
 
-<!-- - [x] modifies a **block** that will need publishing via GitHub action once merged -->
+- [ ] does not modify any publishable blocks or libraries, or modifications do not need publishing
 
-<!-- - [x] does not modify any publishable blocks or libraries, or modifications do not need publishing -->
-
-<!-- - [x] I am unsure / need advice -->
+- [x] I am unsure / need advice
 
 ### 📜 Does this require a change to the docs?
 
 <!-- If this adds a user facing feature or modifies how an existing feature is used, it likely needs a docs change. -->
-<!-- Remove the initial placeholder, and uncomment AT LEAST ONE of these, filling in information as necessary. This MUST be done prior to merging. Do not delete this section! see libs/README.md for info on publishing -->
+<!-- Tick ONE box and delete the rest. Do not delete this section! -->
 
 The changes in this PR:
 
-- [ ] **⚠️ This is a placeholder, please uncomment at least one of the lines following this one and then delete this. ⚠️**
+- [ ] are internal and do not require a docs change
 
-<!-- - [x] is internal and does not require a docs change -->
+- [ ] are in a state where docs changes are not _yet_ required but will be
 
-<!-- - [x] is in a state where docs changes are not _yet_ required but will be
-  - this is tracked within: [Insert Link Here](link) -->
+  - this is tracked in: [Insert Link Here](link)
 
-<!-- - [x] requires changes to docs
-  - <CHANGES TO DOCS EXPLAINED HERE> -->
+- [ ] require changes to docs which **are made** as part of this PR
+
+- [ ] require changes to docs which are **not** made in this PR
+
+  - _Provide more detail here_
+
+- [x] I am unsure / need advice
 
 ### 🕸️ Does this require a change to the Turbo Graph?
 
 <!-- If this adds or moves an existing package, modifies `scripts` in a `package.json`, it likely needs a turbo graph change. -->
-<!-- Remove the initial placeholder, and uncomment AT LEAST ONE of these, filling in information as necessary. This MUST be done prior to merging. Do not delete this section! see libs/README.md for info on publishing -->
+<!-- Tick ONE box and delete the rest. Do not delete this section! -->
 
 The changes in this PR:
 
-- [ ] **⚠️ This is a placeholder, please uncomment at least one of the lines following this one and then delete this. ⚠️**
+- [ ] affected the execution graph, and the `turbo.json`'s have been updated to reflect this
 
-<!-- - [x] affected the execution graph, and the `turbo.json`'s have been updated to reflect this -->
+- [ ] do not affect the execution graph
 
-<!-- - [x] does not affect the execution graph -->
-
-<!-- - [x] I am unsure / need advice -->
+- [x] I am unsure / need advice
 
 ## ⚠️ Known issues
 

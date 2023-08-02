@@ -1,9 +1,6 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 
-import {
-  getCommentById,
-  getCommentText,
-} from "../../../../graph/knowledge/system-types/comment";
+import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -18,10 +15,9 @@ export const commentHasTextResolver: ResolverFn<
 > = async ({ metadata }, _, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(context, {
-    entityId: metadata.recordId.entityId,
+  const textEntity = await getCommentText(context, {
+    commentEntityId: metadata.recordId.entityId,
   });
-  const textEntity = await getCommentText(context, { comment });
 
   // @todo implement `Text` class so that a `Text.getTokens()` method can be used here
   return (

@@ -39,7 +39,6 @@ import {
   shortnameIsTaken,
 } from "./account.fields";
 import { addHashInstanceAdmin, getHashInstance } from "./hash-instance";
-import { Org } from "./org";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
@@ -75,11 +74,11 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   ] as string;
 
   const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
+    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const preferredName = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl
+    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const emails = entity.properties[
@@ -139,7 +138,7 @@ export const getUserByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
+                  SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
                 ],
               },
               { parameter: params.shortname },
@@ -281,7 +280,7 @@ export const createUser: ImpureGraphFunction<
       kratosIdentityId,
     ...(shortname
       ? {
-          [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl]:
+          [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]:
             shortname,
         }
       : {}),
@@ -394,7 +393,7 @@ export const updateUserShortname: ImpureGraphFunction<
   const updatedUser = await updateEntityProperty(ctx, {
     entity: user.entity,
     propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
+      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
     value: updatedShortname,
     actorId,
   }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
@@ -407,7 +406,7 @@ export const updateUserShortname: ImpureGraphFunction<
     await updateEntityProperty(ctx, {
       entity: user.entity,
       propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUrl,
+        SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
       value: previousShortname,
       actorId,
     });
@@ -458,19 +457,19 @@ export const updateUserPreferredName: ImpureGraphFunction<
  */
 export const joinOrg: ImpureGraphFunction<
   {
-    user: User;
-    org: Org;
+    userEntityId: EntityId;
+    orgEntityId: EntityId;
     responsibility: string;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { user, org, responsibility, actorId } = params;
+  const { userEntityId, orgEntityId, responsibility, actorId } = params;
 
   await createOrgMembership(ctx, {
     responsibility,
-    org,
-    user,
+    orgEntityId,
+    userEntityId,
     actorId,
   });
 };
@@ -481,11 +480,11 @@ export const joinOrg: ImpureGraphFunction<
  * @param params.user - the user
  */
 export const getUserOrgMemberships: ImpureGraphFunction<
-  { user: User },
+  { userEntityId: EntityId },
   Promise<OrgMembership[]>
-> = async (ctx, { user }) => {
+> = async (ctx, { userEntityId }) => {
   const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: user.entity.metadata.recordId.entityId,
+    entityId: userEntityId,
     linkEntityTypeVersionedUrl:
       SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
   });
@@ -502,7 +501,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
  * @param params.orgEntityUuid - the entity Uuid of the org the user may be a member of
  */
 export const isUserMemberOfOrg: ImpureGraphFunction<
-  { user: User; orgEntityUuid: EntityUuid },
+  { userEntityId: EntityId; orgEntityUuid: EntityUuid },
   Promise<boolean>
 > = async (ctx, params) => {
   const orgMemberships = await getUserOrgMemberships(ctx, params);

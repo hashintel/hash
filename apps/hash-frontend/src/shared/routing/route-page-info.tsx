@@ -1,4 +1,5 @@
 import { EntityUuid } from "@local/hash-subgraph";
+import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import {
   createContext,
@@ -8,11 +9,6 @@ import {
   useMemo,
 } from "react";
 
-import {
-  isPageParsedUrlQuery,
-  parsePageUrlQueryParams,
-} from "../../pages/[shortname]/[page-slug].page";
-
 type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;
 };
@@ -21,6 +17,24 @@ const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
   undefined,
 );
 
+type PageParsedUrlQuery = {
+  shortname: string;
+  "page-slug": string;
+};
+
+export const isPageParsedUrlQuery = (
+  queryParams: NextParsedUrlQuery,
+): queryParams is PageParsedUrlQuery =>
+  typeof queryParams.shortname === "string" &&
+  typeof queryParams["page-slug"] === "string";
+
+export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
+  const workspaceShortname = params.shortname.slice(1);
+
+  const pageEntityUuid = params["page-slug"] as EntityUuid;
+
+  return { workspaceShortname, pageEntityUuid };
+};
 /**
  * @todo we currently pull the pageEntityId from the url and that works for now
  * although this wouldn't work when we switch to using slugs instead of pageEntityIds in the url.

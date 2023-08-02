@@ -19,13 +19,40 @@ resource "aws_ssm_parameter" "graph_env_vars" {
 }
 
 locals {
+  graph_migration_container_def = {
+    name        = "${local.graph_prefix}-migration"
+    image       = "${var.graph_image.url}:latest"
+    cpu         = 0 # let ECS divvy up the available CPU
+    mountPoints = []
+    volumesFrom = []
+    command     = ["migrate"]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-create-group"  = "true"
+        "awslogs-group"         = local.log_group_name
+        "awslogs-stream-prefix" = local.graph_service_name
+        "awslogs-region"        = var.region
+      }
+    }
+    Environment = [for env_var in var.graph_env_vars :
+      { name = env_var.name, value = env_var.value } if !env_var.secret]
+
+    secrets = [for env_name, ssm_param in aws_ssm_parameter.graph_env_vars :
+      { name = env_name, valueFrom = ssm_param.arn }]
+
+    essential = false
+  }
   graph_service_container_def = {
     name        = "${local.graph_prefix}container"
     image       = "${var.graph_image.url}:latest"
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
-    dependsOn   = [{ condition = "HEALTHY", containerName = local.type_fetcher_service_container_def.name }]
+    dependsOn   = [
+      { condition = "HEALTHY", containerName = local.type_fetcher_service_container_def.name },
+      { condition = "SUCCESS", containerName = local.graph_migration_container_def.name },
+    ]
     command     = ["server"]
     healthCheck = {
       command  = ["CMD", "/hash-graph", "server", "--healthcheck"]

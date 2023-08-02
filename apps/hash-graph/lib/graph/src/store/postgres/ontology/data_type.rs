@@ -1,20 +1,23 @@
 use std::borrow::Borrow;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use type_system::DataType;
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::RecordCreatedById,
     store::{
         crud::Read,
-        error::DeletionError,
         postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
-        Record, UpdateError,
+        UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
@@ -86,9 +89,14 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         for (schema, metadata) in data_types {
-            transaction
-                .create(schema.clone(), metadata.borrow(), on_conflict)
-                .await?;
+            if let Some(ontology_id) = transaction
+                .create_ontology_metadata(metadata.borrow(), on_conflict)
+                .await?
+            {
+                transaction
+                    .insert_with_id(ontology_id, schema.clone())
+                    .await?;
+            }
         }
 
         transaction.commit().await.change_context(InsertionError)?;

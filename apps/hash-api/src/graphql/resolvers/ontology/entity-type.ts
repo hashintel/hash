@@ -55,6 +55,7 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    latestOnly = true,
   },
   { dataSources },
   __,
@@ -62,9 +63,11 @@ export const queryEntityTypesResolver: ResolverFn<
   const { graphApi } = dataSources;
 
   const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
-    filter: {
-      equal: [{ path: ["version"] }, { parameter: "latest" }],
-    },
+    filter: latestOnly
+      ? {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        }
+      : { all: [] },
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,

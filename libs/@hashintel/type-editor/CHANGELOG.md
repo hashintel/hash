@@ -1,5 +1,11 @@
 # @hashintel/type-editor
 
+## 0.0.24
+
+### Patch Changes
+
+- [#2616](https://github.com/hashintel/hash/pull/2616) [`6ed0fcac1`](https://github.com/hashintel/hash/commit/6ed0fcac1f7931886c249d3a72ecb076960d0668) Thanks [@luisbettencourt](https://github.com/luisbettencourt)! - add 'open' link button to link destination entity types
+
 ## 0.0.23
 
 ### Patch Changes

@@ -12,7 +12,7 @@ import {
   getFormDataFromSchema,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { BaseUrl } from "@local/hash-subgraph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Backdrop, Box, Slide, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
@@ -29,7 +29,7 @@ const SLIDE_WIDTH = 1000;
 interface TypePreviewSlideProps {
   onClose: () => void;
   onNavigateToType: (url: VersionedUrl) => void;
-  typeUrl: BaseUrl;
+  typeUrl: VersionedUrl;
 }
 
 export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
@@ -44,21 +44,23 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
   });
   const { reset } = formMethods;
 
+  const { baseUrl, version } = componentsFromVersionedUrl(typeUrl);
+
   const [
     remoteEntityType,
+    _maxVersion,
     remotePropertyTypes,
     _updateEntityType,
     _publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
-    typeUrl,
+    baseUrl,
+    version,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
       reset(getFormDataFromSchema(fetchedEntityType));
     },
   );
-
-  const open = !!typeUrl;
 
   const [animateOut, setAnimateOut] = useState(false);
 
@@ -85,7 +87,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
 
   return (
     <Backdrop
-      open={open}
+      open
       onClick={() => {
         setAnimateOut(true);
 
@@ -97,7 +99,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
       sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
     >
       <Slide
-        in={open && !animateOut}
+        in={!animateOut}
         direction="left"
         onClick={(event) => event.stopPropagation()}
       >

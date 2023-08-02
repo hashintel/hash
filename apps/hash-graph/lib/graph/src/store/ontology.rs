@@ -2,11 +2,11 @@ use std::{borrow::Borrow, iter};
 
 use async_trait::async_trait;
 use error_stack::Result;
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::{url::BaseUrl, DataType, EntityType, PropertyType};
 
 use crate::{
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::RecordCreatedById,
@@ -149,7 +149,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn create_entity_type(
         &mut self,
         schema: EntityType,
-        metadata: &OntologyElementMetadata,
+        metadata: &EntityTypeMetadata,
     ) -> Result<(), InsertionError> {
         self.create_entity_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
             .await
@@ -166,10 +166,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn create_entity_types(
         &mut self,
         entity_types: impl IntoIterator<
-            Item = (
-                EntityType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
@@ -194,5 +191,6 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         &mut self,
         entity_type: EntityType,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError>;
+        label_property: Option<BaseUrl>,
+    ) -> Result<EntityTypeMetadata, UpdateError>;
 }

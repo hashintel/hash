@@ -18,7 +18,8 @@ COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/yarn.lock yarn.lock
 COPY --from=builder /app/out/full/patches patches
 
-RUN yarn install --frozen-lockfile --prefer-offline \
+RUN yarn config set network-timeout 300000 && \
+    yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean
 
 COPY --from=builder /app/out/full/ .

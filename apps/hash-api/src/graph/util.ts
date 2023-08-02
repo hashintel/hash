@@ -3,6 +3,7 @@ import {
   DataTypeReference,
   ENTITY_TYPE_META_SCHEMA,
   EntityType,
+  extractBaseUrl,
   Object,
   OneOf,
   PROPERTY_TYPE_META_SCHEMA,
@@ -206,6 +207,7 @@ export const propertyTypeInitializer = (
 
 type linkDestinationConstraint =
   | EntityTypeWithMetadata
+  | VersionedUrl
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
   | "SELF_REFERENCE";
 
@@ -214,12 +216,12 @@ export type EntityTypeCreatorParams = {
   title: string;
   description?: string;
   properties?: {
-    propertyType: PropertyTypeWithMetadata;
+    propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks?: {
-    linkEntityType: EntityTypeWithMetadata;
+    linkEntityType: EntityTypeWithMetadata | VersionedUrl;
     destinationEntityTypes?: [
       linkDestinationConstraint,
       ...linkDestinationConstraint[],
@@ -241,20 +243,36 @@ export const generateSystemEntityTypeSchema = (
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyType.metadata.recordId.baseUrl]: array
+        [typeof propertyType === "object"
+          ? propertyType.metadata.recordId.baseUrl
+          : extractBaseUrl(propertyType)]: array
           ? {
               type: "array",
-              items: { $ref: propertyType.schema.$id },
+              items: {
+                $ref:
+                  typeof propertyType === "object"
+                    ? propertyType.schema.$id
+                    : propertyType,
+              },
               ...(array === true ? {} : array),
             }
-          : { $ref: propertyType.schema.$id },
+          : {
+              $ref:
+                typeof propertyType === "object"
+                  ? propertyType.schema.$id
+                  : propertyType,
+            },
       }),
       {},
     ) ?? {};
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyType }) => propertyType.metadata.recordId.baseUrl);
+    .map(({ propertyType }) =>
+      typeof propertyType === "object"
+        ? propertyType.metadata.recordId.baseUrl
+        : extractBaseUrl(propertyType),
+    );
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(
@@ -269,17 +287,23 @@ export const generateSystemEntityTypeSchema = (
         },
       ): EntityType["links"] => ({
         ...prev,
-        [linkEntityType.schema.$id]: {
+        [typeof linkEntityType === "object"
+          ? linkEntityType.schema.$id
+          : linkEntityType]: {
           type: "array",
           ordered,
           items: destinationEntityTypes
             ? {
-                oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
-                  $ref:
-                    entityTypeOrReference === "SELF_REFERENCE"
-                      ? params.entityTypeId
-                      : entityTypeOrReference.schema.$id,
-                })),
+                oneOf: destinationEntityTypes.map(
+                  (entityTypeIdOrReference) => ({
+                    $ref:
+                      entityTypeIdOrReference === "SELF_REFERENCE"
+                        ? params.entityTypeId
+                        : typeof entityTypeIdOrReference === "object"
+                        ? entityTypeIdOrReference.schema.$id
+                        : entityTypeIdOrReference,
+                  }),
+                ),
               }
             : {},
           minItems,

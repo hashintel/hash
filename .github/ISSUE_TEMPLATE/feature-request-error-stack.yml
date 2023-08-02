@@ -1,10 +1,9 @@
 name: Suggestion or request (error-stack)
 description: Suggest an idea, feature or enhancement to help us improve `error-stack`
 labels:
-  - A-error-stack
-  - C-enhancement
+  - "area: libs > error-stack"
+  - "category: enhancement"
 assignees:
-  - Alfred-Mountfield
   - TimDiekmann
 body:
   - type: markdown

@@ -50,6 +50,17 @@ jobs:
         with:
           hash-ai-worker-py: true
 
+  build-hash-integration-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          hash-integration-worker: true
+
   linting:
     name: Linting
     runs-on: ubuntu-latest
@@ -60,9 +71,7 @@ jobs:
         if: ${{ success() || failure() }}
 
       - name: Setup python
-        run: |
-          yarn poetry:install-dev
-          yarn poetry:install-lint-tools
+        run: yarn poetry:install
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
@@ -258,6 +267,7 @@ jobs:
           hash-graph: true
           hash-ai-worker-ts: true
           hash-ai-worker-py: true
+          hash-integration-worker: true
 
       - name: Launch external services
         run: |
@@ -323,6 +333,7 @@ jobs:
           hash-graph: true
           hash-ai-worker-ts: true
           hash-ai-worker-py: true
+          hash-integration-worker: true
 
       - name: Launch external services
         run: |

@@ -5,16 +5,14 @@ description = ""
 license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
-packages = [{include = "app"}]
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
+hash-graph-types = { path = "../../libs/@local/hash-graph-types/dist/hash_graph_types-0.0.0-py3-none-any.whl" }
+
 aiohttp = "^3.8"
-pydantic = "^2.0"
-pydantic_core = "^2.0"
 python = "^3.11"
 python-dotenv = "^1.0"
-python-slugify = "^8.0"
-types-python-slugify = "^8.0"
 openai = "^0.27.8"
 temporalio = "^1.2"
 

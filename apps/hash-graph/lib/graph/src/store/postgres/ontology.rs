@@ -4,15 +4,15 @@ mod ontology_id;
 mod property_type;
 mod read;
 
+#[cfg(hash_graph_test_environment)]
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::Transaction;
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::ontology_id::OntologyId;
-use crate::{
-    ontology::OntologyType,
-    store::{error::DeletionError, AsClient, PostgresStore},
-};
+#[cfg(hash_graph_test_environment)]
+use crate::store::{error::DeletionError, AsClient};
+use crate::{ontology::OntologyType, store::PostgresStore};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///

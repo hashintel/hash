@@ -1,7 +1,4 @@
-import {
-  getCommentById,
-  getCommentReplies,
-} from "../../../../graph/knowledge/system-types/comment";
+import { getCommentReplies } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
@@ -15,10 +12,9 @@ export const commentRepliesResolver: ResolverFn<
 > = async ({ metadata }, _, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(context, {
-    entityId: metadata.recordId.entityId,
+  const replies = await getCommentReplies(context, {
+    commentEntityId: metadata.recordId.entityId,
   });
-  const replies = await getCommentReplies(context, { comment });
 
   return replies.filter((reply) => !reply.deletedAt).map(mapCommentToGQL);
 };

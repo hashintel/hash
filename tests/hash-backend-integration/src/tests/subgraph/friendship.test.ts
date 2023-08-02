@@ -297,16 +297,29 @@ describe("Ontology queries", () => {
     });
     expect(subgraph.roots.length).toEqual(4);
 
-    expect(
-      getRoots(subgraph)
-        .map(({ schema }) => schema.$id)
-        .sort(),
-    ).toStrictEqual([
+    const entityTypes = getRoots(subgraph);
+    expect(entityTypes.map(({ schema }) => schema.$id).sort()).toStrictEqual([
       "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
       "http://localhost:3000/@alice/types/entity-type/person/v/1",
       "http://localhost:3000/@alice/types/entity-type/person/v/2",
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
     ]);
+
+    expect(
+      entityTypes.find(
+        ({ schema }) =>
+          schema.$id ===
+          "http://localhost:3000/@alice/types/entity-type/person/v/1",
+      )!.metadata.custom.labelProperty,
+    ).toBeUndefined();
+
+    expect(
+      entityTypes.find(
+        ({ schema }) =>
+          schema.$id ===
+          "http://localhost:3000/@alice/types/entity-type/person/v/2",
+      )!.metadata.custom.labelProperty,
+    ).toStrictEqual("http://localhost:3000/@alice/types/property-type/name/");
   });
 });
 
