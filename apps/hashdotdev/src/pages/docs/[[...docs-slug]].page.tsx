@@ -1,9 +1,11 @@
-import { Tab, Tabs } from "@mui/material";
+import { Box, Tab, Tabs } from "@mui/material";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { MouseEvent, useMemo } from "react";
 
+import { Button } from "../../components/button";
+import { FaIcon } from "../../components/icons/fa-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
 import { DocsContent } from "./docs-content";
@@ -101,31 +103,50 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
 
   return currentDocsTab ? (
     <>
-      <Tabs
+      <Box
         sx={{
+          display: "flex",
+          justifyContent: "space-between",
           background: ({ palette }) => palette.gray[10],
           px: 2.5,
           borderBottomColor: ({ palette }) => palette.gray[30],
           borderBottomWidth: 1,
           borderBottomStyle: "solid",
         }}
-        value={currentDocsTab.href}
-        aria-label="docs-tabs"
       >
-        {docsTabs.map(({ href, title }) => (
-          <Tab
-            key={href}
-            label={title}
-            value={href}
-            href={href}
-            component="a"
-            onClick={(event: MouseEvent) => {
-              event.preventDefault();
-              void router.push(href);
-            }}
-          />
-        ))}
-      </Tabs>
+        <Tabs value={currentDocsTab.href} aria-label="docs-tabs">
+          {docsTabs.map(({ href, title }) => (
+            <Tab
+              key={href}
+              label={title}
+              value={href}
+              href={href}
+              component="a"
+              onClick={(event: MouseEvent) => {
+                event.preventDefault();
+                void router.push(href);
+              }}
+            />
+          ))}
+        </Tabs>
+        <Button
+          variant="tertiary"
+          href="https://hash.ai/discord"
+          startIcon={<FaIcon name="discord" type="brands" />}
+          sx={{
+            display: {
+              xs: "none",
+              md: "flex",
+            },
+            alignSelf: "center",
+            minHeight: "unset",
+            px: 1,
+          }}
+        >
+          Chat to us on Discord
+        </Button>
+      </Box>
+
       {isHomePage ? (
         <DocsHomePage />
       ) : serializedPage ? (
