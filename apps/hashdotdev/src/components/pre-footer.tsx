@@ -543,9 +543,10 @@ const Community: FunctionComponent = () => {
 };
 
 export const PreFooter: FunctionComponent<{
-  subscribe?: boolean;
-  recentBlogPosts?: boolean;
-}> = ({ subscribe = true, recentBlogPosts = false }) => (
+  subscribe: boolean;
+  recentBlogPosts: boolean;
+  community: boolean;
+}> = ({ subscribe, recentBlogPosts, community }) => (
   <>
     {subscribe ? (
       <Container component="section" sx={{ mb: 12, mt: 12 }}>
@@ -557,6 +558,6 @@ export const PreFooter: FunctionComponent<{
         <RecentBlogPosts />
       </Box>
     ) : null}
-    <Community />
+    {community ? <Community /> : null}
   </>
 );

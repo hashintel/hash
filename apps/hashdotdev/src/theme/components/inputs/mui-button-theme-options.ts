@@ -31,8 +31,12 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
     root: ({ ownerState, theme }) => {
       const { variant, size, color } = ownerState;
 
-      if (variant === "primarySquare" && size !== "large") {
-        throw new Error("primarySquare buttons must be large");
+      if (
+        variant === "primarySquare" &&
+        size !== "large" &&
+        size !== "medium"
+      ) {
+        throw new Error("primarySquare buttons must be large or medium");
       }
 
       const { typography } = theme;
@@ -76,6 +80,48 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             : theme.palette.yellow[800],
       };
 
+      if (variant === "primarySquare") {
+        const boxShadow = `inset 0px -2px 6px rgba(158, 217, 233, 0.20)`;
+
+        Object.assign(baseStyles, {
+          borderRadius: 4,
+          borderWidth: 1,
+          borderColor:
+            color === "purple"
+              ? theme.palette.purple[40]
+              : color === "blue"
+              ? theme.palette.blue[40]
+              : color === "mint"
+              ? theme.palette.mint[40]
+              : theme.palette.teal[40],
+          color: theme.palette.gray[90],
+          backgroundColor: theme.palette.white,
+          padding: theme.spacing("24px", "31px"),
+          fontWeight: 400,
+          boxShadow,
+          minHeight: 72,
+        });
+        Object.assign(hoverStyles, {
+          backgroundColor:
+            color === "purple"
+              ? theme.palette.purple[10]
+              : color === "blue"
+              ? theme.palette.blue[10]
+              : color === "mint"
+              ? theme.palette.mint[10]
+              : theme.palette.teal[10],
+          color: theme.palette.black,
+          boxShadow,
+        });
+        Object.assign(focusVisibleStyles, {
+          boxShadow: "none",
+        });
+        Object.assign(afterStyles, {
+          ...focusStyles(3, 7),
+          borderRadius: 10,
+        });
+      }
+
       switch (size) {
         case "large": {
           Object.assign(baseStyles, {
@@ -83,44 +129,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           });
 
           if (variant === "primarySquare") {
-            const boxShadow = `inset 0px -2px 6px rgba(158, 217, 233, 0.20)`;
-
             Object.assign(baseStyles, {
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor:
-                color === "purple"
-                  ? theme.palette.purple[40]
-                  : color === "blue"
-                  ? theme.palette.blue[40]
-                  : color === "mint"
-                  ? theme.palette.mint[40]
-                  : theme.palette.teal[40],
-              color: theme.palette.gray[90],
-              backgroundColor: theme.palette.white,
               padding: theme.spacing("24px", "31px"),
-              fontWeight: 400,
-              boxShadow,
-              minHeight: 72,
-            });
-            Object.assign(hoverStyles, {
-              backgroundColor:
-                color === "purple"
-                  ? theme.palette.purple[10]
-                  : color === "blue"
-                  ? theme.palette.blue[10]
-                  : color === "mint"
-                  ? theme.palette.mint[10]
-                  : theme.palette.teal[10],
-              color: theme.palette.black,
-              boxShadow,
-            });
-            Object.assign(focusVisibleStyles, {
-              boxShadow: "none",
-            });
-            Object.assign(afterStyles, {
-              ...focusStyles(3, 7),
-              borderRadius: 10,
             });
           } else {
             Object.assign(baseStyles, {
@@ -137,15 +147,13 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         case "medium": {
           Object.assign(baseStyles, {
             fontSize: typography.hashSmallText.fontSize,
-            minHeight: 42,
-            padding: theme.spacing("10px", "18px"),
-
-            ...(variant === "tertiary"
-              ? {
-                  minHeight: 33,
-                  padding: theme.spacing("6px", "16px"),
-                }
-              : {}),
+            minHeight: variant === "tertiary" ? 33 : 42,
+            padding:
+              variant === "primarySquare"
+                ? theme.spacing(1.75, 4)
+                : variant === "tertiary"
+                ? theme.spacing("6px", "16px")
+                : theme.spacing("10px", "18px"),
           });
           Object.assign(afterStyles, {
             ...focusStyles(buttonFocusBorderWidth, buttonFocusBorderOffset),
