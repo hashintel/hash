@@ -25,9 +25,9 @@ use crate::{
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeMetadata,
-        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeReference,
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        OntologyTypeReference, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
+        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -591,6 +591,20 @@ where
 
         self.store.update_data_type(data_type, actor_id).await
     }
+
+    async fn archive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_data_type(id).await
+    }
+
+    async fn unarchive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_data_type(id).await
+    }
 }
 
 #[async_trait]
@@ -642,6 +656,20 @@ where
             .update_property_type(property_type, actor_id)
             .await
     }
+
+    async fn archive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_property_type(id).await
+    }
+
+    async fn unarchive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_property_type(id).await
+    }
 }
 
 #[async_trait]
@@ -691,6 +719,20 @@ where
         self.store
             .update_entity_type(entity_type, actor_id, label_property)
             .await
+    }
+
+    async fn archive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_entity_type(id).await
+    }
+
+    async fn unarchive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_entity_type(id).await
     }
 }
 
