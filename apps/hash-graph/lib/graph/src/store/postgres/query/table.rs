@@ -45,37 +45,37 @@ impl ReferenceTable {
     pub const fn source_relation(self) -> ForeignKeyReference {
         match self {
             Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
-                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::SourcePropertyTypeOntologyId,
                 ),
             },
             Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
-                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsPropertiesOn(
                     PropertyTypeConstrainsPropertiesOn::SourcePropertyTypeOntologyId,
                 ),
             },
             Self::EntityTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeConstrainsPropertiesOn(
                     EntityTypeConstrainsPropertiesOn::SourceEntityTypeOntologyId,
                 ),
             },
             Self::EntityTypeInheritsFrom => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeInheritsFrom(
                     EntityTypeInheritsFrom::SourceEntityTypeOntologyId,
                 ),
             },
             Self::EntityTypeConstrainsLinksOn => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeConstrainsLinksOn(
                     EntityTypeConstrainsLinksOn::SourceEntityTypeOntologyId,
                 ),
             },
             Self::EntityTypeConstrainsLinkDestinationsOn => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeConstrainsLinkDestinationsOn(
                     EntityTypeConstrainsLinkDestinationsOn::SourceEntityTypeOntologyId,
                 ),
@@ -113,41 +113,41 @@ impl ReferenceTable {
                 on: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::TargetDataTypeOntologyId,
                 ),
-                join: Column::DataTypes(DataTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
                 on: Column::PropertyTypeConstrainsPropertiesOn(
                     PropertyTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
                 ),
-                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
                 on: Column::EntityTypeConstrainsPropertiesOn(
                     EntityTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
                 ),
-                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeInheritsFrom => ForeignKeyReference::Single {
                 on: Column::EntityTypeInheritsFrom(
                     EntityTypeInheritsFrom::TargetEntityTypeOntologyId,
                 ),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeConstrainsLinksOn => ForeignKeyReference::Single {
                 on: Column::EntityTypeConstrainsLinksOn(
                     EntityTypeConstrainsLinksOn::TargetEntityTypeOntologyId,
                 ),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeConstrainsLinkDestinationsOn => ForeignKeyReference::Single {
                 on: Column::EntityTypeConstrainsLinkDestinationsOn(
                     EntityTypeConstrainsLinkDestinationsOn::TargetEntityTypeOntologyId,
                 ),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityIsOfType => ForeignKeyReference::Single {
                 on: Column::EntityIsOfType(EntityIsOfType::EntityTypeOntologyId),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
                 on: [
@@ -1069,12 +1069,10 @@ impl Transpile for AliasedColumn {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Relation {
+    OntologyIds,
     DataTypeIds,
-    DataTypeTemporalMetadata,
     PropertyTypeIds,
-    PropertyTypeTemporalMetadata,
     EntityTypeIds,
-    EntityTypeTemporalMetadata,
     EntityEditions,
     LeftEntity,
     RightEntity,
@@ -1140,36 +1138,22 @@ impl Iterator for ForeignKeyJoin {
 impl Relation {
     pub fn joins(self) -> impl Iterator<Item = ForeignKeyReference> {
         match self {
+            Self::OntologyIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::OntologyIds(OntologyIds::OntologyId),
+            }),
             Self::DataTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::DataTypes(DataTypes::OntologyId),
-                join: Column::OntologyIds(OntologyIds::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::DataTypes(DataTypes::OntologyId),
             }),
-            Self::DataTypeTemporalMetadata => {
-                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                    on: Column::DataTypes(DataTypes::OntologyId),
-                    join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                })
-            }
             Self::PropertyTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::PropertyTypes(PropertyTypes::OntologyId),
-                join: Column::OntologyIds(OntologyIds::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::PropertyTypes(PropertyTypes::OntologyId),
             }),
-            Self::PropertyTypeTemporalMetadata => {
-                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                    on: Column::PropertyTypes(PropertyTypes::OntologyId),
-                    join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                })
-            }
             Self::EntityTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
-                join: Column::OntologyIds(OntologyIds::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::EntityTypes(EntityTypes::OntologyId),
             }),
-            Self::EntityTypeTemporalMetadata => {
-                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                    on: Column::EntityTypes(EntityTypes::OntologyId),
-                    join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
-                })
-            }
             Self::EntityEditions => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                 on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
                 join: Column::EntityEditions(EntityEditions::EditionId),

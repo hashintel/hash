@@ -132,7 +132,6 @@ mod tests {
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_condition<'p, 'f: 'p>(
@@ -140,8 +139,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::new(None);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
@@ -173,7 +171,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -182,7 +180,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -193,7 +191,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -202,7 +200,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -218,7 +216,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -252,7 +250,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -286,7 +284,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             ))),
-            r#"NOT("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
     }
@@ -298,7 +296,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'description' = "data_types_0_0_0"."schema"->>'title')"#,
+            r#"("data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title')"#,
             &[],
         );
     }
