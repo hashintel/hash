@@ -18,8 +18,8 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
@@ -224,9 +224,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <>
-      <Head>
-        <title>{entityType.title} | Entity Type | HASH</title>
-      </Head>
+      <NextSeo title={`${entityType.title} | Entity Type`} />
       <EntityTypeFormProvider {...formMethods}>
         <LatestPropertyTypesContextProvider>
           <EntityTypeContext.Provider value={entityType}>

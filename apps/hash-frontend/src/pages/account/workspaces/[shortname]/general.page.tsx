@@ -1,6 +1,6 @@
 import { Container } from "@mui/material";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 
 import {
   getLayoutWithSidebar,
@@ -31,10 +31,8 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
   return (
     <>
-      <Head>
-        {/* @todo this competes with the title in PlainLayout – fix that (use next-seo?) */}
-        <title>{org.name} | Settings | General</title>
-      </Head>
+      <NextSeo title={`${org.name} | Settings`} />
+
       <Container>
         <OrgForm
           org={org}
