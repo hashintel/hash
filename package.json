@@ -1,6 +1,6 @@
 {
   "private": true,
-    "description": "HASH monorepo",
+  "description": "HASH monorepo",
   "workspaces": {
     "packages": [
       "apps/*",
