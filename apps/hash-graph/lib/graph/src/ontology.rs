@@ -216,6 +216,7 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
                                 "temporalVersioning",
                                 Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
                             )
+                            .required("temporalVersioning")
                             .property("ownedById", Ref::from_schema_name(OwnedById::schema().0))
                             .required("ownedById")
                             .build(),
@@ -232,6 +233,7 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
                                 "temporalVersioning",
                                 Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
                             )
+                            .required("temporalVersioning")
                             .property(
                                 "fetchedAt",
                                 schema::ObjectBuilder::new()

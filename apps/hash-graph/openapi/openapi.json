@@ -832,6 +832,7 @@
             "type": "object",
             "required": [
               "provenance",
+              "temporalVersioning",
               "ownedById"
             ],
             "properties": {
@@ -853,6 +854,7 @@
             "type": "object",
             "required": [
               "provenance",
+              "temporalVersioning",
               "fetchedAt"
             ],
             "properties": {
