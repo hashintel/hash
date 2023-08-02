@@ -2,17 +2,17 @@ import { Box, Tab, Tabs } from "@mui/material";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { MouseEvent, useMemo } from "react";
+import { MouseEvent, useContext, useMemo } from "react";
 
 import { Button } from "../../components/button";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
+import { getSerializedDocsPage } from "../shared/mdx-utils";
+import { SiteMapContext } from "../shared/site-map-context";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
-import { generateDocsSiteMap, SiteMapPage } from "./docs-sitemap";
 import { DocsSlugIcon } from "./docs-slug-icon";
-import { getSerializedDocsPage } from "./mdx-utils";
 
 const docsTabs: { title: string; href: string }[] = [
   {
@@ -41,8 +41,6 @@ export const getStaticPaths: GetStaticPaths = () => {
 };
 
 type DocsPageProps = {
-  docsPages: SiteMapPage[];
-  docsSlug: string[];
   serializedPage?: MDXRemoteSerializeResult<Record<string, unknown>>;
 };
 
@@ -51,8 +49,6 @@ export const getStaticProps: GetStaticProps<
   DocsPageParsedUrlQuery
 > = async ({ params }) => {
   const docsSlug = params?.["docs-slug"] ?? [];
-
-  const { pages: docsPages } = generateDocsSiteMap();
 
   // As of Jan 2022, { fallback: false } in getStaticPaths does not prevent Vercel
   // from calling getStaticProps for unknown pages. This causes 500 instead of 404:
@@ -67,20 +63,29 @@ export const getStaticProps: GetStaticProps<
     });
 
     return {
-      props: { docsPages, serializedPage, docsSlug },
+      props: { serializedPage },
     };
   } catch {
     return {
-      props: { docsPages, docsSlug },
+      props: {},
     };
   }
 };
 
-const DocsPage: NextPageWithLayout<DocsPageProps> = ({
-  serializedPage,
-  docsPages,
-}) => {
+const DocsPage: NextPageWithLayout<DocsPageProps> = ({ serializedPage }) => {
   const router = useRouter();
+
+  const { pages } = useContext(SiteMapContext);
+
+  const docsPages = useMemo(() => {
+    const docsPage = pages.find(({ title }) => title === "Docs");
+
+    if (!docsPage) {
+      throw new Error("Docs page not found in site map.");
+    }
+
+    return docsPage.subPages;
+  }, [pages]);
 
   const currentDocsTab = useMemo(() => {
     const docsPageSlugs =

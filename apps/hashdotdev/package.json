@@ -8,10 +8,13 @@
     "directory": "apps/hashdotdev"
   },
   "license": "(MIT OR Apache-2.0)",
+  "type": "module",
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "yarn exe scripts/dev.ts",
+    "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node",
     "fix:eslint": "eslint --fix .",
+    "postinstall": "yarn exe scripts/codegen.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start"
@@ -26,10 +29,12 @@
     "@mui/system": "5.11.9",
     "axios": "0.27.2",
     "calculation-block": "0.2.2",
+    "chalk": "5.3.0",
     "clsx": "1.2.1",
     "d3": "7.8.5",
     "d3-dag": "1.0.0",
     "date-fns": "2.28.0",
+    "execa": "7.2.0",
     "feed": "4.2.2",
     "fs-extra": "10.1.0",
     "gray-matter": "4.0.3",
@@ -69,7 +74,8 @@
     "@types/react-html-parser": "2.0.2",
     "@types/unist": "2.0.6",
     "babel-loader": "^9.1.0",
-    "eslint": "8.33.0"
+    "eslint": "8.33.0",
+    "ts-node": "10.9.1"
   },
   "engines": {
     "node": ">=v18.15.0"
