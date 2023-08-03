@@ -14,6 +14,7 @@ import { EntityTypeEntitiesContextValue } from "./shared/entity-type-entities-co
 export const useEntityTypeEntitiesContextValue = (
   typeBaseUrl: BaseUrl | null,
 ): EntityTypeEntitiesContextValue => {
+  const [loading, setLoading] = useState(false);
   const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
   const { queryEntities } = useBlockProtocolQueryEntities();
 
@@ -21,6 +22,8 @@ export const useEntityTypeEntitiesContextValue = (
     if (!typeBaseUrl) {
       return;
     }
+
+    setLoading(true);
 
     void queryEntities({
       data: {
@@ -41,11 +44,13 @@ export const useEntityTypeEntitiesContextValue = (
           isOfType: { outgoing: 1 },
         },
       },
-    }).then((res) => {
-      if (res.data) {
-        setSubgraph(res.data);
-      }
-    });
+    })
+      .then((res) => {
+        if (res.data) {
+          setSubgraph(res.data);
+        }
+      })
+      .finally(() => setLoading(false));
   }, [queryEntities, typeBaseUrl]);
 
   const [entities, entityTypes, propertyTypes] =
@@ -95,6 +100,7 @@ export const useEntityTypeEntitiesContextValue = (
   return {
     entities,
     entityTypes,
+    loading,
     propertyTypes,
     subgraph,
   };

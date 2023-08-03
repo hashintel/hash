@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
@@ -12,8 +12,8 @@ use crate::store::error::DeletionError;
 use crate::{
     identifier::{ontology::OntologyTypeRecordId, time::RightBoundedTemporalInterval},
     ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
-        EntityTypeWithMetadata, OntologyElementMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, PartialCustomEntityTypeMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::{ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -198,24 +198,19 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, entity_types))]
     async fn create_entity_types(
         &mut self,
-        entity_types: impl IntoIterator<
-            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
         let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
+        let mut inserted_entity_types = Vec::new();
+        let mut inserted_entity_type_metadata =
+            Vec::with_capacity(inserted_entity_types.capacity());
         for (schema, metadata) in entity_types {
-            let metadata = metadata.borrow();
-            let ontology_metadata = OntologyElementMetadata {
-                record_id: metadata.record_id.clone(),
-                custom: metadata.custom.common.clone(),
-            };
-            if let Some(ontology_id) = transaction
-                .create_ontology_metadata(&ontology_metadata, on_conflict)
+            if let Some((ontology_id, transaction_time)) = transaction
+                .create_ontology_metadata(&metadata.record_id, &metadata.custom.common, on_conflict)
                 .await?
             {
                 transaction
@@ -227,6 +222,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .await?;
 
                 inserted_entity_types.push((ontology_id, schema));
+                inserted_entity_type_metadata
+                    .push(EntityTypeMetadata::from_partial(metadata, transaction_time));
             }
         }
 
@@ -246,7 +243,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(())
+        Ok(inserted_entity_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -323,7 +320,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let url = entity_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id) = transaction
+        let (ontology_id, owned_by_id, transaction_time) = transaction
             .update_owned_ontology_id(url, record_created_by_id)
             .await?;
         transaction
@@ -331,13 +328,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
-        let metadata = EntityTypeMetadata {
+        let metadata = PartialEntityTypeMetadata {
             record_id,
-            custom: CustomEntityTypeMetadata {
-                common: CustomOntologyMetadata::Owned {
+            custom: PartialCustomEntityTypeMetadata {
+                common: PartialCustomOntologyMetadata::Owned {
                     provenance: ProvenanceMetadata::new(record_created_by_id),
                     owned_by_id,
-                    temporal_versioning: None,
                 },
                 label_property,
             },
@@ -357,6 +353,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(metadata)
+        Ok(EntityTypeMetadata::from_partial(metadata, transaction_time))
     }
 }

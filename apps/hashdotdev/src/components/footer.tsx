@@ -141,6 +141,7 @@ export const Footer: FunctionComponent = () => (
           <Grid item lg={4} md={6}>
             <FooterSection label="Resources">
               <FooterLink href="/blog">Blog</FooterLink>
+              <FooterLink href="/roadmap">Roadmap</FooterLink>
               {/* @todo: add docs pages */}
               {/* <FooterLink href="/docs">Docs</FooterLink> */}
               {/* @todo: add tutorials pages */}
