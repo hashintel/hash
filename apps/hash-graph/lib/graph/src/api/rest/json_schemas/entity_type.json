@@ -48,48 +48,7 @@
       }
     },
     "links": {
-      "type": "object",
-      "x-propertyNames": {
-        "$ref": "#/definitions/VersionedUrl"
-      },
-      "x-patternProperties": {
-        ".*": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["array"]
-            },
-            "ordered": {
-              "type": "boolean",
-              "default": false
-            },
-            "items": {
-              "description": "Specifies a set of entity types inside a oneOf",
-              "type": "object",
-              "properties": {
-                "oneOf": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/EntityTypeReference"
-                  }
-                }
-              },
-              "additionalProperties": false
-            },
-            "minItems": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "maxItems": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "required": ["type", "ordered", "items"],
-          "additionalProperties": false
-        }
-      }
+      "$ref": "#/definitions/LinkTypeObject"
     }
   },
   "additionalProperties": false,
@@ -165,6 +124,50 @@
               "additionalProperties": false
             }
           ]
+        }
+      }
+    },
+    "LinkTypeObject": {
+      "type": "object",
+      "x-propertyNames": {
+        "$ref": "#/definitions/VersionedUrl"
+      },
+      "x-patternProperties": {
+        ".*": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["array"]
+            },
+            "ordered": {
+              "type": "boolean",
+              "default": false
+            },
+            "items": {
+              "description": "Specifies a set of entity types inside a oneOf",
+              "type": "object",
+              "properties": {
+                "oneOf": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/EntityTypeReference"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["type", "ordered", "items"],
+          "additionalProperties": false
         }
       }
     }

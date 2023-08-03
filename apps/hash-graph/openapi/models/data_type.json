@@ -27,7 +27,7 @@
     }
   },
   "required": ["$schema", "kind", "$id", "title", "type"],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "VersionedUrl": {
       "title": "Versioned URL",
