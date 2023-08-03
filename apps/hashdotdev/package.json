@@ -10,7 +10,7 @@
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "yarn exe scripts/build.ts",
     "dev": "yarn exe scripts/dev.ts",
     "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node",
     "fix:eslint": "eslint --fix .",
