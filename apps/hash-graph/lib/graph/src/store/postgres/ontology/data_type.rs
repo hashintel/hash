@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
 use error_stack::IntoReport;
@@ -11,7 +9,7 @@ use type_system::DataType;
 use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata, PartialOntologyElementMetadata},
     provenance::RecordCreatedById,
     store::{
         crud::Read,
@@ -80,28 +78,31 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn create_data_types(
         &mut self,
-        data_types: impl IntoIterator<
-            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
+        let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
-            if let Some(ontology_id) = transaction
-                .create_ontology_metadata(metadata.borrow(), on_conflict)
+            if let Some((ontology_id, transaction_time)) = transaction
+                .create_ontology_metadata(&metadata.record_id, &metadata.custom, on_conflict)
                 .await?
             {
                 transaction
                     .insert_with_id(ontology_id, schema.clone())
                     .await?;
+                inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
+                    metadata,
+                    transaction_time,
+                ));
             }
         }
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(())
+        Ok(inserted_data_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

@@ -38,7 +38,7 @@ pub struct OntologyExternalMetadataRow {
 #[postgres(name = "ontology_temporal_metadata")]
 pub struct OntologyTemporalMetadataRow {
     pub ontology_id: Uuid,
-    pub transaction_time: Option<LeftClosedTemporalInterval<TransactionTime>>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
 #[derive(Debug, ToSql)]

@@ -26,9 +26,9 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
-        EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeReference,
+        patch_id_and_parse, EntityTypeMetadata, EntityTypeQueryToken, EntityTypeWithMetadata,
+        OntologyElementMetadata, OntologyTypeReference, PartialCustomEntityTypeMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -151,7 +151,7 @@ where
 
     let schema_iter = schema.into_iter();
     let mut entity_types = Vec::with_capacity(schema_iter.size_hint().0);
-    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
     for schema in schema_iter {
         let entity_type: EntityType = schema.try_into().map_err(|err: ParseEntityTypeError| {
@@ -194,12 +194,11 @@ where
         ))
         })?;
 
-        metadata.push(EntityTypeMetadata {
+        partial_metadata.push(PartialEntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
-            custom: CustomEntityTypeMetadata {
-                common: CustomOntologyMetadata::Owned {
+            custom: PartialCustomEntityTypeMetadata {
+                common: PartialCustomOntologyMetadata::Owned {
                     provenance: ProvenanceMetadata::new(actor_id),
-                    temporal_versioning: None,
                     owned_by_id,
                 },
                 label_property: label_property.clone(),
@@ -209,9 +208,9 @@ where
         entity_types.push(entity_type);
     }
 
-    store
+    let mut metadata = store
         .create_entity_types(
-            entity_types.into_iter().zip(metadata.iter()),
+            entity_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
         .await

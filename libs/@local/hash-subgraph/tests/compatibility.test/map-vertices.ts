@@ -14,6 +14,7 @@ import {
   EntityRecordId as EntityRecordIdGraphApi,
   EntityTemporalMetadata as EntityTemporalMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
+  EntityTypeMetadata as EntityTypeMetadataGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
@@ -29,6 +30,7 @@ import {
   EntityPropertiesObject,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
+  EntityTypeMetadata,
   isEntityId,
   KnowledgeGraphVertex,
   LinkData,
@@ -117,6 +119,67 @@ const mapOntologyMetadata = (
         : ({} as {
             fetchedAt: Timestamp;
           })),
+      temporalVersioning: {
+        transactionTime: {
+          start: {
+            kind: metadata.custom.temporalVersioning.transactionTime.start.kind,
+            limit: metadata.custom.temporalVersioning.transactionTime.start
+              .limit as Timestamp,
+          },
+          end:
+            metadata.custom.temporalVersioning.transactionTime.end.kind ===
+            "unbounded"
+              ? {
+                  kind: metadata.custom.temporalVersioning.transactionTime.end
+                    .kind,
+                }
+              : {
+                  kind: metadata.custom.temporalVersioning.transactionTime.end
+                    .kind,
+                  limit: metadata.custom.temporalVersioning.transactionTime.end
+                    .limit as Timestamp,
+                },
+        },
+      },
+    },
+  };
+};
+
+const mapEntityTypeMetadata = (
+  metadata: EntityTypeMetadataGraphApi,
+): EntityTypeMetadata => {
+  return {
+    recordId: mapOntologyTypeRecordId(metadata.recordId),
+    custom: {
+      provenance: mapProvenanceMetadata(metadata.custom.provenance),
+      ...("fetchedAt" in metadata.custom
+        ? { fetchedAt: metadata.custom.fetchedAt as Timestamp }
+        : ({} as {
+            fetchedAt: Timestamp;
+          })),
+      temporalVersioning: {
+        transactionTime: {
+          start: {
+            kind: metadata.custom.temporalVersioning.transactionTime.start.kind,
+            limit: metadata.custom.temporalVersioning.transactionTime.start
+              .limit as Timestamp,
+          },
+          end:
+            metadata.custom.temporalVersioning.transactionTime.end.kind ===
+            "unbounded"
+              ? {
+                  kind: metadata.custom.temporalVersioning.transactionTime.end
+                    .kind,
+                }
+              : {
+                  kind: metadata.custom.temporalVersioning.transactionTime.end
+                    .kind,
+                  limit: metadata.custom.temporalVersioning.transactionTime.end
+                    .limit as Timestamp,
+                },
+        },
+      },
+      labelProperty: metadata.custom.labelProperty as BaseUrl,
     },
   };
 };
@@ -145,7 +208,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
       return {
         kind: vertex.kind,
         inner: {
-          metadata: mapOntologyMetadata(vertex.inner.metadata),
+          metadata: mapEntityTypeMetadata(vertex.inner.metadata),
           schema: mapEntityType(vertex.inner.schema),
         },
       };
