@@ -24,16 +24,12 @@ import { FaIcon } from "../../components/icons/fa-icon";
 import { Link } from "../../components/link";
 import { NAV_HEIGHT } from "../../components/navbar";
 import { customColors } from "../../theme/palette";
-import { SiteMapPage, SiteMapPageSection } from "./docs-sitemap";
+import {
+  generatePathWithoutParams,
+  pageHasSelectedSubSection,
+} from "../shared/page-utils";
+import { SiteMapPage, SiteMapPageSection } from "../shared/sitemap";
 import { parseHTML } from "./html-utils";
-
-export const generatePathWithoutParams = (path: string) => {
-  const pathWithoutParams = path.match(/^[^?]*/)?.[0];
-  if (!pathWithoutParams) {
-    throw new Error(`Invalid path ${path}`);
-  }
-  return pathWithoutParams;
-};
 
 export const sidebarWidth = 220;
 
@@ -202,30 +198,6 @@ const SidebarPageSection: FunctionComponent<SidebarPageSectionProps> = ({
       ) : null}
     </>
   );
-};
-
-const pageHasSelectedSubSection = (params: {
-  href: string;
-  sections: SiteMapPageSection[];
-  pathWithoutParams: string;
-}): boolean => {
-  const { href, sections, pathWithoutParams } = params;
-
-  for (const section of sections) {
-    const { anchor } = section;
-
-    if (
-      pathWithoutParams === `${href}#${anchor}` ||
-      pageHasSelectedSubSection({
-        href,
-        sections: section.subSections,
-        pathWithoutParams,
-      })
-    ) {
-      return true;
-    }
-  }
-  return false;
 };
 
 type SidebarPageProps = {

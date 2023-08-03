@@ -14,9 +14,10 @@ import { FunctionComponent, ReactNode } from "react";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { Link } from "../../components/link";
 import { MdxPageContent } from "../../components/mdx-page-content";
-import { SiteMapPage } from "./docs-sitemap";
+import { generatePathWithoutParams } from "../shared/page-utils";
+import { SiteMapPage } from "../shared/sitemap";
 import { PageNavLinks } from "./page-nav-links";
-import { generatePathWithoutParams, Sidebar } from "./page-sidebar";
+import { Sidebar } from "./page-sidebar";
 
 type DocsPageProps = {
   title?: ReactNode;

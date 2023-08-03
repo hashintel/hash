@@ -140,7 +140,7 @@ const GettingStartedLinks: FunctionComponent = () => (
 
 const LabelWithIcon: FunctionComponent<
   BoxProps & {
-    label: string;
+    label: ReactNode;
     icon: ReactNode;
     iconBackground?: "white" | "teal";
     href?: string;

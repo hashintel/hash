@@ -8,10 +8,6 @@ import {
   Container,
   Fade,
   IconButton,
-  ListItemIcon,
-  ListItemText,
-  MenuItem,
-  MenuList,
   Slide,
   Stack,
   styled,
@@ -20,13 +16,22 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { useRouter } from "next/router";
-import { FunctionComponent, ReactNode, useEffect, useState } from "react";
+import {
+  FunctionComponent,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
+import { SiteMapContext } from "../pages/shared/site-map-context";
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
-import { Link } from "./link";
 import { Logo } from "./logo";
+import { MobileNavItems } from "./navbar/mobile-nav-items";
+import { useHydrationFriendlyAsPath } from "./navbar/use-hydration-friendly-as-path";
+import { pageTitleToIcons } from "./navbar/util";
 
 export const NAV_HEIGHT = 58;
 
@@ -43,31 +48,9 @@ const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)({
   },
 });
 
-const navLinks: { icon: ReactNode; name: string; href: string }[] = [
-  {
-    icon: <FaIcon name="diagram-sankey" type="solid" />,
-    name: "Roadmap",
-    href: "/roadmap",
-  },
-  {
-    icon: <FaIcon name="book-atlas" type="regular" />,
-    name: "Docs",
-    href: "/docs",
-  },
-  // {
-  //   icon: <FaIcon name="map" type="solid" />,
-  //   name: "Tutorials",
-  //   href: "/tutorials",
-  // },
-  {
-    icon: <FaIcon name="newspaper" type="solid" />,
-    name: "Blog",
-    href: "/blog",
-  },
-];
-
 const DesktopNav: FunctionComponent = () => {
   const router = useRouter();
+  const { pages } = useContext(SiteMapContext);
 
   return (
     <>
@@ -85,16 +68,16 @@ const DesktopNav: FunctionComponent = () => {
         Visit our main site
       </Button>
       <Stack direction="row" spacing={0.5} ml="auto">
-        {navLinks.map(({ icon, name, href }) => (
+        {pages.map(({ title, href }) => (
           <DesktopNavLink
             key={href}
             href={href}
-            startIcon={icon}
+            startIcon={pageTitleToIcons[title]}
             className={clsx("nav-link", {
               active: router.asPath.startsWith(href),
             })}
           >
-            {name}
+            {title}
           </DesktopNavLink>
         ))}
       </Stack>
@@ -126,7 +109,8 @@ const MobileNav: FunctionComponent<{
   open: boolean;
   onMenuClose: () => void;
 }> = ({ open, onMenuClose }) => {
-  const router = useRouter();
+  const hydrationFriendlyAsPath = useHydrationFriendlyAsPath();
+
   return (
     <>
       <Fade in={open}>
@@ -149,6 +133,8 @@ const MobileNav: FunctionComponent<{
               position: "fixed",
               width: 1,
               top: NAV_HEIGHT,
+              overflow: "auto",
+              maxHeight: `calc(100vh - ${NAV_HEIGHT}px)`,
               bgcolor: "white",
               zIndex: (theme) => theme.zIndex.appBar - 1,
               left: 0,
@@ -174,29 +160,22 @@ const MobileNav: FunctionComponent<{
               pb: 3.5,
             }}
           >
-            <MenuList
+            <Box
               sx={{
+                overflowY: "auto",
+                overflowX: "hidden",
+                overscrollBehavior: "contain",
                 marginBottom: 2,
                 borderTopColor: ({ palette }) => palette.gray[20],
                 borderTopWidth: 1,
                 borderTopStyle: "solid",
               }}
             >
-              {navLinks.map(({ icon, name, href }) => {
-                const isActive = router.asPath.startsWith(href);
-                return (
-                  <Link key={href} href={href}>
-                    <MenuItem
-                      component="a"
-                      className={clsx({ active: isActive })}
-                    >
-                      <ListItemIcon>{icon}</ListItemIcon>
-                      <ListItemText>{name}</ListItemText>
-                    </MenuItem>
-                  </Link>
-                );
-              })}
-            </MenuList>
+              <MobileNavItems
+                hydrationFriendlyAsPath={hydrationFriendlyAsPath}
+                onClose={onMenuClose}
+              />
+            </Box>
             <Stack spacing={1.25}>
               <Button
                 variant="tertiary"

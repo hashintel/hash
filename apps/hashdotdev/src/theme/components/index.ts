@@ -15,6 +15,7 @@ import { MuiOutlinedInputThemeOptions } from "./inputs/mui-outlined-input-theme-
 import { MuiTextFieldThemeOptions } from "./inputs/mui-text-field-theme-options";
 import { MuiContainerThemeOptions } from "./layout/mui-container-theme-options";
 import { MuiLinkThemeOptions } from "./navigation/mui-link-theme-options";
+import { MuiListItemButtonThemeOptions } from "./navigation/mui-list-item-button-theme-options";
 import { MuiListItemIconThemeOptions } from "./navigation/mui-list-item-icon-theme-overrides";
 import { MuiListItemTextThemeOptions } from "./navigation/mui-list-item-text-theme-overrides";
 import { MuiListThemeOptions } from "./navigation/mui-list-theme-overrides";
@@ -39,6 +40,7 @@ export const components: ThemeOptions["components"] = {
   MuiCssBaseline: MuiCssBaselineThemeOptions,
   MuiList: MuiListThemeOptions,
   MuiMenuItem: MuiMenuItemThemeOptions,
+  MuiListItemButton: MuiListItemButtonThemeOptions,
   MuiListItemText: MuiListItemTextThemeOptions,
   MuiListItemIcon: MuiListItemIconThemeOptions,
   MuiCheckbox: MuiCheckboxThemeOptions,
