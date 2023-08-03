@@ -1,5 +1,5 @@
 {
-  "$id": "https://blockprotocol.org/type-system/0.2/schema/meta/data-type",
+  "title": "Data Type",
   "description": "Specifies the structure of a Data Type",
   "type": "object",
   "properties": {
@@ -10,13 +10,31 @@
       ]
     },
     "kind": {
+      "type": "string",
       "enum": ["dataType"]
     },
-    "$id": { "type": "string", "format": "uri" },
-    "title": { "type": "string" },
-    "description": { "type": "string" },
-    "type": { "type": "string" }
+    "$id": {
+      "$ref": "#/definitions/VersionedUrl"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    }
   },
   "required": ["$schema", "kind", "$id", "title", "type"],
-  "additionalProperties": true
+  "additionalProperties": true,
+  "definitions": {
+    "VersionedUrl": {
+      "title": "Versioned URL",
+      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    }
+  }
 }
