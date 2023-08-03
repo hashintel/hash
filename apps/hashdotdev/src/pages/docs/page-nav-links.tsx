@@ -9,7 +9,7 @@ import { FunctionComponent } from "react";
 
 import { FaIcon } from "../../components/icons/fa-icon";
 import { Link } from "../../components/link";
-import { SiteMapPage } from "./docs-sitemap";
+import { SiteMapPage } from "../shared/sitemap";
 
 /** @todo: make use of styled component when `FaIcon` component has been replaced */
 const navArrowIconStyling: BoxProps["sx"] = {

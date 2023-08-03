@@ -22,8 +22,8 @@ import {
   generatePathWithoutParams,
   pageHasOpenSubPage,
 } from "../../pages/shared/page-utils";
-import { SiteMapContext } from "../../pages/shared/sitemap-context";
 import { SiteMapPage, SiteMapPageSection } from "../../pages/shared/sitemap";
+import { SiteMapContext } from "../../pages/shared/sitemap-context";
 import { FaIcon } from "../icons/fa-icon";
 import { Link } from "../link";
 import { itemIsPage, pageTitleToIcons } from "./util";

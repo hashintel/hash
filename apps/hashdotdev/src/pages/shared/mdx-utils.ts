@@ -12,7 +12,7 @@ import remarkParse from "remark-parse";
 import slugify from "slugify";
 import { unified } from "unified";
 
-import { SiteMapPage, SiteMapPageSection } from "../docs/docs-sitemap";
+import { SiteMapPage, SiteMapPageSection } from "./sitemap";
 
 type Node = {
   type: string;
