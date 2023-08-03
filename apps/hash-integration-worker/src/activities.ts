@@ -189,7 +189,7 @@ export const createLinearIntegrationActivities = ({
     workspaceAccountId: AccountId;
   }): Promise<string | undefined> {
     const entity = userToEntity(params.user);
-    return await createOrUpdateHashEntity({
+    return createOrUpdateHashEntity({
       graphApiClient,
       actorId: params.actorId,
       workspaceAccountId: params.workspaceAccountId,
@@ -201,7 +201,7 @@ export const createLinearIntegrationActivities = ({
     user: User;
     actorId: AccountId;
   }): Promise<string | undefined> {
-    return await createOrUpdateHashEntity({
+    return createOrUpdateHashEntity({
       graphApiClient,
       entity: userToEntity(params.user),
       actorId: params.actorId,
@@ -223,7 +223,7 @@ export const createLinearIntegrationActivities = ({
     workspaceAccountId: AccountId;
   }): Promise<string | undefined> {
     const entity = issueToEntity(params.issue);
-    return await createOrUpdateHashEntity({
+    return createOrUpdateHashEntity({
       graphApiClient,
       actorId: params.actorId,
       workspaceAccountId: params.workspaceAccountId,
@@ -253,7 +253,7 @@ export const createLinearIntegrationActivities = ({
     issue: Issue;
     actorId: AccountId;
   }): Promise<string | undefined> {
-    return await createOrUpdateHashEntity({
+    return createOrUpdateHashEntity({
       graphApiClient,
       entity: issueToEntity(params.issue),
       actorId: params.actorId,
