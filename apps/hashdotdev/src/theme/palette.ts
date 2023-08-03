@@ -42,6 +42,7 @@ export const customColors = {
     15: "#EBF8FF",
     10: "#F7FDFF",
     20: "#E0F4FF",
+    25: "#CCEDFF",
     30: "#B4E2FD",
     40: "#7ACAFA",
     50: "#48B3F4",
@@ -109,7 +110,7 @@ export const customColors = {
   white: "#FFFFFF",
 } as const;
 
-export const palette: ThemeOptions["palette"] = {
+export const palette: NonNullable<ThemeOptions["palette"]> = {
   ...customColors,
   // @todo figure out how not to need this – Avatar
   grey: customColors.gray,

@@ -1,4 +1,3 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Attachment,
   Comment,
@@ -7,20 +6,17 @@ import {
   Document,
   Issue,
   IssueLabel,
+  LinearDocument,
   Organization,
   Project,
   ProjectMilestone,
   Team,
   User,
 } from "@linear/sdk";
+import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity } from "@local/hash-subgraph";
+import { EntityPropertiesObject } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-
-export type PartialEntity = {
-  properties: Partial<Entity["properties"]>;
-  entityTypeId: VersionedUrl;
-};
 
 const toIsoString = (date: string | Date): string => {
   if (typeof date === "string") {
@@ -146,9 +142,34 @@ export const teamToEntity = (_team: Team): object => {
   return {};
 };
 
+// @todo avoid having to repeat each field in two places – have some object that translates between
+//   Linear keys and HASH properties
+export const entityPropertiesToIssueUpdate = (
+  properties: EntityPropertiesObject,
+): LinearDocument.IssueUpdateInput => {
+  return {
+    description: properties[
+      extractBaseUrl(linearTypes.propertyType.description.propertyTypeId)
+    ] as string,
+    dueDate:
+      properties[
+        extractBaseUrl(linearTypes.propertyType.dueDate.propertyTypeId)
+      ],
+    estimate: properties[
+      extractBaseUrl(linearTypes.propertyType.estimate.propertyTypeId)
+    ] as number,
+    priority: properties[
+      extractBaseUrl(linearTypes.propertyType.priority.propertyTypeId)
+    ] as number,
+    title: properties[
+      extractBaseUrl(linearTypes.propertyType.title.propertyTypeId)
+    ] as string,
+  };
+};
+
 export const issueToEntity = (issue: Issue): PartialEntity => {
   return {
-    entityTypeId: linearTypes.entityType.organization.entityTypeId,
+    entityTypeId: linearTypes.entityType.issue.entityTypeId,
     properties: {
       [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
         issue.archivedAt ? toIsoString(issue.archivedAt) : undefined,

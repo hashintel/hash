@@ -724,9 +724,9 @@ const linearLinkEntityTypes = {
     description: "Issue created by the user.",
   },
   /** Organization */
-  user: {
-    title: "User",
-    description: "User associated with the organization.",
+  hasMember: {
+    title: "Has Member",
+    description: "Has this entity as a member.",
   },
   /** Issue */
   assignee: {

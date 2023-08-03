@@ -1,3 +1,4 @@
+import { UpdateLinearIssueWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -70,20 +71,20 @@ export const processEntityChange = async (
 
   switch (entityTypeId) {
     case linearTypes.entityType.issue.entityTypeId: {
-      // eslint-disable-next-line no-console
-      console.log("Change to Linear Issue detected");
-
-      // @todo check this works
-      const result = await temporalClient.workflow.start("updateLinearIssue", {
-        workflowId: genId(),
-        taskQueue: "integration",
-        args: [
-          { linearApiKey, issueId: resourceId, update: entity.properties },
-        ],
-      });
-
-      // eslint-disable-next-line no-console
-      console.log({ result });
+      await temporalClient.workflow.start<UpdateLinearIssueWorkflow>(
+        "updateLinearIssue",
+        {
+          workflowId: genId(),
+          taskQueue: "integration",
+          args: [
+            {
+              apiKey: linearApiKey,
+              issueId: resourceId as string,
+              payload: entity.properties,
+            },
+          ],
+        },
+      );
     }
   }
 };

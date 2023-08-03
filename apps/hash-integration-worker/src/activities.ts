@@ -6,9 +6,15 @@ import {
   Team,
   User,
 } from "@linear/sdk";
+import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  AccountId,
+  EntityPropertiesObject,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -18,20 +24,20 @@ import {
   customViewToEntity,
   cycleToEntity,
   documentToEntity,
+  entityPropertiesToIssueUpdate,
   issueLabelToEntity,
   issueToEntity,
   organizationToEntity,
-  PartialEntity,
   projectMilestoneToEntity,
   projectToEntity,
   userToEntity,
 } from "./mappings";
 
-const createOrUpdateEntity = async (params: {
+const createOrUpdateHashEntity = async (params: {
   graphApiClient: GraphApi;
   entity: PartialEntity;
-  actorId: string;
-  workspaceAccountId?: string;
+  actorId: AccountId;
+  workspaceAccountId?: AccountId;
 }): Promise<string | undefined> => {
   const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
   const updatedAtBaseUrl = extractBaseUrl(
@@ -156,12 +162,12 @@ export const createLinearIntegrationActivities = ({
 }) => ({
   async createPartialEntities(params: {
     entities: PartialEntity[];
-    actorId: string;
-    workspaceAccountId: string;
+    actorId: AccountId;
+    workspaceAccountId: AccountId;
   }): Promise<void> {
     await Promise.all(
       params.entities.map((entity) =>
-        createOrUpdateEntity({
+        createOrUpdateHashEntity({
           graphApiClient,
           actorId: params.actorId,
           workspaceAccountId: params.workspaceAccountId,
@@ -171,19 +177,19 @@ export const createLinearIntegrationActivities = ({
     );
   },
 
-  async readOrganization({
+  async readLinearOrganization({
     apiKey,
   }: ParamsWithApiKey<{}>): Promise<PartialEntity> {
     return createLinearClient(apiKey).organization.then(organizationToEntity);
   },
 
-  async createUser(params: {
+  async createHashUser(params: {
     user: User;
-    actorId: string;
-    workspaceAccountId: string;
+    actorId: AccountId;
+    workspaceAccountId: AccountId;
   }): Promise<string | undefined> {
     const entity = userToEntity(params.user);
-    return await createOrUpdateEntity({
+    return await createOrUpdateHashEntity({
       graphApiClient,
       actorId: params.actorId,
       workspaceAccountId: params.workspaceAccountId,
@@ -191,31 +197,33 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async updateUser(params: {
+  async updateHashUser(params: {
     user: User;
-    actorId: string;
+    actorId: AccountId;
   }): Promise<string | undefined> {
-    return await createOrUpdateEntity({
+    return await createOrUpdateHashEntity({
       graphApiClient,
       entity: userToEntity(params.user),
       actorId: params.actorId,
     });
   },
 
-  async readUsers({ apiKey }: ParamsWithApiKey): Promise<PartialEntity[]> {
+  async readLinearUsers({
+    apiKey,
+  }: ParamsWithApiKey): Promise<PartialEntity[]> {
     return createLinearClient(apiKey)
       .users()
       .then(readNodes)
       .then((users) => users.map(userToEntity));
   },
 
-  async createIssue(params: {
+  async createHashIssue(params: {
     issue: Issue;
-    actorId: string;
-    workspaceAccountId: string;
+    actorId: AccountId;
+    workspaceAccountId: AccountId;
   }): Promise<string | undefined> {
     const entity = issueToEntity(params.issue);
-    return await createOrUpdateEntity({
+    return await createOrUpdateHashEntity({
       graphApiClient,
       actorId: params.actorId,
       workspaceAccountId: params.workspaceAccountId,
@@ -223,7 +231,7 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async readIssues({
+  async readLinearIssues({
     apiKey,
     filter,
   }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<
@@ -241,22 +249,22 @@ export const createLinearIntegrationActivities = ({
       .then((issues) => issues.map(issueToEntity));
   },
 
-  async updateIssue(params: {
+  async updateHashIssue(params: {
     issue: Issue;
-    actorId: string;
+    actorId: AccountId;
   }): Promise<string | undefined> {
-    return createOrUpdateEntity({
+    return await createOrUpdateHashEntity({
       graphApiClient,
       entity: issueToEntity(params.issue),
       actorId: params.actorId,
     });
   },
 
-  async readTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {
+  async readLinearTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {
     return createLinearClient(apiKey).teams().then(readNodes);
   },
 
-  async readCycles({
+  async readLinearCycles({
     apiKey,
     filter,
   }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
@@ -286,7 +294,7 @@ export const createLinearIntegrationActivities = ({
       .then((projects) => projects.map(projectToEntity));
   },
 
-  async readComments({
+  async readLinearComments({
     apiKey,
     filter,
   }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
@@ -304,7 +312,9 @@ export const createLinearIntegrationActivities = ({
       .then((comments) => comments.map(commentToEntity));
   },
 
-  async readProjectMilestones({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+  async readLinearProjectMilestones({
+    apiKey,
+  }: ParamsWithApiKey): Promise<object[]> {
     const linearClient = createLinearClient(apiKey);
 
     return (
@@ -324,14 +334,14 @@ export const createLinearIntegrationActivities = ({
     ).flat();
   },
 
-  async readDocuments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+  async readLinearDocuments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
     return createLinearClient(apiKey)
       .documents()
       .then(readNodes)
       .then((documents) => documents.map(documentToEntity));
   },
 
-  async readIssueLabels({
+  async readLinearIssueLabels({
     apiKey,
     filter,
   }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
@@ -348,22 +358,28 @@ export const createLinearIntegrationActivities = ({
       .then((issueLabels) => issueLabels.map(issueLabelToEntity));
   },
 
-  async readAttachments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
+  async readLinearAttachments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
     return createLinearClient(apiKey)
       .attachments()
       .then(readNodes)
       .then((attachments) => attachments.map(attachmentToEntity));
   },
 
-  async updateLinearIssue(
-    apiKey: string,
-    issueId: Issue["id"],
-    update: LinearDocument.IssueUpdateInput,
-  ): Promise<PartialEntity | undefined> {
-    const client = new LinearClient({ apiKey });
+  async updateLinearIssue({
+    apiKey,
+    issueId,
+    payload,
+  }: {
+    apiKey: string;
+    issueId: Issue["id"];
+    payload: EntityPropertiesObject;
+  }): Promise<PartialEntity | undefined> {
+    const client = createLinearClient(apiKey);
+
+    const linearUpdate = entityPropertiesToIssueUpdate(payload);
 
     const updatedIssue = await client
-      .updateIssue(issueId, update)
+      .updateIssue(issueId, linearUpdate)
       .then(async (data) => {
         const issue = await data.issue;
         if (issue) {
@@ -371,9 +387,6 @@ export const createLinearIntegrationActivities = ({
         }
         return undefined;
       });
-
-    // eslint-disable-next-line no-console
-    console.log({ updatedIssue });
 
     return updatedIssue;
   },

@@ -71,6 +71,18 @@ impl PostgresStore<Transaction<'_>> {
             .into_report()
             .change_context(DeletionError)?;
 
+        self.as_client()
+            .query(
+                r"
+                    DELETE FROM ontology_temporal_metadata
+                    WHERE ontology_id = ANY($1)
+                ",
+                &[&ontology_ids],
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
+
         let base_urls = self
             .as_client()
             .query(

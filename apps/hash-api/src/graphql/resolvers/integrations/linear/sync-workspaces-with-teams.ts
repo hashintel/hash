@@ -1,11 +1,15 @@
 import {
+  AccountId,
   Entity,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  Uuid,
 } from "@local/hash-subgraph";
 
+import { archiveEntity } from "../../../../graph/knowledge/primitive/entity";
 import {
   getLinearIntegrationById,
+  getSyncedWorkspacesForLinearIntegration,
   linkIntegrationToWorkspace,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
@@ -53,15 +57,36 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   });
 
   const apiKey = vaultSecret.data.value;
+
   const linearClient = new Linear({
     temporalClient: temporal,
     apiKey,
   });
 
-  await Promise.all(
-    syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceAccountId =
-        extractEntityUuidFromEntityId(workspaceEntityId);
+  const existingSyncedWorkspaces =
+    await getSyncedWorkspacesForLinearIntegration(dataSources, {
+      linearIntegrationEntityId,
+    });
+
+  const removedSyncedWorkspaces = existingSyncedWorkspaces.filter(
+    ({ workspaceEntity }) =>
+      !syncWithWorkspaces.some(
+        ({ workspaceEntityId }) =>
+          workspaceEntity.metadata.recordId.entityId === workspaceEntityId,
+      ),
+  );
+
+  await Promise.all([
+    ...removedSyncedWorkspaces.map(({ syncLinearDataWithLinkEntity }) =>
+      archiveEntity(dataSources, {
+        entity: syncLinearDataWithLinkEntity,
+        actorId: user.accountId,
+      }),
+    ),
+    ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
+      const workspaceAccountId = extractEntityUuidFromEntityId(
+        workspaceEntityId,
+      ) as Uuid as AccountId;
       return Promise.all([
         linearClient.triggerWorkspaceSync({
           workspaceAccountId,
@@ -76,7 +101,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         }),
       ]);
     }),
-  );
+  ]);
 
   return linearIntegration.entity;
 };
