@@ -2,14 +2,15 @@ import { Box, Tab, Tabs } from "@mui/material";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { MouseEvent, useContext, useMemo } from "react";
+import { MouseEvent, useMemo } from "react";
 
+import siteMap from "../../../sitemap.json";
 import { Button } from "../../components/button";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
 import { getSerializedDocsPage } from "../shared/mdx-utils";
-import { SiteMapContext } from "../shared/sitemap-context";
+import { SiteMap } from "../shared/sitemap";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
 import { DocsSlugIcon } from "./docs-slug-icon";
@@ -33,17 +34,37 @@ type DocsPageParsedUrlQuery = {
   "docs-slug"?: string[];
 };
 
-export const getStaticPaths: GetStaticPaths = () => {
-  return {
-    paths: [],
-    fallback: true,
-  };
-};
-
 type DocsPageProps = {
+  docsSlug: string[];
   serializedPage?: MDXRemoteSerializeResult<Record<string, unknown>>;
 };
 
+const docsPages = (siteMap as SiteMap).pages.find(
+  ({ title }) => title === "Docs",
+)!.subPages;
+
+export const getStaticPaths: GetStaticPaths<DocsPageParsedUrlQuery> = () => {
+  const possibleHrefs = [
+    "/docs",
+    ...docsPages
+      .flatMap((page) => [page, ...page.subPages])
+      .map(({ href }) => href),
+  ];
+
+  const paths = possibleHrefs.map((href) => ({
+    params: {
+      "docs-slug": href
+        .replace("/docs", "")
+        .split("/")
+        .filter((item) => !!item),
+    },
+  }));
+
+  return {
+    paths,
+    fallback: false,
+  };
+};
 export const getStaticProps: GetStaticProps<
   DocsPageProps,
   DocsPageParsedUrlQuery
@@ -63,46 +84,33 @@ export const getStaticProps: GetStaticProps<
     });
 
     return {
-      props: { serializedPage },
+      props: { serializedPage, docsSlug },
     };
   } catch {
     return {
-      props: {},
+      props: { docsSlug },
     };
   }
 };
 
-const DocsPage: NextPageWithLayout<DocsPageProps> = ({ serializedPage }) => {
+const DocsPage: NextPageWithLayout<DocsPageProps> = ({
+  serializedPage,
+  docsSlug,
+}) => {
   const router = useRouter();
 
-  const { pages } = useContext(SiteMapContext);
-
-  const docsPages = useMemo(() => {
-    const docsPage = pages.find(({ title }) => title === "Docs");
-
-    if (!docsPage) {
-      throw new Error("Docs page not found in site map.");
-    }
-
-    return docsPage.subPages;
-  }, [pages]);
-
   const currentDocsTab = useMemo(() => {
-    const docsPageSlugs =
-      (router.query as DocsPageParsedUrlQuery)["docs-slug"] ?? [];
-
     const tab = docsTabs.find(
-      ({ href }) =>
-        href === `/docs${docsPageSlugs[0] ? `/${docsPageSlugs[0]}` : ""}`,
+      ({ href }) => href === `/docs${docsSlug[0] ? `/${docsSlug[0]}` : ""}`,
     );
 
     // If no matching tab is found, redirect to the docs homepage.
-    if (router.isReady && !tab) {
+    if (!tab) {
       void router.push(docsTabs[0]!.href);
     }
 
     return tab;
-  }, [router]);
+  }, [router, docsSlug]);
 
   const isHomePage = currentDocsTab && currentDocsTab.href === "/docs";
 
