@@ -27,6 +27,7 @@
     "@opensearch-project/opensearch": "1.1.0",
     "@temporalio/client": "1.8.1",
     "apollo-datasource": "3.3.2",
+    "dotenv-flow": "3.2.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",
     "wait-on": "6.0.1",
