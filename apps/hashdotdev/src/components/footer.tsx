@@ -194,8 +194,22 @@ export const Footer: FunctionComponent = () => (
           </Grid>
           <Grid item lg={4} md={6}>
             <FooterSection label="Get Involved">
-              {/* @todo: add docs page */}
-              {/* <FooterLink href="/docs/getting-started">Getting started</FooterLink> */}
+              <FooterLink href="/docs/get-started">
+                Start using HASH
+                <Box
+                  component="span"
+                  sx={{
+                    marginLeft: 1,
+                    color: "transparent",
+                    fontWeight: 700,
+                    background:
+                      "linear-gradient(45deg, #D61723 0%, #DA522A 20.31%, #CF9615 39.06%, #0AA84D 58.85%, #1467D6 79.69%, #5743DA 100%)",
+                    backgroundClip: "text",
+                  }}
+                >
+                  {"< 5 minutes"}
+                </Box>
+              </FooterLink>
               {/* @todo: fix href */}
               {/* <FooterLink href="/">Contribute</FooterLink> */}
               <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
