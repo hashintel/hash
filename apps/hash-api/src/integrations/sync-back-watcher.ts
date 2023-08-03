@@ -70,12 +70,6 @@ export const createIntegrationSyncBackWatcher = async (
     });
   };
 
-  while (!(await queue.acquire(queueName, 5_000))) {
-    logger.silly(
-      "Integration queue is owned by another consumer. Attempting to acquire ownership again ...",
-    );
-  }
-
   let interval: NodeJS.Timer;
 
   return {
@@ -85,7 +79,13 @@ export const createIntegrationSyncBackWatcher = async (
       await redisClient.close();
     },
 
-    start: () => {
+    start: async () => {
+      while (!(await queue.acquire(queueName, 2_000))) {
+        logger.silly(
+          "Integration queue is owned by another consumer. Attempting to acquire ownership again ...",
+        );
+      }
+
       interval = setInterval(() => {
         processQueueMessage();
       }, 1_000);
