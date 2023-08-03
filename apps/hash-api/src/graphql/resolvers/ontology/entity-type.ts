@@ -21,7 +21,7 @@ import {
   QueryQueryEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createEntityTypeResolver: ResolverFn<
@@ -84,7 +84,7 @@ export const queryEntityTypesResolver: ResolverFn<
 export const getEntityTypeResolver: ResolverFn<
   Promise<Subgraph>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetEntityTypeArgs
 > = async (
   _,
@@ -102,7 +102,7 @@ export const getEntityTypeResolver: ResolverFn<
 
   return await getEntityTypeSubgraphById(context, {
     entityTypeId,
-    actorId: user.accountId,
+    actorId: user?.accountId,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
