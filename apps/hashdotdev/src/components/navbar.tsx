@@ -24,7 +24,7 @@ import {
   useState,
 } from "react";
 
-import { SiteMapContext } from "../pages/shared/site-map-context";
+import { SiteMapContext } from "../pages/shared/sitemap-context";
 import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";

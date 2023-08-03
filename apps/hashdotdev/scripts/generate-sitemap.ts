@@ -10,7 +10,7 @@ const script = async () => {
 
   const sitemap = generateSiteMap();
 
-  const siteMapFilePath = path.join(process.cwd(), `site-map.json`);
+  const siteMapFilePath = path.join(process.cwd(), `sitemap.json`);
 
   await fs.writeJson(siteMapFilePath, sitemap, { spaces: "\t" });
 

@@ -22,7 +22,7 @@ import {
   generatePathWithoutParams,
   pageHasOpenSubPage,
 } from "../../pages/shared/page-utils";
-import { SiteMapContext } from "../../pages/shared/site-map-context";
+import { SiteMapContext } from "../../pages/shared/sitemap-context";
 import { SiteMapPage, SiteMapPageSection } from "../../pages/shared/sitemap";
 import { FaIcon } from "../icons/fa-icon";
 import { Link } from "../link";

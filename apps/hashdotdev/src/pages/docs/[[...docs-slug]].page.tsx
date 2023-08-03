@@ -9,7 +9,7 @@ import { FaIcon } from "../../components/icons/fa-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
 import { getSerializedDocsPage } from "../shared/mdx-utils";
-import { SiteMapContext } from "../shared/site-map-context";
+import { SiteMapContext } from "../shared/sitemap-context";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
 import { DocsSlugIcon } from "./docs-slug-icon";
