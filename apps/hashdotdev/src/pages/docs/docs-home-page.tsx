@@ -33,14 +33,24 @@ const GettingStartedLinks: FunctionComponent = () => (
   <Box
     sx={{
       flexShrink: 0,
-      marginLeft: 5,
+      marginLeft: {
+        xs: 0,
+        md: 5,
+      },
       background: ({ palette }) => palette.common.white,
       borderStyle: "solid",
       borderWidth: 1,
       borderColor: ({ palette }) => palette.gray[30],
       padding: ({ spacing }) => spacing(3, 4),
       borderRadius: "16px",
-      marginBottom: -4.5,
+      marginBottom: {
+        xs: 6,
+        md: -4.5,
+      },
+      alignSelf: {
+        xs: "stretch",
+        md: "flex-start",
+      },
     }}
   >
     <Box display="flex" alignItems="center" marginBottom={2.5}>
@@ -67,74 +77,84 @@ const GettingStartedLinks: FunctionComponent = () => (
       </Typography>
     </Box>
     <Divider sx={{ marginBottom: 2.25 }} />
-    {gettingStartedLinks.map(({ href, iconName, title, description }) => (
-      <Link
-        key={href}
-        href={href}
-        sx={{
-          "&:not(:last-child)": {
-            marginBottom: 1.75,
-          },
-          ".heading, .heading svg": {
-            transition: ({ transitions }) => transitions.create("color"),
-          },
-          ":hover": {
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: {
+          xs: "row",
+          md: "column",
+        },
+        gap: 1.75,
+        flexWrap: "wrap",
+      }}
+    >
+      {gettingStartedLinks.map(({ href, iconName, title, description }) => (
+        <Link
+          key={href}
+          href={href}
+          sx={{
+            flexShrink: 0,
             ".heading, .heading svg": {
-              color: ({ palette }) => palette.teal[70],
+              transition: ({ transitions }) => transitions.create("color"),
             },
-          },
-        }}
-      >
-        <Box display="flex">
-          <Box
-            sx={{
-              width: 30,
-              marginRight: 1.25,
-              display: "flex",
-              justifyContent: "center",
-              paddingTop: 1,
-            }}
-          >
-            <FaIcon
-              name={iconName}
-              type="regular"
+            ":hover": {
+              ".heading, .heading svg": {
+                color: ({ palette }) => palette.teal[70],
+              },
+            },
+          }}
+        >
+          <Box display="flex">
+            <Box
               sx={{
-                fontSize: 16,
-                color: ({ palette }) => palette.teal[60],
-              }}
-            />
-          </Box>
-          <Box>
-            <Typography
-              className="heading"
-              sx={{
-                fontSize: 16,
-                fontWeight: 600,
+                width: 30,
+                marginRight: 1.25,
+                display: "flex",
+                justifyContent: "center",
+                paddingTop: 1,
               }}
             >
-              <strong>{title}</strong>
               <FaIcon
-                name="arrow-right"
+                name={iconName}
                 type="regular"
                 sx={{
                   fontSize: 16,
-                  marginLeft: 1,
-                  color: ({ palette }) => palette.teal[50],
+                  color: ({ palette }) => palette.teal[60],
                 }}
               />
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: 15,
-                color: ({ palette }) => palette.gray[70],
-              }}
-            >
-              {description}
-            </Typography>
+            </Box>
+            <Box>
+              <Typography
+                className="heading"
+                sx={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                }}
+              >
+                <strong>{title}</strong>
+                <FaIcon
+                  name="arrow-right"
+                  type="regular"
+                  sx={{
+                    fontSize: 16,
+                    marginLeft: 1,
+                    color: ({ palette }) => palette.teal[50],
+                  }}
+                />
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 15,
+                  color: ({ palette }) => palette.gray[70],
+                }}
+              >
+                {description}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </Link>
-    ))}
+        </Link>
+      ))}
+    </Box>
   </Box>
 );
 
@@ -206,7 +226,15 @@ export const DocsHomePage: FunctionComponent = () => {
   return (
     <>
       <Container
-        sx={{ paddingTop: 8, display: "flex", alignItems: "flex-end" }}
+        sx={{
+          paddingTop: 8,
+          display: "flex",
+          alignItems: "flex-end",
+          flexDirection: {
+            xs: "column",
+            md: "row",
+          },
+        }}
       >
         <Box>
           <Box
@@ -216,11 +244,18 @@ export const DocsHomePage: FunctionComponent = () => {
             marginBottom={2.5}
           >
             <HashIcon sx={{ width: 46, height: 46 }} />
-            <Typography variant="hashHeading2" component="h1">
-              Documentation
+            <Typography
+              variant="hashHeading2"
+              component="h1"
+              sx={{ fontWeight: 500 }}
+            >
+              Developer Docs
             </Typography>
           </Box>
-          <Typography marginBottom={8} variant="hashLargeText">
+          <Typography
+            sx={{ marginBottom: { xs: 4, md: 8 } }}
+            variant="hashLargeText"
+          >
             Learn how to get up and running with HASH, and make the most of your
             new superpowers
           </Typography>
