@@ -174,23 +174,28 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
   ) : null;
 };
 
-DocsPage.getLayout = (page) => (
-  <PageLayout
-    subscribe={false}
-    contentWrapperSx={{
-      py: { xs: 0, md: 0 },
-      "& > div::before": {
-        background:
-          "linear-gradient(183deg, #E8F4F6 0%, rgba(244, 253, 255, 0.00) 100%)",
-      },
-    }}
-    navbarSx={{ background: ({ palette }) => palette.gray[10] }}
-    navbarLogoEndAdornment={
-      <DocsSlugIcon sx={{ height: 20, width: 66, marginLeft: -2.25 }} />
-    }
-  >
-    {page}
-  </PageLayout>
-);
+DocsPage.getLayout = (page, asPath) => {
+  const isDocsHomePage = asPath === "/docs";
+
+  return (
+    <PageLayout
+      subscribe={false}
+      contentWrapperSx={{
+        py: { xs: 0, md: 0 },
+        "& > div::before": {
+          background: isDocsHomePage
+            ? "linear-gradient(183deg, #E8F4F6 0%, rgba(244, 253, 255, 0.00) 100%)"
+            : "linear-gradient(183deg, #E5F0F2 0%, rgba(237, 248, 250, 0.00) 100%)",
+        },
+      }}
+      navbarSx={{ background: ({ palette }) => palette.gray[10] }}
+      navbarLogoEndAdornment={
+        <DocsSlugIcon sx={{ height: 20, width: 66, marginLeft: -2.25 }} />
+      }
+    >
+      {page}
+    </PageLayout>
+  );
+};
 
 export default DocsPage;

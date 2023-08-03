@@ -73,7 +73,7 @@ const MyApp: FunctionComponent<MyAppProps> = ({
           options={{ showSpinner: false }}
           showOnShallow
         />
-        {getLayout(<Component {...pageProps} />)}
+        {getLayout(<Component {...pageProps} />, router.asPath)}
       </MuiProvider>
     </SiteMapContext.Provider>
   );
