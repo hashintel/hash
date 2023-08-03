@@ -181,6 +181,13 @@ impl OntologyType for PropertyType {
     }
 }
 
+/// A [`CustomEntityTypeMetadata`] that has not yet been fully resolved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartialCustomEntityTypeMetadata {
+    pub label_property: Option<BaseUrl>,
+    pub common: PartialCustomOntologyMetadata,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomEntityTypeMetadata {
@@ -209,6 +216,7 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
                                 "temporalVersioning",
                                 Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
                             )
+                            .required("temporalVersioning")
                             .property("ownedById", Ref::from_schema_name(OwnedById::schema().0))
                             .required("ownedById")
                             .build(),
@@ -225,6 +233,7 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
                                 "temporalVersioning",
                                 Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
                             )
+                            .required("temporalVersioning")
                             .property(
                                 "fetchedAt",
                                 schema::ObjectBuilder::new()
@@ -240,11 +249,62 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
     }
 }
 
+/// An [`EntityTypeMetadata`] that has not yet been fully resolved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartialEntityTypeMetadata {
+    pub record_id: OntologyTypeRecordId,
+    pub custom: PartialCustomEntityTypeMetadata,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     pub custom: CustomEntityTypeMetadata,
+}
+
+impl EntityTypeMetadata {
+    #[must_use]
+    pub fn from_partial(
+        partial: PartialEntityTypeMetadata,
+        transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+    ) -> Self {
+        Self {
+            record_id: partial.record_id,
+            custom: match partial.custom {
+                PartialCustomEntityTypeMetadata {
+                    label_property,
+                    common:
+                        PartialCustomOntologyMetadata::Owned {
+                            provenance,
+                            owned_by_id,
+                        },
+                } => CustomEntityTypeMetadata {
+                    label_property,
+                    common: CustomOntologyMetadata::Owned {
+                        provenance,
+                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
+                        owned_by_id,
+                    },
+                },
+                PartialCustomEntityTypeMetadata {
+                    label_property,
+                    common:
+                        PartialCustomOntologyMetadata::External {
+                            provenance,
+                            fetched_at,
+                        },
+                } => CustomEntityTypeMetadata {
+                    label_property,
+                    common: CustomOntologyMetadata::External {
+                        provenance,
+                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
+                        fetched_at,
+                    },
+                },
+            },
+        }
+    }
 }
 
 impl OntologyType for EntityType {
@@ -285,6 +345,28 @@ pub struct OntologyTemporalMetadata {
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
+/// A [`CustomOntologyMetadata`] that has not yet been fully resolved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PartialCustomOntologyMetadata {
+    Owned {
+        provenance: ProvenanceMetadata,
+        owned_by_id: OwnedById,
+    },
+    External {
+        provenance: ProvenanceMetadata,
+        fetched_at: OffsetDateTime,
+    },
+}
+
+impl PartialCustomOntologyMetadata {
+    #[must_use]
+    pub const fn provenance(&self) -> ProvenanceMetadata {
+        let (Self::External { provenance, .. } | Self::Owned { provenance, .. }) = self;
+
+        *provenance
+    }
+}
+
 // TODO: Restrict mutable access when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
 //   see https://app.asana.com/0/0/1203977361907407/f
@@ -295,27 +377,25 @@ pub enum CustomOntologyMetadata {
     #[serde(rename_all = "camelCase")]
     Owned {
         provenance: ProvenanceMetadata,
-        temporal_versioning: Option<OntologyTemporalMetadata>,
+        temporal_versioning: OntologyTemporalMetadata,
         owned_by_id: OwnedById,
     },
     #[schema(title = "CustomExternalOntologyElementMetadata")]
     #[serde(rename_all = "camelCase")]
     External {
         provenance: ProvenanceMetadata,
-        temporal_versioning: Option<OntologyTemporalMetadata>,
+        temporal_versioning: OntologyTemporalMetadata,
         #[schema(value_type = String)]
         #[serde(with = "crate::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }
 
-impl CustomOntologyMetadata {
-    #[must_use]
-    pub const fn provenance(&self) -> ProvenanceMetadata {
-        let (Self::External { provenance, .. } | Self::Owned { provenance, .. }) = self;
-
-        *provenance
-    }
+/// An [`OntologyElementMetadata`] that has not yet been fully resolved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartialOntologyElementMetadata {
+    pub record_id: OntologyTypeRecordId,
+    pub custom: PartialCustomOntologyMetadata,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -323,6 +403,45 @@ impl CustomOntologyMetadata {
 pub struct OntologyElementMetadata {
     pub record_id: OntologyTypeRecordId,
     pub custom: CustomOntologyMetadata,
+}
+
+impl From<EntityTypeMetadata> for OntologyElementMetadata {
+    fn from(value: EntityTypeMetadata) -> Self {
+        Self {
+            record_id: value.record_id,
+            custom: value.custom.common,
+        }
+    }
+}
+
+impl OntologyElementMetadata {
+    #[must_use]
+    pub fn from_partial(
+        partial: PartialOntologyElementMetadata,
+        transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+    ) -> Self {
+        Self {
+            record_id: partial.record_id,
+            custom: match partial.custom {
+                PartialCustomOntologyMetadata::Owned {
+                    provenance,
+                    owned_by_id,
+                } => CustomOntologyMetadata::Owned {
+                    provenance,
+                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
+                    owned_by_id,
+                },
+                PartialCustomOntologyMetadata::External {
+                    provenance,
+                    fetched_at,
+                } => CustomOntologyMetadata::External {
+                    provenance,
+                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
+                    fetched_at,
+                },
+            },
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]

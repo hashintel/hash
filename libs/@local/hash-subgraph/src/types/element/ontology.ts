@@ -14,7 +14,16 @@ import {
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 
-import { BaseUrl, OwnedById, ProvenanceMetadata, Timestamp } from "../shared";
+import {
+  BaseUrl,
+  ExclusiveLimitedTemporalBound,
+  InclusiveLimitedTemporalBound,
+  OwnedById,
+  ProvenanceMetadata,
+  TimeInterval,
+  Timestamp,
+  Unbounded,
+} from "../shared";
 
 /**
  * The second component of the [{@link BaseUrl}, RevisionId] tuple needed to identify a specific ontology type vertex
@@ -56,6 +65,12 @@ export type OwnedOntologyElementMetadata = {
   custom: {
     ownedById: OwnedById;
     provenance: ProvenanceMetadata;
+    temporalVersioning: {
+      transactionTime: TimeInterval<
+        InclusiveLimitedTemporalBound,
+        ExclusiveLimitedTemporalBound | Unbounded
+      >;
+    };
   };
 };
 
@@ -64,6 +79,12 @@ export type ExternalOntologyElementMetadata = {
   custom: {
     fetchedAt: Timestamp;
     provenance: ProvenanceMetadata;
+    temporalVersioning: {
+      transactionTime: TimeInterval<
+        InclusiveLimitedTemporalBound,
+        ExclusiveLimitedTemporalBound | Unbounded
+      >;
+    };
   };
 };
 

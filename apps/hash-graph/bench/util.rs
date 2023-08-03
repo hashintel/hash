@@ -3,8 +3,8 @@ use std::mem::ManuallyDrop;
 use graph::{
     identifier::account::AccountId,
     ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
-        OntologyElementMetadata,
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
@@ -202,11 +202,10 @@ pub async fn seed<D, P, E, C>(
         let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
         match store
-            .create_data_type(data_type.clone(), &OntologyElementMetadata {
+            .create_data_type(data_type.clone(), PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
-                custom: CustomOntologyMetadata::Owned {
+                custom: PartialCustomOntologyMetadata::Owned {
                     provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    temporal_versioning: None,
                     owned_by_id: OwnedById::new(account_id),
                 },
             })
@@ -233,11 +232,10 @@ pub async fn seed<D, P, E, C>(
             PropertyType::try_from(property_typee_repr).expect("could not parse property type");
 
         match store
-            .create_property_type(property_type.clone(), &OntologyElementMetadata {
+            .create_property_type(property_type.clone(), PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
-                custom: CustomOntologyMetadata::Owned {
+                custom: PartialCustomOntologyMetadata::Owned {
                     provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    temporal_versioning: None,
                     owned_by_id: OwnedById::new(account_id),
                 },
             })
@@ -264,12 +262,11 @@ pub async fn seed<D, P, E, C>(
             EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
         match store
-            .create_entity_type(entity_type.clone(), &EntityTypeMetadata {
+            .create_entity_type(entity_type.clone(), PartialEntityTypeMetadata {
                 record_id: entity_type.id().clone().into(),
-                custom: CustomEntityTypeMetadata {
-                    common: CustomOntologyMetadata::Owned {
+                custom: PartialCustomEntityTypeMetadata {
+                    common: PartialCustomOntologyMetadata::Owned {
                         provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                        temporal_versioning: None,
                         owned_by_id: OwnedById::new(account_id),
                     },
                     label_property: None,

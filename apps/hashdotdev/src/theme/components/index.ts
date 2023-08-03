@@ -8,6 +8,7 @@ import { MuiIconThemeOptions } from "./data-display/mui-icon-theme-options";
 import { MuiTooltipThemeOptions } from "./data-display/mui-tooltip-theme-options";
 import { MuiTypographyThemeOptions } from "./data-display/mui-typography-theme-options";
 import { MuiButtonThemeOptions } from "./inputs/mui-button-theme-options";
+import { MuiCheckboxThemeOptions } from "./inputs/mui-checkbox-theme-options";
 import { MuiFormControlThemeOptions } from "./inputs/mui-form-control-theme-options";
 import { MuiInputBaseThemeOptions } from "./inputs/mui-input-base-theme-options";
 import { MuiOutlinedInputThemeOptions } from "./inputs/mui-outlined-input-theme-options";
@@ -38,4 +39,5 @@ export const components: ThemeOptions["components"] = {
   MuiMenuItem: MuiMenuItemThemeOptions,
   MuiListItemText: MuiListItemTextThemeOptions,
   MuiListItemIcon: MuiListItemIconThemeOptions,
+  MuiCheckbox: MuiCheckboxThemeOptions,
 };

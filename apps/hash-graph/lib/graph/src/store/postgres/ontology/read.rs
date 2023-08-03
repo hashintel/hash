@@ -144,14 +144,14 @@ where
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         CustomOntologyMetadata::Owned {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             owned_by_id,
                         }
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             fetched_at,
                         }
                     }
@@ -237,14 +237,14 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         CustomOntologyMetadata::Owned {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             owned_by_id,
                         }
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             fetched_at,
                         }
                     }

@@ -16,8 +16,8 @@ use crate::{
     snapshot::{
         account::AccountSender,
         ontology::{
-            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
-            OntologyTypeMetadataRowBatch,
+            table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
+            OntologyOwnedMetadataRow, OntologyTypeMetadataRowBatch,
         },
         SnapshotRestoreError,
     },
@@ -27,6 +27,7 @@ use crate::{
 pub struct OntologyTypeMetadataSender {
     account: AccountSender,
     id: Sender<OntologyIdRow>,
+    temporal_metadata: Sender<OntologyTemporalMetadataRow>,
     owned_metadata: Sender<OntologyOwnedMetadataRow>,
     external_metadata: Sender<OntologyExternalMetadataRow>,
 }
@@ -41,6 +42,10 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
             .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
+        ready!(self.temporal_metadata.poll_ready_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll temporal metadata sender")?;
         ready!(self.owned_metadata.poll_ready_unpin(cx))
             .into_report()
             .change_context(SnapshotRestoreError::Read)
@@ -99,12 +104,20 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                 ontology_id,
                 base_url: metadata.record_id.base_url.as_str().to_owned(),
                 version: metadata.record_id.version,
-                transaction_time: temporal_versioning.map(|t| t.transaction_time),
                 record_created_by_id: provenance.record_created_by_id,
             })
             .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send id")?;
+
+        self.temporal_metadata
+            .start_send(OntologyTemporalMetadataRow {
+                ontology_id,
+                transaction_time: temporal_versioning.transaction_time,
+            })
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send temporal metadata")?;
 
         Ok(())
     }
@@ -116,6 +129,10 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
             .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
+        ready!(self.temporal_metadata.poll_flush_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush temporal metadata sender")?;
         ready!(self.owned_metadata.poll_flush_unpin(cx))
             .into_report()
             .change_context(SnapshotRestoreError::Read)
@@ -135,6 +152,10 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
             .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
+        ready!(self.temporal_metadata.poll_close_unpin(cx))
+            .into_report()
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close temporal metadata sender")?;
         ready!(self.owned_metadata.poll_close_unpin(cx))
             .into_report()
             .change_context(SnapshotRestoreError::Read)
@@ -165,6 +186,7 @@ pub fn ontology_metadata_channel(
     account_sender: AccountSender,
 ) -> (OntologyTypeMetadataSender, OntologyTypeMetadataReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
+    let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
     let (owned_metadata_tx, owned_metadata_rx) = mpsc::channel(chunk_size);
     let (external_metadata_tx, external_metadata_rx) = mpsc::channel(chunk_size);
 
@@ -172,6 +194,7 @@ pub fn ontology_metadata_channel(
         OntologyTypeMetadataSender {
             account: account_sender,
             id: id_tx,
+            temporal_metadata: temporal_metadata_tx,
             owned_metadata: owned_metadata_tx,
             external_metadata: external_metadata_tx,
         },
@@ -180,6 +203,10 @@ pub fn ontology_metadata_channel(
                 id_rx
                     .ready_chunks(chunk_size)
                     .map(OntologyTypeMetadataRowBatch::Ids)
+                    .boxed(),
+                temporal_metadata_rx
+                    .ready_chunks(chunk_size)
+                    .map(OntologyTypeMetadataRowBatch::TemporalMetadata)
                     .boxed(),
                 owned_metadata_rx
                     .ready_chunks(chunk_size)

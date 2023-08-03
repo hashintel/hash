@@ -91,6 +91,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
               ...(!fullWidth && {
                 padding: spacing(7, 10),
               }),
+              overflowY: "scroll",
             })}
             ref={setMain}
           >
