@@ -17,6 +17,7 @@
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
+    "generate-system-types": "tsx ./src/generate-system-types.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"
@@ -24,10 +25,12 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.1.2",
+    "@blockprotocol/graph": "0.3.1-canary-20230803163819",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graphql-shared": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.30.0",
+    "dotenv-flow": "3.2.0",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
@@ -40,6 +43,7 @@
     "prosemirror-transform": "1.7.0",
     "prosemirror-view": "1.29.1",
     "slugify": "1.6.5",
+    "tsx": "3.12.7",
     "uuid": "9.0.0"
   },
   "devDependencies": {
