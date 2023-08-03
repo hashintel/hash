@@ -2,7 +2,6 @@ import {
   Box,
   BoxProps,
   Collapse,
-  Divider,
   IconButton,
   Skeleton,
   Stack,
@@ -322,7 +321,6 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
 
 type SidebarProps = {
   pages: SiteMapPage[];
-  appendices?: SiteMapPage[];
   isSsrSafe?: boolean;
 } & BoxProps;
 
@@ -412,7 +410,6 @@ const useOpenedPages = (pages: SiteMapPage[], ssr: boolean) => {
 };
 
 export const Sidebar: FunctionComponent<SidebarProps> = ({
-  appendices,
   pages,
   sx = [],
   isSsrSafe = true,
@@ -472,10 +469,9 @@ export const Sidebar: FunctionComponent<SidebarProps> = ({
         renderSkeleton ? (
           <Stack spacing={1} pt="4px" alignItems="flex-end">
             {pages.map(({ sections }, idx) => (
-              <>
+              // eslint-disable-next-line react/no-array-index-key
+              <Fragment key={idx}>
                 <Skeleton
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={idx}
                   variant="rectangular"
                   height={sidebarLinkHeight - 8}
                   width="100%"
@@ -492,7 +488,7 @@ export const Sidebar: FunctionComponent<SidebarProps> = ({
                       />
                     ))
                   : null}
-              </>
+              </Fragment>
             ))}
           </Stack>
         ) : (
@@ -537,20 +533,6 @@ export const Sidebar: FunctionComponent<SidebarProps> = ({
                     key={subPage.href}
                     depth={0}
                     page={subPage}
-                    setSelectedAnchorElement={setSelectedAnchorElement}
-                    openedPages={openedPages}
-                    setOpenedPages={setOpenedPages}
-                  />
-                ))}
-              </>
-            ) : null}
-            {appendices && appendices.length > 0 ? (
-              <>
-                <Divider sx={{ marginBottom: 2 }} />
-                {appendices.map((page) => (
-                  <SidebarPage
-                    key={page.href}
-                    page={page}
                     setSelectedAnchorElement={setSelectedAnchorElement}
                     openedPages={openedPages}
                     setOpenedPages={setOpenedPages}
