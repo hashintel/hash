@@ -926,9 +926,13 @@
       "ArchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "typeToArchive",
+          "actorId"
         ],
         "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordArchivedById"
+          },
           "typeToArchive": {
             "type": "string"
           }
@@ -937,9 +941,13 @@
       "ArchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "typeToArchive",
+          "actorId"
         ],
         "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordArchivedById"
+          },
           "typeToArchive": {
             "type": "string"
           }
@@ -948,9 +956,13 @@
       "ArchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "typeToArchive",
+          "actorId"
         ],
         "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordArchivedById"
+          },
           "typeToArchive": {
             "type": "string"
           }
@@ -2562,6 +2574,10 @@
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
       },
+      "RecordArchivedById": {
+        "type": "string",
+        "format": "uuid"
+      },
       "RecordCreatedById": {
         "type": "string",
         "format": "uuid"
@@ -2712,9 +2728,13 @@
       "UnarchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "typeToUnarchive",
+          "actorId"
         ],
         "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
           "typeToUnarchive": {
             "type": "string"
           }
@@ -2723,9 +2743,13 @@
       "UnarchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "typeToUnarchive",
+          "actorId"
         ],
         "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
           "typeToUnarchive": {
             "type": "string"
           }
@@ -2734,9 +2758,13 @@
       "UnarchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "typeToUnarchive",
+          "actorId"
         ],
         "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
           "typeToUnarchive": {
             "type": "string"
           }

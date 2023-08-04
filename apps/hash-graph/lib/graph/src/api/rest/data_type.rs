@@ -27,7 +27,7 @@ use crate::{
         OntologyTemporalMetadata, OntologyTypeReference, PartialCustomOntologyMetadata,
         PartialOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
         OntologyVersionDoesNotExist, StorePool,
@@ -342,6 +342,8 @@ async fn update_data_type<P: StorePool + Send>(
 struct ArchiveDataTypeRequest {
     #[schema(value_type = String)]
     type_to_archive: VersionedUrl,
+    #[expect(dead_code)]
+    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
@@ -363,7 +365,9 @@ async fn archive_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveDataTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchiveDataTypeRequest { type_to_archive }) = body;
+    let Json(ArchiveDataTypeRequest {
+        type_to_archive, ..
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -394,6 +398,8 @@ async fn archive_data_type<P: StorePool + Send>(
 struct UnarchiveDataTypeRequest {
     #[schema(value_type = String)]
     type_to_unarchive: VersionedUrl,
+    #[expect(dead_code)]
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -415,7 +421,9 @@ async fn unarchive_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UnarchiveDataTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchiveDataTypeRequest { type_to_unarchive }) = body;
+    let Json(UnarchiveDataTypeRequest {
+        type_to_unarchive, ..
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");

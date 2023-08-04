@@ -35,7 +35,7 @@ use crate::{
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ConflictBehavior, EntityTypeStore, StorePool,
@@ -488,6 +488,8 @@ async fn update_entity_type<P: StorePool + Send>(
 struct ArchiveEntityTypeRequest {
     #[schema(value_type = String)]
     type_to_archive: VersionedUrl,
+    #[expect(dead_code)]
+    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
@@ -509,7 +511,9 @@ async fn archive_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchiveEntityTypeRequest { type_to_archive }) = body;
+    let Json(ArchiveEntityTypeRequest {
+        type_to_archive, ..
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -540,6 +544,8 @@ async fn archive_entity_type<P: StorePool + Send>(
 struct UnarchiveEntityTypeRequest {
     #[schema(value_type = String)]
     type_to_unarchive: VersionedUrl,
+    #[expect(dead_code)]
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -561,7 +567,9 @@ async fn unarchive_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UnarchiveEntityTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchiveEntityTypeRequest { type_to_unarchive }) = body;
+    let Json(UnarchiveEntityTypeRequest {
+        type_to_unarchive, ..
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
