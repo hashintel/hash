@@ -92,7 +92,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $2) AND ("ontology_id_with_metadata_0_1_0"."version" = $3)"#
             )
         );
 
@@ -107,8 +107,8 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
-                  AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL"#
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $2) AND ("ontology_id_with_metadata_0_1_0"."version" = $3)
+                  AND "data_types_0_1_0"."schema"->>'description' IS NOT NULL"#
             )
         );
 
@@ -133,9 +133,9 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
-                  AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL
-                  AND (("data_types_0_0_0"."schema"->>'title' = $3) OR ("data_types_0_0_0"."schema"->>'description' = $4))"#
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $2) AND ("ontology_id_with_metadata_0_1_0"."version" = $3)
+                  AND "data_types_0_1_0"."schema"->>'description' IS NOT NULL
+                  AND (("data_types_0_1_0"."schema"->>'title' = $4) OR ("data_types_0_1_0"."schema"->>'description' = $5))"#
             )
         );
 
@@ -145,7 +145,9 @@ mod tests {
             .iter()
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
+
         assert_eq!(parameters, &[
+            format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
             "1",
             "\"some title\"",

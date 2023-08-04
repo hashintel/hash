@@ -14,7 +14,7 @@ use crate::{
 
 impl PostgresRecord for EntityTypeWithMetadata {
     fn base_table() -> Table {
-        Table::EntityTypes
+        Table::OntologyTemporalMetadata
     }
 }
 
@@ -29,15 +29,15 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::Required
             | Self::OntologyId
             | Self::LabelProperty
-            | Self::Schema(_) => vec![],
+            | Self::Schema(_) => vec![Relation::EntityTypeIds],
             Self::BaseUrl
             | Self::Version
             | Self::RecordCreatedById
             | Self::OwnedById
             | Self::AdditionalMetadata(_) => {
-                vec![Relation::EntityTypeIds]
+                vec![Relation::OntologyIds]
             }
-            Self::TransactionTime => vec![Relation::EntityTypeTemporalMetadata],
+            Self::TransactionTime => vec![],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
