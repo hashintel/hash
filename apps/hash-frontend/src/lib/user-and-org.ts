@@ -1,4 +1,5 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   OrgProperties,
   UserProperties,
@@ -24,8 +25,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
-
-import { simplifyProperties } from "./simplify-properties";
 
 export type MinimalUser = {
   kind: "user";
