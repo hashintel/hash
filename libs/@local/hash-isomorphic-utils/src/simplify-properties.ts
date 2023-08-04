@@ -33,11 +33,13 @@ export type SimpleProperties<Properties extends EntityPropertiesObject> = {
 export const simplifyProperties = <T extends EntityPropertiesObject>(
   properties: T,
 ): SimpleProperties<T> => {
-  return typedEntries(properties).reduce(
+  const simpleProperties = typedEntries(properties).reduce(
     (acc, [key, value]) => ({
       ...acc,
       [camelCase(key.split("/").slice(-2, -1).pop())]: value,
     }),
     {} as SimpleProperties<T>,
   );
+
+  return simpleProperties;
 };

@@ -129,13 +129,13 @@ export type CommentAuthorLink = { linkEntity: Author; rightEntity: User };
 export type CommentHasTextLink = { linkEntity: HasText; rightEntity: Text };
 
 export type CommentOutgoingLinkAndTarget =
-  | CommentAuthorLink
   | CommentParentLink
+  | CommentAuthorLink
   | CommentHasTextLink;
 
 export type CommentOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
   "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
+  "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
   "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": CommentHasTextLink;
 };
 
