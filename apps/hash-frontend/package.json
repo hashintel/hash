@@ -87,6 +87,7 @@
     "react-responsive-carousel": "3.2.23",
     "react-transition-group": "4.4.5",
     "rooks": "7.14.1",
+    "safe-stable-stringify": "2.4.3",
     "setimmediate": "1.0.5",
     "signia": "0.1.1",
     "signia-react": "0.1.1",

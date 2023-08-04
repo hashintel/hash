@@ -93,11 +93,11 @@ export type PageOutgoingLinksByLinkEntityTypeId = {
 export type PageParentLink = { linkEntity: Parent; rightEntity: Page };
 
 export type PageProperties = {
-  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
 };
 
 /**
