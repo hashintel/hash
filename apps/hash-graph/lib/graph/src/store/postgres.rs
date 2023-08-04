@@ -222,6 +222,106 @@ where
             .map(|row| row.get(0))
     }
 
+    async fn archive_ontology_type(
+        &self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        let query: &str = r#"
+          UPDATE ontology_temporal_metadata
+          SET transaction_time = tstzrange(lower(transaction_time), now(), '[)')
+          WHERE ontology_id = (
+            SELECT ontology_id
+            FROM ontology_ids
+            WHERE base_url = $1 AND version = $2
+          ) AND transaction_time @> now()
+          RETURNING transaction_time;
+        "#;
+
+        let optional = self
+            .as_client()
+            .query_opt(query, &[
+                &id.base_url.as_str(),
+                &OntologyTypeVersion::new(id.version),
+            ])
+            .await
+            .into_report()
+            .change_context(UpdateError)?;
+        if let Some(row) = optional {
+            Ok(OntologyTemporalMetadata {
+                transaction_time: row.get(0),
+            })
+        } else {
+            let exists = self
+                .as_client()
+                .query_one(
+                    r#"
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM ontology_ids
+                            WHERE base_url = $1 AND version = $2
+                        );
+                    "#,
+                    &[&id.base_url.as_str(), &OntologyTypeVersion::new(id.version)],
+                )
+                .await
+                .into_report()
+                .change_context(UpdateError)?
+                .get(0);
+
+            Err(if exists {
+                Report::new(VersionedUrlAlreadyExists)
+                    .attach_printable(id.clone())
+                    .change_context(UpdateError)
+            } else {
+                Report::new(OntologyVersionDoesNotExist)
+                    .attach_printable(id.clone())
+                    .change_context(UpdateError)
+            })
+        }
+    }
+
+    async fn unarchive_ontology_type(
+        &self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        let query: &str = r#"
+          INSERT INTO ontology_temporal_metadata (
+            ontology_id,
+            transaction_time
+          ) VALUES (
+            (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
+            tstzrange(now(), NULL, '[)')
+          )
+          RETURNING transaction_time;
+        "#;
+
+        Ok(OntologyTemporalMetadata {
+            transaction_time: self
+                .as_client()
+                .query_one(query, &[
+                    &id.base_url.as_str(),
+                    &OntologyTypeVersion::new(id.version),
+                ])
+                .await
+                .into_report()
+                .map_err(|report| match report.current_context().code() {
+                    Some(&SqlState::EXCLUSION_VIOLATION) => report
+                        .change_context(VersionedUrlAlreadyExists)
+                        .attach_printable(id.clone())
+                        .change_context(UpdateError),
+                    Some(&SqlState::NOT_NULL_VIOLATION) => report
+                        .change_context(OntologyVersionDoesNotExist)
+                        .attach_printable(id.clone())
+                        .change_context(UpdateError),
+                    _ => report
+                        .change_context(UpdateError)
+                        .attach_printable(id.clone()),
+                })
+                .change_context(UpdateError)?
+                .get(0),
+        })
+    }
+
     async fn create_ontology_owned_metadata(
         &self,
         ontology_id: OntologyId,

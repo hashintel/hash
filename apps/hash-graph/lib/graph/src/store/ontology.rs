@@ -2,12 +2,16 @@ use std::iter;
 
 use async_trait::async_trait;
 use error_stack::Result;
-use type_system::{url::BaseUrl, DataType, EntityType, PropertyType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
 
 use crate::{
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        OntologyTemporalMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::RecordCreatedById,
     store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
@@ -72,6 +76,26 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         data_type: DataType,
         actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
+
+    /// Archives the definition of an existing [`DataType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`DataType`] doesn't exist.
+    async fn archive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+
+    /// Restores the definition of an existing [`DataType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`DataType`] doesn't exist.
+    async fn unarchive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
@@ -134,6 +158,26 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         property_type: PropertyType,
         actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
+
+    /// Archives the definition of an existing [`PropertyType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`PropertyType`] doesn't exist.
+    async fn archive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+
+    /// Restores the definition of an existing [`PropertyType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`PropertyType`] doesn't exist.
+    async fn unarchive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
@@ -195,4 +239,24 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         actor_id: RecordCreatedById,
         label_property: Option<BaseUrl>,
     ) -> Result<EntityTypeMetadata, UpdateError>;
+
+    /// Archives the definition of an existing [`EntityType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`EntityType`] doesn't exist.
+    async fn archive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+
+    /// Restores the definition of an existing [`EntityType`].
+    ///
+    /// # Errors
+    ///
+    /// - if the [`EntityType`] doesn't exist.
+    async fn unarchive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }

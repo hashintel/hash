@@ -5,13 +5,16 @@ use async_trait::async_trait;
 use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::PropertyType;
+use type_system::{url::VersionedUrl, PropertyType};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
-    ontology::{OntologyElementMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata},
+    ontology::{
+        OntologyElementMetadata, OntologyTemporalMetadata, PartialOntologyElementMetadata,
+        PropertyTypeWithMetadata,
+    },
     provenance::RecordCreatedById,
     store::{
         crud::Read,
@@ -318,5 +321,19 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
+    }
+
+    async fn archive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.archive_ontology_type(id).await
+    }
+
+    async fn unarchive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.unarchive_ontology_type(id).await
     }
 }
