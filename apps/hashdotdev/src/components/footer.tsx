@@ -35,7 +35,17 @@ const FooterLink: FunctionComponent<
       {...props}
       sx={[
         ...(Array.isArray(sx) ? sx : [sx]),
-        { display: "flex", whiteSpace: "nowrap" },
+        {
+          display: "flex",
+          whiteSpace: "nowrap",
+          transition: ({ transitions }) => transitions.create("color"),
+          "&:hover": {
+            color: ({ palette }) => palette.gray[50],
+            svg: {
+              color: ({ palette }) => palette.gray[40],
+            },
+          },
+        },
       ]}
       variant="hashSmallTextMedium"
     >
@@ -45,6 +55,7 @@ const FooterLink: FunctionComponent<
           name="arrow-up-right-from-square"
           type="solid"
           sx={{
+            transition: ({ transitions }) => transitions.create("color"),
             color: ({ palette }) => palette.gray[50],
             fontSize: 12,
             marginLeft: 1.5,
