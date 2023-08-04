@@ -1,5 +1,5 @@
 import { Box, IconButton, Tooltip, Typography } from "@mui/material";
-import { Fragment, FunctionComponent } from "react";
+import { Fragment, FunctionComponent, RefObject } from "react";
 
 import { FaIcon } from "../../components/icons/fa-icon";
 import { statuses } from "./statuses";
@@ -10,6 +10,7 @@ import { variants } from "./variants";
 export const technologyTreeNodeWidth = 300;
 
 export const TechnologyTreeNode: FunctionComponent<{
+  graphWrapperRef: RefObject<Element>;
   x: number;
   y: number;
   blurred: boolean;
@@ -18,6 +19,7 @@ export const TechnologyTreeNode: FunctionComponent<{
   onSelected: () => void;
   onDeselected: () => void;
 }> = ({
+  graphWrapperRef,
   x,
   y,
   blurred,
@@ -71,6 +73,7 @@ export const TechnologyTreeNode: FunctionComponent<{
           {heading}
         </Typography>
         <Tooltip
+          PopperProps={{ container: graphWrapperRef.current }}
           open={selected}
           title={
             <>
