@@ -10,6 +10,7 @@ import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
+import { FaIcon } from "./icons/fa-icon";
 import { GithubIcon } from "./icons/github-icon";
 import { TwitterIcon } from "./icons/twitter-icon";
 import { Link } from "./link";
@@ -17,11 +18,18 @@ import { Logo } from "./logo";
 import { Spacer } from "./spacer";
 
 const FooterLink: FunctionComponent<
-  { href: string; openInNew?: boolean } & Omit<
+  { href: string; openInNew?: boolean; externalIcon?: boolean } & Omit<
     ComponentProps<typeof Typography>,
     "variant"
   >
-> = ({ href, openInNew, sx = [], children, ...props }) => (
+> = ({
+  href,
+  openInNew,
+  externalIcon = false,
+  sx = [],
+  children,
+  ...props
+}) => (
   <Link href={href} openInNew={openInNew}>
     <Typography
       {...props}
@@ -32,6 +40,19 @@ const FooterLink: FunctionComponent<
       variant="hashSmallTextMedium"
     >
       {children}
+      {externalIcon ? (
+        <FaIcon
+          name="arrow-up-right-from-square"
+          type="solid"
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 12,
+            marginLeft: 1.5,
+            position: "relative",
+            top: 4,
+          }}
+        />
+      ) : null}
     </Typography>
   </Link>
 );
@@ -149,7 +170,7 @@ export const Footer: FunctionComponent = () => (
           </Grid>
           <Grid item lg={4} md={6}>
             <FooterSection label="Projects">
-              <FooterLink href="https://blockprotocol.org">
+              <FooterLink href="https://blockprotocol.org" externalIcon>
                 <Box
                   component="span"
                   sx={{
@@ -162,7 +183,7 @@ export const Footer: FunctionComponent = () => (
                 </Box>
                 Block Protocol
               </FooterLink>
-              <FooterLink href="https://hash.ai">
+              <FooterLink href="https://hash.ai" externalIcon>
                 <Box
                   component="span"
                   sx={{
