@@ -135,7 +135,7 @@ export const getEntityTypeById: ImpureGraphFunction<
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
   Omit<EntityTypeStructuralQuery, "filter"> & {
     entityTypeId: VersionedUrl;
-    actorId: AccountId;
+    actorId?: AccountId;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, params) => {
@@ -153,7 +153,11 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
+  if (
+    actorId &&
+    subgraph.roots.length === 0 &&
+    !entityTypeId.startsWith(frontendUrl)
+  ) {
     await context.graphApi.loadExternalEntityType({
       actorId,
       entityTypeId,

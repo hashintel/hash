@@ -131,7 +131,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   Omit<PropertyTypeStructuralQuery, "filter"> & {
     propertyTypeId: VersionedUrl;
-    actorId: AccountId;
+    actorId?: AccountId;
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async (context, params) => {
@@ -149,7 +149,11 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(frontendUrl)) {
+  if (
+    actorId &&
+    subgraph.roots.length === 0 &&
+    !propertyTypeId.startsWith(frontendUrl)
+  ) {
     await context.graphApi.loadExternalPropertyType({
       actorId,
       propertyTypeId,

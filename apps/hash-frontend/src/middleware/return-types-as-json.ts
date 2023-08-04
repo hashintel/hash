@@ -50,7 +50,7 @@ const makeGraphQlRequest = async <Data, Variables>(
   return { data, errors };
 };
 
-const versionedUrlRegExp =
+export const versionedUrlRegExp =
   /types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
 const validateVersionedUrl = (url: string): url is VersionedUrl =>
