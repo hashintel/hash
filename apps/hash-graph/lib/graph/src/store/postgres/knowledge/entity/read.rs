@@ -192,7 +192,10 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        ProvenanceMetadata::new(record_created_by_id),
+                        ProvenanceMetadata {
+                            record_created_by_id,
+                            record_archived_by_id: None,
+                        },
                         row.get(archived_index),
                     ),
                 })

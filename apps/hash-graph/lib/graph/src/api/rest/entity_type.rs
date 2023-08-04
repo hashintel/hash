@@ -209,7 +209,10 @@ where
             record_id: entity_type.id().clone().into(),
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(actor_id),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: actor_id,
+                        record_archived_by_id: None,
+                    },
                     owned_by_id,
                 },
                 label_property: label_property.clone(),
@@ -488,7 +491,6 @@ async fn update_entity_type<P: StorePool + Send>(
 struct ArchiveEntityTypeRequest {
     #[schema(value_type = String)]
     type_to_archive: VersionedUrl,
-    #[expect(dead_code)]
     actor_id: RecordArchivedById,
 }
 
@@ -512,7 +514,8 @@ async fn archive_entity_type<P: StorePool + Send>(
     body: Json<ArchiveEntityTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
     let Json(ArchiveEntityTypeRequest {
-        type_to_archive, ..
+        type_to_archive,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -521,7 +524,7 @@ async fn archive_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .archive_entity_type(&type_to_archive)
+        .archive_entity_type(&type_to_archive, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive entity type");
@@ -544,7 +547,6 @@ async fn archive_entity_type<P: StorePool + Send>(
 struct UnarchiveEntityTypeRequest {
     #[schema(value_type = String)]
     type_to_unarchive: VersionedUrl,
-    #[expect(dead_code)]
     actor_id: RecordCreatedById,
 }
 
@@ -568,7 +570,8 @@ async fn unarchive_entity_type<P: StorePool + Send>(
     body: Json<UnarchiveEntityTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
     let Json(UnarchiveEntityTypeRequest {
-        type_to_unarchive, ..
+        type_to_unarchive,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -577,7 +580,7 @@ async fn unarchive_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .unarchive_entity_type(&type_to_unarchive)
+        .unarchive_entity_type(&type_to_unarchive, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive entity type");

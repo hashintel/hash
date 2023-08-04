@@ -73,6 +73,11 @@ pub trait OntologyQueryPath {
     /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     fn record_created_by_id() -> Self;
 
+    /// Returns the path identifying the [`RecordArchivedById`].
+    ///
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    fn record_archived_by_id() -> Self;
+
     /// Returns the path identifying the schema.
     fn schema() -> Self;
 

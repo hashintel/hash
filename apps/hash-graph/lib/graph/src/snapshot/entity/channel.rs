@@ -113,7 +113,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                                 .as_account_id(),
                         )
                     },
-                    |p| p.record_created_by_id(),
+                    |p| p.record_created_by_id,
                 ),
                 archived: entity.metadata.custom.archived.unwrap_or(false),
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),

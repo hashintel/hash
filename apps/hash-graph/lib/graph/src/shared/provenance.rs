@@ -69,18 +69,6 @@ define_provenance_id!(RecordArchivedById);
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
     pub record_created_by_id: RecordCreatedById,
-}
-
-impl ProvenanceMetadata {
-    #[must_use]
-    pub const fn new(record_created_by_id: RecordCreatedById) -> Self {
-        Self {
-            record_created_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_created_by_id(&self) -> RecordCreatedById {
-        self.record_created_by_id
-    }
+    #[serde(skip)]
+    pub record_archived_by_id: Option<RecordArchivedById>,
 }

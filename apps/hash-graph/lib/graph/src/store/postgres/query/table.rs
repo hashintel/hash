@@ -205,8 +205,7 @@ impl Table {
             Self::OntologyTemporalMetadata => "ontology_temporal_metadata",
             Self::OntologyOwnedMetadata => "ontology_owned_metadata",
             Self::OntologyExternalMetadata => "ontology_external_metadata",
-            // TODO: Rename to `ontology_additional_metadata`
-            Self::OntologyAdditionalMetadata => "ontology_id_with_metadata",
+            Self::OntologyAdditionalMetadata => "ontology_additional_metadata",
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
@@ -258,7 +257,6 @@ pub enum OntologyIds {
     OntologyId,
     BaseUrl,
     Version,
-    RecordCreatedById,
     LatestVersion,
 }
 
@@ -284,6 +282,8 @@ pub enum OntologyAdditionalMetadata {
 pub enum OntologyTemporalMetadata {
     OntologyId,
     TransactionTime,
+    RecordCreatedById,
+    RecordArchivedById,
 }
 
 fn transpile_json_field(
@@ -317,7 +317,6 @@ impl OntologyIds {
             Self::BaseUrl => "base_url",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
-            Self::RecordCreatedById => "record_created_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -325,7 +324,7 @@ impl OntologyIds {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::OntologyId => ParameterType::Uuid,
             Self::BaseUrl => ParameterType::Text,
             Self::Version | Self::LatestVersion => ParameterType::OntologyTypeVersion,
         }
@@ -390,6 +389,8 @@ impl OntologyTemporalMetadata {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::TransactionTime => "transaction_time",
+            Self::RecordCreatedById => "record_created_by_id",
+            Self::RecordArchivedById => "record_archived_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -397,7 +398,9 @@ impl OntologyTemporalMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId => ParameterType::Uuid,
+            Self::OntologyId | Self::RecordCreatedById | Self::RecordArchivedById => {
+                ParameterType::Uuid
+            }
             Self::TransactionTime => ParameterType::TimeInterval,
         }
     }

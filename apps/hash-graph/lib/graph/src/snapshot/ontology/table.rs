@@ -8,7 +8,7 @@ use crate::{
         ontology::OntologyTypeVersion,
         time::{LeftClosedTemporalInterval, TransactionTime},
     },
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::{OwnedById, RecordArchivedById, RecordCreatedById},
 };
 
 #[derive(Debug, ToSql)]
@@ -17,7 +17,6 @@ pub struct OntologyIdRow {
     pub ontology_id: Uuid,
     pub base_url: String,
     pub version: OntologyTypeVersion,
-    pub record_created_by_id: RecordCreatedById,
 }
 
 #[derive(Debug, ToSql)]
@@ -39,6 +38,8 @@ pub struct OntologyExternalMetadataRow {
 pub struct OntologyTemporalMetadataRow {
     pub ontology_id: Uuid,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+    pub record_created_by_id: RecordCreatedById,
+    pub record_archived_by_id: Option<RecordArchivedById>,
 }
 
 #[derive(Debug, ToSql)]

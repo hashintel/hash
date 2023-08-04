@@ -104,7 +104,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                 ontology_id,
                 base_url: metadata.record_id.base_url.as_str().to_owned(),
                 version: metadata.record_id.version,
-                record_created_by_id: provenance.record_created_by_id,
             })
             .into_report()
             .change_context(SnapshotRestoreError::Read)
@@ -114,6 +113,8 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
             .start_send(OntologyTemporalMetadataRow {
                 ontology_id,
                 transaction_time: temporal_versioning.transaction_time,
+                record_created_by_id: provenance.record_created_by_id,
+                record_archived_by_id: provenance.record_archived_by_id,
             })
             .into_report()
             .change_context(SnapshotRestoreError::Read)

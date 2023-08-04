@@ -13,7 +13,7 @@ use crate::{
         OntologyTemporalMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::RecordCreatedById,
+    provenance::{RecordArchivedById, RecordCreatedById},
     store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
@@ -85,6 +85,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     async fn archive_data_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 
     /// Restores the definition of an existing [`DataType`].
@@ -95,6 +96,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     async fn unarchive_data_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }
 
@@ -167,6 +169,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn archive_property_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 
     /// Restores the definition of an existing [`PropertyType`].
@@ -177,6 +180,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn unarchive_property_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }
 
@@ -248,6 +252,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn archive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 
     /// Restores the definition of an existing [`EntityType`].
@@ -258,5 +263,6 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     async fn unarchive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }

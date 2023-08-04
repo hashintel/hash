@@ -18,7 +18,7 @@ use crate::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{
@@ -335,7 +335,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_id,
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(record_created_by_id),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id,
+                        record_archived_by_id: None,
+                    },
                     owned_by_id,
                 },
                 label_property,
@@ -362,14 +365,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn archive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id).await
+        self.archive_ontology_type(id, record_archived_by_id).await
     }
 
     async fn unarchive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id).await
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

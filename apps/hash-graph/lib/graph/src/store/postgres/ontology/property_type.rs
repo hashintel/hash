@@ -15,7 +15,7 @@ use crate::{
         OntologyElementMetadata, OntologyTemporalMetadata, PartialOntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::RecordCreatedById,
+    provenance::{RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{
@@ -326,14 +326,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn archive_property_type(
         &mut self,
         id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id).await
+        self.archive_ontology_type(id, record_archived_by_id).await
     }
 
     async fn unarchive_property_type(
         &mut self,
         id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id).await
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }
