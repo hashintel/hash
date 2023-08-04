@@ -189,7 +189,6 @@ resource "aws_ssm_parameter" "temporal_secrets" {
   # Still supports non-secret values
   type      = "SecureString"
   value     = sensitive(each.value.value)
-  overwrite = true
   tags      = {}
 }
 
@@ -201,6 +200,5 @@ resource "aws_ssm_parameter" "temporal_setup_secrets" {
   # Still supports non-secret values
   type      = "SecureString"
   value     = sensitive(each.value.value)
-  overwrite = true
   tags      = {}
 }

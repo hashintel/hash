@@ -53,6 +53,5 @@ resource "aws_ssm_parameter" "secret_env_vars" {
   # Still supports non-secret values
   type      = "SecureString"
   value     = sensitive(each.value.value)
-  overwrite = true
   tags      = {}
 }

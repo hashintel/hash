@@ -12,7 +12,6 @@ resource "aws_ssm_parameter" "type_fetcher_env_vars" {
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
-  overwrite = true
   tags      = {}
 }
 
