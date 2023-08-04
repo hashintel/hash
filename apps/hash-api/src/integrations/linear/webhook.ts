@@ -1,35 +1,29 @@
 import crypto from "node:crypto";
 
+import { tupleIncludes } from "@local/advanced-types/includes";
+import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
+import { AccountId, OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
 
-type LinearWebhookPayloadBase = {
-  action: string;
+type LinearWebhookPayload = {
+  action: "create" | "update" | "delete";
   createdAt: string; // ISO timestamp when the action took place.
+  data?: any; // The serialized value of the subject entity.
   organizationId: string;
-  type: "Cycle" | "Issue" | "Project" | "Reaction";
+  type: "Cycle" | "Issue" | "Project" | "Reaction" | "User";
   url: string; // The URL of the subject entity.
-
+  updatedFrom?: any; // an object containing the previous values of updated properties;
   webhookId: string;
   webhookTimestamp: number; // UNIX timestamp of webhook delivery in milliseconds.
 };
 
-type LinearWebhookPayloadChange = LinearWebhookPayloadBase & {
-  action: "create" | "update" | "delete";
-  data: any; // The serialized value of the subject entity.
-  updatedFrom?: any; // an object containing the previous values of updated properties;
-};
-
-type LinearWebhookPayload =
-  | LinearWebhookPayloadBase
-  | LinearWebhookPayloadChange;
-
 // @todo upgrade to Express 5 which handles async controllers automatically
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
-export const linearWebhook: RequestHandler<{}, "ok", string> = async (
+export const linearWebhook: RequestHandler<{}, string, string> = async (
   req,
   res,
 ) => {
@@ -60,22 +54,36 @@ export const linearWebhook: RequestHandler<{}, "ok", string> = async (
   }
 
   if (
-    ["create", "update"].includes(payload.action) &&
-    ["Issue", "User"].includes(payload.type)
+    tupleIncludes(["create", "update"] as const, payload.action) &&
+    tupleIncludes(["Issue", "User"] as const, payload.type)
   ) {
-    const workflow = `${payload.action}${payload.type}`;
-    await temporalClient.workflow.execute(workflow, {
-      taskQueue: "integration",
-      args: [
-        {
-          // @todo Use correct account IDs
-          actorId: "00000000-0000-0000-0000-000000000000",
-          ownedById: "00000000-0000-0000-0000-000000000000",
-          payload: (payload as LinearWebhookPayloadChange).data,
-        },
-      ],
-      workflowId: `${workflow}-${genId()}`,
-    });
+    if (!payload.data) {
+      res
+        .status(400)
+        .send(
+          `No data sent with ${payload.action} ${payload.type} webhook payload`,
+        );
+      return;
+    }
+
+    const workflow =
+      `${payload.action}Hash${payload.type}` as const satisfies keyof WorkflowTypeMap;
+
+    await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(
+      workflow,
+      {
+        taskQueue: "integration",
+        args: [
+          {
+            // @todo Use correct account IDs
+            actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+            ownedById: "00000000-0000-0000-0000-000000000000" as OwnedById,
+            payload: payload.data,
+          },
+        ],
+        workflowId: `${workflow}-${genId()}`,
+      },
+    );
   }
 
   res.send("ok");

@@ -1,3 +1,4 @@
+import { LoadingSpinner, theme } from "@hashintel/design-system";
 import {
   Box,
   SxProps,
@@ -16,6 +17,7 @@ export type TabLinkProps = {
   value: string;
   count?: number;
   icon?: ReactElement;
+  loading?: boolean;
   active?: boolean;
   sx?: SxProps<Theme>;
 };
@@ -25,6 +27,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
   href,
   value,
   count,
+  loading,
   active,
   icon,
   sx,
@@ -52,21 +55,31 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
         <Box
           sx={({ palette }) => ({
             display: "flex",
-            paddingX: 1,
-            paddingY: 0.25,
+            paddingX: loading ? 0.5 : 1,
+            paddingY: loading ? 0.5 : 0.25,
             borderRadius: 30,
-            background: active ? palette.blue[20] : palette.gray[20],
+            background: active ? palette.blue[20] : palette.gray[30],
           })}
         >
-          <Typography
-            variant="microText"
-            sx={({ palette }) => ({
-              fontWeight: 500,
-              color: active ? palette.primary.main : palette.gray[80],
-            })}
-          >
-            {count}
-          </Typography>
+          {loading ? (
+            <LoadingSpinner
+              color={
+                active ? theme.palette.primary.main : theme.palette.gray[60]
+              }
+              size={14}
+              thickness={6}
+            />
+          ) : (
+            <Typography
+              variant="microText"
+              sx={({ palette }) => ({
+                fontWeight: 500,
+                color: active ? palette.primary.main : palette.gray[80],
+              })}
+            >
+              {count}
+            </Typography>
+          )}
         </Box>
       ) : (
         icon ?? undefined

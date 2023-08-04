@@ -4,9 +4,10 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
+    identifier::time::TimeAxis,
     store::{
         postgres::query::{
-            table::{EntityTemporalMetadata, OntologyIds},
+            table::{EntityTemporalMetadata, OntologyIds, OntologyTemporalMetadata},
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
@@ -24,15 +25,15 @@ use crate::{
 
 pub struct TemporalTableInfo {
     tables: HashSet<AliasedTable>,
-    pinned_timestamp_index: usize,
-    variable_interval_index: usize,
+    pinned_timestamp_index: Option<usize>,
+    variable_interval_index: Option<usize>,
 }
 
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
     required_tables: HashSet<AliasedTable>,
-    temporal_tables: Option<TemporalTableInfo>,
+    temporal_tables: TemporalTableInfo,
 }
 
 pub struct SelectCompiler<'p, T> {
@@ -63,7 +64,11 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 parameters: Vec::new(),
                 condition_index: 0,
                 required_tables: HashSet::new(),
-                temporal_tables: None,
+                temporal_tables: TemporalTableInfo {
+                    tables: HashSet::new(),
+                    pinned_timestamp_index: None,
+                    variable_interval_index: None,
+                },
             },
             temporal_axes,
             _marker: PhantomData,
@@ -80,40 +85,111 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         default
     }
 
-    fn pin_entity_table(&mut self, alias: Alias) {
+    fn time_index(&mut self, temporal_axes: &'p QueryTemporalAxes, time_axis: TimeAxis) -> usize {
+        match (temporal_axes, time_axis) {
+            (QueryTemporalAxes::TransactionTime { pinned, .. }, TimeAxis::DecisionTime) => *self
+                .artifacts
+                .temporal_tables
+                .pinned_timestamp_index
+                .get_or_insert_with(|| {
+                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts.parameters.len()
+                }),
+            (QueryTemporalAxes::DecisionTime { pinned, .. }, TimeAxis::TransactionTime) => *self
+                .artifacts
+                .temporal_tables
+                .pinned_timestamp_index
+                .get_or_insert_with(|| {
+                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts.parameters.len()
+                }),
+            (QueryTemporalAxes::TransactionTime { variable, .. }, TimeAxis::TransactionTime) => {
+                *self
+                    .artifacts
+                    .temporal_tables
+                    .variable_interval_index
+                    .get_or_insert_with(|| {
+                        self.artifacts.parameters.push(&variable.interval);
+                        self.artifacts.parameters.len()
+                    })
+            }
+            (QueryTemporalAxes::DecisionTime { variable, .. }, TimeAxis::DecisionTime) => *self
+                .artifacts
+                .temporal_tables
+                .variable_interval_index
+                .get_or_insert_with(|| {
+                    self.artifacts.parameters.push(&variable.interval);
+                    self.artifacts.parameters.len()
+                }),
+        }
+    }
+
+    fn pin_ontology_table(&mut self, alias: Alias) {
         if let Some(temporal_axes) = self.temporal_axes {
-            let table = Table::EntityTemporalMetadata.aliased(alias);
-            let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
+            if self
+                .artifacts
+                .temporal_tables
+                .tables
+                .insert(Table::OntologyTemporalMetadata.aliased(alias))
+            {
+                let transaction_time_index =
+                    self.time_index(temporal_axes, TimeAxis::TransactionTime);
                 match temporal_axes {
-                    QueryTemporalAxes::DecisionTime { pinned, variable } => {
-                        self.artifacts.parameters.push(&pinned.timestamp);
-                        self.artifacts.parameters.push(&variable.interval);
+                    QueryTemporalAxes::DecisionTime { .. } => {
+                        self.statement.where_expression.add_condition(
+                            Condition::TimeIntervalContainsTimestamp(
+                                Expression::Column(
+                                    Column::OntologyTemporalMetadata(
+                                        OntologyTemporalMetadata::TransactionTime,
+                                    )
+                                    .aliased(alias),
+                                ),
+                                Expression::Parameter(transaction_time_index),
+                            ),
+                        );
                     }
-                    QueryTemporalAxes::TransactionTime { pinned, variable } => {
-                        self.artifacts.parameters.push(&pinned.timestamp);
-                        self.artifacts.parameters.push(&variable.interval);
+                    QueryTemporalAxes::TransactionTime { .. } => {
+                        self.statement
+                            .where_expression
+                            .add_condition(Condition::Overlap(
+                                Expression::Column(
+                                    Column::OntologyTemporalMetadata(
+                                        OntologyTemporalMetadata::TransactionTime,
+                                    )
+                                    .aliased(alias),
+                                ),
+                                Expression::Parameter(transaction_time_index),
+                            ));
                     }
                 };
+            }
+        }
+    }
 
-                TemporalTableInfo {
-                    tables: HashSet::new(),
-                    pinned_timestamp_index: self.artifacts.parameters.len() - 1,
-                    variable_interval_index: self.artifacts.parameters.len(),
-                }
-            });
+    fn pin_entity_table(&mut self, alias: Alias) {
+        if let Some(temporal_axes) = self.temporal_axes {
+            if self
+                .artifacts
+                .temporal_tables
+                .tables
+                .insert(Table::EntityTemporalMetadata.aliased(alias))
+            {
+                let pinned_axis = temporal_axes.pinned_time_axis();
+                let variable_axis = temporal_axes.variable_time_axis();
+                let pinned_time_index = self.time_index(temporal_axes, pinned_axis);
+                let variable_time_index = self.time_index(temporal_axes, variable_axis);
 
-            if !temporal_table_info.tables.contains(&table) {
                 // Adds the pinned timestamp condition, so for the projected decision time, we use
                 // the transaction time and vice versa.
                 self.statement.where_expression.add_condition(
                     Condition::TimeIntervalContainsTimestamp(
                         Expression::Column(
                             Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
-                                temporal_axes.pinned_time_axis(),
+                                pinned_axis,
                             ))
                             .aliased(alias),
                         ),
-                        Expression::Parameter(temporal_table_info.pinned_timestamp_index),
+                        Expression::Parameter(pinned_time_index),
                     ),
                 );
                 self.statement
@@ -121,13 +197,12 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                     .add_condition(Condition::Overlap(
                         Expression::Column(
                             Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
-                                temporal_axes.variable_time_axis(),
+                                variable_axis,
                             ))
                             .aliased(alias),
                         ),
-                        Expression::Parameter(temporal_table_info.variable_interval_index),
+                        Expression::Parameter(variable_time_index),
                     ));
-                temporal_table_info.tables.insert(table);
             }
         }
     }
@@ -406,6 +481,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
 
         if matches!(column, Column::EntityTemporalMetadata(_)) {
             self.pin_entity_table(alias);
+        } else if matches!(column, Column::OntologyTemporalMetadata(_)) {
+            self.pin_ontology_table(alias);
         }
         column.aliased(alias)
     }
@@ -488,6 +565,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
 
         if current_table.table == Table::EntityTemporalMetadata {
             self.pin_entity_table(current_table.alias);
+        } else if current_table.table == Table::OntologyTemporalMetadata {
+            self.pin_ontology_table(current_table.alias);
         }
 
         for relation in path.relations() {
@@ -548,6 +627,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
 
                     if current_table.table == Table::EntityTemporalMetadata {
                         self.pin_entity_table(current_table.alias);
+                    } else if current_table.table == Table::OntologyTemporalMetadata {
+                        self.pin_ontology_table(current_table.alias);
                     }
                 }
             }
