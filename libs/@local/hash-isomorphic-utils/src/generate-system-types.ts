@@ -43,7 +43,7 @@ const generateTypes = async (
  * Generate TypeScript types for the system types. The API and frontend must be running, i.e. `yarn dev`
  *
  * Note that because part of the system type definitions depend on an environment variable (the frontend origin),
- * keys and values that are URLs (i.e. type ids and property keys) cannot be used to directly type values in code.
+ * you cannot use these types to check the correct value of keys and values that are URLs – they might be different at runtime.
  */
 const generateSystemTypeTypes = async () => {
   await generateTypes(types.entityType, "system");
