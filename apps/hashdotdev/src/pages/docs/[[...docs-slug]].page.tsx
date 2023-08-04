@@ -189,6 +189,14 @@ DocsPage.getLayout = (page, asPath) => {
         },
       }}
       navbarSx={{ background: ({ palette }) => palette.gray[10] }}
+      navbarContainerSx={{
+        px: {
+          md: 2.5,
+        },
+        maxWidth: {
+          lg: "unset",
+        },
+      }}
       navbarLogoEndAdornment={
         <DocsSlugIcon sx={{ height: 20, width: 66, marginLeft: -2.25 }} />
       }

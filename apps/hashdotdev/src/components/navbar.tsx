@@ -6,6 +6,7 @@ import {
   buttonClasses,
   ButtonProps,
   Container,
+  ContainerProps,
   Fade,
   IconButton,
   Slide,
@@ -205,7 +206,8 @@ const MobileNav: FunctionComponent<{
 export const Navbar: FunctionComponent<{
   logoEndAdornment?: ReactNode;
   sx?: BoxProps["sx"];
-}> = ({ logoEndAdornment, sx }) => {
+  containerSx?: ContainerProps["sx"];
+}> = ({ logoEndAdornment, sx, containerSx }) => {
   const theme = useTheme();
   const mobileNav = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -254,7 +256,7 @@ export const Navbar: FunctionComponent<{
         ]}
         component="nav"
       >
-        <Container>
+        <Container sx={containerSx}>
           <Stack
             direction="row"
             alignItems="center"
