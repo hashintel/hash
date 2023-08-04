@@ -221,10 +221,11 @@ export const archivePropertyType: ImpureGraphFunction<
   },
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, params) => {
-  const { propertyTypeId } = params;
+  const { propertyTypeId, actorId } = params;
 
   const { data: temporalMetadata } = await graphApi.archivePropertyType({
     typeToArchive: propertyTypeId,
+    actorId,
   });
 
   return temporalMetadata;
@@ -243,10 +244,11 @@ export const unarchivePropertyType: ImpureGraphFunction<
   },
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, params) => {
-  const { propertyTypeId } = params;
+  const { propertyTypeId, actorId } = params;
 
   const { data: temporalMetadata } = await graphApi.unarchivePropertyType({
     typeToUnarchive: propertyTypeId,
+    actorId,
   });
 
   return temporalMetadata;

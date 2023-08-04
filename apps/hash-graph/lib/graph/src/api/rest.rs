@@ -64,7 +64,7 @@ use crate::{
         EntityTypeMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeReference, Selector,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
@@ -236,6 +236,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         schemas(
             OwnedById,
             RecordCreatedById,
+            RecordArchivedById,
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,

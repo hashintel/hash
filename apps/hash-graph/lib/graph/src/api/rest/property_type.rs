@@ -27,7 +27,7 @@ use crate::{
         OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
         OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
@@ -349,6 +349,8 @@ async fn update_property_type<P: StorePool + Send>(
 struct ArchivePropertyTypeRequest {
     #[schema(value_type = String)]
     type_to_archive: VersionedUrl,
+    #[expect(dead_code)]
+    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
@@ -370,7 +372,9 @@ async fn archive_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchivePropertyTypeRequest { type_to_archive }) = body;
+    let Json(ArchivePropertyTypeRequest {
+        type_to_archive, ..
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -401,6 +405,8 @@ async fn archive_property_type<P: StorePool + Send>(
 struct UnarchivePropertyTypeRequest {
     #[schema(value_type = String)]
     type_to_unarchive: VersionedUrl,
+    #[expect(dead_code)]
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -422,7 +428,9 @@ async fn unarchive_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UnarchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchivePropertyTypeRequest { type_to_unarchive }) = body;
+    let Json(UnarchivePropertyTypeRequest {
+        type_to_unarchive, ..
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");

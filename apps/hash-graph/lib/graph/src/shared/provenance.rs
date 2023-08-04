@@ -60,6 +60,7 @@ macro_rules! define_provenance_id {
 
 define_provenance_id!(OwnedById);
 define_provenance_id!(RecordCreatedById);
+define_provenance_id!(RecordArchivedById);
 
 // TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
