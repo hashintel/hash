@@ -164,8 +164,6 @@ pub enum DataTypeQueryPath<'p> {
     OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
-    /// Only used internally and not available for deserialization.
-    AdditionalMetadata(Option<JsonPath<'p>>),
     /// A reversed edge from a [`PropertyType`] to this [`DataType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding edge is [`PropertyTypeQueryPath::DataTypeEdge`].
@@ -182,6 +180,8 @@ pub enum DataTypeQueryPath<'p> {
         edge_kind: OntologyEdgeKind,
         path: Box<PropertyTypeQueryPath<'p>>,
     },
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata,
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
@@ -214,7 +214,7 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
     }
 
     fn additional_metadata() -> Self {
-        Self::AdditionalMetadata(None)
+        Self::AdditionalMetadata
     }
 }
 
@@ -222,7 +222,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
+            Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::TransactionTime => ParameterType::TimeInterval,
@@ -248,8 +248,7 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
-            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
-            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
+            Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
             #[expect(
                 clippy::use_debug,
                 reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
