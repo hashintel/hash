@@ -34,9 +34,7 @@
 
 "area: infra":
   - "infra/**"
-  - "**/*.json"
   - "**/*.md"
-  - "**/*.yml"
   - "**/.changeset/config.json"
   - "**/.github/**"
   - "**/.*ignore"
