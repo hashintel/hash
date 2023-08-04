@@ -1,3 +1,4 @@
+import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   EntityTypeRootType,
   EntityTypeWithMetadata,
@@ -10,12 +11,16 @@ import {
   zeroedGraphResolveDepths,
 } from "../../../graph";
 import {
+  archiveEntityType,
   createEntityType,
   getEntityTypeSubgraphById,
+  unarchiveEntityType,
   updateEntityType,
 } from "../../../graph/ontology/primitive/entity-type";
 import {
+  MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
+  MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
@@ -132,3 +137,25 @@ export const updateEntityTypeResolver: ResolverFn<
 
   return updatedEntityType;
 };
+
+export const archiveEntityTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchiveEntityTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  archiveEntityType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
+
+export const unarchiveEntityTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUnarchiveEntityTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  unarchiveEntityType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });

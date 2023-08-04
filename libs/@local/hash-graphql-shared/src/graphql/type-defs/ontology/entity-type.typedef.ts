@@ -62,5 +62,25 @@ export const entityTypeTypedef = gql`
       """
       labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
+
+    """
+    Archive a entity type.
+    """
+    archiveEntityType(
+      """
+      The entity type versioned $id to archive.
+      """
+      entityTypeId: VersionedUrl!
+    ): OntologyTemporalMetadata!
+
+    """
+    Unarchive a entity type.
+    """
+    unarchiveEntityType(
+      """
+      The entity type versioned $id to unarchive.
+      """
+      entityTypeId: VersionedUrl!
+    ): OntologyTemporalMetadata!
   }
 `;

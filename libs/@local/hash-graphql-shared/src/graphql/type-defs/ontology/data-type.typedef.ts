@@ -28,5 +28,7 @@ export const dataTypeTypedef = gql`
   # extend type Mutation {
   #   createDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
   #   updateDataType(accountId: AccountId!, dataType: ConstructDataTypeParams!): Subgraph!
+  #   archiveDataType(propertyTypeId: VersionedUrl!): OntologyTemporalMetadata!
+  #   unarchiveDataType(propertyTypeId: VersionedUrl!): OntologyTemporalMetadata!
   # }
 `;

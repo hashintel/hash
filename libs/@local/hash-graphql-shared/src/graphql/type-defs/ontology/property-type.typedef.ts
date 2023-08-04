@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 export const propertyTypeTypedef = gql`
   scalar ConstructPropertyTypeParams
   scalar PropertyTypeWithMetadata
+  scalar OntologyTemporalMetadata
 
   extend type Query {
     """
@@ -48,5 +49,25 @@ export const propertyTypeTypedef = gql`
       """
       updatedPropertyType: ConstructPropertyTypeParams!
     ): PropertyTypeWithMetadata!
+
+    """
+    Archive a property type.
+    """
+    archivePropertyType(
+      """
+      The property type versioned $id to archive.
+      """
+      propertyTypeId: VersionedUrl!
+    ): OntologyTemporalMetadata!
+
+    """
+    Unarchive a property type.
+    """
+    unarchivePropertyType(
+      """
+      The property type versioned $id to unarchive.
+      """
+      propertyTypeId: VersionedUrl!
+    ): OntologyTemporalMetadata!
   }
 `;

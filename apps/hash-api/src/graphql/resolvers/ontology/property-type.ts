@@ -1,3 +1,4 @@
+import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   OwnedById,
   PropertyTypeRootType,
@@ -10,12 +11,16 @@ import {
   zeroedGraphResolveDepths,
 } from "../../../graph";
 import {
+  archivePropertyType,
   createPropertyType,
   getPropertyTypeSubgraphById,
+  unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 import {
+  MutationArchivePropertyTypeArgs,
   MutationCreatePropertyTypeArgs,
+  MutationUnarchivePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   QueryQueryPropertyTypesArgs,
@@ -123,3 +128,25 @@ export const updatePropertyTypeResolver: ResolverFn<
 
   return updatedPropertyType;
 };
+
+export const archivePropertyTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchivePropertyTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  archivePropertyType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
+
+export const unarchivePropertyTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUnarchivePropertyTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  unarchivePropertyType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
