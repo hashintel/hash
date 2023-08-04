@@ -29,7 +29,7 @@ use crate::{
         OntologyTypeReference, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
         PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
@@ -254,7 +254,10 @@ where
         actor_id: RecordCreatedById,
         fetch_behavior: FetchBehavior,
     ) -> Result<FetchedOntologyTypes, StoreError> {
-        let provenance_metadata = ProvenanceMetadata::new(actor_id);
+        let provenance_metadata = ProvenanceMetadata {
+            record_created_by_id: actor_id,
+            record_archived_by_id: None,
+        };
 
         let mut queue = ontology_type_references;
         let mut seen = match fetch_behavior {
@@ -563,10 +566,7 @@ where
         let data_types = data_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(data_types.iter().map(|(data_type, metadata)| {
-            (
-                data_type,
-                metadata.custom.provenance().record_created_by_id(),
-            )
+            (data_type, metadata.custom.provenance().record_created_by_id)
         }))
         .await?;
 
@@ -595,15 +595,17 @@ where
     async fn archive_data_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.store.archive_data_type(id).await
+        self.store.archive_data_type(id, actor_id).await
     }
 
     async fn unarchive_data_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.store.unarchive_data_type(id).await
+        self.store.unarchive_data_type(id, actor_id).await
     }
 }
 
@@ -626,7 +628,7 @@ where
         self.insert_external_types(property_types.iter().map(|(property_type, metadata)| {
             (
                 property_type,
-                metadata.custom.provenance().record_created_by_id(),
+                metadata.custom.provenance().record_created_by_id,
             )
         }))
         .await?;
@@ -660,15 +662,17 @@ where
     async fn archive_property_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.store.archive_property_type(id).await
+        self.store.archive_property_type(id, actor_id).await
     }
 
     async fn unarchive_property_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.store.unarchive_property_type(id).await
+        self.store.unarchive_property_type(id, actor_id).await
     }
 }
 
@@ -689,7 +693,7 @@ where
         self.insert_external_types(entity_types.iter().map(|(entity_type, metadata)| {
             (
                 entity_type,
-                metadata.custom.common.provenance().record_created_by_id(),
+                metadata.custom.common.provenance().record_created_by_id,
             )
         }))
         .await?;
@@ -724,15 +728,17 @@ where
     async fn archive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.store.archive_entity_type(id).await
+        self.store.archive_entity_type(id, actor_id).await
     }
 
     async fn unarchive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.store.unarchive_entity_type(id).await
+        self.store.unarchive_entity_type(id, actor_id).await
     }
 }
 

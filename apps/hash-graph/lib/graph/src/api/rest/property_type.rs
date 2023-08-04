@@ -152,7 +152,10 @@ where
         partial_metadata.push(PartialOntologyElementMetadata {
             record_id: property_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(actor_id),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: actor_id,
+                    record_archived_by_id: None,
+                },
                 owned_by_id,
             },
         });
@@ -349,7 +352,6 @@ async fn update_property_type<P: StorePool + Send>(
 struct ArchivePropertyTypeRequest {
     #[schema(value_type = String)]
     type_to_archive: VersionedUrl,
-    #[expect(dead_code)]
     actor_id: RecordArchivedById,
 }
 
@@ -373,7 +375,8 @@ async fn archive_property_type<P: StorePool + Send>(
     body: Json<ArchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
     let Json(ArchivePropertyTypeRequest {
-        type_to_archive, ..
+        type_to_archive,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -382,7 +385,7 @@ async fn archive_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .archive_property_type(&type_to_archive)
+        .archive_property_type(&type_to_archive, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive property type");
@@ -405,7 +408,6 @@ async fn archive_property_type<P: StorePool + Send>(
 struct UnarchivePropertyTypeRequest {
     #[schema(value_type = String)]
     type_to_unarchive: VersionedUrl,
-    #[expect(dead_code)]
     actor_id: RecordCreatedById,
 }
 
@@ -429,7 +431,8 @@ async fn unarchive_property_type<P: StorePool + Send>(
     body: Json<UnarchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
     let Json(UnarchivePropertyTypeRequest {
-        type_to_unarchive, ..
+        type_to_unarchive,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -438,7 +441,7 @@ async fn unarchive_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .unarchive_property_type(&type_to_unarchive)
+        .unarchive_property_type(&type_to_unarchive, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive property type");

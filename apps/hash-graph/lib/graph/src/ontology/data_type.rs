@@ -121,6 +121,12 @@ pub enum DataTypeQueryPath<'p> {
     /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     RecordCreatedById,
+    /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
+    ///
+    /// [`DataType`]: type_system::DataType
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    RecordArchivedById,
     /// Corresponds to [`DataType::title()`].
     ///
     /// ```rust
@@ -209,6 +215,10 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
         Self::RecordCreatedById
     }
 
+    fn record_archived_by_id() -> Self {
+        Self::RecordArchivedById
+    }
+
     fn schema() -> Self {
         Self::Schema(None)
     }
@@ -221,7 +231,10 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::OntologyId
+            | Self::OwnedById
+            | Self::RecordCreatedById
+            | Self::RecordArchivedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -243,6 +256,7 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
+            Self::RecordArchivedById => fmt.write_str("recordArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),

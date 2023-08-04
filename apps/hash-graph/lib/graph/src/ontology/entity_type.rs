@@ -116,6 +116,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     RecordCreatedById,
+    /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    RecordArchivedById,
     /// Corresponds to [`EntityType::title()`].
     ///
     /// ```rust
@@ -337,6 +343,10 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
         Self::RecordCreatedById
     }
 
+    fn record_archived_by_id() -> Self {
+        Self::RecordArchivedById
+    }
+
     fn schema() -> Self {
         Self::Schema(None)
     }
@@ -349,7 +359,10 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::OntologyId
+            | Self::OwnedById
+            | Self::RecordCreatedById
+            | Self::RecordArchivedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::Examples | Self::Required => ParameterType::Any,
             Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
@@ -374,6 +387,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
+            Self::RecordArchivedById => fmt.write_str("recordArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),

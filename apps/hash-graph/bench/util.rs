@@ -205,7 +205,10 @@ pub async fn seed<D, P, E, C>(
             .create_data_type(data_type.clone(), PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             })
@@ -235,7 +238,10 @@ pub async fn seed<D, P, E, C>(
             .create_property_type(property_type.clone(), PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             })
@@ -266,7 +272,10 @@ pub async fn seed<D, P, E, C>(
                 record_id: entity_type.id().clone().into(),
                 custom: PartialCustomEntityTypeMetadata {
                     common: PartialCustomOntologyMetadata::Owned {
-                        provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                        provenance: ProvenanceMetadata {
+                            record_created_by_id: RecordCreatedById::new(account_id),
+                            record_archived_by_id: None,
+                        },
                         owned_by_id: OwnedById::new(account_id),
                     },
                     label_property: None,
