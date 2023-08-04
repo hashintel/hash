@@ -25,9 +25,6 @@ import {
   LocationPropertyValue,
   ObjectDataType,
   Org,
-  OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -35,6 +32,9 @@ import {
   OrgOutgoingLinkAndTarget,
   OrgOutgoingLinksByLinkEntityTypeId,
   OrgProperties,
+  OrganizationNamePropertyValue,
+  OrganizationProvidedInformationPropertyValue,
+  OrganizationSizePropertyValue,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
@@ -77,9 +77,6 @@ export type {
   LocationPropertyValue,
   ObjectDataType,
   Org,
-  OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -87,6 +84,9 @@ export type {
   OrgOutgoingLinkAndTarget,
   OrgOutgoingLinksByLinkEntityTypeId,
   OrgProperties,
+  OrganizationNamePropertyValue,
+  OrganizationProvidedInformationPropertyValue,
+  OrganizationSizePropertyValue,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
@@ -129,13 +129,13 @@ export type CommentAuthorLink = { linkEntity: Author; rightEntity: User };
 export type CommentHasTextLink = { linkEntity: HasText; rightEntity: Text };
 
 export type CommentOutgoingLinkAndTarget =
-  | CommentParentLink
   | CommentAuthorLink
+  | CommentParentLink
   | CommentHasTextLink;
 
 export type CommentOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
   "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
+  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
   "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": CommentHasTextLink;
 };
 

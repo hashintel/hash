@@ -196,26 +196,26 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
  * A user that has access to the the resources of an organization.
  */
 export type UserProperties = {
-  "http://localhost:3000/@linear/types/property-type/guest/": GuestPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/admin/": AdminPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/avatar-url/"?: AvatarURLPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/active/": ActivePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/disable-reason/"?: DisableReasonPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/url/": URLPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/timezone/"?: TimezonePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/display-name/": DisplayNamePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/description/"?: DescriptionPropertyValue;
   "http://localhost:3000/@linear/types/property-type/name/": NamePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/email/": EmailPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/status-until-at/"?: StatusUntilAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/is-me/": IsMePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/invite-hash/": InviteHashPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/disable-reason/"?: DisableReasonPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/active/": ActivePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/url/": URLPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/display-name/": DisplayNamePropertyValue;
   "http://localhost:3000/@linear/types/property-type/last-seen/"?: LastSeenPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/status-emoji/"?: StatusEmojiPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/is-me/": IsMePropertyValue;
   "http://localhost:3000/@linear/types/property-type/status-label/"?: StatusLabelPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/email/": EmailPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/avatar-url/"?: AvatarURLPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/invite-hash/": InviteHashPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/description/"?: DescriptionPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/status-until-at/"?: StatusUntilAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/admin/": AdminPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/timezone/"?: TimezonePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/status-emoji/"?: StatusEmojiPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/guest/": GuestPropertyValue;
 };
