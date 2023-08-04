@@ -15,6 +15,9 @@ import {
   LinkProperties,
   LocationPropertyValue,
   Org,
+  OrganizationNamePropertyValue,
+  OrganizationProvidedInformationPropertyValue,
+  OrganizationSizePropertyValue,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -22,9 +25,6 @@ import {
   OrgOutgoingLinkAndTarget,
   OrgOutgoingLinksByLinkEntityTypeId,
   OrgProperties,
-  OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
   PreferredNamePropertyValue,
   ResponsibilityPropertyValue,
   ShortnamePropertyValue,
@@ -48,6 +48,9 @@ export type {
   LinkProperties,
   LocationPropertyValue,
   Org,
+  OrganizationNamePropertyValue,
+  OrganizationProvidedInformationPropertyValue,
+  OrganizationSizePropertyValue,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -55,9 +58,6 @@ export type {
   OrgOutgoingLinkAndTarget,
   OrgOutgoingLinksByLinkEntityTypeId,
   OrgProperties,
-  OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
   PreferredNamePropertyValue,
   ResponsibilityPropertyValue,
   ShortnamePropertyValue,
@@ -98,9 +98,9 @@ export type HASHInstanceOutgoingLinksByLinkEntityTypeId = {
  * An instance of HASH.
  */
 export type HASHInstanceProperties = {
-  "http://localhost:3000/@system-user/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
 };
 
 /**

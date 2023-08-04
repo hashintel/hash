@@ -40,8 +40,8 @@ import {
   StatusUntilAtPropertyValue,
   TextDataType,
   TimezonePropertyValue,
-  URLPropertyValue,
   UpdatedAtPropertyValue,
+  URLPropertyValue,
   User,
   UserAssignedIssueLink,
   UserCreatedIssueLink,
@@ -86,8 +86,8 @@ export type {
   StatusUntilAtPropertyValue,
   TextDataType,
   TimezonePropertyValue,
-  URLPropertyValue,
   UpdatedAtPropertyValue,
+  URLPropertyValue,
   User,
   UserAssignedIssueLink,
   UserCreatedIssueLink,
@@ -157,27 +157,27 @@ export type OrganizationOutgoingLinksByLinkEntityTypeId = {
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
 export type OrganizationProperties = {
-  "http://localhost:3000/@linear/types/property-type/saml-enabled/": SAMLEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/git-public-linkback-messages-enabled/": GitPublicLinkbackMessagesEnabledPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/name/": NamePropertyValue;
   "http://localhost:3000/@linear/types/property-type/url-key/": URLKeyPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
   "http://localhost:3000/@linear/types/property-type/git-branch-format/"?: GitBranchFormatPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/scim-enabled/": SCIMEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/user-count/": UserCountPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/roadmap-enabled/": RoadmapEnabledPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/git-linkback-messages-enabled/": GitLinkbackMessagesEnabledPropertyValue;
   "http://localhost:3000/@linear/types/property-type/period-upload-volume/": PeriodUploadVolumePropertyValue;
   "http://localhost:3000/@linear/types/property-type/previous-url-key/": PreviousURLKeyPropertyValue[];
-  "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/project-update-reminders-hour/": ProjectUpdateRemindersHourPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/name/": NamePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/git-public-linkback-messages-enabled/": GitPublicLinkbackMessagesEnabledPropertyValue;
   "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/logo-url/"?: LogoURLPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/deletion-requested-at/"?: DeletionRequestedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/roadmap-enabled/": RoadmapEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/allowed-auth-service/": AllowedAuthServicePropertyValue[];
-  "http://localhost:3000/@linear/types/property-type/git-linkback-messages-enabled/": GitLinkbackMessagesEnabledPropertyValue;
   "http://localhost:3000/@linear/types/property-type/trial-ends-at/"?: TrialEndsAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/allowed-auth-service/": AllowedAuthServicePropertyValue[];
+  "http://localhost:3000/@linear/types/property-type/logo-url/"?: LogoURLPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/saml-enabled/": SAMLEnabledPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/project-update-reminders-hour/": ProjectUpdateRemindersHourPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/deletion-requested-at/"?: DeletionRequestedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/scim-enabled/": SCIMEnabledPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/user-count/": UserCountPropertyValue;
 };
 
 /**

@@ -29,12 +29,5 @@ module.exports = {
         ],
       },
     },
-    {
-      files: ["./src/system-types/**/*.ts"],
-      rules: {
-        "simple-import-sort/exports": "off",
-        "simple-import-sort/imports": "off",
-      },
-    },
   ],
 };
