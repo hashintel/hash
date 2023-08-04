@@ -1,5 +1,9 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import {
   AccountEntityId,
   AccountId,
   Entity,
@@ -21,6 +25,8 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
 
+import { simplifyProperties } from "./simplify-properties";
+
 export type MinimalUser = {
   kind: "user";
   entityRecordId: EntityRecordId;
@@ -31,17 +37,13 @@ export type MinimalUser = {
 };
 
 export const constructMinimalUser = (params: {
-  userEntity: Entity;
+  userEntity: Entity<UserProperties>;
 }): MinimalUser => {
   const { userEntity } = params;
 
-  const shortname: string = userEntity.properties[
-    extractBaseUrl(types.propertyType.shortname.propertyTypeId)
-  ] as string;
-
-  const preferredName: string = userEntity.properties[
-    extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
-  ] as string;
+  const { shortname, preferredName } = simplifyProperties(
+    userEntity.properties,
+  );
 
   const accountSignupComplete = !!shortname && !!preferredName;
 
@@ -64,7 +66,7 @@ export type User = MinimalUser & {
 
 export const constructUser = (params: {
   subgraph: Subgraph;
-  userEntity: Entity;
+  userEntity: Entity<UserProperties>;
   resolvedUsers?: Record<EntityRecordIdString, User>;
   resolvedOrgs?: Record<EntityRecordIdString, Org>;
 }): User => {
@@ -101,7 +103,7 @@ export const constructUser = (params: {
       subgraph,
       metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    );
+    ) as Entity<OrgProperties>[] | undefined;
 
     if (!orgEntityRevisions || orgEntityRevisions.length === 0) {
       throw new Error(
@@ -147,15 +149,15 @@ export type AuthenticatedUser = User & {
 };
 
 export const constructAuthenticatedUser = (params: {
-  userEntity: Entity;
+  userEntity: Entity<UserProperties>;
   subgraph: Subgraph;
   kratosSession: Session;
 }): AuthenticatedUser => {
   const { userEntity, subgraph } = params;
 
-  const primaryEmailAddress: string = userEntity.properties[
-    extractBaseUrl(types.propertyType.email.propertyTypeId)
-  ] as string;
+  const { email } = simplifyProperties(userEntity.properties);
+
+  const primaryEmailAddress = email[0];
 
   const isPrimaryEmailAddressVerified =
     params.kratosSession.identity.verifiable_addresses?.find(
@@ -200,29 +202,17 @@ export type MinimalOrg = {
 };
 
 export const constructMinimalOrg = (params: {
-  orgEntity: Entity;
+  orgEntity: Entity<OrgProperties>;
 }): MinimalOrg => {
   const { orgEntity } = params;
 
-  const description = orgEntity.properties[
-    extractBaseUrl(types.propertyType.description.propertyTypeId)
-  ] as string | undefined;
-
-  const location = orgEntity.properties[
-    extractBaseUrl(types.propertyType.location.propertyTypeId)
-  ] as string | undefined;
-
-  const website = orgEntity.properties[
-    extractBaseUrl(types.propertyType.website.propertyTypeId)
-  ] as string | undefined;
-
-  const shortname: string = orgEntity.properties[
-    extractBaseUrl(types.propertyType.shortname.propertyTypeId)
-  ] as string;
-
-  const name: string = orgEntity.properties[
-    extractBaseUrl(types.propertyType.orgName.propertyTypeId)
-  ] as string;
+  const {
+    description,
+    location,
+    organizationName: name,
+    shortname,
+    website,
+  } = simplifyProperties(orgEntity.properties);
 
   return {
     kind: "org",
@@ -244,7 +234,7 @@ export type Org = MinimalOrg & {
 
 export const constructOrg = (params: {
   subgraph: Subgraph;
-  orgEntity: Entity;
+  orgEntity: Entity<OrgProperties>;
   resolvedUsers?: Record<EntityRecordIdString, User>;
   resolvedOrgs?: Record<EntityRecordIdString, Org>;
 }): Org => {
@@ -283,7 +273,7 @@ export const constructOrg = (params: {
       subgraph,
       metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    );
+    ) as Entity<UserProperties>[] | undefined;
 
     if (!userEntityRevisions || userEntityRevisions.length === 0) {
       throw new Error(

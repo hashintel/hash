@@ -36,7 +36,7 @@ export const simplifyProperties = <T extends EntityPropertiesObject>(
   return typedEntries(properties).reduce(
     (acc, [key, value]) => ({
       ...acc,
-      [camelCase(key)]: value,
+      [camelCase(key.split("/").slice(-2, -1).pop())]: value,
     }),
     {} as SimpleProperties<T>,
   );
