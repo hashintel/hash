@@ -10,6 +10,8 @@ export type SchemaKind = "data-type" | "property-type" | "entity-type";
 /**
  * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
  * run `yarn generate-system-types` to update their TypeScript representation
+ *
+ * @todo enforce this in CI – H-308
  */
 
 /**
