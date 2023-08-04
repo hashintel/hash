@@ -206,7 +206,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
         let record_created_by_id_path_index =
             compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
         let additional_metadata_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata(None));
+            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
         let transaction_time_index =
             compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);

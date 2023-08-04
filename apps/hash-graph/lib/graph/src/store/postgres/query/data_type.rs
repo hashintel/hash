@@ -4,8 +4,8 @@ use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
         table::{
-            Column, DataTypes, JsonField, OntologyIds, OntologyTemporalMetadata, ReferenceTable,
-            Relation,
+            Column, DataTypes, JsonField, OntologyAdditionalMetadata, OntologyIds,
+            OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
         },
         PostgresQueryPath, PostgresRecord, Table,
     },
@@ -27,13 +27,9 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             | Self::Type
             | Self::OntologyId
             | Self::Schema(_) => vec![Relation::DataTypeIds],
-            Self::BaseUrl
-            | Self::Version
-            | Self::RecordCreatedById
-            | Self::OwnedById
-            | Self::AdditionalMetadata(_) => {
-                vec![Relation::OntologyIds]
-            }
+            Self::BaseUrl | Self::Version | Self::RecordCreatedById => vec![Relation::OntologyIds],
+            Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
+            Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
             Self::TransactionTime => vec![],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
@@ -55,9 +51,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::TransactionTime => {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
             }
-            Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
-                JsonField::StaticText("owned_by_id"),
-            ))),
+            Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::OwnedById),
             Self::RecordCreatedById => Column::OntologyIds(OntologyIds::RecordCreatedById),
             Self::OntologyId => Column::DataTypes(DataTypes::OntologyId),
             Self::Schema(path) => path
@@ -76,14 +70,9 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 "description",
             )))),
             Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
-            Self::AdditionalMetadata(path) => path.as_ref().map_or(
-                Column::OntologyIds(OntologyIds::AdditionalMetadata(None)),
-                |path| {
-                    Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(JsonField::JsonPath(
-                        path,
-                    ))))
-                },
-            ),
+            Self::AdditionalMetadata => {
+                Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata)
+            }
         }
     }
 }

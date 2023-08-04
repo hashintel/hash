@@ -220,7 +220,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
-    AdditionalMetadata(Option<JsonPath<'p>>),
+    AdditionalMetadata,
 }
 
 impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
@@ -253,7 +253,7 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
     }
 
     fn additional_metadata() -> Self {
-        Self::AdditionalMetadata(None)
+        Self::AdditionalMetadata
     }
 }
 
@@ -261,7 +261,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
+            Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
@@ -322,8 +322,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::EntityTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
-            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
-            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
+            Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
         }
     }
 }
