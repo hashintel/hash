@@ -317,7 +317,7 @@ export const DocsHomePage: FunctionComponent = () => {
             >
               Bring the tools you love
             </Typography>
-            <Typography marginBottom={3}>
+            <Typography marginBottom={3} fontSize={16}>
               Continue seamlessly working with information in your existing
               favorite tools and apps
             </Typography>
@@ -349,10 +349,20 @@ export const DocsHomePage: FunctionComponent = () => {
                   />
                 </Box>
                 <Box>
-                  <Typography sx={{ color: ({ palette }) => palette.teal[80] }}>
+                  <Typography
+                    sx={{
+                      color: ({ palette }) => palette.teal[80],
+                      fontSize: 16,
+                    }}
+                  >
                     <strong>Adopting HASH</strong>
                   </Typography>
-                  <Typography sx={{ color: ({ palette }) => palette.teal[80] }}>
+                  <Typography
+                    sx={{
+                      color: ({ palette }) => palette.teal[80],
+                      fontSize: 15,
+                    }}
+                  >
                     Learn more about incrementally adopting HASH{" "}
                     <FaIcon name="arrow-right" type="regular" />
                   </Typography>
