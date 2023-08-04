@@ -17,7 +17,7 @@
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
-    "generate-system-types": "tsx ./src/generate-system-types.ts",
+    "generate-system-types": "tsx ./src/generate-system-types.ts; yarn fix:eslint; yarn prettier --write ./src/system-types/{*.ts,**/*.ts}",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"

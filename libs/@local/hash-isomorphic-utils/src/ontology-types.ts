@@ -805,7 +805,9 @@ type TypeDefinition = {
   description?: string;
 };
 
-type EntityTypeDefinition = TypeDefinition & { entityTypeId: VersionedUrl };
+export type EntityTypeDefinition = TypeDefinition & {
+  entityTypeId: VersionedUrl;
+};
 
 type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUrl };
 
