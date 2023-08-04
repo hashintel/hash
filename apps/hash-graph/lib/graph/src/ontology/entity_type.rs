@@ -118,6 +118,15 @@ pub enum EntityTypeQueryPath<'p> {
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["recordArchivedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::RecordArchivedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
     /// [`EntityType`]: type_system::EntityType
     /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
@@ -449,6 +458,7 @@ pub enum EntityTypeQueryToken {
     VersionedUrl,
     OwnedById,
     RecordCreatedById,
+    RecordArchivedById,
     Title,
     Description,
     Examples,
@@ -469,9 +479,9 @@ pub struct EntityTypeQueryPathVisitor {
 
 impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `recordCreatedById`, `title`, \
-                                         `description`, `examples`, `properties`, `required`, \
-                                         `labelProperty`, `links`, `inheritsFrom`";
+                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
+                                         `title`, `description`, `examples`, `properties`, \
+                                         `required`, `labelProperty`, `links`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -498,6 +508,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
             EntityTypeQueryToken::RecordCreatedById => EntityTypeQueryPath::RecordCreatedById,
+            EntityTypeQueryToken::RecordArchivedById => EntityTypeQueryPath::RecordArchivedById,
             EntityTypeQueryToken::BaseUrl => EntityTypeQueryPath::BaseUrl,
             EntityTypeQueryToken::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,

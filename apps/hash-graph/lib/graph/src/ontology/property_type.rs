@@ -104,6 +104,15 @@ pub enum PropertyTypeQueryPath<'p> {
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["recordArchivedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::RecordArchivedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
     /// [`PropertyType`]: type_system::PropertyType
     /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
@@ -349,6 +358,7 @@ pub enum PropertyTypeQueryToken {
     VersionedUrl,
     OwnedById,
     RecordCreatedById,
+    RecordArchivedById,
     Title,
     Description,
     DataTypes,
@@ -365,8 +375,8 @@ pub struct PropertyTypeQueryPathVisitor {
 
 impl PropertyTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `recordCreatedById`, `title`, \
-                                         `description`, `dataTypes`, `propertyTypes`";
+                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
+                                         `title`, `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -393,6 +403,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
             PropertyTypeQueryToken::RecordCreatedById => PropertyTypeQueryPath::RecordCreatedById,
+            PropertyTypeQueryToken::RecordArchivedById => PropertyTypeQueryPath::RecordArchivedById,
             PropertyTypeQueryToken::BaseUrl => PropertyTypeQueryPath::BaseUrl,
             PropertyTypeQueryToken::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,

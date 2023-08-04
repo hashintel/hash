@@ -1230,6 +1230,7 @@
           "versionedUrl",
           "ownedById",
           "recordCreatedById",
+          "recordArchivedById",
           "title",
           "description",
           "type"
@@ -1516,6 +1517,7 @@
           "versionedUrl",
           "ownedById",
           "recordCreatedById",
+          "recordArchivedById",
           "title",
           "description",
           "examples",
@@ -2336,6 +2338,7 @@
           "versionedUrl",
           "ownedById",
           "recordCreatedById",
+          "recordArchivedById",
           "title",
           "description",
           "dataTypes",
@@ -2397,6 +2400,14 @@
           "recordCreatedById"
         ],
         "properties": {
+          "recordArchivedById": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordArchivedById"
+              }
+            ],
+            "nullable": true
+          },
           "recordCreatedById": {
             "$ref": "#/components/schemas/RecordCreatedById"
           }

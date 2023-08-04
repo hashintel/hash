@@ -123,6 +123,15 @@ pub enum DataTypeQueryPath<'p> {
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["recordArchivedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::RecordArchivedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
     /// [`DataType`]: type_system::DataType
     /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
@@ -285,6 +294,7 @@ pub enum DataTypeQueryToken {
     VersionedUrl,
     OwnedById,
     RecordCreatedById,
+    RecordArchivedById,
     Title,
     Description,
     Type,
@@ -300,8 +310,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `recordCreatedById`, `title`, \
-                                         `description`, `type`";
+                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
+                                         `title`, `description`, `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -328,6 +338,7 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
             DataTypeQueryToken::RecordCreatedById => DataTypeQueryPath::RecordCreatedById,
+            DataTypeQueryToken::RecordArchivedById => DataTypeQueryPath::RecordArchivedById,
             DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
             DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,

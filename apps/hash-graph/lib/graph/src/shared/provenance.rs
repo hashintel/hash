@@ -69,6 +69,6 @@ define_provenance_id!(RecordArchivedById);
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
     pub record_created_by_id: RecordCreatedById,
-    #[serde(skip)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub record_archived_by_id: Option<RecordArchivedById>,
 }
