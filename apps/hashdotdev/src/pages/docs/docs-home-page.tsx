@@ -420,7 +420,7 @@ export const DocsHomePage: FunctionComponent = () => {
                   {[
                     { name: "Notion" },
                     {
-                      name: "Github",
+                      name: "GitHub",
                       icon: <FaIcon name="github" type="brands" />,
                     },
                     { name: "Linear" },
