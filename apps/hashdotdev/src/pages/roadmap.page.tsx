@@ -166,52 +166,52 @@ const GetInvolved: FunctionComponent = () => (
       />
       Become an early adopter
     </Typography>
-    <Typography marginBottom={1}>
-      <strong>Interested in using HASH?</strong>
-    </Typography>
-    <Box
-      component="ul"
-      sx={{
-        marginTop: 0,
-        marginBottom: 2,
-        listStyle: "none",
-        paddingLeft: 0,
-        "> li": {
-          marginBottom: 0.5,
-          svg: {
-            position: "relative",
-            top: 7,
-            marginRight: 2,
-            fontSize: 16,
-          },
-        },
-      }}
-    >
-      <Box component="li" display="flex">
-        <FaIcon name="arrow-right" type="regular" />
-        <Typography>
-          <Link href="https://app.hash.ai/signup" openInNew>
-            <strong>Create an account</strong>
-          </Link>{" "}
-          to try out the hosted version of HASH
-        </Typography>
-      </Box>
-      <Box component="li" display="flex">
-        <FaIcon name="arrow-right" type="regular" />
-        <Typography>
-          View the developer docs to{" "}
-          <Link href="https://github.com/hashintel/hash" openInNew>
-            <strong>self-host HASH</strong>
-          </Link>
-          .
-        </Typography>
-      </Box>
-    </Box>
+    {/* <Typography marginBottom={1}> */}
+    {/*  <strong>Interested in using HASH?</strong> */}
+    {/* </Typography> */}
+    {/* <Box */}
+    {/*  component="ul" */}
+    {/*  sx={{ */}
+    {/*    marginTop: 0, */}
+    {/*    marginBottom: 2, */}
+    {/*    listStyle: "none", */}
+    {/*    paddingLeft: 0, */}
+    {/*    "> li": { */}
+    {/*      marginBottom: 0.5, */}
+    {/*      svg: { */}
+    {/*        position: "relative", */}
+    {/*        top: 7, */}
+    {/*        marginRight: 2, */}
+    {/*        fontSize: 16, */}
+    {/*      }, */}
+    {/*    }, */}
+    {/*  }} */}
+    {/* > */}
+    {/*  <Box component="li" display="flex"> */}
+    {/*    <FaIcon name="arrow-right" type="regular" /> */}
+    {/*    <Typography> */}
+    {/*      <Link href="https://app.hash.ai/signup" openInNew> */}
+    {/*        <strong>Create an account</strong> */}
+    {/*      </Link>{" "} */}
+    {/*      to try out the hosted version of HASH */}
+    {/*    </Typography> */}
+    {/*  </Box> */}
+    {/*  <Box component="li" display="flex"> */}
+    {/*    <FaIcon name="arrow-right" type="regular" /> */}
+    {/*    <Typography> */}
+    {/*      View the developer docs to{" "} */}
+    {/*      <Link href="https://github.com/hashintel/hash" openInNew> */}
+    {/*        <strong>self-host HASH</strong> */}
+    {/*      </Link> */}
+    {/*      . */}
+    {/*    </Typography> */}
+    {/*  </Box> */}
+    {/* </Box> */}
     <Typography marginBottom={1}>
       <strong>Got a use case in mind?</strong>
     </Typography>
     <Typography>
-      Discuss your use case with us, or get support by{" "}
+      Discuss your use case by {/* , or get support by{" "} */}
       <Link href="https://hash.ai/contact" openInNew>
         <strong>contacting us</strong>
       </Link>{" "}
@@ -232,18 +232,18 @@ const GetInvolved: FunctionComponent = () => (
       >
         <Typography>Join our Discord</Typography>
       </Button>
-      <Button
-        variant="primarySquare"
-        size="medium"
-        color="blue"
-        href="https://app.hash.ai"
-        startIcon={<FaIcon name="arrow-right-to-bracket" type="solid" />}
-        sx={{ width: { xs: "100%", sm: "auto" } }}
-      >
-        <Typography>
-          Use at <strong>app.hash.ai</strong>
-        </Typography>
-      </Button>
+      {/* <Button */}
+      {/*  variant="primarySquare" */}
+      {/*  size="medium" */}
+      {/*  color="blue" */}
+      {/*  href="https://app.hash.ai" */}
+      {/*  startIcon={<FaIcon name="arrow-right-to-bracket" type="solid" />} */}
+      {/*  sx={{ width: { xs: "100%", sm: "auto" } }} */}
+      {/* > */}
+      {/*  <Typography> */}
+      {/*    Use at <strong>app.hash.ai</strong> */}
+      {/*  </Typography> */}
+      {/* </Button> */}
       <Button
         variant="primarySquare"
         size="medium"
