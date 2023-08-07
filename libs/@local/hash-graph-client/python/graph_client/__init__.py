@@ -1,9 +1,36 @@
 """Client for the HASH API."""
-from typing import Literal, TypeVar, TypeAlias
+from typing import Literal, TypeAlias, TypeVar
 
 import httpx
-from yarl import URL
 from pydantic import BaseModel
+from yarl import URL
+
+from graph_client.models import (
+    CreateDataTypeRequest,
+    CreateEntityRequest,
+    CreateEntityTypeRequest,
+    CreatePropertyTypeRequest,
+    DataTypeQueryToken,
+    DataTypeStructuralQuery,
+    EntityMetadata,
+    EntityQueryToken,
+    EntityStructuralQuery,
+    EntityTypeQueryToken,
+    EntityTypeStructuralQuery,
+    LoadExternalDataTypeRequest,
+    LoadExternalEntityTypeRequest,
+    LoadExternalPropertyTypeRequest,
+    MaybeListOfOntologyElementMetadata,
+    OntologyElementMetadata,
+    PropertyTypeQueryToken,
+    PropertyTypeStructuralQuery,
+    Selector,
+    Subgraph,
+    UpdateDataTypeRequest,
+    UpdateEntityRequest,
+    UpdateEntityTypeRequest,
+    UpdatePropertyTypeRequest,
+)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -16,6 +43,8 @@ QueryToken: TypeAlias = (
     | str
     | float
 )
+
+__all__ = ["GraphClient", "models"]
 
 
 async def _send_request(
