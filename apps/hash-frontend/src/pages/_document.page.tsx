@@ -9,7 +9,6 @@ class Document extends NextDocument {
       <Html lang="en">
         <Head />
         <body>
-          <Main />
           <NextScript />
         </body>
       </Html>

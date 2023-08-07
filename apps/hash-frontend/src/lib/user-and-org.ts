@@ -1,6 +1,7 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
+  OrgMembershipProperties,
   OrgProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -228,7 +229,10 @@ export const constructMinimalOrg = (params: {
 };
 
 export type Org = MinimalOrg & {
-  members: (User & { responsibility: string })[];
+  memberships: {
+    membershipEntity: Entity<OrgMembershipProperties>;
+    user: User;
+  }[];
 };
 
 export const constructOrg = (params: {
@@ -250,7 +254,7 @@ export const constructOrg = (params: {
     (linkEntity) =>
       linkEntity.metadata.entityTypeId ===
       types.linkEntityType.orgMembership.linkEntityTypeId,
-  );
+  ) as Entity<OrgMembershipProperties>[];
 
   const org = constructMinimalOrg({
     orgEntity,
@@ -260,11 +264,7 @@ export const constructOrg = (params: {
   // we already encountered it and avoid infinite recursion
   resolvedOrgs[entityRecordIdToString(org.entityRecordId)] = org;
 
-  org.members = orgMemberships.map(({ properties, linkData, metadata }) => {
-    const responsibility: string = properties[
-      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
-    ] as string;
-
+  org.memberships = orgMemberships.map(({ properties, linkData, metadata }) => {
     if (!linkData?.leftEntityId) {
       throw new Error("Expected org membership to contain a left entity");
     }
@@ -304,8 +304,13 @@ export const constructOrg = (params: {
     }
 
     return {
-      ...user,
-      responsibility,
+      // create a new user object, because the original will be mutated
+      user: JSON.parse(JSON.stringify(user, undefined, 2)),
+      membershipEntity: {
+        properties,
+        metadata,
+        linkData,
+      },
     };
   });
 
