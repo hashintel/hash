@@ -2,7 +2,7 @@ name: OpenAPI Generator
 on:
   push:
     paths:
-      - "apps/hash-graph/openapi/**/*.yml"
+      - "apps/hash-graph/openapi/**/*.json"
 
 jobs:
   python-client:
