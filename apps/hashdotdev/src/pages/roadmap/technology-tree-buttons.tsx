@@ -1,9 +1,9 @@
 import { Box, IconButton, styled } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import { DownLeftAndUpRightToCenterIcon } from "../../components/icons/down-left-and-up-right-to-center-icon";
+import { ArrowDownLeftAndArrowUpRightToCenterIcon } from "../../components/icons/arrow-down-left-and-arrow-up-right-to-center-icon";
+import { ArrowUpRightAndArrowDownLeftFromCenterIcon } from "../../components/icons/arrow-up-right-and-arrow-down-left-from-center-icon";
 import { FaIcon } from "../../components/icons/fa-icon";
-import { UpRightAndDownLeftFromCenterIcon } from "../../components/icons/up-right-and-down-left-from-center-icon";
 
 const TechnologyTreeIconButton = styled(IconButton)(({ theme }) => ({
   background: theme.palette.white,
@@ -44,9 +44,9 @@ export const TechnologyTreeButtons: FunctionComponent<{
         }}
       >
         {isFullscreen ? (
-          <DownLeftAndUpRightToCenterIcon />
+          <ArrowDownLeftAndArrowUpRightToCenterIcon />
         ) : (
-          <UpRightAndDownLeftFromCenterIcon />
+          <ArrowUpRightAndArrowDownLeftFromCenterIcon />
         )}
       </TechnologyTreeIconButton>
       <TechnologyTreeIconButton onClick={toggleDisplayFilters}>
