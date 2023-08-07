@@ -196,7 +196,7 @@ export const TechnologyTree: FunctionComponent = () => {
 
       graphWrapper.call(zoom);
     }
-  }, [layoutHeight, layoutWidth]);
+  }, [layoutHeight, layoutWidth, fullScreenHandle.active]);
 
   /** @todo: animate changes in the graph */
 
