@@ -198,7 +198,7 @@ class PinnedTransactionTimeTemporalAxisBuilder:
             ),
         )
 
-    def latest(self) -> QueryTemporalAxesUnresolved:
+    def current(self) -> QueryTemporalAxesUnresolved:
         """Return all entities that are valid at the current time."""
         return self.between(start=None, end=None)
 
@@ -239,7 +239,7 @@ class PinnedDecisionTimeTemporalAxisBuilder:
             ),
         )
 
-    def latest(self) -> QueryTemporalAxesUnresolved:
+    def current(self) -> QueryTemporalAxesUnresolved:
         """Return all entities that are valid at the current time."""
         return self.between(start=None, end=None)
 
@@ -264,9 +264,9 @@ class TemporalAxesBuilder:
         return PinnedDecisionTimeTemporalAxisBuilder(pinned=time)
 
     @classmethod
-    def latest(cls) -> QueryTemporalAxesUnresolved:
+    def current(cls) -> QueryTemporalAxesUnresolved:
         """Only select the latest entities."""
-        return PinnedDecisionTimeTemporalAxisBuilder(pinned=None).latest()
+        return PinnedDecisionTimeTemporalAxisBuilder(pinned=None).current()
 
 
 class Options:
@@ -288,7 +288,7 @@ class Options:
             is_of_type=OutgoingEdgeResolveDepth(outgoing=0),
         )
 
-        self.temporal_axes = TemporalAxesBuilder.latest()
+        self.temporal_axes = TemporalAxesBuilder.current()
 
     def resolve_type_of_entity(self, *, enable: bool) -> None:
         """Return the entity type of the entity."""
