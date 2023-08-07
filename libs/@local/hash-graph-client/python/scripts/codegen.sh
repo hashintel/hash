@@ -19,7 +19,7 @@ cd "$DIR/.."
 yarn run swagger-cli bundle "$SPEC" --outfile "$DIR/openapi.bundle.json"
 
 # swagger-cli escapes the $ with %24, which breaks the codegen
-sed -i -e 's/%24/$/g' .hash/apps/hash-graph/openapi/openapi.bundle.json
+sed -i -e 's/%24/$/g' "$DIR/openapi.bundle.json"
 
 poetry run datamodel-codegen \
   --input "$DIR/openapi.bundle.json" \
