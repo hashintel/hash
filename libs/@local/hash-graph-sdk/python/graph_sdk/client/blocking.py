@@ -39,7 +39,8 @@ class HASHClient:
 
     def with_actor(self, actor: UUID) -> Self:
         """Set the actor for the client."""
-        return self.inner.with_actor(actor)
+        self.inner.with_actor(actor)
+        return self
 
     def query_data_types(self, query: BaseFilter, options: Options) -> Subgraph:
         """Query data types."""

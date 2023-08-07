@@ -130,7 +130,7 @@ class HASHClient:
         request = UpdateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=convert_data_type_to_schema4(model),
-            type_to_update=str(model.id),
+            type_to_update=model.identifier,
         )
 
         return await self.inner.update_data_type(request)
@@ -186,7 +186,7 @@ class HASHClient:
         request = UpdatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=convert_property_type_to_schema6(model),
-            type_to_update=str(model.id),
+            type_to_update=model.identifier,
         )
 
         return await self.inner.update_property_type(request)
@@ -238,7 +238,7 @@ class HASHClient:
         request = UpdateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=convert_entity_type_to_schema5(model),
-            type_to_update=str(model.id),
+            type_to_update=model.identifier,
         )
 
         return await self.inner.update_entity_type(request)

@@ -1,3 +1,4 @@
+# type: ignore
 """Script to generate the blocking implementation of the client."""
 
 import ast
@@ -94,44 +95,60 @@ client_init.body = [
     ),
 ]
 
+
+def call_inner(function_def: ast.FunctionDef) -> ast.Call:
+    """Call the inner client method."""
+    args = function_def.args
+
+    return ast.Call(
+        func=(
+            ast.Attribute(
+                value=ast.Attribute(
+                    value=ast.Name(id="self", ctx=ast.Load()),
+                    attr="inner",
+                    ctx=ast.Load(),
+                ),
+                attr=function_def.name,
+                ctx=ast.Load(),
+            )
+        ),
+        args=[
+            ast.Name(arg.arg, ctx=ast.Load()) for arg in args.args if arg.arg != "self"
+        ],
+        keywords=[
+            ast.keyword(arg=keyword.arg, value=ast.Name(keyword.arg, ctx=ast.Load()))
+            for keyword in (args.kwarg or [])
+        ],
+    )
+
+
+# check the `with_actor` method, call the inner one and return self
+with_actor = next(
+    statement
+    for statement in client_ast.body
+    if isinstance(statement, ast.FunctionDef) and statement.name == "with_actor"
+)
+
+with_actor_args = with_actor.args
+with_actor.body = [
+    with_actor.body[0],
+    ast.Expr(value=call_inner(with_actor)),
+    ast.Return(value=ast.Name(id="self", ctx=ast.Load())),
+]
+
 # # go over each method that is sync, call the inner client instead
 for method in client_ast.body:
     if not isinstance(method, ast.FunctionDef):
         continue
 
-    if method.name in ("__init__", "__doc__"):
+    if method.name in ("__init__", "__doc__", "with_actor"):
         continue
 
     method_args = method.args
 
     method.body = [
         method.body[0],
-        ast.Return(
-            value=ast.Call(
-                func=(
-                    ast.Attribute(
-                        value=ast.Attribute(
-                            value=ast.Name(id="self", ctx=ast.Load()),
-                            attr="inner",
-                            ctx=ast.Load(),
-                        ),
-                        attr=method.name,
-                        ctx=ast.Load(),
-                    )
-                ),
-                args=[
-                    ast.Name(arg.arg, ctx=ast.Load())
-                    for arg in method_args.args
-                    if arg.arg != "self"
-                ],
-                keywords=[
-                    ast.keyword(
-                        arg=keyword.arg, value=ast.Name(keyword.arg, ctx=ast.Load())
-                    )
-                    for keyword in (method_args.kwarg or [])
-                ],
-            )
-        ),
+        ast.Return(value=call_inner(method)),
     ]
 
 # go over each async method, wrap it in the async_to_sync method and return it

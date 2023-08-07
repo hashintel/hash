@@ -9,11 +9,11 @@ if TYPE_CHECKING:
     from types import EllipsisType
 
 try:
+    # noinspection PyUnresolvedReferences
     import devtools
 
     IS_DEV = True
 except ImportError:
-    devtools = None
     IS_DEV = False
 
 T = TypeVar("T")
