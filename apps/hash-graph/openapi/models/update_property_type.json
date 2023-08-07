@@ -9,7 +9,9 @@
       ]
     },
     "kind": {
-      "enum": ["propertyType"]
+      "enum": [
+        "propertyType"
+      ]
     },
     "title": {
       "type": "string"
@@ -24,7 +26,12 @@
       }
     }
   },
-  "required": ["$schema", "kind", "title", "oneOf"],
+  "required": [
+    "$schema",
+    "kind",
+    "title",
+    "oneOf"
+  ],
   "additionalProperties": false,
   "definitions": {
     "PropertyValuesUpdate": {
@@ -40,13 +47,18 @@
           "type": "object",
           "properties": {
             "type": {
-              "enum": ["object"]
+              "enum": [
+                "object"
+              ]
             },
             "properties": {
               "$ref": "./shared.json#/definitions/PropertyTypeObject"
             }
           },
-          "required": ["type", "properties"],
+          "required": [
+            "type",
+            "properties"
+          ],
           "additionalProperties": false
         },
         {
@@ -54,7 +66,9 @@
           "type": "object",
           "properties": {
             "type": {
-              "enum": ["array"]
+              "enum": [
+                "array"
+              ]
             },
             "items": {
               "type": "object",
@@ -67,7 +81,9 @@
                   "minItems": 1
                 }
               },
-              "required": ["oneOf"],
+              "required": [
+                "oneOf"
+              ],
               "additionalProperties": false
             },
             "minItems": {
@@ -79,9 +95,13 @@
               "minimum": 0
             }
           },
-          "required": ["type", "items"],
+          "required": [
+            "type",
+            "items"
+          ],
           "additionalProperties": false
         }
       ]
     }
+  }
 }

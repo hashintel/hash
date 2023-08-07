@@ -52,5 +52,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["$schema", "kind", "type", "$id", "title", "properties"],
+  "required": ["$schema", "kind", "type", "$id", "title", "properties"]
 }

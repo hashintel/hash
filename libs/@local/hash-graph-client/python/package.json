@@ -18,6 +18,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@apidevtools/swagger-cli": "4.0.4"
+    "@apidevtools/swagger-cli": "4.0.4",
+    "@redocly/cli": "1.0.2"
   }
 }

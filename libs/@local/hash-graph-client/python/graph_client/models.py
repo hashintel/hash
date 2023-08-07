@@ -317,7 +317,7 @@ class UnarchivePropertyTypeRequest(BaseModel):
     type_to_unarchive: str = Field(..., alias="typeToUnarchive")
 
 
-class Schema(BaseModel):
+class UpdateDataType(BaseModel):
     """
     The contents of a Data Type update request
     """
@@ -335,17 +335,6 @@ class Schema(BaseModel):
     type: str
 
 
-class UpdateDataTypeRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
-    schema_: Schema = Field(
-        ..., alias="schema", description="The contents of a Data Type update request"
-    )
-    type_to_update: str = Field(..., alias="typeToUpdate")
-
-
 class VersionedURL(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -356,6 +345,59 @@ class VersionedURL(RootModel):
         max_length=2048,
         title="Versioned URL",
     )
+
+
+class DataType(BaseModel):
+    """
+    Specifies the structure of a Data Type
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+    )
+    field_schema: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["dataType"]
+    field_id: VersionedURL = Field(..., alias="$id")
+    title: str
+    description: str | None = None
+    type: str
+
+
+class DataTypeReference(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_ref: VersionedURL = Field(..., alias="$ref")
+
+
+class PropertyTypeObject(BaseModel):
+    """
+    A JSON object where each entry is constrained by a property type.
+    """
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class PropertyObjectValue(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    type: Literal["object"]
+    properties: PropertyTypeObject
+
+
+class EntityTypeReference(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_ref: VersionedURL = Field(..., alias="$ref")
 
 
 class BaseURL(RootModel):
@@ -377,9 +419,82 @@ class LinkTypeObject(BaseModel):
     )
 
 
-class PropertyTypeObject(BaseModel):
+class EntityType(BaseModel):
     """
-    A JSON object where each entry is constrained by a property type.
+    Specifies the structure of a Block Protocol entity type
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_schema: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["entityType"]
+    field_id: VersionedURL = Field(..., alias="$id")
+    type: Literal["object"]
+    title: str
+    description: str | None = None
+    all_of: list[EntityTypeReference] | None = Field(None, alias="allOf")
+    examples: list[dict[str, Any]] | None = None
+    properties: PropertyTypeObject
+    required: list[BaseURL] | None = None
+    links: LinkTypeObject | None = None
+
+
+class UpdateEntityType(BaseModel):
+    """
+    The contents of an Entity Type update request
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_schema: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["entityType"]
+    type: Literal["object"]
+    title: str
+    description: str | None = None
+    examples: list[dict[str, Any]] | None = None
+    properties: PropertyTypeObject
+    required: list[AnyUrl] | None = None
+    links: LinkTypeObject | None = None
+
+
+class StatusCode(Enum):
+    """
+    The canonical status codes for software within the HASH ecosystem.
+    Sometimes multiple status codes may apply. Services should return the most specific status code
+    that applies. For example, prefer `OutOfRange` over `FailedPrecondition` if both codes
+    apply. Similarly prefer `NotFound` or `AlreadyExists` over `FailedPrecondition`.
+    """
+
+    aborted = "ABORTED"
+    already_exists = "ALREADY_EXISTS"
+    cancelled = "CANCELLED"
+    data_loss = "DATA_LOSS"
+    deadline_exceeded = "DEADLINE_EXCEEDED"
+    failed_precondition = "FAILED_PRECONDITION"
+    internal = "INTERNAL"
+    invalid_argument = "INVALID_ARGUMENT"
+    not_found = "NOT_FOUND"
+    ok = "OK"
+    out_of_range = "OUT_OF_RANGE"
+    permission_denied = "PERMISSION_DENIED"
+    resource_exhausted = "RESOURCE_EXHAUSTED"
+    unauthenticated = "UNAUTHENTICATED"
+    unavailable = "UNAVAILABLE"
+    unimplemented = "UNIMPLEMENTED"
+    unknown = "UNKNOWN"
+
+
+class RecordStringAny(BaseModel):
+    """
+    Construct a type with a set of properties K of type T
     """
 
     model_config = ConfigDict(
@@ -387,44 +502,92 @@ class PropertyTypeObject(BaseModel):
     )
 
 
-class DataTypeReference(BaseModel):
+class ErrorInfo(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    reason: str = Field(
+        ...,
+        description="The reason of the error. This is a constant value that identifies the proximate cause of\nthe error. Error reasons are unique within a particular domain of errors. This should be at\nmost 63 characters and match a regular expression of `[A-Z][A-Z0-9_]+[A-Z0-9]`, which\nrepresents UPPER_SNAKE_CASE.",
+        title="reason",
+    )
+    domain: str = Field(
+        ...,
+        description='The logical grouping to which the "reason" belongs.\nThe error domain is typically the registered service name of the tool or product that\ngenerates the error.',
+        title="domain",
+    )
+    metadata: RecordStringAny = Field(
+        ...,
+        description='Additional structured details about this error.\n\nKeys should match /[a-zA-Z0-9-_]/ and be limited to 64 characters in length. When\nidentifying the current value of an exceeded limit, the units should be contained in the\nkey, not the value.  For example, rather than {"instanceLimit": "100/request"}, should be\nreturned as, {"instanceLimitPerRequest": "100"}, if the client exceeds the number of\ninstances that can be created in a single (batch) request.',
+        title="metadata",
+    )
+
+
+class RequestInfo(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    request_id: str = Field(
+        ...,
+        alias="requestId",
+        description="An opaque string that should only be interpreted by the service generating it. For example, it\ncan be used to identify requests in the service's logs.",
+        title="requestId",
+    )
+    serving_data: str = Field(
+        ...,
+        alias="servingData",
+        description="Any data that was used to serve this request. For example, an encrypted stack trace that can be\nsent back to the service provider for debugging.",
+        title="servingData",
+    )
+
+
+class ResourceInfo(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    resource_type: str = Field(
+        ...,
+        alias="resourceType",
+        description='A name for the type of resource being accessed.\n\nFor example "SQL table", "Entity", "Property Type", "Redis"; or the type URL of the resource:\ne.g. "https://blockprotocol.org/type-system/0.3/schema/meta/entity-type".',
+        title="resourceType",
+    )
+    resource_name: str = Field(
+        ...,
+        alias="resourceName",
+        description="The name of the resource being accessed.\n\nFor example, an ontology type ID: `https://hash.ai/@alice/types/entity-type/Person/`, if the current\nerror is [@local/status/StatusCode.PermissionDenied].",
+        title="resourceName",
+    )
+    owner: str | None = Field(
+        None,
+        description="The owner of the resource (optional).\n\nFor example, a User's entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;",
+        title="owner",
+    )
+    description: str = Field(
+        ...,
+        description="Describes what error is encountered when accessing this resource.\n\nFor example, updating a property on a user's entity may require write permission on that property.",
+        title="description",
+    )
+
+
+class Status(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    code: StatusCode = Field(..., title="code")
+    message: str | None = Field(
+        None,
+        description="A developer-facing description of the status.\n\nWhere possible, this should provide guiding advice for debugging and/or handling the error.",
+    )
+    contents: list[ErrorInfo | RequestInfo | ResourceInfo]
+
+
+class PropertyObjectValue1(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         populate_by_name=True,
     )
-    field_ref: VersionedURL = Field(..., alias="$ref")
-
-
-class EntityTypeReference(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_ref: AnyUrl = Field(..., alias="$ref")
-
-
-class PropertyTypeReference(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_ref: AnyUrl = Field(..., alias="$ref")
-
-
-class DataTypeReferenceUpdate(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_ref: AnyUrl = Field(..., alias="$ref")
-
-
-class PropertyTypeReferenceUpdate(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_ref: AnyUrl = Field(..., alias="$ref")
+    type: Literal["object"]
+    properties: PropertyTypeObject
 
 
 class ArchiveDataTypeRequest(BaseModel):
@@ -466,31 +629,31 @@ class ClosedTemporalBound(RootModel):
     root: InclusiveBound = Field(..., discriminator="kind")
 
 
+class CreateDataTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    owned_by_id: OwnedById = Field(..., alias="ownedById")
+    schema_: DataType | list[DataType] = Field(..., alias="schema")
+
+
+class CreateEntityTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    label_property: BaseUrl | None = Field(None, alias="labelProperty")
+    owned_by_id: OwnedById = Field(..., alias="ownedById")
+    schema_: EntityType | list[EntityType] = Field(..., alias="schema")
+
+
 class DataTypeVertexId(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     base_id: BaseUrl = Field(..., alias="baseId")
     revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
-
-
-class DataType(BaseModel):
-    """
-    Specifies the structure of a Data Type
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["dataType"]
-    field_id: VersionedURL = Field(..., alias="$id")
-    title: str
-    description: str | None = None
-    type: str
 
 
 class EntityLinkOrder(BaseModel):
@@ -680,6 +843,15 @@ class UnresolvedRightBoundedTemporalInterval(BaseModel):
     start: TemporalBound | None = Field(...)
 
 
+class UpdateDataTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    schema_: UpdateDataType = Field(..., alias="schema")
+    type_to_update: str = Field(..., alias="typeToUpdate")
+
+
 class UpdateEntityRequest(EntityLinkOrder):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -691,95 +863,14 @@ class UpdateEntityRequest(EntityLinkOrder):
     properties: EntityProperties
 
 
-class EntityTypeReferenceModel(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_ref: VersionedURL = Field(..., alias="$ref")
-
-
-class PropertyObjectValue(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    type: Literal["object"]
-    properties: PropertyTypeObject
-
-
-class OneOfItem(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    type: Literal["array"]
-    items: EntityTypeReference | None = None
-    ordered: bool
-    min_items: int | None = Field(None, alias="minItems", ge=0)
-    max_items: int | None = Field(None, alias="maxItems", ge=0)
-
-
-class LinkTypeObject1(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    one_of: list[EntityTypeReference | OneOfItem] | None = Field(
-        None, alias="oneOf", min_length=1
-    )
-
-
-class LinkTypeObjectModel(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: dict[str, LinkTypeObject1]
-
-
-class PropertyTypeObjectItem(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    type: Literal["array"]
-    items: PropertyTypeReference
-    min_items: int | None = Field(None, alias="minItems", ge=0)
-    max_items: int | None = Field(None, alias="maxItems", ge=0)
-
-
-class PropertyTypeObjectModel(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: dict[str, PropertyTypeReference | PropertyTypeObjectItem]
-
-
-class PropertyTypeObjectItem1(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    type: Literal["array"]
-    items: PropertyTypeReferenceUpdate
-    min_items: int | None = Field(None, alias="minItems", ge=0)
-    max_items: int | None = Field(None, alias="maxItems", ge=0)
-
-
-class PropertyTypeObjectModel1(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: dict[str, PropertyTypeReferenceUpdate | PropertyTypeObjectItem1] = Field(
-        ..., title="PropertyTypeObject"
-    )
-
-
-class CreateDataTypeRequest(BaseModel):
+class UpdateEntityTypeRequest(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    owned_by_id: OwnedById = Field(..., alias="ownedById")
-    schema_: DataType | list[DataType] = Field(..., alias="schema")
+    label_property: BaseUrl | None = Field(None, alias="labelProperty")
+    schema_: UpdateEntityType = Field(..., alias="schema")
+    type_to_update: str = Field(..., alias="typeToUpdate")
 
 
 class CreateEntityRequest(BaseModel):
@@ -792,30 +883,6 @@ class CreateEntityRequest(BaseModel):
     link_data: LinkData | None = Field(None, alias="linkData")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     properties: EntityProperties
-
-
-class EntityType(BaseModel):
-    """
-    Specifies the structure of a Block Protocol entity type
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["entityType"]
-    field_id: VersionedURL = Field(..., alias="$id")
-    type: Literal["object"]
-    title: str
-    description: str | None = None
-    all_of: list[EntityTypeReferenceModel] | None = Field(None, alias="allOf")
-    examples: list[dict[str, Any]] | None = None
-    properties: PropertyTypeObject
-    required: list[BaseURL] | None = None
-    links: LinkTypeObject | None = None
 
 
 class EqualFilter(BaseModel):
@@ -944,59 +1011,6 @@ class RightBoundedTemporalInterval(BaseModel):
     start: TemporalBound
 
 
-class Schema2(BaseModel):
-    """
-    The contents of an Entity Type update request
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["entityType"]
-    type: Literal["object"]
-    title: str
-    description: str | None = None
-    examples: list[dict[str, Any]] | None = None
-    properties: PropertyTypeObjectModel
-    required: list[AnyUrl] | None = None
-    links: LinkTypeObjectModel | None = None
-
-
-class UpdateEntityTypeRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
-    label_property: BaseUrl | None = Field(None, alias="labelProperty")
-    schema_: Schema2 = Field(
-        ..., alias="schema", description="The contents of an Entity Type update request"
-    )
-    type_to_update: str = Field(..., alias="typeToUpdate")
-
-
-class PropertyObjectValue1(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    type: Literal["object"]
-    properties: PropertyTypeObjectModel1
-
-
-class CreateEntityTypeRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
-    label_property: BaseUrl | None = Field(None, alias="labelProperty")
-    owned_by_id: OwnedById = Field(..., alias="ownedById")
-    schema_: EntityType | list[EntityType] = Field(..., alias="schema")
-
-
 class CustomEntityTypeMetadatum(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1086,12 +1100,7 @@ class EntityTypeWithMetadata(BaseModel):
         populate_by_name=True,
     )
     metadata: EntityTypeMetadata
-    schema_: EntityType = Field(
-        ...,
-        alias="schema",
-        description="Specifies the structure of a Block Protocol entity type",
-        title="Entity Type",
-    )
+    schema_: EntityType = Field(..., alias="schema")
 
 
 class KnowledgeGraphToKnowledgeGraphOutwardEdge(BaseModel):
@@ -1204,12 +1213,7 @@ class DataTypeWithMetadata(BaseModel):
         populate_by_name=True,
     )
     metadata: OntologyElementMetadata
-    schema_: DataType = Field(
-        ...,
-        alias="schema",
-        description="Specifies the structure of a Data Type",
-        title="Data Type",
-    )
+    schema_: DataType = Field(..., alias="schema")
 
 
 class Edges(RootModel):
@@ -1384,36 +1388,12 @@ class PropertyTypeStructuralQuery(BaseModel):
     temporal_axes: QueryTemporalAxesUnresolved = Field(..., alias="temporalAxes")
 
 
-class PropertyType(BaseModel):
-    """
-    Specifies the structure of a Block Protocol property type
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["propertyType"]
-    field_id: VersionedURL = Field(..., alias="$id")
-    title: str
-    description: str | None = None
-    one_of: list[PropertyValues] = Field(..., alias="oneOf")
-
-
 class PropertyTypeWithMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     metadata: OntologyElementMetadata
-    schema_: PropertyType = Field(
-        ...,
-        alias="schema",
-        description="Specifies the structure of a Block Protocol property type",
-        title="Property Type",
-    )
+    schema_: PropertyType = Field(..., alias="schema")
 
 
 class Subgraph(BaseModel):
@@ -1427,34 +1407,12 @@ class Subgraph(BaseModel):
     vertices: Vertices
 
 
-class Schema3(BaseModel):
-    """
-    The contents of a Property Type update request
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["propertyType"]
-    title: str
-    description: str | None = None
-    one_of: list[PropertyValuesUpdate] = Field(..., alias="oneOf")
-
-
 class UpdatePropertyTypeRequest(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    schema_: Schema3 = Field(
-        ...,
-        alias="schema",
-        description="The contents of a Property Type update request",
-    )
+    schema_: UpdatePropertyType = Field(..., alias="schema")
     type_to_update: str = Field(..., alias="typeToUpdate")
 
 
@@ -1502,6 +1460,25 @@ class PropertyValues(RootModel):
     )
 
 
+class PropertyType(BaseModel):
+    """
+    Specifies the structure of a Block Protocol property type
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_schema: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["propertyType"]
+    field_id: VersionedURL = Field(..., alias="$id")
+    title: str
+    description: str | None = None
+    one_of: list[PropertyValues] = Field(..., alias="oneOf")
+
+
 class Items1(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -1525,9 +1502,27 @@ class PropertyValuesUpdate(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: DataTypeReferenceUpdate | PropertyObjectValue1 | PropertyArrayValueUpdate = (
-        Field(..., title="PropertyValuesUpdate")
+    root: DataTypeReference | PropertyObjectValue1 | PropertyArrayValueUpdate = Field(
+        ..., title="PropertyValuesUpdate"
     )
+
+
+class UpdatePropertyType(BaseModel):
+    """
+    The contents of a Property Type update request
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    field_schema: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["propertyType"]
+    title: str
+    description: str | None = None
+    one_of: list[PropertyValuesUpdate] = Field(..., alias="oneOf")
 
 
 CreatePropertyTypeRequest.model_rebuild()
@@ -1538,8 +1533,8 @@ AllFilter.model_rebuild()
 AnyFilter.model_rebuild()
 NotFilter.model_rebuild()
 PropertyTypeVertex.model_rebuild()
-PropertyType.model_rebuild()
+PropertyTypeWithMetadata.model_rebuild()
 Subgraph.model_rebuild()
-Schema3.model_rebuild()
+UpdatePropertyTypeRequest.model_rebuild()
 Items.model_rebuild()
 Items1.model_rebuild()

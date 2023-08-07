@@ -21,9 +21,7 @@
           "$ref": "#/definitions/VersionedUrl"
         }
       },
-      "required": [
-        "$ref"
-      ],
+      "required": ["$ref"],
       "additionalProperties": false
     },
     "PropertyTypeReference": {
@@ -33,9 +31,7 @@
           "$ref": "#/definitions/VersionedUrl"
         }
       },
-      "required": [
-        "$ref"
-      ],
+      "required": ["$ref"],
       "additionalProperties": false
     },
     "DataTypeReference": {
@@ -55,19 +51,17 @@
           "$ref": "#/definitions/BaseUrl"
         }
       },
-      "required": [
-        "$ref"
-      ],
+      "required": ["$ref"],
       "additionalProperties": false
     },
     "PropertyTypeObject": {
       "title": "Property Type Object",
       "description": "A JSON object where each entry is constrained by a property type.",
       "type": "object",
-      "propertyNames": {
+      "x-propertyNames": {
         "$ref": "#/definitions/BaseUrl"
       },
-      "patternProperties": {
+      "x-patternProperties": {
         ".*": {
           "oneOf": [
             {
@@ -78,9 +72,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "array"
-                  ]
+                  "enum": ["array"]
                 },
                 "items": {
                   "$ref": "#/definitions/PropertyObjectReference"
@@ -94,10 +86,7 @@
                   "minimum": 0
                 }
               },
-              "required": [
-                "type",
-                "items"
-              ],
+              "required": ["type", "items"],
               "additionalProperties": false
             }
           ]
@@ -106,18 +95,16 @@
     },
     "LinkTypeObject": {
       "type": "object",
-      "propertyNames": {
+      "x-propertyNames": {
         "$ref": "#/definitions/VersionedUrl"
       },
-      "patternProperties": {
+      "x-patternProperties": {
         ".*": {
           "type": "object",
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "array"
-              ]
+              "enum": ["array"]
             },
             "ordered": {
               "type": "boolean",
@@ -145,11 +132,7 @@
               "minimum": 0
             }
           },
-          "required": [
-            "type",
-            "ordered",
-            "items"
-          ],
+          "required": ["type", "ordered", "items"],
           "additionalProperties": false
         }
       }
