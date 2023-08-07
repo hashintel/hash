@@ -62,7 +62,7 @@ type SidebarPageSectionProps = {
 };
 
 const highlightSection = (isSectionSelected: boolean) => {
-  const borderLeft = `3px solid ${
+  const borderLeft = `4px solid ${
     isSectionSelected ? customColors.teal[70] : "transparent"
   }`;
 
@@ -123,7 +123,7 @@ const SidebarPageSection: FunctionComponent<SidebarPageSectionProps> = ({
           href={sectionHref}
           sx={(theme) => ({
             position: "relative",
-            paddingLeft: depth * 2 + 1.25,
+            paddingLeft: depth * 2 + 1.5,
             color:
               isSectionSelected || hasSelectedSubSection
                 ? theme.palette.teal[80]
@@ -254,7 +254,7 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
           sx={(theme) => ({
             alignSelf: "flex-start",
             color: isSelected ? theme.palette.teal[80] : theme.palette.gray[80],
-            paddingLeft: depth * 2 + 1.25,
+            paddingLeft: depth * 2 + 1.5,
             ...highlightSection(isSelected),
           })}
         >
