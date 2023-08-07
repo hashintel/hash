@@ -36,6 +36,7 @@ class DataTypeQueryToken(Enum):
     versioned_url = "versionedUrl"
     owned_by_id = "ownedById"
     record_created_by_id = "recordCreatedById"
+    record_archived_by_id = "recordArchivedById"
     title = "title"
     description = "description"
     type = "type"
@@ -118,6 +119,7 @@ class EntityTypeQueryToken(Enum):
     versioned_url = "versionedUrl"
     owned_by_id = "ownedById"
     record_created_by_id = "recordCreatedById"
+    record_archived_by_id = "recordArchivedById"
     title = "title"
     description = "description"
     examples = "examples"
@@ -215,6 +217,7 @@ class PropertyTypeQueryToken(Enum):
     versioned_url = "versionedUrl"
     owned_by_id = "ownedById"
     record_created_by_id = "recordCreatedById"
+    record_archived_by_id = "recordArchivedById"
     title = "title"
     description = "description"
     data_types = "dataTypes"
@@ -243,6 +246,13 @@ class Pinned3(BaseModel):
     )
     axis: DecisionTime
     timestamp: NullableTimestamp
+
+
+class RecordArchivedById(RootModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: UUID
 
 
 class RecordCreatedById(RootModel):
@@ -288,6 +298,30 @@ class TransactionTime(RootModel):
         ...,
         description="Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
     )
+
+
+class UnarchiveDataTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    type_to_unarchive: str = Field(..., alias="typeToUnarchive")
+
+
+class UnarchiveEntityTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    type_to_unarchive: str = Field(..., alias="typeToUnarchive")
+
+
+class UnarchivePropertyTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    type_to_unarchive: str = Field(..., alias="typeToUnarchive")
 
 
 class Schema4(BaseModel):
@@ -398,6 +432,30 @@ class PropertyTypeReferenceUpdate(BaseModel):
         populate_by_name=True,
     )
     field_ref: AnyUrl = Field(..., alias="$ref")
+
+
+class ArchiveDataTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordArchivedById = Field(..., alias="actorId")
+    type_to_archive: str = Field(..., alias="typeToArchive")
+
+
+class ArchiveEntityTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordArchivedById = Field(..., alias="actorId")
+    type_to_archive: str = Field(..., alias="typeToArchive")
+
+
+class ArchivePropertyTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordArchivedById = Field(..., alias="actorId")
+    type_to_archive: str = Field(..., alias="typeToArchive")
 
 
 class ClosedTemporalBoundItem(BaseModel):
@@ -609,6 +667,9 @@ class OpenTemporalBound(RootModel):
 class ProvenanceMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
+    )
+    record_archived_by_id: RecordArchivedById | None = Field(
+        None, alias="recordArchivedById"
     )
     record_created_by_id: RecordCreatedById = Field(..., alias="recordCreatedById")
 
