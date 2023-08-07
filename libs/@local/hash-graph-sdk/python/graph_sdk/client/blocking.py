@@ -13,7 +13,7 @@ from uuid import UUID
 
 from yarl import URL
 
-from graph_sdk.concurrent import HASHClient as ConcurrentHASHClient
+from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
 
 if TYPE_CHECKING:
     from types import EllipsisType

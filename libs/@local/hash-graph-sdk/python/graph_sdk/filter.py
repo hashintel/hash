@@ -83,6 +83,10 @@ class DataTypePath(AbstractPath):
         """Return the path to the record created by id for a data type."""
         return self.path.push(DataTypeQueryToken.record_created_by_id)
 
+    def record_archived_by_id(self) -> Path:
+        """Return the path to the record archived by id for a data type."""
+        return self.path.push(DataTypeQueryToken.record_archived_by_id)
+
     def title(self) -> Path:
         """Return the path to the title for a data type."""
         return self.path.push(DataTypeQueryToken.title)
@@ -118,6 +122,10 @@ class PropertyTypePath(AbstractPath):
     def record_created_by_id(self) -> Path:
         """Return the path to the record created by id for a property type."""
         return self.path.push(PropertyTypeQueryToken.record_created_by_id)
+
+    def record_archived_by_id(self) -> Path:
+        """Return the path to the record archived by id for a property type."""
+        return self.path.push(PropertyTypeQueryToken.record_archived_by_id)
 
     def title(self) -> Path:
         """Return the path to the title for a property type."""
@@ -171,6 +179,10 @@ class EntityTypePath(AbstractPath):
         """Return the path to the record created by id for an entity type."""
         return self.path.push(EntityTypeQueryToken.record_created_by_id)
 
+    def record_archived_by_id(self) -> Path:
+        """Return the path to the record archived by id for an entity type."""
+        return self.path.push(EntityTypeQueryToken.record_archived_by_id)
+
     def title(self) -> Path:
         """Return the path to the title for an entity type."""
         return self.path.push(EntityTypeQueryToken.title)
@@ -196,6 +208,10 @@ class EntityTypePath(AbstractPath):
     def required(self) -> Path:
         """Return the path to the required for an entity type."""
         return self.path.push(EntityTypeQueryToken.required)
+
+    def label_property(self) -> Path:
+        """Return the path to the label property for an entity type."""
+        return self.path.push(EntityTypeQueryToken.label_property)
 
     def links(self) -> SelectorPath["EntityTypePath"]:
         """Return the path to the links for an entity type."""
