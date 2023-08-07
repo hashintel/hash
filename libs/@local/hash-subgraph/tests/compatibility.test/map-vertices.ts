@@ -38,6 +38,7 @@ import {
   OntologyTypeRecordId,
   OntologyVertex,
   ProvenanceMetadata,
+  RecordArchivedById,
   RecordCreatedById,
   Timestamp,
   Vertices,
@@ -104,6 +105,7 @@ const mapProvenanceMetadata = (
 ): ProvenanceMetadata => {
   return {
     recordCreatedById: metadata.recordCreatedById as RecordCreatedById,
+    recordArchivedById: metadata.recordArchivedById as RecordArchivedById,
   };
 };
 

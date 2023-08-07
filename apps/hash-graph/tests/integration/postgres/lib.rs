@@ -132,7 +132,10 @@ impl DatabaseTestWrapper {
             let metadata = PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             };
@@ -152,7 +155,10 @@ impl DatabaseTestWrapper {
             let metadata = PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             };
@@ -173,7 +179,10 @@ impl DatabaseTestWrapper {
                 record_id: entity_type.id().clone().into(),
                 custom: PartialCustomEntityTypeMetadata {
                     common: PartialCustomOntologyMetadata::Owned {
-                        provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
+                        provenance: ProvenanceMetadata {
+                            record_created_by_id: RecordCreatedById::new(account_id),
+                            record_archived_by_id: None,
+                        },
                         owned_by_id: OwnedById::new(account_id),
                     },
                     label_property: None,
@@ -212,7 +221,10 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(self.account_id),
+                    record_archived_by_id: None,
+                },
                 owned_by_id: OwnedById::new(self.account_id),
             },
         };
@@ -227,7 +239,10 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(self.account_id),
+                    record_archived_by_id: None,
+                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
@@ -275,7 +290,10 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: property_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(self.account_id),
+                    record_archived_by_id: None,
+                },
                 owned_by_id: OwnedById::new(self.account_id),
             },
         };
@@ -326,7 +344,10 @@ impl DatabaseApi<'_> {
             record_id: entity_type.id().clone().into(),
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(self.account_id)),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(self.account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(self.account_id),
                 },
                 label_property: None,

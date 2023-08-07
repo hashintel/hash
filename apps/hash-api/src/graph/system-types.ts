@@ -10,6 +10,13 @@ import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";
 import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
+/**
+ * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
+ * run `yarn generate-system-types` to update their TypeScript representation
+ *
+ * @todo enforce this in CI – H-308
+ */
+
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {
   dataType: {};

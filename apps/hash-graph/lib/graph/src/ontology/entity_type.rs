@@ -116,6 +116,21 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     RecordCreatedById,
+    /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["recordArchivedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::RecordArchivedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    RecordArchivedById,
     /// Corresponds to [`EntityType::title()`].
     ///
     /// ```rust
@@ -309,7 +324,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
-    AdditionalMetadata(Option<JsonPath<'p>>),
+    AdditionalMetadata,
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
@@ -337,22 +352,28 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
         Self::RecordCreatedById
     }
 
+    fn record_archived_by_id() -> Self {
+        Self::RecordArchivedById
+    }
+
     fn schema() -> Self {
         Self::Schema(None)
     }
 
     fn additional_metadata() -> Self {
-        Self::AdditionalMetadata(None)
+        Self::AdditionalMetadata
     }
 }
 
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::RecordCreatedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::AdditionalMetadata(_) | Self::Examples | Self::Required => {
-                ParameterType::Any
-            }
+            Self::OntologyId
+            | Self::OwnedById
+            | Self::RecordCreatedById
+            | Self::RecordArchivedById => ParameterType::Uuid,
+            Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
+            Self::Examples | Self::Required => ParameterType::Any,
             Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
@@ -375,6 +396,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
+            Self::RecordArchivedById => fmt.write_str("recordArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -422,8 +444,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
                 path,
                 ..
             } => write!(fmt, "isTypeOf.{path}"),
-            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
-            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
+            Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
         }
     }
 }
@@ -437,6 +458,7 @@ pub enum EntityTypeQueryToken {
     VersionedUrl,
     OwnedById,
     RecordCreatedById,
+    RecordArchivedById,
     Title,
     Description,
     Examples,
@@ -457,9 +479,9 @@ pub struct EntityTypeQueryPathVisitor {
 
 impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `recordCreatedById`, `title`, \
-                                         `description`, `examples`, `properties`, `required`, \
-                                         `labelProperty`, `links`, `inheritsFrom`";
+                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
+                                         `title`, `description`, `examples`, `properties`, \
+                                         `required`, `labelProperty`, `links`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -486,6 +508,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
             EntityTypeQueryToken::RecordCreatedById => EntityTypeQueryPath::RecordCreatedById,
+            EntityTypeQueryToken::RecordArchivedById => EntityTypeQueryPath::RecordArchivedById,
             EntityTypeQueryToken::BaseUrl => EntityTypeQueryPath::BaseUrl,
             EntityTypeQueryToken::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,

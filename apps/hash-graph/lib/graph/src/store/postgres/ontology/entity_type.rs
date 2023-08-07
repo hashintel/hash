@@ -5,17 +5,20 @@ use async_trait::async_trait;
 use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::{url::BaseUrl, EntityType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    EntityType,
+};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
     identifier::{ontology::OntologyTypeRecordId, time::RightBoundedTemporalInterval},
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, PartialCustomEntityTypeMetadata,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{
@@ -332,7 +335,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_id,
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(record_created_by_id),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id,
+                        record_archived_by_id: None,
+                    },
                     owned_by_id,
                 },
                 label_property,
@@ -354,5 +360,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(EntityTypeMetadata::from_partial(metadata, transaction_time))
+    }
+
+    async fn archive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.archive_ontology_type(id, record_archived_by_id).await
+    }
+
+    async fn unarchive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

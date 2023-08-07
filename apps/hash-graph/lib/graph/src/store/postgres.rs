@@ -32,7 +32,7 @@ use crate::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         PartialCustomOntologyMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
@@ -154,7 +154,6 @@ where
     async fn create_ontology_id(
         &self,
         record_id: &OntologyTypeRecordId,
-        record_created_by_id: RecordCreatedById,
         on_conflict: ConflictBehavior,
     ) -> Result<Option<OntologyId>, InsertionError> {
         let query: &str = match on_conflict {
@@ -163,9 +162,8 @@ where
                   INSERT INTO ontology_ids (
                     ontology_id,
                     base_url,
-                    version,
-                    record_created_by_id
-                  ) VALUES (gen_random_uuid(), $1, $2, $3)
+                    version
+                  ) VALUES (gen_random_uuid(), $1, $2)
                   ON CONFLICT DO NOTHING
                   RETURNING ontology_ids.ontology_id;
                 "#
@@ -175,19 +173,14 @@ where
                   INSERT INTO ontology_ids (
                     ontology_id,
                     base_url,
-                    version,
-                    record_created_by_id
-                  ) VALUES (gen_random_uuid(), $1, $2, $3)
+                    version
+                  ) VALUES (gen_random_uuid(), $1, $2)
                   RETURNING ontology_ids.ontology_id;
                 "#
             }
         };
         self.as_client()
-            .query_opt(query, &[
-                &record_id.base_url.as_str(),
-                &record_id.version,
-                &record_created_by_id,
-            ])
+            .query_opt(query, &[&record_id.base_url.as_str(), &record_id.version])
             .await
             .into_report()
             .map_err(|report| match report.current_context().code() {
@@ -205,21 +198,131 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query: &str = r#"
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
-                transaction_time
-              ) VALUES ($1, tstzrange(now(), NULL, '[)'))
+                transaction_time,
+                record_created_by_id
+              ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
               RETURNING transaction_time;
             "#;
 
         self.as_client()
-            .query_one(query, &[&ontology_id])
+            .query_one(query, &[&ontology_id, &record_created_by_id])
             .await
             .into_report()
             .change_context(InsertionError)
             .map(|row| row.get(0))
+    }
+
+    async fn archive_ontology_type(
+        &self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        let query: &str = r#"
+          UPDATE ontology_temporal_metadata
+          SET
+            transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
+            record_archived_by_id = $3
+          WHERE ontology_id = (
+            SELECT ontology_id
+            FROM ontology_ids
+            WHERE base_url = $1 AND version = $2
+          ) AND transaction_time @> now()
+          RETURNING transaction_time;
+        "#;
+
+        let optional = self
+            .as_client()
+            .query_opt(query, &[
+                &id.base_url.as_str(),
+                &OntologyTypeVersion::new(id.version),
+                &record_archived_by_id,
+            ])
+            .await
+            .into_report()
+            .change_context(UpdateError)?;
+        if let Some(row) = optional {
+            Ok(OntologyTemporalMetadata {
+                transaction_time: row.get(0),
+            })
+        } else {
+            let exists = self
+                .as_client()
+                .query_one(
+                    r#"
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM ontology_ids
+                            WHERE base_url = $1 AND version = $2
+                        );
+                    "#,
+                    &[&id.base_url.as_str(), &OntologyTypeVersion::new(id.version)],
+                )
+                .await
+                .into_report()
+                .change_context(UpdateError)?
+                .get(0);
+
+            Err(if exists {
+                Report::new(VersionedUrlAlreadyExists)
+                    .attach_printable(id.clone())
+                    .change_context(UpdateError)
+            } else {
+                Report::new(OntologyVersionDoesNotExist)
+                    .attach_printable(id.clone())
+                    .change_context(UpdateError)
+            })
+        }
+    }
+
+    async fn unarchive_ontology_type(
+        &self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        let query: &str = r#"
+          INSERT INTO ontology_temporal_metadata (
+            ontology_id,
+            transaction_time,
+            record_created_by_id
+          ) VALUES (
+            (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
+            tstzrange(now(), NULL, '[)'),
+            $3
+          )
+          RETURNING transaction_time;
+        "#;
+
+        Ok(OntologyTemporalMetadata {
+            transaction_time: self
+                .as_client()
+                .query_one(query, &[
+                    &id.base_url.as_str(),
+                    &OntologyTypeVersion::new(id.version),
+                    &record_created_by_id,
+                ])
+                .await
+                .into_report()
+                .map_err(|report| match report.current_context().code() {
+                    Some(&SqlState::EXCLUSION_VIOLATION) => report
+                        .change_context(VersionedUrlAlreadyExists)
+                        .attach_printable(id.clone())
+                        .change_context(UpdateError),
+                    Some(&SqlState::NOT_NULL_VIOLATION) => report
+                        .change_context(OntologyVersionDoesNotExist)
+                        .attach_printable(id.clone())
+                        .change_context(UpdateError),
+                    _ => report
+                        .change_context(UpdateError)
+                        .attach_printable(id.clone()),
+                })
+                .change_context(UpdateError)?
+                .get(0),
+        })
     }
 
     async fn create_ontology_owned_metadata(
@@ -626,12 +729,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
-                let ontology_id = self
-                    .create_ontology_id(record_id, provenance.record_created_by_id, on_conflict)
-                    .await?;
+                let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
-                    let transaction_time =
-                        self.create_ontology_temporal_metadata(ontology_id).await?;
+                    let transaction_time = self
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            provenance.record_created_by_id,
+                        )
+                        .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
                     Ok(Some((ontology_id, transaction_time)))
@@ -649,12 +754,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     OntologyLocation::External,
                 )
                 .await?;
-                let ontology_id = self
-                    .create_ontology_id(record_id, provenance.record_created_by_id, on_conflict)
-                    .await?;
+                let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
-                    let transaction_time =
-                        self.create_ontology_temporal_metadata(ontology_id).await?;
+                    let transaction_time = self
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            provenance.record_created_by_id,
+                        )
+                        .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
                     Ok(Some((ontology_id, transaction_time)))
@@ -698,7 +805,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Ok((ontology_id, OntologyElementMetadata {
             record_id,
             custom: CustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(record_created_by_id),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id,
+                    record_archived_by_id: None,
+                },
                 owned_by_id,
                 temporal_versioning: OntologyTemporalMetadata { transaction_time },
             },
@@ -775,7 +885,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let ontology_id = self
             .create_ontology_id(
                 &OntologyTypeRecordId::from(url.clone()),
-                record_created_by_id,
                 ConflictBehavior::Fail,
             )
             .await
@@ -783,7 +892,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .expect("ontology id should have been created");
 
         let transaction_time = self
-            .create_ontology_temporal_metadata(ontology_id)
+            .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
             .await
             .change_context(UpdateError)?;
         self.create_ontology_owned_metadata(ontology_id, owned_by_id)

@@ -7,13 +7,29 @@ import {
   zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { getDataTypes } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
+  archiveDataType,
+  getDataTypes,
+  unarchiveDataType,
+} from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import {
+  archiveEntityType,
   getEntityTypeById,
   getEntityTypes,
+  unarchiveEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { getPropertyTypes } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { EntityStructuralQuery } from "@local/hash-graph-client";
+import {
+  archivePropertyType,
+  getPropertyTypes,
+  unarchivePropertyType,
+} from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  DataTypeStructuralQuery,
+  EntityStructuralQuery,
+  EntityTypeStructuralQuery,
+  PropertyTypeStructuralQuery,
+} from "@local/hash-graph-client";
 import {
   BaseUrl,
   Entity,
@@ -223,6 +239,43 @@ describe("Ontology queries", () => {
     ]);
   });
 
+  it("archives/unarchives data types", async () => {
+    const dataTypeId: VersionedUrl =
+      "http://localhost:3000/@alice/types/data-type/number/v/1";
+
+    const query: DataTypeStructuralQuery = {
+      filter: {
+        equal: [
+          {
+            path: ["versionedUrl"],
+          },
+          {
+            parameter: dataTypeId,
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    };
+
+    const initialSubgraph = await getDataTypes(graphContext, { query });
+    expect(initialSubgraph.roots.length).toEqual(1);
+
+    const actorId =
+      getRoots(initialSubgraph)[0]!.metadata.custom.provenance
+        .recordCreatedById;
+
+    await archiveDataType(graphContext, { dataTypeId, actorId });
+
+    const emptySubgraph = await getDataTypes(graphContext, { query });
+    expect(emptySubgraph.roots.length).toEqual(0);
+
+    await unarchiveDataType(graphContext, { dataTypeId, actorId });
+
+    const nonEmptySubgraph = await getDataTypes(graphContext, { query });
+    expect(nonEmptySubgraph.roots.length).toEqual(1);
+  });
+
   it.each([
     zeroedGraphResolveDepths,
     {
@@ -258,6 +311,43 @@ describe("Ontology queries", () => {
       "http://localhost:3000/@alice/types/property-type/name/v/1",
       "http://localhost:3000/@alice/types/property-type/name/v/2",
     ]);
+  });
+
+  it("archives/unarchives property types", async () => {
+    const propertyTypeId: VersionedUrl =
+      "http://localhost:3000/@alice/types/property-type/name/v/1";
+
+    const query: PropertyTypeStructuralQuery = {
+      filter: {
+        equal: [
+          {
+            path: ["versionedUrl"],
+          },
+          {
+            parameter: propertyTypeId,
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    };
+
+    const initialSubgraph = await getPropertyTypes(graphContext, { query });
+    expect(initialSubgraph.roots.length).toEqual(1);
+
+    const actorId =
+      getRoots(initialSubgraph)[0]!.metadata.custom.provenance
+        .recordCreatedById;
+
+    await archivePropertyType(graphContext, { propertyTypeId, actorId });
+
+    const emptySubgraph = await getPropertyTypes(graphContext, { query });
+    expect(emptySubgraph.roots.length).toEqual(0);
+
+    await unarchivePropertyType(graphContext, { propertyTypeId, actorId });
+
+    const nonEmptySubgraph = await getPropertyTypes(graphContext, { query });
+    expect(nonEmptySubgraph.roots.length).toEqual(1);
   });
 
   it.each([
@@ -321,6 +411,42 @@ describe("Ontology queries", () => {
       )!.metadata.custom.labelProperty,
     ).toStrictEqual("http://localhost:3000/@alice/types/property-type/name/");
   });
+});
+
+it("archives/unarchives entity types", async () => {
+  const entityTypeId: VersionedUrl =
+    "http://localhost:3000/@alice/types/entity-type/person/v/1";
+
+  const query: EntityTypeStructuralQuery = {
+    filter: {
+      equal: [
+        {
+          path: ["versionedUrl"],
+        },
+        {
+          parameter: entityTypeId,
+        },
+      ],
+    },
+    graphResolveDepths: zeroedGraphResolveDepths,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  };
+
+  const initialSubgraph = await getEntityTypes(graphContext, { query });
+  expect(initialSubgraph.roots.length).toEqual(1);
+
+  const actorId =
+    getRoots(initialSubgraph)[0]!.metadata.custom.provenance.recordCreatedById;
+
+  await archiveEntityType(graphContext, { entityTypeId, actorId });
+
+  const emptySubgraph = await getEntityTypes(graphContext, { query });
+  expect(emptySubgraph.roots.length).toEqual(0);
+
+  await unarchiveEntityType(graphContext, { entityTypeId, actorId });
+
+  const nonEmptySubgraph = await getEntityTypes(graphContext, { query });
+  expect(nonEmptySubgraph.roots.length).toEqual(1);
 });
 
 describe("Simple queries", () => {

@@ -1,3 +1,4 @@
+import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   OwnedById,
   PropertyTypeRootType,
@@ -10,18 +11,22 @@ import {
   zeroedGraphResolveDepths,
 } from "../../../graph";
 import {
+  archivePropertyType,
   createPropertyType,
   getPropertyTypeSubgraphById,
+  unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 import {
+  MutationArchivePropertyTypeArgs,
   MutationCreatePropertyTypeArgs,
+  MutationUnarchivePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
@@ -82,7 +87,7 @@ export const queryPropertyTypesResolver: ResolverFn<
 export const getPropertyTypeResolver: ResolverFn<
   Promise<Subgraph>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetPropertyTypeArgs
 > = async (
   _,
@@ -94,7 +99,7 @@ export const getPropertyTypeResolver: ResolverFn<
 
   return await getPropertyTypeSubgraphById(context, {
     propertyTypeId,
-    actorId: user.accountId,
+    actorId: user?.accountId,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
@@ -123,3 +128,25 @@ export const updatePropertyTypeResolver: ResolverFn<
 
   return updatedPropertyType;
 };
+
+export const archivePropertyTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchivePropertyTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  archivePropertyType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
+
+export const unarchivePropertyTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUnarchivePropertyTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  unarchivePropertyType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
