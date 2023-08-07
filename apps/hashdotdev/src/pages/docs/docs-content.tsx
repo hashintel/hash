@@ -194,6 +194,11 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
           <MdxPageContent
             paragraphMaxWidth={mdxParagraphMaxWidth}
             serializedPage={content}
+            wrapperSx={{
+              "& > *:first-child": {
+                marginTop: 6,
+              },
+            }}
           />
         </Box>
         {hasMultiplePages ? (
