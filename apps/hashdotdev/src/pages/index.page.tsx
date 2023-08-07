@@ -204,16 +204,29 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
             }
             buttons={
-              <Button
-                href="https://blockprotocol.org"
-                openInNew
-                color="purple"
-                endIcon={
-                  <FaIcon name="arrow-up-right-from-square" type="solid" />
-                }
-              >
-                Learn more
-              </Button>
+              <Box>
+                <Button
+                  href="https://blockprotocol.org"
+                  openInNew
+                  color="purple"
+                  endIcon={
+                    <FaIcon name="arrow-up-right-from-square" type="solid" />
+                  }
+                  sx={{ marginRight: 2, marginBottom: 2 }}
+                >
+                  Learn more
+                </Button>
+                <Button
+                  href="https://github.com/blockprotocol/blockprotocol"
+                  openInNew
+                  endIcon={<FaIcon name="github" type="brands" />}
+                  variant="secondary"
+                  color="purple"
+                  sx={{ marginBottom: 2 }}
+                >
+                  View on GitHub
+                </Button>
+              </Box>
             }
             image={
               <Image
@@ -296,7 +309,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   Learn more
                 </Button>
                 <Button
-                  href="https://github.com/hashintel/hash/tree/main/apps/hash"
+                  href="https://github.com/hashintel/hash"
                   openInNew
                   endIcon={<FaIcon name="github" type="brands" />}
                   variant="secondary"
