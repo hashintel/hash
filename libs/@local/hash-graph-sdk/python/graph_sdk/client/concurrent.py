@@ -25,9 +25,19 @@ from graph_client.models import (
     UpdateEntityTypeRequest,
     UpdatePropertyTypeRequest,
 )
+from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 from yarl import URL
 
+from graph_sdk.client._compat import (
+    convert_data_type_to_schema,
+    convert_data_type_to_schema4,
+    convert_entity_type_to_schema5,
+    convert_entity_type_to_schema_model,
+    convert_property_type_to_schema6,
+    convert_property_type_to_schema_model1,
+)
 from graph_sdk.options import Options
+from graph_sdk.query import BaseFilter
 
 T = TypeVar("T")
 
@@ -96,7 +106,7 @@ class HASHClient:
 
     async def create_data_types(
         self,
-        models: list[DataType],
+        models: list[DataTypeSchema],
         owned_by_id: UUID,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create data types."""
@@ -105,21 +115,21 @@ class HASHClient:
         request = CreateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
-            schema_=[model.to_ffi_schema() for model in models],
+            schema_=[convert_data_type_to_schema(model) for model in models],
         )
 
         return await self.inner.create_data_types(request)
 
     async def update_data_type(
         self,
-        model: DataType,
+        model: DataTypeSchema,
     ) -> OntologyElementMetadata:
         """Update a data type."""
         actor = assert_not_none(self.actor)
 
         request = UpdateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
-            schema_=model.to_ffi_schema4(),
+            schema_=convert_data_type_to_schema4(model),
             type_to_update=str(model.id),
         )
 
@@ -152,7 +162,7 @@ class HASHClient:
 
     async def create_property_types(
         self,
-        models: list[PropertyType],
+        models: list[PropertyTypeSchema],
         owned_by_id: UUID,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create property types."""
@@ -161,21 +171,21 @@ class HASHClient:
         request = CreatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
-            schema_=[model.to_ffi_schema_model1() for model in models],
+            schema_=[convert_property_type_to_schema_model1(model) for model in models],
         )
 
         return await self.inner.create_property_types(request)
 
     async def update_property_type(
         self,
-        model: PropertyType,
+        model: PropertyTypeSchema,
     ) -> OntologyElementMetadata:
         """Update a property type."""
         actor = assert_not_none(self.actor)
 
         request = UpdatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
-            schema_=model.to_ffi_schema6(),
+            schema_=convert_property_type_to_schema6(model),
             type_to_update=str(model.id),
         )
 
@@ -204,7 +214,7 @@ class HASHClient:
 
     async def create_entity_types(
         self,
-        models: list[EntityType],
+        models: list[EntityTypeSchema],
         owned_by_id: UUID,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create entity types."""
@@ -213,21 +223,21 @@ class HASHClient:
         request = CreateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
-            schema_=[model.to_ffi_schema_model() for model in models],
+            schema_=[convert_entity_type_to_schema_model(model) for model in models],
         )
 
         return await self.inner.create_entity_types(request)
 
     async def update_entity_type(
         self,
-        model: EntityType,
+        model: EntityTypeSchema,
     ) -> OntologyElementMetadata:
         """Update an entity type."""
         actor = assert_not_none(self.actor)
 
         request = UpdateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
-            schema_=model.to_ffi_schema5(),
+            schema_=convert_entity_type_to_schema5(model),
             type_to_update=str(model.id),
         )
 
