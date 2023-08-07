@@ -14,10 +14,12 @@ from graph_client.models import (
     OntologyElementMetadata,
     Subgraph,
 )
+from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 from yarl import URL
 
 from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
 from graph_sdk.options import Options
+from graph_sdk.query import BaseFilter
 from graph_sdk.utils import async_to_sync
 
 T = TypeVar("T")
@@ -48,12 +50,12 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_data_type(url))
 
     def create_data_types(
-        self, models: list[DataType], owned_by_id: UUID
+        self, models: list[DataTypeSchema], owned_by_id: UUID
     ) -> MaybeListOfOntologyElementMetadata:
         """Create data types."""
         return async_to_sync(self.inner.create_data_types(models, owned_by_id))
 
-    def update_data_type(self, model: DataType) -> OntologyElementMetadata:
+    def update_data_type(self, model: DataTypeSchema) -> OntologyElementMetadata:
         """Update a data type."""
         return async_to_sync(self.inner.update_data_type(model))
 
@@ -66,12 +68,14 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_property_type(url))
 
     def create_property_types(
-        self, models: list[PropertyType], owned_by_id: UUID
+        self, models: list[PropertyTypeSchema], owned_by_id: UUID
     ) -> MaybeListOfOntologyElementMetadata:
         """Create property types."""
         return async_to_sync(self.inner.create_property_types(models, owned_by_id))
 
-    def update_property_type(self, model: PropertyType) -> OntologyElementMetadata:
+    def update_property_type(
+        self, model: PropertyTypeSchema
+    ) -> OntologyElementMetadata:
         """Update a property type."""
         return async_to_sync(self.inner.update_property_type(model))
 
@@ -84,12 +88,12 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_entity_type(url))
 
     def create_entity_types(
-        self, models: list[EntityType], owned_by_id: UUID
+        self, models: list[EntityTypeSchema], owned_by_id: UUID
     ) -> MaybeListOfOntologyElementMetadata:
         """Create entity types."""
         return async_to_sync(self.inner.create_entity_types(models, owned_by_id))
 
-    def update_entity_type(self, model: EntityType) -> OntologyElementMetadata:
+    def update_entity_type(self, model: EntityTypeSchema) -> OntologyElementMetadata:
         """Update an entity type."""
         return async_to_sync(self.inner.update_entity_type(model))
 
