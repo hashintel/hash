@@ -1,6 +1,6 @@
 name: OpenAPI Generator
 on:
-  push:
+  pull_request:
     paths:
       - "apps/hash-graph/openapi/**/*.json"
 
