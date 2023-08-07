@@ -14,7 +14,7 @@
       "enum": ["entityType"]
     },
     "$id": {
-      "$ref": "#/definitions/VersionedUrl"
+      "$ref": "./shared.json#/definitions/VersionedUrl"
     },
     "type": {
       "type": "string",
@@ -29,7 +29,7 @@
     "allOf": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/EntityTypeReference"
+        "$ref": "./shared.json#/definitions/EntityTypeReference"
       }
     },
     "examples": {
@@ -39,137 +39,18 @@
       }
     },
     "properties": {
-      "$ref": "#/definitions/PropertyTypeObject"
+      "$ref": "./shared.json#/definitions/PropertyTypeObject"
     },
     "required": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/BaseUrl"
+        "$ref": "./shared.json#/definitions/BaseUrl"
       }
     },
     "links": {
-      "$ref": "#/definitions/LinkTypeObject"
+      "$ref": "./shared.json#/definitions/LinkTypeObject"
     }
   },
   "additionalProperties": false,
   "required": ["$schema", "kind", "type", "$id", "title", "properties"],
-  "definitions": {
-    "VersionedUrl": {
-      "title": "Versioned URL",
-      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048
-    },
-    "BaseUrl": {
-      "title": "Base URL",
-      "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048
-    },
-    "EntityTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$ref": "#/definitions/VersionedUrl"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "PropertyObjectReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$ref": "#/definitions/BaseUrl"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "PropertyTypeObject": {
-      "title": "Property Type Object",
-      "description": "A JSON object where each entry is constrained by a property type.",
-      "type": "object",
-      "propertyNames": {
-        "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/base-url"
-      },
-      "x-patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/PropertyObjectReference"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": ["array"]
-                },
-                "items": {
-                  "$ref": "#/definitions/PropertyObjectReference"
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": ["type", "items"],
-              "additionalProperties": false
-            }
-          ]
-        }
-      }
-    },
-    "LinkTypeObject": {
-      "type": "object",
-      "x-propertyNames": {
-        "$ref": "#/definitions/VersionedUrl"
-      },
-      "x-patternProperties": {
-        ".*": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["array"]
-            },
-            "ordered": {
-              "type": "boolean",
-              "default": false
-            },
-            "items": {
-              "description": "Specifies a set of entity types inside a oneOf",
-              "type": "object",
-              "properties": {
-                "oneOf": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/EntityTypeReference"
-                  }
-                }
-              },
-              "additionalProperties": false
-            },
-            "minItems": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "maxItems": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "required": ["type", "ordered", "items"],
-          "additionalProperties": false
-        }
-      }
-    }
-  }
 }

@@ -33,7 +33,7 @@
       "$comment": "The definition of potential property values, made up of a `oneOf` keyword which has a list of options of either references to Data Types, or objects made up of more Property Types",
       "oneOf": [
         {
-          "$ref": "#/definitions/DataTypeReferenceUpdate"
+          "$ref": "./shared.json#/definitions/DataTypeReference"
         },
         {
           "title": "propertyObjectValue",
@@ -43,7 +43,7 @@
               "enum": ["object"]
             },
             "properties": {
-              "$ref": "#/definitions/PropertyTypeObject"
+              "$ref": "./shared.json#/definitions/PropertyTypeObject"
             }
           },
           "required": ["type", "properties"],
@@ -83,71 +83,5 @@
           "additionalProperties": false
         }
       ]
-    },
-    "PropertyTypeObject": {
-      "$id": "PropertyTypeObject",
-      "title": "PropertyTypeObject",
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
-      },
-      "patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/PropertyTypeReferenceUpdate"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "enum": ["array"]
-                },
-                "items": {
-                  "$ref": "#/definitions/PropertyTypeReferenceUpdate"
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": ["type", "items"],
-              "additionalProperties": false
-            }
-          ]
-        }
-      },
-      "minimumProperties": 1
-    },
-    "PropertyTypeReferenceUpdate": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "additionalProperties": false,
-      "required": ["$ref"]
-    },
-    "DataTypeReferenceUpdate": {
-      "title": "DataTypeReferenceUpdate",
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "additionalProperties": false,
-      "required": ["$ref"]
     }
-  }
 }

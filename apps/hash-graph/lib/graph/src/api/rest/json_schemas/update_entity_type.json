@@ -28,7 +28,7 @@
         }
       }
     },
-    "properties": { "$ref": "#/definitions/PropertyTypeObject" },
+    "properties": { "$ref": "./shared.json#/definitions/PropertyTypeObject" },
     "required": {
       "type": "array",
       "items": {
@@ -36,123 +36,8 @@
         "format": "uri"
       }
     },
-    "links": { "$ref": "#/definitions/LinkTypeObject" }
+    "links": { "$ref": "./shared.json#/definitions/LinkTypeObject" }
   },
   "additionalProperties": false,
-  "required": ["$schema", "kind", "type", "title", "properties"],
-  "definitions": {
-    "PropertyTypeObject": {
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
-      },
-      "patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/PropertyTypeReference"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "enum": ["array"]
-                },
-                "items": {
-                  "$ref": "#/definitions/PropertyTypeReference"
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": ["type", "items"],
-              "additionalProperties": false
-            }
-          ]
-        }
-      },
-      "minimumProperties": 1
-    },
-    "PropertyTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "LinkTypeObject": {
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
-      },
-      "patternProperties": {
-        ".*": {
-          "type": "object",
-          "properties": {
-            "oneOf": {
-              "type": "array",
-              "items": {
-                "oneOf": [
-                  {
-                    "$ref": "#/definitions/EntityTypeReference"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "enum": ["array"]
-                      },
-                      "items": {
-                        "$ref": "#/definitions/EntityTypeReference"
-                      },
-                      "ordered": {
-                        "type": "boolean",
-                        "default": false
-                      },
-                      "minItems": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "maxItems": {
-                        "type": "integer",
-                        "minimum": 0
-                      }
-                    },
-                    "required": ["type", "ordered"],
-                    "additionalProperties": false
-                  }
-                ]
-              },
-              "minItems": 1
-            }
-          }
-        }
-      }
-    },
-    "EntityTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    }
-  }
+  "required": ["$schema", "kind", "type", "title", "properties"]
 }
