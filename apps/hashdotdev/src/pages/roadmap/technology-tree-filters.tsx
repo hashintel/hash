@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
-import { ChevronsRightIcon } from "../../components/icons/chevrons-right-icon";
+import { ArrowRightLineRegularIcon } from "../../components/icons/arrow-right-line-regular-icon";
 import { FontAwesomeIcon } from "../../components/icons/font-awesome-icon";
 import { statuses, StatusId } from "./statuses";
 import { UseCaseId, useCases } from "./use-cases";
@@ -100,7 +100,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
         zIndex: isWideScreen ? 0 : 2,
         position: "absolute",
         right: 0,
-        top: ({ spacing }) => (isWideScreen ? 0 : spacing(2)),
+        top: isWideScreen ? 0 : 4,
         transform: ({ spacing }) =>
           isWideScreen
             ? open
@@ -113,10 +113,9 @@ export const TechnologyTreeFilters: FunctionComponent<{
         maxHeight: ({ spacing }) =>
           isWideScreen ? "unset" : `calc(100% - ${spacing(4)})`,
         transition: ({ transitions }) => transitions.create("transform"),
-        py: isWideScreen ? 3 : 1.5,
-        paddingLeft: isWideScreen ? 3.25 : 1.75,
+        py: 3,
+        paddingLeft: isWideScreen ? 3.25 : 3.5,
         paddingRight: 1.75,
-        borderTopLeftRadius: isWideScreen ? "0px" : "8px",
         borderBottomLeftRadius: isWideScreen ? "0px" : "8px",
         borderTopRightRadius: isWideScreen ? "8px" : "0px",
         borderBottomRightRadius: isWideScreen ? "8px" : "0px",
@@ -124,6 +123,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
         borderWidth: 1,
         borderColor: ({ palette }) => palette.gray[20],
         borderStyle: "solid",
+        borderTopWidth: isWideScreen ? 1 : 0,
         borderRightWidth: isWideScreen ? 1 : 0,
         borderLeftWidth: isWideScreen ? 0 : 1,
         overflowY: "auto",
@@ -152,7 +152,9 @@ export const TechnologyTreeFilters: FunctionComponent<{
           {isWideScreen ? (
             <FontAwesomeIcon icon={faClose} />
           ) : (
-            <ChevronsRightIcon />
+            <ArrowRightLineRegularIcon
+              sx={{ fontSize: 15, marginRight: 1.5, marginTop: -0.5 }}
+            />
           )}
         </IconButton>
       </Box>

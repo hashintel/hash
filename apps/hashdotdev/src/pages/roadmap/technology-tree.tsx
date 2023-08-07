@@ -246,6 +246,7 @@ export const TechnologyTree: FunctionComponent = () => {
             }}
           >
             <TechnologyTreeButtons
+              isDisplayingFilters={displayFilters}
               toggleDisplayFilters={() => setDisplayFilters((prev) => !prev)}
               isFullscreen={fullScreenHandle.active}
               toggleFullscreen={() =>

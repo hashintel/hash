@@ -11,21 +11,36 @@ const TechnologyTreeIconButton = styled(IconButton)(({ theme }) => ({
   borderStyle: "solid",
   borderWidth: 1,
   borderRadius: "4px",
+  padding: 0,
+  width: 25,
+  height: 25,
+  transition: theme.transitions.create("opacity"),
+  svg: {
+    fontSize: 14,
+    color: theme.palette.gray[50],
+  },
 }));
 
 export const TechnologyTreeButtons: FunctionComponent<{
+  isDisplayingFilters: boolean;
   toggleDisplayFilters: () => void;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
   hidden: boolean;
-}> = ({ hidden, toggleDisplayFilters, isFullscreen, toggleFullscreen }) => {
+}> = ({
+  hidden,
+  toggleDisplayFilters,
+  isDisplayingFilters,
+  isFullscreen,
+  toggleFullscreen,
+}) => {
   return (
     <Box
       sx={{
         position: "absolute",
         zIndex: 2,
-        paddingTop: 2,
-        px: 2,
+        paddingTop: 2.5,
+        px: 3,
         transition: ({ transitions }) => transitions.create("opacity"),
         opacity: hidden ? 0 : 1,
         display: "flex",
@@ -33,31 +48,18 @@ export const TechnologyTreeButtons: FunctionComponent<{
         width: "100%",
       }}
     >
-      <TechnologyTreeIconButton
-        onClick={toggleFullscreen}
-        sx={{
-          transition: ({ transitions }) => transitions.create("opacity"),
-          svg: {
-            fontSize: 14,
-            color: ({ palette }) => palette.gray[50],
-          },
-        }}
-      >
+      <TechnologyTreeIconButton onClick={toggleFullscreen}>
         {isFullscreen ? (
           <ArrowDownLeftAndArrowUpRightToCenterIcon />
         ) : (
           <ArrowUpRightAndArrowDownLeftFromCenterIcon />
         )}
       </TechnologyTreeIconButton>
-      <TechnologyTreeIconButton onClick={toggleDisplayFilters}>
-        <FaIcon
-          name="filter"
-          type="regular"
-          sx={{
-            fontSize: 14,
-            color: ({ palette }) => palette.gray[50],
-          }}
-        />
+      <TechnologyTreeIconButton
+        onClick={toggleDisplayFilters}
+        sx={{ opacity: isDisplayingFilters ? 0 : 1 }}
+      >
+        <FaIcon name="filter" type="regular" />
       </TechnologyTreeIconButton>
     </Box>
   );
