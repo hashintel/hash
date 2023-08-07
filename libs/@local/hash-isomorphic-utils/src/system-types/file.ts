@@ -40,8 +40,8 @@ export type FileOutgoingLinksByLinkEntityTypeId = {};
  */
 export type FileProperties = {
   "http://localhost:3000/@system-user/types/property-type/file-key/": FileKeyPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-url/": FileURLPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/file-media-type/": FileMediaTypePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/file-url/": FileURLPropertyValue;
 };
 
 /**

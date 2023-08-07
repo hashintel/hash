@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -60,7 +61,7 @@ export const useUsers = (
     return getRoots(subgraph as Subgraph<EntityRootType>).map((userEntity) =>
       constructUser({
         subgraph,
-        userEntity,
+        userEntity: userEntity as Entity<UserProperties>,
         resolvedUsers,
         resolvedOrgs,
       }),
