@@ -1,0 +1,23 @@
+name: OpenAPI Generator
+on:
+  pull_request:
+    paths:
+      - "apps/hash-graph/openapi/**/*.json"
+
+jobs:
+  python-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/warm-up-repo
+        if: ${{ success() || failure() }}
+
+      - name: Setup python
+        run: yarn poetry:install
+
+      - name: Generate python client
+        run: yarn codegen --filter @local/hash-graph-client-python
+
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color

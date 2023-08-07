@@ -1,6 +1,10 @@
 {
   "extends": ["//"],
   "pipeline": {
+    "codegen": {
+      "inputs": ["../../../apps/hash-graph/openapi/openapi.json"],
+      "outputs": ["./graph_client/models.py"]
+    },
     "build": {
       "dependsOn": ["^build", "codegen"],
       "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
