@@ -403,6 +403,7 @@ const Page: NextPageWithLayout<PageProps> = ({
             backgroundColor: palette.white,
           })}
         >
+          <PageNotificationBanner archived={!!archived} />
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
@@ -412,7 +413,6 @@ const Page: NextPageWithLayout<PageProps> = ({
             isBlockPage
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner archived={!!archived} />
         </Box>
 
         {!canvasPage && (
