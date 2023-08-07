@@ -13,6 +13,7 @@ export const MuiTabItemThemeOptions: Components<Theme>["MuiTab"] = {
       minWidth: "unset",
       textTransform: "none",
       color: theme.palette.black,
+      fontSize: 14,
       "&.Mui-selected": {
         color: theme.palette.teal[60],
       },
