@@ -47,10 +47,7 @@ class DecisionTime(RootModel):
     )
     root: Literal["decisionTime"] = Field(
         ...,
-        description=(
-            "Time axis for the decision time.\n\nThis is used as the generic argument"
-            " to time-related structs and can be used as tag value."
-        ),
+        description="Time axis for the decision time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
     )
 
 
@@ -289,10 +286,7 @@ class TransactionTime(RootModel):
     )
     root: Literal["transactionTime"] = Field(
         ...,
-        description=(
-            "Time axis for the transaction time.\n\nThis is used as the generic"
-            " argument to time-related structs and can be used as tag value."
-        ),
+        description="Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
     )
 
 
@@ -331,10 +325,7 @@ class VersionedUrl(RootModel):
     )
     root: AnyUrl = Field(
         ...,
-        description=(
-            "The versioned URL of a Block Protocol ontology type (the $id of the"
-            " schema). It should be of the form `${baseUrl}v/${versionNumber}`"
-        ),
+        description="The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
         max_length=2048,
         title="Versioned URL",
     )
@@ -346,11 +337,7 @@ class BaseUrlModel(RootModel):
     )
     root: AnyUrl = Field(
         ...,
-        description=(
-            "The base URL of a Block Protocol ontology type (the $id of the schema,"
-            " without the versioned suffix). It should a valid URL, with a trailing"
-            " slash."
-        ),
+        description="The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
         max_length=2048,
         title="Base URL",
     )
@@ -946,13 +933,7 @@ class QueryTemporalAxesUnresolved(RootModel):
     )
     root: QueryTemporalAxesUnresolvedItem | QueryTemporalAxesUnresolvedItem1 = Field(
         ...,
-        description=(
-            "Defines the two possible combinations of pinned/variable temporal axes"
-            " that are used in queries\nthat return [`Subgraph`]s.\n\nThe"
-            " [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence"
-            " of provided\nbounds an inclusive bound at the timestamp at point of"
-            " resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
-        ),
+        description="Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph",
     )
 
 
@@ -1231,24 +1212,7 @@ class QueryTemporalAxes(RootModel):
     )
     root: QueryTemporalAx | QueryTemporalAx1 = Field(
         ...,
-        description=(
-            "Defines the two possible combinations of pinned/variable temporal axes"
-            " that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen"
-            " querying the Graph, temporal data is returned. The Graph is implemented"
-            " as a bitemporal\ndata store, which means the knowledge data contains"
-            " information about the time of when the\nknowledge was inserted into the"
-            " Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be"
-            " inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph,"
-            " only one of the two time axes can be used. This is\nachieved by using a"
-            " `TemporalAxes`. The `TemporalAxes` pins one axis to a"
-            " specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The"
-            " pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is"
-            " called the [`VariableTemporalAxis`]. The returned\ndata will then only"
-            " contain temporal data that is contained in the [`Interval`] of"
-            " the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the"
-            " [`PinnedTemporalAxis`].\n\n[`Subgraph`]:"
-            " crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval"
-        ),
+        description="Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval",
     )
 
 
@@ -1577,11 +1541,7 @@ class PropertyValues(RootModel):
     )
     root: DataTypeReference | PropertyValue | PropertyValue1 = Field(
         ...,
-        description=(
-            "The definition of potential property values, either references to data"
-            " types, objects made up of more property types, or an array where the"
-            " items are defined from a set of other property values definitions."
-        ),
+        description="The definition of potential property values, either references to data types, objects made up of more property types, or an array where the items are defined from a set of other property values definitions.",
         title="propertyValues",
     )
 

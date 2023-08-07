@@ -27,6 +27,11 @@ mypy = "^1.4"
 [tool.black]
 target-version = ['py311']
 preview = true
+extend-exclude = '''
+(
+    ^/graph_client/models.py
+)
+'''
 
 [tool.ruff]
 select = ["ALL"]

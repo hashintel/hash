@@ -18,9 +18,6 @@ cd "$DIR/.."
 # Take the specification and bundle all models into a single file
 yarn run swagger-cli bundle "$SPEC" --outfile "$DIR/openapi.bundle.json"
 
-# swagger-cli escapes the $ with %24, which breaks the codegen
-sed -i -e 's/%24/$/g' "$DIR/openapi.bundle.json"
-
 poetry run datamodel-codegen \
   --input "$DIR/openapi.bundle.json" \
   --output graph_client/models.py \
