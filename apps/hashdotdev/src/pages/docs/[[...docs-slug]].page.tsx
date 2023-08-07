@@ -9,7 +9,7 @@ import { Button } from "../../components/button";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
-import { getSerializedDocsPage } from "../shared/mdx-utils";
+import { DocsPageData, getSerializedDocsPage } from "../shared/mdx-utils";
 import { SiteMap } from "../shared/sitemap";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
@@ -36,7 +36,7 @@ type DocsPageParsedUrlQuery = {
 
 type DocsPageProps = {
   docsSlug: string[];
-  serializedPage?: MDXRemoteSerializeResult<Record<string, unknown>>;
+  serializedPage?: MDXRemoteSerializeResult<DocsPageData>;
 };
 
 const docsPages = (siteMap as SiteMap).pages.find(
@@ -164,6 +164,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
         <DocsHomePage />
       ) : serializedPage ? (
         <DocsContent
+          title={serializedPage.scope?.title}
+          subtitle={serializedPage.scope?.subtitle}
           content={serializedPage}
           sectionPages={
             docsPages.find(({ href }) => href === currentDocsTab.href)!.subPages

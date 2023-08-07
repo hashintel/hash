@@ -115,11 +115,16 @@ export const getAllDocsPageHrefs = (params: {
   });
 };
 
+export type DocsPageData = {
+  title: string;
+  subtitle?: string;
+};
+
 // Serializes an MDX file
 export const getSerializedDocsPage = async (params: {
   pathToDirectory: string;
   parts: string[];
-}): Promise<MDXRemoteSerializeResult<Record<string, unknown>>> => {
+}): Promise<MDXRemoteSerializeResult<DocsPageData>> => {
   const { pathToDirectory, parts } = params;
 
   let mdxPath = path.join(process.cwd(), `src/_pages/${pathToDirectory}`);
@@ -143,14 +148,14 @@ export const getSerializedDocsPage = async (params: {
   const source = await fs.readFile(mdxPath);
   const { content, data } = matter(source);
 
-  const serializedMdx = await serialize(content, {
+  const serializedMdx = (await serialize(content, {
     // Optionally pass remark/rehype plugins
     mdxOptions: {
       remarkPlugins: [remarkMdxDisableExplicitJsx, remarkGfm],
       rehypePlugins: [],
     },
     scope: data,
-  });
+  })) as MDXRemoteSerializeResult<DocsPageData>;
 
   return serializedMdx;
 };
@@ -183,13 +188,39 @@ const getVisibleText = (node: Node): string =>
 const getHeadingsFromMarkdown = (markdownFilePath: string): Heading[] => {
   const source = fs.readFileSync(path.join(process.cwd(), markdownFilePath));
 
-  const { content } = matter(source);
+  const { content, data } = matter(source);
 
   const ast = parseAST(content);
 
   const headings = getHeadingsFromParent(ast);
 
-  return headings;
+  return [
+    {
+      type: "heading" as const,
+      depth: 1,
+      children: [
+        {
+          type: "text",
+          value: data.title ?? "Unknown",
+        },
+      ],
+    },
+    ...(data.subtitle
+      ? [
+          {
+            type: "heading" as const,
+            depth: 2,
+            children: [
+              {
+                type: "text",
+                value: data.subtitle,
+              },
+            ],
+          },
+        ]
+      : []),
+    ...headings,
+  ];
 };
 
 // Get the structure of a given MDX file in a given directory

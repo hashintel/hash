@@ -3,6 +3,7 @@ import {
   Breadcrumbs,
   Collapse,
   Container,
+  Divider,
   Typography,
   useMediaQuery,
   useTheme,
@@ -14,15 +15,16 @@ import { FunctionComponent, ReactNode } from "react";
 import { FaIcon } from "../../components/icons/fa-icon";
 import { Link } from "../../components/link";
 import { MdxPageContent } from "../../components/mdx-page-content";
+import { DocsPageData } from "../shared/mdx-utils";
 import { generatePathWithoutParams } from "../shared/page-utils";
 import { SiteMapPage } from "../shared/sitemap";
 import { PageNavLinks } from "./page-nav-links";
 import { Sidebar } from "./page-sidebar";
 
 type DocsPageProps = {
-  title?: ReactNode;
+  title: ReactNode;
   subtitle?: ReactNode;
-  content: MDXRemoteSerializeResult<Record<string, unknown>>;
+  content: MDXRemoteSerializeResult<DocsPageData>;
   sectionPages: SiteMapPage[];
 };
 
@@ -123,29 +125,28 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
           width: "inherit",
           maxWidth: mdxContentMaxWidth,
           minWidth: 0,
+          paddingTop: {
+            xs: 3,
+            md: 8,
+          },
         }}
       >
-        {title ? (
-          <Typography
-            variant="hashLargeTitle"
-            sx={{
-              marginBottom: 2,
-            }}
-          >
-            {title}
-          </Typography>
-        ) : null}
+        <Typography variant="hashLargeTitle" marginBottom={2.5}>
+          {title}
+        </Typography>
         {subtitle ? (
           <Typography
-            variant="h2"
-            maxWidth={750}
+            variant="hashLargeText"
             sx={{
+              color: ({ palette }) => palette.gray[80],
               marginBottom: 6,
+              maxWidth: 750,
             }}
           >
             {subtitle}
           </Typography>
         ) : null}
+        <Divider sx={{ borderColor: ({ palette }) => palette.gray[30] }} />
         {parents ? (
           <Collapse in={md && parents.length > 0}>
             <Breadcrumbs
