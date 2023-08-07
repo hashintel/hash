@@ -1,0 +1,21 @@
+name: OpenAPI Generator
+on:
+  push:
+    paths:
+      - "apps/hash-graph/openapi/**/*.yml"
+
+jobs:
+  python-client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Setup python
+        run: yarn poetry:install
+
+      - name: Generate python client
+        run: turbo run codegen --filter @local/hash-graph-client-python
+
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
