@@ -15,6 +15,7 @@ from graph_client.models import (
     PropertyTypeQueryToken,
     Selector,
 )
+
 from graph_sdk.query import Path
 
 

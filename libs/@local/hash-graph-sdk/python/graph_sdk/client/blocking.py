@@ -51,7 +51,9 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_data_type(url))
 
     def create_data_types(
-        self, models: list[DataTypeSchema], owned_by_id: UUID
+        self,
+        models: list[DataTypeSchema],
+        owned_by_id: UUID,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create data types."""
         return async_to_sync(self.inner.create_data_types(models, owned_by_id))
@@ -69,13 +71,16 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_property_type(url))
 
     def create_property_types(
-        self, models: list[PropertyTypeSchema], owned_by_id: UUID
+        self,
+        models: list[PropertyTypeSchema],
+        owned_by_id: UUID,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create property types."""
         return async_to_sync(self.inner.create_property_types(models, owned_by_id))
 
     def update_property_type(
-        self, model: PropertyTypeSchema
+        self,
+        model: PropertyTypeSchema,
     ) -> OntologyElementMetadata:
         """Update a property type."""
         return async_to_sync(self.inner.update_property_type(model))
@@ -89,7 +94,9 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_entity_type(url))
 
     def create_entity_types(
-        self, models: list[EntityTypeSchema], owned_by_id: UUID
+        self,
+        models: list[EntityTypeSchema],
+        owned_by_id: UUID,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create entity types."""
         return async_to_sync(self.inner.create_entity_types(models, owned_by_id))

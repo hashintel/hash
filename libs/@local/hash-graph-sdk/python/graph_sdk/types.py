@@ -40,7 +40,9 @@ class TypeAPI:
             )
 
         return await self.get_data_type(
-            data_type_id, actor_id=actor_id, is_after_load=True
+            data_type_id,
+            actor_id=actor_id,
+            is_after_load=True,
         )
 
     async def get_data_type(
@@ -96,7 +98,9 @@ class TypeAPI:
             )
 
         return await self.get_property_type(
-            property_type_id, actor_id=actor_id, is_after_load=True
+            property_type_id,
+            actor_id=actor_id,
+            is_after_load=True,
         )
 
     async def get_property_type(
@@ -156,7 +160,9 @@ class TypeAPI:
             )
 
         return await self.get_entity_type(
-            entity_type_id, actor_id=actor_id, is_after_load=True
+            entity_type_id,
+            actor_id=actor_id,
+            is_after_load=True,
         )
 
     async def get_entity_type(
