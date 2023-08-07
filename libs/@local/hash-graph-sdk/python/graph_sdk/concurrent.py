@@ -27,6 +27,8 @@ from graph_client.models import (
 )
 from yarl import URL
 
+from graph_sdk.options import Options
+
 T = TypeVar("T")
 
 
