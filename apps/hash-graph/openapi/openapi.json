@@ -2192,8 +2192,7 @@
             "type": "object",
             "title": "QueryTemporalAxesUnresolvedDecisionTime",
             "required": [
-              "pinned",
-              "variable"
+              "pinned"
             ],
             "properties": {
               "pinned": {
