@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -65,7 +66,7 @@ export const useOrgs = (
     return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
       constructOrg({
         subgraph,
-        orgEntity,
+        orgEntity: orgEntity as Entity<OrgProperties>,
         resolvedUsers,
         resolvedOrgs,
       }),

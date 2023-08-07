@@ -6,8 +6,13 @@ import {
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
+  Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
@@ -20,8 +25,8 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { Router, useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
@@ -139,10 +144,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
-          userEntity: entity,
+          userEntity: entity as Entity<UserProperties>,
         })
       : constructMinimalOrg({
-          orgEntity: entity,
+          orgEntity: entity as Entity<OrgProperties>,
         }),
   );
 
@@ -373,23 +378,21 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   return (
     <>
-      <Head>
-        <title>{pageTitle || "Untitled"} | HASH</title>
-
-        {/*
-          Rendering favicon.png again even if it's already defined on _document.page.tsx,
-          because client-side navigation does not fallback to the default icon when visiting a page without an icon
-        */}
-        {icon ? (
-          <link
-            rel="icon"
-            href={`data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
-          ${icon}</text></svg>`}
-          />
-        ) : (
-          <link rel="icon" type="image/png" href="/favicon.png" />
-        )}
-      </Head>
+      <NextSeo
+        key={pageEntityId}
+        title={pageTitle || "Untitled"}
+        additionalLinkTags={
+          icon
+            ? [
+                {
+                  rel: "icon",
+                  href: `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
+          ${icon}</text></svg>`,
+                },
+              ]
+            : []
+        }
+      />
 
       <PageContextProvider pageEntityId={pageEntityId}>
         <Box

@@ -192,20 +192,20 @@ export type IssueChildLink = { linkEntity: Child; rightEntity: Issue };
 export type IssueCreatorLink = { linkEntity: Creator; rightEntity: User };
 
 export type IssueOutgoingLinkAndTarget =
-  | IssueSubscriberLink
-  | IssueChildLink
-  | IssueSnoozedByLink
   | IssueAssigneeLink
+  | IssueChildLink
   | IssueCreatorLink
-  | IssueParentLink;
+  | IssueParentLink
+  | IssueSnoozedByLink
+  | IssueSubscriberLink;
 
 export type IssueOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@linear/types/entity-type/subscriber/v/1": IssueSubscriberLink;
-  "http://localhost:3000/@linear/types/entity-type/child/v/1": IssueChildLink;
-  "http://localhost:3000/@linear/types/entity-type/snoozed-by/v/1": IssueSnoozedByLink;
   "http://localhost:3000/@linear/types/entity-type/assignee/v/1": IssueAssigneeLink;
+  "http://localhost:3000/@linear/types/entity-type/child/v/1": IssueChildLink;
   "http://localhost:3000/@linear/types/entity-type/creator/v/1": IssueCreatorLink;
   "http://localhost:3000/@linear/types/entity-type/parent/v/1": IssueParentLink;
+  "http://localhost:3000/@linear/types/entity-type/snoozed-by/v/1": IssueSnoozedByLink;
+  "http://localhost:3000/@linear/types/entity-type/subscriber/v/1": IssueSubscriberLink;
 };
 
 export type IssueParentLink = { linkEntity: Parent; rightEntity: Issue };
@@ -214,33 +214,33 @@ export type IssueParentLink = { linkEntity: Parent; rightEntity: Issue };
  * An issue.
  */
 export type IssueProperties = {
-  "http://localhost:3000/@linear/types/property-type/completed-at/"?: CompletedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/auto-archived-at/"?: AutoArchivedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/started-triage-at/"?: StartedTriageAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/number/": NumberPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/trashed/"?: TrashedPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/priority-label/": PriorityLabelPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/markdown-description/"?: MarkdownDescriptionPropertyValue;
   "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/sub-issue-sort-order/"?: SubIssueSortOrderPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/sort-order/": SortOrderPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/due-date/"?: DueDatePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/estimate/"?: EstimatePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/title/": TitlePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/identifier/": IdentifierPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/started-at/"?: StartedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/previous-identifier/": PreviousIdentifierPropertyValue[];
-  "http://localhost:3000/@linear/types/property-type/snoozed-until-at/"?: SnoozedUntilAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/priority/": PriorityPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/canceled-at/"?: CanceledAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/url/": URLPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/customer-ticket-count/": CustomerTicketCountPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/auto-archived-at/"?: AutoArchivedAtPropertyValue;
   "http://localhost:3000/@linear/types/property-type/auto-closed-at/"?: AutoClosedAtPropertyValue;
   "http://localhost:3000/@linear/types/property-type/branch-name/": BranchNamePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/canceled-at/"?: CanceledAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/completed-at/"?: CompletedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/customer-ticket-count/": CustomerTicketCountPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/due-date/"?: DueDatePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/estimate/"?: EstimatePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/identifier/": IdentifierPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/markdown-description/"?: MarkdownDescriptionPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/number/": NumberPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/previous-identifier/": PreviousIdentifierPropertyValue[];
+  "http://localhost:3000/@linear/types/property-type/priority-label/": PriorityLabelPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/priority/": PriorityPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/snoozed-until-at/"?: SnoozedUntilAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/sort-order/": SortOrderPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/started-at/"?: StartedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/started-triage-at/"?: StartedTriageAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/sub-issue-sort-order/"?: SubIssueSortOrderPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/title/": TitlePropertyValue;
+  "http://localhost:3000/@linear/types/property-type/trashed/"?: TrashedPropertyValue;
   "http://localhost:3000/@linear/types/property-type/triaged-at/"?: TriagedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
+  "http://localhost:3000/@linear/types/property-type/url/": URLPropertyValue;
 };
 
 export type IssueSnoozedByLink = { linkEntity: SnoozedBy; rightEntity: User };

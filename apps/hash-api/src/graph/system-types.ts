@@ -382,7 +382,6 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: preferredNamePropertyType,
-        required: true,
       },
     ],
     outgoingLinks: [
