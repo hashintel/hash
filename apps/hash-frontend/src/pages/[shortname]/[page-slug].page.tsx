@@ -6,8 +6,13 @@ import {
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
+  Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
@@ -139,10 +144,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
-          userEntity: entity,
+          userEntity: entity as Entity<UserProperties>,
         })
       : constructMinimalOrg({
-          orgEntity: entity,
+          orgEntity: entity as Entity<OrgProperties>,
         }),
   );
 
