@@ -238,7 +238,7 @@ export const Footer: FunctionComponent = () => (
                     backgroundClip: "text",
                   }}
                 >
-                  {"< 5 minutes"}
+                  {"<5 minutes"}
                 </Box>
               </FooterLink>
               {/* @todo: fix href */}
