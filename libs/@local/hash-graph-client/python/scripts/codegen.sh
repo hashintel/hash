@@ -34,4 +34,5 @@ poetry run datamodel-codegen \
   --use-double-quotes \
   --field-constraints \
   --allow-population-by-field-name \
-  --strict-nullable
+  --strict-nullable \
+  --use-title-as-name

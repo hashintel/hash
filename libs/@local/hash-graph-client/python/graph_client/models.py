@@ -137,7 +137,7 @@ class EntityUuid(RootModel):
     root: UUID
 
 
-class FilterExpressionItem1(BaseModel):
+class ParameterExpression(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -186,7 +186,7 @@ class OntologyTypeVersion(RootModel):
     root: int = Field(..., ge=0)
 
 
-class OpenTemporalBoundItem1(BaseModel):
+class UnboundedBound(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -276,13 +276,6 @@ class SharedEdgeKind(RootModel):
     root: Literal["IS_OF_TYPE"]
 
 
-class TemporalBoundItem(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    kind: Literal["unbounded"]
-
-
 class Timestamp(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -324,7 +317,7 @@ class UnarchivePropertyTypeRequest(BaseModel):
     type_to_unarchive: str = Field(..., alias="typeToUnarchive")
 
 
-class Schema4(BaseModel):
+class Schema(BaseModel):
     """
     The contents of a Data Type update request
     """
@@ -347,13 +340,13 @@ class UpdateDataTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    schema_: Schema4 = Field(
+    schema_: Schema = Field(
         ..., alias="schema", description="The contents of a Data Type update request"
     )
     type_to_update: str = Field(..., alias="typeToUpdate")
 
 
-class VersionedUrl(RootModel):
+class VersionedURL(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -365,7 +358,7 @@ class VersionedUrl(RootModel):
     )
 
 
-class BaseUrlModel(RootModel):
+class BaseURL(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -399,7 +392,7 @@ class DataTypeReference(BaseModel):
         extra="forbid",
         populate_by_name=True,
     )
-    field_ref: VersionedUrl = Field(..., alias="$ref")
+    field_ref: VersionedURL = Field(..., alias="$ref")
 
 
 class EntityTypeReference(BaseModel):
@@ -458,7 +451,7 @@ class ArchivePropertyTypeRequest(BaseModel):
     type_to_archive: str = Field(..., alias="typeToArchive")
 
 
-class ClosedTemporalBoundItem(BaseModel):
+class InclusiveBound(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -470,7 +463,7 @@ class ClosedTemporalBound(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: ClosedTemporalBoundItem = Field(..., discriminator="kind")
+    root: InclusiveBound = Field(..., discriminator="kind")
 
 
 class DataTypeVertexId(BaseModel):
@@ -481,7 +474,7 @@ class DataTypeVertexId(BaseModel):
     revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
 
 
-class Schema1(BaseModel):
+class DataType(BaseModel):
     """
     Specifies the structure of a Data Type
     """
@@ -494,7 +487,7 @@ class Schema1(BaseModel):
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
     ] = Field(..., alias="$schema")
     kind: Literal["dataType"]
-    field_id: VersionedUrl = Field(..., alias="$id")
+    field_id: VersionedURL = Field(..., alias="$id")
     title: str
     description: str | None = None
     type: str
@@ -524,7 +517,7 @@ class EntityVertexId(BaseModel):
     revision_id: Timestamp = Field(..., alias="revisionId")
 
 
-class FilterExpressionItem(BaseModel):
+class PathExpression(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -543,7 +536,7 @@ class FilterExpression(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: FilterExpressionItem | FilterExpressionItem1
+    root: PathExpression | ParameterExpression
 
 
 class GraphElementVertexId(RootModel):
@@ -579,15 +572,7 @@ class GraphResolveDepths(BaseModel):
     is_of_type: OutgoingEdgeResolveDepth = Field(..., alias="isOfType")
 
 
-class LimitedTemporalBoundItem(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    kind: Literal["inclusive"]
-    limit: Timestamp
-
-
-class LimitedTemporalBoundItem1(BaseModel):
+class ExclusiveBound(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -599,9 +584,7 @@ class LimitedTemporalBound(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: LimitedTemporalBoundItem | LimitedTemporalBoundItem1 = Field(
-        ..., discriminator="kind"
-    )
+    root: InclusiveBound | ExclusiveBound = Field(..., discriminator="kind")
 
 
 class LinkData(EntityLinkOrder):
@@ -647,21 +630,11 @@ class OntologyTypeVertexId(RootModel):
     root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId
 
 
-class OpenTemporalBoundItem(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    kind: Literal["exclusive"]
-    limit: Timestamp
-
-
 class OpenTemporalBound(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: OpenTemporalBoundItem | OpenTemporalBoundItem1 = Field(
-        ..., discriminator="kind"
-    )
+    root: ExclusiveBound | UnboundedBound = Field(..., discriminator="kind")
 
 
 class ProvenanceMetadata(BaseModel):
@@ -690,27 +663,11 @@ class Pinned2(BaseModel):
     timestamp: NullableTimestamp
 
 
-class TemporalBoundItem1(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    kind: Literal["inclusive"]
-    limit: Timestamp
-
-
-class TemporalBoundItem2(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    kind: Literal["exclusive"]
-    limit: Timestamp
-
-
 class TemporalBound(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: TemporalBoundItem | TemporalBoundItem1 | TemporalBoundItem2 = Field(
+    root: UnboundedBound | InclusiveBound | ExclusiveBound = Field(
         ..., discriminator="kind"
     )
 
@@ -734,34 +691,15 @@ class UpdateEntityRequest(EntityLinkOrder):
     properties: EntityProperties
 
 
-class Schema(BaseModel):
-    """
-    Specifies the structure of a Data Type
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["dataType"]
-    field_id: VersionedUrl = Field(..., alias="$id")
-    title: str
-    description: str | None = None
-    type: str
-
-
 class EntityTypeReferenceModel(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         populate_by_name=True,
     )
-    field_ref: VersionedUrl = Field(..., alias="$ref")
+    field_ref: VersionedURL = Field(..., alias="$ref")
 
 
-class PropertyValue(BaseModel):
+class PropertyObjectValue(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -841,7 +779,7 @@ class CreateDataTypeRequest(BaseModel):
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
-    schema_: Schema | list[Schema] = Field(..., alias="schema")
+    schema_: DataType | list[DataType] = Field(..., alias="schema")
 
 
 class CreateEntityRequest(BaseModel):
@@ -856,7 +794,7 @@ class CreateEntityRequest(BaseModel):
     properties: EntityProperties
 
 
-class Schema2(BaseModel):
+class EntityType(BaseModel):
     """
     Specifies the structure of a Block Protocol entity type
     """
@@ -869,25 +807,25 @@ class Schema2(BaseModel):
         "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
     ] = Field(..., alias="$schema")
     kind: Literal["entityType"]
-    field_id: VersionedUrl = Field(..., alias="$id")
+    field_id: VersionedURL = Field(..., alias="$id")
     type: Literal["object"]
     title: str
     description: str | None = None
     all_of: list[EntityTypeReferenceModel] | None = Field(None, alias="allOf")
     examples: list[dict[str, Any]] | None = None
     properties: PropertyTypeObject
-    required: list[BaseUrlModel] | None = None
+    required: list[BaseURL] | None = None
     links: LinkTypeObject | None = None
 
 
-class FilterItem3(BaseModel):
+class EqualFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     equal: list[FilterExpression] = Field(..., max_length=2, min_length=2)
 
 
-class FilterItem4(BaseModel):
+class NotEqualFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -896,7 +834,7 @@ class FilterItem4(BaseModel):
     )
 
 
-class FilterItem5(BaseModel):
+class StartsWithFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -905,7 +843,7 @@ class FilterItem5(BaseModel):
     )
 
 
-class FilterItem6(BaseModel):
+class EndsWithFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -914,7 +852,7 @@ class FilterItem6(BaseModel):
     )
 
 
-class FilterItem7(BaseModel):
+class ContainsSegmentFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -923,7 +861,7 @@ class FilterItem7(BaseModel):
     )
 
 
-class KnowledgeGraphOutwardEdgeItem1(BaseModel):
+class KnowledgeGraphToOntologyOutwardEdge(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -940,7 +878,7 @@ class LeftClosedTemporalInterval(BaseModel):
     start: ClosedTemporalBound
 
 
-class OntologyOutwardEdgeItem(BaseModel):
+class OntologyToOntologyOutwardEdge(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -964,7 +902,7 @@ class Variable2(BaseModel):
     interval: UnresolvedRightBoundedTemporalInterval
 
 
-class QueryTemporalAxesUnresolvedItem(BaseModel):
+class QueryTemporalAxesUnresolvedDecisionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -980,7 +918,7 @@ class Variable3(BaseModel):
     interval: UnresolvedRightBoundedTemporalInterval
 
 
-class QueryTemporalAxesUnresolvedItem1(BaseModel):
+class QueryTemporalAxesUnresolvedTransactionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -992,7 +930,7 @@ class QueryTemporalAxesUnresolved(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: QueryTemporalAxesUnresolvedItem | QueryTemporalAxesUnresolvedItem1 = Field(
+    root: QueryTemporalAxesUnresolvedDecisionTime | QueryTemporalAxesUnresolvedTransactionTime = Field(
         ...,
         description="Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph",
     )
@@ -1006,7 +944,7 @@ class RightBoundedTemporalInterval(BaseModel):
     start: TemporalBound
 
 
-class Schema5(BaseModel):
+class Schema2(BaseModel):
     """
     The contents of an Entity Type update request
     """
@@ -1034,37 +972,13 @@ class UpdateEntityTypeRequest(BaseModel):
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     label_property: BaseUrl | None = Field(None, alias="labelProperty")
-    schema_: Schema5 = Field(
+    schema_: Schema2 = Field(
         ..., alias="schema", description="The contents of an Entity Type update request"
     )
     type_to_update: str = Field(..., alias="typeToUpdate")
 
 
-class SchemaModel(BaseModel):
-    """
-    Specifies the structure of a Block Protocol entity type
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["entityType"]
-    field_id: VersionedUrl = Field(..., alias="$id")
-    type: Literal["object"]
-    title: str
-    description: str | None = None
-    all_of: list[EntityTypeReferenceModel] | None = Field(None, alias="allOf")
-    examples: list[dict[str, Any]] | None = None
-    properties: PropertyTypeObject
-    required: list[BaseUrlModel] | None = None
-    links: LinkTypeObject | None = None
-
-
-class PropertyValuesUpdateItem(BaseModel):
+class PropertyObjectValue1(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         populate_by_name=True,
@@ -1080,7 +994,7 @@ class CreateEntityTypeRequest(BaseModel):
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     label_property: BaseUrl | None = Field(None, alias="labelProperty")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
-    schema_: SchemaModel | list[SchemaModel] = Field(..., alias="schema")
+    schema_: EntityType | list[EntityType] = Field(..., alias="schema")
 
 
 class CustomEntityTypeMetadatum(BaseModel):
@@ -1114,7 +1028,7 @@ class CustomEntityTypeMetadata(RootModel):
     root: CustomEntityTypeMetadatum | CustomEntityTypeMetadatum1
 
 
-class CustomOntologyMetadatum(BaseModel):
+class CustomOwnedOntologyElementMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1125,7 +1039,7 @@ class CustomOntologyMetadatum(BaseModel):
     )
 
 
-class CustomOntologyMetadatum1(BaseModel):
+class CustomExternalOntologyElementMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1140,7 +1054,7 @@ class CustomOntologyMetadata(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: CustomOntologyMetadatum | CustomOntologyMetadatum1
+    root: CustomOwnedOntologyElementMetadata | CustomExternalOntologyElementMetadata
 
 
 class EntityIdWithInterval(BaseModel):
@@ -1172,7 +1086,7 @@ class EntityTypeWithMetadata(BaseModel):
         populate_by_name=True,
     )
     metadata: EntityTypeMetadata
-    schema_: Schema2 = Field(
+    schema_: EntityType = Field(
         ...,
         alias="schema",
         description="Specifies the structure of a Block Protocol entity type",
@@ -1180,7 +1094,7 @@ class EntityTypeWithMetadata(BaseModel):
     )
 
 
-class KnowledgeGraphOutwardEdgeItem(BaseModel):
+class KnowledgeGraphToKnowledgeGraphOutwardEdge(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1193,7 +1107,7 @@ class KnowledgeGraphOutwardEdge(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: KnowledgeGraphOutwardEdgeItem | KnowledgeGraphOutwardEdgeItem1
+    root: KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
 
 
 class MaybeListOfEntityTypeMetadata(RootModel):
@@ -1211,7 +1125,7 @@ class OntologyElementMetadata(BaseModel):
     record_id: OntologyTypeRecordId = Field(..., alias="recordId")
 
 
-class OntologyOutwardEdgeItem1(BaseModel):
+class OntologyToKnowledgeGraphOutwardEdge(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1224,10 +1138,10 @@ class OntologyOutwardEdge(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: OntologyOutwardEdgeItem | OntologyOutwardEdgeItem1
+    root: OntologyToOntologyOutwardEdge | OntologyToKnowledgeGraphOutwardEdge
 
 
-class OntologyVertexItem2(BaseModel):
+class EntityTypeVertex(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1243,7 +1157,7 @@ class Variable(BaseModel):
     interval: RightBoundedTemporalInterval
 
 
-class QueryTemporalAx(BaseModel):
+class QueryTemporalAxesDecisionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1259,7 +1173,7 @@ class Variable1(BaseModel):
     interval: RightBoundedTemporalInterval
 
 
-class QueryTemporalAx1(BaseModel):
+class QueryTemporalAxesTransactionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1271,7 +1185,7 @@ class QueryTemporalAxes(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: QueryTemporalAx | QueryTemporalAx1 = Field(
+    root: QueryTemporalAxesDecisionTime | QueryTemporalAxesTransactionTime = Field(
         ...,
         description="Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval",
     )
@@ -1290,7 +1204,7 @@ class DataTypeWithMetadata(BaseModel):
         populate_by_name=True,
     )
     metadata: OntologyElementMetadata
-    schema_: Schema1 = Field(
+    schema_: DataType = Field(
         ...,
         alias="schema",
         description="Specifies the structure of a Data Type",
@@ -1329,7 +1243,7 @@ class MaybeListOfOntologyElementMetadata(RootModel):
     root: OntologyElementMetadata | list[OntologyElementMetadata]
 
 
-class OntologyVertexItem(BaseModel):
+class DataTypeVertex(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1351,7 +1265,7 @@ class Entity(BaseModel):
     properties: EntityProperties
 
 
-class KnowledgeGraphVertexItem(BaseModel):
+class EntityVertex(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1363,7 +1277,7 @@ class KnowledgeGraphVertex(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: KnowledgeGraphVertexItem = Field(..., discriminator="kind")
+    root: EntityVertex = Field(..., discriminator="kind")
 
 
 class KnowledgeGraphVertices(RootModel):
@@ -1379,7 +1293,7 @@ class CreatePropertyTypeRequest(BaseModel):
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
-    schema_: SchemaModel1 | list[SchemaModel1] = Field(..., alias="schema")
+    schema_: PropertyType | list[PropertyType] = Field(..., alias="schema")
 
 
 class DataTypeStructuralQuery(BaseModel):
@@ -1409,21 +1323,21 @@ class EntityTypeStructuralQuery(BaseModel):
     temporal_axes: QueryTemporalAxesUnresolved = Field(..., alias="temporalAxes")
 
 
-class FilterItem(BaseModel):
+class AllFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     all: list[Filter]
 
 
-class FilterItem1(BaseModel):
+class AnyFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     any: list[Filter]
 
 
-class FilterItem2(BaseModel):
+class NotFilter(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1434,10 +1348,10 @@ class Filter(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: FilterItem | FilterItem1 | FilterItem2 | FilterItem3 | FilterItem4 | FilterItem5 | FilterItem6 | FilterItem7
+    root: AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqualFilter | StartsWithFilter | EndsWithFilter | ContainsSegmentFilter
 
 
-class OntologyVertexItem1(BaseModel):
+class PropertyTypeVertex(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1449,7 +1363,7 @@ class OntologyVertex(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: OntologyVertexItem | OntologyVertexItem1 | OntologyVertexItem2 = Field(
+    root: DataTypeVertex | PropertyTypeVertex | EntityTypeVertex = Field(
         ..., discriminator="kind"
     )
 
@@ -1470,7 +1384,7 @@ class PropertyTypeStructuralQuery(BaseModel):
     temporal_axes: QueryTemporalAxesUnresolved = Field(..., alias="temporalAxes")
 
 
-class Schema3(BaseModel):
+class PropertyType(BaseModel):
     """
     Specifies the structure of a Block Protocol property type
     """
@@ -1483,7 +1397,7 @@ class Schema3(BaseModel):
         "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
     ] = Field(..., alias="$schema")
     kind: Literal["propertyType"]
-    field_id: VersionedUrl = Field(..., alias="$id")
+    field_id: VersionedURL = Field(..., alias="$id")
     title: str
     description: str | None = None
     one_of: list[PropertyValues] = Field(..., alias="oneOf")
@@ -1494,7 +1408,7 @@ class PropertyTypeWithMetadata(BaseModel):
         populate_by_name=True,
     )
     metadata: OntologyElementMetadata
-    schema_: Schema3 = Field(
+    schema_: PropertyType = Field(
         ...,
         alias="schema",
         description="Specifies the structure of a Block Protocol property type",
@@ -1513,7 +1427,7 @@ class Subgraph(BaseModel):
     vertices: Vertices
 
 
-class Schema6(BaseModel):
+class Schema3(BaseModel):
     """
     The contents of a Property Type update request
     """
@@ -1536,7 +1450,7 @@ class UpdatePropertyTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    schema_: Schema6 = Field(
+    schema_: Schema3 = Field(
         ...,
         alias="schema",
         description="The contents of a Property Type update request",
@@ -1558,25 +1472,6 @@ class Vertices(RootModel):
     root: dict[str, dict[str, KnowledgeGraphVertex | OntologyVertex]] | None = None
 
 
-class SchemaModel1(BaseModel):
-    """
-    Specifies the structure of a Block Protocol property type
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    field_schema: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["propertyType"]
-    field_id: VersionedUrl = Field(..., alias="$id")
-    title: str
-    description: str | None = None
-    one_of: list[PropertyValues] = Field(..., alias="oneOf")
-
-
 class Items(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -1585,7 +1480,7 @@ class Items(BaseModel):
     one_of: list[PropertyValues] = Field(..., alias="oneOf", min_length=1)
 
 
-class PropertyValue1(BaseModel):
+class PropertyArrayValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         populate_by_name=True,
@@ -1600,7 +1495,7 @@ class PropertyValues(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: DataTypeReference | PropertyValue | PropertyValue1 = Field(
+    root: DataTypeReference | PropertyObjectValue | PropertyArrayValue = Field(
         ...,
         description="The definition of potential property values, either references to data types, objects made up of more property types, or an array where the items are defined from a set of other property values definitions.",
         title="propertyValues",
@@ -1615,7 +1510,7 @@ class Items1(BaseModel):
     one_of: list[PropertyValuesUpdate] = Field(..., alias="oneOf", min_length=1)
 
 
-class PropertyValuesUpdateItem1(BaseModel):
+class PropertyArrayValueUpdate(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         populate_by_name=True,
@@ -1630,8 +1525,8 @@ class PropertyValuesUpdate(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: DataTypeReferenceUpdate | PropertyValuesUpdateItem | PropertyValuesUpdateItem1 = Field(
-        ..., title="PropertyValuesUpdate"
+    root: DataTypeReferenceUpdate | PropertyObjectValue1 | PropertyArrayValueUpdate = (
+        Field(..., title="PropertyValuesUpdate")
     )
 
 
@@ -1639,13 +1534,12 @@ CreatePropertyTypeRequest.model_rebuild()
 DataTypeStructuralQuery.model_rebuild()
 EntityStructuralQuery.model_rebuild()
 EntityTypeStructuralQuery.model_rebuild()
-FilterItem.model_rebuild()
-FilterItem1.model_rebuild()
-FilterItem2.model_rebuild()
-OntologyVertexItem1.model_rebuild()
-Schema3.model_rebuild()
+AllFilter.model_rebuild()
+AnyFilter.model_rebuild()
+NotFilter.model_rebuild()
+PropertyTypeVertex.model_rebuild()
+PropertyType.model_rebuild()
 Subgraph.model_rebuild()
-Schema6.model_rebuild()
-SchemaModel1.model_rebuild()
+Schema3.model_rebuild()
 Items.model_rebuild()
 Items1.model_rebuild()
