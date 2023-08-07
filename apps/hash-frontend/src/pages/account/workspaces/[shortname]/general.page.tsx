@@ -30,6 +30,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   );
 
   if (!org) {
+    // @todo show a 404 page
     void router.push("/");
     return null;
   }
