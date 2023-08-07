@@ -198,10 +198,6 @@ where
         .merge(openapi_only_router())
 }
 
-#[expect(
-    clippy::unused_async,
-    reason = "This route does not need async capabilities, but axum requires it in trait bounds."
-)]
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 

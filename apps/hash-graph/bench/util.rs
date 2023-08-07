@@ -183,7 +183,6 @@ impl Drop for StoreWrapper {
     }
 }
 
-#[expect(clippy::needless_pass_by_ref_mut, reason = "False positive")]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,

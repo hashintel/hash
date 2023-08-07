@@ -219,7 +219,7 @@ pub struct Samples {
     pub entity_types: HashMap<AccountId, Vec<VersionedUrl>>,
 }
 
-async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) -> Samples {
+async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Samples {
     let mut entity_types = HashMap::new();
     entity_types.insert(
         account_id,
@@ -291,7 +291,6 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
     samples
 }
 
-#[expect(clippy::needless_pass_by_ref_mut, reason = "False positive")]
 pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samples {
     // TODO: We'll want to test distribution across accounts
     //  https://app.asana.com/0/1200211978612931/1203071961523000/f
