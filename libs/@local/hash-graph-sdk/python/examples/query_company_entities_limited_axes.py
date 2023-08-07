@@ -7,7 +7,7 @@ from graph_sdk.client.blocking import HASHClient
 from graph_sdk.filter import EntityPath
 from graph_sdk.options import (
     Options,
-    TemporalAxisBuilder,
+    TemporalAxesBuilder,
     TemporalBound,
 )
 from graph_sdk.query import Parameter
@@ -18,7 +18,7 @@ COMPANY_URL = "https://blockprotocol.org/@examples/types/entity-type/company/"
 client = HASHClient(URL("http://localhost:4000/"))
 
 options = Options()
-options.temporal_axes = TemporalAxisBuilder.pinned_transaction_time(None).between(
+options.temporal_axes = TemporalAxesBuilder.pinned_transaction_time(None).between(
     start=TemporalBound.unbounded(),
     end=TemporalBound.exclusive(datetime.fromisoformat("2021-01-01T00:00:00+00:00")),
 )

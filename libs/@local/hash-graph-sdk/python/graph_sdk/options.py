@@ -244,7 +244,7 @@ class PinnedDecisionTimeTemporalAxisBuilder:
         return self.between(start=None, end=None)
 
 
-class TemporalAxisBuilder:
+class TemporalAxesBuilder:
     """A builder for temporal axes."""
 
     @classmethod
@@ -288,7 +288,7 @@ class Options:
             is_of_type=OutgoingEdgeResolveDepth(outgoing=0),
         )
 
-        self.temporal_axes = TemporalAxisBuilder.latest()
+        self.temporal_axes = TemporalAxesBuilder.latest()
 
     def resolve_type_of_entity(self, *, enable: bool) -> None:
         """Return the entity type of the entity."""
