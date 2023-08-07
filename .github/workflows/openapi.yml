@@ -17,7 +17,7 @@ jobs:
         run: yarn poetry:install
 
       - name: Generate python client
-        run: turbo run codegen --filter @local/hash-graph-client-python
+        run: yarn codegen --filter @local/hash-graph-client-python
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
