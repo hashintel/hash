@@ -456,7 +456,8 @@ export const Sidebar: FunctionComponent<SidebarProps> = ({
       sx={[
         {
           top: NAV_HEIGHT,
-          height: `calc(100vh - ${NAV_HEIGHT}px)`,
+          height: "fit-content",
+          maxHeight: `calc(100vh - ${NAV_HEIGHT}px)`,
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
