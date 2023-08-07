@@ -75,6 +75,7 @@ client_init = next(
 client_init_args = client_init.args
 
 client_init.body = [
+    client_init.body[0],
     ast.Assign(
         targets=[
             ast.Attribute(
@@ -90,7 +91,7 @@ client_init.body = [
             ],
             keywords=[],
         ),
-    )
+    ),
 ]
 
 # # go over each method that is sync, call the inner client instead
@@ -104,12 +105,19 @@ for method in client_ast.body:
     method_args = method.args
 
     method.body = [
+        method.body[0],
         ast.Return(
             value=ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id="self", ctx=ast.Load()),
-                    attr="inner",
-                    ctx=ast.Load(),
+                func=(
+                    ast.Attribute(
+                        value=ast.Attribute(
+                            value=ast.Name(id="self", ctx=ast.Load()),
+                            attr="inner",
+                            ctx=ast.Load(),
+                        ),
+                        attr=method.name,
+                        ctx=ast.Load(),
+                    )
                 ),
                 args=[
                     ast.Name(arg.arg, ctx=ast.Load())
@@ -123,7 +131,7 @@ for method in client_ast.body:
                     for keyword in (method_args.kwarg or [])
                 ],
             )
-        )
+        ),
     ]
 
 # go over each async method, wrap it in the async_to_sync method and return it
@@ -134,6 +142,7 @@ for method in client_ast.body:
     method_args = method.args
     method_name = method.name
     method_doc = method.body[0]
+    method_returns = method.returns
 
     client_ast.body.append(
         ast.FunctionDef(
@@ -147,8 +156,12 @@ for method in client_ast.body:
                         args=[
                             ast.Call(
                                 func=ast.Attribute(
-                                    value=ast.Name(id="self", ctx=ast.Load()),
-                                    attr=method_name,
+                                    value=ast.Attribute(
+                                        value=ast.Name(id="self", ctx=ast.Load()),
+                                        attr="inner",
+                                        ctx=ast.Load(),
+                                    ),
+                                    attr=method.name,
                                     ctx=ast.Load(),
                                 ),
                                 args=[
@@ -169,6 +182,7 @@ for method in client_ast.body:
                     )
                 ),
             ],
+            returns=method_returns,
             decorator_list=[],
         )
     )
