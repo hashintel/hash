@@ -8,8 +8,10 @@ jobs:
   python-client:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/warm-up-repo
+        if: ${{ success() || failure() }}
 
       - name: Setup python
         run: yarn poetry:install
