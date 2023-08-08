@@ -243,10 +243,12 @@ export const isPageArchived: ImpureGraphFunction<
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
     accountId: AccountId;
+    includeArchived?: boolean;
   },
   Promise<Page[]>
 > = async (ctx, params) => {
   const { graphApi } = ctx;
+  const { accountId, includeArchived = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery({
       filter: {
@@ -270,13 +272,13 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .filter(
       (pageEntity) =>
         extractOwnedByIdFromEntityId(pageEntity.metadata.recordId.entityId) ===
-        params.accountId,
+        accountId,
     )
     .map((entity) => getPageFromEntity({ entity }));
 
   return await Promise.all(
     pages.map(async (page) => {
-      if (await isPageArchived(ctx, { page })) {
+      if (!includeArchived && (await isPageArchived(ctx, { page }))) {
         return [];
       }
       return page;

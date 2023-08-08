@@ -417,7 +417,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const routeHash = asPath.split("#")[1] ?? "";
 
-  const { data: accountPages } = useAccountPages(pageOwnedById);
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);

@@ -68,6 +68,10 @@ export const pageTypedef = gql`
       The account owning the pages. Defaults to the logged in user.
       """
       ownedById: OwnedById
+      """
+      Whether or not to include archived pages. Defaults to false.
+      """
+      includeArchived: Boolean
     ): [Page!]!
 
     pageComments(
