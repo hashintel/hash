@@ -33,6 +33,7 @@ from graph_client.models import (
     VersionedURL,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+from pydantic_core._pydantic_core import Url
 from yarl import URL
 
 from graph_sdk.client._compat import recast
@@ -60,7 +61,7 @@ def with_actor(client: "HASHClient", actor: UUID) -> Generator[None, None, None]
     client.actor = old_actor
 
 
-# TODO H-351: Use hash_graph_client for create_entity
+# TODO: H-351: Use hash_graph_client for create_entity
 #   https://linear.app/hash/issue/H-351
 class HASHClient:
     """Implementation of the client for the HASH API.
@@ -100,7 +101,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalDataTypeRequest(
-            data_type_id=VersionedURL(root=str(url)),
+            data_type_id=VersionedURL(root=Url(str(url))),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -156,7 +157,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalPropertyTypeRequest(
-            property_type_id=VersionedURL(root=str(url)),
+            property_type_id=VersionedURL(root=Url(str(url))),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -208,7 +209,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalEntityTypeRequest(
-            entity_type_id=VersionedURL(root=str(url)),
+            entity_type_id=VersionedURL(root=Url(str(url))),
             actor_id=RecordCreatedById(root=actor),
         )
 

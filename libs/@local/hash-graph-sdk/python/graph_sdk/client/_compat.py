@@ -1,6 +1,5 @@
 from typing import TypeVar
 
-from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
