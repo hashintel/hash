@@ -195,9 +195,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
 export const PageNotificationBanner = ({
   archived = false,
   pageMetadata,
+  onUnarchived,
 }: {
   archived: boolean;
   pageMetadata: EntityMetadata;
+  onUnarchived: () => void;
 }) => {
   const { pageEntityId } = usePageContext();
   const { unarchivePage } = useArchivePage();
@@ -338,7 +340,10 @@ export const PageNotificationBanner = ({
                 icon={faRotateRight}
               />
             }
-            onClick={() => unarchivePage(pageEntityId)}
+            onClick={async () => {
+              await unarchivePage(pageEntityId);
+              onUnarchived();
+            }}
           >
             Restore
           </Button>
@@ -413,6 +418,9 @@ const Page: NextPageWithLayout<PageProps> = ({
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
   );
+
+  const [displayPageRestoredMessage, setDisplayPageRestoredMessage] =
+    useState(false);
 
   const { data, error, loading } = useQuery<
     GetPageQuery,
@@ -525,12 +533,19 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
+            displayPageRestoredMessage={displayPageRestoredMessage}
             isBlockPage
             scrollToTop={scrollToTop}
           />
           <PageNotificationBanner
             archived={!!archived}
             pageMetadata={metadata}
+            onUnarchived={() => {
+              setDisplayPageRestoredMessage(true);
+              setTimeout(() => {
+                setDisplayPageRestoredMessage(false);
+              }, 5000);
+            }}
           />
         </Box>
 
