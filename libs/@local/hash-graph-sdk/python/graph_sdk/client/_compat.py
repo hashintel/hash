@@ -1,3 +1,5 @@
+from typing import TypeVar
+
 from graph_client.models import (
     Schema,
     Schema4,
@@ -7,6 +9,14 @@ from graph_client.models import (
     SchemaModel1,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
+U = TypeVar("U", bound=BaseModel)
+
+
+def recast(type_: type[T], value: U) -> T:
+    return type_.model_validate(value.model_dump(by_alias=True))
 
 
 def convert_data_type_to_schema(schema: DataTypeSchema) -> Schema:

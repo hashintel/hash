@@ -5,28 +5,24 @@ from typing import Protocol
 from graph_client.models import (
     DecisionTime,
     EdgeResolveDepths,
+    ExclusiveBound,
     GraphResolveDepths,
+    InclusiveBound,
     LimitedTemporalBound,
-    LimitedTemporalBoundItem,
-    LimitedTemporalBoundItem1,
     NullableTimestamp,
     OpenTemporalBound,
-    OpenTemporalBoundItem,
-    OpenTemporalBoundItem1,
     OutgoingEdgeResolveDepth,
-    Pinned2,
-    Pinned3,
     QueryTemporalAxesUnresolved,
-    QueryTemporalAxesUnresolvedItem,
-    QueryTemporalAxesUnresolvedItem1,
-    TemporalBoundItem,
-    TemporalBoundItem1,
-    TemporalBoundItem2,
+    QueryTemporalAxesUnresolvedDecisionTime,
+    QueryTemporalAxesUnresolvedTransactionTime,
     Timestamp,
     TransactionTime,
+    UnboundedBound,
+    UnresolvedPinnedDecisionAxis,
+    UnresolvedPinnedTransactionAxis,
     UnresolvedRightBoundedTemporalInterval,
-    Variable2,
-    Variable3,
+    UnresolvedVariableDecisionAxis,
+    UnresolvedVariableTransactionAxis,
 )
 from graph_client.models import (
     TemporalBound as FFITemporalBound,
@@ -96,11 +92,11 @@ class UnboundedTemporalBound(TemporalBound):
 
     def to_temporal_bound(self) -> FFITemporalBound:
         """Convert to a temporal bound."""
-        return FFITemporalBound(root=TemporalBoundItem(kind="unbounded"))
+        return FFITemporalBound(root=UnboundedBound(kind="unbounded"))
 
     def to_open_temporal_bound(self) -> OpenTemporalBound:
         """Convert to an open temporal bound."""
-        return OpenTemporalBound(root=OpenTemporalBoundItem1(kind="unbounded"))
+        return OpenTemporalBound(root=UnboundedBound(kind="unbounded"))
 
 
 class InclusiveTemporalBound(TemporalBound):
@@ -115,13 +111,16 @@ class InclusiveTemporalBound(TemporalBound):
     def to_temporal_bound(self) -> FFITemporalBound:
         """Convert to a temporal bound."""
         return FFITemporalBound(
-            root=TemporalBoundItem1(kind="inclusive", limit=Timestamp(root=self.time)),
+            root=InclusiveBound(
+                kind="inclusive",
+                limit=Timestamp(root=self.time),
+            ),
         )
 
     def to_limited_temporal_bound(self) -> LimitedTemporalBound:
         """Convert to a limited temporal bound."""
         return LimitedTemporalBound(
-            root=LimitedTemporalBoundItem(
+            root=InclusiveBound(
                 kind="inclusive",
                 limit=Timestamp(root=self.time),
             ),
@@ -140,13 +139,13 @@ class ExclusiveTemporalBound(TemporalBound):
     def to_temporal_bound(self) -> FFITemporalBound:
         """Convert to a temporal bound."""
         return FFITemporalBound(
-            root=TemporalBoundItem2(kind="exclusive", limit=Timestamp(root=self.time)),
+            root=ExclusiveBound(kind="exclusive", limit=Timestamp(root=self.time)),
         )
 
     def to_limited_temporal_bound(self) -> LimitedTemporalBound:
         """Convert to a limited temporal bound."""
         return LimitedTemporalBound(
-            root=LimitedTemporalBoundItem1(
+            root=ExclusiveBound(
                 kind="exclusive",
                 limit=Timestamp(root=self.time),
             ),
@@ -155,7 +154,7 @@ class ExclusiveTemporalBound(TemporalBound):
     def to_open_temporal_bound(self) -> OpenTemporalBound:
         """Convert to an open temporal bound."""
         return OpenTemporalBound(
-            root=OpenTemporalBoundItem(
+            root=ExclusiveBound(
                 kind="exclusive",
                 limit=Timestamp(root=self.time),
             ),
@@ -183,12 +182,12 @@ class PinnedTransactionTimeTemporalAxisBuilder:
         If `end` is None, then the end will be the current time.
         """
         return QueryTemporalAxesUnresolved(
-            root=QueryTemporalAxesUnresolvedItem(
-                pinned=Pinned2(
+            root=QueryTemporalAxesUnresolvedDecisionTime(
+                pinned=UnresolvedPinnedTransactionAxis(
                     axis=TransactionTime(root="transactionTime"),
                     timestamp=NullableTimestamp(root=self.pinned),
                 ),
-                variable=Variable2(
+                variable=UnresolvedVariableDecisionAxis(
                     axis=DecisionTime(root="decisionTime"),
                     interval=UnresolvedRightBoundedTemporalInterval(
                         start=start.to_temporal_bound() if start else None,
@@ -224,12 +223,12 @@ class PinnedDecisionTimeTemporalAxisBuilder:
         If `end` is None, then the end will be the current time.
         """
         return QueryTemporalAxesUnresolved(
-            root=QueryTemporalAxesUnresolvedItem1(
-                pinned=Pinned3(
+            root=QueryTemporalAxesUnresolvedTransactionTime(
+                pinned=UnresolvedPinnedDecisionAxis(
                     axis=DecisionTime(root="decisionTime"),
                     timestamp=NullableTimestamp(root=self.pinned),
                 ),
-                variable=Variable3(
+                variable=UnresolvedVariableTransactionAxis(
                     axis=TransactionTime(root="transactionTime"),
                     interval=UnresolvedRightBoundedTemporalInterval(
                         start=start.to_temporal_bound() if start else None,

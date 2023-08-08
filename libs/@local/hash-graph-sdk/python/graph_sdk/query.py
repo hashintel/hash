@@ -21,18 +21,18 @@ from typing import Any, Generic, Never, Protocol, Self, TypeVar, assert_never
 
 from graph_client import QueryToken
 from graph_client.models import (
+    AllFilter,
+    AnyFilter,
+    ContainsSegmentFilter,
+    EndsWithFilter,
+    EqualFilter,
     Filter,
     FilterExpression,
-    FilterExpressionItem,
-    FilterExpressionItem1,
-    FilterItem,
-    FilterItem1,
-    FilterItem2,
-    FilterItem3,
-    FilterItem4,
-    FilterItem5,
-    FilterItem6,
-    FilterItem7,
+    NotEqualFilter,
+    NotFilter,
+    ParameterExpression,
+    PathExpression,
+    StartsWithFilter,
 )
 from pydantic import BaseModel
 
@@ -152,7 +152,7 @@ class UnaryFilter(BaseFilter, Generic[F]):
         operation = self.operation
 
         if operation == UnaryOperation.NOT:
-            return Filter(root=FilterItem2(not_=self.operand.to_ffi()))
+            return Filter(root=NotFilter(not_=self.operand.to_ffi()))
 
         assert_never(operation)
 
@@ -181,27 +181,31 @@ class BinaryFilter(BaseFilter, Generic[L, R]):
         match operation:
             case BinaryOperation.EQUAL:
                 return Filter(
-                    root=FilterItem3(equal=[self.lhs.to_ffi(), self.rhs.to_ffi()]),
+                    root=EqualFilter(
+                        equal=[self.lhs.to_ffi(), self.rhs.to_ffi()],
+                    ),
                 )
             case BinaryOperation.NOT_EQUAL:
                 return Filter(
-                    root=FilterItem4(not_equal=[self.lhs.to_ffi(), self.rhs.to_ffi()]),
+                    root=NotEqualFilter(
+                        not_equal=[self.lhs.to_ffi(), self.rhs.to_ffi()],
+                    ),
                 )
             case BinaryOperation.STARTS_WITH:
                 return Filter(
-                    root=FilterItem5(
+                    root=StartsWithFilter(
                         starts_with=[self.lhs.to_ffi(), self.rhs.to_ffi()],
                     ),
                 )
             case BinaryOperation.ENDS_WITH:
                 return Filter(
-                    root=FilterItem6(
+                    root=EndsWithFilter(
                         ends_with=[self.lhs.to_ffi(), self.rhs.to_ffi()],
                     ),
                 )
             case BinaryOperation.CONTAINS_SEGMENT:
                 return Filter(
-                    root=FilterItem7(
+                    root=ContainsSegmentFilter(
                         contains_segment=[self.lhs.to_ffi(), self.rhs.to_ffi()],
                     ),
                 )
@@ -236,13 +240,13 @@ class NaryFilter(BaseFilter, Generic[F]):
         match operation:
             case NaryOperation.ALL:
                 return Filter(
-                    root=FilterItem(
+                    root=AllFilter(
                         all=[operand.to_ffi() for operand in self.operands],
                     ),
                 )
             case NaryOperation.ANY:
                 return Filter(
-                    root=FilterItem1(
+                    root=AnyFilter(
                         any=[operand.to_ffi() for operand in self.operands],
                     ),
                 )
@@ -312,7 +316,7 @@ class Parameter(BaseFilterExpression):
 
     def to_ffi(self) -> FilterExpression:
         """Converts the parameter to a FFI object."""
-        return FilterExpression(root=FilterExpressionItem1(parameter=self.value))
+        return FilterExpression(root=ParameterExpression(parameter=self.value))
 
 
 class Path(BaseFilterExpression):
@@ -343,9 +347,9 @@ class Path(BaseFilterExpression):
 
         return self.from_list(tokens)
 
-    def _finish(self) -> FilterExpressionItem:
+    def _finish(self) -> PathExpression:
         """Finish the path."""
-        return FilterExpressionItem(path=self.value)
+        return PathExpression(path=self.value)
 
     def to_ffi(self) -> FilterExpression:
         """Converts the path to a FFI object."""

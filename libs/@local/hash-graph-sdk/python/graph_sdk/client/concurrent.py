@@ -9,8 +9,10 @@ from graph_client.models import (
     CreateDataTypeRequest,
     CreateEntityTypeRequest,
     CreatePropertyTypeRequest,
+    DataType,
     DataTypeStructuralQuery,
     EntityStructuralQuery,
+    EntityType,
     EntityTypeStructuralQuery,
     LoadExternalDataTypeRequest,
     LoadExternalEntityTypeRequest,
@@ -18,24 +20,22 @@ from graph_client.models import (
     MaybeListOfOntologyElementMetadata,
     OntologyElementMetadata,
     OwnedById,
+    PropertyType,
     PropertyTypeStructuralQuery,
     RecordCreatedById,
     Subgraph,
+    UpdateDataType,
     UpdateDataTypeRequest,
+    UpdateEntityType,
     UpdateEntityTypeRequest,
+    UpdatePropertyType,
     UpdatePropertyTypeRequest,
+    VersionedURL,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 from yarl import URL
 
-from graph_sdk.client._compat import (
-    convert_data_type_to_schema,
-    convert_data_type_to_schema4,
-    convert_entity_type_to_schema5,
-    convert_entity_type_to_schema_model,
-    convert_property_type_to_schema6,
-    convert_property_type_to_schema_model1,
-)
+from graph_sdk.client._compat import recast
 from graph_sdk.options import Options
 from graph_sdk.query import BaseFilter
 
@@ -98,7 +98,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalDataTypeRequest(
-            data_type_id=str(url),
+            data_type_id=VersionedURL(root=str(url)),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -115,7 +115,7 @@ class HASHClient:
         request = CreateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
-            schema_=[convert_data_type_to_schema(model) for model in models],
+            schema_=[recast(DataType, model) for model in models],
         )
 
         return await self.inner.create_data_types(request)
@@ -129,7 +129,7 @@ class HASHClient:
 
         request = UpdateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
-            schema_=convert_data_type_to_schema4(model),
+            schema_=recast(UpdateDataType, model),
             type_to_update=model.identifier,
         )
 
@@ -154,7 +154,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalPropertyTypeRequest(
-            property_type_id=str(url),
+            property_type_id=VersionedURL(root=str(url)),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -171,7 +171,7 @@ class HASHClient:
         request = CreatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
-            schema_=[convert_property_type_to_schema_model1(model) for model in models],
+            schema_=[recast(PropertyType, model) for model in models],
         )
 
         return await self.inner.create_property_types(request)
@@ -185,7 +185,7 @@ class HASHClient:
 
         request = UpdatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
-            schema_=convert_property_type_to_schema6(model),
+            schema_=recast(UpdatePropertyType, model),
             type_to_update=model.identifier,
         )
 
@@ -206,7 +206,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalEntityTypeRequest(
-            entity_type_id=str(url),
+            entity_type_id=VersionedURL(root=str(url)),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -223,7 +223,7 @@ class HASHClient:
         request = CreateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
-            schema_=[convert_entity_type_to_schema_model(model) for model in models],
+            schema_=[recast(EntityType, model) for model in models],
         )
 
         return await self.inner.create_entity_types(request)
@@ -237,7 +237,7 @@ class HASHClient:
 
         request = UpdateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
-            schema_=convert_entity_type_to_schema5(model),
+            schema_=recast(UpdateEntityType, model),
             type_to_update=model.identifier,
         )
 
