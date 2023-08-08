@@ -1,5 +1,6 @@
 .openapi-generator
 .npmignore
 tsconfig.esm.json
+openapi.bundle.json
 *.ts
 *.sh

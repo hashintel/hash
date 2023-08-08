@@ -16,7 +16,7 @@ SPEC="$DIR/../../../../../apps/hash-graph/openapi/openapi.json"
 cd "$DIR/.."
 
 # Take the specification and bundle all models into a single file
-yarn run swagger-cli bundle "$SPEC" --outfile "$DIR/openapi.bundle.json"
+yarn run redocly bundle --format=json "$SPEC" -o "$DIR/openapi.bundle.json"
 
 poetry run datamodel-codegen \
   --input "$DIR/openapi.bundle.json" \
@@ -34,4 +34,9 @@ poetry run datamodel-codegen \
   --use-double-quotes \
   --field-constraints \
   --allow-population-by-field-name \
-  --strict-nullable
+  --strict-nullable \
+  --use-title-as-name \
+  --aliases "$DIR/aliases.json"
+
+poetry run python "$DIR/rebase.py"
+poetry run black graph_client/models.py

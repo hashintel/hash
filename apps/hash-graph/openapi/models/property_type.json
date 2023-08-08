@@ -14,7 +14,7 @@
       "enum": ["propertyType"]
     },
     "$id": {
-      "$ref": "#/definitions/VersionedUrl"
+      "$ref": "./shared.json#/definitions/VersionedUrl"
     },
     "title": {
       "type": "string"
@@ -25,143 +25,10 @@
     "oneOf": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/PropertyValues"
+        "$ref": "./shared.json#/definitions/PropertyValues"
       }
     }
   },
   "required": ["$schema", "kind", "$id", "title", "oneOf"],
-  "additionalProperties": false,
-  "definitions": {
-    "PropertyValues": {
-      "title": "propertyValues",
-      "description": "The definition of potential property values, either references to data types, objects made up of more property types, or an array where the items are defined from a set of other property values definitions.",
-      "oneOf": [
-        {
-          "$ref": "#/definitions/DataTypeReference"
-        },
-        {
-          "title": "propertyObjectValue",
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["object"]
-            },
-            "properties": {
-              "$ref": "#/definitions/PropertyTypeObject"
-            }
-          },
-          "minProperties": 1,
-          "required": ["type", "properties"]
-        },
-        {
-          "title": "propertyArrayValue",
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["array"]
-            },
-            "items": {
-              "type": "object",
-              "properties": {
-                "oneOf": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/PropertyValues"
-                  },
-                  "minItems": 1
-                }
-              },
-              "required": ["oneOf"],
-              "additionalProperties": false
-            },
-            "minItems": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "maxItems": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "required": ["type", "items"],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "PropertyTypeObject": {
-      "title": "Property Type Object",
-      "description": "A JSON object where each entry is constrained by a property type.",
-      "type": "object",
-      "propertyNames": {
-        "$ref": "#/definitions/BaseUrl"
-      },
-      "x-patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/PropertyTypeReference"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": ["array"]
-                },
-                "items": {
-                  "$ref": "#/definitions/PropertyTypeReference"
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": ["type", "items"],
-              "additionalProperties": false
-            }
-          ]
-        }
-      }
-    },
-    "VersionedUrl": {
-      "title": "Versioned URL",
-      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048
-    },
-    "BaseUrl": {
-      "title": "Base URL",
-      "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048
-    },
-    "PropertyTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$ref": "#/definitions/BaseUrl"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "DataTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$ref": "#/definitions/VersionedUrl"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    }
-  }
+  "additionalProperties": false
 }

@@ -8,7 +8,7 @@
         "generateAliasAsModel": true,
         "generatorName": "typescript-axios",
         "output": "#{cwd}",
-        "inputSpec": "../../../../apps/hash-graph/openapi/openapi.json",
+        "inputSpec": "openapi.bundle.json",
         "additionalProperties": {
           "npmName": "@local/hash-graph-client",
           "npmVersion": "0.0.0-private",

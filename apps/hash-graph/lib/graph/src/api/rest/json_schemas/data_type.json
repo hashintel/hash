@@ -14,7 +14,7 @@
       "enum": ["dataType"]
     },
     "$id": {
-      "$ref": "#/definitions/VersionedUrl"
+      "$ref": "./shared.json#/definitions/VersionedUrl"
     },
     "title": {
       "type": "string"
@@ -27,14 +27,5 @@
     }
   },
   "required": ["$schema", "kind", "$id", "title", "type"],
-  "additionalProperties": true,
-  "definitions": {
-    "VersionedUrl": {
-      "title": "Versioned URL",
-      "description": "The versioned URL of a Block Protocol ontology type (the $id of the schema). It should be of the form `${baseUrl}v/${versionNumber}`",
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048
-    }
-  }
+  "additionalProperties": true
 }
