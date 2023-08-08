@@ -19,13 +19,6 @@ class AccountId(RootModel):
     root: UUID
 
 
-class BaseUrl(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: str
-
-
 class DataTypeQueryToken(Enum):
     """
     A single token in a [`DataTypeQueryPath`].
@@ -224,14 +217,6 @@ class PropertyTypeQueryToken(Enum):
     property_types = "propertyTypes"
 
 
-class PropertyTypeVertexId(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    base_id: BaseUrl = Field(..., alias="baseId")
-    revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
-
-
 class Pinned1(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -293,30 +278,6 @@ class TransactionTime(RootModel):
     )
 
 
-class UnarchiveDataTypeRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
-    type_to_unarchive: str = Field(..., alias="typeToUnarchive")
-
-
-class UnarchiveEntityTypeRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
-    type_to_unarchive: str = Field(..., alias="typeToUnarchive")
-
-
-class UnarchivePropertyTypeRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
-    type_to_unarchive: str = Field(..., alias="typeToUnarchive")
-
-
 class UpdateDataType(BaseModel):
     """
     The contents of a Data Type update request
@@ -366,6 +327,18 @@ class DataType(BaseModel):
     type: str
 
 
+class BaseURL(RootModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: AnyUrl = Field(
+        ...,
+        description="The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
+        max_length=2048,
+        title="Base URL",
+    )
+
+
 class DataTypeReference(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -399,18 +372,6 @@ class EntityTypeReference(BaseModel):
         populate_by_name=True,
     )
     field_ref: VersionedURL = Field(..., alias="$ref")
-
-
-class BaseURL(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: AnyUrl = Field(
-        ...,
-        description="The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
-        max_length=2048,
-        title="Base URL",
-    )
 
 
 class LinkTypeObject(BaseModel):
@@ -587,7 +548,7 @@ class ArchiveDataTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordArchivedById = Field(..., alias="actorId")
-    type_to_archive: str = Field(..., alias="typeToArchive")
+    type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
 
 
 class ArchiveEntityTypeRequest(BaseModel):
@@ -595,7 +556,7 @@ class ArchiveEntityTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordArchivedById = Field(..., alias="actorId")
-    type_to_archive: str = Field(..., alias="typeToArchive")
+    type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
 
 
 class ArchivePropertyTypeRequest(BaseModel):
@@ -603,7 +564,7 @@ class ArchivePropertyTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordArchivedById = Field(..., alias="actorId")
-    type_to_archive: str = Field(..., alias="typeToArchive")
+    type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
 
 
 class InclusiveBound(BaseModel):
@@ -635,7 +596,7 @@ class CreateEntityTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    label_property: BaseUrl | None = Field(None, alias="labelProperty")
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     schema_: EntityType | list[EntityType] = Field(..., alias="schema")
 
@@ -644,7 +605,7 @@ class DataTypeVertexId(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    base_id: BaseUrl = Field(..., alias="baseId")
+    base_id: BaseURL = Field(..., alias="baseId")
     revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
 
 
@@ -660,7 +621,7 @@ class EntityTypeVertexId(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    base_id: BaseUrl = Field(..., alias="baseId")
+    base_id: BaseURL = Field(..., alias="baseId")
     revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
 
 
@@ -692,13 +653,6 @@ class FilterExpression(RootModel):
         populate_by_name=True,
     )
     root: PathExpression | ParameterExpression
-
-
-class GraphElementVertexId(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId | EntityVertexId
 
 
 class GraphResolveDepths(BaseModel):
@@ -759,7 +713,7 @@ class LoadExternalDataTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    data_type_id: str = Field(..., alias="dataTypeId")
+    data_type_id: VersionedURL = Field(..., alias="dataTypeId")
 
 
 class LoadExternalEntityTypeRequest(BaseModel):
@@ -767,7 +721,7 @@ class LoadExternalEntityTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    entity_type_id: str = Field(..., alias="entityTypeId")
+    entity_type_id: VersionedURL = Field(..., alias="entityTypeId")
 
 
 class LoadExternalPropertyTypeRequest(BaseModel):
@@ -775,14 +729,7 @@ class LoadExternalPropertyTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    property_type_id: str = Field(..., alias="propertyTypeId")
-
-
-class OntologyTypeVertexId(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId
+    property_type_id: VersionedURL = Field(..., alias="propertyTypeId")
 
 
 class OpenTemporalBound(RootModel):
@@ -790,6 +737,14 @@ class OpenTemporalBound(RootModel):
         populate_by_name=True,
     )
     root: ExclusiveBound | UnboundedBound = Field(..., discriminator="kind")
+
+
+class PropertyTypeVertexId(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    base_id: BaseURL = Field(..., alias="baseId")
+    revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
 
 
 class ProvenanceMetadata(BaseModel):
@@ -827,6 +782,30 @@ class TemporalBound(RootModel):
     )
 
 
+class UnarchiveDataTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    type_to_unarchive: VersionedURL = Field(..., alias="typeToUnarchive")
+
+
+class UnarchiveEntityTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    type_to_unarchive: VersionedURL = Field(..., alias="typeToUnarchive")
+
+
+class UnarchivePropertyTypeRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor_id: RecordCreatedById = Field(..., alias="actorId")
+    type_to_unarchive: VersionedURL = Field(..., alias="typeToUnarchive")
+
+
 class UnresolvedRightBoundedTemporalInterval(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -851,7 +830,7 @@ class UpdateEntityRequest(EntityLinkOrder):
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     archived: bool
     entity_id: EntityId = Field(..., alias="entityId")
-    entity_type_id: str = Field(..., alias="entityTypeId")
+    entity_type_id: VersionedURL = Field(..., alias="entityTypeId")
     properties: EntityProperties
 
 
@@ -860,9 +839,9 @@ class UpdateEntityTypeRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    label_property: BaseUrl | None = Field(None, alias="labelProperty")
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
     schema_: UpdateEntityType = Field(..., alias="schema")
-    type_to_update: str = Field(..., alias="typeToUpdate")
+    type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 
 
 class CreateEntityRequest(BaseModel):
@@ -870,7 +849,7 @@ class CreateEntityRequest(BaseModel):
         populate_by_name=True,
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
-    entity_type_id: str = Field(..., alias="entityTypeId")
+    entity_type_id: VersionedURL = Field(..., alias="entityTypeId")
     entity_uuid: EntityUuid | None = Field(None, alias="entityUuid")
     link_data: LinkData | None = Field(None, alias="linkData")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
@@ -920,13 +899,11 @@ class ContainsSegmentFilter(BaseModel):
     )
 
 
-class KnowledgeGraphToOntologyOutwardEdge(BaseModel):
+class GraphElementVertexId(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    kind: SharedEdgeKind
-    reversed: bool
-    right_endpoint: OntologyTypeVertexId = Field(..., alias="rightEndpoint")
+    root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId | EntityVertexId
 
 
 class LeftClosedTemporalInterval(BaseModel):
@@ -937,20 +914,18 @@ class LeftClosedTemporalInterval(BaseModel):
     start: ClosedTemporalBound
 
 
-class OntologyToOntologyOutwardEdge(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    kind: OntologyEdgeKind
-    reversed: bool
-    right_endpoint: OntologyTypeVertexId = Field(..., alias="rightEndpoint")
-
-
 class OntologyTemporalMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     transaction_time: LeftClosedTemporalInterval = Field(..., alias="transactionTime")
+
+
+class OntologyTypeVertexId(RootModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId
 
 
 class Variable2(BaseModel):
@@ -1007,7 +982,7 @@ class CustomEntityTypeMetadatum(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    label_property: BaseUrl | None = Field(None, alias="labelProperty")
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     provenance: ProvenanceMetadata
     temporal_versioning: OntologyTemporalMetadata = Field(
@@ -1020,7 +995,7 @@ class CustomEntityTypeMetadatum1(BaseModel):
         populate_by_name=True,
     )
     fetched_at: str = Field(..., alias="fetchedAt")
-    label_property: BaseUrl | None = Field(None, alias="labelProperty")
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
     provenance: ProvenanceMetadata
     temporal_versioning: OntologyTemporalMetadata = Field(
         ..., alias="temporalVersioning"
@@ -1104,6 +1079,15 @@ class KnowledgeGraphToKnowledgeGraphOutwardEdge(BaseModel):
     right_endpoint: EntityIdWithInterval = Field(..., alias="rightEndpoint")
 
 
+class KnowledgeGraphToOntologyOutwardEdge(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    kind: SharedEdgeKind
+    reversed: bool
+    right_endpoint: OntologyTypeVertexId = Field(..., alias="rightEndpoint")
+
+
 class KnowledgeGraphOutwardEdge(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1124,6 +1108,15 @@ class OntologyElementMetadata(BaseModel):
     )
     custom: CustomOntologyMetadata
     record_id: OntologyTypeRecordId = Field(..., alias="recordId")
+
+
+class OntologyToOntologyOutwardEdge(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    kind: OntologyEdgeKind
+    reversed: bool
+    right_endpoint: OntologyTypeVertexId = Field(..., alias="rightEndpoint")
 
 
 class OntologyToKnowledgeGraphOutwardEdge(BaseModel):
@@ -1405,7 +1398,7 @@ class UpdatePropertyTypeRequest(BaseModel):
     )
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     schema_: UpdatePropertyType = Field(..., alias="schema")
-    type_to_update: str = Field(..., alias="typeToUpdate")
+    type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 
 
 class Vertex(RootModel):
