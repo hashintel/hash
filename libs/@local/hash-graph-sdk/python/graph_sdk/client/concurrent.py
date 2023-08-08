@@ -60,6 +60,8 @@ def with_actor(client: "HASHClient", actor: UUID) -> Generator[None, None, None]
     client.actor = old_actor
 
 
+# TODO H-351: Use hash_graph_client for create_entity
+#   https://linear.app/hash/issue/H-351
 class HASHClient:
     """Implementation of the client for the HASH API.
 
@@ -252,6 +254,3 @@ class HASHClient:
         )
 
         return await self.inner.query_entities(request)
-
-
-# TODO: create_entity should use the hash graph client (same with update)
