@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import {
   getLayoutWithSidebar,
@@ -19,6 +19,7 @@ import {
 } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { MainContainer } from "../../../shared/main-container";
+import { AddMemberForm } from "./members.page/add-member-form";
 import { Cell } from "./members.page/cell";
 import { MemberRow } from "./members.page/member-row";
 
@@ -30,14 +31,16 @@ const InviteNewButton = styled("button")`
   padding: 0;
 `;
 
-const OrgGeneralSettingsPage: NextPageWithLayout = () => {
+const OrgMembersPage: NextPageWithLayout = () => {
   const router = useRouter();
 
   const topRef = useRef<HTMLDivElement>(null);
 
   const { shortname } = router.query as { shortname: string };
 
-  const { authenticatedUser, refetch } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
 
   const org = authenticatedUser.memberOf.find(
     (orgOption) => orgOption.shortname === shortname,
@@ -88,34 +91,46 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {org.memberships.map((membership) => (
-                <MemberRow
-                  key={membership.membershipEntity.metadata.recordId.entityId}
-                  membership={membership}
-                  self={
-                    membership.user.shortname === authenticatedUser.shortname
-                  }
-                />
-              ))}
+              {org.memberships
+                .sort(
+                  (a, b) =>
+                    a.user.preferredName?.localeCompare(
+                      b.user.preferredName ?? "ZZZ",
+                    ) ?? 1,
+                )
+                .map((membership) => (
+                  <MemberRow
+                    key={membership.membershipEntity.metadata.recordId.entityId}
+                    membership={membership}
+                    self={
+                      membership.user.shortname === authenticatedUser.shortname
+                    }
+                  />
+                ))}
             </TableBody>
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={4}>
-                  <InviteNewButton>
-                    <Typography
-                      variant="smallTextLabels"
-                      color="gray.60"
-                      fontWeight={600}
-                      sx={({ transitions }) => ({
-                        "&:hover": {
-                          color: "black",
-                        },
-                        transition: transitions.create("color"),
-                      })}
-                    >
-                      Invite new member...
-                    </Typography>
-                  </InviteNewButton>
+                  {showAddMemberForm ? (
+                    <AddMemberForm org={org} />
+                  ) : (
+                    <InviteNewButton>
+                      <Typography
+                        variant="smallTextLabels"
+                        color="gray.60"
+                        fontWeight={600}
+                        onClick={() => setShowAddMemberForm(true)}
+                        sx={({ transitions }) => ({
+                          "&:hover": {
+                            color: "black",
+                          },
+                          transition: transitions.create("color"),
+                        })}
+                      >
+                        Invite new member...
+                      </Typography>
+                    </InviteNewButton>
+                  )}
                 </TableCell>
               </TableRow>
             </TableFooter>
@@ -126,9 +141,9 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   );
 };
 
-OrgGeneralSettingsPage.getLayout = (page) =>
+OrgMembersPage.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
   });
 
-export default OrgGeneralSettingsPage;
+export default OrgMembersPage;

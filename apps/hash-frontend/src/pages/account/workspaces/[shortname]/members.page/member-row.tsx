@@ -1,9 +1,13 @@
+import { TextField } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { BaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { TableCell, TableRow, Typography } from "@mui/material";
+import { Box, TableCell, TableRow, Typography } from "@mui/material";
+import { FormEvent, useRef, useState } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
@@ -22,7 +26,39 @@ export const MemberRow = ({
   self: boolean;
 }) => {
   const { archiveEntity } = useBlockProtocolArchiveEntity();
+  const { updateEntity } = useBlockProtocolUpdateEntity();
   const { refetch } = useAuthenticatedUser();
+
+  const responsibilityInputRef = useRef<HTMLInputElement>(null);
+
+  const initialResponsibility =
+    membership.membershipEntity.properties[responsibilityKey];
+
+  const [draftResponsibility, setDraftResponsibility] = useState(
+    initialResponsibility,
+  );
+
+  const updateResponsibility = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (draftResponsibility === initialResponsibility) {
+      return;
+    }
+
+    await updateEntity({
+      data: {
+        entityId: membership.membershipEntity.metadata.recordId.entityId,
+        entityTypeId: membership.membershipEntity.metadata.entityTypeId,
+        properties: {
+          ...membership.membershipEntity.properties,
+          [responsibilityKey as BaseUrl]: draftResponsibility,
+        },
+      },
+    });
+    void refetch();
+
+    responsibilityInputRef.current?.blur();
+  };
 
   const removeFromOrg = async () => {
     await archiveEntity({
@@ -43,7 +79,18 @@ export const MemberRow = ({
           {membership.user.preferredName}
         </Link>
       </Cell>
-      <Cell>{membership.membershipEntity.properties[responsibilityKey]}</Cell>
+      <Cell>
+        <Box component="form" onSubmit={updateResponsibility}>
+          <TextField
+            onBlur={updateResponsibility}
+            onChange={(event) => setDraftResponsibility(event.target.value)}
+            inputRef={responsibilityInputRef}
+            size="xs"
+            sx={{ "&:not(:hover) *": { border: "none" } }}
+            value={draftResponsibility}
+          />
+        </Box>
+      </Cell>
       <TableCell>
         <Typography
           variant="smallTextLabels"

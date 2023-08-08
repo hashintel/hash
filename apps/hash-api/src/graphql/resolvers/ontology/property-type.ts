@@ -1,15 +1,15 @@
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   OwnedById,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "../../../graph";
 import {
   archivePropertyType,
   createPropertyType,

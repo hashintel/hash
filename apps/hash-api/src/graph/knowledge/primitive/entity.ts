@@ -5,6 +5,10 @@ import {
   GraphResolveDepths,
 } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   AccountId,
   BaseUrl,
   Entity,
@@ -28,11 +32,7 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {
   createLinkEntity,
@@ -97,9 +97,20 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { query }) => {
-  return await graphApi
-    .getEntitiesByQuery(query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<EntityRootType>);
+  return await graphApi.getEntitiesByQuery(query).then(({ data: subgraph }) => {
+    // filter archived entities from the vertices until we implement archival by timestamp, not flag – H
+    for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
+      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+      if (
+        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
+          .archived
+      ) {
+        // eslint-disable-next-line no-param-reassign -- temporary hack
+        delete subgraph.vertices[entityId];
+      }
+    }
+    return subgraph as Subgraph<EntityRootType>;
+  });
 };
 
 /**

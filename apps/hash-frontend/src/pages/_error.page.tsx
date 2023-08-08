@@ -10,7 +10,6 @@ const CustomErrorPage: NextPageWithLayout<ErrorProps> = ({ statusCode }) => {
 };
 
 CustomErrorPage.getInitialProps = async (contextData) => {
-  console.log("CONTEXT", contextData);
   await Sentry.captureUnderscoreErrorException(contextData);
   return NextErrorComponent.getInitialProps(contextData);
 };

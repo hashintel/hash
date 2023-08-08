@@ -1,11 +1,6 @@
 import path from "node:path";
 
-import {
-  currentTimeInstantTemporalAxes,
-  fullDecisionTimeAxis,
-  ImpureGraphContext,
-  zeroedGraphResolveDepths,
-} from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
@@ -30,6 +25,11 @@ import {
   EntityTypeStructuralQuery,
   PropertyTypeStructuralQuery,
 } from "@local/hash-graph-client";
+import {
+  currentTimeInstantTemporalAxes,
+  fullDecisionTimeAxis,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   BaseUrl,
   Entity,

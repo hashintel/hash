@@ -1,7 +1,10 @@
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   Entity,
-  EntityRootType,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -13,12 +16,9 @@ import {
 } from "apollo-server-express";
 
 import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "../../../../graph";
-import {
   archiveEntity,
   createEntityWithLinks,
+  getEntities,
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
@@ -122,8 +122,6 @@ export const queryEntitiesResolver: Extract<
   { logger, dataSources },
   __,
 ) => {
-  const { graphApi } = dataSources;
-
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
     throw new ApolloError(
       "Sorting on queryEntities  results is not currently supported",
@@ -140,22 +138,24 @@ export const queryEntitiesResolver: Extract<
     );
   }
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
+  const entitySubgraph = await getEntities(dataSources, {
+    query: {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return entitySubgraph as Subgraph<EntityRootType>;
+  return entitySubgraph;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -179,7 +179,6 @@ export const getEntityResolver: ResolverFn<
   { dataSources },
   __,
 ) => {
-  const { graphApi } = dataSources;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const filter: Filter = {
@@ -211,22 +210,24 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
+  const entitySubgraph = await getEntities(dataSources, {
+    query: {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
+      },
+      temporalAxes,
     },
-    temporalAxes,
   });
 
-  return entitySubgraph as Subgraph<EntityRootType>;
+  return entitySubgraph;
 };
 
 export const updateEntityResolver: ResolverFn<

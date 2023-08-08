@@ -18,6 +18,8 @@ const ContextButton = styled("button")`
   background: none;
   border: none;
   border-radius: 8px;
+  color: ${theme.palette.gray["60"]};
+  font-size: 22px;
   cursor: pointer;
   padding: 0 12px 8px 12px;
   user-select: none;
