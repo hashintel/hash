@@ -58,10 +58,10 @@
       "title": "Property Type Object",
       "description": "A JSON object where each entry is constrained by a property type.",
       "type": "object",
-      "propertyNames": {
+      "x-propertyNames": {
         "$ref": "#/definitions/BaseUrl"
       },
-      "patternProperties": {
+      "x-patternProperties": {
         ".*": {
           "oneOf": [
             {
@@ -95,10 +95,10 @@
     },
     "LinkTypeObject": {
       "type": "object",
-      "propertyNames": {
+      "x-propertyNames": {
         "$ref": "#/definitions/VersionedUrl"
       },
-      "patternProperties": {
+      "x-patternProperties": {
         ".*": {
           "type": "object",
           "properties": {
