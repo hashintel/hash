@@ -2419,6 +2419,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "PinnedTransactionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2435,6 +2436,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "VariableDecisionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2460,6 +2462,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "PinnedDecisionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2476,6 +2479,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "VariableTransactionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2506,6 +2510,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "UnresolvedPinnedTransactionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2521,6 +2526,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "UnresolvedVariableDecisionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2546,6 +2552,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "UnresolvedPinnedDecisionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2561,6 +2568,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "UnresolvedVariableTransactionAxis",
                 "required": [
                   "axis",
                   "interval"

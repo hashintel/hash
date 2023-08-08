@@ -217,7 +217,7 @@ class PropertyTypeQueryToken(Enum):
     property_types = "propertyTypes"
 
 
-class Pinned1(BaseModel):
+class PinnedDecisionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -225,7 +225,7 @@ class Pinned1(BaseModel):
     timestamp: datetime
 
 
-class Pinned3(BaseModel):
+class UnresolvedPinnedDecisionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -757,7 +757,7 @@ class ProvenanceMetadata(BaseModel):
     record_created_by_id: RecordCreatedById = Field(..., alias="recordCreatedById")
 
 
-class Pinned(BaseModel):
+class PinnedTransactionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -765,7 +765,7 @@ class Pinned(BaseModel):
     timestamp: datetime
 
 
-class Pinned2(BaseModel):
+class UnresolvedPinnedTransactionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -928,7 +928,7 @@ class OntologyTypeVertexId(RootModel):
     root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId
 
 
-class Variable2(BaseModel):
+class UnresolvedVariableDecisionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -940,11 +940,15 @@ class QueryTemporalAxesUnresolvedDecisionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    pinned: Pinned2
-    variable: Variable2
+    pinned: UnresolvedPinnedTransactionAxis = Field(
+        ..., title="UnresolvedPinnedTransactionAxis"
+    )
+    variable: UnresolvedVariableDecisionAxis = Field(
+        ..., title="UnresolvedVariableDecisionAxis"
+    )
 
 
-class Variable3(BaseModel):
+class UnresolvedVariableTransactionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -956,8 +960,12 @@ class QueryTemporalAxesUnresolvedTransactionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    pinned: Pinned3
-    variable: Variable3
+    pinned: UnresolvedPinnedDecisionAxis = Field(
+        ..., title="UnresolvedPinnedDecisionAxis"
+    )
+    variable: UnresolvedVariableTransactionAxis = Field(
+        ..., title="UnresolvedVariableTransactionAxis"
+    )
 
 
 class QueryTemporalAxesUnresolved(RootModel):
@@ -1143,7 +1151,7 @@ class EntityTypeVertex(BaseModel):
     kind: Literal["entityType"]
 
 
-class Variable(BaseModel):
+class VariableDecisionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1155,11 +1163,11 @@ class QueryTemporalAxesDecisionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    pinned: Pinned
-    variable: Variable
+    pinned: PinnedTransactionAxis = Field(..., title="PinnedTransactionAxis")
+    variable: VariableDecisionAxis = Field(..., title="VariableDecisionAxis")
 
 
-class Variable1(BaseModel):
+class VariableTransactionAxis(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1171,8 +1179,8 @@ class QueryTemporalAxesTransactionTime(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    pinned: Pinned1
-    variable: Variable1
+    pinned: PinnedDecisionAxis = Field(..., title="PinnedDecisionAxis")
+    variable: VariableTransactionAxis = Field(..., title="VariableTransactionAxis")
 
 
 class QueryTemporalAxes(RootModel):

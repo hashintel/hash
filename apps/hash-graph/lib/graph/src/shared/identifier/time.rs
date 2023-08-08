@@ -4,7 +4,7 @@ mod interval;
 mod timestamp;
 
 pub use self::{
-    axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime},
+    axis::{DecisionTime, TemporalAxis, TemporalTagged, TimeAxis, TransactionTime},
     bound::{ClosedTemporalBound, LimitedTemporalBound, OpenTemporalBound, TemporalBound},
     interval::RightBoundedTemporalIntervalUnresolved,
     timestamp::Timestamp,
