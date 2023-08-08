@@ -333,6 +333,14 @@ export const PageNotificationBanner = ({
               color: palette.common.black,
               fontWeight: 400,
               fontSize: 14,
+              "&:hover": {
+                background: palette.blue[20],
+                borderColor: palette.blue[50],
+                color: palette.blue[100],
+                "& svg": {
+                  color: palette.blue[50],
+                },
+              },
             })}
             startIcon={
               <FontAwesomeIcon
