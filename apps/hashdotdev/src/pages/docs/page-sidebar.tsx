@@ -111,7 +111,7 @@ const SidebarPageSection: FunctionComponent<SidebarPageSectionProps> = ({
         alignItems="center"
         justifyContent="space-between"
         visibility="inherit"
-        pr={1}
+        pr={1.5}
       >
         <SidebarLink
           replace
@@ -238,7 +238,7 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
         alignItems="center"
         justifyContent="space-between"
         bgcolor={isSelected ? (theme) => theme.palette.teal[10] : "transparent"}
-        pr={1}
+        pr={1.5}
       >
         <SidebarLink
           ref={(ref) => {
