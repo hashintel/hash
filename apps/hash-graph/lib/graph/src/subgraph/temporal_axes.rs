@@ -3,9 +3,29 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
-    RightBoundedTemporalIntervalUnresolved, TemporalAxis, TemporalBound, TemporalInterval,
-    TemporalTagged, TimeAxis, Timestamp, TransactionTime,
+    RightBoundedTemporalIntervalUnresolved, TemporalBound, TemporalInterval, TemporalTagged,
+    TimeAxis, Timestamp, TransactionTime,
 };
+
+/// Marker trait for any temporal axis.
+///
+/// Contains useful metadata about the temporal axis.
+trait TemporalAxisSchema {
+    /// The name of the temporal axis.
+    fn noun() -> &'static str;
+}
+
+impl TemporalAxisSchema for DecisionTime {
+    fn noun() -> &'static str {
+        "Decision"
+    }
+}
+
+impl TemporalAxisSchema for TransactionTime {
+    fn noun() -> &'static str {
+        "Transaction"
+    }
+}
 
 /// Time axis for the variable temporal axis used in [`QueryTemporalAxes`]s.
 ///
@@ -61,7 +81,7 @@ impl<A: Default> PinnedTemporalAxisUnresolved<A> {
 
 impl<'s, A> ToSchema<'s> for PinnedTemporalAxisUnresolved<A>
 where
-    A: ToSchema<'s> + TemporalAxis,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
@@ -121,7 +141,7 @@ impl<A: Default> VariableTemporalAxisUnresolved<A> {
 
 impl<'s, A> ToSchema<'s> for VariableTemporalAxisUnresolved<A>
 where
-    A: ToSchema<'s> + TemporalAxis,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
@@ -208,7 +228,7 @@ pub struct PinnedTemporalAxis<A> {
 
 impl<'s, A> ToSchema<'s> for PinnedTemporalAxis<A>
 where
-    A: ToSchema<'s> + TemporalAxis,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
@@ -248,7 +268,7 @@ impl<A> VariableTemporalAxis<A> {
 
 impl<'s, A> ToSchema<'s> for VariableTemporalAxis<A>
 where
-    A: ToSchema<'s> + TemporalAxis,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
