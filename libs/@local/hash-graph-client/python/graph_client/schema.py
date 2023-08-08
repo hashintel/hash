@@ -1,3 +1,4 @@
+"""Base classes for all schemas."""
 from abc import ABC
 
 from pydantic import BaseModel
