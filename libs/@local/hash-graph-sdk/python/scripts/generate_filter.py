@@ -66,6 +66,11 @@ class Configuration(TypedDict):
     entity: ConfigurationEntry
 
 
+def is_builtin(name: str) -> bool:
+    """Check if the given name is a builtin."""
+    return name in dir(__builtins__)
+
+
 def is_keyword(name: str) -> bool:
     """Check if the given name is a keyword."""
     try:
@@ -74,6 +79,11 @@ def is_keyword(name: str) -> bool:
         return True
 
     return False
+
+
+def is_keyword_or_builtin(name: str) -> bool:
+    """Check if the given name is a keyword or builtin."""
+    return is_builtin(name) or is_keyword(name)
 
 
 def get_class_name(
@@ -86,6 +96,16 @@ def get_class_name(
         "entity_type": "EntityTypePath",
         "entity": "EntityPath",
     }[name]
+
+
+def get_human_readable_name(token: Enum) -> str:
+    """Get the human readable name for the given token."""
+    return {
+        "DataTypeQueryToken": "a data type",
+        "PropertyTypeQueryToken": "a property type",
+        "EntityTypeQueryToken": "an entity type",
+        "EntityQueryToken": "an entity",
+    }[type(token).__name__]
 
 
 def load_attribute(
@@ -127,50 +147,70 @@ def create_no_args_method(
     )
 
 
+def generate_method_docstring(
+    token: Enum,
+    name: str,
+) -> ast.Expr:
+    """Generate a docstring for the given method."""
+    return ast.Expr(
+        value=ast.Constant(
+            value=(
+                f"Return the path to the {name} attribute "
+                f"of {get_human_readable_name(token)}."
+            )
+        )
+    )
+
+
 def generate_plain_method(
     token: Enum,
     name: str,
 ) -> ast.FunctionDef:
     """Generate a method that ends the path."""
     function_name = name
-    while is_keyword(function_name):
+    while is_keyword_or_builtin(function_name):
         function_name += "_"
 
     return create_no_args_method(
         name=function_name,
         body=[
+            generate_method_docstring(token, name),
             ast.Return(
                 value=ast.Call(
                     func=load_attribute(["self", "path", "push"]),
-                    args=[load_attribute([type(token).name, name])],
+                    args=[load_attribute([type(token).__name__, name])],
                     keywords=[],
                 )
-            )
+            ),
         ],
         returns=ast.Name(id="Path", ctx=ast.Load()),
     )
 
 
 def generate_selector_method(
+    class_name: str,
     token: Enum,
     name: str,
     next_type: OntologyType,
 ) -> ast.FunctionDef:
     """Generate a method that continues the path after a selector to a type."""
     next_class_name = get_class_name(next_type)
+    if class_name == next_class_name:
+        next_class_name = "Self"
 
     function_name = name
-    while is_keyword(function_name):
+    while is_keyword_or_builtin(function_name):
         function_name += "_"
 
     return create_no_args_method(
         name=function_name,
         body=[
+            generate_method_docstring(token, name),
             ast.Return(
                 value=ast.Call(
                     func=ast.Attribute(
                         ast.Call(
-                            value=ast.Attribute(
+                            func=ast.Attribute(
                                 value=ast.Subscript(
                                     value=ast.Name(id="SelectorPath", ctx=ast.Load()),
                                     slice=ast.Name(id=next_class_name, ctx=ast.Load()),
@@ -181,7 +221,7 @@ def generate_selector_method(
                             args=[
                                 ast.Call(
                                     func=load_attribute(["self", "path", "push"]),
-                                    args=[load_attribute([type(token).name, name])],
+                                    args=[load_attribute([type(token).__name__, name])],
                                     keywords=[],
                                 )
                             ],
@@ -190,14 +230,14 @@ def generate_selector_method(
                         attr="set_cls",
                         ctx=ast.Load(),
                     ),
-                    args=[ast.Name(value=type(token).name)],
+                    args=[ast.Name(id=class_name)],
                     keywords=[],
                 )
             ),
         ],
         returns=ast.Subscript(
             value=ast.Name(id="SelectorPath", ctx=ast.Load()),
-            slice=ast.Constant(value=next_class_name),
+            slice=ast.Name(id=next_class_name),
         ),
     )
 
@@ -208,64 +248,73 @@ def generate_wildcard_method(
 ) -> ast.FunctionDef:
     """Generate a method that continues the path with a wildcard selector."""
     function_name = name
-    while is_keyword(function_name):
+    while is_keyword_or_builtin(function_name):
         function_name += "_"
 
     return create_no_args_method(
         name=function_name,
         body=[
+            generate_method_docstring(token, name),
             ast.Return(
                 value=ast.Call(
                     func=load_attribute(["PropertiesPath", "from_path"]),
                     args=[
                         ast.Call(
                             func=load_attribute(["self", "path", "push"]),
-                            args=[load_attribute([type(token).name, name])],
+                            args=[load_attribute([type(token).__name__, name])],
                             keywords=[],
                         )
                     ],
                     keywords=[],
                 )
-            )
+            ),
         ],
         returns=ast.Name(id="PropertiesPath", ctx=ast.Load()),
     )
 
 
 def generate_continue_method(
+    class_name: str,
     token: Enum,
     name: str,
     next_type: OntologyType,
 ) -> ast.FunctionDef:
     """Generate a method that continues the path with the specified type."""
     next_class_name = get_class_name(next_type)
+    call_from_path_on = next_class_name
+
+    if class_name == next_class_name:
+        next_class_name = "Self"
+        call_from_path_on = "self"
 
     function_name = name
-    while is_keyword(function_name):
+    while is_keyword_or_builtin(function_name):
         function_name += "_"
 
     return create_no_args_method(
         name=function_name,
         body=[
+            generate_method_docstring(token, name),
             ast.Return(
                 value=ast.Call(
-                    func=load_attribute([next_class_name, "from_path"]),
+                    func=load_attribute([call_from_path_on, "from_path"]),
                     args=[
                         ast.Call(
                             func=load_attribute(["self", "path", "push"]),
-                            args=[load_attribute([type(token).name, name])],
+                            args=[load_attribute([type(token).__name__, name])],
                             keywords=[],
                         )
                     ],
                     keywords=[],
                 )
-            )
+            ),
         ],
         returns=ast.Name(id=next_class_name, ctx=ast.Load()),
     )
 
 
 def generate_method(
+    class_name: str,
     tokens: Enum,
     method_name: str,
     *,
@@ -275,13 +324,13 @@ def generate_method(
 ) -> ast.FunctionDef:
     """Generate a method for a path class."""
     if selector is not None:
-        return generate_selector_method(tokens, method_name, selector)
+        return generate_selector_method(class_name, tokens, method_name, selector)
 
     if wildcard:
         return generate_wildcard_method(tokens, method_name)
 
     if continue_ is not None:
-        return generate_continue_method(tokens, method_name, continue_)
+        return generate_continue_method(class_name, tokens, method_name, continue_)
 
     return generate_plain_method(tokens, method_name)
 
@@ -293,7 +342,7 @@ def generate_path(
     """Generate a path class."""
     class_name = get_class_name(id_)
 
-    tokens: Enum = {
+    tokens: type[Enum] = {
         "data_type": DataTypeQueryToken,
         "property_type": PropertyTypeQueryToken,
         "entity_type": EntityTypeQueryToken,
@@ -302,6 +351,7 @@ def generate_path(
 
     body = [
         generate_method(
+            class_name,
             token,
             token.name,
             selector=config["selector"].get(token.name, None),
@@ -315,7 +365,14 @@ def generate_path(
         name=class_name,
         bases=[ast.Name(id="AbstractPath", ctx=ast.Load())],
         keywords=[],
-        body=body,
+        body=[
+            ast.Expr(
+                value=ast.Constant(
+                    value=f"A path for {get_human_readable_name(next(iter(tokens)))}."
+                )
+            ),
+            *body,
+        ],
         decorator_list=[],
     )
 
@@ -339,13 +396,15 @@ def imports() -> [ast.stmt]:
             ],
         ),
         ast.ImportFrom(
-            module="graph_client.filter.base",
+            module="graph_sdk.filter.base",
             names=[
                 ast.alias(name="AbstractPath", asname=None),
+                ast.alias(name="PropertiesPath", asname=None),
+                ast.alias(name="SelectorPath", asname=None),
             ],
         ),
         ast.ImportFrom(
-            module="graph_client.query",
+            module="graph_sdk.query",
             names=[
                 ast.alias(name="Path", asname=None),
             ],
@@ -356,7 +415,12 @@ def imports() -> [ast.stmt]:
 def doc_comment() -> ast.Expr:
     """Add a doc comment to the top of the file."""
     return ast.Expr(
-        value=ast.Constant(value="This file is auto-generated. Do not edit!")
+        value=ast.Constant(
+            value=(
+                "Definitions for all path objects.\n\nThis file is auto-generated. Do"
+                " not edit!"
+            )
+        )
     )
 
 
@@ -373,5 +437,10 @@ module = ast.Module(
         generate_path("property_type", configuration["property_type"]),
         generate_path("entity_type", configuration["entity_type"]),
         generate_path("entity", configuration["entity"]),
-    ]
+    ],
+    type_ignores=[],
 )
+
+contents = ast.unparse(ast.fix_missing_locations(module))
+
+(DIRECTORY / "graph_sdk" / "filter" / "path.py").write_text(contents)

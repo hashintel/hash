@@ -1,6 +1,6 @@
 {
   "data_type": {
-    "selector": [],
+    "selector": {},
     "wildcard": [],
     "continue": {}
   },
@@ -24,7 +24,11 @@
     "selector": {},
     "wildcard": ["properties"],
     "continue": {
-      "type": "entity_type"
+      "type": "entity_type",
+      "incoming_links": "entity",
+      "outgoing_links": "entity",
+      "left_entity": "entity",
+      "right_entity": "entity"
     }
   }
 }
