@@ -25,9 +25,7 @@ use crate::{
             json::Json,
             report_to_status_code,
             status::status_to_response,
-            utoipa_typedef::{
-                base_url_schema, subgraph::Subgraph, ListOrValue, MaybeListOfEntityType,
-            },
+            utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
             RestApiStore,
         },
     },
@@ -104,7 +102,7 @@ struct CreateEntityTypeRequest {
     owned_by_id: OwnedById,
     actor_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(schema_with = base_url_schema)]
+    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
 }
 
@@ -430,7 +428,7 @@ struct UpdateEntityTypeRequest {
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(schema_with = base_url_schema)]
+    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
 }
 
