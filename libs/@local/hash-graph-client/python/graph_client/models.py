@@ -386,6 +386,7 @@ class PropertyTypeObject(BaseModel):
 
 class PropertyObjectValue(BaseModel):
     model_config = ConfigDict(
+        extra="forbid",
         populate_by_name=True,
     )
     type: Literal["object"]
@@ -461,7 +462,7 @@ class UpdateEntityType(BaseModel):
     description: str | None = None
     examples: list[dict[str, Any]] | None = None
     properties: PropertyTypeObject
-    required: list[AnyUrl] | None = None
+    required: list[BaseURL] | None = None
     links: LinkTypeObject | None = None
 
 
@@ -579,15 +580,6 @@ class Status(BaseModel):
         description="A developer-facing description of the status.\n\nWhere possible, this should provide guiding advice for debugging and/or handling the error.",
     )
     contents: list[ErrorInfo | RequestInfo | ResourceInfo]
-
-
-class PropertyObjectValue1(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    type: Literal["object"]
-    properties: PropertyTypeObject
 
 
 class ArchiveDataTypeRequest(BaseModel):
@@ -1479,34 +1471,6 @@ class PropertyType(BaseModel):
     one_of: list[PropertyValues] = Field(..., alias="oneOf")
 
 
-class Items1(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    one_of: list[PropertyValuesUpdate] = Field(..., alias="oneOf", min_length=1)
-
-
-class PropertyArrayValueUpdate(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    type: Literal["array"]
-    items: Items1
-    min_items: int | None = Field(None, alias="minItems", ge=0)
-    max_items: int | None = Field(None, alias="maxItems", ge=0)
-
-
-class PropertyValuesUpdate(RootModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: DataTypeReference | PropertyObjectValue1 | PropertyArrayValueUpdate = Field(
-        ..., title="PropertyValuesUpdate"
-    )
-
-
 class UpdatePropertyType(BaseModel):
     """
     The contents of a Property Type update request
@@ -1522,7 +1486,7 @@ class UpdatePropertyType(BaseModel):
     kind: Literal["propertyType"]
     title: str
     description: str | None = None
-    one_of: list[PropertyValuesUpdate] = Field(..., alias="oneOf")
+    one_of: list[PropertyValues] = Field(..., alias="oneOf")
 
 
 CreatePropertyTypeRequest.model_rebuild()
@@ -1537,4 +1501,3 @@ PropertyTypeWithMetadata.model_rebuild()
 Subgraph.model_rebuild()
 UpdatePropertyTypeRequest.model_rebuild()
 Items.model_rebuild()
-Items1.model_rebuild()
