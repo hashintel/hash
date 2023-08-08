@@ -77,7 +77,7 @@ impl RoutedResource for EntityResource {
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
     #[schema(nullable = false)]
@@ -182,12 +182,12 @@ async fn get_entities_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
     #[serde(flatten)]

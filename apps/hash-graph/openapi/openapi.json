@@ -934,7 +934,7 @@
             "$ref": "#/components/schemas/RecordArchivedById"
           },
           "typeToArchive": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -949,7 +949,7 @@
             "$ref": "#/components/schemas/RecordArchivedById"
           },
           "typeToArchive": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -964,12 +964,9 @@
             "$ref": "#/components/schemas/RecordArchivedById"
           },
           "typeToArchive": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
-      },
-      "BaseUrl": {
-        "type": "string"
       },
       "ClosedTemporalBound": {
         "oneOf": [
@@ -1039,7 +1036,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "entityTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
           "entityUuid": {
             "allOf": [
@@ -1075,12 +1072,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
@@ -1140,7 +1132,7 @@
             ],
             "properties": {
               "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
+                "$ref": "./models/shared.json#/definitions/BaseUrl"
               },
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
@@ -1165,7 +1157,7 @@
                 "type": "string"
               },
               "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
+                "$ref": "./models/shared.json#/definitions/BaseUrl"
               },
               "provenance": {
                 "$ref": "#/components/schemas/ProvenanceMetadata"
@@ -1263,7 +1255,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "#/components/schemas/BaseUrl"
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -1555,7 +1547,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "#/components/schemas/BaseUrl"
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -2018,7 +2010,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "dataTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2033,7 +2025,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "entityTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2048,7 +2040,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "propertyTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2372,7 +2364,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "#/components/schemas/BaseUrl"
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -2747,7 +2739,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "typeToUnarchive": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2762,7 +2754,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "typeToUnarchive": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2777,7 +2769,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "typeToUnarchive": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2850,7 +2842,7 @@
                 "$ref": "#/components/schemas/EntityId"
               },
               "entityTypeId": {
-                "type": "string"
+                "$ref": "./models/shared.json#/definitions/VersionedUrl"
               },
               "properties": {
                 "$ref": "#/components/schemas/EntityProperties"
@@ -2871,18 +2863,13 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"
           },
           "typeToUpdate": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2901,7 +2888,7 @@
             "$ref": "./models/update_property_type.json"
           },
           "typeToUpdate": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },

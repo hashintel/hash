@@ -99,3 +99,7 @@ impl<T> IntoIterator for ListOrValue<T> {
         }
     }
 }
+
+pub fn base_url_schema() -> impl Into<RefOr<Schema>> {
+    Ref::from_schema_name("SHARED_BaseUrl")
+}

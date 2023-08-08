@@ -226,7 +226,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         &OperationGraphTagAddon,
         &FilterSchemaAddon,
         &TimeSchemaAddon,
-        &OntologyTypeSchemaAddon,
     ),
     components(
         schemas(
@@ -382,6 +381,9 @@ impl Modify for MergeAddon {
 /// Any component that starts with `VAR_` will transform into a relative URL in the schema and
 /// receive a `.json` ending.
 ///
+/// Any component that starts with `SHARED_` will transform into a relative URL into the
+/// `./models/shared.json` file.
+///
 /// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
@@ -428,20 +430,31 @@ fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
             openapi::Schema::OneOf(one_of) => {
                 one_of.items.iter_mut().for_each(modify_schema_references);
             }
+            openapi::Schema::AllOf(all_of) => {
+                all_of.items.iter_mut().for_each(modify_schema_references);
+            }
             _ => (),
         },
     }
 }
 
 fn modify_reference(reference: &mut openapi::Ref) {
-    static REF_PREFIX: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_MODELS: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_SHARED: &str = "#/components/schemas/SHARED_";
 
-    if reference.ref_location.starts_with(REF_PREFIX) {
+    if reference.ref_location.starts_with(REF_PREFIX_MODELS) {
         reference
             .ref_location
-            .replace_range(0..REF_PREFIX.len(), "./models/");
+            .replace_range(0..REF_PREFIX_MODELS.len(), "./models/");
         reference.ref_location.make_ascii_lowercase();
         reference.ref_location.push_str(".json");
+    };
+
+    if reference.ref_location.starts_with(REF_PREFIX_SHARED) {
+        reference.ref_location.replace_range(
+            0..REF_PREFIX_SHARED.len(),
+            "./models/shared.json#/definitions/",
+        );
     };
 }
 
@@ -669,20 +682,6 @@ impl Modify for TimeSchemaAddon {
                     .0
                     .to_owned(),
                 RightBoundedTemporalIntervalUnresolved::<()>::schema().1,
-            );
-        }
-    }
-}
-
-/// Adds time-related structs to the `OpenAPI` schema.
-struct OntologyTypeSchemaAddon;
-
-impl Modify for OntologyTypeSchemaAddon {
-    fn modify(&self, openapi: &mut openapi::OpenApi) {
-        if let Some(ref mut components) = openapi.components {
-            components.schemas.insert(
-                "BaseUrl".to_owned(),
-                ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }
     }
