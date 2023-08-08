@@ -8,6 +8,3 @@
 LICENSE @hashintel/legal
 LICENSE.txt @hashintel/legal
 LICENSE.md @hashintel/legal
-
-# Apps
-/apps/intellij-plugin/ @hashintel/intellij-plugin
