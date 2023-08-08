@@ -304,7 +304,8 @@ export const constructOrg = (params: {
     }
 
     return {
-      // create a new user object, because the original will be mutated
+      // create a new user object, because the original will be mutated in the createUser function to add 'memberOf'
+      // if we don't create a new object here we will end up with a circular reference
       user: JSON.parse(JSON.stringify(user, undefined, 2)),
       membershipEntity: {
         properties,

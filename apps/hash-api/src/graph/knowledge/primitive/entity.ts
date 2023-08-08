@@ -98,7 +98,7 @@ export const getEntities: ImpureGraphFunction<
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { query }) => {
   return await graphApi.getEntitiesByQuery(query).then(({ data: subgraph }) => {
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag – H
+    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
     for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
       const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
       if (
