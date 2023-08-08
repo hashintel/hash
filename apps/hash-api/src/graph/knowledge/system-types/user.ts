@@ -451,22 +451,19 @@ export const updateUserPreferredName: ImpureGraphFunction<
  *
  * @param params.user - the user
  * @param params.org - the organization the user is joining
- * @param params.responsibility - the responsibility of the user at the organization
  * @param params.actorId - the id of the account that is making the user a member of the organization
  */
 export const joinOrg: ImpureGraphFunction<
   {
     userEntityId: EntityId;
     orgEntityId: EntityId;
-    responsibility: string;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { userEntityId, orgEntityId, responsibility, actorId } = params;
+  const { userEntityId, orgEntityId, actorId } = params;
 
   await createOrgMembership(ctx, {
-    responsibility,
     orgEntityId,
     userEntityId,
     actorId,

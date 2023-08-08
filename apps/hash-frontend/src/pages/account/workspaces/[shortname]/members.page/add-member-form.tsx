@@ -21,9 +21,6 @@ import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 const shortnameBaseUrl = extractBaseUrl(
   types.propertyType.shortname.propertyTypeId,
 );
-const responsibilityBaseUrl = extractBaseUrl(
-  types.propertyType.responsibility.propertyTypeId,
-);
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);
@@ -99,9 +96,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     await createEntity({
       data: {
         entityTypeId: types.linkEntityType.orgMembership.linkEntityTypeId,
-        properties: {
-          [responsibilityBaseUrl]: "Member",
-        },
+        properties: {},
         linkData: {
           leftEntityId: user.metadata.recordId.entityId,
           rightEntityId: org.entityRecordId.entityId,

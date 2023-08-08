@@ -61,7 +61,7 @@ export const constructMinimalUser = (params: {
 };
 
 export type User = MinimalUser & {
-  memberOf: (Org & { responsibility: string })[];
+  memberOf: Org[];
 };
 
 export const constructUser = (params: {
@@ -92,10 +92,6 @@ export const constructUser = (params: {
   resolvedUsers[entityRecordIdToString(user.entityRecordId)] = user;
 
   user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
-    const responsibility: string = properties[
-      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
-    ] as string;
-
     if (!linkData?.rightEntityId) {
       throw new Error("Expected org membership to contain a right entity");
     }
@@ -134,10 +130,7 @@ export const constructUser = (params: {
       resolvedOrgs[entityRecordIdToString(org.entityRecordId)] = org;
     }
 
-    return {
-      ...org,
-      responsibility,
-    };
+    return org;
   });
 
   return user;

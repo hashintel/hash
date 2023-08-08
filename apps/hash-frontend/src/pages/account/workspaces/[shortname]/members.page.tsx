@@ -85,7 +85,6 @@ const OrgMembersPage: NextPageWithLayout = () => {
             >
               <TableRow>
                 <Cell>Name</Cell>
-                <Cell>Responsibility</Cell>
                 <Cell>Username</Cell>
                 <Cell />
               </TableRow>

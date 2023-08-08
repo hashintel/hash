@@ -90,10 +90,6 @@ export type OrgMembershipProperties = OrgMembershipProperties1 &
   OrgMembershipProperties2;
 export type OrgMembershipProperties1 = LinkProperties;
 
-export type OrgMembershipProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/responsibility/": ResponsibilityPropertyValue;
-};
-
 export type OrgOutgoingLinkAndTarget = never;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {};
@@ -130,11 +126,6 @@ export type ParentProperties1 = LinkProperties;
 export type ParentProperties2 = {};
 
 export type PreferredNamePropertyValue = TextDataType;
-
-/**
- * The user's responsibility at the organization (e.g. "Marketing", "Sales", "Engineering", etc.)
- */
-export type ResponsibilityPropertyValue = TextDataType;
 
 /**
  * A unique identifier for something, in the form of a slug
@@ -180,7 +171,7 @@ export type UserProperties = {
     ...EmailPropertyValue[],
   ];
   "http://localhost:3000/@system-user/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/preferred-name/": PreferredNamePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/shortname/"?: ShortnamePropertyValue;
 };
 

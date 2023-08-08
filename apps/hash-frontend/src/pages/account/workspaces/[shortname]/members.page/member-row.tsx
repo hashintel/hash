@@ -14,10 +14,6 @@ import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 import { Cell } from "./cell";
 import { MemberContextMenu } from "./member-row/member-context-menu";
 
-const responsibilityKey = extractBaseUrl(
-  types.propertyType.responsibility.propertyTypeId,
-) as keyof OrgMembershipProperties;
-
 export const MemberRow = ({
   membership,
   self,
@@ -26,39 +22,7 @@ export const MemberRow = ({
   self: boolean;
 }) => {
   const { archiveEntity } = useBlockProtocolArchiveEntity();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
   const { refetch } = useAuthenticatedUser();
-
-  const responsibilityInputRef = useRef<HTMLInputElement>(null);
-
-  const initialResponsibility =
-    membership.membershipEntity.properties[responsibilityKey];
-
-  const [draftResponsibility, setDraftResponsibility] = useState(
-    initialResponsibility,
-  );
-
-  const updateResponsibility = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (draftResponsibility === initialResponsibility) {
-      return;
-    }
-
-    await updateEntity({
-      data: {
-        entityId: membership.membershipEntity.metadata.recordId.entityId,
-        entityTypeId: membership.membershipEntity.metadata.entityTypeId,
-        properties: {
-          ...membership.membershipEntity.properties,
-          [responsibilityKey as BaseUrl]: draftResponsibility,
-        },
-      },
-    });
-    void refetch();
-
-    responsibilityInputRef.current?.blur();
-  };
 
   const removeFromOrg = async () => {
     await archiveEntity({
@@ -78,18 +42,6 @@ export const MemberRow = ({
         >
           {membership.user.preferredName}
         </Link>
-      </Cell>
-      <Cell>
-        <Box component="form" onSubmit={updateResponsibility}>
-          <TextField
-            onBlur={updateResponsibility}
-            onChange={(event) => setDraftResponsibility(event.target.value)}
-            inputRef={responsibilityInputRef}
-            size="xs"
-            sx={{ "&:not(:hover) *": { border: "none" } }}
-            value={draftResponsibility}
-          />
-        </Box>
       </Cell>
       <TableCell>
         <Typography
