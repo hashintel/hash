@@ -101,9 +101,12 @@ export const getEntities: ImpureGraphFunction<
     // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
     for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
       const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+
       if (
         (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
-          .archived
+          .archived &&
+        // if the vertex is in the roots of the query, then it is intentionally included
+        !subgraph.roots.find((root) => root.baseId === entityId)
       ) {
         // eslint-disable-next-line no-param-reassign -- temporary hack
         delete subgraph.vertices[entityId];
