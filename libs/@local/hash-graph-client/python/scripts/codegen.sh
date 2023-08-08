@@ -37,3 +37,6 @@ poetry run datamodel-codegen \
   --strict-nullable \
   --use-title-as-name \
   --aliases "$DIR/aliases.json"
+
+poetry run python "$DIR/rebase.py"
+poetry run black graph_client/models.py
