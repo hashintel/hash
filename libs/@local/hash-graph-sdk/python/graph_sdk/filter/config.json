@@ -1,0 +1,30 @@
+{
+  "data_type": {
+    "selector": [],
+    "wildcard": [],
+    "continue": {}
+  },
+  "property_type": {
+    "selector": {
+      "data_types": "data_type",
+      "property_types": "property_type"
+    },
+    "wildcard": [],
+    "continue": {}
+  },
+  "entity_type": {
+    "selector": {
+      "properties": "property_type",
+      "links": "entity_type"
+    },
+    "wildcard": [],
+    "continue": {}
+  },
+  "entity": {
+    "selector": {},
+    "wildcard": ["properties"],
+    "continue": {
+      "type": "entity_type"
+    }
+  }
+}
