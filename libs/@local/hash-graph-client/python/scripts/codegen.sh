@@ -35,4 +35,5 @@ poetry run datamodel-codegen \
   --field-constraints \
   --allow-population-by-field-name \
   --strict-nullable \
-  --use-title-as-name
+  --use-title-as-name \
+  --aliases "$DIR/aliases.json"

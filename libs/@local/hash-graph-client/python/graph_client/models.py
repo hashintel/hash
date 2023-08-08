@@ -287,7 +287,7 @@ class UpdateDataType(BaseModel):
         extra="allow",
         populate_by_name=True,
     )
-    field_schema: Literal[
+    schema_url: Literal[
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
     ] = Field(..., alias="$schema")
     kind: Literal["dataType"]
@@ -317,11 +317,11 @@ class DataType(BaseModel):
         extra="allow",
         populate_by_name=True,
     )
-    field_schema: Literal[
+    schema_url: Literal[
         "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"
     ] = Field(..., alias="$schema")
     kind: Literal["dataType"]
-    field_id: VersionedURL = Field(..., alias="$id")
+    identifier: VersionedURL = Field(..., alias="$id")
     title: str
     description: str | None = None
     type: str
@@ -390,11 +390,11 @@ class EntityType(BaseModel):
         extra="forbid",
         populate_by_name=True,
     )
-    field_schema: Literal[
+    schema_url: Literal[
         "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
     ] = Field(..., alias="$schema")
     kind: Literal["entityType"]
-    field_id: VersionedURL = Field(..., alias="$id")
+    identifier: VersionedURL = Field(..., alias="$id")
     type: Literal["object"]
     title: str
     description: str | None = None
@@ -414,7 +414,7 @@ class UpdateEntityType(BaseModel):
         extra="forbid",
         populate_by_name=True,
     )
-    field_schema: Literal[
+    schema_url: Literal[
         "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
     ] = Field(..., alias="$schema")
     kind: Literal["entityType"]
@@ -1462,11 +1462,11 @@ class PropertyType(BaseModel):
         extra="forbid",
         populate_by_name=True,
     )
-    field_schema: Literal[
+    schema_url: Literal[
         "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
     ] = Field(..., alias="$schema")
     kind: Literal["propertyType"]
-    field_id: VersionedURL = Field(..., alias="$id")
+    identifier: VersionedURL = Field(..., alias="$id")
     title: str
     description: str | None = None
     one_of: list[PropertyValues] = Field(..., alias="oneOf")
@@ -1481,7 +1481,7 @@ class UpdatePropertyType(BaseModel):
         extra="forbid",
         populate_by_name=True,
     )
-    field_schema: Literal[
+    schema_url: Literal[
         "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
     ] = Field(..., alias="$schema")
     kind: Literal["propertyType"]
