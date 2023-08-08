@@ -54,6 +54,64 @@
       "required": ["$ref"],
       "additionalProperties": false
     },
+    "PropertyValues": {
+      "title": "propertyValues",
+      "description": "The definition of potential property values, either references to data types, objects made up of more property types, or an array where the items are defined from a set of other property values definitions.",
+      "oneOf": [
+        {
+          "$ref": "./shared.json#/definitions/DataTypeReference"
+        },
+        {
+          "title": "propertyObjectValue",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["object"]
+            },
+            "properties": {
+              "$ref": "./shared.json#/definitions/PropertyTypeObject"
+            }
+          },
+          "required": ["type", "properties"],
+          "additionalProperties": false
+        },
+        {
+          "title": "propertyArrayValue",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["array"]
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "oneOf": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/PropertyValues"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["oneOf"],
+              "additionalProperties": false
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["type", "items"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "PropertyTypeObject": {
       "title": "Property Type Object",
       "description": "A JSON object where each entry is constrained by a property type.",

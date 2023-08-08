@@ -32,8 +32,7 @@
     "required": {
       "type": "array",
       "items": {
-        "type": "string",
-        "format": "uri"
+        "$ref": "./shared.json#/definitions/BaseUrl"
       }
     },
     "links": { "$ref": "./shared.json#/definitions/LinkTypeObject" }

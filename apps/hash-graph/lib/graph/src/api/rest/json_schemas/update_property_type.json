@@ -20,69 +20,10 @@
     "oneOf": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/PropertyValuesUpdate"
+        "$ref": "./shared.json#/definitions/PropertyValues"
       }
     }
   },
   "required": ["$schema", "kind", "title", "oneOf"],
-  "additionalProperties": false,
-  "definitions": {
-    "PropertyValuesUpdate": {
-      "$id": "PropertyValuesUpdate",
-      "title": "PropertyValuesUpdate",
-      "$comment": "The definition of potential property values, made up of a `oneOf` keyword which has a list of options of either references to Data Types, or objects made up of more Property Types",
-      "oneOf": [
-        {
-          "$ref": "./shared.json#/definitions/DataTypeReference"
-        },
-        {
-          "title": "propertyObjectValue",
-          "type": "object",
-          "properties": {
-            "type": {
-              "enum": ["object"]
-            },
-            "properties": {
-              "$ref": "./shared.json#/definitions/PropertyTypeObject"
-            }
-          },
-          "required": ["type", "properties"],
-          "additionalProperties": false
-        },
-        {
-          "title": "propertyArrayValueUpdate",
-          "type": "object",
-          "properties": {
-            "type": {
-              "enum": ["array"]
-            },
-            "items": {
-              "type": "object",
-              "properties": {
-                "oneOf": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/PropertyValuesUpdate"
-                  },
-                  "minItems": 1
-                }
-              },
-              "required": ["oneOf"],
-              "additionalProperties": false
-            },
-            "minItems": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "maxItems": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "required": ["type", "items"],
-          "additionalProperties": false
-        }
-      ]
-    }
-  }
+  "additionalProperties": false
 }
