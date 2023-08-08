@@ -62,12 +62,6 @@ The [HASH] app seeks to enable its users to make better decisions by utilizing a
 | [hashdotdesign](hashdotdesign) | Source code and content related to our [hash.design] designer-focused website |
 | [hashdotdev](hashdotdev)       | Source code and content related to our [hash.dev] developer-focused website   |
 
-## Plugins
-
-| Subdirectory                         | Description                                                                             |
-| ------------------------------------ | --------------------------------------------------------------------------------------- |
-| [`intellij-plugin`](intellij-plugin) | Plugin for JetBrains IntelliJ-based IDEs to assist development in common HASH workflows |
-
 ## Block Protocol
 
 Source code for the _Block Protocol_ can be found separately in the [blockprotocol/blockprotocol repo] on GitHub.
