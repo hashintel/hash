@@ -24,7 +24,6 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
@@ -91,7 +90,7 @@ export const constructUser = (params: {
   // we already encountered it and avoid infinite recursion
   resolvedUsers[entityRecordIdToString(user.entityRecordId)] = user;
 
-  user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
+  user.memberOf = orgMemberships.map(({ linkData, metadata }) => {
     if (!linkData?.rightEntityId) {
       throw new Error("Expected org membership to contain a right entity");
     }

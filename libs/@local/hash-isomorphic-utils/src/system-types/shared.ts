@@ -90,6 +90,8 @@ export type OrgMembershipProperties = OrgMembershipProperties1 &
   OrgMembershipProperties2;
 export type OrgMembershipProperties1 = LinkProperties;
 
+export type OrgMembershipProperties2 = {};
+
 export type OrgOutgoingLinkAndTarget = never;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {};
