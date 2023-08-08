@@ -1125,6 +1125,7 @@
         "oneOf": [
           {
             "type": "object",
+            "title": "CustomOwnedEntityTypeMetadata",
             "required": [
               "provenance",
               "temporalVersioning",
@@ -1147,6 +1148,7 @@
           },
           {
             "type": "object",
+            "title": "CustomExternalEntityTypeMetadata",
             "required": [
               "provenance",
               "temporalVersioning",

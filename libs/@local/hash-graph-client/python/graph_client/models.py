@@ -978,7 +978,7 @@ class RightBoundedTemporalInterval(BaseModel):
     start: TemporalBound
 
 
-class CustomEntityTypeMetadatum(BaseModel):
+class CustomOwnedEntityTypeMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -990,7 +990,7 @@ class CustomEntityTypeMetadatum(BaseModel):
     )
 
 
-class CustomEntityTypeMetadatum1(BaseModel):
+class CustomExternalEntityTypeMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1006,7 +1006,7 @@ class CustomEntityTypeMetadata(RootModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: CustomEntityTypeMetadatum | CustomEntityTypeMetadatum1
+    root: CustomOwnedEntityTypeMetadata | CustomExternalEntityTypeMetadata
 
 
 class CustomOwnedOntologyElementMetadata(BaseModel):

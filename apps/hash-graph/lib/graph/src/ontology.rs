@@ -206,6 +206,7 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
                 schema::OneOfBuilder::new()
                     .item(
                         schema::ObjectBuilder::new()
+                            .title(Some("CustomOwnedEntityTypeMetadata"))
                             .property("labelProperty", Ref::from_schema_name("SHARED_BaseUrl"))
                             .property(
                                 "provenance",
@@ -223,6 +224,7 @@ impl ToSchema<'static> for CustomEntityTypeMetadata {
                     )
                     .item(
                         schema::ObjectBuilder::new()
+                            .title(Some("CustomExternalEntityTypeMetadata"))
                             .property("labelProperty", Ref::from_schema_name("SHARED_BaseUrl"))
                             .property(
                                 "provenance",
