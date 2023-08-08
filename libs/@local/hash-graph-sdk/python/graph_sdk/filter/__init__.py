@@ -4,18 +4,16 @@ To start using this module, choose where you need to "start",
 depending on the query this will be either: `DataTypePath`,
 `PropertyTypePath`, `EntityTypePath`, or `EntityPath`.
 """
-from abc import ABC
-from typing import Generic, Self, TypeVar
+from typing import Self
 
-from graph_client import QueryToken
 from graph_client.models import (
     DataTypeQueryToken,
     EntityQueryToken,
     EntityTypeQueryToken,
     PropertyTypeQueryToken,
-    Selector,
 )
 
+from graph_sdk.filter.base import AbstractPath
 from graph_sdk.query import Path
 
 
