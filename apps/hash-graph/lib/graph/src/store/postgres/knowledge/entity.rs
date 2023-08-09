@@ -601,6 +601,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
+        // Calling `UPDATE` on `entity_temporal_metadata` will invoke a trigger that properly
+        // updates the temporal versioning of the entity.
         let optional_row = if let Some(decision_time) = decision_time {
             transaction
                 .as_client()
