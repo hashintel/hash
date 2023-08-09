@@ -56,6 +56,7 @@ class TypeAPI:
 
         If the data type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
+        TODO: remove this once H-136 is resolved.
         """
         with with_actor(self.inner, actor_id):
             subgraph = await self.inner.query_data_types(
@@ -114,6 +115,7 @@ class TypeAPI:
 
         If the property type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
+        TODO: remove this once H-136 is resolved.
         """
         with with_actor(self.inner, actor_id):
             subgraph = await self.inner.query_property_types(
@@ -176,6 +178,7 @@ class TypeAPI:
 
         If the entity type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
+        TODO: remove this once H-136 is resolved.
         """
         with with_actor(self.inner, actor_id):
             subgraph = await self.inner.query_entity_types(

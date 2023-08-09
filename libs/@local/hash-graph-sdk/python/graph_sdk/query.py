@@ -118,13 +118,17 @@ class BaseFilter(ABC):
 
     @classmethod
     def always(cls) -> "NaryFilter[Never]":
-        """Returns a query that always returns true."""
-        return NaryFilter(NaryOperation.ALL, [])
+        """Returns a query that always returns true.
 
-    @classmethod
-    def never(cls) -> "NaryFilter[Never]":
-        """Returns a query that always returns false."""
-        return NaryFilter(NaryOperation.ANY, [])
+        Warning:
+        -------
+        Using this query is generally discouraged,
+        and should only be used if there is no other way.
+
+        This will return everything, which means that depending
+        on graph size, this **will** return a lot of data.
+        """
+        return NaryFilter(NaryOperation.ALL, [])
 
     @abstractmethod
     def to_ffi(self) -> Filter:
