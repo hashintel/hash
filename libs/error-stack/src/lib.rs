@@ -68,20 +68,16 @@
 //! Any [`Error`] can be used as a [`Context`], so it's possible to create [`Report`] from an
 //! existing [`Error`]:
 //!
-//! (For convenience, this crate provides an [`IntoReport`] trait to convert between
-//! [`Err`]-variants)
-//!
 //! ```rust
 //! # #[cfg(all(not(miri), feature = "std"))] {
 //! use std::{fs, io, path::Path};
 //!
-//! use error_stack::{IntoReport, Report};
+//! use error_stack::Report;
 //!
 //! // Note: For demonstration purposes this example does not use `error_stack::Result`.
-//! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from
-//! // an `io::Error`
+//! // As can be seen, it's possible to implicitly convert `io::Error` to `Report<io::Error>`
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
-//!     let content = fs::read_to_string(path).into_report()?;
+//!     let content = fs::read_to_string(path)?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
@@ -111,7 +107,7 @@
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fmt, fs, io, path::Path};
-//! use error_stack::{Context, IntoReport, Result, ResultExt};
+//! use error_stack::{Context, Result, ResultExt};
 //! # pub type Config = String;
 //!
 //! #[derive(Debug)]
@@ -130,7 +126,6 @@
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 //!     let content = fs::read_to_string(path.as_ref())
-//!         .into_report()
 //!         .change_context(ParseConfigError)?;
 //!
 //!     # const _: &str = stringify! {
@@ -154,7 +149,7 @@
 //! # // we only test the snapshot on nightly, therefore report is unused (so is render)
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
-//! # use error_stack::{Context, IntoReport, Report, ResultExt};
+//! # use error_stack::{Context, Report, ResultExt};
 //! # pub type Config = String;
 //! # #[derive(Debug)] struct ParseConfigError;
 //! # impl ParseConfigError { pub fn new() -> Self { Self } }
@@ -171,7 +166,6 @@
 //!     let path = path.as_ref();
 //!
 //!     let content = fs::read_to_string(path)
-//!         .into_report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("use a file you can read next time!"))
 //!         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;
@@ -234,7 +228,7 @@
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
-//! # use error_stack::{IntoReport, Report};
+//! # use error_stack::{Report};
 //! # pub type Config = String;
 //!
 //! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
@@ -244,15 +238,15 @@
 //!     for path in paths {
 //!         let path = path.as_ref();
 //!
-//!         match fs::read_to_string(path).into_report() {
+//!         match fs::read_to_string(path) {
 //!             Ok(ok) => {
 //!                 configs.push(ok);
 //!             }
 //!             Err(err) => {
 //!                 if let Some(error) = error.as_mut() {
-//!                     error.extend_one(err);
+//!                     error.extend_one(err.into());
 //!                 } else {
-//!                     error = Some(err);
+//!                     error = Some(err.into());
 //!                 }
 //!             }
 //!         }
@@ -401,10 +395,10 @@
 //!
 //! ### Additional Adaptors
 //!
-//! [`ResultExt`] is a convenient wrapper around `Result<_, Report<_>>`. It offers
-//! [`attach`](ResultExt::attach) and [`change_context`](ResultExt::change_context) on the
-//! [`Result`] directly, but also a lazy variant that receives a function which is only called if
-//! an error happens.
+//! [`ResultExt`] is a convenient wrapper around `Result<_, impl Context>` and `Result<_,
+//! Report<impl Context>`. It offers [`attach`](ResultExt::attach) and
+//! [`change_context`](ResultExt::change_context) on the [`Result`] directly, but also a lazy
+//! variant that receives a function which is only called if an error happens.
 //!
 //! In addition to [`ResultExt`], this crate also comes with [`FutureExt`], which provides the same
 //! functionality for [`Future`]s.
@@ -480,6 +474,7 @@ pub use self::{
     result::Result,
 };
 #[doc(inline)]
+#[allow(deprecated)]
 pub use self::{
     future::FutureExt,
     result::{IntoReport, ResultExt},

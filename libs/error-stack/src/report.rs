@@ -83,13 +83,12 @@ use crate::{
 ///
 /// ```
 /// # #[cfg(all(not(miri), feature = "std"))] {
-/// use error_stack::{IntoReport, ResultExt, Result};
+/// use error_stack::{ResultExt, Result};
 ///
 /// # #[allow(dead_code)]
 /// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .into_report()
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
@@ -104,7 +103,7 @@ use crate::{
 /// use std::{fmt, path::{Path, PathBuf}};
 ///
 /// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
-/// use error_stack::{Context, IntoReport, Report, ResultExt};
+/// use error_stack::{Context, Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -151,7 +150,7 @@ use crate::{
 ///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # return Err(error_stack::report!(ConfigError::IoError).attach_printable("Not supported"));
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).into_report().change_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).change_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
@@ -213,13 +212,12 @@ use crate::{
 /// ## Get the attached [`Backtrace`] and [`SpanTrace`]:
 ///
 /// ```should_panic
-/// use error_stack::{IntoReport, ResultExt, Result};
+/// use error_stack::{ResultExt, Result};
 ///
 /// # #[allow(unused_variables)]
 /// # fn main() -> Result<(), std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .into_report()
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
@@ -341,7 +339,7 @@ impl<C> Report<C> {
     ///     path::Path,
     /// };
     ///
-    /// use error_stack::{Context, Report, IntoReport, ResultExt};
+    /// use error_stack::{Context, Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -363,7 +361,6 @@ impl<C> Report<C> {
     ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
     ///     # #[cfg(all(not(miri), feature = "std"))]
     ///     std::fs::read_to_string(path.as_ref())
-    ///         .into_report()
     ///         .change_context(IoError)
     /// }
     ///
@@ -430,7 +427,7 @@ impl<C> Report<C> {
     /// # #[cfg(all(feature = "std", not(miri)))] {
     /// use std::{fmt, fs};
     ///
-    /// use error_stack::{IntoReport, ResultExt};
+    /// use error_stack::{ResultExt};
     ///
     /// #[derive(Debug)]
     /// pub struct Suggestion(&'static str);
@@ -442,7 +439,6 @@ impl<C> Report<C> {
     /// }
     ///
     /// let error = fs::read_to_string("config.txt")
-    ///     .into_report()
     ///     .attach(Suggestion("better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
@@ -542,12 +538,12 @@ impl<C> Report<C> {
     /// ```rust
     /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, io, path::Path};
-    /// # use error_stack::{IntoReport, Report};
+    /// # use error_stack::Report;
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).into_report()
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
@@ -569,14 +565,14 @@ impl<C> Report<C> {
     /// ```rust
     /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, path::Path};
-    /// # use error_stack::{IntoReport, Report};
+    /// # use error_stack::Report;
     /// use std::io;
     ///
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).into_report()
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
@@ -612,14 +608,14 @@ impl<C> Report<C> {
     /// ```rust
     /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, path::Path};
-    /// # use error_stack::{IntoReport, Report};
+    /// # use error_stack::Report;
     /// use std::io;
     ///
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).into_report()
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();

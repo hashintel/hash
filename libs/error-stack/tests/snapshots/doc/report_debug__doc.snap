@@ -2,7 +2,7 @@
 ├╴at <i>src/report.rs:62:14</i>
 │
 ├─▶ <b>config file is invalid</b>
-│   ╰╴at <i>src/report.rs:54:58</i>
+│   ╰╴at <i>src/report.rs:54:44</i>
 │
 ╰─▶ <b>No such file or directory (os error 2)</b>
     ├╴at <i>src/report.rs:54:44</i>
