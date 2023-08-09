@@ -49,8 +49,8 @@ class SelectorQueryPath(AbstractQueryPath, Generic[T]):
         return self.cls.from_path(self.path.push(Selector(root="*")))
 
 
-class PropertiesQueryPath(AbstractQueryPath):
-    """Navigation through properties, which is largely untyped."""
+class UntypedQueryPath(AbstractQueryPath):
+    """Navigation through objects, which is largely untyped."""
 
     def array(self, index: int) -> Self:
         """Return the path to the array for a property."""

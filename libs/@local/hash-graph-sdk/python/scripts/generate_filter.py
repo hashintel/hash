@@ -255,7 +255,7 @@ def generate_untyped_method(
             generate_method_docstring(token, name),
             ast.Return(
                 value=ast.Call(
-                    func=load_attribute(["PropertiesQueryPath", "from_path"]),
+                    func=load_attribute(["UntypedQueryPath", "from_path"]),
                     args=[
                         ast.Call(
                             func=load_attribute(["self", "path", "push"]),
@@ -267,7 +267,7 @@ def generate_untyped_method(
                 )
             ),
         ],
-        returns=ast.Name(id="PropertiesQueryPath", ctx=ast.Load()),
+        returns=ast.Name(id="UntypedQueryPath", ctx=ast.Load()),
     )
 
 
@@ -396,7 +396,7 @@ def imports() -> [ast.stmt]:
             module="graph_sdk.filter.base",
             names=[
                 ast.alias(name="AbstractQueryPath", asname=None),
-                ast.alias(name="PropertiesQueryPath", asname=None),
+                ast.alias(name="UntypedQueryPath", asname=None),
                 ast.alias(name="SelectorQueryPath", asname=None),
             ],
         ),

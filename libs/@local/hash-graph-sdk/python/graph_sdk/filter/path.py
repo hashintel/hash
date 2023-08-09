@@ -11,11 +11,7 @@ from graph_client.models import (
     PropertyTypeQueryToken,
 )
 
-from graph_sdk.filter.base import (
-    AbstractQueryPath,
-    PropertiesQueryPath,
-    SelectorQueryPath,
-)
+from graph_sdk.filter.base import AbstractQueryPath, SelectorQueryPath, UntypedQueryPath
 from graph_sdk.query import Path
 
 
@@ -206,11 +202,9 @@ class EntityQueryPath(AbstractQueryPath):
         """Return the path to the type attribute of an entity."""
         return EntityTypeQueryPath.from_path(self.path.push(EntityQueryToken.type))
 
-    def properties(self) -> PropertiesQueryPath:
+    def properties(self) -> UntypedQueryPath:
         """Return the path to the properties attribute of an entity."""
-        return PropertiesQueryPath.from_path(
-            self.path.push(EntityQueryToken.properties)
-        )
+        return UntypedQueryPath.from_path(self.path.push(EntityQueryToken.properties))
 
     def incoming_links(self) -> Self:
         """Return the path to the incoming_links attribute of an entity."""
