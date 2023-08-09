@@ -18,14 +18,14 @@ class AbstractQueryPath(ABC):
 
     @classmethod
     def from_ffi(cls, value: list[QueryToken]) -> Self:
-        """Initialize the filter with a vector."""
+        """Initialize the path from it's vector representation."""
         self = cls()
         self.path = Path.from_ffi(value)
         return self
 
     @classmethod
     def from_path(cls, path: Path) -> Self:
-        """Initialize the filter with a path."""
+        """Initialize this path from a query path object."""
         self = cls()
         self.path = path
         return self
@@ -55,10 +55,6 @@ class UntypedQueryPath(AbstractQueryPath):
     def array(self, index: int) -> Self:
         """Return the path to the array for a property."""
         return self.from_path(self.path.push(index))
-
-    def array_all(self) -> Self:
-        """Return the path to the array for a property."""
-        return self.from_path(self.path.push("*"))
 
     def key(self, key: str) -> Self:
         """Return the path to the key for a property."""
