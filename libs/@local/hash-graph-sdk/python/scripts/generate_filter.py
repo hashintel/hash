@@ -191,8 +191,15 @@ def generate_selector_method(
 ) -> ast.FunctionDef:
     """Generate a method that continues the path after a selector to a type."""
     next_class_name = get_class_name(next_type)
+    next_class_name_set: ast.expr = ast.Name(id=next_class_name, ctx=ast.Load())
+
     if class_name == next_class_name:
         next_class_name = "Self"
+        next_class_name_set = ast.Call(
+            func=ast.Name(id="type", ctx=ast.Load()),
+            args=[ast.Name(id="self", ctx=ast.Load())],
+            keywords=[],
+        )
 
     function_name = name
     while is_keyword_or_builtin(function_name):
@@ -228,7 +235,7 @@ def generate_selector_method(
                         attr="set_cls",
                         ctx=ast.Load(),
                     ),
-                    args=[ast.Name(id=class_name)],
+                    args=[next_class_name_set],
                     keywords=[],
                 )
             ),
@@ -374,7 +381,7 @@ def generate_path(
     )
 
 
-def imports() -> [ast.stmt]:
+def imports() -> list[ast.ImportFrom]:
     """Generate the imports for the module."""
     return [
         ast.ImportFrom(

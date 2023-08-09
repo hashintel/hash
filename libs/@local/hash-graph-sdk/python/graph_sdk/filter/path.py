@@ -95,7 +95,7 @@ class PropertyTypeQueryPath(AbstractQueryPath):
         return (
             SelectorQueryPath[DataTypeQueryPath]
             .from_path(self.path.push(PropertyTypeQueryToken.data_types))
-            .set_cls(PropertyTypeQueryPath)
+            .set_cls(DataTypeQueryPath)
         )
 
     def property_types(self) -> SelectorQueryPath[Self]:
@@ -103,7 +103,7 @@ class PropertyTypeQueryPath(AbstractQueryPath):
         return (
             SelectorQueryPath[Self]
             .from_path(self.path.push(PropertyTypeQueryToken.property_types))
-            .set_cls(PropertyTypeQueryPath)
+            .set_cls(type(self))
         )
 
 
@@ -151,7 +151,7 @@ class EntityTypeQueryPath(AbstractQueryPath):
         return (
             SelectorQueryPath[PropertyTypeQueryPath]
             .from_path(self.path.push(EntityTypeQueryToken.properties))
-            .set_cls(EntityTypeQueryPath)
+            .set_cls(PropertyTypeQueryPath)
         )
 
     def required(self) -> Path:
@@ -167,7 +167,7 @@ class EntityTypeQueryPath(AbstractQueryPath):
         return (
             SelectorQueryPath[Self]
             .from_path(self.path.push(EntityTypeQueryToken.links))
-            .set_cls(EntityTypeQueryPath)
+            .set_cls(type(self))
         )
 
     def inherits_from(self) -> Path:
