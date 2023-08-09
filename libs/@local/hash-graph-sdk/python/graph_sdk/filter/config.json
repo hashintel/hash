@@ -1,29 +1,29 @@
 {
   "data_type": {
     "selector": {},
-    "wildcard": [],
-    "continue": {}
+    "untyped": [],
+    "direct": {}
   },
   "property_type": {
     "selector": {
       "data_types": "data_type",
       "property_types": "property_type"
     },
-    "wildcard": [],
-    "continue": {}
+    "untyped": [],
+    "direct": {}
   },
   "entity_type": {
     "selector": {
       "properties": "property_type",
       "links": "entity_type"
     },
-    "wildcard": [],
-    "continue": {}
+    "untyped": [],
+    "direct": {}
   },
   "entity": {
     "selector": {},
-    "wildcard": ["properties"],
-    "continue": {
+    "untyped": ["properties"],
+    "direct": {
       "type": "entity_type",
       "incoming_links": "entity",
       "outgoing_links": "entity",

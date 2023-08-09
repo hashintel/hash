@@ -20,7 +20,7 @@ from graph_sdk.query import Path
 
 
 class DataTypeQueryPath(AbstractQueryPath):
-    """A path for a data type."""
+    """A query path for a data type."""
 
     def base_url(self) -> Path:
         """Return the path to the base_url attribute of a data type."""
@@ -60,7 +60,7 @@ class DataTypeQueryPath(AbstractQueryPath):
 
 
 class PropertyTypeQueryPath(AbstractQueryPath):
-    """A path for a property type."""
+    """A query path for a property type."""
 
     def base_url(self) -> Path:
         """Return the path to the base_url attribute of a property type."""
@@ -112,7 +112,7 @@ class PropertyTypeQueryPath(AbstractQueryPath):
 
 
 class EntityTypeQueryPath(AbstractQueryPath):
-    """A path for an entity type."""
+    """A query path for an entity type."""
 
     def base_url(self) -> Path:
         """Return the path to the base_url attribute of an entity type."""
@@ -180,7 +180,7 @@ class EntityTypeQueryPath(AbstractQueryPath):
 
 
 class EntityQueryPath(AbstractQueryPath):
-    """A path for an entity."""
+    """A query path for an entity."""
 
     def uuid(self) -> Path:
         """Return the path to the uuid attribute of an entity."""

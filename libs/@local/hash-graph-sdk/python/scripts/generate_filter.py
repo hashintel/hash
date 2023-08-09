@@ -21,14 +21,11 @@ Each entry has the following fields:
               with another type. It is a record, where the key is the field name
               and the value is the type to continue with.
               (one of `data_type`, `property_type`, `entity_type`, `entity`)
-- `wildcard`: Fields that go into untyped territory through the properties selector.
-- `continue`: Fields that do not require an intermediary selector, and then continue
+- `untyped`: Fields that go into untyped territory through the properties selector.
+- `direct`: Fields that do not require an intermediary selector, and then continue
               with another type. It is a record, where the key is the field name and the
               value is the type to continue with.
               (one of `data_type`, `property_type`, `entity_type`, `entity`)
-
-(also notice how all fields are of same length, I don't know what it is, but it always
-gives me a sense of satisfaction when I see that)
 """
 import ast
 import json
@@ -47,14 +44,13 @@ DIRECTORY = Path(__file__).parent.parent
 
 TypeId = Literal["data_type", "property_type", "entity_type", "entity"]
 
-ConfigurationEntry = TypedDict(
-    "ConfigurationEntry",
-    {
-        "selector": dict[str, TypeId],
-        "wildcard": list[str],
-        "continue": dict[str, TypeId],
-    },
-)
+
+class ConfigurationEntry(TypedDict):
+    """A configuration entry."""
+
+    selector: dict[str, TypeId]
+    untyped: list[str]
+    direct: dict[str, TypeId]
 
 
 class Configuration(TypedDict):
@@ -244,7 +240,7 @@ def generate_selector_method(
     )
 
 
-def generate_wildcard_method(
+def generate_untyped_method(
     token: Enum,
     name: str,
 ) -> ast.FunctionDef:
@@ -275,7 +271,7 @@ def generate_wildcard_method(
     )
 
 
-def generate_continue_method(
+def generate_direct_method(
     class_name: str,
     token: Enum,
     name: str,
@@ -320,19 +316,17 @@ def generate_method(
     tokens: Enum,
     method_name: str,
     *,
-    selector: TypeId | None = None,
-    wildcard: bool = False,
-    continue_: TypeId | None = None,
+    config: ConfigurationEntry,
 ) -> ast.FunctionDef:
     """Generate a method for a path class."""
-    if selector is not None:
+    if selector := config["selector"].get(method_name, None):
         return generate_selector_method(class_name, tokens, method_name, selector)
 
-    if wildcard:
-        return generate_wildcard_method(tokens, method_name)
+    if method_name in config["untyped"]:
+        return generate_untyped_method(tokens, method_name)
 
-    if continue_ is not None:
-        return generate_continue_method(class_name, tokens, method_name, continue_)
+    if direct := config["direct"].get(method_name, None):
+        return generate_direct_method(class_name, tokens, method_name, direct)
 
     return generate_plain_method(tokens, method_name)
 
@@ -356,9 +350,7 @@ def generate_path(
             class_name,
             token,
             token.name,
-            selector=config["selector"].get(token.name, None),
-            wildcard=token.name in config["wildcard"],
-            continue_=config["continue"].get(token.name, None),
+            config=config,
         )
         for token in tokens
     ]
@@ -370,7 +362,10 @@ def generate_path(
         body=[
             ast.Expr(
                 value=ast.Constant(
-                    value=f"A path for {get_human_readable_name(next(iter(tokens)))}."
+                    value=(
+                        "A query path for"
+                        f" {get_human_readable_name(next(iter(tokens)))}."
+                    )
                 )
             ),
             *body,
