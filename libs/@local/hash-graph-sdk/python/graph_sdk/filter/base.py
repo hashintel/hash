@@ -8,7 +8,7 @@ from graph_sdk.query import Path
 
 
 class AbstractPath(ABC):
-    """An abstract path."""
+    """Path definition shared across different query paths."""
 
     path: Path
 

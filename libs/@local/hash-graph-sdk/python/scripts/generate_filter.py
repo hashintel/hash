@@ -17,12 +17,12 @@ The configuration file is a record with the following fields:
 - `entity`
 
 Each entry has the following fields:
-- `selector`: Fields that require an intermediary `*` selector, and then continue
+- `selector`: Fields that require an intermediary selector, and then continue
               with another type. It is a record, where the key is the field name
               and the value is the type to continue with.
               (one of `data_type`, `property_type`, `entity_type`, `entity`)
 - `wildcard`: Fields that go into untyped territory through the properties selector.
-- `continue`: Fields that do not require an intermediary `*` selector, and then continue
+- `continue`: Fields that do not require an intermediary selector, and then continue
               with another type. It is a record, where the key is the field name and the
               value is the type to continue with.
               (one of `data_type`, `property_type`, `entity_type`, `entity`)
