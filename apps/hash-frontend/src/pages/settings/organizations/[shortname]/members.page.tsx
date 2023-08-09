@@ -13,11 +13,9 @@ import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef, useState } from "react";
 
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../../shared/layout";
+import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
+import { getSettingsLayout } from "../../shared/settings-layout";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { Cell } from "./members.page/cell";
 import { MemberRow } from "./members.page/member-row";
@@ -139,9 +137,6 @@ const OrgMembersPage: NextPageWithLayout = () => {
   );
 };
 
-OrgMembersPage.getLayout = (page) =>
-  getLayoutWithSidebar(page, {
-    fullWidth: true,
-  });
+OrgMembersPage.getLayout = (page) => getSettingsLayout(page);
 
 export default OrgMembersPage;

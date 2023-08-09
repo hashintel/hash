@@ -5,6 +5,7 @@ import { FunctionComponent, useContext } from "react";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkspaceContext } from "../shared/workspace-context";
+import { getSettingsLayout } from "./shared/settings-layout";
 
 const AddNewIntegrations: FunctionComponent = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);
@@ -63,7 +64,6 @@ const IntegrationsPage: NextPageWithLayout = () => {
   );
 };
 
-IntegrationsPage.getLayout = (page) =>
-  getLayoutWithSidebar(page, { fullWidth: true });
+IntegrationsPage.getLayout = (page) => getSettingsLayout(page);
 
 export default IntegrationsPage;

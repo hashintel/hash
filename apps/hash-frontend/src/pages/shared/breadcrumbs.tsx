@@ -74,7 +74,7 @@ export const Breadcrumbs = ({
   const router = useRouter();
   let items: (Breadcrumb | { submenu: Breadcrumb[] })[] = crumbs;
 
-  if (crumbs.length > 3) {
+  if (crumbs.length > 4) {
     items = [
       crumbs[0]!,
       {

@@ -17,11 +17,9 @@ import {
   getLinearOrganizationQuery,
   syncLinearIntegrationWithWorkspacesMutation,
 } from "../../../../graphql/queries/integrations/linear.queries";
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../../shared/layout";
+import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
+import { getSettingsLayout } from "../../shared/settings-layout";
 import {
   LinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
@@ -159,7 +157,6 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   );
 };
 
-NewLinearIntegrationPage.getLayout = (page) =>
-  getLayoutWithSidebar(page, { fullWidth: true });
+NewLinearIntegrationPage.getLayout = (page) => getSettingsLayout(page);
 
 export default NewLinearIntegrationPage;

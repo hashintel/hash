@@ -7,12 +7,10 @@ import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../../shared/layout";
+import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { OrgForm, OrgFormData } from "../../../shared/org-form";
+import { getSettingsLayout } from "../../shared/settings-layout";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -100,9 +98,6 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   );
 };
 
-OrgGeneralSettingsPage.getLayout = (page) =>
-  getLayoutWithSidebar(page, {
-    fullWidth: true,
-  });
+OrgGeneralSettingsPage.getLayout = (page) => getSettingsLayout(page);
 
 export default OrgGeneralSettingsPage;
