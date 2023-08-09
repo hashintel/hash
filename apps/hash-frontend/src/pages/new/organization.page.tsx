@@ -1,7 +1,7 @@
 import { Box, Container, Typography } from "@mui/material";
 
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { CreateOrgForm } from "./org.page/create-org-form";
+import { CreateOrgForm } from "./organization.page/create-org-form";
 
 const Page: NextPageWithLayout = () => {
   return (

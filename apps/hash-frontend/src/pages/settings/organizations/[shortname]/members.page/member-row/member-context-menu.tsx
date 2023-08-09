@@ -75,7 +75,7 @@ export const MemberContextMenu = ({
           }}
         >
           <ListItemText
-            primary={self ? "Leave workspace" : "Remove from workspace"}
+            primary={self ? "Leave organization" : "Remove from organization"}
           />
         </MenuItem>
       </Menu>

@@ -93,7 +93,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
         <OrgForm
           org={org}
           onSubmit={updateOrg}
-          submitLabel="Update workspace profile"
+          submitLabel="Update organization profile"
         />
       </Container>
     </>
