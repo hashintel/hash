@@ -44,7 +44,7 @@ class SelectorQueryPath(AbstractQueryPath, Generic[T]):
         self.cls = cls
         return self
 
-    def all_(self) -> T:
+    def any_(self) -> T:
         """Return the path to all values in an array."""
         return self.cls.from_path(self.path.push(Selector(root="*")))
 
