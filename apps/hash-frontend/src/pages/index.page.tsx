@@ -4,11 +4,10 @@ import { Box, Typography } from "@mui/material";
 
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Link } from "../shared/ui";
-import { MainContainer } from "./shared/main-container";
 
 const Page: NextPageWithLayout = () => {
   return (
-    <MainContainer sx={{ pt: 7 }}>
+    <Box sx={{ pt: 7 }}>
       <Typography mb={3} variant="h2">
         Welcome to HASH
       </Typography>
@@ -45,13 +44,10 @@ const Page: NextPageWithLayout = () => {
           .
         </Typography>
       </Box>
-    </MainContainer>
+    </Box>
   );
 };
 
-Page.getLayout = (page) =>
-  getLayoutWithSidebar(page, {
-    fullWidth: true,
-  });
+Page.getLayout = (page) => getLayoutWithSidebar(page);
 
 export default Page;

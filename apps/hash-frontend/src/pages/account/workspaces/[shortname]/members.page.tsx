@@ -18,7 +18,6 @@ import {
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { MainContainer } from "../../../shared/main-container";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { Cell } from "./members.page/cell";
 import { MemberRow } from "./members.page/member-row";
@@ -56,7 +55,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
     <>
       <NextSeo title={`${org.name} | Members`} />
 
-      <MainContainer sx={{ paddingLeft: 4, mb: 10 }} ref={topRef}>
+      <Box sx={{ paddingLeft: 4, mb: 10 }} ref={topRef}>
         <Typography variant="h2" mt={10} mb={4} fontWeight="bold">
           {org.name}
         </Typography>
@@ -135,7 +134,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
             </TableFooter>
           </Table>
         </Box>
-      </MainContainer>
+      </Box>
     </>
   );
 };

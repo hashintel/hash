@@ -58,6 +58,7 @@ export const TopContextBar = ({
     <Box
       sx={[
         {
+          background: "white",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",

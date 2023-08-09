@@ -21,7 +21,7 @@ import { MenuItem } from "../../shared/ui";
 
 export type Breadcrumb = {
   title: string;
-  href: string;
+  href?: string;
   icon?: ReactNode;
   id: string;
 };
@@ -117,17 +117,23 @@ export const Breadcrumbs = ({
         return (
           <Tooltip placement="bottom-start" key={item.title} title={item.title}>
             <Button
+              disabled={!item.href}
               variant="tertiary_quiet"
               // don't attach href if it's the current page
-              {...(!item.href.includes(router.asPath) && { href: item.href })}
+              {...(item.href &&
+                !item.href.includes(router.asPath) && { href: item.href })}
               onClick={() => {
-                if (item.href.includes(router.asPath)) {
+                if (item.href?.includes(router.asPath)) {
                   scrollToTop();
                 }
               }}
               size="xs"
               startIcon={item.icon ?? defaultIcon}
               sx={{
+                "&:disabled": {
+                  background: "white",
+                  borderColor: "white",
+                },
                 px: 1,
               }}
             >
