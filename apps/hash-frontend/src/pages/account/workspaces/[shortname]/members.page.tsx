@@ -102,7 +102,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
                     key={membership.membershipEntity.metadata.recordId.entityId}
                     membership={membership}
                     self={
-                      membership.user.shortname === authenticatedUser.shortname
+                      membership.user.accountId === authenticatedUser.accountId
                     }
                   />
                 ))}
