@@ -652,7 +652,8 @@ describe("non-zero, simple resolve depths", () => {
       },
     });
     expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(3);
+    // changed from 3 to 2 because the archived entity is filtered out in getEntities – check expectations after H-349 (proper archival)
+    expect(Object.keys(subgraph.vertices).length).toEqual(2);
     expect(Object.keys(subgraph.edges).length).toEqual(1);
 
     const friendshipEntity = getRoots(subgraph)[0]!;
@@ -703,7 +704,9 @@ describe("non-zero, simple resolve depths", () => {
       },
     });
     expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(3);
+    // changed from 3 to 2 because the archived entity is filtered out in getEntities
+    // – this should probably change back to 3 after H-349 when the getEntities hack is removed: this is an 'all time' query
+    expect(Object.keys(subgraph.vertices).length).toEqual(2);
     expect(Object.keys(subgraph.edges).length).toEqual(1);
 
     const friendshipEntity = getRoots(subgraph)[0]!;
@@ -873,7 +876,8 @@ describe("non-zero, simple resolve depths", () => {
       },
     });
     expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(3);
+    // changed from 3 to 2 because the archived entity is filtered out in getEntities – check expectations after H-349 (proper archival)
+    expect(Object.keys(subgraph.vertices).length).toEqual(2);
     expect(Object.keys(subgraph.edges).length).toEqual(2);
     const roots = getRoots(subgraph);
 
