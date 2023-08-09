@@ -1,12 +1,12 @@
 [package]
-name = "wassap"
+name = "whassup"
 version = "0.0.0-reserved"
 authors = ["HASH"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "You ask what’s up, it gives you the status"
-documentation = "https://docs.rs/wassap"
+description = "Ask what's up, get a status back"
+documentation = "https://docs.rs/whassup"
 readme = "README.md"
-repository = "https://github.com/hashintel/hash/tree/main/libs/wassap"
+repository = "https://github.com/hashintel/hash/tree/main/libs/whassup"
 keywords = ["error", "errorstack", "error-handling", "status", "no_std"]
 categories = ["no-std", "rust-patterns"]
