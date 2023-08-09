@@ -333,7 +333,7 @@ class Path(BaseFilterExpression):
         return f"{self.__class__.__name__}({self.value!r})"
 
     @classmethod
-    def from_list(cls, value: list[QueryToken]) -> Self:
+    def from_ffi(cls, value: list[QueryToken]) -> Self:
         """Initialize the path with a vector."""
         self = cls()
         self.value = value[::]
@@ -345,7 +345,7 @@ class Path(BaseFilterExpression):
         tokens = self.value[::]
         tokens.append(value)
 
-        return self.from_list(tokens)
+        return self.from_ffi(tokens)
 
     def _finish(self) -> PathExpression:
         """Finish the path."""

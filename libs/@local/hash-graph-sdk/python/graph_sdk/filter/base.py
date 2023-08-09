@@ -13,14 +13,14 @@ class AbstractPath(ABC):
     path: Path
 
     def __init__(self) -> None:
-        """Initialize the filter with a path."""
+        """Create a new empty path."""
         self.path = Path()
 
     @classmethod
-    def from_list(cls, value: list[QueryToken]) -> Self:
+    def from_ffi(cls, value: list[QueryToken]) -> Self:
         """Initialize the filter with a vector."""
         self = cls()
-        self.path = Path.from_list(value)
+        self.path = Path.from_ffi(value)
         return self
 
     @classmethod
