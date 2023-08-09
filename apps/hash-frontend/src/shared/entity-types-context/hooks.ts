@@ -2,12 +2,22 @@ import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "./hooks/use-entity-types-context-required";
+import { isEntityTypeArchived } from "./util";
 
 export const useEntityTypesLoading = () =>
   useEntityTypesContextRequired().loading;
 
-export const useEntityTypesOptional = () =>
-  useEntityTypesContextRequired().entityTypes;
+export const useEntityTypesOptional = (params?: {
+  includeArchived?: boolean;
+}) => {
+  const { includeArchived = false } = params ?? {};
+
+  const { entityTypes } = useEntityTypesContextRequired();
+
+  return includeArchived
+    ? entityTypes
+    : entityTypes?.filter((entityType) => !isEntityTypeArchived(entityType));
+};
 
 export const useEntityTypesSubgraphOptional = () =>
   useEntityTypesContextRequired().subgraph;

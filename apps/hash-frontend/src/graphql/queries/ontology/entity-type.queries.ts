@@ -94,3 +94,9 @@ export const archiveEntityTypeMutation = gql`
     archiveEntityType(entityTypeId: $entityTypeId)
   }
 `;
+
+export const unarchiveEntityTypeMutation = gql`
+  mutation unarchiveEntityType($entityTypeId: VersionedUrl!) {
+    unarchiveEntityType(entityTypeId: $entityTypeId)
+  }
+`;
