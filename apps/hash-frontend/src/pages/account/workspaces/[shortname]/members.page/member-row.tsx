@@ -1,13 +1,6 @@
-import { TextField } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { BaseUrl } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, TableCell, TableRow, Typography } from "@mui/material";
-import { FormEvent, useRef, useState } from "react";
+import { TableCell, TableRow, Typography } from "@mui/material";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
