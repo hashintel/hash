@@ -71,7 +71,7 @@ export const pageTypedef = gql`
       """
       Whether or not to include archived pages. Defaults to false.
       """
-      includeArchived: Boolean
+      includeArchived: Boolean = false
     ): [Page!]!
 
     pageComments(
