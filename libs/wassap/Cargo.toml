@@ -1,0 +1,12 @@
+[package]
+name = "wassap"
+version = "0.0.0-reserved"
+authors = ["HASH"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "You ask what’s up, it gives you the status"
+documentation = "https://docs.rs/wassap"
+readme = "README.md"
+repository = "https://github.com/hashintel/hash/tree/main/libs/wassap"
+keywords = ["error", "errorstack", "error-handling", "status", "no_std"]
+categories = ["no-std", "rust-patterns"]
