@@ -104,7 +104,7 @@ struct CreateEntityTypeRequest {
     owned_by_id: OwnedById,
     actor_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(schema_with = base_url_schema)]
+    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
 }
 
@@ -430,7 +430,7 @@ struct UpdateEntityTypeRequest {
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(schema_with = base_url_schema)]
+    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
 }
 

@@ -44,6 +44,7 @@
     "prismjs": "1.29.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-full-screen": "1.1.1",
     "remark-mdx": "2.1.2",
     "remark-mdx-disable-explicit-jsx": "0.1.0",
     "remark-parse": "10.0.1",
