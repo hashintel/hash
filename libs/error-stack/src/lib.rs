@@ -228,7 +228,7 @@
 //! ```rust
 //! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
-//! # use error_stack::{Report};
+//! # use error_stack::Report;
 //! # pub type Config = String;
 //!
 //! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
