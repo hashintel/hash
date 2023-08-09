@@ -10,7 +10,7 @@ mod common;
 #[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::IntoReportCompat;
-#[cfg(nightly)]
+#[cfg(all(nightly, feature = "std"))]
 use error_stack::Report;
 
 #[test]
