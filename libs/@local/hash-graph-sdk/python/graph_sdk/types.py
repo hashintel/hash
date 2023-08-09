@@ -9,7 +9,11 @@ from graph_types import (
 from yarl import URL
 
 from graph_sdk.client.concurrent import HASHClient, with_actor
-from graph_sdk.filter import DataTypePath, EntityTypePath, PropertyTypePath
+from graph_sdk.filter import (
+    DataTypeQueryPath,
+    EntityTypeQueryPath,
+    PropertyTypeQueryPath,
+)
 from graph_sdk.options import Options
 from graph_sdk.query import Parameter
 from graph_sdk.utils import (
@@ -59,7 +63,7 @@ class TypeAPI:
         """
         with with_actor(self.inner, actor_id):
             subgraph = await self.inner.query_data_types(
-                DataTypePath().versioned_url() == Parameter(data_type_id),
+                DataTypeQueryPath().versioned_url() == Parameter(data_type_id),
                 Options(),
             )
 
@@ -117,7 +121,7 @@ class TypeAPI:
         """
         with with_actor(self.inner, actor_id):
             subgraph = await self.inner.query_property_types(
-                PropertyTypePath().versioned_url() == Parameter(property_type_id),
+                PropertyTypeQueryPath().versioned_url() == Parameter(property_type_id),
                 Options(),
             )
 
@@ -179,7 +183,7 @@ class TypeAPI:
         """
         with with_actor(self.inner, actor_id):
             subgraph = await self.inner.query_entity_types(
-                EntityTypePath().versioned_url() == Parameter(entity_type_id),
+                EntityTypeQueryPath().versioned_url() == Parameter(entity_type_id),
                 Options(),
             )
 

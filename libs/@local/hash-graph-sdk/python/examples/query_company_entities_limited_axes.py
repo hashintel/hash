@@ -4,7 +4,7 @@ import devtools
 from yarl import URL
 
 from graph_sdk.client.blocking import HASHClient
-from graph_sdk.filter import EntityPath
+from graph_sdk.filter import EntityQueryPath
 from graph_sdk.options import (
     Options,
     TemporalAxesBuilder,
@@ -24,7 +24,7 @@ options.temporal_axes = TemporalAxesBuilder.pinned_transaction_time(None).betwee
 )
 
 subgraph = client.query_entities(
-    EntityPath().type_().base_url() == Parameter(COMPANY_URL),
+    EntityQueryPath().type_().base_url() == Parameter(COMPANY_URL),
     options,
 )
 

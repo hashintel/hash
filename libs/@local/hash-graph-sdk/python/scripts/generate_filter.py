@@ -2,10 +2,10 @@
 
 We need to generate 4 classes:
 
-- DataTypePath
-- PropertyTypePath
-- EntityPath
-- EntityTypePath
+- DataTypeQueryPath
+- PropertyTypeQueryPath
+- EntityTypeQueryPath
+- EntityQueryPath
 
 To generate them we have a configuration file that is located
 under `graph_sdk/filter/config.json`.
@@ -45,14 +45,14 @@ from graph_client.models import (
 
 DIRECTORY = Path(__file__).parent.parent
 
-OntologyType = Literal["data_type", "property_type", "entity_type", "entity"]
+TypeId = Literal["data_type", "property_type", "entity_type", "entity"]
 
 ConfigurationEntry = TypedDict(
     "ConfigurationEntry",
     {
-        "selector": dict[str, OntologyType],
+        "selector": dict[str, TypeId],
         "wildcard": list[str],
-        "continue": dict[str, OntologyType],
+        "continue": dict[str, TypeId],
     },
 )
 
@@ -91,10 +91,10 @@ def get_class_name(
 ) -> str:
     """Get the class name for the given name."""
     return {
-        "data_type": "DataTypePath",
-        "property_type": "PropertyTypePath",
-        "entity_type": "EntityTypePath",
-        "entity": "EntityPath",
+        "data_type": "DataTypeQueryPath",
+        "property_type": "PropertyTypeQueryPath",
+        "entity_type": "EntityTypeQueryPath",
+        "entity": "EntityQueryPath",
     }[name]
 
 
@@ -191,7 +191,7 @@ def generate_selector_method(
     class_name: str,
     token: Enum,
     name: str,
-    next_type: OntologyType,
+    next_type: TypeId,
 ) -> ast.FunctionDef:
     """Generate a method that continues the path after a selector to a type."""
     next_class_name = get_class_name(next_type)
@@ -212,7 +212,9 @@ def generate_selector_method(
                         ast.Call(
                             func=ast.Attribute(
                                 value=ast.Subscript(
-                                    value=ast.Name(id="SelectorPath", ctx=ast.Load()),
+                                    value=ast.Name(
+                                        id="SelectorQueryPath", ctx=ast.Load()
+                                    ),
                                     slice=ast.Name(id=next_class_name, ctx=ast.Load()),
                                 ),
                                 attr="from_path",
@@ -236,7 +238,7 @@ def generate_selector_method(
             ),
         ],
         returns=ast.Subscript(
-            value=ast.Name(id="SelectorPath", ctx=ast.Load()),
+            value=ast.Name(id="SelectorQueryPath", ctx=ast.Load()),
             slice=ast.Name(id=next_class_name),
         ),
     )
@@ -257,7 +259,7 @@ def generate_wildcard_method(
             generate_method_docstring(token, name),
             ast.Return(
                 value=ast.Call(
-                    func=load_attribute(["PropertiesPath", "from_path"]),
+                    func=load_attribute(["PropertiesQueryPath", "from_path"]),
                     args=[
                         ast.Call(
                             func=load_attribute(["self", "path", "push"]),
@@ -269,7 +271,7 @@ def generate_wildcard_method(
                 )
             ),
         ],
-        returns=ast.Name(id="PropertiesPath", ctx=ast.Load()),
+        returns=ast.Name(id="PropertiesQueryPath", ctx=ast.Load()),
     )
 
 
@@ -277,7 +279,7 @@ def generate_continue_method(
     class_name: str,
     token: Enum,
     name: str,
-    next_type: OntologyType,
+    next_type: TypeId,
 ) -> ast.FunctionDef:
     """Generate a method that continues the path with the specified type."""
     next_class_name = get_class_name(next_type)
@@ -318,9 +320,9 @@ def generate_method(
     tokens: Enum,
     method_name: str,
     *,
-    selector: OntologyType | None = None,
+    selector: TypeId | None = None,
     wildcard: bool = False,
-    continue_: OntologyType | None = None,
+    continue_: TypeId | None = None,
 ) -> ast.FunctionDef:
     """Generate a method for a path class."""
     if selector is not None:
@@ -336,7 +338,7 @@ def generate_method(
 
 
 def generate_path(
-    id_: OntologyType,
+    id_: TypeId,
     config: ConfigurationEntry,
 ) -> ast.ClassDef:
     """Generate a path class."""
@@ -363,7 +365,7 @@ def generate_path(
 
     return ast.ClassDef(
         name=class_name,
-        bases=[ast.Name(id="AbstractPath", ctx=ast.Load())],
+        bases=[ast.Name(id="AbstractQueryPath", ctx=ast.Load())],
         keywords=[],
         body=[
             ast.Expr(
@@ -398,9 +400,9 @@ def imports() -> [ast.stmt]:
         ast.ImportFrom(
             module="graph_sdk.filter.base",
             names=[
-                ast.alias(name="AbstractPath", asname=None),
-                ast.alias(name="PropertiesPath", asname=None),
-                ast.alias(name="SelectorPath", asname=None),
+                ast.alias(name="AbstractQueryPath", asname=None),
+                ast.alias(name="PropertiesQueryPath", asname=None),
+                ast.alias(name="SelectorQueryPath", asname=None),
             ],
         ),
         ast.ImportFrom(

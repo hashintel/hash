@@ -6,15 +6,15 @@ depending on the query this will be either: `DataTypePath`,
 """
 
 from graph_sdk.filter.path import (
-    DataTypePath,
-    EntityPath,
-    EntityTypePath,
-    PropertyTypePath,
+    DataTypeQueryPath,
+    EntityQueryPath,
+    EntityTypeQueryPath,
+    PropertyTypeQueryPath,
 )
 
 __all__ = [
-    "EntityPath",
-    "EntityTypePath",
-    "PropertyTypePath",
-    "DataTypePath",
+    "EntityQueryPath",
+    "EntityTypeQueryPath",
+    "PropertyTypeQueryPath",
+    "DataTypeQueryPath",
 ]

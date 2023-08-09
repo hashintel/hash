@@ -7,7 +7,7 @@ from graph_client.models import Selector
 from graph_sdk.query import Path
 
 
-class AbstractPath(ABC):
+class AbstractQueryPath(ABC):
     """Path definition shared across different query paths."""
 
     path: Path
@@ -31,10 +31,10 @@ class AbstractPath(ABC):
         return self
 
 
-T = TypeVar("T", bound=AbstractPath)
+T = TypeVar("T", bound=AbstractQueryPath)
 
 
-class SelectorPath(AbstractPath, Generic[T]):
+class SelectorQueryPath(AbstractQueryPath, Generic[T]):
     """A selector is a path that is used to select a value in an array."""
 
     cls: type[T]
@@ -49,7 +49,7 @@ class SelectorPath(AbstractPath, Generic[T]):
         return self.cls.from_path(self.path.push(Selector(root="*")))
 
 
-class PropertiesPath(AbstractPath):
+class PropertiesQueryPath(AbstractQueryPath):
     """Navigation through properties, which is largely untyped."""
 
     def array(self, index: int) -> Self:
