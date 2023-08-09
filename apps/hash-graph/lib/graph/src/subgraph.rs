@@ -54,7 +54,9 @@ impl Subgraph {
         }
     }
 
-    fn vertex_entry_mut<R: Record>(
+    // TODO: Make private again
+    //   see https://linear.app/hash/issue/H-297
+    pub fn vertex_entry_mut<R: Record>(
         &mut self,
         vertex_id: &R::VertexId,
     ) -> RawEntryMut<R::VertexId, R, RandomState> {
